@@ -1,0 +1,10 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "zisi"
+
+# Push notification sender — runs every hour
+[functions."send-push2"]
+  schedule = "0 * * * *"
