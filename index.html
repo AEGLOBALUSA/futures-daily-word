@@ -2827,6 +2827,14 @@ function App(){
     setWordHighlights(p=>{const n={...p};keys.forEach(k=>delete n[k]);return n});
   };
 
+  // ===== ROBUST AUDIO ENGINE v2 =====
+  // Single reusable audio element for reliability (especially iOS Safari)
+  const persistentAudioRef=useRef(null);
+  const getPersistentAudio=()=>{
+    if(!persistentAudioRef.current){persistentAudioRef.current=new Audio();persistentAudioRef.current.preload='auto'}
+    return persistentAudioRef.current;
+  };
+
   // Stop any currently playing audio and clear highlights for all queued passages
   const stopAudio=()=>{
     // Clear highlights for current + all remaining queued passages
@@ -2848,9 +2856,97 @@ function App(){
       }else{audioRef.current.pause()}
       audioRef.current=null;
     }
+    // Also stop the persistent audio element
+    const pa=persistentAudioRef.current;
+    if(pa){pa.pause();pa.removeAttribute('src');pa.load();pa.oncanplay=null;pa.onended=null;pa.onerror=null;pa.onplay=null}
     setSpeaking(null);
     setAudioLoading(null);
   };
+
+  // Fetch audio with retry (2 attempts)
+  const fetchAudioWithRetry=async(url,opts={},timeout=20000,retries=2)=>{
+    for(let attempt=0;attempt<retries;attempt++){
+      try{
+        const resp=await fetchWithTimeout(url,opts,timeout);
+        if(!resp.ok)throw new Error('HTTP '+resp.status);
+        const blob=await resp.blob();
+        if(blob.size<100)throw new Error('Empty audio response');
+        return URL.createObjectURL(blob);
+      }catch(e){
+        console.log(`Audio fetch attempt ${attempt+1} failed:`,e.message);
+        if(attempt===retries-1)throw e;
+        await new Promise(r=>setTimeout(r,500)); // brief pause before retry
+      }
+    }
+  };
+
+  // Play an object URL through the persistent audio element
+  const playAudioUrl=(url,speed,onStart,onEnd,onError)=>{
+    const audio=getPersistentAudio();
+    // Clean up previous handlers
+    audio.oncanplay=null;audio.onended=null;audio.onerror=null;audio.onplay=null;
+    audio.src=url;
+    audio.playbackRate=speed;
+    let started=false;
+    audio.oncanplay=()=>{
+      if(started)return;
+      started=true;
+      audio.playbackRate=speed;
+      audio.play().then(()=>{if(onStart)onStart()}).catch(err=>{
+        console.log('Audio play() rejected:',err.message);
+        if(onError)onError(err);
+      });
+    };
+    audio.onended=()=>{if(onEnd)onEnd()};
+    audio.onerror=(e)=>{console.log('Audio element error:',e);if(onError)onError(e)};
+    audioRef.current=audio;
+    audio.load();
+    return audio;
+  };
+
+  // Browser TTS fallback — works on all platforms
+  const playBrowserTTS=(text,speed,langCode,onStart,onEnd)=>{
+    const utter=new SpeechSynthesisUtterance(text);
+    utter.lang=langCode==='pt'?'pt-BR':langCode==='es'?'es-ES':'en-US';
+    utter.rate=speed;
+    const voices=window.speechSynthesis.getVoices();
+    if(langCode==='pt'){
+      const v=voices.find(v=>v.lang.startsWith('pt')&&v.name.toLowerCase().includes('vitória'))||voices.find(v=>v.lang.startsWith('pt'))||null;
+      if(v)utter.voice=v;
+    }else if(langCode==='es'){
+      const v=voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('mónica'))||voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('paulina'))||voices.find(v=>v.lang.startsWith('es'))||null;
+      if(v)utter.voice=v;
+    }else{
+      const v=voices.find(v=>v.lang.startsWith('en')&&v.name.toLowerCase().includes('daniel'))||voices.find(v=>v.lang.startsWith('en-GB'))||voices.find(v=>v.lang.startsWith('en')&&!v.name.toLowerCase().includes('google'))||voices.find(v=>v.lang.startsWith('en'))||null;
+      if(v)utter.voice=v;
+    }
+    utter.onstart=()=>{if(onStart)onStart()};
+    utter.onend=()=>{if(onEnd)onEnd()};
+    utter.onerror=()=>{if(onEnd)onEnd()};
+    utter._isTTS=true;
+    audioRef.current=utter;
+    window.speechSynthesis.speak(utter);
+    return utter;
+  };
+
+  // Get Polly TTS audio URL (with retry)
+  const getPollyAudio=async(text,voiceId)=>{
+    return fetchAudioWithRetry('/.netlify/functions/polly-tts',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text,voiceId:voiceId||(lang==='pt'?'Camila':lang==='es'?'Lucia':'Matthew'),engine:'neural'})
+    },20000,2);
+  };
+
+  // Get ElevenLabs TTS audio URL (with retry)
+  const getElevenLabsAudio=async(text,voiceId)=>{
+    return fetchAudioWithRetry('/.netlify/functions/elevenlabs-tts',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text,voiceId:voiceId||'JBFqnCBsd6RMkjVDRZzb'})
+    },20000,2);
+  };
+
+  // === PASSAGE AUDIO (Bible readings) ===
+  // Fallback chain: ESV Audio → Polly → Browser TTS
 
   // Play the next passage in the queue
   const playNextInQueue=(finishedPassage)=>{
@@ -2866,7 +2962,7 @@ function App(){
     playSinglePassage(nextPassage);
   };
 
-  // Play a single passage (called by queue or directly)
+  // Play a single Bible passage with full fallback chain
   const playSinglePassage=(pName)=>{
     const pData=BIBLE[pName]||parsePassage(pName);
     if(!pData){playNextInQueue(pName);return}
@@ -2874,62 +2970,83 @@ function App(){
     const numV=setup.versesPerPassage||10;
     const speed=audioSpeed;
 
+    // Get verse text for TTS fallbacks
+    const allV=getVerses(pName);
+    const verses=allV.slice(0,numV);
+    const text=verses.join(' ');
+
     if(lang==='es'||lang==='pt'){
-      const allV=getVerses(pName);
-      const verses=allV.slice(0,numV);
-      const text=verses.join(' ');
+      // Spanish/Portuguese: Polly → Browser TTS
       if(!text){setAudioLoading(null);playNextInQueue(pName);return}
-      // Use Polly (Lucia/Camila) for professional Spanish/Portuguese TTS, fallback to browser TTS
       (async()=>{
         try{
-          const resp=await fetchWithTimeout('/.netlify/functions/polly-tts',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({text,voiceId:lang==='pt'?'Camila':'Lucia',engine:'neural'})
-          },20000);
-          if(!resp.ok)throw new Error('Polly '+resp.status);
-          const blob=await resp.blob();
-          const url=URL.createObjectURL(blob);
-          const audio=new Audio(url);
-          audio.playbackRate=speed;
-          audioRef.current=audio;
-          audio.oncanplaythrough=()=>{setAudioLoading(null);setSpeaking(pName);audio.playbackRate=speed;audio.play().catch(()=>{})};
-          audio.onended=()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url);playNextInQueue(pName)};
-          audio.onerror=()=>{setAudioLoading(null);setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url);playNextInQueue(pName)};
-          audio.load();
+          const url=await getPollyAudio(text);
+          playAudioUrl(url,speed,
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url);playNextInQueue(pName)},
+            ()=>{URL.revokeObjectURL(url);throw new Error('playback failed')}
+          );
         }catch(e){
-          console.log('Polly unavailable for passage, falling back to browser TTS:',e.message);
-          const utter=new SpeechSynthesisUtterance(text);
-          utter.lang=lang==='pt'?'pt-BR':'es-ES';
-          utter.rate=speed;
-          const voices=window.speechSynthesis.getVoices();
-          const langVoice=lang==='pt'?
-            (voices.find(v=>v.lang.startsWith('pt')&&v.name.toLowerCase().includes('vitória'))||
-             voices.find(v=>v.lang.startsWith('pt'))||null)
-            :(voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('mónica'))||
-              voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('paulina'))||
-              voices.find(v=>v.lang.startsWith('es'))||null);
-          if(langVoice)utter.voice=langVoice;
-          utter.onstart=()=>{setAudioLoading(null);setSpeaking(pName)};
-          utter.onend=()=>{setSpeaking(null);audioRef.current=null;playNextInQueue(pName)};
-          utter.onerror=()=>{setAudioLoading(null);setSpeaking(null);audioRef.current=null;playNextInQueue(pName)};
-          utter._isTTS=true;
-          audioRef.current=utter;
-          window.speechSynthesis.speak(utter);
+          console.log('Polly failed for passage, using browser TTS:',e.message);
+          if(!text){setAudioLoading(null);playNextInQueue(pName);return}
+          playBrowserTTS(text,speed,lang,
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null;playNextInQueue(pName)}
+          );
         }
       })();
     }else{
+      // English: ESV Audio → Polly (Matthew) → Browser TTS
       let ref=pName;
       if(ref.startsWith('Psalms '))ref='Psalm '+ref.slice(7);
       ref=ref+':1-'+numV;
-      const url='/.netlify/functions/esv-audio?q='+encodeURIComponent(ref);
-      const audio=new Audio(url);
-      audio.playbackRate=speed;
-      audioRef.current=audio;
-      audio.oncanplaythrough=()=>{setAudioLoading(null);setSpeaking(pName);audio.playbackRate=speed;audio.play().catch(()=>{})};
-      audio.onended=()=>{setSpeaking(null);audioRef.current=null;playNextInQueue(pName)};
-      audio.onerror=()=>{setAudioLoading(null);setSpeaking(null);audioRef.current=null;playNextInQueue(pName)};
-      audio.load();
+      const esvUrl='/.netlify/functions/esv-audio?q='+encodeURIComponent(ref);
+
+      (async()=>{
+        // Try ESV Audio first
+        try{
+          const url=await fetchAudioWithRetry(esvUrl,{},20000,2);
+          playAudioUrl(url,speed,
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url);playNextInQueue(pName)},
+            ()=>{
+              URL.revokeObjectURL(url);
+              // ESV playback error — try Polly
+              tryPollyFallback();
+            }
+          );
+          return;
+        }catch(e){
+          console.log('ESV Audio failed, trying Polly:',e.message);
+        }
+
+        // Try Polly (Matthew voice)
+        async function tryPollyFallback(){
+          if(!text){setAudioLoading(null);playNextInQueue(pName);return}
+          try{
+            const url=await getPollyAudio(text,'Matthew');
+            playAudioUrl(url,speed,
+              ()=>{setAudioLoading(null);setSpeaking(pName)},
+              ()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url);playNextInQueue(pName)},
+              ()=>{URL.revokeObjectURL(url);tryBrowserTTSFallback()}
+            );
+          }catch(e){
+            console.log('Polly failed, using browser TTS:',e.message);
+            tryBrowserTTSFallback();
+          }
+        }
+
+        // Final fallback: Browser TTS
+        function tryBrowserTTSFallback(){
+          if(!text){setAudioLoading(null);playNextInQueue(pName);return}
+          playBrowserTTS(text,speed,'en',
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null;playNextInQueue(pName)}
+          );
+        }
+
+        await tryPollyFallback();
+      })();
     }
   };
 
@@ -2964,66 +3081,65 @@ function App(){
     const pName='plan:'+planReading.ref;
     setAudioLoading(pName);
     const speed=audioSpeed;
+
     if(lang==='es'||lang==='pt'){
       (async()=>{
         try{
-          const resp=await fetchWithTimeout('/.netlify/functions/polly-tts',{
-            method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({text,voiceId:lang==='pt'?'Camila':'Lucia',engine:'neural'})
-          },20000);
-          if(!resp.ok)throw new Error('Polly '+resp.status);
-          const blob=await resp.blob();
-          const url=URL.createObjectURL(blob);
-          const audio=new Audio(url);
-          audio.playbackRate=speed;
-          audioRef.current=audio;
-          audio.oncanplaythrough=()=>{setAudioLoading(null);setSpeaking(pName);audio.playbackRate=speed;audio.play().catch(()=>{})};
-          audio.onended=()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url)};
-          audio.onerror=()=>{setAudioLoading(null);setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url)};
-          audio.load();
+          const url=await getPollyAudio(text);
+          playAudioUrl(url,speed,
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url)},
+            ()=>{URL.revokeObjectURL(url);
+              playBrowserTTS(text,speed,lang,
+                ()=>{setAudioLoading(null);setSpeaking(pName)},
+                ()=>{setSpeaking(null);audioRef.current=null}
+              );
+            }
+          );
         }catch(e){
-          console.log('Polly unavailable for plan, falling back to browser TTS:',e.message);
-          const utter=new SpeechSynthesisUtterance(text);
-          utter.lang=lang==='pt'?'pt-BR':'es-ES';utter.rate=speed;
-          const voices=window.speechSynthesis.getVoices();
-          const langVoice=lang==='pt'?
-            (voices.find(v=>v.lang.startsWith('pt')&&v.name.toLowerCase().includes('vitória'))||
-             voices.find(v=>v.lang.startsWith('pt'))||null)
-            :(voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('mónica'))||
-              voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('paulina'))||
-              voices.find(v=>v.lang.startsWith('es'))||null);
-          if(langVoice)utter.voice=langVoice;
-          utter.onstart=()=>{setAudioLoading(null);setSpeaking(pName)};
-          utter.onend=()=>{setSpeaking(null);audioRef.current=null};
-          utter.onerror=()=>{setAudioLoading(null);setSpeaking(null);audioRef.current=null};
-          utter._isTTS=true;audioRef.current=utter;
-          window.speechSynthesis.speak(utter);
+          playBrowserTTS(text,speed,lang,
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null}
+          );
         }
       })();
     }else{
-      // English: use ESV audio API
+      // English: ESV Audio → Polly → Browser TTS
       let ref=planReading.ref.replace(/ \(KJV offline\)/,'').replace(/ \(offline\)/,'');
       if(ref.startsWith('Psalms '))ref='Psalm '+ref.slice(7);
-      const url='/.netlify/functions/esv-audio?q='+encodeURIComponent(ref);
-      const audio=new Audio(url);
-      audio.playbackRate=speed;
-      audioRef.current=audio;
-      audio.oncanplaythrough=()=>{setAudioLoading(null);setSpeaking(pName);audio.playbackRate=speed;audio.play().catch(()=>{})};
-      audio.onended=()=>{setSpeaking(null);audioRef.current=null};
-      audio.onerror=()=>{
-        // ESV audio failed — fall back to browser TTS
-        setAudioLoading(null);audioRef.current=null;
+      const esvUrl='/.netlify/functions/esv-audio?q='+encodeURIComponent(ref);
+
+      (async()=>{
         try{
-          const utter=new SpeechSynthesisUtterance(text);
-          utter.lang='en-US';utter.rate=speed;
-          utter.onstart=()=>{setSpeaking(pName)};
-          utter.onend=()=>{setSpeaking(null);audioRef.current=null};
-          utter.onerror=()=>{setSpeaking(null);audioRef.current=null};
-          utter._isTTS=true;audioRef.current=utter;
-          window.speechSynthesis.speak(utter);
-        }catch(err){setSpeaking(null)}
-      };
-      audio.load();
+          const url=await fetchAudioWithRetry(esvUrl,{},20000,2);
+          playAudioUrl(url,speed,
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url)},
+            ()=>{URL.revokeObjectURL(url);pollyFallback()}
+          );
+          return;
+        }catch(e){console.log('ESV Audio failed for plan:',e.message)}
+
+        async function pollyFallback(){
+          try{
+            const url=await getPollyAudio(text,'Matthew');
+            playAudioUrl(url,speed,
+              ()=>{setAudioLoading(null);setSpeaking(pName)},
+              ()=>{setSpeaking(null);audioRef.current=null;URL.revokeObjectURL(url)},
+              ()=>{URL.revokeObjectURL(url);browserFallback()}
+            );
+          }catch(e){browserFallback()}
+        }
+
+        function browserFallback(){
+          playBrowserTTS(text,speed,'en',
+            ()=>{setAudioLoading(null);setSpeaking(pName)},
+            ()=>{setSpeaking(null);audioRef.current=null}
+          );
+        }
+
+        await pollyFallback();
+      })();
     }
   };
 
@@ -3041,1086 +3157,35 @@ function App(){
     playSinglePassage(passageList[0]);
   };
 
-  // ===== PUSH NOTIFICATIONS =====
-  const VAPID_PUBLIC='BKHrkranUJv3Fga-LuZCz47o5oBLs3IilzIt4CgZSrJZztwz7h5CqrTmuCDEWW_Eg8BzJ8y9nHKXn1bouOr-eyI';
+  // ===== BOOK CHAPTER AUDIO =====
 
-  // Convert VAPID key to Uint8Array
-  const urlBase64ToUint8Array=(base64String)=>{
-    const padding='='.repeat((4-base64String.length%4)%4);
-    const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
-    const raw=atob(base64);
-    const arr=new Uint8Array(raw.length);
-    for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
-    return arr;
-  };
-
-  // Check if push is already enabled on load
-  useEffect(()=>{
-    const checkPush=async()=>{
-      if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
-      try{
-        const reg=await navigator.serviceWorker.ready;
-        const sub=await reg.pushManager.getSubscription();
-        if(sub){setPushEnabled(true);pushSubRef.current=sub}
-      }catch(e){}
-    };
-    checkPush();
-    // Show notification prompt after 3rd visit if not already decided
-    const visits=parseInt(localStorage.getItem('dw_visits')||'0')+1;
-    try{localStorage.setItem('dw_visits',String(visits))}catch(e){}
-    const dismissed=localStorage.getItem('dw_notif_dismissed');
-    if(visits>=3&&!dismissed&&!pushEnabled&&'PushManager' in window){
-      setTimeout(()=>setShowNotifPrompt(true),3000);
-    }
-  },[]);
-
-  const subscribePush=async()=>{
-    if(!('serviceWorker' in navigator)||!('PushManager' in window)){
-      alert(lang==='es'?'Las notificaciones no están disponibles en este navegador.':lang==='pt'?'As notificações não estão disponíveis neste navegador. Certifique-se de ter adicionado o app à tela inicial.':'Notifications are not available on this browser. Make sure you\'ve added the app to your home screen.');
-      return;
-    }
-    setPushLoading(true);
-    try{
-      const permission=await Notification.requestPermission();
-      if(permission!=='granted'){
-        setPushLoading(false);
-        alert(lang==='es'?'Permiso de notificación denegado.':lang==='pt'?'Permissão de notificação negada. Você pode habilitá-la nas configurações do navegador.':'Notification permission denied. You can enable it in your browser settings.');
-        return;
-      }
-      const reg=await navigator.serviceWorker.ready;
-      const sub=await reg.pushManager.subscribe({
-        userVisibleOnly:true,
-        applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC)
-      });
-      pushSubRef.current=sub;
-      // Send subscription to server
-      const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'America/New_York';
-      await fetchWithTimeout('/.netlify/functions/push-subscribe',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'subscribe',subscription:sub.toJSON(),timezone:tz,preferredHour:notifHour})
-      },12000);
-      setPushEnabled(true);
-      setPushLoading(false);
-      setShowNotifPrompt(false);
-      try{localStorage.setItem('dw_notif_dismissed','subscribed')}catch(e){}
-      setCopyMsg(lang==='es'?'¡Notificaciones activadas!':lang==='pt'?'Notificações ativadas!':'Notifications enabled!');
-      setTimeout(()=>setCopyMsg(''),2000);
-      gaEvent('push_subscribed',{hour:notifHour});
-    }catch(err){
-      console.error('Push subscribe error:',err);
-      setPushLoading(false);
-      alert(lang==='es'?'No se pudieron activar las notificaciones.':lang==='pt'?'Não foi possível ativar as notificações. Tente novamente.':'Could not enable notifications. Please try again.');
-    }
-  };
-
-  const unsubscribePush=async()=>{
-    setPushLoading(true);
-    try{
-      if(pushSubRef.current){
-        await fetchWithTimeout('/.netlify/functions/push-subscribe',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({action:'unsubscribe',subscription:pushSubRef.current.toJSON()})
-        },12000);
-        await pushSubRef.current.unsubscribe();
-        pushSubRef.current=null;
-      }
-      setPushEnabled(false);
-      setPushLoading(false);
-      localStorage.removeItem('dw_notif_dismissed');
-      setCopyMsg(lang==='es'?'Notificaciones desactivadas':lang==='pt'?'Notificações desativadas':'Notifications turned off');
-      setTimeout(()=>setCopyMsg(''),2000);
-      gaEvent('push_unsubscribed');
-    }catch(err){
-      console.error('Unsubscribe error:',err);
-      setPushLoading(false);
-    }
-  };
-
-  const updateNotifHour=async(hour)=>{
-    setNotifHour(hour);
-    try{localStorage.setItem('dw_notif_hour',String(hour))}catch(e){}
-    if(pushSubRef.current){
-      try{
-        await fetchWithTimeout('/.netlify/functions/push-subscribe',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({action:'update',subscription:pushSubRef.current.toJSON(),preferredHour:hour})
-        },12000);
-      }catch(e){}
-    }
-  };
-
-  // Semantic Scripture search — uses ESV API for lookup
-  const doScriptureSearch=async(query)=>{
-    if(!query.trim())return;
-    gaEvent('scripture_search',{query:query.trim()});
-    setSearchLoading(true);setSearchResults(null);
-    try{
-      // First try direct ESV lookup (handles "John 3:16", "Romans 8", etc.)
-      const esvRes=await fetchDedup('/.netlify/functions/esv?q='+encodeURIComponent(query),{},12000);
-      const esvData=await esvRes.json();
-      if(esvData.passages&&esvData.passages.length>0&&esvData.passages[0].trim()){
-        const text=esvData.passages[0].trim();
-        const ref=esvData.canonical||query;
-        setSearchResults([{ref,text}]);
-        setSearchLoading(false);return;
-      }
-      // If direct lookup fails, use Claude to interpret the semantic query
-      if(!checkClaudeRate()){setSearchResults([{ref:'Rate Limited',text:'Too many requests. Please wait a few minutes.'}]);setSearchLoading(false);return}
-      const claudeRes=await fetchWithTimeout('/.netlify/functions/claude',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({messages:[{role:'user',content:`The user searched for: "${query}". Return ONLY a JSON array of 1-3 relevant Bible passage references that match this query. Examples of valid references: "John 3:16-17", "Psalm 23:1-6", "Romans 8:28-39". Return ONLY the JSON array, nothing else. Example: ["John 3:16-17","Romans 8:28"]`}],model:'claude-sonnet-4-20250514',max_tokens:200})
-      },25000);
-      const claudeData=await claudeRes.json();
-      const content=claudeData.content?.[0]?.text||'';
-      const match=content.match(/\[[\s\S]*?\]/);
-      if(match){
-        let refs;try{refs=JSON.parse(match[0])}catch(e){console.log('AI JSON parse error',e);refs=[]}
-        const results=[];
-        for(const r of refs.slice(0,3)){
-          try{
-            const res=await fetchDedup('/.netlify/functions/esv?q='+encodeURIComponent(r),{},12000);
-            const d=await res.json();
-            if(d.passages&&d.passages[0]&&d.passages[0].trim()){
-              results.push({ref:d.canonical||r,text:d.passages[0].trim()});
-            }
-          }catch(e){}
-        }
-        if(results.length>0){setSearchResults(results);setSearchLoading(false);return}
-      }
-      setSearchResults([]);
-    }catch(e){setSearchResults([]);}
-    setSearchLoading(false);
-  };
-
-  const changeFontSize=(delta)=>{
-    const newScale=Math.min(1.6,Math.max(0.8,fontScale+delta));
-    setFontScale(newScale);
-    document.documentElement.style.setProperty('--font-scale',newScale);
-    try{localStorage.setItem('dw_fontscale',newScale)}catch(e){}
-  };
-
-  // Auto-log today as read when viewing home
-  useEffect(()=>{
-    if(setup&&page==='home'){
-      const todayKey=new Date().toISOString().split('T')[0];
-      setReadDays(p=>{if(p[todayKey])return p;return{...p,[todayKey]:true}});
-    }
-  },[page,setup]);
-
-  const toggleDark=(v)=>{setDark(v);try{localStorage.setItem('dw_dark',v)}catch(e){}v?document.body.classList.add('dark'):document.body.classList.remove('dark');gaEvent('toggle_dark_mode',{enabled:v})};
-
-  // Date
-  const today=new Date();
-  today.setDate(today.getDate()+dayOffset);
-  const dateStr=today.toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const dayOfYear=Math.floor((today-new Date(today.getFullYear(),0,0))/(1000*60*60*24));
-  const quote=QUOTES[dayOfYear%QUOTES.length];
-
-  // Get passages for today
-  const getPassages=()=>{
-    if(!setup)return[];
-    const pool=PERSONA_MAP[setup.persona]||PERSONA_MAP.new_believer;
-    const numCh=setup.chapters||1;
-    const sources=setup.chapterSources;
-
-    // If chapter sources are set, pull one passage per chapter from each source
-    if(sources&&sources.length>0&&numCh>1){
-      const result=[];
-      for(let ch=0;ch<numCh;ch++){
-        const sectionKey=sources[ch%sources.length];
-        const section=BIBLE_SECTIONS[sectionKey];
-        if(section&&section.passages.length>0){
-          const sPool=section.passages;
-          result.push(sPool[(dayOfYear*(ch+1))%sPool.length]);
-        }else{
-          result.push(pool[(dayOfYear*(ch+1))%pool.length]);
-        }
-      }
-      return result;
-    }
-
-    // Default: pull from persona pool
-    const start=(dayOfYear*numCh)%pool.length;
-    const result=[];
-    for(let i=0;i<numCh;i++){result.push(pool[(start+i)%pool.length])}
-    return result;
-  };
-
-  const passages=getPassages();
-
-  // Verse key
-  const vKey=(passage,idx)=>`${passage}:${idx+1}`;
-
-  // Highlight verse(s)
-  const hlVerse=(color)=>{
-    if(!selectedVerse)return;
-    const keys=selectedVerse.allKeys||[selectedVerse.key];
-    setHighlights(p=>{const n={...p};keys.forEach(k=>n[k]=color);return n});
-    gaEvent('highlight_verse',{color,ref:cleanRef(selectedVerse.ref)});
-    setShowActions(false);setSelectedVerse(null);setDragSelect(null);
-  };
-
-  // Show interlinear for selected verse(s)
-  const showInterlinearForVerse=()=>{gaEvent('interlinear',{ref:selectedVerse?cleanRef(selectedVerse.ref):''});
-    if(!selectedVerse)return;
-    const keys=selectedVerse.allKeys||[selectedVerse.key];
-    const texts=selectedVerse.allTexts||[selectedVerse.text];
-    const pName=(selectedVerse.allKeys||[selectedVerse.key])[0].split(':').slice(0,-1).join(':');
-    keys.forEach((vk,i)=>{
-      if(ilData[vk]){
-        setIlData(p=>{const n={...p};delete n[vk];return n});
-      }else{
-        triggerInterlinear(vk,texts[i]||'',pName);
-      }
-    });
-    setShowActions(false);setSelectedVerse(null);setDragSelect(null);
-  };
-
-  // Select entire passage — toggle highlight on/off, then open actions panel
-  const selectPassage=(pName,verses)=>{
-    const keys=verses.map((_,vi)=>vKey(pName,vi));
-    const allHighlighted=keys.every(k=>highlights[k]);
-    if(allHighlighted){
-      // Unhighlight all
-      setHighlights(p=>{const n={...p};keys.forEach(k=>delete n[k]);return n});
-    }else{
-      // Highlight all in yellow, then open actions panel
-      setHighlights(p=>{const n={...p};keys.forEach(k=>n[k]='yellow');return n});
-      const fullText=verses.map((v,vi)=>`${vi+1} ${v}`).join(' ');
-      setSelectedVerse({key:keys[0],ref:pName,text:fullText,allKeys:keys,allTexts:verses});
-      setShowActions(true);setShowNote(false);setShowComment(false);
-    }
-  };
-
-  // Select ALL passages for the day's reading
-  const selectAllDailyPassages = () => {
-    const numV = setup.versesPerPassage || 10;
-    let allKeys = [];
-    let allTexts = [];
-    let allFullText = [];
-    passages.forEach(pN => {
-      const av = getVerses(pN);
-      const vs = av.slice(0, numV);
-      vs.forEach((_, vi) => allKeys.push(vKey(pN, vi)));
-      allTexts.push(...vs);
-      allFullText.push(pN + ": " + vs.map((v, vi) => (vi + 1) + " " + v).join(' '));
-    });
-    const allHighlighted = allKeys.every(k => highlights[k]);
-    if (allHighlighted) {
-      setHighlights(p => { const n = {...p}; allKeys.forEach(k => delete n[k]); return n; });
-    } else {
-      setHighlights(p => { const n = {...p}; allKeys.forEach(k => n[k] = 'yellow'); return n; });
-      setSelectedVerse({ key: allKeys[0], ref: passages.join(', '), text: allFullText.join(' | '), allKeys: allKeys, allTexts: allTexts });
-      setShowActions(true);
-      setShowNote(false);
-      setShowComment(false);
-    }
-  };
-
-  // Drag-to-select verses
-  const onVersePointerDown=(e,pName,vi,verses)=>{
-    // Only start drag on primary button / touch
-    if(e.button&&e.button!==0)return;
-    lastDragWasMove.current=false;
-    dragRef.current={pName,startIdx:vi,endIdx:vi,verses,moved:false,timer:null};
-    // Use a small delay so quick taps still work as single click
-    dragRef.current.timer=setTimeout(()=>{
-      if(dragRef.current){
-        dragRef.current.engaged=true;
-        setDragSelect({pName,startIdx:vi,endIdx:vi});
-      }
-    },200);
-  };
-
-  const onVersePointerMove=(e,pName,vi)=>{
-    if(!dragRef.current||dragRef.current.pName!==pName)return;
-    if(vi!==dragRef.current.endIdx){
-      dragRef.current.moved=true;
-      dragRef.current.endIdx=vi;
-      // If moved, engage immediately
-      if(!dragRef.current.engaged){
-        dragRef.current.engaged=true;
-        if(dragRef.current.timer){clearTimeout(dragRef.current.timer);dragRef.current.timer=null}
-      }
-      setDragSelect({pName,startIdx:dragRef.current.startIdx,endIdx:vi});
-    }
-  };
-
-  const onVersePointerUp=(e,pName,vi)=>{
-    if(!dragRef.current)return;
-    if(dragRef.current.timer){clearTimeout(dragRef.current.timer);dragRef.current.timer=null}
-    const d=dragRef.current;
-    dragRef.current=null;
-    // If user didn't move to another verse, treat as normal tap — but let onClick handle it as fallback
-    if(!d.moved&&!d.engaged){
-      lastDragWasMove.current=false;
-      setDragSelect(null);
-      const key=vKey(pName,vi);
-      setSelectedVerse({key,ref:`${pName}:${vi+1}`,text:d.verses[vi]});
-      setShowActions(true);setShowNote(false);
-      return;
-    }
-    // Finalize drag selection — keep visual preview, open actions panel
-    lastDragWasMove.current=true;
-    const lo=Math.min(d.startIdx,d.endIdx);
-    const hi=Math.max(d.startIdx,d.endIdx);
-    const keys=[];const texts=[];
-    for(let i=lo;i<=hi;i++){keys.push(vKey(pName,i));texts.push(d.verses[i])}
-    const fullText=texts.map((t,i)=>`${lo+i+1} ${t}`).join(' ');
-    setSelectedVerse({key:keys[0],ref:`${pName}:${lo+1}-${hi+1}`,text:fullText,allKeys:keys,allTexts:texts});
-    setShowActions(true);setShowNote(false);setShowComment(false);
-    setDragSelect({pName,startIdx:lo,endIdx:hi});
-  };
-
-  // onClick fallback for verse tap — handles cases where pointer events don't work (iOS Safari)
-  const onVerseClick=(e,pName,vi,verses)=>{
-    // If a character/location name was tapped, let that handler do its thing
-    if(wordTapRef.current){wordTapRef.current=false;return}
-    // If drag happened, skip
-    if(lastDragWasMove.current){lastDragWasMove.current=false;return}
-    // If pointer events already opened the panel, skip
-    if(showActions)return;
-    // This is the fallback: open actions panel on simple tap
-    setDragSelect(null);
-    const key=vKey(pName,vi);
-    setSelectedVerse({key,ref:`${pName}:${vi+1}`,text:verses[vi]});
-    setShowActions(true);setShowNote(false);setShowComment(false);
-  };
-
-  // Handle touch-based drag (touchmove doesn't fire on the element under finger)
-  const onVerseTouchMove=(e,pName,verses)=>{
-    if(!dragRef.current||dragRef.current.pName!==pName)return;
-    const touch=e.touches[0];
-    const el=document.elementFromPoint(touch.clientX,touch.clientY);
-    if(el){
-      const verseEl=el.closest('[data-vidx]');
-      if(verseEl){
-        const vi=parseInt(verseEl.getAttribute('data-vidx'));
-        if(!isNaN(vi))onVersePointerMove(e,pName,vi);
-      }
-    }
-  };
-
-  // Copy verse to clipboard
-  const [copyMsg,setCopyMsg]=useState('');
-  const cleanRef=(r)=>(r||'').replace(/^plan:/,'');
-  const copyVerse=()=>{
-    if(!selectedVerse)return;
-    const text=`"${selectedVerse.text}" — ${cleanRef(selectedVerse.ref)}`;
-    navigator.clipboard.writeText(text);
-    gaEvent('copy_verse',{ref:cleanRef(selectedVerse.ref)});
-    setCopyMsg(L.copied);
-    setTimeout(()=>{setCopyMsg('');setShowActions(false);setSelectedVerse(null);setDragSelect(null);setWordSelection(null)},800);
-  };
-
-  // Share
-  const [showSharePicker,setShowSharePicker]=useState(false);
-
-  const shareVerse=()=>{
-    if(!selectedVerse)return;
-    gaEvent('share_verse',{ref:cleanRef(selectedVerse.ref)});
-    setShowSharePicker(true);
-  };
-
-  const getShareText=()=>{
-    if(!selectedVerse)return '';
-    return `"${selectedVerse.text}"\n\n— ${cleanRef(selectedVerse.ref)} (${translation})\n\nShared from Daily Word`;
-  };
-
-  const shareToWhatsApp=()=>{
-    const text=getShareText();
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');
-    closeSharePicker();
-  };
-
-  const shareToSMS=()=>{
-    const text=getShareText();
-    // sms: works on both iOS (body=) and Android (?body=)
-    const sep=/(iPhone|iPad|iPod)/i.test(navigator.userAgent)?'&':'?';
-    window.open(`sms:${sep}body=${encodeURIComponent(text)}`);
-    closeSharePicker();
-  };
-
-  const shareToEmail=()=>{
-    const ref=selectedVerse?cleanRef(selectedVerse.ref):'Scripture';
-    const text=getShareText();
-    window.open(`mailto:?subject=${encodeURIComponent(ref+' — Daily Word')}&body=${encodeURIComponent(text)}`);
-    closeSharePicker();
-  };
-
-  const shareToTelegram=()=>{
-    const text=getShareText();
-    window.open(`https://t.me/share/url?url=${encodeURIComponent('https://futures-daily-word.netlify.app')}&text=${encodeURIComponent(text)}`,'_blank');
-    closeSharePicker();
-  };
-
-  const shareNative=async()=>{
-    const text=getShareText();
-    if(navigator.share){try{await navigator.share({text})}catch(e){}}
-    else{await navigator.clipboard.writeText(text);setCopyMsg(L.copied);setTimeout(()=>setCopyMsg(''),2000)}
-    closeSharePicker();
-  };
-
-  const shareCopyLink=async()=>{
-    const text=getShareText();
-    try{await navigator.clipboard.writeText(text);setCopyMsg(L.copied);setTimeout(()=>setCopyMsg(''),2000)}catch(e){}
-    closeSharePicker();
-  };
-
-  const closeSharePicker=()=>{
-    setShowSharePicker(false);setShowActions(false);setSelectedVerse(null);setDragSelect(null);setWordSelection(null);
-  };
-
-  // Save note to journal
-  const [showComment,setShowComment]=useState(false);
-  const saveNote=()=>{
-    if(!noteText.trim()||!selectedVerse)return;
-    const entry={id:Date.now(),date:new Date().toISOString(),ref:cleanRef(selectedVerse.ref),text:noteText,type:'verse_note'};
-    gaEvent('add_note',{ref:cleanRef(selectedVerse.ref)});
-    setJournal(p=>[entry,...p]);
-    setNoteText('');setShowNote(false);setShowActions(false);setSelectedVerse(null);setDragSelect(null);
-  };
-
-  // Save comment (verse + comment together in journal)
-  const saveComment=()=>{
-    if(!noteText.trim()||!selectedVerse)return;
-    const entry={id:Date.now(),date:new Date().toISOString(),ref:cleanRef(selectedVerse.ref),verse:selectedVerse.text,text:noteText,type:'verse_comment'};
-    gaEvent('add_comment',{ref:cleanRef(selectedVerse.ref)});
-    setJournal(p=>[entry,...p]);
-    setCopyMsg(L.savedToJournal);
-    setTimeout(()=>setCopyMsg(''),1500);
-    setNoteText('');setShowComment(false);setShowActions(false);setSelectedVerse(null);setDragSelect(null);
-  };
-
-  // Word lookup
-  const lookupWord=(w)=>{
-    const clean=w.toLowerCase().replace(/[^a-z]/g,'');
-    const entry=WORDS[clean];
-    if(entry){setWordData({word:w,original:entry.o,transliteration:entry.t,strongs:entry.s,definition:entry.d});setShowWord(true)}
-  };
-
-  // Fetch interlinear data from Claude for a single verse
-  const fetchInterlinear=async(verseKey,verseText,pName)=>{
-    if(ilData[verseKey]||ilLoading[verseKey])return;
-    if(!checkClaudeRate()){return}
-    setIlLoading(p=>({...p,[verseKey]:true}));
-    try{
-      const pData=BIBLE[pName]||parsePassage(pName);if(!pData)return;
-      const OT_BOOKS=['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi'];
-      const isOT=OT_BOOKS.includes(pData.book);
-      const origLang=isOT?'Hebrew':'Greek';
-      const sysPrompt=`You are a biblical languages expert. Given a Bible verse, return a JSON object mapping each unique English word (lowercased, letters only) to its primary ${origLang} equivalent. Format: {"word":{"o":"original_script","t":"transliteration","s":"Strong's number","d":"brief definition (under 15 words)"}}. Include EVERY word - nouns, verbs, adjectives, prepositions, articles, conjunctions, pronouns, everything. Use actual ${origLang} Unicode characters. Return ONLY valid JSON, no markdown, no explanation.`;
-      const resp=await fetchWithTimeout('/.netlify/functions/claude',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2048,system:sysPrompt,messages:[{role:'user',content:`${verseKey} (${lang==='es'?'Reina Valera':lang==='pt'?'João Ferreira':translation}):\n${verseText}`}]})
-      },25000);
-      if(resp.ok){
-        const data=await resp.json();
-        const text=data.content?data.content.map(c=>c.text).join(''):'';
-        const jsonMatch=text.match(/\{[\s\S]*\}/);
-        if(jsonMatch){
-          let parsed;try{parsed=JSON.parse(jsonMatch[0])}catch(e){console.log('Interlinear JSON parse error',e);parsed=null}
-          if(parsed){setIlData(p=>({...p,[verseKey]:parsed}));
-          try{localStorage.setItem('dw_il_'+verseKey,JSON.stringify(parsed))}catch(e){}}
-        }
-      }
-    }catch(e){console.log('Interlinear fetch failed',e)}
-    setIlLoading(p=>({...p,[verseKey]:false}));
-  };
-
-  // Auto-fetch interlinear when a verse is highlighted
-  const triggerInterlinear=(verseKey,verseText,pName)=>{
-    const cached=localStorage.getItem('dw_il_'+verseKey);
-    if(cached&&!ilData[verseKey]){
-      try{setIlData(p=>({...p,[verseKey]:JSON.parse(cached)}))}catch(e){}
-      return;
-    }
-    if(!ilData[verseKey]&&!cached){
-      fetchInterlinear(verseKey,verseText,pName);
-    }
-  };
-
-  // Render interlinear verse with full Greek/Hebrew from API
-  const renderInterlinearVerse=(text,verseKey)=>{
-    const pWords=ilData[verseKey]||{};
-    return text.split(/(\s+)/).map((w,i)=>{
-      if(/^\s+$/.test(w))return <span key={i}> </span>;
-      const clean=w.toLowerCase().replace(/[^a-z]/g,'');
-      const entry=pWords[clean]||WORDS[clean];
-      if(entry){
-        const origText=entry.o.includes('(')?entry.o.split('(')[1].replace(')',''):entry.o;
-        return(
-          <span key={i} className="il-word" onClick={(e)=>{e.stopPropagation();setIlPopup({word:w,original:entry.o,origText,transliteration:entry.t,strongs:entry.s,definition:entry.d,verseKey})}}>
-            <span className="il-orig">{origText}</span>
-            <span className="il-eng">{w}</span>
-          </span>
-        );
-      }
-      return <span key={i} className="il-word il-no-orig"><span className="il-eng">{w}</span></span>;
-    });
-  };
-
-  // Add journal entry
-  const addJournalEntry=()=>{
-    if(!newJournalText.trim())return;
-    setJournal(p=>[{id:Date.now(),date:new Date().toISOString(),ref:'',text:newJournalText,type:'revelation'},...p]);
-    setNewJournalText('');setShowJournalForm(false);
-  };
-
-  // ===== VIDEO DEVOTION FUNCTIONS =====
-  const MAX_RECORD_SECS=600; // 10 minutes
-
-  const startCamera=async(mode)=>{
-    try{
-      if(streamRef.current){streamRef.current.getTracks().forEach(t=>t.stop())}
-      // Don't constrain dimensions — let the device pick native resolution
-      // This allows portrait on phones held upright, landscape otherwise
-      const stream=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:mode||facingMode},
-        audio:true
-      });
-      streamRef.current=stream;
-      // Detect orientation from actual video track dimensions
-      const vTrack=stream.getVideoTracks()[0];
-      if(vTrack){
-        const settings=vTrack.getSettings();
-        const w=settings.width||1280;
-        const h=settings.height||720;
-        setVideoOrientation(h>w?'portrait':'landscape');
-      }
-      if(videoPreviewRef.current){
-        videoPreviewRef.current.srcObject=stream;
-        videoPreviewRef.current.play().catch(()=>{});
-      }
-    }catch(err){
-      console.error('Camera access denied:',err);
-      alert(lang==='es'?'Se requiere acceso a la cámara para grabar un devocional. Por favor habilita los permisos de cámara.':lang==='pt'?'O acesso à câmera é necessário para gravar um devocional. Por favor, habilite as permissões da câmera.':'Camera access is required to record a devotion. Please enable camera permissions.');
-      closeVideoModal();
-    }
-  };
-
-  const openVideoModal=()=>{
-    setShowVideoModal(true);
-    setRecordedBlob(null);
-    setRecordTime(0);
-    setIsRecording(false);
-    chunksRef.current=[];
-    setTimeout(()=>startCamera('user'),100);
-  };
-
-  const closeVideoModal=()=>{
-    if(streamRef.current){streamRef.current.getTracks().forEach(t=>t.stop());streamRef.current=null}
-    if(recordTimerRef.current)clearInterval(recordTimerRef.current);
-    if(mediaRecorderRef.current&&mediaRecorderRef.current.state!=='inactive'){
-      try{mediaRecorderRef.current.stop()}catch(e){}
-    }
-    setShowVideoModal(false);
-    setIsRecording(false);
-    setRecordedBlob(null);
-    setRecordTime(0);
-  };
-
-  const switchCamera=()=>{
-    const newMode=facingMode==='user'?'environment':'user';
-    setFacingMode(newMode);
-    if(!isRecording)startCamera(newMode);
-  };
-
-  const startRecording=()=>{
-    if(!streamRef.current)return;
-    chunksRef.current=[];
-    // Prefer MP4 first — produces H.264+AAC which iMessage/WhatsApp/all apps accept
-    // Safari/iOS supports mp4 natively. Chrome/Android falls back to webm.
-    const mimeType=MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')?'video/mp4;codecs=avc1,mp4a.40.2':
-      MediaRecorder.isTypeSupported('video/mp4')?'video/mp4':
-      MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':
-      MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')?'video/webm;codecs=vp8,opus':'video/webm';
-    const recorder=new MediaRecorder(streamRef.current,{mimeType,videoBitsPerSecond:2000000});
-    recorder.ondataavailable=(e)=>{if(e.data.size>0)chunksRef.current.push(e.data)};
-    recorder.onstop=()=>{
-      const blob=new Blob(chunksRef.current,{type:mimeType});
-      setRecordedBlob(blob);
-      // Stop camera preview
-      if(streamRef.current){streamRef.current.getTracks().forEach(t=>t.stop());streamRef.current=null}
-    };
-    recorder.start(1000); // collect data every second
-    mediaRecorderRef.current=recorder;
-    setIsRecording(true);
-    setRecordTime(0);
-    recordTimerRef.current=setInterval(()=>{
-      setRecordTime(prev=>{
-        if(prev>=MAX_RECORD_SECS-1){
-          stopRecording();
-          return MAX_RECORD_SECS;
-        }
-        return prev+1;
-      });
-    },1000);
-  };
-
-  const stopRecording=()=>{
-    if(recordTimerRef.current)clearInterval(recordTimerRef.current);
-    if(mediaRecorderRef.current&&mediaRecorderRef.current.state!=='inactive'){
-      mediaRecorderRef.current.stop();
-    }
-    setIsRecording(false);
-  };
-
-  const saveVideoDevotion=async()=>{
-    if(!recordedBlob)return;
-    const id=Date.now();
-    setCopyMsg('Saving...');
-    try{
-      await VideoDB.save(id,recordedBlob);
-      const meta={id,date:new Date().toISOString(),duration:recordTime,type:'video_devotion',orientation:videoOrientation};
-      setVideoDevotions(p=>[meta,...p]);
-      setCopyMsg(L.videoSaved);setTimeout(()=>setCopyMsg(''),2000);
-      closeVideoModal();
-      gaEvent('video_devotion_saved',{duration:recordTime,orientation:videoOrientation});
-    }catch(err){
-      console.error('Failed to save video:',err);
-      setCopyMsg('');
-      alert(lang==='es'?'Error al guardar el video. El almacenamiento puede estar lleno.':lang==='pt'?'Falha ao salvar o vídeo. O armazenamento pode estar cheio.':'Failed to save video. Storage may be full.');
-    }
-  };
-
-  const deleteVideoEntry=async(id)=>{
-    try{await VideoDB.remove(id)}catch(e){}
-    setVideoDevotions(p=>p.filter(v=>v.id!==id));
-  };
-
-  const playVideo=async(id)=>{
-    try{
-      const record=await VideoDB.get(id);
-      if(!record)return;
-      const url=URL.createObjectURL(record.blob);
-      const videoEl=videoPlaybackRefs.current[id];
-      if(videoEl){
-        videoEl.src=url;
-        videoEl.play();
-        setPlayingVideo(id);
-        videoEl.onended=()=>setPlayingVideo(null);
-      }
-    }catch(err){console.error('Playback error:',err)}
-  };
-
-  const shareVideo=async(id)=>{
-    try{
-      const record=await VideoDB.get(id);
-      if(!record){setCopyMsg('Video not found');setTimeout(()=>setCopyMsg(''),2000);return}
-      setCopyMsg('Preparing...');
-      const dateStr=new Date().toISOString().split('T')[0];
-      // CRITICAL: extension MUST match actual container or apps reject/fail to deliver
-      const realType=record.blob.type||'video/webm';
-      const isRealMp4=realType.includes('mp4');
-      const ext=isRealMp4?'mp4':'webm';
-      const fileName='Daily-Word-Devotion-'+dateStr+'.'+ext;
-      // Strategy 1: Share with file (mobile)
-      if(navigator.share){
-        const file=new File([record.blob],fileName,{type:realType});
-        // Check if this browser can share files
-        let canShareFiles=false;
-        try{canShareFiles=navigator.canShare&&navigator.canShare({files:[file]})}catch(e){}
-        if(canShareFiles){
-          try{
-            await navigator.share({files:[file],title:lang==='es'?'Mi Video Devocional':lang==='pt'?'Meu Vídeo Devocional':'My Video Devotion',text:lang==='es'?'¡Mira mi video devocional de Palabra Diaria!':lang==='pt'?'Assista meu vídeo devocional do Daily Word!':'Watch my video devotion from Daily Word!'});
-            setCopyMsg(lang==='es'?'¡Compartido!':lang==='pt'?'Compartilhado!':'Shared!');setTimeout(()=>setCopyMsg(''),2000);
-            return;
-          }catch(shareErr){
-            if(shareErr.name==='AbortError'){setCopyMsg('');return}
-            // File share failed — try text-only share below
-          }
-        }
-        // Strategy 2: Share text with link (fallback for browsers that don't support file sharing)
-        try{
-          // Save to a temp blob URL user can share
-          await navigator.share({title:lang==='es'?'Mi Video Devocional':lang==='pt'?'Meu Vídeo Devocional':'My Video Devotion',text:lang==='es'?'¡Mira mi video devocional grabado en Palabra Diaria! https://futures-daily-word.netlify.app':lang==='pt'?'Confira meu vídeo devocional gravado no Daily Word! https://futures-daily-word.netlify.app':'Check out my video devotion recorded on Daily Word! https://futures-daily-word.netlify.app'});
-          // Also auto-download the file so they can attach it
-          triggerVideoDownload(record.blob,fileName);
-          setCopyMsg(lang==='es'?'Video guardado — adjúntalo a tu mensaje!':lang==='pt'?'Vídeo salvo — anexe à sua mensagem!':'Video saved — attach it to your message!');setTimeout(()=>setCopyMsg(''),3000);
-          return;
-        }catch(e2){
-          if(e2.name==='AbortError'){setCopyMsg('');return}
-        }
-      }
-      // Strategy 3: No share API at all (desktop) — just download
-      triggerVideoDownload(record.blob,fileName);
-      setCopyMsg(lang==='es'?'¡Video guardado en el dispositivo!':lang==='pt'?'Vídeo salvo no dispositivo!':'Video saved to device!');setTimeout(()=>setCopyMsg(''),2000);
-    }catch(err){
-      console.error('Share error:',err);
-      setCopyMsg('');
-      // Last resort: try a plain download
-      try{
-        const record=await VideoDB.get(id);
-        if(record)triggerVideoDownload(record.blob,'devotion.webm');
-        setCopyMsg(lang==='es'?'¡Video guardado!':lang==='pt'?'Vídeo salvo!':'Video saved!');setTimeout(()=>setCopyMsg(''),2000);
-      }catch(e){alert(lang==='es'?'No se pudo compartir o guardar el video. Intenta de nuevo.':lang==='pt'?'Não foi possível compartilhar ou salvar o vídeo. Tente novamente.':'Could not share or save video. Please try again.')}
-    }
-  };
-
-  const triggerVideoDownload=(blob,fileName)=>{
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=fileName;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),3000);
-  };
-
-  const downloadVideo=async(id)=>{
-    try{
-      const record=await VideoDB.get(id);
-      if(!record)return;
-      setCopyMsg('Saving...');
-      const realType=record.blob.type||'video/webm';
-      const ext=realType.includes('mp4')?'mp4':'webm';
-      const dateStr=new Date().toISOString().split('T')[0];
-      triggerVideoDownload(record.blob,'Daily-Word-Devotion-'+dateStr+'.'+ext);
-      setCopyMsg('Saved to device!');setTimeout(()=>setCopyMsg(''),2000);
-    }catch(err){console.error('Download error:',err);setCopyMsg('')}
-  };
-
-  const formatTime=(secs)=>{
-    const m=Math.floor(secs/60);
-    const s=secs%60;
-    return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  };
-
-  // Load video devotion metadata from localStorage
-  useEffect(()=>{
-    const saved=localStorage.getItem('dw_video_devotions');
-    if(saved)try{setVideoDevotions(JSON.parse(saved))}catch(e){}
-  },[]);
-  useEffect(()=>{try{localStorage.setItem('dw_video_devotions',JSON.stringify(videoDevotions))}catch(e){}},[videoDevotions]);
-
-  // Sermon CRUD
-  const saveSermon=()=>{
-    if(!sermonForm.title.trim())return;
-    const cleaned={
-      title:sanitize(sermonForm.title,200),
-      scripture:sanitize(sermonForm.scripture,200),
-      theme:sanitize(sermonForm.theme,200),
-      notes:sanitize(sermonForm.notes,10000),
-      audioUrl:sermonForm.audioUrl?sermonForm.audioUrl.substring(0,500):'',
-      date:sermonForm.date||''
-    };
-    if(editSermonId){
-      setSermons(p=>p.map(s=>s.id===editSermonId?{...cleaned,id:editSermonId}:s));
-      setEditSermonId(null);
-    }else{
-      setSermons(p=>[{...cleaned,id:Date.now()},...p]);
-    }
-    setSermonForm({title:'',scripture:'',theme:'',notes:'',audioUrl:'',date:''});setShowSermonForm(false);
-  };
-
-  const editSermon=(s)=>{setSermonForm({title:s.title,scripture:s.scripture,theme:s.theme,notes:s.notes||'',audioUrl:s.audioUrl||'',date:s.date||''});setEditSermonId(s.id);setShowSermonForm(true)};
-
-  const renderAudioPlayer=(url)=>{
-    if(!url)return null;
-    // Spotify link - convert to embed
-    if(url.includes('spotify.com')){
-      let embedUrl=url;
-      if(url.includes('/episode/')){
-        const id=url.split('/episode/')[1].split('?')[0];
-        embedUrl='https://open.spotify.com/embed/episode/'+id+'?utm_source=generator&theme=0';
-      }else if(url.includes('/show/')){
-        const id=url.split('/show/')[1].split('?')[0];
-        embedUrl='https://open.spotify.com/embed/show/'+id+'?utm_source=generator&theme=0';
-      }else if(url.includes('/playlist/')){
-        const id=url.split('/playlist/')[1].split('?')[0];
-        embedUrl='https://open.spotify.com/embed/playlist/'+id+'?utm_source=generator&theme=0';
-      }
-      return React.createElement('div',{className:'sc-player'},
-        React.createElement('iframe',{src:embedUrl,width:'100%',height:'152',frameBorder:'0',allow:'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',loading:'lazy',style:{borderRadius:12}})
-      );
-    }
-    // YouTube link
-    if(url.includes('youtube.com')||url.includes('youtu.be')){
-      let videoId='';
-      if(url.includes('youtu.be/'))videoId=url.split('youtu.be/')[1].split('?')[0];
-      else if(url.includes('v='))videoId=url.split('v=')[1].split('&')[0];
-      if(videoId){
-        return React.createElement('div',{className:'sc-player'},
-          React.createElement('iframe',{src:'https://www.youtube.com/embed/'+videoId,width:'100%',height:'180',frameBorder:'0',allow:'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope',allowFullScreen:true,style:{borderRadius:12}})
-        );
-      }
-    }
-    // Direct audio file (mp3, wav, etc.)
-    return React.createElement('div',{className:'sc-player'},
-      React.createElement('audio',{controls:true,src:url,preload:'none',style:{width:'100%'}})
-    );
-  };
-
-  // ===== ONBOARDING =====
-  if(!setup){
-    return <Onboarding onComplete={(s)=>setSetup(s)} lang={lang} setLang={setLang}/>;
-  }
-
-  // Render word-tappable verse text
-  const renderVerse=(text,verseKey,pName,vi)=>{
-    const allNames=[...charNames,...locNames];
-    let wordIdx=0;
-    const wrapWord=(word,ki)=>{
-      const wi=wordIdx++;
-      const hlColor=getWordHlColor(verseKey,wi);
-      const isSel=isWordSelected(verseKey,wi);
-      const cls=['word-tap'];
-      if(hlColor)cls.push('whl-'+hlColor);
-      if(isSel)cls.push('word-selected');
-      return <span key={ki} className={cls.join(' ')}
-        data-widx={wi} data-vkey={verseKey}
-        onClick={(e)=>{
-          if(wordDragRef.current&&wordDragRef.current.engaged)return;
-          wordTapRef.current=true;
-          if(wordSelection&&wordSelection.verseKey===verseKey){
-            onWordTapExtend(e,verseKey,wi);
-          }else{
-            lookupWord(word);
-          }
-        }}
-        onDoubleClick={(e)=>onWordDoubleTap(e,verseKey,wi,pName,vi,text)}
-        onTouchStart={(e)=>onWordTouchStart(e,verseKey,wi,pName,vi,text)}
-        onTouchMove={(e)=>onWordTouchMove(e)}
-        onTouchEnd={(e)=>onWordTouchEnd(e)}
-      >{word}</span>;
-    };
-
-    if(allNames.length===0){
-      return text.split(/(\s+)/).map((w,i)=>{
-        if(/^\s+$/.test(w))return <span key={i}>{w}</span>;
-        return wrapWord(w,i);
-      });
-    }
-    const regex=new RegExp('\\b('+allNames.map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','g');
-    const parts=[];let lastIdx=0;let m;
-    while((m=regex.exec(text))!==null){
-      if(m.index>lastIdx)parts.push({type:'text',val:text.slice(lastIdx,m.index)});
-      const matched=m[1];
-      parts.push({type:CHARACTERS[matched]?'char':'loc',val:matched});
-      lastIdx=regex.lastIndex;
-    }
-    if(lastIdx<text.length)parts.push({type:'text',val:text.slice(lastIdx)});
-    let ki=0;
-    return parts.map((p,pi)=>{
-      if(p.type==='char'){wordIdx++;return <span key={ki++} className="char-name" onClick={(e)=>{wordTapRef.current=true;openCharProfile(p.val)}}>{p.val}</span>}
-      if(p.type==='loc'){wordIdx++;return <span key={ki++} className="loc-name" onClick={(e)=>{wordTapRef.current=true;openLocProfile(p.val)}}>{p.val}</span>}
-      return p.val.split(/(\s+)/).map((w)=>{
-        if(/^\s+$/.test(w))return <span key={ki++}>{w}</span>;
-        return wrapWord(w,ki++);
-      });
-    });
-  };
-
-  // ===== WORD-LEVEL HIGHLIGHTING =====
-  const hlWords=(color)=>{
-    if(!wordSelection)return;
-    const {verseKey,startWord,endWord}=wordSelection;
-    setWordHighlights(p=>{
-      const existing=(p[verseKey]||[]).filter(h=>!(h.start<=endWord&&h.end>=startWord)); // remove overlapping
-      return {...p,[verseKey]:[...existing,{start:startWord,end:endWord,color}]};
-    });
-    setWordSelection(null);setShowActions(false);setSelectedVerse(null);
-  };
-
-  const clearWordHl=()=>{
-    if(!wordSelection)return;
-    const {verseKey,startWord,endWord}=wordSelection;
-    setWordHighlights(p=>{
-      const existing=(p[verseKey]||[]).filter(h=>!(h.start<=endWord&&h.end>=startWord));
-      if(existing.length===0){const n={...p};delete n[verseKey];return n}
-      return {...p,[verseKey]:existing};
-    });
-    setWordSelection(null);setShowActions(false);setSelectedVerse(null);
-  };
-
-  const getWordHlColor=(verseKey,wordIdx)=>{
-    const ranges=wordHighlights[verseKey];
-    if(!ranges)return null;
-    for(const r of ranges){
-      if(wordIdx>=r.start&&wordIdx<=r.end)return r.color;
-    }
-    return null;
-  };
-
-  const isWordSelected=(verseKey,wordIdx)=>{
-    if(!wordSelection||wordSelection.verseKey!==verseKey)return false;
-    const lo=Math.min(wordSelection.startWord,wordSelection.endWord);
-    const hi=Math.max(wordSelection.startWord,wordSelection.endWord);
-    return wordIdx>=lo&&wordIdx<=hi;
-  };
-
-  const onWordDoubleTap=(e,verseKey,wordIdx,pName,vi,verseText)=>{
-    e.stopPropagation();
-    wordTapRef.current=true;
-    const words=verseText.split(/\s+/).filter(w=>w.length>0);
-    const selectedText=words[wordIdx]||'';
-    setWordSelection({verseKey,pName,vi,startWord:wordIdx,endWord:wordIdx,verseText});
-    setSelectedVerse({key:verseKey,ref:`${pName}:${vi+1}`,text:selectedText,isWordLevel:true});
-    setShowActions(true);setShowNote(false);setShowComment(false);
-  };
-
-  const onWordTapExtend=(e,verseKey,wordIdx)=>{
-    e.stopPropagation();
-    wordTapRef.current=true;
-    if(!wordSelection||wordSelection.verseKey!==verseKey)return false;
-    const words=wordSelection.verseText.split(/\s+/).filter(w=>w.length>0);
-    const lo=Math.min(wordSelection.startWord,wordIdx);
-    const hi=Math.max(wordSelection.startWord,wordIdx);
-    const selectedWords=words.slice(lo,hi+1).join(' ');
-    setWordSelection(p=>({...p,endWord:wordIdx}));
-    setSelectedVerse(p=>({...p,text:selectedWords}));
-    return true;
-  };
-
-  // Touch-drag word selection: press-hold a word, slide finger across to select range
-  const onWordTouchStart=(e,verseKey,wordIdx,pName,vi,verseText)=>{
-    // Start a hold timer — if held 300ms, enter word-drag mode
-    const timer=setTimeout(()=>{
-      if(!wordDragRef.current)return;
-      wordDragRef.current.engaged=true;
-      wordTapRef.current=true;
-      // Prevent verse-level drag
-      if(dragRef.current){clearTimeout(dragRef.current.timer);dragRef.current=null}
-      const words=verseText.split(/\s+/).filter(w=>w.length>0);
-      const selectedText=words[wordIdx]||'';
-      setWordSelection({verseKey,pName,vi,startWord:wordIdx,endWord:wordIdx,verseText});
-      setSelectedVerse({key:verseKey,ref:`${pName}:${vi+1}`,text:selectedText,isWordLevel:true});
-      // Vibrate for haptic feedback if available
-      if(navigator.vibrate)navigator.vibrate(30);
-    },300);
-    wordDragRef.current={verseKey,pName,vi,startWord:wordIdx,verseText,engaged:false,timer};
-  };
-
-  const onWordTouchMove=(e)=>{
-    if(!wordDragRef.current||!wordDragRef.current.engaged)return;
-    e.preventDefault(); // prevent scroll while dragging words
-    const touch=e.touches[0];
-    const el=document.elementFromPoint(touch.clientX,touch.clientY);
-    if(!el)return;
-    const wordEl=el.closest('[data-widx]');
-    if(!wordEl)return;
-    const wi=parseInt(wordEl.getAttribute('data-widx'));
-    if(isNaN(wi))return;
-    // Only extend within same verse
-    const vk=wordEl.getAttribute('data-vkey');
-    if(vk&&vk!==wordDragRef.current.verseKey)return;
-    const d=wordDragRef.current;
-    const words=d.verseText.split(/\s+/).filter(w=>w.length>0);
-    const lo=Math.min(d.startWord,wi);
-    const hi=Math.max(d.startWord,wi);
-    const selectedWords=words.slice(lo,hi+1).join(' ');
-    setWordSelection(p=>p?{...p,endWord:wi}:{verseKey:d.verseKey,pName:d.pName,vi:d.vi,startWord:d.startWord,endWord:wi,verseText:d.verseText});
-    setSelectedVerse(p=>p?{...p,text:selectedWords}:{key:d.verseKey,ref:`${d.pName}:${d.vi+1}`,text:selectedWords,isWordLevel:true});
-  };
-
-  const onWordTouchEnd=(e)=>{
-    if(!wordDragRef.current)return;
-    if(wordDragRef.current.timer){clearTimeout(wordDragRef.current.timer)}
-    const wasEngaged=wordDragRef.current.engaged;
-    wordDragRef.current=null;
-    if(wasEngaged){
-      e.preventDefault();
-      e.stopPropagation();
-      wordTapRef.current=true;
-      lastDragWasMove.current=true;
-      // Open actions panel (selection already set via touchmove/touchstart)
-      setShowActions(true);setShowNote(false);setShowComment(false);
-    }
-  };
-
-  // ===== BOOK PARAGRAPH ACTIONS =====
-  const bookParaKey=(bookId,chIdx,pIdx)=>`${bookId}_${chIdx}_${pIdx}`;
-
-  const hlBookPara=(color)=>{
-    if(!selectedBookPara)return;
-    const key=bookParaKey(selectedBookPara.bookId,selectedBookPara.chIdx,selectedBookPara.pIdx);
-    setBookHighlights(p=>({...p,[key]:color}));
-    setShowBookActions(false);setSelectedBookPara(null);
-  };
-
-  const clearBookHl=()=>{
-    if(!selectedBookPara)return;
-    const key=bookParaKey(selectedBookPara.bookId,selectedBookPara.chIdx,selectedBookPara.pIdx);
-    setBookHighlights(p=>{const n={...p};delete n[key];return n});
-    setShowBookActions(false);setSelectedBookPara(null);
-  };
-
-  const copyBookPara=()=>{
-    if(!selectedBookPara)return;
-    navigator.clipboard.writeText(selectedBookPara.text).then(()=>{
-      setCopyMsg(L.copied);setTimeout(()=>setCopyMsg(''),2000);
-    }).catch(()=>{});
-  };
-
-  const shareBookPara=()=>{
-    if(!selectedBookPara)return;
-    const book=selectedBookPara.bookTitle||'';
-    const ch=selectedBookPara.chTitle||'';
-    const text=`"${selectedBookPara.text}"\n\n— ${book}, ${ch}\n${lang==='es'?'Compartido desde Daily Word':lang==='pt'?'Compartilhado do Palavra Diária':'Shared from Daily Word'}`;
-    if(navigator.share){navigator.share({text}).catch(()=>{})}
-    else{navigator.clipboard.writeText(text).then(()=>{setCopyMsg(L.copied);setTimeout(()=>setCopyMsg(''),2000)}).catch(()=>{})}
-  };
-
-  const saveBookNote=()=>{
-    if(!selectedBookPara||!noteText.trim())return;
-    const entry={id:Date.now(),type:'verse_note',ref:`${selectedBookPara.bookTitle} — ${selectedBookPara.chTitle}`,text:noteText,date:new Date().toISOString()};
-    setJournal(p=>[entry,...p]);
-    setNoteText('');setShowNote(false);setShowBookActions(false);setSelectedBookPara(null);
-    setCopyMsg(L.savedToJournal);setTimeout(()=>setCopyMsg(''),2000);
-  };
-
-  const saveBookComment=()=>{
-    if(!selectedBookPara||!noteText.trim())return;
-    const entry={id:Date.now(),type:'verse_comment',ref:`${selectedBookPara.bookTitle} — ${selectedBookPara.chTitle}`,text:noteText,date:new Date().toISOString()};
-    setJournal(p=>[entry,...p]);
-    setNoteText('');setShowComment(false);setShowBookActions(false);setSelectedBookPara(null);
-    setCopyMsg(L.savedToJournal);setTimeout(()=>setCopyMsg(''),2000);
-  };
-
-  // Fetch Spanish/Portuguese audio via Amazon Polly
+  // Fetch Spanish/Portuguese audio via Amazon Polly (with caching)
   const fetchPollyAudio=async(text,cacheKey)=>{
     if(bookAudioQueueRef.current.prefetched[cacheKey]){
       return bookAudioQueueRef.current.prefetched[cacheKey];
     }
-    const resp=await fetchWithTimeout('/.netlify/functions/polly-tts',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text,voiceId:lang==='pt'?'Camila':'Lucia',engine:'neural'}),
-      cache:'no-store'
-    },20000);
-    if(!resp.ok){
-      let detail='';
-      try{detail=await resp.text()}catch(e){}
-      throw new Error('Polly '+resp.status+': '+detail.slice(0,200));
-    }
-    const blob=await resp.blob();
-    const url=URL.createObjectURL(blob);
+    const url=await getPollyAudio(text);
     bookAudioQueueRef.current.prefetched[cacheKey]=url;
     return url;
   };
 
-  // Read book chapter aloud — tries ElevenLabs first, falls back to browser TTS
+  // Read book chapter aloud — tries ElevenLabs first, falls back to Polly, then browser TTS
   const fetchParaAudio=async(text,voiceId,cacheKey)=>{
     if(bookAudioQueueRef.current.prefetched[cacheKey]){
       return bookAudioQueueRef.current.prefetched[cacheKey];
     }
-    const resp=await fetchWithTimeout('/.netlify/functions/elevenlabs-tts',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text,voiceId}),
-      cache:'no-store'
-    },20000);
-    if(!resp.ok){
-      let detail='';
-      try{detail=await resp.text()}catch(e){}
-      throw new Error('TTS '+resp.status+': '+detail.slice(0,200));
+    // Try ElevenLabs first
+    try{
+      const url=await getElevenLabsAudio(text,voiceId);
+      bookAudioQueueRef.current.prefetched[cacheKey]=url;
+      return url;
+    }catch(e){
+      console.log('ElevenLabs failed, trying Polly:',e.message);
+      // Fall back to Polly (Matthew for English)
+      const url=await getPollyAudio(text,'Matthew');
+      bookAudioQueueRef.current.prefetched[cacheKey]=url;
+      return url;
     }
-    const blob=await resp.blob();
-    const url=URL.createObjectURL(blob);
-    bookAudioQueueRef.current.prefetched[cacheKey]=url;
-    return url;
   };
 
   // Browser TTS fallback — reads paragraphs one by one using SpeechSynthesis
@@ -4136,11 +3201,15 @@ function App(){
       const utter=new SpeechSynthesisUtterance(chunks[idx]);
       utter.lang=lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-GB';
       utter.rate=audioSpeed;
-      // Try to pick a good English voice
+      // Try to pick a good voice
       const voices=window.speechSynthesis.getVoices();
       if(lang==='es'){
         const v=voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('mónica'))||
                 voices.find(v=>v.lang.startsWith('es'))||null;
+        if(v)utter.voice=v;
+      }else if(lang==='pt'){
+        const v=voices.find(v=>v.lang.startsWith('pt')&&v.name.toLowerCase().includes('vitória'))||
+                voices.find(v=>v.lang.startsWith('pt'))||null;
         if(v)utter.voice=v;
       }else{
         const v=voices.find(v=>v.lang.startsWith('en')&&v.name.toLowerCase().includes('daniel'))||
@@ -4159,7 +3228,7 @@ function App(){
     speakNext();
   };
 
-  // Polly queue for Spanish — tries Polly first, falls back to browser TTS
+  // Polly queue for Spanish/Portuguese — tries Polly first, falls back to browser TTS
   const playPollyQueue=async(idx)=>{
     const q=bookAudioQueueRef.current;
     if(q.cancelled||idx>=q.paragraphs.length){
@@ -4181,13 +3250,11 @@ function App(){
           fetchPollyAudio(q.paragraphs[idx+n],nk).catch(()=>{});
         }
       }
-      const audio=new Audio(url);
-      audio.playbackRate=audioSpeed;
-      audioRef.current=audio;
-      audio.onplay=()=>{setAudioLoading(null);setSpeaking(q.speakKey)};
-      audio.onended=()=>{if(!q.cancelled)playPollyQueue(idx+1)};
-      audio.onerror=()=>{if(!q.cancelled)playPollyQueue(idx+1)};
-      audio.play().catch(()=>{if(!q.cancelled)playPollyQueue(idx+1)});
+      playAudioUrl(url,audioSpeed,
+        ()=>{setAudioLoading(null);setSpeaking(q.speakKey)},
+        ()=>{if(!q.cancelled)playPollyQueue(idx+1)},
+        ()=>{if(!q.cancelled)playPollyQueue(idx+1)}
+      );
     }catch(e){
       console.log('Polly unavailable, falling back to browser TTS:',e.message);
       const remaining=q.paragraphs.slice(idx);
@@ -4195,7 +3262,7 @@ function App(){
     }
   };
 
-  // ElevenLabs queue for English — tries ElevenLabs first, falls back to browser TTS
+  // ElevenLabs queue for English — tries ElevenLabs → Polly → browser TTS
   const playParaQueue=async(idx)=>{
     const q=bookAudioQueueRef.current;
     if(q.cancelled||idx>=q.paragraphs.length){
@@ -4210,21 +3277,20 @@ function App(){
     try{
       const url=await fetchParaAudio(para,q.voiceId,cacheKey);
       if(q.cancelled)return;
+      // Prefetch next 2 chunks
       for(let n=1;n<=2;n++){
         if(idx+n<q.paragraphs.length){
           const nk='ep_'+q.speakKey+'_'+(idx+n);
           fetchParaAudio(q.paragraphs[idx+n],q.voiceId,nk).catch(()=>{});
         }
       }
-      const audio=new Audio(url);
-      audio.playbackRate=audioSpeed;
-      audioRef.current=audio;
-      audio.onplay=()=>{setAudioLoading(null);setSpeaking(q.speakKey)};
-      audio.onended=()=>{if(!q.cancelled)playParaQueue(idx+1)};
-      audio.onerror=()=>{if(!q.cancelled)playParaQueue(idx+1)};
-      audio.play().catch(()=>{if(!q.cancelled)playParaQueue(idx+1)});
+      playAudioUrl(url,audioSpeed,
+        ()=>{setAudioLoading(null);setSpeaking(q.speakKey)},
+        ()=>{if(!q.cancelled)playParaQueue(idx+1)},
+        ()=>{if(!q.cancelled)playParaQueue(idx+1)}
+      );
     }catch(e){
-      console.log('ElevenLabs unavailable, falling back to browser TTS:',e.message);
+      console.log('All TTS APIs failed, falling back to browser TTS:',e.message);
       // Fall back to browser TTS for all remaining chunks
       const remaining=q.paragraphs.slice(idx);
       playBookWithBrowserTTS(remaining,q.speakKey);
@@ -4267,7 +3333,7 @@ function App(){
     q.speakKey=speakKey;
     q.prefetched={};
 
-    // Start — Spanish/Portuguese use Polly (Lucia/Camila), English uses ElevenLabs
+    // Start — Spanish/Portuguese use Polly (Lucia/Camila), English uses ElevenLabs→Polly→BrowserTTS
     if(lang==='es'||lang==='pt'){playPollyQueue(0)}else{playParaQueue(0)}
   };
 
