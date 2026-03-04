@@ -4235,6 +4235,7 @@ function App(){
       if(q.cancelled||idx>=chunks.length){
         setSpeaking(null);setAudioLoading(null);audioRef.current=null;
         q.active=false;
+        if(!q.cancelled&&idx>=chunks.length)autoAdvanceNextChapter();
         return;
       }
       const utter=new SpeechSynthesisUtterance(chunks[idx]);
@@ -4275,6 +4276,7 @@ function App(){
       q.active=false;
       Object.values(q.prefetched).forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});
       q.prefetched={};
+      if(!q.cancelled&&idx>=q.paragraphs.length)autoAdvanceNextChapter();
       return;
     }
     const para=q.paragraphs[idx];
@@ -4309,6 +4311,7 @@ function App(){
       q.active=false;
       Object.values(q.prefetched).forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});
       q.prefetched={};
+      if(!q.cancelled&&idx>=q.paragraphs.length)autoAdvanceNextChapter();
       return;
     }
     const para=q.paragraphs[idx];
@@ -4371,9 +4374,26 @@ function App(){
     q.voiceId=(catalog&&catalog.voiceId)||'JBFqnCBsd6RMkjVDRZzb';
     q.speakKey=speakKey;
     q.prefetched={};
+    q.bookId=bookId;
+    q.chIdx=chIdx;
+    q.totalChapters=(catalog&&catalog.chapterCount)||0;
 
     // Start — Spanish/Portuguese use Polly (Lucia/Camila), English uses ElevenLabs→Polly→BrowserTTS
     if(lang==='es'||lang==='pt'){playPollyQueue(0)}else{playParaQueue(0)}
+  };
+
+  // Auto-advance to next chapter when current chapter finishes naturally
+  const autoAdvanceNextChapter=()=>{
+    const q=bookAudioQueueRef.current;
+    if(!q.bookId||q.cancelled)return;
+    const nextCh=q.chIdx+1;
+    if(nextCh>=q.totalChapters)return; // No more chapters
+    console.log('Auto-advancing to chapter',nextCh+1,'of',q.totalChapters);
+    setSelectedChapter(nextCh);
+    // Load next chapter data, then start playing it
+    loadChapter(q.bookId,nextCh).then(()=>{
+      setTimeout(()=>readBookChapter(q.bookId,nextCh),300);
+    });
   };
 
   const filteredJournal=journalEntries.filter(e=>{
