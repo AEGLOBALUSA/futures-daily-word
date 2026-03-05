@@ -1,13 +1,11 @@
 const webpush = require("web-push");
 const { getStore } = require("@netlify/blobs");
 
-// VAPID keys for Daily Word
 const VAPID_PUBLIC = "BGCv9F84OHjOwReUpXbnO_Ctqoz5Yn3uXyFOT8QNoRZHQFE4xggkftXRDuk0vdjGZk3SskeR84Pqn41VSpBROdU";
 const VAPID_PRIVATE = "rItkPW_hJr8ajUtXlrau88W4WYlHE9PMTPOvAruu2Ws";
 
 webpush.setVapidDetails("mailto:ashleymarkevans@me.com", VAPID_PUBLIC, VAPID_PRIVATE);
 
-// Passage pool — matches the app's PERSONA_MAP structure
 const ALL_PASSAGES = [
   "Psalms 23","Romans 8","John 3","Philippians 4","Isaiah 40","Genesis 1","Matthew 5",
   "Psalms 91","1 Corinthians 13","John 1","Proverbs 3","Ephesians 6","Hebrews 11",
@@ -17,7 +15,6 @@ const ALL_PASSAGES = [
   "2 Corinthians 5","Psalms 139","Deuteronomy 31","Acts 2","1 John 4","Psalm 46"
 ];
 
-// Key verse snippets for each passage — warm, inviting, drawn from the text
 const VERSE_SNIPPETS = {
   "Psalms 23": "The Lord is my shepherd — I shall not want.",
   "Romans 8": "Nothing can separate us from the love of God.",
@@ -61,7 +58,6 @@ const VERSE_SNIPPETS = {
   "Psalm 46": "Be still, and know that I am God."
 };
 
-// Warm notification templates — {passage} and {verse} get replaced
 const TEMPLATES = [
   { title: "Your Daily Reading", body: "{passage} — \"{verse}\"" },
   { title: "Good Morning", body: "{passage} is waiting for you — \"{verse}\"" },
@@ -72,35 +68,86 @@ const TEMPLATES = [
   { title: "Scripture for Today", body: "\"{verse}\" — Begin your day in {passage}." },
 ];
 
-// Get today's passage based on day of year
 function getTodaysPassage() {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 0);
   const dayOfYear = Math.floor((now - start) / 86400000);
-  const idx = dayOfYear % ALL_PASSAGES.length;
-  return ALL_PASSAGES[idx];
+  return ALL_PASSAGES[dayOfYear % ALL_PASSAGES.length];
 }
 
-// Check if it's roughly the right hour for a subscriber
-function isTimeToNotify(timezone, preferredHour) {
+// Pre-compute current hour for each common timezone to avoid creating Intl.DateTimeFormat per subscriber
+function buildTimezoneHourCache() {
+  const cache = {};
+  const now = new Date();
+  const commonTZs = [
+    'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+    'America/Sao_Paulo','America/Mexico_City','America/Bogota','America/Lima',
+    'Europe/London','Europe/Paris','Europe/Berlin','Europe/Madrid','Europe/Lisbon',
+    'Africa/Johannesburg','Africa/Lagos','Africa/Nairobi',
+    'Asia/Tokyo','Asia/Shanghai','Asia/Kolkata','Asia/Dubai',
+    'Australia/Sydney','Pacific/Auckland','UTC'
+  ];
+  for (const tz of commonTZs) {
+    try {
+      const h = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hour12: false }).format(now));
+      cache[tz] = h;
+    } catch (e) {}
+  }
+  return cache;
+}
+
+function getCurrentHour(timezone, tzCache) {
+  if (tzCache[timezone] !== undefined) return tzCache[timezone];
   try {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone,
-      hour: "numeric",
-      hour12: false
-    });
-    const currentHour = parseInt(formatter.format(now));
-    return currentHour === preferredHour;
+    const h = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "numeric", hour12: false }).format(new Date()));
+    tzCache[timezone] = h; // cache for reuse
+    return h;
   } catch (e) {
-    // If timezone is invalid, default to checking UTC-5 (ET)
     const etHour = new Date().getUTCHours() - 5;
-    return ((etHour + 24) % 24) === preferredHour;
+    return (etHour + 24) % 24;
   }
 }
 
-// Scheduled function — runs every hour, checks who needs a notification
-// Schedule: every hour at minute 0
+// Process subscribers in batches with concurrency control
+async function sendBatch(subscribers, store, payload, tzCache) {
+  let sent = 0, failed = 0, skipped = 0;
+  const CONCURRENCY = 10; // send 10 notifications at a time
+
+  for (let i = 0; i < subscribers.length; i += CONCURRENCY) {
+    const batch = subscribers.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(async (blob) => {
+        const record = await store.get(blob.key, { type: "json" });
+        if (!record || !record.active || !record.subscription) {
+          return 'skipped';
+        }
+        const currentHour = getCurrentHour(record.timezone, tzCache);
+        if (currentHour !== record.preferredHour) {
+          return 'skipped';
+        }
+        await webpush.sendNotification(record.subscription, payload);
+        return 'sent';
+      })
+    );
+
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        if (r.value === 'sent') sent++;
+        else skipped++;
+      } else {
+        // Check if subscription expired
+        const err = r.reason;
+        if (err && (err.statusCode === 410 || err.statusCode === 404)) {
+          try { await store.delete(batch[results.indexOf(r)]?.key); } catch (e) {}
+        }
+        failed++;
+      }
+    }
+  }
+
+  return { sent, failed, skipped };
+}
+
 exports.handler = async (event) => {
   const store = getStore("push-subscriptions");
   const passage = getTodaysPassage();
@@ -116,45 +163,33 @@ exports.handler = async (event) => {
     passage: passage
   });
 
-  let sent = 0;
-  let failed = 0;
-  let skipped = 0;
+  const tzCache = buildTimezoneHourCache();
 
   try {
-    // List all subscriptions
-    const { blobs } = await store.list();
+    // Paginated subscriber list — process in pages of 1000
+    let cursor = undefined;
+    let totalSent = 0, totalFailed = 0, totalSkipped = 0;
 
-    for (const blob of blobs) {
-      try {
-        const record = await store.get(blob.key, { type: "json" });
-        if (!record || !record.active || !record.subscription) {
-          skipped++;
-          continue;
-        }
+    do {
+      const listOpts = { paginate: true };
+      if (cursor) listOpts.cursor = cursor;
+      const page = await store.list(listOpts);
+      const blobs = page.blobs || [];
+      cursor = page.cursor || null;
 
-        // Check if it's the right hour for this subscriber
-        if (!isTimeToNotify(record.timezone, record.preferredHour)) {
-          skipped++;
-          continue;
-        }
-
-        // Send the notification
-        await webpush.sendNotification(record.subscription, payload);
-        sent++;
-      } catch (err) {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          // Subscription expired — clean it up
-          try { await store.delete(blob.key); } catch (e) {}
-        }
-        failed++;
+      if (blobs.length > 0) {
+        const { sent, failed, skipped } = await sendBatch(blobs, store, payload, tzCache);
+        totalSent += sent;
+        totalFailed += failed;
+        totalSkipped += skipped;
       }
-    }
+    } while (cursor);
+
+    const result = { sent: totalSent, failed: totalFailed, skipped: totalSkipped, passage };
+    console.log("Push send complete:", result);
+    return { statusCode: 200, body: JSON.stringify(result) };
   } catch (err) {
     console.error("Push send error:", err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
-
-  const result = { sent, failed, skipped, passage };
-  console.log("Push send complete:", result);
-  return { statusCode: 200, body: JSON.stringify(result) };
 };

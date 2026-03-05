@@ -14,23 +14,44 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
 
-# Cache static assets (icons, CSS, data files) for 1 week
+# Cache icons for 1 year (immutable, fingerprinted)
 [[headers]]
   for = "/icons/*"
   [headers.values]
-    Cache-Control = "public, max-age=604800, immutable"
+    Cache-Control = "public, max-age=31536000, immutable"
 
+# Cache CSS aggressively — uses ?v=N query param for busting
 [[headers]]
   for = "/styles.css"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=31536000, immutable"
 
+# Cache data files for 1 week (they only change with deploys)
 [[headers]]
   for = "/data/*"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "public, max-age=604800"
 
+# Cache Bible JSON files for 1 year (immutable content)
+[[headers]]
+  for = "/bible/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache book JSON files for 1 year (immutable content)
+[[headers]]
+  for = "/books/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Manifest — 1 day
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+
+# Service worker — must always be fresh
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

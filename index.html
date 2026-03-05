@@ -948,47 +948,7 @@ function App(){
   useEffect(()=>{try{localStorage.setItem('dw_bookHighlights',JSON.stringify(bookHighlights))}catch(e){}},[bookHighlights]);
   useEffect(()=>{try{localStorage.setItem('dw_wordHighlights',JSON.stringify(wordHighlights))}catch(e){}},[wordHighlights]);
 
-  // Auto-open active plan on app launch
-  const hasAutoOpened=useRef(false);
-  useEffect(()=>{
-    if(hasAutoOpened.current)return;
-    const planIds=Object.keys(activePlans);
-    if(planIds.length===0)return;
-    hasAutoOpened.current=true;
-    // Build list of plans with uncompleted readings
-    const ready=[];
-    for(const pid of planIds){
-      const plan=READING_PLANS.find(p=>p.id===pid);
-      if(!plan)continue;
-      const ap=activePlans[pid];
-      if(ap.completedDays.length>=plan.readings.length)continue;
-      const start=new Date(ap.startDate);start.setHours(0,0,0,0);
-      const today=new Date();today.setHours(0,0,0,0);
-      const diff=Math.floor((today-start)/(1000*60*60*24));
-      const todayIdx=Math.min(diff,plan.readings.length-1);
-      let targetIdx=todayIdx;
-      if(ap.completedDays.includes(todayIdx)){
-        let found=false;
-        for(let i=todayIdx+1;i<plan.readings.length;i++){
-          if(!ap.completedDays.includes(i)){targetIdx=i;found=true;break;}
-        }
-        if(!found)continue;
-      }
-      ready.push({planId:pid,planName:lang==='es'?(plan.nameEs||plan.name):lang==='pt'?(plan.namePt||plan.name):plan.name,icon:plan.icon,dayIdx:targetIdx,reading:plan.readings[targetIdx],pct:Math.round((ap.completedDays.length/plan.readings.length)*100)});
-    }
-    if(ready.length===0)return;
-    if(ready.length===1){
-      // Single plan — go straight in
-      setPage('plans');
-      setMoreSection('plans');
-      setTimeout(()=>openPlanReading(ready[0].planId,ready[0].dayIdx,ready[0].reading),100);
-    }else{
-      // Multiple plans — show picker
-      setPage('plans');
-      setMoreSection('plans');
-      setPlanPicker(ready);
-    }
-  },[activePlans]);
+  // Plans auto-open removed — app always starts on home page with today's devotion
 
   // Reading plan helpers
   const startPlan=(planId)=>{

@@ -31,10 +31,8 @@ const BOOK_IDS = {
   'jude':65,'revelation':66,'revelations':66
 };
 
-// Parse a reference like "John 3:16-18" or "1 Corinthians 13" or "Psalms 23:1-6" or "Genesis 1-2" (multi-chapter)
 function parseRef(ref) {
   ref = ref.trim();
-  // Match: optional number prefix + book name + chapter + optional -endChapter or :startVerse-endVerse
   const m = ref.match(/^(\d?\s*\w[\w\s]*?)\s+(\d+)(?::(\d+)(?:-(\d+))?|-(\d+))?$/i);
   if (!m) return null;
   const bookName = m[1].trim().toLowerCase();
@@ -47,7 +45,6 @@ function parseRef(ref) {
   return { bookId, chapter, startVerse, endVerse, endChapter };
 }
 
-// Strip HTML tags from Bolls response text
 function stripHtml(text) {
   return text
     .replace(/<\/?[^>]+(>|$)/g, '')
@@ -61,6 +58,18 @@ function stripHtml(text) {
     .trim();
 }
 
+// Fetch with timeout (8 second limit per request)
+async function fetchWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { signal: controller.signal });
+    return resp;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.Origin || '';
   const referer = event.headers.referer || event.headers.Referer || '';
@@ -70,7 +79,6 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers: corsHeaders, body: '' };
   }
 
-  // Origin/Referer check (same as other proxy functions)
   const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
   const isAllowedReferer = !origin && ALLOWED_ORIGINS.some(o => referer.startsWith(o));
   const isSameOrigin = !origin && !referer;
@@ -79,14 +87,16 @@ exports.handler = async (event) => {
   }
 
   const params = event.queryStringParameters || {};
-  const q = params.q; // e.g. "John 3:1-16"
-  const v = (params.v || 'NKJV').toUpperCase(); // translation code
+  const q = params.q;
+  const v = (params.v || 'NKJV').toUpperCase();
 
   if (!q) {
     return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Missing q parameter' }) };
   }
 
-  // Handle compound references separated by semicolons (e.g. "Obadiah 1; Jonah 1-4")
+  // Cap multi-chapter requests to 10 chapters max to prevent abuse
+  const MAX_CHAPTERS = 10;
+
   const refParts = q.split(';').map(s => s.trim()).filter(Boolean);
   const parsedRefs = [];
   for (const part of refParts) {
@@ -103,45 +113,54 @@ exports.handler = async (event) => {
     for (const parsed of parsedRefs) {
       const startCh = parsed.chapter;
       const endCh = parsed.endChapter || parsed.chapter;
-      let partVerses = [];
 
-      // Fetch all chapters in the range
-      for (let ch = startCh; ch <= endCh; ch++) {
-        const url = `https://bolls.life/get-text/${v}/${parsed.bookId}/${ch}/`;
-        const resp = await fetch(url);
-        if (!resp.ok) {
-          return { statusCode: resp.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Bolls API error: ' + resp.status }) };
-        }
-        let verses = await resp.json();
-
-        // Filter to requested verse range if specified (only applies to single-chapter refs)
-        if (!parsed.endChapter && parsed.startVerse) {
-          const end = parsed.endVerse || parsed.startVerse;
-          verses = verses.filter(v => v.verse >= parsed.startVerse && v.verse <= end);
-        }
-
-        partVerses.push({ chapter: ch, verses });
+      if (endCh - startCh + 1 > MAX_CHAPTERS) {
+        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Too many chapters requested (max ' + MAX_CHAPTERS + ')' }) };
       }
 
-      // Format this reference part
-      if (partVerses.length === 1) {
-        allPassageTexts.push(partVerses[0].verses.map(v => `[${v.verse}] ${stripHtml(v.text)}`).join(' '));
+      // PARALLEL fetch all chapters in the range (was sequential before)
+      const chapterNums = [];
+      for (let ch = startCh; ch <= endCh; ch++) chapterNums.push(ch);
+
+      const chapterResults = await Promise.all(
+        chapterNums.map(async (ch) => {
+          const url = `https://bolls.life/get-text/${v}/${parsed.bookId}/${ch}/`;
+          const resp = await fetchWithTimeout(url);
+          if (!resp.ok) throw new Error('Bolls API error: ' + resp.status);
+          let verses = await resp.json();
+
+          // Filter to verse range if single-chapter ref with verse numbers
+          if (!parsed.endChapter && parsed.startVerse) {
+            const end = parsed.endVerse || parsed.startVerse;
+            verses = verses.filter(v => v.verse >= parsed.startVerse && v.verse <= end);
+          }
+          return { chapter: ch, verses };
+        })
+      );
+
+      // Format
+      if (chapterResults.length === 1) {
+        allPassageTexts.push(chapterResults[0].verses.map(v => `[${v.verse}] ${stripHtml(v.text)}`).join(' '));
       } else {
-        allPassageTexts.push(partVerses.map(cv =>
+        allPassageTexts.push(chapterResults.map(cv =>
           cv.verses.map(v => `[${v.verse}] ${stripHtml(v.text)}`).join(' ')
         ).join('\n\n'));
       }
     }
 
     const passageText = allPassageTexts.join('\n\n');
-    const canonical = q;
 
     return {
       statusCode: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ canonical, passages: [passageText] })
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+      body: JSON.stringify({ canonical: q, passages: [passageText] })
     };
   } catch (err) {
-    return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Server error: ' + err.message }) };
+    const isTimeout = err.name === 'AbortError';
+    return {
+      statusCode: isTimeout ? 504 : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: isTimeout ? 'Request timed out' : 'Server error: ' + err.message })
+    };
   }
 };
