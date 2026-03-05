@@ -1,5 +1,4 @@
 const { getStore } = require("@netlify/blobs");
-const crypto = require("crypto");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -8,7 +7,9 @@ const ALLOWED_ORIGINS = [
 ];
 
 function hashEmail(email) {
-  return crypto.createHash("sha256").update(email.toLowerCase().trim()).digest("hex").slice(0, 48);
+  // Simple string hash — deterministic key from email
+  const str = email.toLowerCase().trim();
+  return Buffer.from(str).toString("base64url").slice(0, 48);
 }
 
 exports.handler = async (event) => {
