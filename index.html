@@ -733,26 +733,20 @@ function App(){
     });
   },[]);
 
-  // ===== USER PROFILE / REGISTRATION =====
+  // ===== USER PROFILE / EMAIL COLLECTION =====
   const [userProfile,setUserProfile]=useState(()=>{try{return JSON.parse(localStorage.getItem('dw_profile'))}catch(e){return null}});
+  const [showEmailGate,setShowEmailGate]=useState(false);
+  const [emailGateInput,setEmailGateInput]=useState('');
+  const [emailGateSaving,setEmailGateSaving]=useState(false);
+  const [emailGateError,setEmailGateError]=useState('');
+  const [emailGateDone,setEmailGateDone]=useState(false);
   const [showProfileModal,setShowProfileModal]=useState(false);
   const [profileForm,setProfileForm]=useState({firstName:'',lastName:'',email:'',phone:'',church:'',city:''});
   const [profileSaving,setProfileSaving]=useState(false);
   const [profileError,setProfileError]=useState('');
   const [profileSuccess,setProfileSuccess]=useState(false);
   const [profileEditing,setProfileEditing]=useState(false);
-
-  // Show registration modal after 3 visits (if not already registered)
-  useEffect(()=>{
-    if(userProfile)return;
-    const dismissed=localStorage.getItem('dw_profile_dismissed');
-    if(dismissed){const d=Date.now()-parseInt(dismissed);if(d<7*86400000)return;}
-    const visits=parseInt(localStorage.getItem('dw_visits')||'0');
-    if(visits>=3){
-      const timer=setTimeout(()=>setShowProfileModal(true),2000);
-      return()=>clearTimeout(timer);
-    }
-  },[userProfile]);
+  const emailGateCallbackRef=useRef(null);
 
   // Heartbeat — update lastActiveAt on each app open
   useEffect(()=>{
@@ -762,14 +756,33 @@ function App(){
     fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',email:userProfile.email,persona:p,lang:l})}).catch(()=>{});
   },[userProfile,setup]);
 
+  // Email gate — called when user taps books/resources without an email on file
+  const requireEmail=(callback)=>{
+    if(userProfile&&userProfile.email){callback();return;}
+    emailGateCallbackRef.current=callback;
+    setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setShowEmailGate(true);
+  };
+
+  const submitEmailGate=async()=>{
+    const email=emailGateInput.trim().toLowerCase();
+    if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setEmailGateError(lang==='es'?'Ingresa un correo válido':lang==='pt'?'Digite um email válido':'Enter a valid email');return;}
+    setEmailGateSaving(true);setEmailGateError('');
+    try{
+      await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',firstName:'',lastName:'',email,persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en'})});
+      const profile={email};
+      localStorage.setItem('dw_profile',JSON.stringify(profile));
+      setUserProfile(profile);
+      setEmailGateDone(true);
+      setTimeout(()=>{setShowEmailGate(false);if(emailGateCallbackRef.current)emailGateCallbackRef.current();},1200);
+    }catch(e){setEmailGateError('Something went wrong. Try again.');}
+    finally{setEmailGateSaving(false);}
+  };
+
+  // Full profile submit (Settings only)
   const submitProfile=async(isEdit)=>{
     setProfileError('');
-    if(!profileForm.firstName||!profileForm.lastName||!profileForm.email){
-      setProfileError('Please fill in your name and email.');return;
-    }
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email)){
-      setProfileError('Please enter a valid email address.');return;
-    }
+    if(!profileForm.email){setProfileError('Email is required.');return;}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email)){setProfileError('Please enter a valid email address.');return;}
     setProfileSaving(true);
     try{
       const payload={...profileForm,action:isEdit?'update':'register',persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en',pushEnabled:!!pushSubRef.current};
@@ -2623,35 +2636,56 @@ function App(){
   return(
     <div className="app-container">
       {/* APP UPDATE BANNER */}
-      {/* PROFILE REGISTRATION MODAL */}
+      {/* EMAIL GATE — appears when accessing books/resources without email */}
+      {showEmailGate&&(
+        <div className="profile-modal-overlay" onClick={e=>{if(e.target===e.currentTarget&&!emailGateSaving){setShowEmailGate(false)}}}>
+          <div className="profile-modal" style={{maxWidth:360,padding:'28px 24px'}}>
+            {emailGateDone?(
+              <div className="pm-success">
+                <div className="pm-check">✓</div>
+                <h3>{lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':'You\'re in!'}</h3>
+              </div>
+            ):(
+              <>
+                <h3 style={{fontSize:20}}>{lang==='es'?'Accede a Libros y Recursos':lang==='pt'?'Acesse Livros e Recursos':'Unlock Books & Resources'}</h3>
+                <div className="pm-sub">{lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access'}</div>
+                {emailGateError&&<div className="pm-error">{emailGateError}</div>}
+                <div className="pm-field"><input type="email" value={emailGateInput} onChange={e=>setEmailGateInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submitEmailGate()}} placeholder="you@example.com" autoFocus style={{fontSize:16,padding:'12px 16px'}}/></div>
+                <div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':'Just devotionals & updates. We never share your info.'}</div>
+                <div className="pm-actions">
+                  <button className="pm-btn-primary" disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':'Continue'}</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {/* FULL PROFILE MODAL — Settings edit only */}
       {showProfileModal&&(
         <div className="profile-modal-overlay" onClick={e=>{if(e.target===e.currentTarget&&!profileSaving){setShowProfileModal(false)}}}>
           <div className="profile-modal">
             {profileSuccess?(
               <div className="pm-success">
                 <div className="pm-check">✓</div>
-                <h3>{lang==='es'?'¡Bienvenido':'Welcome'}, {profileForm.firstName}!</h3>
-                <p>{lang==='es'?'Tu perfil ha sido guardado':lang==='pt'?'Seu perfil foi salvo':'Your profile has been saved'}</p>
+                <h3>{lang==='es'?'Perfil guardado':lang==='pt'?'Perfil salvo':'Profile saved'}</h3>
               </div>
             ):(
               <>
-                <h3>{profileEditing?(lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':'Edit Profile'):(lang==='es'?'Únete a la Comunidad':lang==='pt'?'Junte-se à Comunidade':'Join the Community')}</h3>
-                <div className="pm-sub">{lang==='es'?'Mantente conectado con tu lectura diaria':lang==='pt'?'Fique conectado com sua leitura diária':'Stay connected with your daily reading'}</div>
+                <h3>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':'Edit Profile'}</h3>
                 {profileError&&<div className="pm-error">{profileError}</div>}
                 <div className="pm-row">
-                  <div className="pm-field"><label>{lang==='es'?'Nombre':lang==='pt'?'Nome':'First Name'} *</label><input value={profileForm.firstName} onChange={e=>setProfileForm(p=>({...p,firstName:e.target.value}))} placeholder={lang==='es'?'Nombre':'First name'}/></div>
-                  <div className="pm-field"><label>{lang==='es'?'Apellido':lang==='pt'?'Sobrenome':'Last Name'} *</label><input value={profileForm.lastName} onChange={e=>setProfileForm(p=>({...p,lastName:e.target.value}))} placeholder={lang==='es'?'Apellido':'Last name'}/></div>
+                  <div className="pm-field"><label>First Name</label><input value={profileForm.firstName} onChange={e=>setProfileForm(p=>({...p,firstName:e.target.value}))} placeholder="First name"/></div>
+                  <div className="pm-field"><label>Last Name</label><input value={profileForm.lastName} onChange={e=>setProfileForm(p=>({...p,lastName:e.target.value}))} placeholder="Last name"/></div>
                 </div>
-                <div className="pm-field"><label>{lang==='es'?'Correo':lang==='pt'?'E-mail':'Email'} *</label><input type="email" value={profileForm.email} readOnly={profileEditing} style={profileEditing?{opacity:0.6}:{}} onChange={e=>setProfileForm(p=>({...p,email:e.target.value}))} placeholder="you@example.com"/></div>
-                <div className="pm-field"><label>{lang==='es'?'Teléfono':lang==='pt'?'Telefone':'Phone'}</label><input type="tel" value={profileForm.phone} onChange={e=>setProfileForm(p=>({...p,phone:e.target.value}))} placeholder={lang==='es'?'Opcional':'Optional'}/></div>
+                <div className="pm-field"><label>Email</label><input type="email" value={profileForm.email} readOnly style={{opacity:0.6}}/></div>
+                <div className="pm-field"><label>Phone</label><input type="tel" value={profileForm.phone} onChange={e=>setProfileForm(p=>({...p,phone:e.target.value}))} placeholder="Optional"/></div>
                 <div className="pm-row">
-                  <div className="pm-field"><label>{lang==='es'?'Iglesia':lang==='pt'?'Igreja':'Church'}</label><input value={profileForm.church} onChange={e=>setProfileForm(p=>({...p,church:e.target.value}))} placeholder={lang==='es'?'Opcional':'Optional'}/></div>
-                  <div className="pm-field"><label>{lang==='es'?'Ciudad':lang==='pt'?'Cidade':'City'}</label><input value={profileForm.city} onChange={e=>setProfileForm(p=>({...p,city:e.target.value}))} placeholder={lang==='es'?'Opcional':'Optional'}/></div>
+                  <div className="pm-field"><label>Church</label><input value={profileForm.church} onChange={e=>setProfileForm(p=>({...p,church:e.target.value}))} placeholder="Optional"/></div>
+                  <div className="pm-field"><label>City</label><input value={profileForm.city} onChange={e=>setProfileForm(p=>({...p,city:e.target.value}))} placeholder="Optional"/></div>
                 </div>
-                <div className="pm-privacy">{lang==='es'?'Solo usaremos esto para enviarte contenido devocional y actualizaciones de la iglesia. Nunca compartimos tu información.':lang==='pt'?'Usaremos isso apenas para enviar conteúdo devocional e atualizações da igreja. Nunca compartilhamos suas informações.':'We\'ll only use this to send you devotional content and church updates. We never share your info.'}</div>
-                <div className="pm-actions">
-                  <button className="pm-btn-primary" disabled={profileSaving} onClick={()=>submitProfile(profileEditing)}>{profileSaving?(lang==='es'?'Guardando...':'Saving...'):(profileEditing?(lang==='es'?'Guardar Cambios':'Save Changes'):(lang==='es'?'Unirme':lang==='pt'?'Participar':'Join the Community'))}</button>
-                  {!profileEditing&&<button className="pm-btn-secondary" onClick={()=>{setShowProfileModal(false);localStorage.setItem('dw_profile_dismissed',String(Date.now()));}}>{lang==='es'?'Quizás Después':'Maybe Later'}</button>}
+                <div className="pm-actions" style={{marginTop:16}}>
+                  <button className="pm-btn-primary" disabled={profileSaving} onClick={()=>submitProfile(true)}>{profileSaving?'Saving...':'Save Changes'}</button>
+                  <button className="pm-btn-secondary" onClick={()=>setShowProfileModal(false)}>Cancel</button>
                 </div>
               </>
             )}
@@ -3123,7 +3157,7 @@ function App(){
               <div style={{flex:1,height:1,background:'var(--border)'}}/>
             </div>
             {BOOK_CATALOG.psA.map(book=>(
-              <div key={book.id} className="book-card" onClick={()=>{setSelectedBook(book.id);setMoreSection('psA');loadBookData(book.id)}}>
+              <div key={book.id} className="book-card" onClick={()=>requireEmail(()=>{setSelectedBook(book.id);setMoreSection('psA');loadBookData(book.id)})}>
                 <div className="bc-icon">{book.icon}</div>
                 <div className="bc-info">
                   <div className="bc-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</div>
@@ -3143,7 +3177,7 @@ function App(){
                 <div style={{flex:1,height:1,background:'var(--border)'}}/>
               </div>
               {BOOK_CATALOG.psJane.map(book=>(
-                <div key={book.id} className="book-card" onClick={()=>{setSelectedBook(book.id);setMoreSection('psJane');loadBookData(book.id)}}>
+                <div key={book.id} className="book-card" onClick={()=>requireEmail(()=>{setSelectedBook(book.id);setMoreSection('psJane');loadBookData(book.id)})}>
                   <div className="bc-icon">{book.icon}</div>
                   <div className="bc-info">
                     <div className="bc-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</div>
@@ -3461,7 +3495,7 @@ function App(){
                 <React.Fragment>
                   <h1 className="section-title">{lang==='es'?`${L.libraryBooks} de ${L.psA}`:lang==='pt'?`${L.libraryBooks} de ${L.psA}`:`${L.psA}'s ${L.libraryBooks}`}</h1>
                   {BOOK_CATALOG.psA.map(book=>(
-                    <div key={book.id} className="book-card" onClick={()=>{setSelectedBook(book.id);loadBookData(book.id)}}>
+                    <div key={book.id} className="book-card" onClick={()=>requireEmail(()=>{setSelectedBook(book.id);loadBookData(book.id)})}>
                       <div className="bc-icon">{book.icon}</div>
                       <div className="bc-info">
                         <div className="bc-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</div>
@@ -3554,7 +3588,7 @@ function App(){
                 <React.Fragment>
                   <h1 className="section-title">{lang==='es'?`${L.libraryBooks} de ${L.psJane}`:lang==='pt'?`${L.libraryBooks} de ${L.psJane}`:`${L.psJane}'s ${L.libraryBooks}`}</h1>
                   {BOOK_CATALOG.psJane.map(book=>(
-                    <div key={book.id} className="book-card" onClick={()=>{setSelectedBook(book.id);loadBookData(book.id)}}>
+                    <div key={book.id} className="book-card" onClick={()=>requireEmail(()=>{setSelectedBook(book.id);loadBookData(book.id)})}>
                       <div className="bc-icon">{book.icon}</div>
                       <div className="bc-info">
                         <div className="bc-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</div>
@@ -3655,7 +3689,7 @@ function App(){
           {/* ── My Profile ── */}
           {userProfile?(
             <div className="settings-profile-card">
-              <div className="spc-name">{userProfile.firstName} {userProfile.lastName}</div>
+              {(userProfile.firstName||userProfile.lastName)&&<div className="spc-name">{userProfile.firstName} {userProfile.lastName}</div>}
               <div className="spc-email">{userProfile.email}</div>
               {(userProfile.church||userProfile.city)&&<div className="spc-details">{[userProfile.church,userProfile.city].filter(Boolean).join(' • ')}</div>}
               <button className="spc-edit" onClick={openEditProfile}>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':'Edit Profile'}</button>
@@ -3663,7 +3697,7 @@ function App(){
           ):(
             <div className="settings-no-profile">
               <p>{lang==='es'?'Crea tu perfil para recibir actualizaciones':lang==='pt'?'Crie seu perfil para receber atualizações':'Create your profile to receive updates'}</p>
-              <button onClick={()=>{setProfileForm({firstName:'',lastName:'',email:'',phone:'',church:'',city:''});setProfileError('');setProfileSuccess(false);setProfileEditing(false);setShowProfileModal(true);}}>{lang==='es'?'Crear Perfil':lang==='pt'?'Criar Perfil':'Create Profile'}</button>
+              <button onClick={()=>requireEmail(()=>{})}>{lang==='es'?'Agregar Correo':lang==='pt'?'Adicionar Email':'Add Your Email'}</button>
             </div>
           )}
 

@@ -37,8 +37,8 @@ exports.handler = async (event) => {
     // ── Register ──
     if (action === "register") {
       const { firstName, lastName, email, phone, church, city, persona, lang, pushEnabled } = body;
-      if (!firstName || !lastName || !email) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: "First name, last name, and email are required" }) };
+      if (!email) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: "Email is required" }) };
       }
       // Basic email validation
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -47,8 +47,8 @@ exports.handler = async (event) => {
       const key = hashEmail(email);
       const existing = await store.get(key, { type: "json" }).catch(() => null);
       const record = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: (existing && existing.firstName) || (firstName || "").trim(),
+        lastName: (existing && existing.lastName) || (lastName || "").trim(),
         email: email.toLowerCase().trim(),
         phone: (phone || "").trim(),
         church: (church || "").trim(),

@@ -1,5 +1,5 @@
-// Daily Word Service Worker v10 — User profiles + Bible API caching + TTS caching
-const CACHE_NAME = 'daily-word-v10';
+// Daily Word Service Worker v11 — Email gate + user profiles
+const CACHE_NAME = 'daily-word-v11';
 const API_CACHE = 'daily-word-api-v1'; // Separate cache for API responses (24hr TTL)
 const TTS_CACHE = 'daily-word-tts-v1'; // Cache for TTS audio (7-day TTL, max 50 entries)
 
