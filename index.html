@@ -26,6 +26,27 @@
     <meta name="twitter:description" content="Your daily Bible reading companion with devotions, commentary, reading plans, and audio.">
     <meta name="twitter:image" content="https://futures-daily-word.netlify.app/icons/og-image.png">
     <title>Daily Word — Futures Church</title>
+    <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="/styles.css" as="style">
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Daily Word",
+      "description": "Your daily Bible reading companion with devotions, commentary, reading plans, and audio in English, Spanish, and Portuguese.",
+      "url": "https://futures-daily-word.netlify.app",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "Any",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Organization", "name": "Futures Church", "url": "https://futures.global" },
+      "inLanguage": ["en", "es", "pt"]
+    }
+    </script>
     <!-- Google Analytics 4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YVBPE1PK0S"></script>
     <script>
@@ -45,13 +66,31 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<!-- Skip to content link for accessibility -->
+<a href="#root" class="skip-nav" id="skip-nav">Skip to content</a>
+<!-- Loading splash screen — shown until React mounts -->
+<div id="splash" aria-label="Loading Daily Word">
+  <div class="splash-inner">
+    <div class="splash-logo">DW</div>
+    <div class="splash-title">Daily Word</div>
+    <div class="splash-sub">Futures Church</div>
+    <div class="splash-spinner"></div>
+  </div>
+</div>
 <!-- Hidden form for Netlify to detect — submissions stored server-side, email never exposed in code -->
 <form name="issue-report" data-netlify="true" hidden>
   <input type="text" name="message" />
   <input type="text" name="language" />
   <input type="text" name="date" />
 </form>
-<div id="root"></div>
+<div id="root" role="main" aria-live="polite"></div>
+<!-- No-JS fallback -->
+<noscript>
+  <div style="text-align:center;padding:60px 24px;font-family:Georgia,serif">
+    <h1 style="color:#4A6340;font-size:28px">Daily Word</h1>
+    <p style="color:#666;margin-top:16px">JavaScript is required to run this app. Please enable JavaScript in your browser settings.</p>
+  </div>
+</noscript>
 <script src="/data/quotes.js"></script>
 <script src="/data/devotions.js"></script>
 <script src="/data/persona.js"></script>
@@ -650,6 +689,48 @@ function App(){
     }catch(e){}
     // Preload speech synthesis voices (async on many browsers)
     if(window.speechSynthesis){window.speechSynthesis.getVoices();window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices()}
+    // Dismiss splash screen
+    const splash=document.getElementById('splash');
+    if(splash){splash.classList.add('hidden');setTimeout(()=>splash.remove(),500)}
+  },[]);
+
+  // ===== INSTALL PROMPT (Add to Home Screen) =====
+  const [installPrompt,setInstallPrompt]=useState(null);
+  const [showInstallBanner,setShowInstallBanner]=useState(false);
+  useEffect(()=>{
+    const dismissed=localStorage.getItem('dw_install_dismissed');
+    if(dismissed){const d=Date.now()-parseInt(dismissed);if(d<7*86400000)return} // Don't re-show for 7 days
+    const handler=(e)=>{e.preventDefault();setInstallPrompt(e);setShowInstallBanner(true)};
+    window.addEventListener('beforeinstallprompt',handler);
+    return()=>window.removeEventListener('beforeinstallprompt',handler);
+  },[]);
+  const handleInstall=async()=>{
+    if(!installPrompt)return;
+    installPrompt.prompt();
+    const result=await installPrompt.userChoice;
+    gaEvent('pwa_install',{outcome:result.outcome});
+    setShowInstallBanner(false);setInstallPrompt(null);
+  };
+  const dismissInstall=()=>{
+    setShowInstallBanner(false);
+    try{localStorage.setItem('dw_install_dismissed',Date.now().toString())}catch(e){}
+  };
+
+  // ===== APP UPDATE NOTIFICATION =====
+  const [showUpdateBanner,setShowUpdateBanner]=useState(false);
+  useEffect(()=>{
+    if(!('serviceWorker' in navigator))return;
+    navigator.serviceWorker.ready.then(reg=>{
+      reg.addEventListener('updatefound',()=>{
+        const newSW=reg.installing;
+        if(!newSW)return;
+        newSW.addEventListener('statechange',()=>{
+          if(newSW.state==='installed'&&navigator.serviceWorker.controller){
+            setShowUpdateBanner(true);
+          }
+        });
+      });
+    });
   },[]);
 
   // Auto-refresh at midnight: schedule timer + check on visibility change
@@ -2484,8 +2565,27 @@ function App(){
 
   return(
     <div className="app-container">
+      {/* APP UPDATE BANNER */}
+      {showUpdateBanner&&(
+        <div className="update-banner">
+          <span>A new version is available</span>
+          <button onClick={()=>window.location.reload()}>Update</button>
+        </div>
+      )}
+      {/* INSTALL PROMPT BANNER */}
+      {showInstallBanner&&(
+        <div className="install-banner">
+          <div className="install-banner-icon">DW</div>
+          <div className="install-banner-text">
+            <strong>Install Daily Word</strong>
+            <span>Add to your home screen for quick access</span>
+          </div>
+          <button className="install-banner-btn" onClick={handleInstall}>Install</button>
+          <button className="install-banner-close" onClick={dismissInstall}>&times;</button>
+        </div>
+      )}
       {/* GLOBAL ASK CLAUDE BUTTON */}
-      <button className="ai-fixed-btn" onClick={()=>{
+      <button className="ai-fixed-btn" aria-label="Ask Bible AI" onClick={()=>{
         if(showAI){setShowAI(false)}
         else{
           // Set context based on current page
@@ -4147,27 +4247,27 @@ function App(){
       )}
 
       {/* NAV */}
-      <nav className="nav">
-        <button className={page==='home'?'active':''} onClick={()=>{setPage('home');gaEvent('navigate',{page:'home'})}}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <nav className="nav" role="navigation" aria-label="Main navigation">
+        <button aria-label="Home" aria-current={page==='home'?'page':undefined} className={page==='home'?'active':''} onClick={()=>{setPage('home');gaEvent('navigate',{page:'home'})}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           {L.home}
         </button>
-        <button className={page==='journal'?'active':''} onClick={()=>{setPage('journal');gaEvent('navigate',{page:'journal'})}}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        <button aria-label="Journal" aria-current={page==='journal'?'page':undefined} className={page==='journal'?'active':''} onClick={()=>{setPage('journal');gaEvent('navigate',{page:'journal'})}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
           {L.journal}
         </button>
-        <button className={page==='sermons'?'active':''} onClick={()=>{setPage('sermons');gaEvent('navigate',{page:'messages'})}}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707A1 1 0 0112 5v14a1 1 0 01-1.707.707L5.586 15z"/></svg>
+        <button aria-label="Messages" aria-current={page==='sermons'?'page':undefined} className={page==='sermons'?'active':''} onClick={()=>{setPage('sermons');gaEvent('navigate',{page:'messages'})}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707A1 1 0 0112 5v14a1 1 0 01-1.707.707L5.586 15z"/></svg>
           {L.messages}
         </button>
-        <button className={page==='plans'?'active':''} onClick={()=>{
+        <button aria-label="Plans and More" aria-current={page==='plans'?'page':undefined} className={page==='plans'?'active':''} onClick={()=>{
           setPage('plans');setMoreSection(null);setSelectedBook(null);setSelectedChapter(null);gaEvent('navigate',{page:'plans'});
         }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>
           {L.plansMore}
         </button>
-        <button className={page==='settings'?'active':''} onClick={()=>{setPage('settings');gaEvent('navigate',{page:'settings'})}}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <button aria-label="Settings" aria-current={page==='settings'?'page':undefined} className={page==='settings'?'active':''} onClick={()=>{setPage('settings');gaEvent('navigate',{page:'settings'})}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
           {L.settings}
         </button>
       </nav>
@@ -4268,29 +4368,37 @@ class ErrorBoundary extends React.Component{
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ErrorBoundary,null,React.createElement(App)));
 </script>
 <script>
-// Global error safety net — prevent silent failures
+// Global error safety net — prevent silent failures + log to GA
 window.addEventListener('unhandledrejection', function(e) {
   console.warn('Unhandled promise rejection:', e.reason);
-  e.preventDefault(); // Prevent the error from crashing
+  if(window.gaEvent)gaEvent('js_error',{type:'unhandled_rejection',message:String(e.reason).slice(0,200)});
+  e.preventDefault();
 });
 window.onerror = function(msg, src, line, col, err) {
   console.warn('Global error caught:', msg, 'at', src, line);
-  return true; // Prevent default browser error handling
+  if(window.gaEvent)gaEvent('js_error',{type:'global',message:String(msg).slice(0,200),source:src,line:line});
+  return true;
 };
+// Track Core Web Vitals if supported
+if(window.PerformanceObserver){
+  try{
+    new PerformanceObserver(function(list){
+      list.getEntries().forEach(function(entry){
+        if(window.gaEvent)gaEvent('web_vital',{name:entry.name,value:Math.round(entry.startTime),metric:entry.entryType});
+      });
+    }).observe({type:'largest-contentful-paint',buffered:true});
+  }catch(e){}
+}
 </script>
 <script>
 // Service Worker Registration
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js').then(reg=>{
     console.log('Service Worker registered, scope:',reg.scope);
-    // Force update check on every page load
     reg.update().catch(()=>{});
+    // Check for updates every 30 minutes
+    setInterval(()=>{reg.update().catch(()=>{})},30*60*1000);
   }).catch(err=>console.log('SW registration failed:',err));
-  // Listen for controller change and reload to get fresh assets
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    console.log('New service worker activated, reloading...');
-    window.location.reload();
-  });
 }
 </script>
 </body>

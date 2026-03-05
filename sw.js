@@ -7,6 +7,8 @@ const TTS_CACHE = 'daily-word-tts-v1'; // Cache for TTS audio (7-day TTL, max 50
 const PRECACHE_URLS = [
   '/',
   '/index.html',
+  '/offline.html',
+  '/404.html',
   '/styles.css',
   '/manifest.json',
   '/data/quotes.js',
@@ -206,7 +208,7 @@ self.addEventListener('fetch', e => {
         }
         return resp;
       }).catch(() => {
-        return caches.match(e.request).then(r => r || caches.match('/index.html'));
+        return caches.match(e.request).then(r => r || caches.match('/index.html')).then(r => r || caches.match('/offline.html'));
       })
     );
     return;
