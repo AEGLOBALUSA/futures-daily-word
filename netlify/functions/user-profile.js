@@ -33,7 +33,7 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
     const { action } = body;
-    const store = getStore("user-profiles");
+    const store = getStore({ name: "user-profiles", siteID: process.env.NETLIFY_SITE_ID || "", token: process.env.BLOB_TOKEN || "" });
 
     // ── Register ──
     if (action === "register") {
@@ -126,6 +126,6 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid action" }) };
   } catch (err) {
     console.error("User profile error:", err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Server error", detail: err.message, stack: err.stack }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Server error" }) };
   }
 };

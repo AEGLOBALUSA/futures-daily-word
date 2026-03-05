@@ -9,7 +9,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const store = getStore("user-profiles");
+    const store = getStore({ name: "user-profiles", siteID: process.env.NETLIFY_SITE_ID || "", token: process.env.BLOB_TOKEN || "" });
     const { blobs } = await store.list();
     const profiles = [];
 
