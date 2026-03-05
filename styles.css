@@ -532,6 +532,45 @@ body.dark .splash-spinner{border-color:#3A3A3A;border-top-color:#8DA583}
 .update-banner span{flex:1;font-size:14px;font-weight:500}
 .update-banner button{padding:6px 16px;background:white;color:var(--sage);border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
 
+/* ===== PROFILE REGISTRATION MODAL ===== */
+.profile-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.profile-modal{background:#FAFAF8;border-radius:20px;max-width:400px;width:100%;padding:32px 28px;box-shadow:0 12px 40px rgba(0,0,0,0.2);animation:modalPop 0.3s ease}
+@keyframes modalPop{from{transform:scale(0.92);opacity:0}to{transform:scale(1);opacity:1}}
+body.dark .profile-modal{background:#2A2A2A;color:#E8E8E8}
+.profile-modal h3{font-family:Georgia,serif;font-size:22px;color:var(--sage);margin:0 0 4px;text-align:center}
+.profile-modal .pm-sub{font-size:13px;color:#888;text-align:center;margin-bottom:20px}
+body.dark .profile-modal h3{color:#8DA583}
+.profile-modal .pm-row{display:flex;gap:10px}
+.profile-modal .pm-row .pm-field{flex:1}
+.profile-modal .pm-field{margin-bottom:12px}
+.profile-modal .pm-field label{display:block;font-size:12px;font-weight:600;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+.profile-modal .pm-field input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--light);color:var(--text);outline:none;transition:border-color 0.2s;box-sizing:border-box}
+.profile-modal .pm-field input:focus{border-color:var(--sage)}
+body.dark .profile-modal .pm-field input{background:#1E1E1E;border-color:#444;color:#E8E8E8}
+.profile-modal .pm-privacy{font-size:11px;color:#999;text-align:center;margin:8px 0 18px;line-height:1.5}
+.profile-modal .pm-actions{display:flex;gap:10px}
+.profile-modal .pm-btn-primary{flex:1;padding:12px;background:var(--sage);color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:background 0.2s}
+.profile-modal .pm-btn-primary:hover{background:#3D5435}
+.profile-modal .pm-btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.profile-modal .pm-btn-secondary{flex:1;padding:12px;background:transparent;color:#888;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:500;cursor:pointer}
+.profile-modal .pm-success{text-align:center;padding:20px 0}
+.profile-modal .pm-success .pm-check{width:56px;height:56px;border-radius:50%;background:var(--sage);color:white;font-size:28px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.profile-modal .pm-success h3{margin-bottom:8px}
+.profile-modal .pm-success p{color:#888;font-size:14px}
+.profile-modal .pm-error{color:#c0392b;font-size:13px;text-align:center;margin-bottom:8px}
+
+/* ===== SETTINGS PROFILE CARD ===== */
+.settings-profile-card{background:linear-gradient(135deg,var(--sage),#3D5435);border-radius:16px;padding:20px;color:white;margin-bottom:20px}
+.settings-profile-card .spc-name{font-family:Georgia,serif;font-size:20px;font-weight:700;margin-bottom:2px}
+.settings-profile-card .spc-email{font-size:13px;opacity:0.8;margin-bottom:12px}
+.settings-profile-card .spc-details{font-size:12px;opacity:0.7;margin-bottom:12px}
+.settings-profile-card .spc-edit{padding:8px 20px;background:rgba(255,255,255,0.2);color:white;border:1.5px solid rgba(255,255,255,0.3);border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.settings-profile-card .spc-edit:hover{background:rgba(255,255,255,0.3)}
+.settings-no-profile{background:var(--light);border:1.5px dashed var(--border);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px}
+.settings-no-profile p{font-size:14px;color:#888;margin-bottom:12px}
+.settings-no-profile button{padding:10px 24px;background:var(--sage);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+
 /* ===== PRINT STYLES ===== */
 @media print{
   body{position:static;overflow:visible;background:white;color:black}
