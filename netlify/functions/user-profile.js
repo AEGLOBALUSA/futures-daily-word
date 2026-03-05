@@ -126,6 +126,6 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid action" }) };
   } catch (err) {
     console.error("User profile error:", err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Server error" }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Server error", detail: err.message, stack: err.stack }) };
   }
 };
