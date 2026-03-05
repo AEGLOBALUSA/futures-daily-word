@@ -451,6 +451,7 @@ function App(){
       const data=await resp.json();
       if(data&&data.chapters&&Array.isArray(data.chapters)){
         setLoadedBooks(prev=>({...prev,[bookId]:{toc:data.chapters,chapters:{}}}));
+        trackActivity('book_open',catalog.title||bookId);
       }else{throw new Error('Bad TOC format')}
     }catch(e){
       console.warn('Per-chapter TOC failed, trying full book:',e.message);
@@ -493,6 +494,8 @@ function App(){
           const book=prev[bookId]||{toc:[],chapters:{}};
           return{...prev,[bookId]:{...book,chapters:{...book.chapters,[chIdx]:data}}};
         });
+        const cat=[...BOOK_CATALOG.psA,...BOOK_CATALOG.psJane].find(b=>b.id===bookId);
+        trackActivity('chapter_read',(cat?cat.title:bookId)+' Ch.'+(chIdx+1));
       }else{throw new Error('Bad chapter format')}
     }catch(e){
       console.error('Failed to load chapter:',e);
@@ -533,6 +536,7 @@ function App(){
       return;
     }
     gaEvent('bible_ai_question',{context:aiContext||'general'});
+    trackActivity('ai_chat',question.slice(0,100));
     const userMsg={role:'user',content:sanitize(question,2000)};
     const newMsgs=[...aiMessages,userMsg];
     setAiMessages(newMsgs);
@@ -803,6 +807,42 @@ function App(){
     setProfileEditing(true);setProfileError('');setProfileSuccess(false);setShowProfileModal(true);
   };
 
+  // ===== ACTIVITY TRACKING =====
+  const activityQueueRef=useRef([]);
+  const activityTimerRef=useRef(null);
+
+  const trackActivity=(type,detail)=>{
+    const email=(userProfile&&userProfile.email)||'';
+    if(!email)return;
+    activityQueueRef.current.push({type,detail:String(detail||'').slice(0,200)});
+    // Batch send every 5 seconds to avoid spamming the API
+    if(!activityTimerRef.current){
+      activityTimerRef.current=setTimeout(()=>{
+        const batch=[...activityQueueRef.current];
+        activityQueueRef.current=[];
+        activityTimerRef.current=null;
+        if(batch.length>0){
+          fetch('/api/track-activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,events:batch})}).catch(()=>{});
+        }
+      },5000);
+    }
+  };
+
+  // Flush activity on page unload
+  useEffect(()=>{
+    const flush=()=>{
+      const email=(userProfile&&userProfile.email)||'';
+      const batch=[...activityQueueRef.current];
+      activityQueueRef.current=[];
+      if(email&&batch.length>0){
+        navigator.sendBeacon('/api/track-activity',JSON.stringify({email,events:batch}));
+      }
+    };
+    window.addEventListener('beforeunload',flush);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush()});
+    return()=>window.removeEventListener('beforeunload',flush);
+  },[userProfile]);
+
   // Auto-refresh at midnight: schedule timer + check on visibility change
   useEffect(()=>{
     const checkDate=()=>{const d=new Date().toDateString();if(d!==dateKey){setDateKey(d);setDayOffset(0)}};
@@ -929,6 +969,7 @@ function App(){
     const plan=READING_PLANS.find(p=>p.id===planId);
     if(!plan)return;
     gaEvent('start_plan',{plan:planId,plan_name:plan.name});
+    trackActivity('plan_start',plan.name);
     setActivePlans(p=>({...p,[planId]:{startDate:new Date().toISOString().split('T')[0],completedDays:[]}}));
     setPlanView(planId);setPlanTab('my');
   };
@@ -970,6 +1011,7 @@ function App(){
 
   const openPlanReading=async(planId,dayIdx,ref)=>{
     gaEvent('open_plan_reading',{plan:planId,day:dayIdx+1,passage:ref});
+    trackActivity('plan_day','Day '+(dayIdx+1)+': '+ref);
     setPlanReading({planId,dayIdx,ref,text:null,verses:[],loading:true});
     const markComplete=()=>{const ap=activePlans[planId];if(ap&&!ap.completedDays.includes(dayIdx))togglePlanDay(planId,dayIdx)};
     // Step 1: Instantly load local KJV so user always sees SOMETHING
@@ -1295,6 +1337,7 @@ function App(){
   // Audio — reads a single passage, or stops if already playing
   const speakPassage=(pName)=>{
     gaEvent('audio_play',{passage:pName,language:lang});
+    trackActivity('audio_play',pName);
     // If already playing, stop everything
     if(speaking){stopAudio();return}
     stopAudio();
@@ -1305,6 +1348,7 @@ function App(){
   const speakPlanReading=()=>{
     if(!planReading||!planReading.verses||planReading.verses.length===0)return;
     gaEvent('audio_play_plan',{ref:planReading.ref,language:lang});
+    trackActivity('audio_play','Plan: '+planReading.ref);
     if(speaking){stopAudio();return}
     stopAudio();
     const text=planReading.verses.join(' ');
@@ -1376,6 +1420,7 @@ function App(){
   // Audio — reads ALL passages in sequence, one after another
   const speakAllPassages=(passageList)=>{
     gaEvent('audio_play_all',{count:passageList.length,language:lang});
+    trackActivity('audio_play','Listen All ('+passageList.length+' passages)');
     // If already playing, stop
     if(speaking||speakingAll){stopAudio();return}
     if(!passageList||passageList.length===0)return;
@@ -1502,6 +1547,7 @@ function App(){
   const doScriptureSearch=async(query)=>{
     if(!query.trim())return;
     gaEvent('scripture_search',{query:query.trim()});
+    trackActivity('search',query.trim());
     setSearchLoading(true);setSearchResults(null);
     try{
       // First try direct ESV lookup (handles "John 3:16", "Romans 8", etc.)
