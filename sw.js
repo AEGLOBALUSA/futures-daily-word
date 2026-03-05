@@ -1,5 +1,5 @@
-// Daily Word Service Worker v8 — Bible API caching + TTS caching + hardening
-const CACHE_NAME = 'daily-word-v8';
+// Daily Word Service Worker v9 — Bible API caching + TTS caching + hardening
+const CACHE_NAME = 'daily-word-v9';
 const API_CACHE = 'daily-word-api-v1'; // Separate cache for API responses (24hr TTL)
 const TTS_CACHE = 'daily-word-tts-v1'; // Cache for TTS audio (7-day TTL, max 50 entries)
 
@@ -7,6 +7,23 @@ const TTS_CACHE = 'daily-word-tts-v1'; // Cache for TTS audio (7-day TTL, max 50
 const PRECACHE_URLS = [
   '/',
   '/index.html',
+  '/styles.css',
+  '/manifest.json',
+  '/data/quotes.js',
+  '/data/devotions.js',
+  '/data/persona.js',
+  '/data/bible-sections.js',
+  '/data/translations.js',
+  '/data/commentary.js',
+  '/data/words.js',
+  '/data/characters.js',
+  '/data/locations.js',
+  '/data/timeline.js',
+  '/data/plans.js',
+  '/data/lang.js',
+  '/data/videodb.js',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
   // Primary CDN
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
