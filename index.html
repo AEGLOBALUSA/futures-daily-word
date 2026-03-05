@@ -31,7 +31,7 @@
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
     <link rel="dns-prefetch" href="https://unpkg.com">
     <!-- Preload critical CSS -->
-    <link rel="preload" href="/styles.css?v=12" as="style">
+    <link rel="preload" href="/styles.css?v=13" as="style">
     <!-- Structured Data -->
     <script type="application/ld+json">
     {
@@ -63,7 +63,7 @@
     <script>window.ReactDOM||document.write('<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin="anonymous"><\/script>')</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js" crossorigin></script>
     <script>window.Babel||document.write('<script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js" crossorigin="anonymous"><\/script>')</script>
-    <link rel="stylesheet" href="/styles.css?v=12">
+    <link rel="stylesheet" href="/styles.css?v=13">
 </head>
 <body>
 <!-- Skip to content link for accessibility -->
@@ -750,7 +750,33 @@ function App(){
   const [profileError,setProfileError]=useState('');
   const [profileSuccess,setProfileSuccess]=useState(false);
   const [profileEditing,setProfileEditing]=useState(false);
+  const [profilePic,setProfilePic]=useState(()=>localStorage.getItem('dw_profile_pic')||'');
+  const profilePicInputRef=useRef(null);
   const emailGateCallbackRef=useRef(null);
+
+  const handleProfilePic=(e)=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    if(file.size>2*1024*1024){setProfileError('Image must be under 2MB');return;}
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        const size=200;
+        canvas.width=size;canvas.height=size;
+        const ctx=canvas.getContext('2d');
+        const min=Math.min(img.width,img.height);
+        const sx=(img.width-min)/2,sy=(img.height-min)/2;
+        ctx.drawImage(img,sx,sy,min,min,0,0,size,size);
+        const dataUrl=canvas.toDataURL('image/jpeg',0.8);
+        setProfilePic(dataUrl);
+        try{localStorage.setItem('dw_profile_pic',dataUrl)}catch(e){}
+      };
+      img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Heartbeat — update lastActiveAt on each app open
   useEffect(()=>{
@@ -2719,6 +2745,17 @@ function App(){
               <>
                 <h3>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':'Edit Profile'}</h3>
                 {profileError&&<div className="pm-error">{profileError}</div>}
+                <div className="pm-pic-area" onClick={()=>profilePicInputRef.current&&profilePicInputRef.current.click()}>
+                  {profilePic?(
+                    <img src={profilePic} alt="Profile" className="pm-pic-img"/>
+                  ):(
+                    <div className="pm-pic-placeholder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:32,height:32,opacity:0.4}}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                  )}
+                  <div className="pm-pic-label">{profilePic?(lang==='es'?'Cambiar Foto':lang==='pt'?'Mudar Foto':'Change Photo'):(lang==='es'?'Agregar Foto':lang==='pt'?'Adicionar Foto':'Add Photo')}</div>
+                  <input ref={profilePicInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleProfilePic}/>
+                </div>
                 <div className="pm-row">
                   <div className="pm-field"><label>First Name</label><input value={profileForm.firstName} onChange={e=>setProfileForm(p=>({...p,firstName:e.target.value}))} placeholder="First name"/></div>
                   <div className="pm-field"><label>Last Name</label><input value={profileForm.lastName} onChange={e=>setProfileForm(p=>({...p,lastName:e.target.value}))} placeholder="Last name"/></div>
@@ -3741,9 +3778,16 @@ function App(){
           {/* ── My Profile ── */}
           {userProfile?(
             <div className="settings-profile-card">
-              {(userProfile.firstName||userProfile.lastName)&&<div className="spc-name">{userProfile.firstName} {userProfile.lastName}</div>}
-              <div className="spc-email">{userProfile.email}</div>
-              {(userProfile.church||userProfile.city)&&<div className="spc-details">{[userProfile.church,userProfile.city].filter(Boolean).join(' • ')}</div>}
+              <div className="spc-top">
+                <div className="spc-avatar" onClick={openEditProfile}>
+                  {profilePic?<img src={profilePic} alt="Profile"/>:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:28,height:28,opacity:0.5}}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
+                </div>
+                <div className="spc-info">
+                  {(userProfile.firstName||userProfile.lastName)&&<div className="spc-name">{userProfile.firstName} {userProfile.lastName}</div>}
+                  <div className="spc-email">{userProfile.email}</div>
+                  {(userProfile.church||userProfile.city)&&<div className="spc-details">{[userProfile.church,userProfile.city].filter(Boolean).join(' • ')}</div>}
+                </div>
+              </div>
               <button className="spc-edit" onClick={openEditProfile}>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':'Edit Profile'}</button>
             </div>
           ):(
