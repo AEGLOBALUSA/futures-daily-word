@@ -1,4 +1,4 @@
-const { getStore } = require("@netlify/blobs");
+const { createClient } = require("@supabase/supabase-js");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -6,9 +6,12 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000"
 ];
 
-function hashEmail(email) {
-  const str = email.toLowerCase().trim();
-  return Buffer.from(str).toString("base64url").slice(0, 48);
+let supabase;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  }
+  return supabase;
 }
 
 exports.handler = async (event) => {
@@ -36,45 +39,24 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Email and events array required" }) };
     }
 
-    const activityStore = getStore({ name: "user-activity", siteID: process.env.NETLIFY_SITE_ID || "", token: process.env.BLOB_TOKEN || "" });
-    const profileStore = getStore({ name: "user-profiles", siteID: process.env.NETLIFY_SITE_ID || "", token: process.env.BLOB_TOKEN || "" });
-    const key = hashEmail(email);
+    const db = getSupabase();
+    const cleanEmail = email.toLowerCase().trim();
 
-    // Get existing activity log (or start fresh)
-    let log = await activityStore.get(key, { type: "json" }).catch(() => null);
-    if (!log) {
-      log = { email: email.toLowerCase().trim(), events: [], stats: {} };
-    }
+    // Build rows to insert — no more 500-event cap, database handles unlimited
+    const rows = events.map(evt => ({
+      email: cleanEmail,
+      event_type: evt.type,
+      detail: evt.detail || ""
+    }));
 
-    // Append new events with timestamps
-    const now = new Date().toISOString();
-    for (const evt of events) {
-      const entry = {
-        type: evt.type,         // e.g. "book_open", "chapter_read", "search", "audio_play", "ai_chat", "plan_day"
-        detail: evt.detail || "",  // e.g. book title, search query, passage ref
-        ts: now
-      };
-      log.events.push(entry);
-
-      // Update stats counters
-      if (!log.stats[evt.type]) log.stats[evt.type] = 0;
-      log.stats[evt.type]++;
-    }
-
-    // Keep only last 500 events to avoid bloating the blob
-    if (log.events.length > 500) {
-      log.events = log.events.slice(-500);
-    }
-
-    log.lastActivity = now;
-    await activityStore.setJSON(key, log);
+    // Batch insert all activity events
+    const { error: insertError } = await db.from("activity_events").insert(rows);
+    if (insertError) throw insertError;
 
     // Also update lastActiveAt on the profile
-    const profile = await profileStore.get(key, { type: "json" }).catch(() => null);
-    if (profile) {
-      profile.lastActiveAt = now;
-      await profileStore.setJSON(key, profile);
-    }
+    await db.from("profiles")
+      .update({ last_active_at: new Date().toISOString() })
+      .eq("email", cleanEmail);
 
     return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
   } catch (err) {

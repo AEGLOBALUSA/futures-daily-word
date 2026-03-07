@@ -1,10 +1,18 @@
 const webpush = require("web-push");
-const { getStore } = require("@netlify/blobs");
+const { createClient } = require("@supabase/supabase-js");
 
 const VAPID_PUBLIC = "BGCv9F84OHjOwReUpXbnO_Ctqoz5Yn3uXyFOT8QNoRZHQFE4xggkftXRDuk0vdjGZk3SskeR84Pqn41VSpBROdU";
 const VAPID_PRIVATE = "rItkPW_hJr8ajUtXlrau88W4WYlHE9PMTPOvAruu2Ws";
 
 webpush.setVapidDetails("mailto:ashleymarkevans@me.com", VAPID_PUBLIC, VAPID_PRIVATE);
+
+let supabase;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  }
+  return supabase;
+}
 
 const ALL_PASSAGES = [
   "Psalms 23","Romans 8","John 3","Philippians 4","Isaiah 40","Genesis 1","Matthew 5",
@@ -75,7 +83,7 @@ function getTodaysPassage() {
   return ALL_PASSAGES[dayOfYear % ALL_PASSAGES.length];
 }
 
-// Pre-compute current hour for each common timezone to avoid creating Intl.DateTimeFormat per subscriber
+// Pre-compute current hour for each common timezone
 function buildTimezoneHourCache() {
   const cache = {};
   const now = new Date();
@@ -100,7 +108,7 @@ function getCurrentHour(timezone, tzCache) {
   if (tzCache[timezone] !== undefined) return tzCache[timezone];
   try {
     const h = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "numeric", hour12: false }).format(new Date()));
-    tzCache[timezone] = h; // cache for reuse
+    tzCache[timezone] = h;
     return h;
   } catch (e) {
     const etHour = new Date().getUTCHours() - 5;
@@ -108,48 +116,8 @@ function getCurrentHour(timezone, tzCache) {
   }
 }
 
-// Process subscribers in batches with concurrency control
-async function sendBatch(subscribers, store, payload, tzCache) {
-  let sent = 0, failed = 0, skipped = 0;
-  const CONCURRENCY = 10; // send 10 notifications at a time
-
-  for (let i = 0; i < subscribers.length; i += CONCURRENCY) {
-    const batch = subscribers.slice(i, i + CONCURRENCY);
-    const results = await Promise.allSettled(
-      batch.map(async (blob) => {
-        const record = await store.get(blob.key, { type: "json" });
-        if (!record || !record.active || !record.subscription) {
-          return 'skipped';
-        }
-        const currentHour = getCurrentHour(record.timezone, tzCache);
-        if (currentHour !== record.preferredHour) {
-          return 'skipped';
-        }
-        await webpush.sendNotification(record.subscription, payload);
-        return 'sent';
-      })
-    );
-
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        if (r.value === 'sent') sent++;
-        else skipped++;
-      } else {
-        // Check if subscription expired
-        const err = r.reason;
-        if (err && (err.statusCode === 410 || err.statusCode === 404)) {
-          try { await store.delete(batch[results.indexOf(r)]?.key); } catch (e) {}
-        }
-        failed++;
-      }
-    }
-  }
-
-  return { sent, failed, skipped };
-}
-
 exports.handler = async (event) => {
-  const store = getStore("push-subscriptions");
+  const db = getSupabase();
   const passage = getTodaysPassage();
   const verse = VERSE_SNIPPETS[passage] || "Your daily reading is ready.";
   const template = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
@@ -166,26 +134,52 @@ exports.handler = async (event) => {
   const tzCache = buildTimezoneHourCache();
 
   try {
-    // Paginated subscriber list — process in pages of 1000
-    let cursor = undefined;
-    let totalSent = 0, totalFailed = 0, totalSkipped = 0;
+    // Single query to get ALL active subscriptions — no N+1, no pagination needed
+    const { data: subs, error } = await db.from("push_subscriptions")
+      .select("id, subscription, timezone, preferred_hour, endpoint_hash")
+      .eq("active", true);
 
-    do {
-      const listOpts = { paginate: true };
-      if (cursor) listOpts.cursor = cursor;
-      const page = await store.list(listOpts);
-      const blobs = page.blobs || [];
-      cursor = page.cursor || null;
+    if (error) throw error;
 
-      if (blobs.length > 0) {
-        const { sent, failed, skipped } = await sendBatch(blobs, store, payload, tzCache);
-        totalSent += sent;
-        totalFailed += failed;
-        totalSkipped += skipped;
+    let sent = 0, failed = 0, skipped = 0;
+    const CONCURRENCY = 10;
+    const expiredIds = [];
+
+    // Process in batches of CONCURRENCY
+    for (let i = 0; i < (subs || []).length; i += CONCURRENCY) {
+      const batch = subs.slice(i, i + CONCURRENCY);
+      const results = await Promise.allSettled(
+        batch.map(async (sub) => {
+          const currentHour = getCurrentHour(sub.timezone, tzCache);
+          if (currentHour !== sub.preferred_hour) {
+            return 'skipped';
+          }
+          await webpush.sendNotification(sub.subscription, payload);
+          return 'sent';
+        })
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        const r = results[j];
+        if (r.status === 'fulfilled') {
+          if (r.value === 'sent') sent++;
+          else skipped++;
+        } else {
+          const err = r.reason;
+          if (err && (err.statusCode === 410 || err.statusCode === 404)) {
+            expiredIds.push(batch[j].id);
+          }
+          failed++;
+        }
       }
-    } while (cursor);
+    }
 
-    const result = { sent: totalSent, failed: totalFailed, skipped: totalSkipped, passage };
+    // Cleanup expired subscriptions in one batch delete
+    if (expiredIds.length > 0) {
+      await db.from("push_subscriptions").delete().in("id", expiredIds);
+    }
+
+    const result = { sent, failed, skipped, expired: expiredIds.length, passage };
     console.log("Push send complete:", result);
     return { statusCode: 200, body: JSON.stringify(result) };
   } catch (err) {

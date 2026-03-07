@@ -1,15 +1,10 @@
-const { getStore } = require("@netlify/blobs");
+const { createClient } = require("@supabase/supabase-js");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
   "http://localhost:8888",
   "http://localhost:3000"
 ];
-
-function hashEmail(email) {
-  const str = email.toLowerCase().trim();
-  return Buffer.from(str).toString("base64url").slice(0, 48);
-}
 
 // Sanitize string input — strip control chars, cap length
 function sanitize(str, maxLen = 200) {
@@ -25,13 +20,20 @@ function checkRateLimit(ip, maxPerMin = 30) {
   ipHits[ip] = ipHits[ip].filter(t => now - t < 60000);
   if (ipHits[ip].length >= maxPerMin) return true;
   ipHits[ip].push(now);
-  // Cleanup stale IPs
   if (Object.keys(ipHits).length > 500) {
     for (const k of Object.keys(ipHits)) {
       if (ipHits[k].every(t => now - t >= 60000)) delete ipHits[k];
     }
   }
   return false;
+}
+
+let supabase;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  }
+  return supabase;
 }
 
 exports.handler = async (event) => {
@@ -61,7 +63,7 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
     const { action } = body;
-    const store = getStore({ name: "user-profiles", siteID: process.env.NETLIFY_SITE_ID || "", token: process.env.BLOB_TOKEN || "" });
+    const db = getSupabase();
 
     // ── Register ──
     if (action === "register") {
@@ -72,26 +74,36 @@ exports.handler = async (event) => {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid email address" }) };
       }
-      const key = hashEmail(email);
-      const existing = await store.get(key, { type: "json" }).catch(() => null);
+
       const record = {
-        firstName: (existing && existing.firstName) || sanitize(body.firstName || "", 100),
-        lastName: (existing && existing.lastName) || sanitize(body.lastName || "", 100),
-        email: email,
+        email,
+        first_name: sanitize(body.firstName || "", 100),
+        last_name: sanitize(body.lastName || "", 100),
         phone: sanitize(body.phone || "", 20),
         church: sanitize(body.church || "", 200),
         city: sanitize(body.city || "", 100),
         persona: sanitize(body.persona || "", 50),
         lang: sanitize(body.lang || "en", 5),
-        pushEnabled: !!body.pushEnabled,
-        registeredAt: existing ? existing.registeredAt : new Date().toISOString(),
-        lastActiveAt: new Date().toISOString()
+        push_enabled: !!body.pushEnabled,
+        last_active_at: new Date().toISOString()
       };
-      await store.setJSON(key, record);
+
+      // Upsert — insert or update on conflict
+      const { data, error } = await db.from("profiles")
+        .upsert(record, { onConflict: "email" })
+        .select("first_name, last_name, email")
+        .single();
+
+      if (error) throw error;
+
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: true, message: "Profile saved", profile: { firstName: record.firstName, lastName: record.lastName, email: record.email } })
+        body: JSON.stringify({
+          success: true,
+          message: "Profile saved",
+          profile: { firstName: data.first_name, lastName: data.last_name, email: data.email }
+        })
       };
     }
 
@@ -101,20 +113,35 @@ exports.handler = async (event) => {
       if (!email) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
       }
-      const key = hashEmail(email);
-      const existing = await store.get(key, { type: "json" }).catch(() => null);
-      if (!existing) {
-        return { statusCode: 404, headers, body: JSON.stringify({ error: "Profile not found" }) };
-      }
-      const fields = { firstName: 100, lastName: 100, phone: 20, church: 200, city: 100, persona: 50, lang: 5 };
-      for (const [f, maxLen] of Object.entries(fields)) {
-        if (body[f] !== undefined) {
-          existing[f] = sanitize(body[f], maxLen);
+
+      const updates = { last_active_at: new Date().toISOString() };
+      const fieldMap = {
+        firstName: ["first_name", 100],
+        lastName: ["last_name", 100],
+        phone: ["phone", 20],
+        church: ["church", 200],
+        city: ["city", 100],
+        persona: ["persona", 50],
+        lang: ["lang", 5]
+      };
+
+      for (const [jsField, [dbField, maxLen]] of Object.entries(fieldMap)) {
+        if (body[jsField] !== undefined) {
+          updates[dbField] = sanitize(body[jsField], maxLen);
         }
       }
-      if (body.pushEnabled !== undefined) existing.pushEnabled = !!body.pushEnabled;
-      existing.lastActiveAt = new Date().toISOString();
-      await store.setJSON(key, existing);
+      if (body.pushEnabled !== undefined) updates.push_enabled = !!body.pushEnabled;
+
+      const { data, error } = await db.from("profiles")
+        .update(updates)
+        .eq("email", email)
+        .select("email");
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: "Profile not found" }) };
+      }
+
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Profile updated" }) };
     }
 
@@ -124,15 +151,12 @@ exports.handler = async (event) => {
       if (!email) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
       }
-      const key = hashEmail(email);
-      const existing = await store.get(key, { type: "json" }).catch(() => null);
-      if (!existing) {
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-      }
-      existing.lastActiveAt = new Date().toISOString();
-      if (body.persona) existing.persona = sanitize(body.persona, 50);
-      if (body.lang) existing.lang = sanitize(body.lang, 5);
-      await store.setJSON(key, existing);
+
+      const updates = { last_active_at: new Date().toISOString() };
+      if (body.persona) updates.persona = sanitize(body.persona, 50);
+      if (body.lang) updates.lang = sanitize(body.lang, 5);
+
+      await db.from("profiles").update(updates).eq("email", email);
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
 
@@ -142,12 +166,28 @@ exports.handler = async (event) => {
       if (!email) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
       }
-      const key = hashEmail(email);
-      const record = await store.get(key, { type: "json" }).catch(() => null);
-      if (!record) {
+
+      const { data, error } = await db.from("profiles").select("*").eq("email", email).single();
+      if (error || !data) {
         return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
       }
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, profile: record }) };
+
+      // Map DB columns back to camelCase for frontend compatibility
+      const profile = {
+        firstName: data.first_name,
+        lastName: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        church: data.church,
+        city: data.city,
+        persona: data.persona,
+        lang: data.lang,
+        pushEnabled: data.push_enabled,
+        registeredAt: data.registered_at,
+        lastActiveAt: data.last_active_at
+      };
+
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, profile }) };
     }
 
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid action" }) };

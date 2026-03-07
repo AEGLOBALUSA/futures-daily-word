@@ -1,10 +1,23 @@
-const { getStore } = require("@netlify/blobs");
+const { createClient } = require("@supabase/supabase-js");
+const crypto = require("crypto");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
   "http://localhost:8888",
   "http://localhost:3000"
 ];
+
+let supabase;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  }
+  return supabase;
+}
+
+function hashEndpoint(endpoint) {
+  return crypto.createHash("sha256").update(endpoint).digest("hex").slice(0, 64);
+}
 
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.referer || "";
@@ -27,22 +40,27 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
     const { action, subscription, timezone, preferredHour } = body;
-    const store = getStore("push-subscriptions");
+    const db = getSupabase();
 
     if (action === "subscribe") {
       if (!subscription || !subscription.endpoint) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing subscription" }) };
       }
-      // Use a hash of the endpoint as the key
-      const key = Buffer.from(subscription.endpoint).toString("base64url").slice(0, 64);
+      const endpointHash = hashEndpoint(subscription.endpoint);
+
       const record = {
-        subscription,
+        endpoint_hash: endpointHash,
+        subscription: subscription,
         timezone: timezone || "America/New_York",
-        preferredHour: preferredHour !== undefined ? preferredHour : 7,
-        subscribedAt: new Date().toISOString(),
+        preferred_hour: preferredHour !== undefined ? preferredHour : 7,
         active: true
       };
-      await store.setJSON(key, record);
+
+      // Upsert — if same endpoint already exists, update it
+      const { error } = await db.from("push_subscriptions")
+        .upsert(record, { onConflict: "endpoint_hash" });
+
+      if (error) throw error;
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Subscribed" }) };
     }
 
@@ -50,22 +68,24 @@ exports.handler = async (event) => {
       if (!subscription || !subscription.endpoint) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing subscription" }) };
       }
-      const key = Buffer.from(subscription.endpoint).toString("base64url").slice(0, 64);
-      try { await store.delete(key); } catch (e) { /* ok if not found */ }
+      const endpointHash = hashEndpoint(subscription.endpoint);
+
+      await db.from("push_subscriptions").delete().eq("endpoint_hash", endpointHash);
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Unsubscribed" }) };
     }
 
     if (action === "update") {
-      // Update preferences (timezone, hour) without resubscribing
       if (!subscription || !subscription.endpoint) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing subscription" }) };
       }
-      const key = Buffer.from(subscription.endpoint).toString("base64url").slice(0, 64);
-      const existing = await store.get(key, { type: "json" }).catch(() => null);
-      if (existing) {
-        existing.timezone = timezone || existing.timezone;
-        existing.preferredHour = preferredHour !== undefined ? preferredHour : existing.preferredHour;
-        await store.setJSON(key, existing);
+      const endpointHash = hashEndpoint(subscription.endpoint);
+
+      const updates = {};
+      if (timezone) updates.timezone = timezone;
+      if (preferredHour !== undefined) updates.preferred_hour = preferredHour;
+
+      if (Object.keys(updates).length > 0) {
+        await db.from("push_subscriptions").update(updates).eq("endpoint_hash", endpointHash);
       }
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Updated" }) };
     }
