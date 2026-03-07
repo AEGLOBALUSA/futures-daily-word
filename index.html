@@ -73,18 +73,7 @@
 <!-- Loading splash screen — shown until React mounts -->
 <div id="splash" aria-label="Loading Daily Word">
   <div class="splash-inner">
-    <svg class="splash-logo" viewBox="0 0 400 60" style="width:260px;height:auto;margin-bottom:12px" aria-label="Futures Church">
-      <style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400&amp;display=swap');</style>
-      <text x="0" y="44" fill="currentColor" font-family="Montserrat,sans-serif" font-weight="300" font-size="42" letter-spacing="2">Futures</text>
-      <g transform="translate(188,8)" fill="currentColor">
-        <line x1="12" y1="38" x2="12" y2="4" stroke="currentColor" stroke-width="2.2" fill="none"/>
-        <line x1="12" y1="38" x2="0" y2="10" stroke="currentColor" stroke-width="2" fill="none"/>
-        <line x1="12" y1="38" x2="4" y2="6" stroke="currentColor" stroke-width="2" fill="none"/>
-        <line x1="12" y1="38" x2="20" y2="6" stroke="currentColor" stroke-width="2" fill="none"/>
-        <line x1="12" y1="38" x2="24" y2="10" stroke="currentColor" stroke-width="2" fill="none"/>
-      </g>
-      <text x="218" y="44" fill="currentColor" font-family="Montserrat,sans-serif" font-weight="400" font-size="42" letter-spacing="2">Church</text>
-    </svg>
+    <img class="splash-logo" src="/icons/futures-church-logo-sage.png" alt="Futures Church" style="width:240px;height:auto;margin-bottom:16px"/>
     <div class="splash-title">Daily Word</div>
     <div class="splash-spinner"></div>
   </div>
@@ -2799,17 +2788,7 @@ function App(){
       {page==='home'&&(
         <div className="screen">
           <div className="brand-name">
-            <svg viewBox="0 0 400 52" style={{width:220,height:'auto',display:'block',margin:'0 auto'}} aria-label="Futures Church">
-              <text x="0" y="40" fill="currentColor" fontFamily="'Montserrat',sans-serif" fontWeight="300" fontSize="40" letterSpacing="1.5">Futures</text>
-              <g transform="translate(185,6)" stroke="currentColor" strokeWidth="2" fill="none">
-                <line x1="11" y1="36" x2="11" y2="4"/>
-                <line x1="11" y1="36" x2="0" y2="10"/>
-                <line x1="11" y1="36" x2="4" y2="6"/>
-                <line x1="11" y1="36" x2="18" y2="6"/>
-                <line x1="11" y1="36" x2="22" y2="10"/>
-              </g>
-              <text x="214" y="40" fill="currentColor" fontFamily="'Montserrat',sans-serif" fontWeight="400" fontSize="40" letterSpacing="1.5">Church</text>
-            </svg>
+            <img src={dark?"/icons/futures-church-logo.png":"/icons/futures-church-logo-sage.png"} alt="Futures Church" style={{width:220,height:'auto',display:'block',margin:'0 auto'}}/>
           </div>
           <div className="quote-card">
             <div className="date">{dateStr}</div>
@@ -4547,17 +4526,7 @@ function Onboarding({onComplete,lang,setLang}){
         <button className={`lang-btn ${lang==='pt'?'active':''}`} onClick={()=>{setLang('pt');try{localStorage.setItem('dw_lang','pt')}catch(e){}gaEvent('change_language',{language:'pt'})}}>Português</button>
       </div>
       <div style={{textAlign:'center',marginBottom:8}}>
-        <svg viewBox="0 0 400 60" style={{width:220,height:'auto',color:'var(--text)'}} aria-label="Futures Church">
-          <text x="0" y="44" fill="currentColor" fontFamily="Montserrat,sans-serif" fontWeight="300" fontSize="42" letterSpacing="2">Futures</text>
-          <g transform="translate(188,8)" fill="currentColor">
-            <line x1="12" y1="38" x2="12" y2="4" stroke="currentColor" strokeWidth="2.2" fill="none"/>
-            <line x1="12" y1="38" x2="0" y2="10" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <line x1="12" y1="38" x2="4" y2="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <line x1="12" y1="38" x2="20" y2="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <line x1="12" y1="38" x2="24" y2="10" stroke="currentColor" strokeWidth="2" fill="none"/>
-          </g>
-          <text x="218" y="44" fill="currentColor" fontFamily="Montserrat,sans-serif" fontWeight="400" fontSize="42" letterSpacing="2">Church</text>
-        </svg>
+        <img src="/icons/futures-church-logo-sage.png" alt="Futures Church" style={{width:200,height:'auto'}}/>
       </div>
       <h1>{L.dailyWord}</h1>
       <p>{L.welcome}</p>
