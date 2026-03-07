@@ -27,6 +27,9 @@
     <meta name="twitter:image" content="https://futures-daily-word.netlify.app/icons/og-image.png">
     <title>Daily Word — Futures Church</title>
     <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
     <link rel="dns-prefetch" href="https://unpkg.com">
@@ -70,9 +73,19 @@
 <!-- Loading splash screen — shown until React mounts -->
 <div id="splash" aria-label="Loading Daily Word">
   <div class="splash-inner">
-    <img class="splash-logo" src="/icons/icon-192x192.png" alt="Daily Word" />
+    <svg class="splash-logo" viewBox="0 0 400 60" style="width:260px;height:auto;margin-bottom:12px" aria-label="Futures Church">
+      <style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400&amp;display=swap');</style>
+      <text x="0" y="44" fill="currentColor" font-family="Montserrat,sans-serif" font-weight="300" font-size="42" letter-spacing="2">Futures</text>
+      <g transform="translate(188,8)" fill="currentColor">
+        <line x1="12" y1="38" x2="12" y2="4" stroke="currentColor" stroke-width="2.2" fill="none"/>
+        <line x1="12" y1="38" x2="0" y2="10" stroke="currentColor" stroke-width="2" fill="none"/>
+        <line x1="12" y1="38" x2="4" y2="6" stroke="currentColor" stroke-width="2" fill="none"/>
+        <line x1="12" y1="38" x2="20" y2="6" stroke="currentColor" stroke-width="2" fill="none"/>
+        <line x1="12" y1="38" x2="24" y2="10" stroke="currentColor" stroke-width="2" fill="none"/>
+      </g>
+      <text x="218" y="44" fill="currentColor" font-family="Montserrat,sans-serif" font-weight="400" font-size="42" letter-spacing="2">Church</text>
+    </svg>
     <div class="splash-title">Daily Word</div>
-    <div class="splash-sub">Futures Church</div>
     <div class="splash-spinner"></div>
   </div>
 </div>
@@ -4520,6 +4533,19 @@ function Onboarding({onComplete,lang,setLang}){
         <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={()=>{setLang('en');try{localStorage.setItem('dw_lang','en')}catch(e){}gaEvent('change_language',{language:'en'})}}>English</button>
         <button className={`lang-btn ${lang==='es'?'active':''}`} onClick={()=>{setLang('es');try{localStorage.setItem('dw_lang','es')}catch(e){}gaEvent('change_language',{language:'es'})}}>Español</button>
         <button className={`lang-btn ${lang==='pt'?'active':''}`} onClick={()=>{setLang('pt');try{localStorage.setItem('dw_lang','pt')}catch(e){}gaEvent('change_language',{language:'pt'})}}>Português</button>
+      </div>
+      <div style={{textAlign:'center',marginBottom:8}}>
+        <svg viewBox="0 0 400 60" style={{width:220,height:'auto',color:'var(--text)'}} aria-label="Futures Church">
+          <text x="0" y="44" fill="currentColor" fontFamily="Montserrat,sans-serif" fontWeight="300" fontSize="42" letterSpacing="2">Futures</text>
+          <g transform="translate(188,8)" fill="currentColor">
+            <line x1="12" y1="38" x2="12" y2="4" stroke="currentColor" strokeWidth="2.2" fill="none"/>
+            <line x1="12" y1="38" x2="0" y2="10" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <line x1="12" y1="38" x2="4" y2="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <line x1="12" y1="38" x2="20" y2="6" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <line x1="12" y1="38" x2="24" y2="10" stroke="currentColor" strokeWidth="2" fill="none"/>
+          </g>
+          <text x="218" y="44" fill="currentColor" fontFamily="Montserrat,sans-serif" fontWeight="400" fontSize="42" letterSpacing="2">Church</text>
+        </svg>
       </div>
       <h1>{L.dailyWord}</h1>
       <p>{L.welcome}</p>
