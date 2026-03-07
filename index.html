@@ -886,9 +886,12 @@ function App(){
     const onPageShow=(e)=>{if(e.persisted)checkDate();else checkDate()};
     window.addEventListener('focus',onFocus);
     window.addEventListener('pageshow',onPageShow);
+    // Any user interaction triggers a date check — catches stale PWA state instantly
+    const onInteract=()=>checkDate();
+    document.addEventListener('pointerdown',onInteract,{passive:true});
     // Safety net — check every 60s in case all events missed (e.g. iOS frozen resume)
     const interval=setInterval(checkDate,60000);
-    return()=>{clearTimeout(timer);clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onFocus);window.removeEventListener('pageshow',onPageShow)};
+    return()=>{clearTimeout(timer);clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onFocus);window.removeEventListener('pageshow',onPageShow);document.removeEventListener('pointerdown',onInteract)};
   },[dateKey]);
 
   // When the date rolls over at midnight, auto-advance any open plan reading to today's passage
