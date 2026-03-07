@@ -2798,7 +2798,19 @@ function App(){
       {/* SCREENS */}
       {page==='home'&&(
         <div className="screen">
-          <div className="brand-name">{lang==='es'?'Futuros':lang==='pt'?'Futuros':'Futures'}</div>
+          <div className="brand-name">
+            <svg viewBox="0 0 400 52" style={{width:220,height:'auto',display:'block',margin:'0 auto'}} aria-label="Futures Church">
+              <text x="0" y="40" fill="currentColor" fontFamily="'Montserrat',sans-serif" fontWeight="300" fontSize="40" letterSpacing="1.5">Futures</text>
+              <g transform="translate(185,6)" stroke="currentColor" strokeWidth="2" fill="none">
+                <line x1="11" y1="36" x2="11" y2="4"/>
+                <line x1="11" y1="36" x2="0" y2="10"/>
+                <line x1="11" y1="36" x2="4" y2="6"/>
+                <line x1="11" y1="36" x2="18" y2="6"/>
+                <line x1="11" y1="36" x2="22" y2="10"/>
+              </g>
+              <text x="214" y="40" fill="currentColor" fontFamily="'Montserrat',sans-serif" fontWeight="400" fontSize="40" letterSpacing="1.5">Church</text>
+            </svg>
+          </div>
           <div className="quote-card">
             <div className="date">{dateStr}</div>
             <blockquote>{lang==='es'?(quote.textEs||quote.text):lang==='pt'?(quote.textPt||quote.text):quote.text}</blockquote>
