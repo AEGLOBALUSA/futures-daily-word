@@ -869,7 +869,8 @@ function App(){
     return()=>window.removeEventListener('beforeunload',flush);
   },[userProfile]);
 
-  // Auto-refresh at midnight: schedule timer + check on visibility change
+  // Auto-refresh at midnight: schedule timer + multiple resume detectors
+  // Ensures the app always shows today's reading when opened from home screen
   useEffect(()=>{
     const checkDate=()=>{const d=new Date().toDateString();if(d!==dateKey){setDateKey(d);setDayOffset(0)}};
     // Set timer for next midnight
@@ -877,10 +878,17 @@ function App(){
     const midnight=new Date(now);midnight.setDate(midnight.getDate()+1);midnight.setHours(0,0,5,0);
     const msUntilMidnight=Math.max(1000,midnight-now);
     const timer=setTimeout(()=>{checkDate();},msUntilMidnight);
-    // Also check when app becomes visible (user opens phone/tab)
+    // Check when app becomes visible (user opens phone/tab)
     const onVisible=()=>{if(document.visibilityState==='visible')checkDate()};
     document.addEventListener('visibilitychange',onVisible);
-    return()=>{clearTimeout(timer);document.removeEventListener('visibilitychange',onVisible)};
+    // iOS PWA fallbacks — visibilitychange doesn't always fire on home screen launch
+    const onFocus=()=>checkDate();
+    const onPageShow=(e)=>{if(e.persisted)checkDate();else checkDate()};
+    window.addEventListener('focus',onFocus);
+    window.addEventListener('pageshow',onPageShow);
+    // Safety net — check every 60s in case all events missed (e.g. iOS frozen resume)
+    const interval=setInterval(checkDate,60000);
+    return()=>{clearTimeout(timer);clearInterval(interval);document.removeEventListener('visibilitychange',onVisible);window.removeEventListener('focus',onFocus);window.removeEventListener('pageshow',onPageShow)};
   },[dateKey]);
 
   // When the date rolls over at midnight, auto-advance any open plan reading to today's passage
