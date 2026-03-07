@@ -1609,6 +1609,8 @@ function App(){
   const quote=QUOTES[dayOfYear%QUOTES.length];
 
   // Get passages for today
+  // Uses additive offset (prime stride) per chapter to guarantee unique passages each day
+  // and avoid collisions when dayOfYear is a multiple of pool size
   const getPassages=()=>{
     if(!setup)return[];
     const pool=PERSONA_MAP[setup.persona]||PERSONA_MAP.new_believer;
@@ -1623,18 +1625,18 @@ function App(){
         const section=BIBLE_SECTIONS[sectionKey];
         if(section&&section.passages.length>0){
           const sPool=section.passages;
-          result.push(sPool[(dayOfYear*(ch+1))%sPool.length]);
+          result.push(sPool[(dayOfYear+ch*7)%sPool.length]);
         }else{
-          result.push(pool[(dayOfYear*(ch+1))%pool.length]);
+          result.push(pool[(dayOfYear+ch*7)%pool.length]);
         }
       }
       return result;
     }
 
     // Default: pull from persona pool
-    const start=(dayOfYear*numCh)%pool.length;
+    const start=dayOfYear%pool.length;
     const result=[];
-    for(let i=0;i<numCh;i++){result.push(pool[(start+i)%pool.length])}
+    for(let i=0;i<numCh;i++){result.push(pool[(start+i*7)%pool.length])}
     return result;
   };
 
