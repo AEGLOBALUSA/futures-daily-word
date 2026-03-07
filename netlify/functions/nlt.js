@@ -73,7 +73,7 @@ exports.handler = async (event) => {
   // Origin check
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
-  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer.startsWith(o));
+  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
   const isNoOrigin = !origin && !referer;
   if (!isAllowedOrigin && !isSameOrigin && !isNoOrigin) {
     return {
@@ -83,8 +83,10 @@ exports.handler = async (event) => {
     };
   }
 
-  // Use env var if available, otherwise fall back to TEST key
-  const API_KEY = process.env.NLT_API_KEY || 'TEST';
+  const API_KEY = process.env.NLT_API_KEY;
+  if (!API_KEY) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'NLT API key not configured' }) };
+  }
 
   try {
     const passage = event.queryStringParameters.q;

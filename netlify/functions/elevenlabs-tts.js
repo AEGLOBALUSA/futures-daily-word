@@ -45,7 +45,7 @@ exports.handler = async (event) => {
 
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
-  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer.startsWith(o));
+  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
   const isNoOrigin = !origin && !referer;
   if (!isAllowedOrigin && !isSameOrigin && !isNoOrigin) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };

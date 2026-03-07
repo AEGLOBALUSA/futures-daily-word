@@ -18,7 +18,7 @@ function getSupabase() {
 
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.referer || "";
-  const corsOrigin = ALLOWED_ORIGINS.find(o => origin.startsWith(o)) || ALLOWED_ORIGINS[0];
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   const headers = {
     "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -44,12 +44,27 @@ exports.handler = async (event) => {
     const db = getSupabase();
     const cleanEmail = email.toLowerCase().trim();
 
-    // Build rows to insert — no more 500-event cap, database handles unlimited
-    const rows = events.map(evt => ({
-      email: cleanEmail,
-      event_type: evt.type,
-      detail: evt.detail || ""
-    }));
+    // Whitelist valid event types to prevent analytics pollution
+    const VALID_EVENTS = [
+      'book_open','chapter_read','search','scripture_search','audio_play','audio_stop',
+      'ai_chat','ai_question','share','highlight_add','highlight_remove','journal_save',
+      'journal_delete','version_switch','persona_change','language_change','chapter_change',
+      'pathway_start','pathway_complete','pathway_lesson','push_subscribe','push_unsubscribe',
+      'profile_update','profile_pic','login','heartbeat','app_open','page_view','tts_play'
+    ];
+
+    // Build rows to insert — filter to valid event types only
+    const rows = events
+      .filter(evt => evt.type && VALID_EVENTS.includes(evt.type))
+      .map(evt => ({
+        email: cleanEmail,
+        event_type: evt.type,
+        detail: typeof evt.detail === 'string' ? evt.detail.slice(0, 500) : ""
+      }));
+
+    if (rows.length === 0) {
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, note: "No valid events" }) };
+    }
 
     // Batch insert all activity events
     const { error: insertError } = await db.from("activity_events").insert(rows);

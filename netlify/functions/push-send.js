@@ -1,10 +1,16 @@
 const webpush = require("web-push");
 const { createClient } = require("@supabase/supabase-js");
 
-const VAPID_PUBLIC = "BGCv9F84OHjOwReUpXbnO_Ctqoz5Yn3uXyFOT8QNoRZHQFE4xggkftXRDuk0vdjGZk3SskeR84Pqn41VSpBROdU";
-const VAPID_PRIVATE = "rItkPW_hJr8ajUtXlrau88W4WYlHE9PMTPOvAruu2Ws";
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
+const VAPID_EMAIL = process.env.VAPID_EMAIL || "mailto:noreply@futuresdailyword.com";
 
-webpush.setVapidDetails("mailto:ashleymarkevans@me.com", VAPID_PUBLIC, VAPID_PRIVATE);
+if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+  console.error("VAPID keys not configured in environment variables");
+}
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+}
 
 let supabase;
 function getSupabase() {

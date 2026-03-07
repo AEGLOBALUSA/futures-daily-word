@@ -368,7 +368,9 @@ html{height:100%}
 @media(max-width:480px){.day-nav button{padding:10px 14px;font-size:13px;flex:1}}
 
 /* Search */
-.search-bar{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--light);color:var(--text);margin-bottom:16px}
+.search-bar{width:100%;padding:16px 20px 16px 44px;border:2.5px solid var(--sage);border-radius:14px;font-size:17px;background:white;color:var(--text);margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:border-color 0.2s,box-shadow 0.2s}
+.search-bar:focus{outline:none;border-color:#5a7d4f;box-shadow:0 4px 20px rgba(90,125,79,0.18)}
+.search-bar::placeholder{color:#8faa84;font-weight:500}
 
 /* Word tap */
 .word-tap{cursor:pointer;transition:color 0.15s}

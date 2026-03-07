@@ -13,6 +13,8 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://*.netlify.app https://api.esv.org https://bolls.life https://www.google-analytics.com https://www.googletagmanager.com https://futuresdailyword.com https://*.google-analytics.com https://*.analytics.google.com; media-src 'self' blob: https:; worker-src 'self' blob:; manifest-src 'self'"
 
 # Cache icons for 1 year (immutable, fingerprinted)
 [[headers]]
