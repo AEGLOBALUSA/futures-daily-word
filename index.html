@@ -47,26 +47,14 @@
       "inLanguage": ["en", "es", "pt"]
     }
     </script>
-    <!-- Google Analytics 4 — consent-aware -->
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YVBPE1PK0S"></script>
     <script>
       window.dataLayer=window.dataLayer||[];
       function gtag(){dataLayer.push(arguments);}
-      // Default: deny analytics until consent is given
-      gtag('consent','default',{'analytics_storage':'denied'});
-      // No-op gaEvent until GA loads
-      window.gaEvent=function(){};
-      // Load GA if user already consented
-      function loadGA(){
-        if(document.getElementById('ga-script'))return;
-        var s=document.createElement('script');s.id='ga-script';s.async=true;
-        s.src='https://www.googletagmanager.com/gtag/js?id=G-YVBPE1PK0S';
-        document.head.appendChild(s);
-        gtag('js',new Date());
-        gtag('consent','update',{'analytics_storage':'granted'});
-        gtag('config','G-YVBPE1PK0S');
-        window.gaEvent=function(name,params){try{gtag('event',name,params||{})}catch(e){}};
-      }
-      if(localStorage.getItem('dw_analytics_consent')==='granted'){loadGA();}
+      gtag('js',new Date());
+      gtag('config','G-YVBPE1PK0S');
+      window.gaEvent=function(name,params){try{gtag('event',name,params||{})}catch(e){}};
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
     <script>window.React||document.write('<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin="anonymous"><\/script>')</script>
@@ -142,7 +130,6 @@ function App(){
   const [dragSelect,setDragSelect]=useState(null); // {pName, startIdx, endIdx, verses}
   const dragRef=React.useRef(null);
   const [dark,setDark]=useState(false);
-  const [analyticsConsent,setAnalyticsConsent]=useState(()=>{try{return localStorage.getItem('dw_analytics_consent')}catch(e){return null}});
   const [journalTab,setJournalTab]=useState('revelations');
   const [showJournalForm,setShowJournalForm]=useState(false);
   const [newJournalText,setNewJournalText]=useState('');
@@ -4470,19 +4457,6 @@ function App(){
               </div>
             </React.Fragment>
           )}
-        </div>
-      )}
-
-      {/* Analytics Consent Banner */}
-      {analyticsConsent===null&&(
-        <div style={{position:'fixed',bottom:72,left:8,right:8,background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:14,padding:'14px 16px',boxShadow:'0 4px 20px rgba(0,0,0,0.12)',zIndex:9999,display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-          <div style={{flex:1,minWidth:200,fontSize:13,color:'var(--text)',lineHeight:1.4}}>
-            {lang==='es'?'Usamos datos de uso para mejorar la app.':lang==='pt'?'Usamos dados de uso para melhorar o app.':'We use anonymous usage data to improve the app.'}
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <button onClick={()=>{try{localStorage.setItem('dw_analytics_consent','denied')}catch(e){}setAnalyticsConsent('denied')}} style={{padding:'8px 14px',fontSize:12,background:'none',border:'1.5px solid var(--border)',borderRadius:8,color:'var(--text)',cursor:'pointer'}}>{lang==='es'?'No gracias':lang==='pt'?'Não':'No thanks'}</button>
-            <button onClick={()=>{try{localStorage.setItem('dw_analytics_consent','granted')}catch(e){}setAnalyticsConsent('granted');if(window.loadGA)window.loadGA()}} style={{padding:'8px 14px',fontSize:12,background:'var(--sage)',border:'none',borderRadius:8,color:'white',cursor:'pointer',fontWeight:600}}>{lang==='es'?'Aceptar':lang==='pt'?'Aceitar':'Accept'}</button>
-          </div>
         </div>
       )}
 
