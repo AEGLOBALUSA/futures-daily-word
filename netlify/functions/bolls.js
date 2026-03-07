@@ -3,7 +3,9 @@
 
 const ALLOWED_ORIGINS = [
   'https://futures-daily-word.netlify.app',
-  'https://www.futures-daily-word.netlify.app'
+  'https://www.futures-daily-word.netlify.app',
+  'https://futuresdailyword.com',
+  'https://www.futuresdailyword.com'
 ];
 
 function getCorsHeaders(origin) {

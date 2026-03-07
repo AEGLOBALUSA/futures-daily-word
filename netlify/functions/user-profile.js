@@ -2,6 +2,8 @@ const { createClient } = require("@supabase/supabase-js");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
+  "https://futuresdailyword.com",
+  "https://www.futuresdailyword.com",
   "http://localhost:8888",
   "http://localhost:3000"
 ];
