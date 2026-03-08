@@ -1,0 +1,110 @@
+name: Update index.html with Ps Essays
+on:
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update index.html
+        run: |
+          node -e "
+          const fs = require('fs');
+          let c = fs.readFileSync('index.html', 'utf8');
+          
+          // Fix broken head tag
+          c = c.replace('<hea\n', '<head>\n');
+          // Also fix if it has extra space
+          c = c.replace('<hea ', '<head>');
+          if (!c.includes('<head>')) {
+            c = c.replace('<hea\r\n', '<head>\r\n');
+          }
+          
+          const lines = c.split('\n');
+          
+          // Decode insertions from base64
+          const ins1 = Buffer.from('Ci8vID09PT09IFBTIEVTU0FZUyA9PT09PQpjb25zdCBFU1NBWV9DQVRBTE9HID0gWwogIHsKICAgIGlkOiAna25vY2tpbmctb24tdGhlLWRvb3InLAogICAgdGl0bGU6ICdLbm9ja2luZyBvbiB0aGUgRG9vcicsCiAgICBzdWJ0aXRsZTogJ0EgUm9vbS1ieS1Sb29tIEd1aWRlIHRvIHRoZSBTZXZlbiBDb25mbGljdCBQZXJzb25hcycsCiAgICBhdXRob3I6ICdQYXN0b3IgQXNobGV5IEV2YW5zJywKICAgIHllYXI6ICcyMDI2JywKICAgIGljb246ICdcdXsxRjZBQX0nLAogICAgc2VjdGlvbkNvdW50OiA2LAogICAgZXNzYXlEaXI6ICdlc3NheXMva25vY2tpbmctb24tdGhlLWRvb3InCiAgfQpdOwpjb25zdCBbc2VsZWN0ZWRFc3NheSxzZXRTZWxlY3RlZEVzc2F5XT11c2VTdGF0ZShudWxsKTsKY29uc3QgW3NlbGVjdGVkRXNzYXlTZWN0aW9uLHNldFNlbGVjdGVkRXNzYXlTZWN0aW9uXT11c2VTdGF0ZShudWxsKTsKY29uc3QgW2xvYWRlZEVzc2F5cyxzZXRMb2FkZWRFc3NheXNdPXVzZVN0YXRlKHt9KTsKY29uc3QgW2Vzc2F5TG9hZGluZyxzZXRFc3NheUxvYWRpbmddPXVzZVN0YXRlKG51bGwpOwpjb25zdCBbZXNzYXlFcnJvcixzZXRFc3NheUVycm9yXT11c2VTdGF0ZShudWxsKTsKCmNvbnN0IGxvYWRFc3NheVRvYz1hc3luYyhlc3NheUlkKT0+ewogIGlmKGxvYWRlZEVzc2F5c1tlc3NheUlkXSlyZXR1cm47CiAgY29uc3QgY2F0PUVTU0FZX0NBVEFMT0cuZmluZChlPT5lLmlkPT09ZXNzYXlJZCk7CiAgaWYoIWNhdClyZXR1cm47CiAgc2V0RXNzYXlMb2FkaW5nKGVzc2F5SWQpOwogIHNldEVzc2F5RXJyb3IobnVsbCk7CiAgdHJ5ewogICAgY29uc3QgcmVzcD1hd2FpdCBmZXRjaChjYXQuZXNzYXlEaXIrJy90b2MuanNvbicpOwogICAgaWYoIXJlc3Aub2spdGhyb3cgbmV3IEVycm9yKCdGYWlsZWQnKTsKICAgIGNvbnN0IGRhdGE9YXdhaXQgcmVzcC5qc29uKCk7CiAgICBzZXRMb2FkZWRFc3NheXMocHJldj0+KHsuLi5wcmV2LFtlc3NheUlkXTp7dG9jOmRhdGEsc2VjdGlvbnM6e319fSkpOwogIH1jYXRjaChlKXsKICAgIHNldEVzc2F5RXJyb3IoJ0ZhaWxlZCB0byBsb2FkIGVzc2F5LicpOwogIH1maW5hbGx5ewogICAgc2V0RXNzYXlMb2FkaW5nKG51bGwpOwogIH0KfTsKCmNvbnN0IGxvYWRFc3NheVNlY3Rpb249YXN5bmMoZXNzYXlJZCxzZWNJZHgpPT57CiAgaWYobG9hZGVkRXNzYXlzW2Vzc2F5SWRdJiZsb2FkZWRFc3NheXNbZXNzYXlJZF0uc2VjdGlvbnNbc2VjSWR4XSlyZXR1cm47CiAgY29uc3QgY2F0PUVTU0FZX0NBVEFMT0cuZmluZChlPT5lLmlkPT09ZXNzYXlJZCk7CiAgaWYoIWNhdClyZXR1cm47CiAgY29uc3QgZXNzYXk9bG9hZGVkRXNzYXlzW2Vzc2F5SWRdOwogIGlmKCFlc3NheXx8IWVzc2F5LnRvY3x8IWVzc2F5LnRvYy5zZWN0aW9uc1tzZWNJZHhdKXJldHVybjsKICB0cnl7CiAgICBjb25zdCByZXNwPWF3YWl0IGZldGNoKGNhdC5lc3NheURpcisnLycrZXNzYXkudG9jLnNlY3Rpb25zW3NlY0lkeF0uZmlsZSk7CiAgICBpZighcmVzcC5vayl0aHJvdyBuZXcgRXJyb3IoJ0ZhaWxlZCcpOwogICAgY29uc3QgZGF0YT1hd2FpdCByZXNwLmpzb24oKTsKICAgIHNldExvYWRlZEVzc2F5cyhwcmV2PT57CiAgICAgIGNvbnN0IGU9cHJldltlc3NheUlkXXx8e3RvYzplc3NheS50b2Msc2VjdGlvbnM6e319OwogICAgICByZXR1cm57Li4ucHJldixbZXNzYXlJZF06ey4uLmUsc2VjdGlvbnM6ey4uLmUuc2VjdGlvbnMsW3NlY0lkeF06ZGF0YX19fTsKICAgIH0pOwogIH1jYXRjaChlKXsKICAgIHNldEVzc2F5RXJyb3IoJ0ZhaWxlZCB0byBsb2FkIHNlY3Rpb24uJyk7CiAgfQp9Ow==', 'base64').toString('utf8');
+          const ins2 = Buffer.from('CiAgICAgICAgICAgIHsvKiBQUyBFU1NBWVMgKi99CiAgICAgICAgICAgIHtFU1NBWV9DQVRBTE9HLmxlbmd0aD4wJiYoCiAgICAgICAgICAgICAgPFJlYWN0LkZyYWdtZW50PgogICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3tkaXNwbGF5OidmbGV4JyxhbGlnbkl0ZW1zOidjZW50ZXInLGdhcDoxMCxtYXJnaW5Cb3R0b206MTQsbWFyZ2luVG9wOjIwfX0+CiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7Zm9udFNpemU6MTUsZm9udFdlaWdodDo3MDAsdGV4dFRyYW5zZm9ybTondXBwZXJjYXNlJyxsZXR0ZXJTcGFjaW5nOjIsY29sb3I6J3ZhcigtLWdvbGQpJyxkaXNwbGF5OidmbGV4JyxhbGlnbkl0ZW1zOidjZW50ZXInLGdhcDo4fX0+CiAgICAgICAgICAgICAgICAgIDxzcGFuIHN0eWxlPXt7Zm9udFNpemU6MTJ9fT5cdXsxRjRERH08L3NwYW4+IHtsYW5nPT09J2VzJz8nRW5zYXlvcyBkZSBQcyc6J1BzIEVzc2F5cyd9CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3tmbGV4OjEsaGVpZ2h0OjEsYmFja2dyb3VuZDondmFyKC0tYm9yZGVyKSd9fS8+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAge0VTU0FZX0NBVEFMT0cubWFwKGVzc2F5PT4oCiAgICAgICAgICAgICAgICA8ZGl2IGtleT17ZXNzYXkuaWR9IGNsYXNzTmFtZT0iYm9vay1jYXJkIiBvbkNsaWNrPXsoKT0+cmVxdWlyZUVtYWlsKCgpPT57c2V0U2VsZWN0ZWRFc3NheShlc3NheS5pZCk7c2V0TW9yZVNlY3Rpb24oJ2Vzc2F5cycpO2xvYWRFc3NheVRvYyhlc3NheS5pZCl9KX0+CiAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJiYy1pY29uIj57ZXNzYXkuaWNvbn08L2Rpdj4KICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImJjLWluZm8iPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJiYy10aXRsZSI+e2Vzc2F5LnRpdGxlfTwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJiYy1hdXRob3IiPntlc3NheS5hdXRob3J9PC9kaXY+CiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImJjLWRlc2MiPntlc3NheS5zdWJ0aXRsZX08L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iYmMtY2hhcHRlcnMiPntlc3NheS5zZWN0aW9uQ291bnR9IHNlY3Rpb25zPC9kaXY+CiAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgKSl9CiAgICAgICAgICAgICAgPC9SZWFjdC5GcmFnbWVudD4KICAgICAgICAgICAgKX0=', 'base64').toString('utf8');
+          const ins3 = Buffer.from('e21vcmVTZWN0aW9uPT09J2Vzc2F5cycmJnNlbGVjdGVkRXNzYXkmJigKICAgICAgICAgIDxSZWFjdC5GcmFnbWVudD4KICAgICAgICAgICAgPGJ1dHRvbiBjbGFzc05hbWU9ImxpYi1iYWNrIiBvbkNsaWNrPXsoKT0+ewogICAgICAgICAgICAgIGlmKHNlbGVjdGVkRXNzYXlTZWN0aW9uIT09bnVsbCl7c2V0U2VsZWN0ZWRFc3NheVNlY3Rpb24obnVsbCl9CiAgICAgICAgICAgICAgZWxzZXtzZXRTZWxlY3RlZEVzc2F5KG51bGwpO3NldE1vcmVTZWN0aW9uKG51bGwpfQogICAgICAgICAgICB9fT4KICAgICAgICAgICAgICA8c3ZnIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZVdpZHRoPSIyIj48cGF0aCBkPSJNMTkgMTJINU0xMiAxOWwtNy03IDctNyIvPjwvc3ZnPgogICAgICAgICAgICAgIHtzZWxlY3RlZEVzc2F5U2VjdGlvbiE9PW51bGw/J0JhY2sgdG8gQ29udGVudHMnOidCYWNrJ30KICAgICAgICAgICAgPC9idXR0b24+CgogICAgICAgICAgICB7c2VsZWN0ZWRFc3NheVNlY3Rpb249PT1udWxsPygKICAgICAgICAgICAgICA8ZGl2PgogICAgICAgICAgICAgICAge2xvYWRlZEVzc2F5c1tzZWxlY3RlZEVzc2F5XSYmbG9hZGVkRXNzYXlzW3NlbGVjdGVkRXNzYXldLnRvYz8oKCk9PnsKICAgICAgICAgICAgICAgICAgY29uc3QgdG9jPWxvYWRlZEVzc2F5c1tzZWxlY3RlZEVzc2F5XS50b2M7CiAgICAgICAgICAgICAgICAgIHJldHVybigKICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7cGFkZGluZzonMCA2cHgnfX0+CiAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7dGV4dEFsaWduOidjZW50ZXInLG1hcmdpbjonMThweCAwIDEwcHgnfX0+CiAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3tmb250U2l6ZTozOH19PntFU1NBWV9DQVRBTE9HLmZpbmQoZT0+ZS5pZD09PXNlbGVjdGVkRXNzYXkpPy5pY29ufTwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgICA8aDEgY2xhc3NOYW1lPSJzZWN0aW9uLXRpdGxlIiBzdHlsZT17e21hcmdpbkJvdHRvbTo0fX0+e3RvYy50aXRsZX08L2gxPgogICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7Y29sb3I6J3ZhcigtLXN1YnRleHQpJyxmb250U2l6ZToxNCxtYXJnaW5Cb3R0b206NH19Pnt0b2Muc3VidGl0bGV9PC9kaXY+CiAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3tjb2xvcjondmFyKC0tZ29sZCknLGZvbnRTaXplOjEzfX0+e3RvYy5hdXRob3J9ICh7dG9jLnllYXJ9KTwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgICB7dG9jLm9wZW5pbmdWZXJzZSYmPGRpdiBzdHlsZT17e2NvbG9yOid2YXIoLS1zdWJ0ZXh0KScsZm9udFNpemU6MTIsZm9udFN0eWxlOidpdGFsaWMnLG1hcmdpblRvcDoxMCxtYXhXaWR0aDo0MDAsbWFyZ2luOicxMHB4IGF1dG8gMCd9fT57dG9jLm9wZW5pbmdWZXJzZX08L2Rpdj59CiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3ttYXJnaW5Ub3A6MTh9fT4KICAgICAgICAgICAgICAgICAgICAgICAge3RvYy5zZWN0aW9ucy5tYXAoKHNlYyxpKT0+KAogICAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYga2V5PXtpfSBjbGFzc05hbWU9ImJvb2stY2FyZCIgb25DbGljaz17KCk9PntzZXRTZWxlY3RlZEVzc2F5U2VjdGlvbihpKTtsb2FkRXNzYXlTZWN0aW9uKHNlbGVjdGVkRXNzYXksaSl9fSBzdHlsZT17e2N1cnNvcjoncG9pbnRlcid9fT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJiYy1pY29uIiBzdHlsZT17e2ZvbnRTaXplOjE2LG1pbldpZHRoOjMyfX0+e2krMX08L2Rpdj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJiYy1pbmZvIj4KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImJjLXRpdGxlIj57c2VjLnRpdGxlfTwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgICAgICkpfQogICAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICk7CiAgICAgICAgICAgICAgICB9KSgpOihlc3NheUxvYWRpbmc/PGRpdiBzdHlsZT17e3RleHRBbGlnbjonY2VudGVyJyxwYWRkaW5nOjQwLGNvbG9yOid2YXIoLS1zdWJ0ZXh0KSd9fT5Mb2FkaW5nLi4uPC9kaXY+OmVzc2F5RXJyb3I/PGRpdiBzdHlsZT17e3RleHRBbGlnbjonY2VudGVyJyxwYWRkaW5nOjQwLGNvbG9yOicjZTc0YzNjJ319Pntlc3NheUVycm9yfTwvZGl2PjpudWxsKX0KICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgKTooCiAgICAgICAgICAgICAgPGRpdiBzdHlsZT17e3BhZGRpbmc6JzAgNnB4J319PgogICAgICAgICAgICAgICAgeygoKT0+ewogICAgICAgICAgICAgICAgICBjb25zdCBlc3NheT1sb2FkZWRFc3NheXNbc2VsZWN0ZWRFc3NheV07CiAgICAgICAgICAgICAgICAgIGNvbnN0IHNlY0RhdGE9ZXNzYXkmJmVzc2F5LnNlY3Rpb25zW3NlbGVjdGVkRXNzYXlTZWN0aW9uXTsKICAgICAgICAgICAgICAgICAgaWYoIXNlY0RhdGEpcmV0dXJuIDxkaXYgc3R5bGU9e3t0ZXh0QWxpZ246J2NlbnRlcicscGFkZGluZzo0MCxjb2xvcjondmFyKC0tc3VidGV4dCknfX0+TG9hZGluZyBzZWN0aW9uLi4uPC9kaXY+OwogICAgICAgICAgICAgICAgICByZXR1cm4oCiAgICAgICAgICAgICAgICAgICAgPGRpdj4KICAgICAgICAgICAgICAgICAgICAgIDxoMiBzdHlsZT17e2ZvbnRTaXplOjIwLGZvbnRXZWlnaHQ6NzAwLGNvbG9yOid2YXIoLS10ZXh0KScsbWFyZ2luQm90dG9tOjE0LHRleHRBbGlnbjonY2VudGVyJ319PntzZWNEYXRhLnRpdGxlfTwvaDI+CiAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPXt7Zm9udFNpemU6Zm9udFNpemUsbGluZUhlaWdodDoxLjc1LGNvbG9yOid2YXIoLS10ZXh0KSd9fT4KICAgICAgICAgICAgICAgICAgICAgICAge3NlY0RhdGEucGFyYWdyYXBocy5tYXAoKHAsaSk9PnsKICAgICAgICAgICAgICAgICAgICAgICAgICBpZihwLm1hdGNoKC9eKFBzYWxtfFByb3ZlcmJzfEdhbGF0aWFuc3xIZWJyZXdzfEphbWVzfFJvbWFuc3xMdWtlfE1hdHRoZXd8Sm9obnxHZW5lc2lzfEV4b2R1c3xJc2FpYWh8RXBoZXNpYW5zfENvbG9zc2lhbnN8UGhpbGlwcGlhbnN8Q29yaW50aGlhbnN8VGltb3RoeXxQZXRlcnxSZXZlbGF0aW9uKS8pKXsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiA8cCBrZXk9e2l9IHN0eWxlPXt7Zm9udFN0eWxlOidpdGFsaWMnLGNvbG9yOid2YXIoLS1nb2xkKScsbWFyZ2luOicxNnB4IDAnLHRleHRBbGlnbjonY2VudGVyJyxmb250U2l6ZTpmb250U2l6ZS0xfX0+e3B9PC9wPjsKICAgICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgICAgICAgaWYocC5tYXRjaCgvXlxkK1wuLykpewogICAgICAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuIDxoMyBrZXk9e2l9IHN0eWxlPXt7Zm9udFNpemU6Zm9udFNpemUrMixmb250V2VpZ2h0OjcwMCxjb2xvcjondmFyKC0tZ29sZCknLG1hcmdpbjonMjRweCAwIDhweCd9fT57cH08L2gzPjsKICAgICAgICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuIDxwIGtleT17aX0gc3R5bGU9e3ttYXJnaW46JzEwcHggMCd9fT57cH08L3A+OwogICAgICAgICAgICAgICAgICAgICAgICB9KX0KICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT17e2Rpc3BsYXk6J2ZsZXgnLGp1c3RpZnlDb250ZW50OidzcGFjZS1iZXR3ZWVuJyxtYXJnaW5Ub3A6MjQscGFkZGluZ0JvdHRvbToyMH19PgogICAgICAgICAgICAgICAgICAgICAgICB7c2VsZWN0ZWRFc3NheVNlY3Rpb24+MD88YnV0dG9uIGNsYXNzTmFtZT0ibGliLWJhY2siIG9uQ2xpY2s9eygpPT57c2V0U2VsZWN0ZWRFc3NheVNlY3Rpb24oc2VsZWN0ZWRFc3NheVNlY3Rpb24tMSk7bG9hZEVzc2F5U2VjdGlvbihzZWxlY3RlZEVzc2F5LHNlbGVjdGVkRXNzYXlTZWN0aW9uLTEpO3dpbmRvdy5zY3JvbGxUbygwLDApfX0+UHJldjwvYnV0dG9uPjo8ZGl2Lz59CiAgICAgICAgICAgICAgICAgICAgICAgIHtlc3NheS50b2MmJnNlbGVjdGVkRXNzYXlTZWN0aW9uPGVzc2F5LnRvYy5zZWN0aW9ucy5sZW5ndGgtMT88YnV0dG9uIGNsYXNzTmFtZT0ibGliLWJhY2siIG9uQ2xpY2s9eygpPT57c2V0U2VsZWN0ZWRFc3NheVNlY3Rpb24oc2VsZWN0ZWRFc3NheVNlY3Rpb24rMSk7bG9hZEVzc2F5U2VjdGlvbihzZWxlY3RlZEVzc2F5LHNlbGVjdGVkRXNzYXlTZWN0aW9uKzEpO3dpbmRvdy5zY3JvbGxUbygwLDApfX0+TmV4dDwvYnV0dG9uPjo8ZGl2Lz59CiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgKTsKICAgICAgICAgICAgICAgIH0pKCl9CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICl9CiAgICAgICAgICA8L1JlYWN0LkZyYWdtZW50PgogICAgICAgICAgKX0KCiAgICAgICAgICA=', 'base64').toString('utf8');
+          
+          // Find insertion points
+          let ip1 = -1, ip2 = -1, ip3 = -1;
+          
+          // IP1: after BOOK_CATALOG closing };
+          let braceCount = 0, inCatalog = false;
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('BOOK_CATALOG = {')) inCatalog = true;
+            if (inCatalog) {
+              for (const ch of lines[i]) {
+                if (ch === '{') braceCount++;
+                if (ch === '}') braceCount--;
+              }
+              if (braceCount === 0 && lines[i].includes('};')) {
+                ip1 = i;
+                break;
+              }
+            }
+          }
+          
+          // IP2: after psJane Fragment closing in hub
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('BOOK_CATALOG.psJane.map')) {
+              for (let j = i; j < i + 50; j++) {
+                if (lines[j] && lines[j].includes('</React.Fragment>')) {
+                  if (lines[j+1] && lines[j+1].trim() === ')}') {
+                    ip2 = j + 1;
+                    break;
+                  }
+                }
+              }
+              if (ip2 > -1) break;
+            }
+          }
+          
+          // IP3: line with page==='settings'
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes(\"page==='settings'\")) {
+              ip3 = i;
+              break;
+            }
+          }
+          
+          console.log('IP1:', ip1, 'IP2:', ip2, 'IP3:', ip3);
+          
+          if (ip1 < 0 || ip2 < 0 || ip3 < 0) {
+            console.error('Could not find all insertion points!');
+            process.exit(1);
+          }
+          
+          // Insert backwards to preserve line numbers
+          const ins3Lines = ins3.split('\n');
+          lines.splice(ip3, 0, ...ins3Lines);
+          
+          const ins2Lines = ins2.split('\n');
+          lines.splice(ip2 + 1, 0, ...ins2Lines);
+          
+          const ins1Lines = ins1.split('\n');
+          lines.splice(ip1 + 1, 0, ...ins1Lines);
+          
+          fs.writeFileSync('index.html', lines.join('\n'));
+          console.log('Done! Total lines:', lines.length);
+          "
+          
+      - name: Commit changes
+        run: |
+          git config user.name "AEGLOBALUSA"
+          git config user.email "noreply@github.com"
+          git add index.html
+          git diff --cached --stat
+          git commit -m "Add Ps Essays section with Knocking on the Door essay"
+          git push
+          
+      - name: Clean up workflow
+        run: |
+          git rm .github/workflows/update-index.yml
+          git commit -m "Remove temporary update workflow"
+          git push
