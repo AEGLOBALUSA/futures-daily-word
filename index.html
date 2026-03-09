@@ -3866,13 +3866,13 @@ const loadEssaySection=async(essayId,secIdx)=>{
                   return(
                     <div>
                       <h2 style={{fontSize:20,fontWeight:700,color:'var(--text)',marginBottom:14,textAlign:'center'}}>{secData.title}</h2>
-                      <div style={{fontSize:fontSize,lineHeight:1.75,color:'var(--text)'}}>
+                      <div style={{fontSize:17,lineHeight:1.75,color:'var(--text)'}}>
                         {secData.paragraphs.map((p,i)=>{
                           if(p.match(/^(Psalm|Proverbs|Galatians|Hebrews|James|Romans|Luke|Matthew|John|Genesis|Exodus|Isaiah|Ephesians|Colossians|Philippians|Corinthians|Timothy|Peter|Revelation)/)){
-                            return <p key={i} style={{fontStyle:'italic',color:'var(--gold)',margin:'16px 0',textAlign:'center',fontSize:fontSize-1}}>{p}</p>;
+                            return <p key={i} style={{fontStyle:'italic',color:'var(--gold)',margin:'16px 0',textAlign:'center',fontSize:16}}>{p}</p>;
                           }
                           if(p.match(/^\d+\./)){
-                            return <h3 key={i} style={{fontSize:fontSize+2,fontWeight:700,color:'var(--gold)',margin:'24px 0 8px'}}>{p}</h3>;
+                            return <h3 key={i} style={{fontSize:19,fontWeight:700,color:'var(--gold)',margin:'24px 0 8px'}}>{p}</h3>;
                           }
                           return <p key={i} style={{margin:'10px 0'}}>{p}</p>;
                         })}
