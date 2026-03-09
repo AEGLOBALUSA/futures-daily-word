@@ -97,16 +97,10 @@ exports.handler = async (event) => {
       };
     }
 
-    // Convert standard Bible reference format to NLT API format
-    // e.g. "John 3:16-17" -> "John.3.16-17", "1 Corinthians 13" -> "1Corinthians.13"
-    let ref = passage
-      .replace(/(\d)\s+([A-Z])/gi, '$1$2')  // "1 Corinthians" -> "1Corinthians"
-      .replace(/\s+/g, '.')                   // spaces to dots
-      .replace(/:/g, '.');                    // colons to dots
-
+    // NLT API accepts plain references like "1 Corinthians 13" or "John 3:16-17"
     const API_KEY = process.env.NLT_API_KEY || '';
     const keyParam = API_KEY ? `&key=${API_KEY}` : '';
-    const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(ref)}&version=${version}${keyParam}`;
+    const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(passage)}&version=${version}${keyParam}`;
 
     const response = await fetch(url);
     const html = await response.text();
