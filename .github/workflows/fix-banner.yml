@@ -1,0 +1,54 @@
+name: Fix banner syntax
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix banner syntax errors
+        run: |
+          node << 'SCRIPT'
+          const fs = require('fs');
+          let html = fs.readFileSync('index.html','utf8');
+
+          // Fix 1: "const const [bannerDismissed" -> "const [bannerDismissed"
+          html = html.replace('const const [bannerDismissed', 'const [bannerDismissed');
+
+          // Fix 2: the insertion ate the "const " before [selectedEssay
+          // Line 330 shows: "    [selectedEssay,setSelectedEssay]=useState(null);"
+          // It should be: "const [selectedEssay,setSelectedEssay]=useState(null);"
+          html = html.replace(
+            /dismissBanner()}};s*
+s*[selectedEssay/,
+            'dismissBanner()}};
+    const [selectedEssay'
+          );
+
+          fs.writeFileSync('index.html', html);
+
+          // Verify fixes
+          const hasDoubleConst = html.includes('const const');
+          const hasConstSelected = html.includes('const [selectedEssay');
+          console.log('Double const removed:', !hasDoubleConst);
+          console.log('const [selectedEssay restored:', hasConstSelected);
+          if(hasDoubleConst){ console.log('ERROR: still has double const'); process.exit(1); }
+          if(!hasConstSelected){ console.log('ERROR: missing const before selectedEssay'); process.exit(1); }
+          console.log('All fixes applied successfully');
+          SCRIPT
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix banner syntax errors (double const, missing const)"
+          git push
+      - name: Remove this workflow
+        run: |
+          git rm .github/workflows/fix-banner.yml
+          git commit -m "Remove fix-banner workflow"
+          git push
