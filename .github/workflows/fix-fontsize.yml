@@ -2,6 +2,9 @@ name: Fix fontSize in essay reader
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   fix:
     runs-on: ubuntu-latest
@@ -15,14 +18,10 @@ jobs:
           const marker = 'selectedEssaySection!==null';
           const pos = html.indexOf(marker);
           if(pos===-1){ console.log('Marker not found'); process.exit(1); }
-          // Only replace in the essay section (after the marker)
           const before = html.substring(0, pos);
           let after = html.substring(pos);
-          // Replace fontSize:fontSize with fontSize:17
           after = after.replace(/fontSize:fontSize,/g, 'fontSize:17,');
-          // Replace fontSize:fontSize-1 with fontSize:16
           after = after.replace(/fontSize:fontSize-1/g, 'fontSize:16');
-          // Replace fontSize:fontSize\+2 with fontSize:19
           after = after.replace(/fontSize:fontSize\+2/g, 'fontSize:19');
           html = before + after;
           fs.writeFileSync('index.html', html);
