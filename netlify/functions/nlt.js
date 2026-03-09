@@ -85,11 +85,6 @@ exports.handler = async (event) => {
     };
   }
 
-  const API_KEY = process.env.NLT_API_KEY;
-  if (!API_KEY) {
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'NLT API key not configured' }) };
-  }
-
   try {
     const passage = event.queryStringParameters.q;
     const version = event.queryStringParameters.v || 'NLT';
@@ -109,7 +104,9 @@ exports.handler = async (event) => {
       .replace(/\s+/g, '.')                   // spaces to dots
       .replace(/:/g, '.');                    // colons to dots
 
-    const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(ref)}&version=${version}&key=${API_KEY}`;
+    const API_KEY = process.env.NLT_API_KEY || '';
+    const keyParam = API_KEY ? `&key=${API_KEY}` : '';
+    const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(ref)}&version=${version}${keyParam}`;
 
     const response = await fetch(url);
     const html = await response.text();
