@@ -1,0 +1,35 @@
+name: Fix emoji escapes
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Fix unicode escapes in index.html
+        run: |
+          # Replace \u{1F6AA} with actual door emoji
+          sed -i "s/\\u{1F6AA}/ðª/g" index.html
+          # Replace \u{1F4DD} with actual memo emoji
+          sed -i "s/\\u{1F4DD}/ð/g" index.html
+          echo "Replacements done"
+          grep -c "ESSAY_CATALOG" index.html
+          
+      - name: Commit
+        run: |
+          git config user.name "AEGLOBALUSA"
+          git config user.email "noreply@github.com"
+          git add index.html
+          git diff --cached --stat
+          git commit -m "Fix emoji unicode escapes in Ps Essays section" || echo "No changes"
+          git push
+          
+      - name: Clean up
+        run: |
+          git rm .github/workflows/fix-emoji.yml
+          git commit -m "Remove fix-emoji workflow"
+          git push
