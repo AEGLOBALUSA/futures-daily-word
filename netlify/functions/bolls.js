@@ -48,16 +48,25 @@ function parseRef(ref) {
 }
 
 function stripHtml(text) {
-  return text
-    .replace(/<\/?[^>]+(>|$)/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+  let t = text;
+  // Remove italic superscriptions/headers (e.g. "<i>A Psalm of David.</i>" at start of Psalms)
+  // These appear at the very beginning before the actual verse text
+  t = t.replace(/^\s*<i>[^<]*<\/i>\s*/i, '');
+  // Remove stray closing </i> tags that sometimes appear after superscriptions
+  t = t.replace(/<\/i>\s*<\/i>/g, '</i>');
+  // Strip all remaining HTML tags
+  t = t.replace(/<\/?[^>]+(>|$)/g, '');
+  // Decode HTML entities
+  t = t.replace(/&nbsp;/g, ' ');
+  t = t.replace(/&amp;/g, '&');
+  t = t.replace(/&lt;/g, '<');
+  t = t.replace(/&gt;/g, '>');
+  t = t.replace(/&quot;/g, '"');
+  t = t.replace(/&#39;/g, "'");
+  t = t.replace(/&#\d+;/g, '');
+  // Collapse whitespace
+  t = t.replace(/\s+/g, ' ');
+  return t.trim();
 }
 
 // Fetch with timeout (8 second limit per request)

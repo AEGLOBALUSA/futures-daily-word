@@ -24,11 +24,13 @@ function htmlToVerses(html) {
   // Extract verse numbers - they appear as <span class="vn">16</span>
   text = text.replace(/<span[^>]*class="vn"[^>]*>(\d+)<\/span>/gi, '[$1] ');
 
-  // Remove h2 headers (passage reference headers)
-  text = text.replace(/<h2[^>]*>[\s\S]*?<\/h2>/gi, '');
-
-  // Remove all remaining heading tags and their content (section headers like "Jesus and Nicodemus")
+  // Remove ALL heading tags and their content (h1-h6: passage headers, chapter numbers, section subheads)
   text = text.replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi, '');
+
+  // Remove footnote anchors and entire translation note blocks (nested spans)
+  text = text.replace(/<a[^>]*class="a-tn"[^>]*>[^<]*<\/a>/gi, '');
+  text = text.replace(/<span[^>]*class="tn-ref"[^>]*>[^<]*<\/span>/gi, '');
+  text = text.replace(/<span[^>]*class="tn"[^>]*>[\s\S]*?<\/span>/gi, '');
 
   // Replace paragraph and div breaks with newlines
   text = text.replace(/<\/p>/gi, '\n');
@@ -47,8 +49,8 @@ function htmlToVerses(html) {
   text = text.replace(/&nbsp;/g, ' ');
   text = text.replace(/&#\d+;/g, '');
 
-  // Remove footnote markers like *3:16 Or For God loved...
-  text = text.replace(/\*\d+:\d+[^[.]*/g, '');
+  // Remove any remaining footnote markers like *3:16 Or born from above; also in 3:7.
+  text = text.replace(/\*\d+:\d+[^[\]]*?(?=\[\d+\]|$)/g, '');
 
   // Clean up whitespace
   text = text.replace(/[ \t]+/g, ' ');
