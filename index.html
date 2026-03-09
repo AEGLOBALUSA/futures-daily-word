@@ -717,6 +717,7 @@ const loadAllEssaySections=async(essayId)=>{
   // Fetch verses for current passages — fires on mount, translation/day change, etc.
   useEffect(()=>{
     if(passages.length>0){
+      gaEvent('passages_viewed',{count:passages.length,translation,passages:passages.slice(0,3).join(', ')});
       if(lang==='es'){
         // Fetch Spanish RVR for passages not already in BIBLE_ES
         passages.forEach(p=>{
@@ -779,6 +780,13 @@ const loadAllEssaySections=async(essayId)=>{
     // Dismiss splash screen
     const splash=document.getElementById('splash');
     if(splash){splash.classList.add('hidden');setTimeout(()=>splash.remove(),500)}
+    // GA engagement events to reduce bounce rate (SPA has no second page view)
+    gaEvent('app_loaded',{version:'1.0'});
+    setTimeout(()=>gaEvent('engaged_reading',{seconds:10}),10000);
+    setTimeout(()=>gaEvent('engaged_reading',{seconds:30}),30000);
+    setTimeout(()=>gaEvent('engaged_reading',{seconds:60}),60000);
+    const onScroll=()=>{gaEvent('scroll_engage',{});window.removeEventListener('scroll',onScroll,true)};
+    window.addEventListener('scroll',onScroll,true);
   },[]);
 
   // ===== INSTALL PROMPT (Add to Home Screen) =====
