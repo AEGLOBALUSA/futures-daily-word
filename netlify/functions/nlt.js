@@ -27,8 +27,8 @@ function htmlToVerses(html) {
   // Remove h2 headers (passage reference headers)
   text = text.replace(/<h2[^>]*>[\s\S]*?<\/h2>/gi, '');
 
-  // Remove heading tags but keep text
-  text = text.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, '$1\n');
+  // Remove all remaining heading tags and their content (section headers like "Jesus and Nicodemus")
+  text = text.replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi, '');
 
   // Replace paragraph and div breaks with newlines
   text = text.replace(/<\/p>/gi, '\n');
