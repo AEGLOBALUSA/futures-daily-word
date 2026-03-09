@@ -87,7 +87,7 @@ exports.handler = async (event) => {
 
   const API_KEY = process.env.NLT_API_KEY;
   if (!API_KEY) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'NLT API key not configured' }) };
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'NLT API key not configured' }) };
   }
 
   try {
