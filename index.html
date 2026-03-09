@@ -3830,10 +3830,8 @@ const loadEssaySection=async(essayId,secIdx)=>{
               })()}
             </React.Fragment>
           )}
-        </div>
-      )}
 
-<div className="screen">
+
 {moreSection==='essays'&&selectedEssay&&(
           <React.Fragment>
             <button className="lib-back" onClick={()=>{
@@ -3902,9 +3900,11 @@ const loadEssaySection=async(essayId,secIdx)=>{
             )}
           </React.Fragment>
           )}
-</div>
 
-          
+        </div>
+      )}
+
+
       {page==='settings'&&(
         <div className="screen">
           <h1 className="section-title">{L.settingsTitle}</h1>
