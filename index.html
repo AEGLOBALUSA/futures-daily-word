@@ -432,9 +432,9 @@ const ESSAY_CATALOG = [
     essayDir: 'essays/knocking-on-the-door'
   }
 ];
-const const [bannerDismissed,setBannerDismissed]=useState(()=>{try{return localStorage.getItem('dw_banner_essay1')==='1'}catch(e){return false}});
+const [bannerDismissed,setBannerDismissed]=useState(()=>{try{return localStorage.getItem('dw_banner_essay1')==='1'}catch(e){return false}});
     const dismissBanner=()=>{setBannerDismissed(true);try{localStorage.setItem('dw_banner_essay1','1')}catch(e){}};
-    [selectedEssay,setSelectedEssay]=useState(null);
+    const [selectedEssay,setSelectedEssay]=useState(null);
 const [selectedEssaySection,setSelectedEssaySection]=useState(null);
 const [loadedEssays,setLoadedEssays]=useState({});
 const [essayLoading,setEssayLoading]=useState(null);
