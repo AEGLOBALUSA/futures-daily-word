@@ -476,6 +476,30 @@ const loadEssaySection=async(essayId,secIdx)=>{
     setEssayError('Failed to load section.');
   }
 };
+const loadAllEssaySections=async(essayId)=>{
+  const cat=ESSAY_CATALOG.find(e=>e.id===essayId);
+  if(!cat)return;
+  const essay=loadedEssays[essayId];
+  if(!essay||!essay.toc)return;
+  setEssayLoading(essayId);
+  try{
+    const promises=essay.toc.sections.map((sec,i)=>{
+      if(essay.sections[i])return Promise.resolve(essay.sections[i]);
+      return fetch(cat.essayDir+'/'+sec.file).then(r=>r.ok?r.json():null);
+    });
+    const results=await Promise.all(promises);
+    setLoadedEssays(prev=>{
+      const e=prev[essayId]||{toc:essay.toc,sections:{}};
+      const secs={...e.sections};
+      results.forEach((data,i)=>{if(data)secs[i]=data});
+      return{...prev,[essayId]:{...e,sections:secs}};
+    });
+  }catch(e){
+    setEssayError('Failed to load essay.');
+  }finally{
+    setEssayLoading(null);
+  }
+};
   const [loadedBooks,setLoadedBooks]=useState({}); // {bookId: {toc:[{title,paragraphCount}], chapters:{0:{title,paragraphs}}}}
   const [bookLoading,setBookLoading]=useState(null);
   const [chapterLoading,setChapterLoading]=useState(null);
@@ -3865,9 +3889,52 @@ const loadEssaySection=async(essayId,secIdx)=>{
                           </div>
                         ))}
                       </div>
+                      <div style={{marginTop:18,textAlign:'center'}}>
+                        <button onClick={()=>{setSelectedEssaySection('all');loadAllEssaySections(selectedEssay);window.scrollTo(0,0)}} style={{background:'var(--sage)',color:'#fff',border:'none',borderRadius:10,padding:'12px 28px',fontSize:15,fontWeight:600,cursor:'pointer',width:'100%'}}>Read Full Essay</button>
+                      </div>
                     </div>
                   );
                 })():(essayLoading?<div style={{textAlign:'center',padding:40,color:'var(--subtext)'}}>Loading...</div>:essayError?<div style={{textAlign:'center',padding:40,color:'#e74c3c'}}>{essayError}</div>:null)}
+              </div>
+            ):selectedEssaySection==='all'?(
+              <div style={{padding:'0 6px'}}>
+                {(()=>{
+                  const essay=loadedEssays[selectedEssay];
+                  if(!essay||!essay.toc)return <div style={{textAlign:'center',padding:40,color:'var(--subtext)'}}>Loading...</div>;
+                  const toc=essay.toc;
+                  const allLoaded=toc.sections.every((s,i)=>essay.sections[i]);
+                  return(
+                    <div>
+                      <div style={{textAlign:'center',margin:'18px 0 20px'}}>
+                        <h1 className="section-title" style={{marginBottom:4}}>{toc.title}</h1>
+                        <div style={{color:'var(--subtext)',fontSize:14,marginBottom:4}}>{toc.subtitle}</div>
+                        <div style={{color:'var(--gold)',fontSize:13}}>{toc.author} ({toc.year})</div>
+                      </div>
+                      {toc.sections.map((sec,idx)=>{
+                        const secData=essay.sections[idx];
+                        if(!secData)return <div key={idx} style={{textAlign:'center',padding:20,color:'var(--subtext)'}}>Loading section {idx+1}...</div>;
+                        return(
+                          <div key={idx} style={{marginBottom:32}}>
+                            <h2 style={{fontSize:20,fontWeight:700,color:'var(--text)',marginBottom:14,textAlign:'center'}}>{secData.title}</h2>
+                            <div style={{fontSize:17,lineHeight:1.75,color:'var(--text)'}}>
+                              {secData.paragraphs.map((p,i)=>{
+                                if(p.match(/^(Psalm|Proverbs|Galatians|Hebrews|James|Romans|Luke|Matthew|John|Genesis|Exodus|Isaiah|Ephesians|Colossians|Philippians|Corinthians|Timothy|Peter|Revelation)/)){
+                                  return <p key={i} style={{fontStyle:'italic',color:'var(--gold)',margin:'16px 0',textAlign:'center',fontSize:16}}>{p}</p>;
+                                }
+                                if(p.match(/^\d+\./)){
+                                  return <h3 key={i} style={{fontSize:19,fontWeight:700,color:'var(--gold)',margin:'24px 0 8px'}}>{p}</h3>;
+                                }
+                                return <p key={i} style={{margin:'10px 0'}}>{p}</p>;
+                              })}
+                            </div>
+                            {idx<toc.sections.length-1&&<hr style={{border:'none',borderTop:'1px solid var(--border)',margin:'32px 0'}}/>}
+                          </div>
+                        );
+                      })}
+                      <div style={{paddingBottom:20}}/>
+                    </div>
+                  );
+                })()}
               </div>
             ):(
               <div style={{padding:'0 6px'}}>
