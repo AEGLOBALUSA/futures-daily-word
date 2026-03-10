@@ -971,17 +971,20 @@ const loadAllEssaySections=async(essayId)=>{
     setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setEmailGateFirstName('');setEmailGateLastName('');setShowEmailGate(true);
   };
 
-  // Auto-show login gate on app open — first 10 opens if user hasn't completed profile
-  const [gateOpenCount,setGateOpenCount]=useState(0);
+  // Show login/campus gate on every app open so users can always switch campus
+  const [gateOpenCount,setGateOpenCount]=useState(1);
   useEffect(()=>{
     if(!setup)return;
-    if(userProfile&&userProfile.email)return;
-    let opens=0;try{opens=parseInt(localStorage.getItem('dw_gate_opens')||'0',10)}catch(e){}
-    if(opens>=10)return; // stop asking after 10 opens
-    opens++;try{localStorage.setItem('dw_gate_opens',String(opens))}catch(e){}
-    setGateOpenCount(opens);
+    // Pre-fill with existing profile data if returning user
+    const hasProfile=userProfile&&userProfile.email;
     emailGateCallbackRef.current=null;
-    setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setEmailGateFirstName('');setEmailGateLastName('');setShowEmailGate(true);
+    setEmailGateFirstName(hasProfile?userProfile.firstName||'':'');
+    setEmailGateLastName(hasProfile?userProfile.lastName||'':'');
+    setEmailGateInput(hasProfile?userProfile.email:'');
+    setEmailGateCampus(hasProfile?userProfile.campus||'':'');
+    setEmailGateError('');setEmailGateDone(false);
+    setGateOpenCount(hasProfile?99:1); // returning users can always dismiss easily
+    setShowEmailGate(true);
   },[setup]);
 
   const submitEmailGate=async()=>{
@@ -1025,13 +1028,16 @@ const loadAllEssaySections=async(essayId)=>{
         gaEvent('profile_created',{campus:regCampus||'none'});
       }
 
-      // If user entered name/campus in the gate and profile doesn't have them yet, apply
-      if(emailGateFirstName.trim()&&!profile.firstName){profile.firstName=emailGateFirstName.trim();}
-      if(emailGateLastName.trim()&&!profile.lastName){profile.lastName=emailGateLastName.trim();}
-      if(emailGateCampus&&!profile.campus){profile.campus=emailGateCampus;}
+      // Apply name/campus from gate — always update campus if user changed it
+      if(emailGateFirstName.trim()){profile.firstName=emailGateFirstName.trim();}
+      if(emailGateLastName.trim()){profile.lastName=emailGateLastName.trim();}
+      if(emailGateCampus){profile.campus=emailGateCampus;}
 
-      // Clear gate open counter since they completed it
-      try{localStorage.removeItem('dw_gate_opens')}catch(e){}
+      // If returning user changed campus, update server too
+      if(emailGateCampus&&userProfile&&userProfile.email){
+        fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',email:profile.email,firstName:profile.firstName||'',lastName:profile.lastName||'',campus:emailGateCampus})}).catch(()=>{});
+        if(emailGateCampus!==userProfile.campus)gaEvent('campus_switched',{from:userProfile.campus||'none',to:emailGateCampus});
+      }
 
       localStorage.setItem('dw_profile',JSON.stringify(profile));
       setUserProfile(profile);
@@ -3051,28 +3057,36 @@ const loadAllEssaySections=async(essayId)=>{
               </div>
             ):(
               <>
+                {(()=>{
+                  const returning=emailGateInput&&emailGateInput.includes('@');
+                  return(<>
                 <h3 style={{fontSize:20}}>{isWelcome
-                  ?(lang==='es'?'¡Bienvenido!':lang==='pt'?'Bem-vindo!':'Welcome!')
+                  ?(returning
+                    ?(lang==='es'?'¡Bienvenido de nuevo!':lang==='pt'?'Bem-vindo de volta!':'Welcome back!')
+                    :(lang==='es'?'¡Bienvenido!':lang==='pt'?'Bem-vindo!':'Welcome!'))
                   :(lang==='es'?'Accede a Libros y Recursos':lang==='pt'?'Acesse Livros e Recursos':'Unlock Books & Resources')}</h3>
                 <div className="pm-sub" style={{marginBottom:12}}>{isWelcome
-                  ?(lang==='es'?'Completa tu perfil para comenzar':lang==='pt'?'Complete seu perfil para começar':'Complete your profile to get started')
+                  ?(returning
+                    ?(lang==='es'?'Confirma o cambia tu campus':lang==='pt'?'Confirme ou mude seu campus':'Confirm or change your campus')
+                    :(lang==='es'?'Completa tu perfil para comenzar':lang==='pt'?'Complete seu perfil para começar':'Complete your profile to get started'))
                   :(lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access')}</div>
-                <div style={{background:'rgba(74,99,64,0.08)',borderRadius:10,padding:'12px 14px',marginBottom:14,fontSize:13,lineHeight:1.5,color:'var(--text)'}}>
+                {!returning&&<div style={{background:'rgba(74,99,64,0.08)',borderRadius:10,padding:'12px 14px',marginBottom:14,fontSize:13,lineHeight:1.5,color:'var(--text)'}}>
                   {lang==='es'?'Tu perfil te conecta con tu campus, guarda tu progreso en todos tus dispositivos y te da acceso a la muro de oración y recursos de tu pastor.'
                    :lang==='pt'?'Seu perfil conecta você ao seu campus, salva seu progresso em todos os dispositivos e dá acesso ao mural de oração e recursos do seu pastor.'
                    :'Your profile connects you to your campus, saves your progress across all your devices, and gives you access to the prayer wall and your pastor\'s resources.'}
-                </div>
+                </div>}
                 {emailGateError&&<div className="pm-error">{emailGateError}</div>}
                 {isWelcome&&<div style={{display:'flex',gap:8,marginBottom:0}}><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateFirstName} onChange={e=>setEmailGateFirstName(e.target.value)} placeholder={lang==='es'?'Nombre':lang==='pt'?'Nome':'First name'} style={{fontSize:15,padding:'12px 16px'}}/></div><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateLastName} onChange={e=>setEmailGateLastName(e.target.value)} placeholder={lang==='es'?'Apellido':lang==='pt'?'Sobrenome':'Last name'} style={{fontSize:15,padding:'12px 16px'}}/></div></div>}
-                <div className="pm-field"><input type="email" value={emailGateInput} onChange={e=>setEmailGateInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submitEmailGate()}} placeholder="you@example.com" autoFocus style={{fontSize:16,padding:'12px 16px'}}/></div>
-                {isWelcome&&<div className="pm-field" style={{marginTop:8}}><select value={emailGateCampus} onChange={e=>setEmailGateCampus(e.target.value)} style={{width:'100%',padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--light)',fontFamily:'inherit'}}><option value="">{lang==='es'?'Selecciona tu campus...':lang==='pt'?'Selecione seu campus...':'Select your campus...'}</option>{CAMPUSES.map(c=><option key={c.id} value={c.id}>{c.name}{c.city?' — '+c.city:''}</option>)}</select></div>}
-                <div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':'Just devotionals & updates. We never share your info.'}</div>
+                <div className="pm-field"><input type="email" value={emailGateInput} onChange={e=>setEmailGateInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submitEmailGate()}} placeholder="you@example.com" autoFocus={!returning} style={{fontSize:16,padding:'12px 16px'}}/></div>
+                {isWelcome&&<div className="pm-field" style={{marginTop:8}}><select value={emailGateCampus} onChange={e=>setEmailGateCampus(e.target.value)} style={{width:'100%',padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:emailGateCampus?'var(--text)':'var(--sage)',background:'var(--light)',fontFamily:'inherit',fontWeight:emailGateCampus?400:600}}><option value="">{lang==='es'?'Selecciona tu campus...':lang==='pt'?'Selecione seu campus...':'Select your campus...'}</option>{CAMPUSES.map(c=><option key={c.id} value={c.id}>{c.name}{c.city?' — '+c.city:''}</option>)}</select></div>}
+                {!returning&&<div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':'Just devotionals & updates. We never share your info.'}</div>}
                 <div className="pm-actions" style={{display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
-                  <button className="pm-btn-primary" style={{width:'100%'}} disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':'Continue'}</button>
-                  {isWelcome&&canSkip&&!easySkip&&<div style={{fontSize:11,color:'var(--text)',opacity:0.35,cursor:'pointer',marginTop:4}} onClick={()=>setShowEmailGate(false)}>{lang==='es'?'omitir por ahora':lang==='pt'?'pular por agora':'skip for now'}</div>}
-                  {isWelcome&&easySkip&&<button onClick={()=>setShowEmailGate(false)} style={{padding:'10px 0',background:'none',color:'var(--text)',border:'none',fontSize:13,cursor:'pointer',opacity:0.5}}>{lang==='es'?'Más tarde':lang==='pt'?'Depois':'Later'}</button>}
+                  <button className="pm-btn-primary" style={{width:'100%'}} disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':(returning?(lang==='es'?'Continuar':lang==='pt'?'Continuar':'Continue'):'Continue')}</button>
+                  {isWelcome&&returning&&<button onClick={()=>setShowEmailGate(false)} style={{padding:'10px 0',background:'none',color:'var(--text)',border:'none',fontSize:13,cursor:'pointer',opacity:0.5}}>{lang==='es'?'Saltar':lang==='pt'?'Pular':'Skip'}</button>}
+                  {isWelcome&&!returning&&canSkip&&<div style={{fontSize:11,color:'var(--text)',opacity:0.35,cursor:'pointer',marginTop:4}} onClick={()=>setShowEmailGate(false)}>{lang==='es'?'omitir por ahora':lang==='pt'?'pular por agora':'skip for now'}</div>}
                   {!isWelcome&&<button onClick={()=>setShowEmailGate(false)} style={{padding:'10px 0',background:'none',color:'var(--text)',border:'none',fontSize:13,cursor:'pointer',opacity:0.5}}>{lang==='es'?'Cancelar':lang==='pt'?'Cancelar':'Cancel'}</button>}
                 </div>
+                </>)})()}
               </>
             )}
           </div>
@@ -3169,10 +3183,22 @@ const loadAllEssaySections=async(essayId)=>{
             <div className="author">— {quote.author}</div>
           </div>
 
-          {/* CAMPUS BADGE — subtle home page indicator */}
-          {userProfile?.campus&&userProfile.campus!=='other'&&(
-            <div style={{textAlign:'center',margin:'-4px 0 12px',fontSize:12,color:'var(--sage)',fontWeight:600,opacity:0.7,cursor:'pointer'}} onClick={()=>{setPage('plans');setMoreSection('campus');fetchCampusContent();fetchPrayers();gaEvent('open_campus_from_home')}}>
-              {(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''} ↗
+          {/* CAMPUS BADGE — tap to go to community or switch campus */}
+          {userProfile?.campus&&userProfile.campus!=='other'?(
+            <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:12,margin:'-4px 0 12px'}}>
+              <div style={{fontSize:12,color:'var(--sage)',fontWeight:600,opacity:0.7,cursor:'pointer'}} onClick={()=>{setPage('plans');setMoreSection('campus');fetchCampusContent();fetchPrayers();gaEvent('open_campus_from_home')}}>
+                {(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''} ↗
+              </div>
+              <div style={{width:1,height:12,background:'var(--border)'}}/>
+              <div style={{fontSize:11,color:'var(--text)',opacity:0.4,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile.firstName||'');setEmailGateLastName(userProfile.lastName||'');setEmailGateInput(userProfile.email||'');setEmailGateCampus(userProfile.campus||'');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
+                {lang==='es'?'Cambiar':lang==='pt'?'Mudar':'Switch'}
+              </div>
+            </div>
+          ):(
+            <div style={{textAlign:'center',margin:'-4px 0 12px'}}>
+              <div style={{fontSize:12,color:'var(--sage)',fontWeight:600,opacity:0.7,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile?.firstName||'');setEmailGateLastName(userProfile?.lastName||'');setEmailGateInput(userProfile?.email||'');setEmailGateCampus('');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
+                {lang==='es'?'Seleccionar campus':lang==='pt'?'Selecionar campus':'Select a campus'} →
+              </div>
             </div>
           )}
 
