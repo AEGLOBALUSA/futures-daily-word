@@ -970,6 +970,14 @@ const loadAllEssaySections=async(essayId)=>{
     setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setShowEmailGate(true);
   };
 
+  // Auto-show email gate right after onboarding completes (login is 1st screen after setup)
+  useEffect(()=>{
+    if(setup&&(!userProfile||!userProfile.email)){
+      emailGateCallbackRef.current=null;
+      setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setShowEmailGate(true);
+    }
+  },[setup]);
+
   const submitEmailGate=async()=>{
     const email=emailGateInput.trim().toLowerCase();
     if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setEmailGateError(lang==='es'?'Ingresa un correo válido':lang==='pt'?'Digite um email válido':'Enter a valid email');return;}
@@ -3005,9 +3013,9 @@ const loadAllEssaySections=async(essayId)=>{
   return(
     <div className="app-container">
       {/* APP UPDATE BANNER */}
-      {/* EMAIL GATE — appears when accessing books/resources without email */}
+      {/* EMAIL GATE — appears after onboarding or when accessing gated features */}
       {showEmailGate&&(
-        <div className="profile-modal-overlay" onClick={e=>{if(e.target===e.currentTarget&&!emailGateSaving){setShowEmailGate(false)}}}>
+        <div className="profile-modal-overlay" onClick={e=>{if(e.target===e.currentTarget&&!emailGateSaving&&emailGateCallbackRef.current){setShowEmailGate(false)}}}>
           <div className="profile-modal" style={{maxWidth:360,padding:'28px 24px'}}>
             {emailGateDone?(
               <div className="pm-success">
@@ -3021,8 +3029,12 @@ const loadAllEssaySections=async(essayId)=>{
               </div>
             ):(
               <>
-                <h3 style={{fontSize:20}}>{lang==='es'?'Accede a Libros y Recursos':lang==='pt'?'Acesse Livros e Recursos':'Unlock Books & Resources'}</h3>
-                <div className="pm-sub" style={{marginBottom:12}}>{lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access'}</div>
+                <h3 style={{fontSize:20}}>{emailGateCallbackRef.current
+                  ?(lang==='es'?'Accede a Libros y Recursos':lang==='pt'?'Acesse Livros e Recursos':'Unlock Books & Resources')
+                  :(lang==='es'?'¡Bienvenido!':lang==='pt'?'Bem-vindo!':'Welcome!')}</h3>
+                <div className="pm-sub" style={{marginBottom:12}}>{emailGateCallbackRef.current
+                  ?(lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access')
+                  :(lang==='es'?'Ingresa tu correo para comenzar':lang==='pt'?'Digite seu email para começar':'Enter your email to get started')}</div>
                 <div style={{background:'rgba(74,99,64,0.08)',borderRadius:10,padding:'12px 14px',marginBottom:14,fontSize:13,lineHeight:1.5,color:'var(--text)'}}>
                   {lang==='es'?'Tu correo te conecta con tu campus, guarda tu progreso en todos tus dispositivos y te da acceso a la muro de oración y recursos de tu pastor.'
                    :lang==='pt'?'Seu email conecta você ao seu campus, salva seu progresso em todos os dispositivos e dá acesso ao mural de oração e recursos do seu pastor.'
