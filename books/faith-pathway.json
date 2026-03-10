@@ -1,8 +1,17 @@
 {
   "id": "new-believers",
-  "title": "New Believers",
+  "title": "New & Returning to Faith",
+  "titleEs": "Nuevos y De Regreso a la Fe",
+  "titlePt": "Novos e De Volta à Fé",
+  "titleId": "Baru & Kembali ke Iman",
   "subtitle": "30 Days to a Strong Foundation",
-  "description": "A fresh, grace-powered journey through the foundations of faith — built on the theology of grace, the power of the Holy Spirit, and the purpose of the church. Not cliché Christianity. Real truth, simply explained, with the why behind everything.",
+  "subtitleEs": "30 Días para una Base Sólida",
+  "subtitlePt": "30 Dias para uma Base Sólida",
+  "subtitleId": "30 Hari Menuju Fondasi yang Kuat",
+  "description": "Whether you're just starting your faith journey or finding your way back — this is your 30-day foundation. Grace, the Holy Spirit, the church, baptism, and the why behind everything. Real truth, simply explained.",
+  "descriptionEs": "Ya sea que estés comenzando tu camino de fe o encontrando tu regreso — esta es tu base de 30 días. Gracia, el Espíritu Santo, la iglesia, el bautismo y el porqué detrás de todo. Verdad real, explicada simplemente.",
+  "descriptionPt": "Seja você iniciando sua jornada de fé ou encontrando seu caminho de volta — esta é sua base de 30 dias. Graça, o Espírito Santo, a igreja, o batismo e o porquê por trás de tudo. Verdade real, simplesmente explicada.",
+  "descriptionId": "Baik Anda baru memulai perjalanan iman atau menemukan jalan kembali — ini adalah fondasi 30 hari Anda. Kasih karunia, Roh Kudus, gereja, baptisan, dan alasan di balik semuanya. Kebenaran nyata, dijelaskan dengan sederhana.",
   "days": [
     {
       "day": 1,

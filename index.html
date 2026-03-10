@@ -3324,7 +3324,7 @@ const loadAllEssaySections=async(essayId)=>{
             return(
               <div className="pathway-card" style={{background:'linear-gradient(135deg,#2c3e50,#34495e)',color:'white',padding:20,borderRadius:16,marginBottom:16,cursor:'pointer'}} onClick={()=>{setPathwayViewDay(currentDay);setShowPathway(true)}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                  <div style={{fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:1.5,opacity:0.8}}>{L.faithJourney}</div>
+                  <div style={{fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:1.5,opacity:0.8}}>{lang==='es'?(pathwayData.titleEs||pathwayData.title):lang==='pt'?(pathwayData.titlePt||pathwayData.title):lang==='id'?(pathwayData.titleId||pathwayData.title):pathwayData.title}</div>
                   <div style={{fontSize:11,opacity:0.7}}>{(L.journeyProgress||'').replace('{n}',completed)}</div>
                 </div>
                 <div style={{fontSize:17,fontWeight:600,marginBottom:4}}>{L.todayLesson}: {today?(lang==='es'?(today.titleEs||today.title):lang==='pt'?(today.titlePt||today.title):lang==='id'?(today.titleId||today.title):today.title):''}</div>
@@ -5202,7 +5202,7 @@ const loadAllEssaySections=async(essayId)=>{
         <div style={{position:'fixed',inset:0,background:'var(--bg)',zIndex:600,overflowY:'auto',paddingBottom:'calc(80px + env(safe-area-inset-bottom))'}}>
           <div style={{padding:'20px 16px',maxWidth:480,margin:'0 auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-              <h1 style={{fontSize:22,fontFamily:'Georgia,serif',margin:0}}>{L.faithJourney}</h1>
+              <h1 style={{fontSize:22,fontFamily:'Georgia,serif',margin:0}}>{lang==='es'?(pathwayData.titleEs||pathwayData.title):lang==='pt'?(pathwayData.titlePt||pathwayData.title):lang==='id'?(pathwayData.titleId||pathwayData.title):pathwayData.title}</h1>
               <button onClick={()=>{setShowPathway(false);setPathwayViewDay(null)}} style={{background:'none',border:'none',fontSize:24,color:'var(--sage)',cursor:'pointer'}}>×</button>
             </div>
 
