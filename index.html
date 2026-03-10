@@ -1511,7 +1511,7 @@ const loadAllEssaySections=async(essayId)=>{
   const clearPassageHighlights=(pName)=>{
     const allV=getVerses(pName);
     if(!allV||allV.length===0)return;
-    const numV=setup.versesPerPassage||10;
+    const numV=setup.versesPerPassage||30;
     const keys=allV.slice(0,numV).map((_,vi)=>vKey(pName,vi));
     setHighlights(p=>{const n={...p};keys.forEach(k=>delete n[k]);return n});
     setWordHighlights(p=>{const n={...p};keys.forEach(k=>delete n[k]);return n});
@@ -1657,7 +1657,7 @@ const loadAllEssaySections=async(essayId)=>{
     const pData=BIBLE[pName]||parsePassage(pName);
     if(!pData){playNextInQueue(pName);return}
     setAudioLoading(pName);
-    const numV=setup.versesPerPassage||10;
+    const numV=setup.versesPerPassage||30;
     const speed=audioSpeed;
 
     // Get verse text for TTS fallbacks
@@ -3431,7 +3431,7 @@ const loadAllEssaySections=async(essayId)=>{
           {loadingTrans&&<div style={{textAlign:'center',fontSize:13,color:'var(--sage)',marginBottom:12}}>{L.loadingTrans}</div>}
           <div style={{textAlign:'center',marginBottom:16}}>
             <button className="comm-btn" style={{fontSize:12,padding:'6px 16px'}} onClick={()=>setPage('settings')}>
-              {L.chaptersPerDay}: {setup.chapters||1} &middot; {L.versesPerPassage}: {setup.versesPerPassage||10}
+              {L.chaptersPerDay}: {setup.chapters||1} &middot; {L.versesPerPassage}: {setup.versesPerPassage||30}
             </button>
           </div>
           <div className="day-nav">
@@ -3442,7 +3442,7 @@ const loadAllEssaySections=async(essayId)=>{
           {passages.map((pName,pi)=>{
             const pData=BIBLE[pName]||parsePassage(pName);
             if(!pData)return null;
-            const numV=setup.versesPerPassage||10;
+            const numV=setup.versesPerPassage||30;
             const sources=setup.chapterSources;
             const allVerses=getVerses(pName);
             const verses=allVerses.slice(0,numV);
@@ -4805,7 +4805,7 @@ const loadAllEssaySections=async(essayId)=>{
             )}
             <div className="pref-card" style={{maxWidth:'100%'}}>
               <div><div className="pref-label">{L.versesPerPassage}</div><div className="pref-desc">{L.versesDesc}</div></div>
-              <input type="text" inputMode="numeric" pattern="[0-9]*" value={setup.versesPerPassage===''?'':setup.versesPerPassage||10} onFocus={e=>e.target.select()} onChange={e=>{setSettingsSaved(false);const v=e.target.value;if(v==='')setSetup(p=>({...p,versesPerPassage:''}));else{const n=parseInt(v);if(!isNaN(n))setSetup(p=>({...p,versesPerPassage:Math.min(30,Math.max(1,n))}));}}} onBlur={()=>{if(setup.versesPerPassage===''||!setup.versesPerPassage)setSetup(p=>({...p,versesPerPassage:10}))}}/>
+              <input type="text" inputMode="numeric" pattern="[0-9]*" value={setup.versesPerPassage===''?'':setup.versesPerPassage||30} onFocus={e=>e.target.select()} onChange={e=>{setSettingsSaved(false);const v=e.target.value;if(v==='')setSetup(p=>({...p,versesPerPassage:''}));else{const n=parseInt(v);if(!isNaN(n))setSetup(p=>({...p,versesPerPassage:Math.min(200,Math.max(1,n))}));}}} onBlur={()=>{if(setup.versesPerPassage===''||!setup.versesPerPassage)setSetup(p=>({...p,versesPerPassage:30}))}}/>
             </div>
             <button onClick={()=>{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2500)}} style={{width:'100%',marginTop:12,padding:'14px 0',background:settingsSaved?'#4CAF50':'var(--sage)',color:'white',border:'none',borderRadius:12,fontSize:16,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'background 0.3s'}}>
               {settingsSaved?(<><svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" style={{width:20,height:20}}><path d="M5 13l4 4L19 7"/></svg>{lang==='es'?'Guardado':lang==='pt'?'Salvo':lang==='id'?'Tersimpan':'Saved'}</>):(<>{lang==='es'?'Guardar cambios':lang==='pt'?'Salvar Alterações':lang==='id'?'Simpan Perubahan':'Save Changes'}</>)}
@@ -5561,7 +5561,7 @@ function Onboarding({onComplete,lang,setLang}){
   const [persona,setPersona]=useState('');
   const [custom,setCustom]=useState('');
   const [chapters,setChapters]=useState(1);
-  const [versesPerPassage,setVPP]=useState(10);
+  const [versesPerPassage,setVPP]=useState(30);
   const [chapterSources,setChapterSources]=useState([]);
   const [step,setStep]=useState(1);
 
@@ -5626,7 +5626,7 @@ function Onboarding({onComplete,lang,setLang}){
       )}
       <div className="pref-card">
         <div><div className="pref-label">{L.versesPerPassage}</div><div className="pref-desc">{L.versesDesc}</div></div>
-        <input type="text" inputMode="numeric" pattern="[0-9]*" value={versesPerPassage===''?'':versesPerPassage} onFocus={e=>e.target.select()} onChange={e=>{const v=e.target.value;if(v==='')setVPP('');else{const n=parseInt(v);if(!isNaN(n))setVPP(Math.min(30,Math.max(1,n)));}}} onBlur={()=>{if(versesPerPassage===''||!versesPerPassage)setVPP(10)}}/>
+        <input type="text" inputMode="numeric" pattern="[0-9]*" value={versesPerPassage===''?'':versesPerPassage} onFocus={e=>e.target.select()} onChange={e=>{const v=e.target.value;if(v==='')setVPP('');else{const n=parseInt(v);if(!isNaN(n))setVPP(Math.min(200,Math.max(1,n)));}}} onBlur={()=>{if(versesPerPassage===''||!versesPerPassage)setVPP(30)}}/>
       </div>
       <button className="primary-btn" onClick={()=>onComplete({persona:persona||custom||'new_believer',chapters,versesPerPassage,chapterSources:chapterSources.length>0?chapterSources:undefined})}>{L.begin}</button>
     </div>
