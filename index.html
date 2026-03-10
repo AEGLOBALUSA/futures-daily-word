@@ -260,6 +260,16 @@ function App(){
   const [prayerSubmitting,setPrayerSubmitting]=useState(false);
   const [campusTab,setCampusTab]=useState('corner');
   const [campusVideoUrl,setCampusVideoUrl]=useState('');
+  // Pastor admin
+  const [pastorCode,setPastorCode]=useState(()=>{try{return localStorage.getItem('dw_pastor_code')||''}catch(e){return ''}});
+  const [pastorCampusId,setPastorCampusId]=useState(()=>{try{return localStorage.getItem('dw_pastor_campus')||''}catch(e){return ''}});
+  const [pastorVerified,setPastorVerified]=useState(false);
+  const [pastorMode,setPastorMode]=useState(false); // show pastor admin panel
+  const [pastorPostType,setPastorPostType]=useState('sermon_note');
+  const [pastorPostTitle,setPastorPostTitle]=useState('');
+  const [pastorPostContent,setPastorPostContent]=useState('');
+  const [pastorPostAuthor,setPastorPostAuthor]=useState('');
+  const [pastorPosting,setPastorPosting]=useState(false);
 
   const savePathwayProgress=(p)=>{setPathwayProgress(p);try{localStorage.setItem('dw_pathway_progress',JSON.stringify(p))}catch(e){}};
 
@@ -1039,6 +1049,33 @@ const loadAllEssaySections=async(essayId)=>{
     if(!userProfile||!userProfile.campus)return null;
     return CAMPUSES.find(c=>c.id===userProfile.campus)||null;
   };
+
+  // ── Pastor Admin Functions ──
+  const verifyPastorCode=async(cId,codeVal)=>{
+    try{
+      const res=await fetch('/api/pastor-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'verify',campusId:cId,code:codeVal})});
+      if(res.ok){const d=await res.json();if(d.valid){setPastorVerified(true);setPastorCampusId(cId);setPastorCode(codeVal);try{localStorage.setItem('dw_pastor_code',codeVal);localStorage.setItem('dw_pastor_campus',cId)}catch(e){}gaEvent('pastor_login',{campus:cId});return true;}}
+      setPastorVerified(false);return false;
+    }catch(e){return false;}
+  };
+  const pastorPost=async()=>{
+    if(!pastorPostContent.trim()||!pastorVerified)return;
+    setPastorPosting(true);
+    try{
+      const res=await fetch('/api/pastor-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'post',campusId:pastorCampusId,code:pastorCode,type:pastorPostType,title:pastorPostTitle.trim(),content:pastorPostContent.trim(),author:pastorPostAuthor.trim()||'Campus Pastor'})});
+      if(res.ok){setPastorPostTitle('');setPastorPostContent('');fetchCampusContent();gaEvent('pastor_post',{campus:pastorCampusId,type:pastorPostType});}
+    }catch(e){}
+    finally{setPastorPosting(false)}
+  };
+  const pastorDelete=async(itemId)=>{
+    if(!pastorVerified)return;
+    try{
+      await fetch('/api/pastor-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',campusId:pastorCampusId,code:pastorCode,itemId})});
+      fetchCampusContent();gaEvent('pastor_delete',{campus:pastorCampusId});
+    }catch(e){}
+  };
+  // Re-verify stored pastor code on mount
+  useEffect(()=>{if(pastorCode&&pastorCampusId){verifyPastorCode(pastorCampusId,pastorCode)}},[]);
 
   const fetchCampusContent=async()=>{
     const campus=userProfile?.campus;
@@ -4235,6 +4272,64 @@ const loadAllEssaySections=async(essayId)=>{
               {/* === PASTOR'S CORNER === */}
               {campusTab==='corner'&&(
                 <div>
+                  {/* Pastor login/admin toggle */}
+                  {!pastorMode?(
+                    <div style={{textAlign:'right',marginBottom:12}}>
+                      <button onClick={()=>setPastorMode(true)} style={{background:'none',border:'none',fontSize:12,color:'var(--sage)',opacity:0.5,cursor:'pointer',textDecoration:'underline'}}>
+                        {pastorVerified?'Pastor Admin':'Pastor Login'}
+                      </button>
+                    </div>
+                  ):(
+                    <div style={{background:'rgba(74,99,64,0.06)',borderRadius:14,padding:16,marginBottom:20,border:'1.5px solid var(--sage)',borderStyle:'dashed'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                        <span style={{fontSize:14,fontWeight:700,color:'var(--sage)'}}>
+                          {pastorVerified?'Pastor Admin':'Pastor Login'}
+                        </span>
+                        <button onClick={()=>setPastorMode(false)} style={{background:'none',border:'none',fontSize:18,color:'var(--sage)',cursor:'pointer'}}>✕</button>
+                      </div>
+
+                      {!pastorVerified?(
+                        <div>
+                          <p style={{fontSize:13,color:'var(--text)',marginBottom:12,lineHeight:1.5}}>Enter your campus pastor code to manage content for your campus.</p>
+                          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                            <select value={pastorCampusId} onChange={e=>setPastorCampusId(e.target.value)} style={{padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)'}}>
+                              <option value="">Select your campus...</option>
+                              {CAMPUSES.filter(c=>c.id!=='other').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                            <input type="text" placeholder="Enter pastor code" value={pastorCode} onChange={e=>setPastorCode(e.target.value.toUpperCase())} maxLength={8} style={{padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',fontFamily:'monospace',letterSpacing:2,textTransform:'uppercase'}}/>
+                            <button onClick={async()=>{if(!pastorCampusId||!pastorCode){return}const ok=await verifyPastorCode(pastorCampusId,pastorCode);if(!ok)alert('Invalid code. Please check and try again.')}} style={{padding:'12px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer'}}>
+                              Verify Code
+                            </button>
+                          </div>
+                        </div>
+                      ):(
+                        <div>
+                          <div style={{fontSize:12,color:'var(--sage)',marginBottom:14,fontWeight:600}}>
+                            Logged in: {(CAMPUSES.find(c=>c.id===pastorCampusId)||{}).name||pastorCampusId}
+                          </div>
+                          {/* Post type selector */}
+                          <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+                            {[['sermon_note','Sermon Note'],['announcement','Announcement'],['prayer_point','Prayer Point'],['note','Note']].map(([val,label])=>(
+                              <button key={val} onClick={()=>setPastorPostType(val)} style={{padding:'6px 12px',fontSize:12,fontWeight:pastorPostType===val?700:400,borderRadius:8,border:pastorPostType===val?'1.5px solid var(--sage)':'1px solid var(--border)',background:pastorPostType===val?'rgba(74,99,64,0.1)':'transparent',color:pastorPostType===val?'var(--sage)':'var(--text)',cursor:'pointer'}}>{label}</button>
+                            ))}
+                          </div>
+                          <input type="text" placeholder="Title" value={pastorPostTitle} onChange={e=>setPastorPostTitle(e.target.value)} maxLength={200} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:8,boxSizing:'border-box'}}/>
+                          <textarea placeholder="Write your content here..." value={pastorPostContent} onChange={e=>setPastorPostContent(e.target.value)} rows={5} maxLength={5000} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',resize:'vertical',fontFamily:'inherit',lineHeight:1.5,marginBottom:8,boxSizing:'border-box'}}/>
+                          <input type="text" placeholder="Your name (e.g. Pastor John)" value={pastorPostAuthor} onChange={e=>setPastorPostAuthor(e.target.value)} maxLength={100} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:12,boxSizing:'border-box'}}/>
+                          <div style={{display:'flex',gap:8}}>
+                            <button onClick={pastorPost} disabled={pastorPosting||!pastorPostContent.trim()} style={{flex:1,padding:'12px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',opacity:pastorPosting||!pastorPostContent.trim()?0.5:1}}>
+                              {pastorPosting?'Publishing...':'Publish'}
+                            </button>
+                            <button onClick={()=>{setPastorVerified(false);setPastorCode('');setPastorCampusId('');try{localStorage.removeItem('dw_pastor_code');localStorage.removeItem('dw_pastor_campus')}catch(e){}}} style={{padding:'12px 16px',background:'rgba(200,60,60,0.1)',color:'#c44',border:'none',borderRadius:10,fontSize:13,cursor:'pointer'}}>
+                              Log Out
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Content list */}
                   {campusContentLoading?(<div style={{textAlign:'center',padding:40}}><div className="loading-spinner"/></div>):
                    campusContent.length===0?(
                     <div style={{textAlign:'center',padding:'40px 20px',color:'var(--border)'}}>
@@ -4245,11 +4340,17 @@ const loadAllEssaySections=async(essayId)=>{
                   ):(
                     <div style={{display:'flex',flexDirection:'column',gap:14}}>
                       {campusContent.map((item,i)=>(
-                        <div key={i} style={{background:'var(--light)',borderRadius:14,padding:'18px 16px',border:'1px solid var(--border)'}}>
+                        <div key={i} style={{background:'var(--light)',borderRadius:14,padding:'18px 16px',border:'1px solid var(--border)',position:'relative'}}>
                           {item.type==='announcement'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--gold)',marginBottom:6}}>Announcement</div>}
+                          {item.type==='sermon_note'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--sage)',marginBottom:6}}>Sermon Note</div>}
+                          {item.type==='prayer_point'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'#7B68AE',marginBottom:6}}>Prayer Point</div>}
                           <div style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6}}>{item.title}</div>
                           <div style={{fontSize:14,color:'var(--text)',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{item.content}</div>
                           {item.author&&<div style={{fontSize:12,color:'var(--border)',marginTop:10}}>— {item.author} • {item.date||''}</div>}
+                          {/* Delete button for verified pastor */}
+                          {pastorVerified&&pastorCampusId===((userProfile||{}).campus||pastorCampusId)&&item.id&&(
+                            <button onClick={()=>{if(confirm('Delete this post?'))pastorDelete(item.id)}} style={{position:'absolute',top:12,right:12,background:'none',border:'none',fontSize:14,color:'var(--border)',cursor:'pointer',opacity:0.5}}>🗑</button>
+                          )}
                         </div>
                       ))}
                     </div>
