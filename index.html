@@ -2557,6 +2557,23 @@ const loadAllEssaySections=async(essayId)=>{
   },[]);
   useEffect(()=>{try{localStorage.setItem('dw_video_devotions',JSON.stringify(videoDevotions))}catch(e){}},[videoDevotions]);
 
+  // Request persistent storage to prevent browser from evicting IndexedDB/localStorage data
+  // Safari/iOS aggressively clears non-persistent storage after ~7 days of inactivity
+  useEffect(()=>{
+    (async()=>{
+      try{
+        if(navigator.storage&&navigator.storage.persist){
+          const isPersisted=await navigator.storage.persisted();
+          if(!isPersisted){
+            const granted=await navigator.storage.persist();
+            if(granted)console.log('Persistent storage granted — data protected from eviction');
+            else console.log('Persistent storage denied — data may be evicted by browser');
+          }
+        }
+      }catch(e){console.log('Storage persistence check failed:',e)}
+    })();
+  },[]);
+
   // Sermon CRUD
   const saveSermon=()=>{
     if(!sermonForm.title.trim())return;
