@@ -1,5 +1,5 @@
 // Daily Word Service Worker v13 — Security hardening + consent
-const CACHE_NAME = 'daily-word-v13';
+const CACHE_NAME = 'daily-word-v14';
 const API_CACHE = 'daily-word-api-v1'; // Separate cache for API responses (24hr TTL)
 const TTS_CACHE = 'daily-word-tts-v1'; // Cache for TTS audio (7-day TTL, max 50 entries)
 
@@ -9,7 +9,7 @@ const PRECACHE_URLS = [
   '/index.html',
   '/offline.html',
   '/404.html',
-  '/styles.css?v=13',
+  '/styles.css?v=14',
   '/manifest.json',
   '/data/quotes.js',
   '/data/devotions.js',

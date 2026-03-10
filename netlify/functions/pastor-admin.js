@@ -70,7 +70,7 @@ exports.handler = async (event) => {
     if (!validateCode(campusId, code)) return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Invalid code" }) };
     if (!type || !content) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Missing type or content" }) };
 
-    const validTypes = ["announcement", "sermon_note", "essay", "note", "prayer_point"];
+    const validTypes = ["announcement", "sermon_note", "essay", "note", "prayer_point", "video"];
     if (!validTypes.includes(type)) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid type" }) };
 
     const db = getSupabase();

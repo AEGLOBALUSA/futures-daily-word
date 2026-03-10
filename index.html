@@ -281,6 +281,10 @@ function App(){
   const [pastorPostContent,setPastorPostContent]=useState('');
   const [pastorPostAuthor,setPastorPostAuthor]=useState('');
   const [pastorPosting,setPastorPosting]=useState(false);
+  const [pastorVideoUrl,setPastorVideoUrl]=useState('');
+  const [pastorVideoFile,setPastorVideoFile]=useState(null);
+  const [pastorVideoUploading,setPastorVideoUploading]=useState(false);
+  const [pastorVideoProgress,setPastorVideoProgress]=useState('');
 
   const savePathwayProgress=(p)=>{setPathwayProgress(p);try{localStorage.setItem('dw_pathway_progress',JSON.stringify(p))}catch(e){}};
 
@@ -1129,6 +1133,76 @@ const loadAllEssaySections=async(essayId)=>{
       fetchCampusContent();gaEvent('pastor_delete',{campus:pastorCampusId});usePastorEdit();
     }catch(e){}
   };
+
+  // ── Video helpers ──
+  const parseVideoUrl=(url)=>{
+    if(!url)return null;
+    // YouTube
+    let m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if(m)return{type:'youtube',id:m[1],embed:'https://www.youtube.com/embed/'+m[1]};
+    // Vimeo
+    m=url.match(/(?:vimeo\.com\/)(\d+)/);
+    if(m)return{type:'vimeo',id:m[1],embed:'https://player.vimeo.com/video/'+m[1]};
+    // Direct video URL (mp4, webm, etc.)
+    if(url.match(/\.(mp4|webm|mov|m4v|avi|mkv)(\?|$)/i))return{type:'direct',url:url};
+    // Generic URL — treat as iframe embed
+    if(url.startsWith('http'))return{type:'iframe',url:url};
+    return null;
+  };
+
+  const pastorVideoPost=async()=>{
+    if(!pastorVerified)return;
+    let videoUrl='';
+
+    // If a file is selected, upload it first
+    if(pastorVideoFile){
+      setPastorVideoUploading(true);
+      setPastorVideoProgress(lang==='es'?'Obteniendo URL de carga...':lang==='pt'?'Obtendo URL de upload...':lang==='id'?'Mendapatkan URL unggah...':'Getting upload URL...');
+      try{
+        // Step 1: Get signed upload URL
+        const signRes=await fetch('/api/video-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get-upload-url',campusId:pastorCampusId,code:pastorCode,fileName:pastorVideoFile.name,fileType:pastorVideoFile.type})});
+        if(!signRes.ok){const err=await signRes.json();throw new Error(err.error||'Failed to get upload URL');}
+        const{signedUrl,token,path,publicUrl}=await signRes.json();
+
+        // Step 2: Upload file directly to Supabase Storage
+        setPastorVideoProgress(lang==='es'?'Subiendo video...':lang==='pt'?'Enviando vídeo...':lang==='id'?'Mengunggah video...':'Uploading video...');
+        const uploadRes=await fetch(signedUrl,{method:'PUT',headers:{'Content-Type':pastorVideoFile.type},body:pastorVideoFile});
+        if(!uploadRes.ok)throw new Error('Upload failed');
+        videoUrl=publicUrl;
+
+        // Step 3: Create content entry
+        setPastorVideoProgress(lang==='es'?'Guardando...':lang==='pt'?'Salvando...':lang==='id'?'Menyimpan...':'Saving...');
+        const confirmRes=await fetch('/api/video-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'confirm-upload',campusId:pastorCampusId,code:pastorCode,videoUrl:videoUrl,title:pastorPostTitle.trim()||'Video Message',author:pastorPostAuthor.trim()||'Campus Pastor'})});
+        if(!confirmRes.ok)throw new Error('Failed to save video entry');
+
+        // Success
+        setPastorPostTitle('');setPastorVideoFile(null);setPastorVideoUrl('');
+        fetchCampusContent();gaEvent('pastor_video_upload',{campus:pastorCampusId});usePastorEdit();
+      }catch(err){
+        alert((lang==='es'?'Error al subir: ':lang==='pt'?'Erro no upload: ':lang==='id'?'Gagal mengunggah: ':'Upload failed: ')+(err.message||'Unknown error'));
+      }finally{
+        setPastorVideoUploading(false);setPastorVideoProgress('');
+      }
+      return;
+    }
+
+    // If URL is provided, just create the content entry
+    if(pastorVideoUrl.trim()){
+      const parsed=parseVideoUrl(pastorVideoUrl.trim());
+      if(!parsed){alert(lang==='es'?'URL de video inválida':lang==='pt'?'URL de vídeo inválida':lang==='id'?'URL video tidak valid':'Invalid video URL');return;}
+      videoUrl=parsed.embed||parsed.url||pastorVideoUrl.trim();
+      setPastorPosting(true);
+      try{
+        const res=await fetch('/api/pastor-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'post',campusId:pastorCampusId,code:pastorCode,type:'video',title:pastorPostTitle.trim()||'Video Message',content:videoUrl,author:pastorPostAuthor.trim()||'Campus Pastor'})});
+        if(res.ok){setPastorPostTitle('');setPastorVideoUrl('');fetchCampusContent();gaEvent('pastor_video_link',{campus:pastorCampusId});usePastorEdit();}
+      }catch(e){}
+      finally{setPastorPosting(false)}
+      return;
+    }
+
+    alert(lang==='es'?'Selecciona un archivo o pega una URL de video':lang==='pt'?'Selecione um arquivo ou cole uma URL de vídeo':lang==='id'?'Pilih file atau tempel URL video':'Please select a file or paste a video URL');
+  };
+
   // Re-verify stored pastor code on mount (only if edits remain)
   useEffect(()=>{if(pastorCode&&pastorCampusId&&pastorEditsLeft>0){verifyPastorCode(pastorCampusId,pastorCode)}},[]);
 
@@ -4407,19 +4481,94 @@ const loadAllEssaySections=async(essayId)=>{
                           </div>
                           {/* Post type selector */}
                           <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
-                            {[['sermon_note','Sermon Note'],['announcement','Announcement'],['prayer_point','Prayer Point'],['note','Note']].map(([val,label])=>(
-                              <button key={val} onClick={()=>setPastorPostType(val)} style={{padding:'6px 12px',fontSize:12,fontWeight:pastorPostType===val?700:400,borderRadius:8,border:pastorPostType===val?'1.5px solid var(--sage)':'1px solid var(--border)',background:pastorPostType===val?'rgba(74,99,64,0.1)':'transparent',color:pastorPostType===val?'var(--sage)':'var(--text)',cursor:'pointer'}}>{label}</button>
+                            {[['sermon_note',lang==='es'?'Nota de Sermón':lang==='pt'?'Nota de Sermão':lang==='id'?'Catatan Khotbah':'Sermon Note'],['video',lang==='es'?'Video':lang==='pt'?'Vídeo':lang==='id'?'Video':'Video'],['announcement',lang==='es'?'Anuncio':lang==='pt'?'Anúncio':lang==='id'?'Pengumuman':'Announcement'],['prayer_point',lang==='es'?'Punto de Oración':lang==='pt'?'Ponto de Oração':lang==='id'?'Pokok Doa':'Prayer Point'],['note',lang==='es'?'Nota':lang==='pt'?'Nota':lang==='id'?'Catatan':'Note']].map(([val,label])=>(
+                              <button key={val} onClick={()=>setPastorPostType(val)} style={{padding:'6px 12px',fontSize:12,fontWeight:pastorPostType===val?700:400,borderRadius:8,border:pastorPostType===val?'1.5px solid var(--sage)':'1px solid var(--border)',background:pastorPostType===val?'rgba(74,99,64,0.1)':'transparent',color:pastorPostType===val?'var(--sage)':'var(--text)',cursor:'pointer'}}>{val==='video'?'🎬 ':''}{label}</button>
                             ))}
                           </div>
-                          <input type="text" placeholder="Title" value={pastorPostTitle} onChange={e=>setPastorPostTitle(e.target.value)} maxLength={200} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:8,boxSizing:'border-box'}}/>
-                          <textarea placeholder="Write your content here..." value={pastorPostContent} onChange={e=>setPastorPostContent(e.target.value)} rows={5} maxLength={5000} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',resize:'vertical',fontFamily:'inherit',lineHeight:1.5,marginBottom:8,boxSizing:'border-box'}}/>
-                          <input type="text" placeholder="Your name (e.g. Pastor John)" value={pastorPostAuthor} onChange={e=>setPastorPostAuthor(e.target.value)} maxLength={100} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:12,boxSizing:'border-box'}}/>
-                          <div style={{display:'flex',gap:8}}>
-                            <button onClick={pastorPost} disabled={pastorPosting||!pastorPostContent.trim()} style={{flex:1,padding:'12px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',opacity:pastorPosting||!pastorPostContent.trim()?0.5:1}}>
-                              {pastorPosting?'Publishing...':'Publish'}
-                            </button>
+
+                          {pastorPostType==='video'?(
+                            <div>
+                              <input type="text" placeholder={lang==='es'?'Título del video':lang==='pt'?'Título do vídeo':lang==='id'?'Judul video':'Video title'} value={pastorPostTitle} onChange={e=>setPastorPostTitle(e.target.value)} maxLength={200} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:8,boxSizing:'border-box'}}/>
+
+                              {/* Video URL input */}
+                              <div style={{marginBottom:10}}>
+                                <label style={{fontSize:12,fontWeight:600,color:'var(--sage)',marginBottom:6,display:'block'}}>{lang==='es'?'Pegar enlace de video (YouTube, Vimeo, etc.)':lang==='pt'?'Colar link do vídeo (YouTube, Vimeo, etc.)':lang==='id'?'Tempel tautan video (YouTube, Vimeo, dll.)':'Paste video link (YouTube, Vimeo, etc.)'}</label>
+                                <input type="url" placeholder="https://youtube.com/watch?v=..." value={pastorVideoUrl} onChange={e=>{setPastorVideoUrl(e.target.value);if(e.target.value)setPastorVideoFile(null)}} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',boxSizing:'border-box'}}/>
+                                {pastorVideoUrl&&parseVideoUrl(pastorVideoUrl)&&(
+                                  <div style={{marginTop:8,borderRadius:10,overflow:'hidden',position:'relative',paddingBottom:'56.25%',height:0,background:'#000'}}>
+                                    {parseVideoUrl(pastorVideoUrl).type==='direct'?(
+                                      <video src={parseVideoUrl(pastorVideoUrl).url} controls style={{position:'absolute',top:0,left:0,width:'100%',height:'100%'}}/>
+                                    ):(
+                                      <iframe src={parseVideoUrl(pastorVideoUrl).embed||parseVideoUrl(pastorVideoUrl).url} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div style={{textAlign:'center',fontSize:13,color:'var(--border)',margin:'6px 0',fontWeight:600}}>— {lang==='es'?'O':lang==='pt'?'OU':lang==='id'?'ATAU':'OR'} —</div>
+
+                              {/* File upload from gallery/system */}
+                              <div style={{marginBottom:10}}>
+                                <label style={{fontSize:12,fontWeight:600,color:'var(--sage)',marginBottom:6,display:'block'}}>{lang==='es'?'Subir video desde tu dispositivo':lang==='pt'?'Enviar vídeo do seu dispositivo':lang==='id'?'Unggah video dari perangkat':' Upload video from your device'}</label>
+                                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                                  {/* Upload from gallery/files */}
+                                  <label style={{flex:1,minWidth:120,padding:'14px 12px',background:'rgba(74,99,64,0.06)',border:'1.5px dashed var(--sage)',borderRadius:10,textAlign:'center',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="2" style={{width:24,height:24}}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    <span style={{fontSize:12,color:'var(--sage)',fontWeight:600}}>{lang==='es'?'Elegir archivo':lang==='pt'?'Escolher arquivo':lang==='id'?'Pilih file':'Choose file'}</span>
+                                    <input type="file" accept="video/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f){setPastorVideoFile(f);setPastorVideoUrl('')}}}/>
+                                  </label>
+
+                                  {/* Record from camera */}
+                                  <label style={{flex:1,minWidth:120,padding:'14px 12px',background:'rgba(74,99,64,0.06)',border:'1.5px dashed var(--sage)',borderRadius:10,textAlign:'center',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="2" style={{width:24,height:24}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                    <span style={{fontSize:12,color:'var(--sage)',fontWeight:600}}>{lang==='es'?'Grabar video':lang==='pt'?'Gravar vídeo':lang==='id'?'Rekam video':'Record video'}</span>
+                                    <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f){setPastorVideoFile(f);setPastorVideoUrl('')}}}/>
+                                  </label>
+                                </div>
+
+                                {/* Selected file preview */}
+                                {pastorVideoFile&&(
+                                  <div style={{marginTop:8,padding:10,background:'rgba(74,99,64,0.06)',borderRadius:10,display:'flex',alignItems:'center',gap:10}}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="2" style={{width:20,height:20,flexShrink:0}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                    <div style={{flex:1,minWidth:0}}>
+                                      <div style={{fontSize:13,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{pastorVideoFile.name}</div>
+                                      <div style={{fontSize:11,color:'var(--border)'}}>{(pastorVideoFile.size/(1024*1024)).toFixed(1)} MB</div>
+                                    </div>
+                                    <button onClick={()=>setPastorVideoFile(null)} style={{background:'none',border:'none',fontSize:16,color:'var(--border)',cursor:'pointer'}}>✕</button>
+                                  </div>
+                                )}
+                              </div>
+
+                              <input type="text" placeholder={lang==='es'?'Tu nombre (ej. Pastor Juan)':lang==='pt'?'Seu nome (ex. Pastor João)':lang==='id'?'Nama Anda (cth. Pendeta Yohanes)':'Your name (e.g. Pastor John)'} value={pastorPostAuthor} onChange={e=>setPastorPostAuthor(e.target.value)} maxLength={100} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:12,boxSizing:'border-box'}}/>
+
+                              {pastorVideoUploading&&(
+                                <div style={{textAlign:'center',padding:12,marginBottom:8}}>
+                                  <div className="loading-spinner" style={{margin:'0 auto 8px'}}/>
+                                  <div style={{fontSize:13,color:'var(--sage)',fontWeight:600}}>{pastorVideoProgress}</div>
+                                </div>
+                              )}
+
+                              <div style={{display:'flex',gap:8}}>
+                                <button onClick={pastorVideoPost} disabled={pastorVideoUploading||(!pastorVideoUrl.trim()&&!pastorVideoFile)} style={{flex:1,padding:'12px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',opacity:pastorVideoUploading||(!pastorVideoUrl.trim()&&!pastorVideoFile)?0.5:1}}>
+                                  {pastorVideoUploading?(pastorVideoProgress||'Uploading...'):pastorVideoFile?(lang==='es'?'Subir y publicar':lang==='pt'?'Enviar e publicar':lang==='id'?'Unggah & terbitkan':'Upload & Publish'):(lang==='es'?'Publicar video':lang==='pt'?'Publicar vídeo':lang==='id'?'Terbitkan video':'Publish Video')}
+                                </button>
+                              </div>
+                            </div>
+                          ):(
+                            <div>
+                              <input type="text" placeholder="Title" value={pastorPostTitle} onChange={e=>setPastorPostTitle(e.target.value)} maxLength={200} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:8,boxSizing:'border-box'}}/>
+                              <textarea placeholder={lang==='es'?'Escribe tu contenido aquí...':lang==='pt'?'Escreva seu conteúdo aqui...':lang==='id'?'Tulis konten Anda di sini...':'Write your content here...'} value={pastorPostContent} onChange={e=>setPastorPostContent(e.target.value)} rows={5} maxLength={5000} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',resize:'vertical',fontFamily:'inherit',lineHeight:1.5,marginBottom:8,boxSizing:'border-box'}}/>
+                              <input type="text" placeholder={lang==='es'?'Tu nombre (ej. Pastor Juan)':lang==='pt'?'Seu nome (ex. Pastor João)':lang==='id'?'Nama Anda (cth. Pendeta Yohanes)':'Your name (e.g. Pastor John)'} value={pastorPostAuthor} onChange={e=>setPastorPostAuthor(e.target.value)} maxLength={100} style={{width:'100%',padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)',marginBottom:12,boxSizing:'border-box'}}/>
+                              <div style={{display:'flex',gap:8}}>
+                                <button onClick={pastorPost} disabled={pastorPosting||!pastorPostContent.trim()} style={{flex:1,padding:'12px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',opacity:pastorPosting||!pastorPostContent.trim()?0.5:1}}>
+                                  {pastorPosting?(lang==='es'?'Publicando...':lang==='pt'?'Publicando...':lang==='id'?'Menerbitkan...':'Publishing...'):(lang==='es'?'Publicar':lang==='pt'?'Publicar':lang==='id'?'Terbitkan':'Publish')}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          <div style={{display:'flex',gap:8,marginTop:8,justifyContent:'flex-end'}}>
                             <button onClick={()=>{setPastorVerified(false);setPastorCode('');setPastorCampusId('');setPastorEditsLeft(0);try{localStorage.removeItem('dw_pastor_code');localStorage.removeItem('dw_pastor_campus');localStorage.removeItem('dw_pastor_edits')}catch(e){}}} style={{padding:'12px 16px',background:'rgba(200,60,60,0.1)',color:'#c44',border:'none',borderRadius:10,fontSize:13,cursor:'pointer'}}>
-                              Log Out
+                              {lang==='es'?'Cerrar sesión':lang==='pt'?'Sair':lang==='id'?'Keluar':'Log Out'}
                             </button>
                           </div>
                         </div>
@@ -4439,15 +4588,35 @@ const loadAllEssaySections=async(essayId)=>{
                     <div style={{display:'flex',flexDirection:'column',gap:14}}>
                       {campusContent.map((item,i)=>(
                         <div key={i} style={{background:'var(--light)',borderRadius:14,padding:'18px 16px',border:'1px solid var(--border)',position:'relative'}}>
-                          {item.type==='announcement'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--gold)',marginBottom:6}}>Announcement</div>}
-                          {item.type==='sermon_note'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--sage)',marginBottom:6}}>Sermon Note</div>}
-                          {item.type==='prayer_point'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'#7B68AE',marginBottom:6}}>Prayer Point</div>}
+                          {item.type==='announcement'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--gold)',marginBottom:6}}>{lang==='es'?'ANUNCIO':lang==='pt'?'ANÚNCIO':lang==='id'?'PENGUMUMAN':'ANNOUNCEMENT'}</div>}
+                          {item.type==='sermon_note'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--sage)',marginBottom:6}}>{lang==='es'?'NOTA DE SERMÓN':lang==='pt'?'NOTA DE SERMÃO':lang==='id'?'CATATAN KHOTBAH':'SERMON NOTE'}</div>}
+                          {item.type==='prayer_point'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'#7B68AE',marginBottom:6}}>{lang==='es'?'PUNTO DE ORACIÓN':lang==='pt'?'PONTO DE ORAÇÃO':lang==='id'?'POKOK DOA':'PRAYER POINT'}</div>}
+                          {item.type==='video'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'#E05050',marginBottom:6}}>🎬 {lang==='es'?'VIDEO':lang==='pt'?'VÍDEO':lang==='id'?'VIDEO':'VIDEO'}</div>}
                           <div style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6}}>{item.title}</div>
-                          <div style={{fontSize:14,color:'var(--text)',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{item.content}</div>
+
+                          {/* Video embed for video type */}
+                          {item.type==='video'&&item.content&&(()=>{
+                            const parsed=parseVideoUrl(item.content);
+                            if(!parsed)return null;
+                            if(parsed.type==='direct')return(
+                              <div style={{marginBottom:8,borderRadius:10,overflow:'hidden'}}>
+                                <video src={parsed.url} controls playsInline style={{width:'100%',maxHeight:300,background:'#000'}}/>
+                              </div>
+                            );
+                            return(
+                              <div style={{position:'relative',paddingBottom:'56.25%',height:0,borderRadius:10,overflow:'hidden',marginBottom:8}}>
+                                <iframe src={parsed.embed||parsed.url} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Text content for non-video types */}
+                          {item.type!=='video'&&<div style={{fontSize:14,color:'var(--text)',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{item.content}</div>}
+
                           {item.author&&<div style={{fontSize:12,color:'var(--border)',marginTop:10}}>— {item.author} • {item.date||''}</div>}
                           {/* Delete button for verified pastor */}
                           {pastorVerified&&pastorCampusId===((userProfile||{}).campus||pastorCampusId)&&item.id&&(
-                            <button onClick={()=>{if(confirm('Delete this post?'))pastorDelete(item.id)}} style={{position:'absolute',top:12,right:12,background:'none',border:'none',fontSize:14,color:'var(--border)',cursor:'pointer',opacity:0.5}}>🗑</button>
+                            <button onClick={()=>{if(confirm(lang==='es'?'¿Eliminar esta publicación?':lang==='pt'?'Excluir esta postagem?':lang==='id'?'Hapus postingan ini?':'Delete this post?'))pastorDelete(item.id)}} style={{position:'absolute',top:12,right:12,background:'none',border:'none',fontSize:14,color:'var(--border)',cursor:'pointer',opacity:0.5}}>🗑</button>
                           )}
                         </div>
                       ))}
@@ -4456,20 +4625,59 @@ const loadAllEssaySections=async(essayId)=>{
                 </div>
               )}
 
-              {/* === LIVE STREAM === */}
+              {/* === LIVE STREAM / CAMPUS VIDEOS === */}
               {campusTab==='stream'&&(
                 <div>
-                  {(getUserCampus()||{}).videoUrl?(
-                    <div style={{position:'relative',paddingBottom:'56.25%',height:0,borderRadius:14,overflow:'hidden',marginBottom:16}}>
-                      <iframe src={(getUserCampus()||{}).videoUrl} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/>
-                    </div>
-                  ):(
-                    <div style={{textAlign:'center',padding:'40px 20px',color:'var(--border)'}}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:48,height:48,marginBottom:12,opacity:0.4}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                      <p style={{fontSize:15,fontWeight:600}}>{lang==='es'?'No hay transmisión en vivo':lang==='pt'?'Nenhuma transmissão ao vivo':lang==='id'?'Tidak ada siaran langsung':'No live stream available'}</p>
-                      <p style={{fontSize:13,marginTop:4}}>{lang==='es'?'Vuelve cuando tu campus esté en vivo.':lang==='pt'?'Volte quando seu campus estiver ao vivo.':lang==='id'?'Periksa kembali saat kampus Anda siaran langsung.':'Check back when your campus goes live.'}</p>
+                  {/* Live stream iframe if campus has a hardcoded videoUrl */}
+                  {(getUserCampus()||{}).videoUrl&&(
+                    <div>
+                      <div style={{fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'EN VIVO':lang==='pt'?'AO VIVO':lang==='id'?'SIARAN LANGSUNG':'LIVE STREAM'}</div>
+                      <div style={{position:'relative',paddingBottom:'56.25%',height:0,borderRadius:14,overflow:'hidden',marginBottom:20}}>
+                        <iframe src={(getUserCampus()||{}).videoUrl} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/>
+                      </div>
                     </div>
                   )}
+
+                  {/* Campus video posts from pastor uploads */}
+                  {(()=>{
+                    const videos=campusContent.filter(c=>c.type==='video');
+                    if(videos.length>0)return(
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--sage)',marginBottom:12}}>{lang==='es'?'Videos del Campus':lang==='pt'?'Vídeos do Campus':lang==='id'?'Video Kampus':'Campus Videos'}</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                          {videos.map((vid,vi)=>{
+                            const parsed=parseVideoUrl(vid.content);
+                            if(!parsed)return null;
+                            return(
+                              <div key={vi} style={{background:'var(--light)',borderRadius:14,overflow:'hidden',border:'1px solid var(--border)'}}>
+                                {parsed.type==='direct'?(
+                                  <video src={parsed.url} controls playsInline style={{width:'100%',maxHeight:300,background:'#000'}}/>
+                                ):(
+                                  <div style={{position:'relative',paddingBottom:'56.25%',height:0}}>
+                                    <iframe src={parsed.embed||parsed.url} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/>
+                                  </div>
+                                )}
+                                <div style={{padding:'12px 16px'}}>
+                                  <div style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>{vid.title||'Video'}</div>
+                                  {vid.author&&<div style={{fontSize:12,color:'var(--border)',marginTop:4}}>— {vid.author} • {vid.date||''}</div>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+
+                    // No videos and no live stream
+                    if(!(getUserCampus()||{}).videoUrl)return(
+                      <div style={{textAlign:'center',padding:'40px 20px',color:'var(--border)'}}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:48,height:48,marginBottom:12,opacity:0.4}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        <p style={{fontSize:15,fontWeight:600}}>{lang==='es'?'No hay videos disponibles':lang==='pt'?'Nenhum vídeo disponível':lang==='id'?'Belum ada video':'No videos available'}</p>
+                        <p style={{fontSize:13,marginTop:4}}>{lang==='es'?'Tu pastor compartirá videos aquí pronto.':lang==='pt'?'Seu pastor compartilhará vídeos aqui em breve.':lang==='id'?'Pendeta Anda akan segera membagikan video di sini.':'Your pastor will share videos here soon.'}</p>
+                      </div>
+                    );
+                    return null;
+                  })()}
                 </div>
               )}
 
