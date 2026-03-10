@@ -199,6 +199,15 @@ function App(){
   const [showSourcePicker,setShowSourcePicker]=useState(false);
   const [sourcePickerContext,setSourcePickerContext]=useState(null); // 'settings' or 'onboard'
   const [lang,setLang]=useState('en');
+
+  // Auto-detect language from campus ID
+  const getLangForCampus=(campusId)=>{
+    if(!campusId)return null;
+    if(campusId.startsWith('br-'))return 'pt';
+    if(campusId.includes('futuros'))return 'es';
+    return null; // keep current language for all other campuses
+  };
+
   const [liveNotes,setLiveNotes]=useState('');
   const [readDays,setReadDays]=useState({});
   const [fontScale,setFontScale]=useState(1);
@@ -1042,6 +1051,9 @@ const loadAllEssaySections=async(essayId)=>{
       localStorage.setItem('dw_profile',JSON.stringify(profile));
       setUserProfile(profile);
       if(window.gaSetCampus)window.gaSetCampus(profile.campus||'none');
+      // Auto-switch language based on campus (Spanish for Futuros, Portuguese for Brazil)
+      const campusLang=getLangForCampus(profile.campus);
+      if(campusLang){setLang(campusLang);try{localStorage.setItem('dw_lang',campusLang)}catch(e){}}
       setEmailGateDone(true);
       setTimeout(()=>{setShowEmailGate(false);if(emailGateCallbackRef.current)emailGateCallbackRef.current();},1200);
     }catch(e){setEmailGateError('Something went wrong. Try again.');}
@@ -1064,6 +1076,9 @@ const loadAllEssaySections=async(essayId)=>{
       setUserProfile(profile);
       // Update GA4 user property so all future events tag to this campus
       if(window.gaSetCampus)window.gaSetCampus(profile.campus||'none');
+      // Auto-switch language based on campus
+      const cLang=getLangForCampus(profile.campus);
+      if(cLang){setLang(cLang);try{localStorage.setItem('dw_lang',cLang)}catch(e){}}
       gaEvent('profile_saved',{campus:profile.campus||'none',has_campus:!!profile.campus});
       setProfileSuccess(true);
       setTimeout(()=>{setShowProfileModal(false);setProfileSuccess(false);setProfileEditing(false);},2000);
