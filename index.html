@@ -57,7 +57,21 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js',new Date());
       gtag('config','G-YVBPE1PK0S');
-      window.gaEvent=function(name,params){try{gtag('event',name,params||{})}catch(e){}};
+      // GA helper — auto-injects campus on EVERY event for umbrella→stick analytics
+      window.gaEvent=function(name,params){
+        try{
+          var p=Object.assign({},params||{});
+          // Auto-inject campus from stored profile if not already set
+          if(!p.campus){try{var prof=JSON.parse(localStorage.getItem('dw_profile')||'{}');if(prof.campus)p.campus=prof.campus;else p.campus='none'}catch(e){p.campus='none'}}
+          gtag('event',name,p);
+        }catch(e){}
+      };
+      // Set campus as GA4 user property (updates when profile loads)
+      window.gaSetCampus=function(campusId){
+        try{gtag('set','user_properties',{campus:campusId||'none'})}catch(e){}
+      };
+      // Initialize from stored profile
+      try{var _p=JSON.parse(localStorage.getItem('dw_profile')||'{}');if(_p.campus)window.gaSetCampus(_p.campus)}catch(e){}
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
     <script>window.React||document.write('<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin="anonymous"><\/script>')</script>
@@ -107,6 +121,32 @@
 <script src="/data/videodb.js"></script>
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback} = React;
+
+// 21 campus slots + Non-Futures option. Replace placeholder names/cities/URLs as details come in.
+const CAMPUSES=[
+  {id:'futures-alpharetta',name:'Futures Alpharetta',city:'Alpharetta, GA',videoUrl:'',pastorName:''},
+  {id:'futures-bali',name:'Futures Bali',city:'Bali, Indonesia',videoUrl:'',pastorName:''},
+  {id:'futures-lagos',name:'Futures Lagos',city:'Lagos, Nigeria',videoUrl:'',pastorName:''},
+  {id:'futures-london',name:'Futures London',city:'London, UK',videoUrl:'',pastorName:''},
+  {id:'futures-online',name:'Futures Online',city:'Online',videoUrl:'',pastorName:''},
+  {id:'campus-06',name:'Campus 6',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-07',name:'Campus 7',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-08',name:'Campus 8',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-09',name:'Campus 9',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-10',name:'Campus 10',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-11',name:'Campus 11',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-12',name:'Campus 12',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-13',name:'Campus 13',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-14',name:'Campus 14',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-15',name:'Campus 15',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-16',name:'Campus 16',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-17',name:'Campus 17',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-18',name:'Campus 18',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-19',name:'Campus 19',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-20',name:'Campus 20',city:'',videoUrl:'',pastorName:''},
+  {id:'campus-21',name:'Campus 21',city:'',videoUrl:'',pastorName:''},
+  {id:'other',name:'Non-Futures Church',city:'',videoUrl:'',pastorName:''}
+];
 
 function App(){
   const [page,setPage]=useState('home');
@@ -204,6 +244,17 @@ function App(){
   const [pathwayProgress,setPathwayProgress]=useState(()=>{try{return JSON.parse(localStorage.getItem('dw_pathway_progress'))||{completedDays:[],currentDay:1,enrolled:false}}catch(e){return{completedDays:[],currentDay:1,enrolled:false}}});
   const [pathwayViewDay,setPathwayViewDay]=useState(null); // which day is being viewed
   const [showPathway,setShowPathway]=useState(false); // show pathway overlay on home
+
+  // ===== CAMPUS COMMUNITY =====
+  const [campusContent,setCampusContent]=useState([]);
+  const [campusContentLoading,setCampusContentLoading]=useState(false);
+  const [prayers,setPrayers]=useState([]);
+  const [prayerLoading,setPrayerLoading]=useState(false);
+  const [prayerInput,setPrayerInput]=useState('');
+  const [prayerFilter,setPrayerFilter]=useState('my-campus');
+  const [prayerSubmitting,setPrayerSubmitting]=useState(false);
+  const [campusTab,setCampusTab]=useState('corner');
+  const [campusVideoUrl,setCampusVideoUrl]=useState('');
 
   const savePathwayProgress=(p)=>{setPathwayProgress(p);try{localStorage.setItem('dw_pathway_progress',JSON.stringify(p))}catch(e){}};
 
@@ -836,7 +887,7 @@ const loadAllEssaySections=async(essayId)=>{
   const [emailGateError,setEmailGateError]=useState('');
   const [emailGateDone,setEmailGateDone]=useState(false);
   const [showProfileModal,setShowProfileModal]=useState(false);
-  const [profileForm,setProfileForm]=useState({firstName:'',lastName:'',email:'',phone:'',church:'',city:''});
+  const [profileForm,setProfileForm]=useState({firstName:'',lastName:'',email:'',phone:'',church:'',city:'',campus:''});
   const [profileSaving,setProfileSaving]=useState(false);
   const [profileError,setProfileError]=useState('');
   const [profileSuccess,setProfileSuccess]=useState(false);
@@ -869,13 +920,29 @@ const loadAllEssaySections=async(essayId)=>{
     reader.readAsDataURL(file);
   };
 
-  // Heartbeat — update lastActiveAt on each app open
+  // Heartbeat + profile sync — update lastActiveAt and pull latest profile from server
   useEffect(()=>{
     if(!userProfile||!userProfile.email)return;
     const p=setup?setup.persona:'';
     const l=localStorage.getItem('dw_lang')||'en';
+    // Heartbeat
     fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'heartbeat',email:userProfile.email,persona:p,lang:l})}).catch(()=>{});
-  },[userProfile,setup]);
+    // Profile sync — silently pull latest from server (campus, name, etc may have been updated on another device)
+    fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',email:userProfile.email})})
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{
+        if(data&&data.profile){
+          const server=data.profile;
+          const merged={firstName:server.firstName||userProfile.firstName||'',lastName:server.lastName||userProfile.lastName||'',email:server.email||userProfile.email,phone:server.phone||userProfile.phone||'',church:server.church||userProfile.church||'',city:server.city||userProfile.city||'',campus:server.campus||userProfile.campus||''};
+          // Only update if something changed
+          if(JSON.stringify(merged)!==JSON.stringify(userProfile)){
+            localStorage.setItem('dw_profile',JSON.stringify(merged));
+            setUserProfile(merged);
+            if(window.gaSetCampus)window.gaSetCampus(merged.campus||'none');
+          }
+        }
+      }).catch(()=>{});
+  },[userProfile&&userProfile.email,setup]);
 
   // Email gate — called when user taps books/resources without an email on file
   const requireEmail=(callback)=>{
@@ -889,10 +956,42 @@ const loadAllEssaySections=async(essayId)=>{
     if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setEmailGateError(lang==='es'?'Ingresa un correo válido':lang==='pt'?'Digite um email válido':'Enter a valid email');return;}
     setEmailGateSaving(true);setEmailGateError('');
     try{
-      await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',firstName:'',lastName:'',email,persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en'})});
-      const profile={email};
+      let profile;
+
+      // Step 1: Check PCO (Planning Center) — auto-pulls name + campus if they're in the church system
+      try{
+        const pcoRes=await fetch('/api/pco-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',email})});
+        if(pcoRes.ok){
+          const pcoData=await pcoRes.json();
+          if(pcoData.synced&&pcoData.profile){
+            profile={firstName:pcoData.profile.firstName||'',lastName:pcoData.profile.lastName||'',email:pcoData.profile.email||email,phone:'',church:'',city:'',campus:pcoData.profile.campus||''};
+            gaEvent('profile_from_pco',{campus:profile.campus||'none'});
+          }
+        }
+      }catch(e){/* PCO not configured or unavailable — continue */}
+
+      // Step 2: If PCO didn't find them, check Supabase (returning user on new device)
+      if(!profile){
+        const getRes=await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',email})});
+        if(getRes.ok){
+          const getData=await getRes.json();
+          if(getData.profile){
+            profile={firstName:getData.profile.firstName||'',lastName:getData.profile.lastName||'',email:getData.profile.email,phone:getData.profile.phone||'',church:getData.profile.church||'',city:getData.profile.city||'',campus:getData.profile.campus||''};
+            gaEvent('profile_recalled',{campus:profile.campus||'none'});
+          }
+        }
+      }
+
+      // Step 3: Brand new user — register
+      if(!profile){
+        await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',firstName:'',lastName:'',email,persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en'})});
+        profile={email};
+        gaEvent('profile_created');
+      }
+
       localStorage.setItem('dw_profile',JSON.stringify(profile));
       setUserProfile(profile);
+      if(window.gaSetCampus)window.gaSetCampus(profile.campus||'none');
       setEmailGateDone(true);
       setTimeout(()=>{setShowEmailGate(false);if(emailGateCallbackRef.current)emailGateCallbackRef.current();},1200);
     }catch(e){setEmailGateError('Something went wrong. Try again.');}
@@ -910,9 +1009,12 @@ const loadAllEssaySections=async(essayId)=>{
       const res=await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const data=await res.json();
       if(!res.ok)throw new Error(data.error||'Failed');
-      const profile={firstName:profileForm.firstName,lastName:profileForm.lastName,email:profileForm.email.toLowerCase().trim(),phone:profileForm.phone,church:profileForm.church,city:profileForm.city};
+      const profile={firstName:profileForm.firstName,lastName:profileForm.lastName,email:profileForm.email.toLowerCase().trim(),phone:profileForm.phone,church:profileForm.church,city:profileForm.city,campus:profileForm.campus};
       localStorage.setItem('dw_profile',JSON.stringify(profile));
       setUserProfile(profile);
+      // Update GA4 user property so all future events tag to this campus
+      if(window.gaSetCampus)window.gaSetCampus(profile.campus||'none');
+      gaEvent('profile_saved',{campus:profile.campus||'none',has_campus:!!profile.campus});
       setProfileSuccess(true);
       setTimeout(()=>{setShowProfileModal(false);setProfileSuccess(false);setProfileEditing(false);},2000);
     }catch(e){setProfileError(e.message||'Something went wrong. Try again.');}
@@ -920,8 +1022,62 @@ const loadAllEssaySections=async(essayId)=>{
   };
 
   const openEditProfile=()=>{
-    if(userProfile){setProfileForm({firstName:userProfile.firstName||'',lastName:userProfile.lastName||'',email:userProfile.email||'',phone:userProfile.phone||'',church:userProfile.church||'',city:userProfile.city||''});}
+    if(userProfile){setProfileForm({firstName:userProfile.firstName||'',lastName:userProfile.lastName||'',email:userProfile.email||'',phone:userProfile.phone||'',church:userProfile.church||'',city:userProfile.city||'',campus:userProfile.campus||''});}
     setProfileEditing(true);setProfileError('');setProfileSuccess(false);setShowProfileModal(true);
+  };
+
+  // ===== CAMPUS COMMUNITY HELPERS =====
+  const getUserCampus=()=>{
+    if(!userProfile||!userProfile.campus)return null;
+    return CAMPUSES.find(c=>c.id===userProfile.campus)||null;
+  };
+
+  const fetchCampusContent=async()=>{
+    const campus=userProfile?.campus;
+    if(!campus||campus==='other')return;
+    setCampusContentLoading(true);
+    try{
+      const resp=await fetch(`/api/campus-content?campus=${encodeURIComponent(campus)}&action=list`);
+      if(resp.ok){const data=await resp.json();setCampusContent(data.items||[]);}
+    }catch(e){console.log('Campus content error:',e)}
+    finally{setCampusContentLoading(false)}
+  };
+
+  const fetchPrayers=async(filter)=>{
+    setPrayerLoading(true);
+    try{
+      const campus=userProfile?.campus||'';
+      const url=`/api/prayer-wall?action=list&campus=${encodeURIComponent(campus)}&filter=${filter||prayerFilter}`;
+      const resp=await fetch(url);
+      if(resp.ok){const data=await resp.json();setPrayers(data.prayers||[]);}
+    }catch(e){console.log('Prayer fetch error:',e)}
+    finally{setPrayerLoading(false)}
+  };
+
+  const submitPrayer=async()=>{
+    if(!prayerInput.trim()||!userProfile?.email)return;
+    setPrayerSubmitting(true);
+    try{
+      await fetch('/api/prayer-wall',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'create',email:userProfile.email,name:userProfile.firstName||'Anonymous',campus:userProfile.campus||'',prayer:prayerInput.trim()})
+      });
+      setPrayerInput('');
+      gaEvent('prayer_submitted',{campus:userProfile.campus||'none'});
+      fetchPrayers();
+    }catch(e){console.log('Prayer submit error:',e)}
+    finally{setPrayerSubmitting(false)}
+  };
+
+  const prayForRequest=async(prayerId)=>{
+    try{
+      await fetch('/api/prayer-wall',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'pray',id:prayerId,email:userProfile?.email||''})
+      });
+      gaEvent('prayed_for',{prayer_id:prayerId});
+      setPrayers(prev=>prev.map(p=>p.id===prayerId?{...p,prayerCount:(p.prayerCount||0)+1,hasPrayed:true}:p));
+    }catch(e){}
   };
 
   // ===== ACTIVITY TRACKING =====
@@ -2779,12 +2935,22 @@ const loadAllEssaySections=async(essayId)=>{
             {emailGateDone?(
               <div className="pm-success">
                 <div className="pm-check">✓</div>
-                <h3>{lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':'You\'re in!'}</h3>
+                <h3>{userProfile&&userProfile.firstName
+                  ?(lang==='es'?`¡Bienvenido de nuevo, ${userProfile.firstName}!`:lang==='pt'?`Bem-vindo de volta, ${userProfile.firstName}!`:`Welcome back, ${userProfile.firstName}!`)
+                  :(lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':'You\'re in!')}</h3>
+                {userProfile&&userProfile.campus&&userProfile.campus!=='other'&&(
+                  <div style={{fontSize:13,color:'var(--sage)',marginTop:4}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''}</div>
+                )}
               </div>
             ):(
               <>
                 <h3 style={{fontSize:20}}>{lang==='es'?'Accede a Libros y Recursos':lang==='pt'?'Acesse Livros e Recursos':'Unlock Books & Resources'}</h3>
-                <div className="pm-sub">{lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access'}</div>
+                <div className="pm-sub" style={{marginBottom:12}}>{lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access'}</div>
+                <div style={{background:'rgba(74,99,64,0.08)',borderRadius:10,padding:'12px 14px',marginBottom:14,fontSize:13,lineHeight:1.5,color:'var(--text)'}}>
+                  {lang==='es'?'Tu correo te conecta con tu campus, guarda tu progreso en todos tus dispositivos y te da acceso a la muro de oración y recursos de tu pastor.'
+                   :lang==='pt'?'Seu email conecta você ao seu campus, salva seu progresso em todos os dispositivos e dá acesso ao mural de oração e recursos do seu pastor.'
+                   :'Your email connects you to your campus, saves your progress across all your devices, and gives you access to the prayer wall and your pastor\'s resources.'}
+                </div>
                 {emailGateError&&<div className="pm-error">{emailGateError}</div>}
                 <div className="pm-field"><input type="email" value={emailGateInput} onChange={e=>setEmailGateInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submitEmailGate()}} placeholder="you@example.com" autoFocus style={{fontSize:16,padding:'12px 16px'}}/></div>
                 <div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':'Just devotionals & updates. We never share your info.'}</div>
@@ -2830,6 +2996,7 @@ const loadAllEssaySections=async(essayId)=>{
                   <div className="pm-field"><label>Church</label><input value={profileForm.church} onChange={e=>setProfileForm(p=>({...p,church:e.target.value}))} placeholder="Optional"/></div>
                   <div className="pm-field"><label>City</label><input value={profileForm.city} onChange={e=>setProfileForm(p=>({...p,city:e.target.value}))} placeholder="Optional"/></div>
                 </div>
+                <div className="pm-field"><label>Campus</label><select value={profileForm.campus||''} onChange={e=>setProfileForm(p=>({...p,campus:e.target.value}))} style={{width:'100%',padding:'12px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--light)',fontFamily:'inherit'}}><option value="">Select your campus...</option>{CAMPUSES.map(c=><option key={c.id} value={c.id}>{c.name}{c.city?' — '+c.city:''}</option>)}</select></div>
                 <div className="pm-actions" style={{marginTop:16}}>
                   <button className="pm-btn-primary" disabled={profileSaving} onClick={()=>submitProfile(true)}>{profileSaving?'Saving...':'Save Changes'}</button>
                   <button className="pm-btn-secondary" onClick={()=>setShowProfileModal(false)}>Cancel</button>
@@ -2885,6 +3052,13 @@ const loadAllEssaySections=async(essayId)=>{
             <blockquote>{lang==='es'?(quote.textEs||quote.text):lang==='pt'?(quote.textPt||quote.text):quote.text}</blockquote>
             <div className="author">— {quote.author}</div>
           </div>
+
+          {/* CAMPUS BADGE — subtle home page indicator */}
+          {userProfile?.campus&&userProfile.campus!=='other'&&(
+            <div style={{textAlign:'center',margin:'-4px 0 12px',fontSize:12,color:'var(--sage)',fontWeight:600,opacity:0.7,cursor:'pointer'}} onClick={()=>{setPage('plans');setMoreSection('campus');fetchCampusContent();fetchPrayers();gaEvent('open_campus_from_home')}}>
+              {(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''} ↗
+            </div>
+          )}
 
           {/* FAITH PATHWAY CARD */}
           {pathwayProgress.enrolled&&pathwayData&&(()=>{
@@ -3294,6 +3468,21 @@ const loadAllEssaySections=async(essayId)=>{
               );
             })()}
 
+            {/* MY CAMPUS — shown first when user has a campus (login-based routing) */}
+            {userProfile?.campus&&userProfile.campus!=='other'&&(
+              <div style={{marginBottom:20}}>
+                <div className="book-card" style={{background:'linear-gradient(135deg, #3d5a3e 0%, #5a8a5c 100%)',color:'white',borderRadius:14,padding:'20px 18px',cursor:'pointer',position:'relative',overflow:'hidden'}} onClick={()=>{setMoreSection('campus');fetchCampusContent();fetchPrayers();gaEvent('open_campus')}}>
+                  <div style={{position:'absolute',top:0,right:0,width:80,height:80,background:'rgba(255,255,255,0.06)',borderRadius:'0 0 0 80px'}}/>
+                  <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:2,opacity:0.7,marginBottom:6}}>Your Campus</div>
+                  <div style={{fontSize:20,fontWeight:700,marginBottom:4}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||userProfile.campus}</div>
+                  <div style={{fontSize:13,opacity:0.85,marginBottom:10}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).city||''}</div>
+                  <div style={{display:'flex',gap:12,fontSize:12,opacity:0.8}}>
+                    <span>Pastor's Corner</span><span>•</span><span>Live Stream</span><span>•</span><span>Prayer Wall</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* YOUR PLANS */}
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:4}}>
               <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--sage)',display:'flex',alignItems:'center',gap:8}}>
@@ -3318,6 +3507,8 @@ const loadAllEssaySections=async(essayId)=>{
                 </div>
               );
             })}
+
+            {/* MY CAMPUS — moved below after reading plans header is set */}
 
             {/* PS A'S BOOKS */}
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:20}}>
@@ -3976,6 +4167,121 @@ const loadAllEssaySections=async(essayId)=>{
           </React.Fragment>
           )}
 
+          {moreSection==='campus'&&(
+            <div>
+              <button className="lib-back" onClick={()=>setMoreSection(null)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:20,height:20}}><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+              </button>
+              <h1 className="section-title">{(getUserCampus()||{}).name||'My Campus'}</h1>
+
+              {/* === TABS === */}
+              <div style={{display:'flex',gap:0,marginBottom:20,borderBottom:'2px solid var(--border)'}}>
+                {['corner','stream','prayer'].map(tab=>(
+                  <button key={tab} onClick={()=>{
+                    setCampusTab(tab);
+                    if(tab==='prayer')fetchPrayers();
+                    if(tab==='corner')fetchCampusContent();
+                  }} style={{flex:1,padding:'12px 0',fontSize:13,fontWeight:600,border:'none',background:'none',cursor:'pointer',color:campusTab===tab?'var(--sage)':'var(--text)',borderBottom:campusTab===tab?'2px solid var(--sage)':'2px solid transparent',marginBottom:-2,opacity:campusTab===tab?1:0.6}}>
+                    {tab==='corner'?"Pastor's Corner":tab==='stream'?'Live Stream':'Prayer Wall'}
+                  </button>
+                ))}
+              </div>
+
+              {/* === PASTOR'S CORNER === */}
+              {campusTab==='corner'&&(
+                <div>
+                  {campusContentLoading?(<div style={{textAlign:'center',padding:40}}><div className="loading-spinner"/></div>):
+                   campusContent.length===0?(
+                    <div style={{textAlign:'center',padding:'40px 20px',color:'var(--border)'}}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:48,height:48,marginBottom:12,opacity:0.4}}><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z"/></svg>
+                      <p style={{fontSize:15,fontWeight:600}}>No messages yet</p>
+                      <p style={{fontSize:13,marginTop:4}}>Your campus pastor will share content here soon.</p>
+                    </div>
+                  ):(
+                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                      {campusContent.map((item,i)=>(
+                        <div key={i} style={{background:'var(--light)',borderRadius:14,padding:'18px 16px',border:'1px solid var(--border)'}}>
+                          {item.type==='announcement'&&<div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--gold)',marginBottom:6}}>Announcement</div>}
+                          <div style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6}}>{item.title}</div>
+                          <div style={{fontSize:14,color:'var(--text)',lineHeight:1.6,whiteSpace:'pre-wrap'}}>{item.content}</div>
+                          {item.author&&<div style={{fontSize:12,color:'var(--border)',marginTop:10}}>— {item.author} • {item.date||''}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* === LIVE STREAM === */}
+              {campusTab==='stream'&&(
+                <div>
+                  {(getUserCampus()||{}).videoUrl?(
+                    <div style={{position:'relative',paddingBottom:'56.25%',height:0,borderRadius:14,overflow:'hidden',marginBottom:16}}>
+                      <iframe src={(getUserCampus()||{}).videoUrl} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen/>
+                    </div>
+                  ):(
+                    <div style={{textAlign:'center',padding:'40px 20px',color:'var(--border)'}}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:48,height:48,marginBottom:12,opacity:0.4}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                      <p style={{fontSize:15,fontWeight:600}}>No live stream available</p>
+                      <p style={{fontSize:13,marginTop:4}}>Check back when your campus goes live.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* === PRAYER WALL === */}
+              {campusTab==='prayer'&&(
+                <div>
+                  {/* Filter toggle */}
+                  <div style={{display:'flex',gap:8,marginBottom:16}}>
+                    <button onClick={()=>{setPrayerFilter('my-campus');fetchPrayers('my-campus')}} style={{flex:1,padding:'10px 0',fontSize:13,fontWeight:600,borderRadius:10,border:prayerFilter==='my-campus'?'2px solid var(--sage)':'1.5px solid var(--border)',background:prayerFilter==='my-campus'?'rgba(74,99,64,0.1)':'transparent',color:prayerFilter==='my-campus'?'var(--sage)':'var(--text)',cursor:'pointer'}}>My Campus</button>
+                    <button onClick={()=>{setPrayerFilter('all');fetchPrayers('all')}} style={{flex:1,padding:'10px 0',fontSize:13,fontWeight:600,borderRadius:10,border:prayerFilter==='all'?'2px solid var(--sage)':'1.5px solid var(--border)',background:prayerFilter==='all'?'rgba(74,99,64,0.1)':'transparent',color:prayerFilter==='all'?'var(--sage)':'var(--text)',cursor:'pointer'}}>All Campuses</button>
+                  </div>
+
+                  {/* Prayer input */}
+                  <div style={{background:'var(--light)',borderRadius:14,padding:16,marginBottom:20,border:'1px solid var(--border)'}}>
+                    <textarea value={prayerInput} onChange={e=>setPrayerInput(e.target.value.slice(0,500))} placeholder="Share a prayer request..." rows={3} style={{width:'100%',border:'none',background:'transparent',fontSize:14,color:'var(--text)',resize:'none',outline:'none',fontFamily:'inherit',lineHeight:1.5}}/>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:8}}>
+                      <span style={{fontSize:11,color:'var(--border)'}}>{prayerInput.length}/500</span>
+                      <button onClick={submitPrayer} disabled={!prayerInput.trim()||prayerSubmitting} style={{padding:'8px 20px',background:prayerInput.trim()?'var(--sage)':'var(--border)',color:'white',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:prayerInput.trim()?'pointer':'default',opacity:prayerSubmitting?0.6:1}}>
+                        {prayerSubmitting?'Sending...':'Submit Prayer'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Prayer list */}
+                  {prayerLoading?(<div style={{textAlign:'center',padding:40}}><div className="loading-spinner"/></div>):
+                   prayers.length===0?(
+                    <div style={{textAlign:'center',padding:'30px 20px',color:'var(--border)'}}>
+                      <p style={{fontSize:15,fontWeight:600}}>No prayers yet</p>
+                      <p style={{fontSize:13,marginTop:4}}>Be the first to share a prayer request.</p>
+                    </div>
+                  ):(
+                    <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                      {prayers.map((p,i)=>(
+                        <div key={p.id||i} style={{background:'var(--light)',borderRadius:14,padding:'16px',border:'1px solid var(--border)'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                            <div>
+                              <span style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{p.name||'Anonymous'}</span>
+                              {p.campusName&&prayerFilter==='all'&&<span style={{fontSize:11,color:'var(--sage)',marginLeft:8,background:'rgba(74,99,64,0.1)',padding:'2px 8px',borderRadius:10}}>{p.campusName}</span>}
+                            </div>
+                            <span style={{fontSize:11,color:'var(--border)'}}>{p.timeAgo||''}</span>
+                          </div>
+                          <div style={{fontSize:14,color:'var(--text)',lineHeight:1.6,marginBottom:10}}>{p.prayer}</div>
+                          <button onClick={()=>prayForRequest(p.id)} disabled={p.hasPrayed} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',borderRadius:20,border:'1.5px solid '+(p.hasPrayed?'var(--sage)':'var(--border)'),background:p.hasPrayed?'rgba(74,99,64,0.1)':'transparent',color:p.hasPrayed?'var(--sage)':'var(--text)',fontSize:12,fontWeight:600,cursor:p.hasPrayed?'default':'pointer'}}>
+                            <svg viewBox="0 0 24 24" fill={p.hasPrayed?'var(--sage)':'none'} stroke={p.hasPrayed?'var(--sage)':'currentColor'} strokeWidth="1.5" style={{width:14,height:14}}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                            {p.hasPrayed?'Praying':'Pray'} {(p.prayerCount||0)>0&&`(${p.prayerCount})`}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       )}
 
@@ -4004,6 +4310,7 @@ const loadAllEssaySections=async(essayId)=>{
                 <div className="spc-info">
                   {(userProfile.firstName||userProfile.lastName)&&<div className="spc-name">{userProfile.firstName} {userProfile.lastName}</div>}
                   <div className="spc-email">{userProfile.email}</div>
+                  {userProfile.campus&&userProfile.campus!=='other'&&<div className="spc-details" style={{color:'var(--sage)',fontWeight:600}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''}</div>}
                   {(userProfile.church||userProfile.city)&&<div className="spc-details">{[userProfile.church,userProfile.city].filter(Boolean).join(' • ')}</div>}
                 </div>
               </div>
@@ -4011,7 +4318,9 @@ const loadAllEssaySections=async(essayId)=>{
             </div>
           ):(
             <div className="settings-no-profile">
-              <p>{lang==='es'?'Crea tu perfil para recibir actualizaciones':lang==='pt'?'Crie seu perfil para receber atualizações':'Create your profile to receive updates'}</p>
+              <p style={{marginBottom:8}}>{lang==='es'?'Tu correo es tu clave — conecta tu campus, oración y progreso en cualquier dispositivo.'
+                :lang==='pt'?'Seu email é sua chave — conecta seu campus, oração e progresso em qualquer dispositivo.'
+                :'Your email is your key — it connects your campus, prayer wall, and progress across any device.'}</p>
               <button onClick={()=>requireEmail(()=>{})}>{lang==='es'?'Agregar Correo':lang==='pt'?'Adicionar Email':'Add Your Email'}</button>
             </div>
           )}

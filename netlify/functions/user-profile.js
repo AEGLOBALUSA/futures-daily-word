@@ -84,6 +84,7 @@ exports.handler = async (event) => {
         phone: sanitize(body.phone || "", 20),
         church: sanitize(body.church || "", 200),
         city: sanitize(body.city || "", 100),
+        campus: sanitize(body.campus || "", 100),
         persona: sanitize(body.persona || "", 50),
         lang: sanitize(body.lang || "en", 5),
         push_enabled: !!body.pushEnabled,
@@ -123,6 +124,7 @@ exports.handler = async (event) => {
         phone: ["phone", 20],
         church: ["church", 200],
         city: ["city", 100],
+        campus: ["campus", 100],
         persona: ["persona", 50],
         lang: ["lang", 5]
       };
@@ -182,6 +184,7 @@ exports.handler = async (event) => {
         phone: data.phone,
         church: data.church,
         city: data.city,
+        campus: data.campus,
         persona: data.persona,
         lang: data.lang,
         pushEnabled: data.push_enabled,
