@@ -1795,17 +1795,41 @@ const loadAllEssaySections=async(essayId)=>{
   // Semantic Scripture search — uses ESV API for lookup
   const doScriptureSearch=async(query)=>{
     if(!query.trim())return;
-    gaEvent('scripture_search',{query:query.trim()});
+    gaEvent('scripture_search',{query:query.trim(),translation});
     trackActivity('search',query.trim());
     setSearchLoading(true);setSearchResults(null);
     try{
-      // First try direct ESV lookup (handles "John 3:16", "Romans 8", etc.)
-      const esvRes=await fetchDedup('/.netlify/functions/esv?q='+encodeURIComponent(query),{},12000);
-      const esvData=await esvRes.json();
-      if(esvData.passages&&esvData.passages.length>0&&esvData.passages[0].trim()){
-        const text=esvData.passages[0].trim();
-        const ref=esvData.canonical||query;
-        setSearchResults([{ref,text}]);
+      // Try fetching with user's selected translation first
+      let text='',ref='';
+      const q=query.trim();
+      const t=translation||'ESV';
+      if(t==='ESV'){
+        const res=await fetchDedup('/.netlify/functions/esv?q='+encodeURIComponent(q),{},12000);
+        const d=await res.json();
+        if(d.passages&&d.passages[0]&&d.passages[0].trim()){text=d.passages[0].trim();ref=d.canonical||q;}
+      }else if(t==='NLT'){
+        const res=await fetchDedup('/.netlify/functions/nlt?q='+encodeURIComponent(q),{},12000);
+        const d=await res.json();
+        if(d.passages&&d.passages[0]&&d.passages[0].trim()){text=d.passages[0].trim();ref=d.canonical||q;}
+      }else if(t==='KJV'&&kjvDownloaded){
+        // KJV offline handled separately — fall through to ESV for search
+        const res=await fetchDedup('/.netlify/functions/esv?q='+encodeURIComponent(q),{},12000);
+        const d=await res.json();
+        if(d.passages&&d.passages[0]&&d.passages[0].trim()){text=d.passages[0].trim();ref=(d.canonical||q)+' (ESV)';}
+      }else{
+        // NKJV, NIV, AMP, NASB, RVR, ARA, etc. → bolls
+        const res=await fetchDedup('/.netlify/functions/bolls?q='+encodeURIComponent(q)+'&v='+encodeURIComponent(t),{},12000);
+        const d=await res.json();
+        if(d.passages&&d.passages[0]&&d.passages[0].trim()){text=d.passages[0].trim();ref=d.canonical||q;}
+      }
+      // Fallback to ESV if selected translation returned nothing
+      if(!text){
+        const esvRes=await fetchDedup('/.netlify/functions/esv?q='+encodeURIComponent(q),{},12000);
+        const esvData=await esvRes.json();
+        if(esvData.passages&&esvData.passages[0]&&esvData.passages[0].trim()){text=esvData.passages[0].trim();ref=(esvData.canonical||q)+' (ESV)';}
+      }
+      if(text){
+        setSearchResults([{ref:ref+' ('+t+')',text}]);
         setSearchLoading(false);return;
       }
       // If direct lookup fails, use Claude to interpret the semantic query
@@ -3127,7 +3151,19 @@ const loadAllEssaySections=async(essayId)=>{
                 {searchResults.map((r,ri)=>(
                   <div key={ri} style={{marginBottom:ri<searchResults.length-1?16:0}}>
                     <div style={{fontFamily:'Georgia,serif',fontSize:15,fontWeight:600,color:'var(--gold)',marginBottom:6}}>{r.ref}</div>
-                    <div style={{fontFamily:'Georgia,serif',fontSize:14,color:'var(--text)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{r.text.length>600?r.text.slice(0,600)+'...':r.text}</div>
+                    <div style={{fontFamily:'Georgia,serif',fontSize:14,color:'var(--text)',lineHeight:1.7,whiteSpace:'pre-wrap',maxHeight:r.expanded?'none':'400px',overflow:r.expanded?'visible':'hidden',position:'relative'}}>
+                      {r.text}
+                    </div>
+                    {r.text.length>800&&!r.expanded&&(
+                      <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:true}:x))}>
+                        {lang==='es'?'Leer todo el capítulo ▾':lang==='pt'?'Ler capítulo inteiro ▾':'Read full chapter ▾'}
+                      </button>
+                    )}
+                    {r.expanded&&r.text.length>800&&(
+                      <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:false}:x))}>
+                        {lang==='es'?'Mostrar menos ▴':lang==='pt'?'Mostrar menos ▴':'Show less ▴'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
