@@ -264,6 +264,7 @@ function App(){
   const [pastorCode,setPastorCode]=useState(()=>{try{return localStorage.getItem('dw_pastor_code')||''}catch(e){return ''}});
   const [pastorCampusId,setPastorCampusId]=useState(()=>{try{return localStorage.getItem('dw_pastor_campus')||''}catch(e){return ''}});
   const [pastorVerified,setPastorVerified]=useState(false);
+  const [pastorEditsLeft,setPastorEditsLeft]=useState(()=>{try{return parseInt(localStorage.getItem('dw_pastor_edits')||'0',10)}catch(e){return 0}});
   const [pastorMode,setPastorMode]=useState(false); // show pastor admin panel
   const [pastorPostType,setPastorPostType]=useState('sermon_note');
   const [pastorPostTitle,setPastorPostTitle]=useState('');
@@ -1051,10 +1052,17 @@ const loadAllEssaySections=async(essayId)=>{
   };
 
   // ── Pastor Admin Functions ──
+  const usePastorEdit=()=>{
+    // Decrement edit counter; if it hits 0, lock them out until re-verified
+    const remaining=pastorEditsLeft-1;
+    setPastorEditsLeft(remaining);
+    try{localStorage.setItem('dw_pastor_edits',String(remaining))}catch(e){}
+    if(remaining<=0){setPastorVerified(false);setPastorCode('');try{localStorage.removeItem('dw_pastor_code')}catch(e){}}
+  };
   const verifyPastorCode=async(cId,codeVal)=>{
     try{
       const res=await fetch('/api/pastor-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'verify',campusId:cId,code:codeVal})});
-      if(res.ok){const d=await res.json();if(d.valid){setPastorVerified(true);setPastorCampusId(cId);setPastorCode(codeVal);try{localStorage.setItem('dw_pastor_code',codeVal);localStorage.setItem('dw_pastor_campus',cId)}catch(e){}gaEvent('pastor_login',{campus:cId});return true;}}
+      if(res.ok){const d=await res.json();if(d.valid){setPastorVerified(true);setPastorCampusId(cId);setPastorCode(codeVal);setPastorEditsLeft(30);try{localStorage.setItem('dw_pastor_code',codeVal);localStorage.setItem('dw_pastor_campus',cId);localStorage.setItem('dw_pastor_edits','30')}catch(e){}gaEvent('pastor_login',{campus:cId});return true;}}
       setPastorVerified(false);return false;
     }catch(e){return false;}
   };
@@ -1063,7 +1071,7 @@ const loadAllEssaySections=async(essayId)=>{
     setPastorPosting(true);
     try{
       const res=await fetch('/api/pastor-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'post',campusId:pastorCampusId,code:pastorCode,type:pastorPostType,title:pastorPostTitle.trim(),content:pastorPostContent.trim(),author:pastorPostAuthor.trim()||'Campus Pastor'})});
-      if(res.ok){setPastorPostTitle('');setPastorPostContent('');fetchCampusContent();gaEvent('pastor_post',{campus:pastorCampusId,type:pastorPostType});}
+      if(res.ok){setPastorPostTitle('');setPastorPostContent('');fetchCampusContent();gaEvent('pastor_post',{campus:pastorCampusId,type:pastorPostType});usePastorEdit();}
     }catch(e){}
     finally{setPastorPosting(false)}
   };
@@ -1071,11 +1079,11 @@ const loadAllEssaySections=async(essayId)=>{
     if(!pastorVerified)return;
     try{
       await fetch('/api/pastor-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',campusId:pastorCampusId,code:pastorCode,itemId})});
-      fetchCampusContent();gaEvent('pastor_delete',{campus:pastorCampusId});
+      fetchCampusContent();gaEvent('pastor_delete',{campus:pastorCampusId});usePastorEdit();
     }catch(e){}
   };
-  // Re-verify stored pastor code on mount
-  useEffect(()=>{if(pastorCode&&pastorCampusId){verifyPastorCode(pastorCampusId,pastorCode)}},[]);
+  // Re-verify stored pastor code on mount (only if edits remain)
+  useEffect(()=>{if(pastorCode&&pastorCampusId&&pastorEditsLeft>0){verifyPastorCode(pastorCampusId,pastorCode)}},[]);
 
   const fetchCampusContent=async()=>{
     const campus=userProfile?.campus;
@@ -4305,7 +4313,7 @@ const loadAllEssaySections=async(essayId)=>{
                       ):(
                         <div>
                           <div style={{fontSize:12,color:'var(--sage)',marginBottom:14,fontWeight:600}}>
-                            Logged in: {(CAMPUSES.find(c=>c.id===pastorCampusId)||{}).name||pastorCampusId}
+                            Logged in: {(CAMPUSES.find(c=>c.id===pastorCampusId)||{}).name||pastorCampusId} — <span style={{color:'var(--gold)'}}>{pastorEditsLeft} edit{pastorEditsLeft!==1?'s':''} remaining</span>
                           </div>
                           {/* Post type selector */}
                           <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
@@ -4320,7 +4328,7 @@ const loadAllEssaySections=async(essayId)=>{
                             <button onClick={pastorPost} disabled={pastorPosting||!pastorPostContent.trim()} style={{flex:1,padding:'12px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',opacity:pastorPosting||!pastorPostContent.trim()?0.5:1}}>
                               {pastorPosting?'Publishing...':'Publish'}
                             </button>
-                            <button onClick={()=>{setPastorVerified(false);setPastorCode('');setPastorCampusId('');try{localStorage.removeItem('dw_pastor_code');localStorage.removeItem('dw_pastor_campus')}catch(e){}}} style={{padding:'12px 16px',background:'rgba(200,60,60,0.1)',color:'#c44',border:'none',borderRadius:10,fontSize:13,cursor:'pointer'}}>
+                            <button onClick={()=>{setPastorVerified(false);setPastorCode('');setPastorCampusId('');setPastorEditsLeft(0);try{localStorage.removeItem('dw_pastor_code');localStorage.removeItem('dw_pastor_campus');localStorage.removeItem('dw_pastor_edits')}catch(e){}}} style={{padding:'12px 16px',background:'rgba(200,60,60,0.1)',color:'#c44',border:'none',borderRadius:10,fontSize:13,cursor:'pointer'}}>
                               Log Out
                             </button>
                           </div>
