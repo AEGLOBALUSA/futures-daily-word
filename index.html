@@ -3254,9 +3254,12 @@ const loadAllEssaySections=async(essayId)=>{
         </div>
       )}
       {showUpdateBanner&&(
-        <div className="update-banner">
-          <span>A new version is available</span>
-          <button onClick={()=>window.location.reload()}>Update</button>
+        <div style={{position:'fixed',top:0,left:0,right:0,zIndex:9999,background:'linear-gradient(135deg,#2c3e50,#34495e)',color:'white',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px',boxShadow:'0 2px 12px rgba(0,0,0,0.3)',fontFamily:'inherit'}}>
+          <span style={{fontSize:14,fontWeight:500}}>A new version is available</span>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>window.location.reload()} style={{background:'var(--sage,#4a6340)',color:'white',border:'none',borderRadius:8,padding:'8px 18px',fontSize:13,fontWeight:600,cursor:'pointer'}}>Update Now</button>
+            <button onClick={()=>setShowUpdateBanner(false)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.6)',fontSize:18,cursor:'pointer',padding:'4px 8px'}}>&times;</button>
+          </div>
         </div>
       )}
       {/* INSTALL PROMPT BANNER */}
