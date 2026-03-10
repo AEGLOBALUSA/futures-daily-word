@@ -442,7 +442,7 @@ function App(){
 
   const completePathwayDay=(dayNum)=>{
     const completed=pathwayProgress.completedDays.includes(dayNum)?pathwayProgress.completedDays:([...pathwayProgress.completedDays,dayNum]);
-    const nextDay=Math.min(30,Math.max(...completed,dayNum)+1);
+    const nextDay=Math.min(40,Math.max(...completed,dayNum)+1);
     savePathwayProgress({...pathwayProgress,completedDays:completed,currentDay:nextDay});
   };
 
@@ -895,6 +895,7 @@ const loadAllEssaySections=async(essayId)=>{
 
   // ===== APP UPDATE NOTIFICATION =====
   const [showUpdateBanner,setShowUpdateBanner]=useState(false);
+  const [showPersonaSwitcher,setShowPersonaSwitcher]=useState(false);
   useEffect(()=>{
     if(!('serviceWorker' in navigator))return;
     // Listen for SW postMessage when new version activates
@@ -3289,7 +3290,7 @@ const loadAllEssaySections=async(essayId)=>{
 
       {/* SCREENS */}
       {page==='home'&&(
-        <div className="screen">
+        <div className="screen" onClick={e=>{if(showPersonaSwitcher&&!e.target.closest('[data-persona-switcher]'))setShowPersonaSwitcher(false)}}>
           <div className="brand-name">
             <img src={dark?"/icons/futures-church-logo.png":"/icons/futures-church-logo-sage.png"} alt="Futures Church" style={{width:220,height:'auto',display:'block',margin:'0 auto'}}/>
           </div>
@@ -3318,12 +3319,31 @@ const loadAllEssaySections=async(essayId)=>{
             </div>
           )}
 
+          {/* PERSONA INDICATOR — shows current persona with switch option */}
+          {setup&&setup.persona&&(
+            <div data-persona-switcher style={{position:'relative',textAlign:'center',margin:'0 0 12px'}}>
+              <div style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text)',opacity:0.5,cursor:'pointer',padding:'4px 10px',borderRadius:8,background:showPersonaSwitcher?'var(--card)':'transparent',transition:'background 0.2s'}} onClick={()=>setShowPersonaSwitcher(!showPersonaSwitcher)}>
+                <span>{({new_believer:L.pNewBeliever,returning:L.pReturning,pastor:L.pPastor,difficult:L.pDifficult,deeper:L.pDeeper,worship:L.pWorship})[setup.persona]||setup.persona}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:10,height:10,transform:showPersonaSwitcher?'rotate(180deg)':'rotate(0)',transition:'transform 0.2s'}}><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              {showPersonaSwitcher&&(
+                <div style={{position:'absolute',left:'50%',transform:'translateX(-50%)',top:'100%',marginTop:4,background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:6,zIndex:100,boxShadow:'0 4px 20px rgba(0,0,0,0.12)',minWidth:220}}>
+                  {[{id:'new_believer',l:L.pNewBeliever},{id:'pastor',l:L.pPastor},{id:'difficult',l:L.pDifficult},{id:'deeper',l:L.pDeeper}].map(p=>(
+                    <div key={p.id} style={{padding:'10px 14px',fontSize:13,color:setup.persona===p.id?'var(--sage)':'var(--text)',fontWeight:setup.persona===p.id?700:400,cursor:'pointer',borderRadius:8,background:setup.persona===p.id?'rgba(74,99,64,0.08)':'transparent',transition:'background 0.15s'}} onClick={()=>{setSetup(prev=>({...prev,persona:p.id}));setShowPersonaSwitcher(false);gaEvent('switch_persona',{persona:p.id})}} onMouseEnter={e=>e.target.style.background=setup.persona===p.id?'rgba(74,99,64,0.08)':'rgba(0,0,0,0.04)'} onMouseLeave={e=>e.target.style.background=setup.persona===p.id?'rgba(74,99,64,0.08)':'transparent'}>
+                      {setup.persona===p.id&&'✓ '}{p.l}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* FAITH PATHWAY CARD */}
           {pathwayProgress.enrolled&&pathwayData&&(()=>{
             const completed=pathwayProgress.completedDays.length;
             const currentDay=pathwayProgress.currentDay;
             const today=pathwayData.days.find(d=>d.day===currentDay);
-            if(completed>=30)return(
+            if(completed>=(pathwayData.days?pathwayData.days.length:40))return(
               <div className="pathway-card" style={{background:'linear-gradient(135deg,var(--sage),#6b8c5e)',color:'white',padding:20,borderRadius:16,marginBottom:16,cursor:'pointer'}} onClick={()=>setShowPathway(true)}>
                 <div style={{fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:1.5,opacity:0.9,marginBottom:6}}>✨ {L.journeyComplete}</div>
                 <div style={{fontSize:14,opacity:0.85}}>{L.journeyCompleteMsg}</div>
@@ -4822,10 +4842,12 @@ const loadAllEssaySections=async(essayId)=>{
           <div className="setting-group">
             <h3>{L.persona}</h3>
             <div className="setting-item">
-              <label>{
-                {new_believer:L.pNewBeliever,returning:L.pReturning,pastor:L.pPastor,difficult:L.pDifficult,deeper:L.pDeeper,worship:L.pWorship}[setup.persona]||setup.persona
-              }</label>
-              <button className="comm-btn" onClick={()=>{localStorage.removeItem('dw_setup');setSetup(null)}}>{L.change}</button>
+              <select value={setup.persona||'new_believer'} onChange={e=>{setSetup(prev=>({...prev,persona:e.target.value}));setSettingsSaved(false);gaEvent('switch_persona',{persona:e.target.value})}} style={{flex:1,fontSize:14,padding:'10px 12px',borderRadius:8,border:'1px solid var(--border)',background:'var(--card)',color:'var(--text)',appearance:'auto'}}>
+                <option value="new_believer">{L.pNewBeliever}</option>
+                <option value="pastor">{L.pPastor}</option>
+                <option value="difficult">{L.pDifficult}</option>
+                <option value="deeper">{L.pDeeper}</option>
+              </select>
             </div>
           </div>
           <div className="setting-group">
@@ -5289,7 +5311,7 @@ const loadAllEssaySections=async(essayId)=>{
                   {/* Nav buttons */}
                   <div style={{display:'flex',justifyContent:'space-between',marginTop:16}}>
                     <button disabled={day.day<=1} onClick={()=>setPathwayViewDay(day.day-1)} style={{background:'none',border:'none',color:day.day<=1?'var(--border)':'var(--sage)',fontSize:14,cursor:'pointer'}}>{lang==='es'?'← Día Anterior':lang==='pt'?'← Dia Anterior':lang==='id'?'← Hari Sebelumnya':'← Previous Day'}</button>
-                    <button disabled={day.day>=30} onClick={()=>setPathwayViewDay(day.day+1)} style={{background:'none',border:'none',color:day.day>=30?'var(--border)':'var(--sage)',fontSize:14,cursor:'pointer'}}>{lang==='es'?'Día Siguiente →':lang==='pt'?'Próximo Dia →':lang==='id'?'Hari Berikutnya →':'Next Day →'}</button>
+                    <button disabled={day.day>=(pathwayData?pathwayData.days.length:40)} onClick={()=>setPathwayViewDay(day.day+1)} style={{background:'none',border:'none',color:day.day>=(pathwayData?pathwayData.days.length:40)?'var(--border)':'var(--sage)',fontSize:14,cursor:'pointer'}}>{lang==='es'?'Día Siguiente →':lang==='pt'?'Próximo Dia →':lang==='id'?'Hari Berikutnya →':'Next Day →'}</button>
                   </div>
                 </div>
               );
