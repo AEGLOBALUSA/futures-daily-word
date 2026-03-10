@@ -2520,7 +2520,7 @@ const loadAllEssaySections=async(essayId)=>{
         const record=await VideoDB.get(id);
         if(record)triggerVideoDownload(record.blob,'devotion.webm');
         setCopyMsg(lang==='es'?'¡Video guardado!':lang==='pt'?'Vídeo salvo!':lang==='id'?'Video tersimpan!':'Video saved!');setTimeout(()=>setCopyMsg(''),2000);
-      }catch(e){alert(lang==='es'?'No se pudo compartir o guardar el video. Intenta de nuevo.':lang==='pt'?'Não foi possível compartilhar ou salvar o vídeo. Tente novamente.':lang==='id'?'Could not share or save video. Please try again.':'Could not share or save video. Please try again.')}
+      }catch(e){alert(lang==='es'?'No se pudo compartir o guardar el video. Intenta de nuevo.':lang==='pt'?'Não foi possível compartilhar ou salvar o vídeo. Tente novamente.':lang==='id'?'Tidak dapat membagikan atau menyimpan video. Silakan coba lagi.':'Could not share or save video. Please try again.')}
     }
   };
 
@@ -3256,7 +3256,7 @@ const loadAllEssaySections=async(essayId)=>{
             <form onSubmit={(e)=>{e.preventDefault();doScriptureSearch(scriptureSearch)}} style={{display:'flex',gap:8,position:'relative'}}>
               <div style={{position:'relative',flex:1}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8faa84" strokeWidth="2" style={{width:18,height:18,position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input className="search-bar" style={{flex:1,marginBottom:0}} placeholder={lang==='es'?'Buscar versículo o tema... (ej. "amor", "Juan 3:16")':lang==='pt'?'Pesquisar versículo ou tema... (ex. "amor", "João 3:16")':lang==='id'?'Search any verse or topic... (e.g. "love", "John 3:16")':'Search any verse or topic... (e.g. "love", "John 3:16")'} value={scriptureSearch} onChange={e=>setScriptureSearch(e.target.value)}/>
+                <input className="search-bar" style={{flex:1,marginBottom:0}} placeholder={lang==='es'?'Buscar versículo o tema... (ej. "amor", "Juan 3:16")':lang==='pt'?'Pesquisar versículo ou tema... (ex. "amor", "João 3:16")':lang==='id'?'Cari ayat atau topik... (misal "kasih", "Yohanes 3:16")':'Search any verse or topic... (e.g. "love", "John 3:16")'} value={scriptureSearch} onChange={e=>setScriptureSearch(e.target.value)}/>
               </div>
               <button type="submit" style={{padding:'12px 20px',background:'var(--sage)',color:'white',border:'none',borderRadius:14,fontSize:15,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',boxShadow:'0 2px 8px rgba(90,125,79,0.25)',transition:'background 0.2s'}} disabled={searchLoading}>
                 {searchLoading?'...':(lang==='es'?'Buscar':lang==='pt'?'Buscar':lang==='id'?'Cari':'Search')}
@@ -3277,12 +3277,12 @@ const loadAllEssaySections=async(essayId)=>{
                     </div>
                     {r.text.length>800&&!r.expanded&&(
                       <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:true}:x))}>
-                        {lang==='es'?'Leer todo el capítulo ▾':lang==='pt'?'Ler capítulo inteiro ▾':lang==='id'?'Read full chapter ▾':'Read full chapter ▾'}
+                        {lang==='es'?'Leer todo el capítulo ▾':lang==='pt'?'Ler capítulo inteiro ▾':lang==='id'?'Baca seluruh pasal ▾':'Read full chapter ▾'}
                       </button>
                     )}
                     {r.expanded&&r.text.length>800&&(
                       <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:false}:x))}>
-                        {lang==='es'?'Mostrar menos ▴':lang==='pt'?'Mostrar menos ▴':lang==='id'?'Show less ▴':'Show less ▴'}
+                        {lang==='es'?'Mostrar menos ▴':lang==='pt'?'Mostrar menos ▴':lang==='id'?'Tampilkan lebih sedikit ▴':'Show less ▴'}
                       </button>
                     )}
                   </div>
@@ -3359,7 +3359,7 @@ const loadAllEssaySections=async(essayId)=>{
               <React.Fragment key={pi}>
               <div className="passage-section" style={{textAlign:'center',padding:'40px 20px',color:'var(--sage)'}}>
                 <h2 style={{marginBottom:12}}>{lang==='es'?passageToEs(pName):lang==='pt'?passageToPt(pName):pName}</h2>
-                <div style={{fontSize:14}}>{loadingTrans?(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':lang==='id'?'Memuat...':'Loading...'):(lang==='es'?'No se pudo cargar este pasaje':lang==='pt'?'Não foi possível carregar esta passagem':lang==='id'?'Could not load this passage':'Could not load this passage')}</div>
+                <div style={{fontSize:14}}>{loadingTrans?(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':lang==='id'?'Memuat...':'Loading...'):(lang==='es'?'No se pudo cargar este pasaje':lang==='pt'?'Não foi possível carregar esta passagem':lang==='id'?'Tidak dapat memuat bacaan ini':'Could not load this passage')}</div>
               </div>
               </React.Fragment>
             );
@@ -3515,7 +3515,7 @@ const loadAllEssaySections=async(essayId)=>{
           <div className="latest-sermon">
             <div className="ls-label" style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontSize:11,background:'rgba(139,157,131,0.15)',color:'var(--sage)',padding:'2px 8px',borderRadius:10,fontWeight:600}}>⛪ {lang==='es'?'Iglesia':lang==='pt'?'Igreja':lang==='id'?'Gereja':'Church'}</span>
-              {lang==='es'?'Mensajes de la Iglesia':lang==='pt'?'Mensagens da Igreja':lang==='id'?'Church Messages':'Church Messages'}
+              {lang==='es'?'Mensajes de la Iglesia':lang==='pt'?'Mensagens da Igreja':lang==='id'?'Pesan Gereja':'Church Messages'}
             </div>
             {(()=>{
               const id=CHURCH_SPOTIFY.split('/show/')[1].split('?')[0];
@@ -3540,8 +3540,8 @@ const loadAllEssaySections=async(essayId)=>{
           {/* YOUR MEDIA - user's personal Spotify/podcast/video feed */}
           <div className="latest-sermon" style={{marginTop:20}}>
             <div className="ls-label" style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontSize:11,background:'rgba(196,169,98,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:10,fontWeight:600}}>🎧 {lang==='es'?'Personal':lang==='pt'?'Pessoal':lang==='id'?'Personal':'Personal'}</span>
-              {lang==='es'?'Tu Feed de Medios':lang==='pt'?'Seu Feed de Mídia':lang==='id'?'Your Media Feed':'Your Media Feed'}
+              <span style={{fontSize:11,background:'rgba(196,169,98,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:10,fontWeight:600}}>🎧 {lang==='es'?'Personal':lang==='pt'?'Pessoal':lang==='id'?'Pribadi':'Personal'}</span>
+              {lang==='es'?'Tu Feed de Medios':lang==='pt'?'Seu Feed de Mídia':lang==='id'?'Feed Media Anda':'Your Media Feed'}
             </div>
             {userSpotify?(()=>{
               let embedUrl=userSpotify;
@@ -3558,7 +3558,7 @@ const loadAllEssaySections=async(essayId)=>{
               return React.createElement('iframe',{src:embedUrl,width:'100%',height:'352',frameBorder:'0',allow:'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',loading:'lazy',style:{borderRadius:12}});
             })():(
               <div style={{padding:20,background:'var(--light)',borderRadius:12,textAlign:'center'}}>
-                <div style={{fontSize:14,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'Agrega tu propio enlace de Spotify, podcast o video en Ajustes':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':lang==='id'?'Add your own Spotify, podcast or video link in Settings':'Add your own Spotify, podcast or video link in Settings'}</div>
+                <div style={{fontSize:14,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'Agrega tu propio enlace de Spotify, podcast o video en Ajustes':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':lang==='id'?'Tambahkan tautan Spotify, podcast, atau video Anda sendiri di Pengaturan':'Add your own Spotify, podcast or video link in Settings'}</div>
                 <button className="comm-btn" onClick={()=>setPage('settings')}>{L.goToSettings}</button>
               </div>
             )}
@@ -3597,7 +3597,7 @@ const loadAllEssaySections=async(essayId)=>{
                 {s.notes&&<div className="sc-notes">{s.notes}</div>}
                 <div className="sc-actions">
                   <button className="btn-cancel" onClick={()=>editSermon(s)}>{lang==='es'?'Editar':lang==='pt'?'Editar':lang==='id'?'Edit':'Edit'}</button>
-                  <button className="btn-cancel" style={{color:'#c85050'}} onClick={()=>setSermons(p=>p.filter(x=>x.id!==s.id))}>{lang==='es'?'Eliminar':lang==='pt'?'Excluir':lang==='id'?'Delete':'Delete'}</button>
+                  <button className="btn-cancel" style={{color:'#c85050'}} onClick={()=>setSermons(p=>p.filter(x=>x.id!==s.id))}>{lang==='es'?'Eliminar':lang==='pt'?'Excluir':lang==='id'?'Hapus':'Delete'}</button>
                 </div>
               </div>
             ))
@@ -3618,7 +3618,7 @@ const loadAllEssaySections=async(essayId)=>{
               const devo=DEVOTIONS[dayOfYear%DEVOTIONS.length];
               return(
                 <div className="devotion-card">
-                  <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':lang==='id'?'Devotion of the Day':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Daily':'Daily'}</span></div>
+                  <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':lang==='id'?'Renungan Hari Ini':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Harian':'Daily'}</span></div>
                   <div className="devotion-title">{lang==='es'?(devo.titleEs||devo.title):lang==='pt'?(devo.titlePt||devo.title):devo.title}</div>
                   <div className="devotion-verse-ref" onClick={()=>{
                     setMoreSection('plans');
@@ -3635,11 +3635,11 @@ const loadAllEssaySections=async(essayId)=>{
               <div style={{marginBottom:20}}>
                 <div className="book-card" style={{background:'linear-gradient(135deg, #3d5a3e 0%, #5a8a5c 100%)',color:'white',borderRadius:14,padding:'20px 18px',cursor:'pointer',position:'relative',overflow:'hidden'}} onClick={()=>{setMoreSection('campus');fetchCampusContent();fetchPrayers();gaEvent('open_campus')}}>
                   <div style={{position:'absolute',top:0,right:0,width:80,height:80,background:'rgba(255,255,255,0.06)',borderRadius:'0 0 0 80px'}}/>
-                  <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:2,opacity:0.7,marginBottom:6}}>Your Campus</div>
+                  <div style={{fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:2,opacity:0.7,marginBottom:6}}>{lang==='es'?'Tu Campus':lang==='pt'?'Seu Campus':lang==='id'?'Kampus Anda':'Your Campus'}</div>
                   <div style={{fontSize:20,fontWeight:700,marginBottom:4}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||userProfile.campus}</div>
                   <div style={{fontSize:13,opacity:0.85,marginBottom:10}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).city||''}</div>
                   <div style={{display:'flex',gap:12,fontSize:12,opacity:0.8}}>
-                    <span>Pastor's Corner</span><span>•</span><span>Live Stream</span><span>•</span><span>Prayer Wall</span>
+                    <span>{lang==='es'?'Rincón del Pastor':lang==='pt'?'Cantinho do Pastor':lang==='id'?'Pojok Pendeta':"Pastor's Corner"}</span><span>•</span><span>{lang==='es'?'En Vivo':lang==='pt'?'Ao Vivo':lang==='id'?'Siaran Langsung':'Live Stream'}</span><span>•</span><span>{lang==='es'?'Muro de Oración':lang==='pt'?'Mural de Oração':lang==='id'?'Tembok Doa':'Prayer Wall'}</span>
                   </div>
                 </div>
               </div>
@@ -3648,7 +3648,7 @@ const loadAllEssaySections=async(essayId)=>{
             {/* YOUR PLANS */}
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:4}}>
               <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--sage)',display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':lang==='id'?'Your Plans':'Your Plans'}
+                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':lang==='id'?'Rencana Anda':'Your Plans'}
               </div>
               <div style={{flex:1,height:1,background:'var(--border)'}}/>
             </div>
@@ -3753,7 +3753,7 @@ const loadAllEssaySections=async(essayId)=>{
             const devo=DEVOTIONS[dayOfYear%DEVOTIONS.length];
             return(
               <div className="devotion-card">
-                <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':lang==='id'?'Devotion of the Day':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Daily':'Daily'}</span></div>
+                <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':lang==='id'?'Renungan Hari Ini':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Harian':'Daily'}</span></div>
                 <div className="devotion-title">{lang==='es'?(devo.titleEs||devo.title):lang==='pt'?(devo.titlePt||devo.title):devo.title}</div>
                 <div className="devotion-verse-ref" onClick={()=>{
                   openPlanReading('__devo__',0,devo.verse);
@@ -3768,10 +3768,10 @@ const loadAllEssaySections=async(essayId)=>{
           {!planReading&&!planView&&(
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:4}}>
               <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--sage)',display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':lang==='id'?'Your Plans':'Your Plans'}
+                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':lang==='id'?'Rencana Anda':'Your Plans'}
               </div>
               <div style={{flex:1,height:1,background:'var(--border)'}}/>
-              <span style={{fontSize:10,background:'rgba(139,157,131,0.12)',color:'var(--sage)',padding:'3px 8px',borderRadius:20,fontWeight:600}}>{lang==='es'?'Elegidos por ti':lang==='pt'?'Escolhidos por você':lang==='id'?'Chosen by you':'Chosen by you'}</span>
+              <span style={{fontSize:10,background:'rgba(139,157,131,0.12)',color:'var(--sage)',padding:'3px 8px',borderRadius:20,fontWeight:600}}>{lang==='es'?'Elegidos por ti':lang==='pt'?'Escolhidos por você':lang==='id'?'Dipilih oleh Anda':'Chosen by you'}</span>
             </div>
           )}
 
@@ -3784,7 +3784,7 @@ const loadAllEssaySections=async(essayId)=>{
               </div>
               {planReading.loading?(
                 <div style={{textAlign:'center',padding:'60px 0'}}>
-                  <div style={{fontSize:14,color:'var(--sage)'}}>{lang==='es'?'Cargando pasaje...':lang==='pt'?'Carregando passagem...':lang==='id'?'Loading passage...':'Loading passage...'}</div>
+                  <div style={{fontSize:14,color:'var(--sage)'}}>{lang==='es'?'Cargando pasaje...':lang==='pt'?'Carregando passagem...':lang==='id'?'Memuat bacaan...':'Loading passage...'}</div>
                 </div>
               ):(
                 <div style={{padding:'12px 0'}}>
@@ -3830,7 +3830,7 @@ const loadAllEssaySections=async(essayId)=>{
                     <div style={{fontFamily:'Georgia,serif',fontSize:'calc(17px * var(--font-scale))',lineHeight:1.8,color:'var(--text)',whiteSpace:'pre-wrap'}}>{planReading.text}</div>
                   )}
                   <div style={{textAlign:'center',marginTop:24}}>
-                    <button className="primary-btn" onClick={()=>setPlanReading(null)}>{lang==='es'?'Volver al Plan':lang==='pt'?'Voltar ao Plano':lang==='id'?'Back to Plan':'Back to Plan'}</button>
+                    <button className="primary-btn" onClick={()=>setPlanReading(null)}>{lang==='es'?'Volver al Plan':lang==='pt'?'Voltar ao Plano':lang==='id'?'Kembali ke Rencana':'Back to Plan'}</button>
                   </div>
                 </div>
               )}
@@ -3851,8 +3851,8 @@ const loadAllEssaySections=async(essayId)=>{
 
                 {ap&&(
                   <div className="plan-stats">
-                    <div className="plan-stat"><div className="stat-val">{completedDays.length}</div><div className="stat-label">{lang==='es'?'Completados':lang==='pt'?'Concluídos':lang==='id'?'Completed':'Completed'}</div></div>
-                    <div className="plan-stat"><div className="stat-val">{plan.readings.length-completedDays.length}</div><div className="stat-label">{lang==='es'?'Restantes':lang==='pt'?'Restantes':lang==='id'?'Remaining':'Remaining'}</div></div>
+                    <div className="plan-stat"><div className="stat-val">{completedDays.length}</div><div className="stat-label">{lang==='es'?'Completados':lang==='pt'?'Concluídos':lang==='id'?'Selesai':'Completed'}</div></div>
+                    <div className="plan-stat"><div className="stat-val">{plan.readings.length-completedDays.length}</div><div className="stat-label">{lang==='es'?'Restantes':lang==='pt'?'Restantes':lang==='id'?'Tersisa':'Remaining'}</div></div>
                     <div className="plan-stat"><div className="stat-val">{pct}%</div><div className="stat-label">{L.planProgress}</div></div>
                   </div>
                 )}
@@ -3886,7 +3886,7 @@ const loadAllEssaySections=async(essayId)=>{
 
                 {ap&&(
                   <div style={{textAlign:'center',padding:'20px 0'}}>
-                    <button className="comm-btn" style={{color:'#c44',borderColor:'#c44'}} onClick={()=>{if(confirm(lang==='es'?'¿Eliminar este plan?':lang==='pt'?'Remover este plano?':lang==='id'?'Remove this plan?':'Remove this plan?'))removePlan(plan.id)}}>{L.removePlan}</button>
+                    <button className="comm-btn" style={{color:'#c44',borderColor:'#c44'}} onClick={()=>{if(confirm(lang==='es'?'¿Eliminar este plan?':lang==='pt'?'Remover este plano?':lang==='id'?'Hapus rencana ini?':'Remove this plan?'))removePlan(plan.id)}}>{L.removePlan}</button>
                   </div>
                 )}
               </div>
@@ -3993,7 +3993,7 @@ const loadAllEssaySections=async(essayId)=>{
                           <div className="plan-name">{lang==='es'?(plan.nameEs||plan.name):lang==='pt'?(plan.namePt||plan.name):plan.name}</div>
                           <div className="plan-duration" style={{color:pct>=100?'var(--sage)':'var(--gold)'}}>{pct>=100?L.planCompleted:`${pct}%`}</div>
                         </div>
-                        <div style={{fontSize:13,color:'var(--sage)',marginBottom:6}}>{lang==='es'?'Hoy':lang==='pt'?'Hoje':lang==='id'?'Today':'Today'}: {plan.readings[todayIdx]||plan.readings[plan.readings.length-1]}</div>
+                        <div style={{fontSize:13,color:'var(--sage)',marginBottom:6}}>{lang==='es'?'Hoy':lang==='pt'?'Hoje':lang==='id'?'Hari Ini':'Today'}: {plan.readings[todayIdx]||plan.readings[plan.readings.length-1]}</div>
                         <div className="plan-progress-bar"><div className="plan-progress-fill" style={{width:`${pct}%`}}/></div>
                         <div style={{fontSize:11,color:'var(--sage)',marginTop:4}}>{L.daysCompleted.replace('{n}',ap.completedDays.length).replace('{t}',plan.readings.length)}</div>
                       </div>
@@ -4345,7 +4345,7 @@ const loadAllEssaySections=async(essayId)=>{
                     if(tab==='prayer')fetchPrayers();
                     if(tab==='corner')fetchCampusContent();
                   }} style={{flex:1,padding:'12px 0',fontSize:13,fontWeight:600,border:'none',background:'none',cursor:'pointer',color:campusTab===tab?'var(--sage)':'var(--text)',borderBottom:campusTab===tab?'2px solid var(--sage)':'2px solid transparent',marginBottom:-2,opacity:campusTab===tab?1:0.6}}>
-                    {tab==='corner'?"Pastor's Corner":tab==='stream'?'Live Stream':'Prayer Wall'}
+                    {tab==='corner'?(lang==='es'?'Rincón del Pastor':lang==='pt'?'Cantinho do Pastor':lang==='id'?'Pojok Pendeta':"Pastor's Corner"):tab==='stream'?(lang==='es'?'En Vivo':lang==='pt'?'Ao Vivo':lang==='id'?'Siaran Langsung':'Live Stream'):(lang==='es'?'Muro de Oración':lang==='pt'?'Mural de Oração':lang==='id'?'Tembok Doa':'Prayer Wall')}
                   </button>
                 ))}
               </div>
@@ -4357,21 +4357,21 @@ const loadAllEssaySections=async(essayId)=>{
                   {!pastorMode?(
                     <div style={{textAlign:'right',marginBottom:12}}>
                       <button onClick={()=>setPastorMode(true)} style={{background:'none',border:'none',fontSize:12,color:'var(--sage)',opacity:0.5,cursor:'pointer',textDecoration:'underline'}}>
-                        {pastorVerified?'Pastor Admin':'Pastor Login'}
+                        {pastorVerified?(lang==='es'?'Admin del Pastor':lang==='pt'?'Admin do Pastor':lang==='id'?'Admin Pendeta':'Pastor Admin'):(lang==='es'?'Acceso del Pastor':lang==='pt'?'Login do Pastor':lang==='id'?'Login Pendeta':'Pastor Login')}
                       </button>
                     </div>
                   ):(
                     <div style={{background:'rgba(74,99,64,0.06)',borderRadius:14,padding:16,marginBottom:20,border:'1.5px solid var(--sage)',borderStyle:'dashed'}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                         <span style={{fontSize:14,fontWeight:700,color:'var(--sage)'}}>
-                          {pastorVerified?'Pastor Admin':'Pastor Login'}
+                          {pastorVerified?(lang==='es'?'Admin del Pastor':lang==='pt'?'Admin do Pastor':lang==='id'?'Admin Pendeta':'Pastor Admin'):(lang==='es'?'Acceso del Pastor':lang==='pt'?'Login do Pastor':lang==='id'?'Login Pendeta':'Pastor Login')}
                         </span>
                         <button onClick={()=>setPastorMode(false)} style={{background:'none',border:'none',fontSize:18,color:'var(--sage)',cursor:'pointer'}}>✕</button>
                       </div>
 
                       {!pastorVerified?(
                         <div>
-                          <p style={{fontSize:13,color:'var(--text)',marginBottom:12,lineHeight:1.5}}>Enter your campus pastor code to manage content for your campus.</p>
+                          <p style={{fontSize:13,color:'var(--text)',marginBottom:12,lineHeight:1.5}}>{lang==='es'?'Ingresa tu código de pastor para administrar el contenido de tu campus.':lang==='pt'?'Digite seu código de pastor para gerenciar o conteúdo do seu campus.':lang==='id'?'Masukkan kode pendeta kampus Anda untuk mengelola konten kampus.':'Enter your campus pastor code to manage content for your campus.'}</p>
                           <div style={{display:'flex',flexDirection:'column',gap:10}}>
                             <select value={pastorCampusId} onChange={e=>setPastorCampusId(e.target.value)} style={{padding:12,borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--bg)'}}>
                               <option value="">Select your campus...</option>
@@ -4416,7 +4416,7 @@ const loadAllEssaySections=async(essayId)=>{
                     <div style={{textAlign:'center',padding:'40px 20px',color:'var(--border)'}}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:48,height:48,marginBottom:12,opacity:0.4}}><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0 012-2h2a2 2 0 012 2v9a2 2 0 01-2 2h-2z"/></svg>
                       <p style={{fontSize:15,fontWeight:600}}>No messages yet</p>
-                      <p style={{fontSize:13,marginTop:4}}>Your campus pastor will share content here soon.</p>
+                      <p style={{fontSize:13,marginTop:4}}>{lang==='es'?'Tu pastor compartirá contenido aquí pronto.':lang==='pt'?'Seu pastor compartilhará conteúdo aqui em breve.':lang==='id'?'Pendeta kampus Anda akan segera membagikan konten di sini.':'Your campus pastor will share content here soon.'}</p>
                     </div>
                   ):(
                     <div style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -4449,8 +4449,8 @@ const loadAllEssaySections=async(essayId)=>{
                   ):(
                     <div style={{textAlign:'center',padding:'40px 20px',color:'var(--border)'}}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:48,height:48,marginBottom:12,opacity:0.4}}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                      <p style={{fontSize:15,fontWeight:600}}>No live stream available</p>
-                      <p style={{fontSize:13,marginTop:4}}>Check back when your campus goes live.</p>
+                      <p style={{fontSize:15,fontWeight:600}}>{lang==='es'?'No hay transmisión en vivo':lang==='pt'?'Nenhuma transmissão ao vivo':lang==='id'?'Tidak ada siaran langsung':'No live stream available'}</p>
+                      <p style={{fontSize:13,marginTop:4}}>{lang==='es'?'Vuelve cuando tu campus esté en vivo.':lang==='pt'?'Volte quando seu campus estiver ao vivo.':lang==='id'?'Periksa kembali saat kampus Anda siaran langsung.':'Check back when your campus goes live.'}</p>
                     </div>
                   )}
                 </div>
@@ -4461,13 +4461,13 @@ const loadAllEssaySections=async(essayId)=>{
                 <div>
                   {/* Filter toggle */}
                   <div style={{display:'flex',gap:8,marginBottom:16}}>
-                    <button onClick={()=>{setPrayerFilter('my-campus');fetchPrayers('my-campus')}} style={{flex:1,padding:'10px 0',fontSize:13,fontWeight:600,borderRadius:10,border:prayerFilter==='my-campus'?'2px solid var(--sage)':'1.5px solid var(--border)',background:prayerFilter==='my-campus'?'rgba(74,99,64,0.1)':'transparent',color:prayerFilter==='my-campus'?'var(--sage)':'var(--text)',cursor:'pointer'}}>My Campus</button>
-                    <button onClick={()=>{setPrayerFilter('all');fetchPrayers('all')}} style={{flex:1,padding:'10px 0',fontSize:13,fontWeight:600,borderRadius:10,border:prayerFilter==='all'?'2px solid var(--sage)':'1.5px solid var(--border)',background:prayerFilter==='all'?'rgba(74,99,64,0.1)':'transparent',color:prayerFilter==='all'?'var(--sage)':'var(--text)',cursor:'pointer'}}>All Campuses</button>
+                    <button onClick={()=>{setPrayerFilter('my-campus');fetchPrayers('my-campus')}} style={{flex:1,padding:'10px 0',fontSize:13,fontWeight:600,borderRadius:10,border:prayerFilter==='my-campus'?'2px solid var(--sage)':'1.5px solid var(--border)',background:prayerFilter==='my-campus'?'rgba(74,99,64,0.1)':'transparent',color:prayerFilter==='my-campus'?'var(--sage)':'var(--text)',cursor:'pointer'}}>{lang==='es'?'Mi Campus':lang==='pt'?'Meu Campus':lang==='id'?'Kampus Saya':'My Campus'}</button>
+                    <button onClick={()=>{setPrayerFilter('all');fetchPrayers('all')}} style={{flex:1,padding:'10px 0',fontSize:13,fontWeight:600,borderRadius:10,border:prayerFilter==='all'?'2px solid var(--sage)':'1.5px solid var(--border)',background:prayerFilter==='all'?'rgba(74,99,64,0.1)':'transparent',color:prayerFilter==='all'?'var(--sage)':'var(--text)',cursor:'pointer'}}>{lang==='es'?'Todos los Campus':lang==='pt'?'Todos os Campus':lang==='id'?'Semua Kampus':'All Campuses'}</button>
                   </div>
 
                   {/* Prayer input */}
                   <div style={{background:'var(--light)',borderRadius:14,padding:16,marginBottom:20,border:'1px solid var(--border)'}}>
-                    <textarea value={prayerInput} onChange={e=>setPrayerInput(e.target.value.slice(0,500))} placeholder="Share a prayer request..." rows={3} style={{width:'100%',border:'none',background:'transparent',fontSize:14,color:'var(--text)',resize:'none',outline:'none',fontFamily:'inherit',lineHeight:1.5}}/>
+                    <textarea value={prayerInput} onChange={e=>setPrayerInput(e.target.value.slice(0,500))} placeholder={lang==='es'?'Comparte una petición de oración...':lang==='pt'?'Compartilhe um pedido de oração...':lang==='id'?'Bagikan permintaan doa...':'Share a prayer request...'} rows={3} style={{width:'100%',border:'none',background:'transparent',fontSize:14,color:'var(--text)',resize:'none',outline:'none',fontFamily:'inherit',lineHeight:1.5}}/>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:8}}>
                       <span style={{fontSize:11,color:'var(--border)'}}>{prayerInput.length}/500</span>
                       <button onClick={submitPrayer} disabled={!prayerInput.trim()||prayerSubmitting} style={{padding:'8px 20px',background:prayerInput.trim()?'var(--sage)':'var(--border)',color:'white',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:prayerInput.trim()?'pointer':'default',opacity:prayerSubmitting?0.6:1}}>
@@ -4663,7 +4663,7 @@ const loadAllEssaySections=async(essayId)=>{
                 {lang==='es'?'Tu Feed Personal':lang==='pt'?'Seu Feed Pessoal':lang==='id'?'Feed Pribadi Anda':'Your Personal Feed'}
               </label>
               <input type="url" placeholder="https://open.spotify.com/show/..." value={userSpotify} onChange={e=>{setUserSpotify(e.target.value);try{localStorage.setItem('dw_user_spotify',e.target.value)}catch(e){}}} style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:8,fontSize:14,background:'var(--light)',color:'var(--text)'}}/>
-              <div style={{fontSize:12,color:'var(--sage)',lineHeight:1.5}}>{lang==='es'?'Pega tu enlace de Spotify, podcast o video. Aparecerá en Mensajes debajo de los mensajes de la iglesia.':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':lang==='id'?'Paste your Spotify show, podcast or video link. It will appear in Messages below the church messages.':'Paste your Spotify show, podcast or video link. It will appear in Messages below the church messages.'}</div>
+              <div style={{fontSize:12,color:'var(--sage)',lineHeight:1.5}}>{lang==='es'?'Pega tu enlace de Spotify, podcast o video. Aparecerá en Mensajes debajo de los mensajes de la iglesia.':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':lang==='id'?'Tempel tautan Spotify, podcast, atau video Anda. Akan muncul di Pesan di bawah pesan gereja.':'Paste your Spotify show, podcast or video link. It will appear in Messages below the church messages.'}</div>
             </div>
           </div>
           {'PushManager' in window&&(
@@ -5142,7 +5142,7 @@ const loadAllEssaySections=async(essayId)=>{
               );
             })}
             <div style={{textAlign:'center',fontSize:13,color:'var(--sage)',margin:'12px 0'}}>
-              {lang==='es'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} seleccionados`:lang==='pt'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} selecionados`:lang==='id'?`${(setup?.chapterSources||[]).length} of ${setup?.chapters||2} selected`:`${(setup?.chapterSources||[]).length} of ${setup?.chapters||2} selected`}
+              {lang==='es'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} seleccionados`:lang==='pt'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} selecionados`:lang==='id'?`${(setup?.chapterSources||[]).length} dari ${setup?.chapters||2} terpilih`:`${(setup?.chapterSources||[]).length} of ${setup?.chapters||2} selected`}
             </div>
             <button onClick={()=>setShowSourcePicker(false)} style={{width:'100%',padding:'14px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:12,fontSize:16,fontWeight:600,cursor:'pointer',marginTop:4}}>
               {lang==='es'?'Listo':lang==='pt'?'Pronto':lang==='id'?'Selesai':'Done'}
@@ -5160,7 +5160,7 @@ const loadAllEssaySections=async(essayId)=>{
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
             </div>
             <h3>{lang==='es'?'Recordatorio Diario':lang==='pt'?'Lembrete de Leitura Diária':lang==='id'?'Pengingat Bacaan Harian':'Daily Reading Reminder'}</h3>
-            <p>{lang==='es'?'Recibe un mensaje tranquilo cada mañana con la lectura del día. Una notificación al día, nada más.':lang==='pt'?'Nunca perca sua leitura diária. Definiremos um lembrete suave.':lang==='id'?'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.':'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.'}</p>
+            <p>{lang==='es'?'Recibe un mensaje tranquilo cada mañana con la lectura del día. Una notificación al día, nada más.':lang==='pt'?'Nunca perca sua leitura diária. Definiremos um lembrete suave.':lang==='id'?'Dapatkan pengingat pagi yang tenang dengan bacaan harian Anda. Satu notifikasi per hari, tidak lebih.':'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.'}</p>
             <div className="notif-prompt-time">
               <label>{lang==='es'?'Hora del recordatorio':lang==='pt'?'Hora do lembrete':lang==='id'?'Waktu pengingat':'Reminder time'}</label>
               <select value={notifHour} onChange={e=>setNotifHour(parseInt(e.target.value))}>
@@ -5229,7 +5229,7 @@ const loadAllEssaySections=async(essayId)=>{
                     <div style={{flex:1,overflowY:'auto',padding:'12px 14px',WebkitOverflowScrolling:'touch'}}>
                       {teleprompterTab==='notes'&&(
                         <div style={{color:'white',fontFamily:'Georgia,serif',fontSize:Math.round(16*teleprompterSize),lineHeight:1.8,whiteSpace:'pre-wrap'}}>
-                          {liveNotes.trim()?liveNotes:(lang==='es'?'No hay notas aún. Escribe notas en la pestaña de Mensajes primero.':lang==='pt'?'Nenhuma nota ainda. Escreva notas na aba Mensagens primeiro.':lang==='id'?'No notes yet. Write notes on the Messages tab first.':'No notes yet. Write notes on the Messages tab first.')}
+                          {liveNotes.trim()?liveNotes:(lang==='es'?'No hay notas aún. Escribe notas en la pestaña de Mensajes primero.':lang==='pt'?'Nenhuma nota ainda. Escreva notas na aba Mensagens primeiro.':lang==='id'?'Belum ada catatan. Tulis catatan di tab Pesan terlebih dahulu.':'No notes yet. Write notes on the Messages tab first.')}
                         </div>
                       )}
                       {teleprompterTab==='journal'&&(
@@ -5394,7 +5394,7 @@ function Onboarding({onComplete,lang,setLang}){
               );
             })}
           </div>
-          <div style={{fontSize:12,color:'var(--sage)',marginTop:6}}>{lang==='es'?`${chapterSources.length} de ${chapters} seleccionados`:lang==='pt'?`${chapterSources.length} de ${chapters} selecionados`:lang==='id'?`${chapterSources.length} of ${chapters} selected`:`${chapterSources.length} of ${chapters} selected`}</div>
+          <div style={{fontSize:12,color:'var(--sage)',marginTop:6}}>{lang==='es'?`${chapterSources.length} de ${chapters} seleccionados`:lang==='pt'?`${chapterSources.length} de ${chapters} selecionados`:lang==='id'?`${chapterSources.length} dari ${chapters} terpilih`:`${chapterSources.length} of ${chapters} selected`}</div>
         </div>
       )}
       <div className="pref-card">
