@@ -905,6 +905,7 @@ const loadAllEssaySections=async(essayId)=>{
   const [emailGateSaving,setEmailGateSaving]=useState(false);
   const [emailGateError,setEmailGateError]=useState('');
   const [emailGateDone,setEmailGateDone]=useState(false);
+  const [emailGateCampus,setEmailGateCampus]=useState('');
   const [showProfileModal,setShowProfileModal]=useState(false);
   const [profileForm,setProfileForm]=useState({firstName:'',lastName:'',email:'',phone:'',church:'',city:'',campus:''});
   const [profileSaving,setProfileSaving]=useState(false);
@@ -967,14 +968,14 @@ const loadAllEssaySections=async(essayId)=>{
   const requireEmail=(callback)=>{
     if(userProfile&&userProfile.email){callback();return;}
     emailGateCallbackRef.current=callback;
-    setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setShowEmailGate(true);
+    setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setShowEmailGate(true);
   };
 
   // Auto-show email gate right after onboarding completes (login is 1st screen after setup)
   useEffect(()=>{
     if(setup&&(!userProfile||!userProfile.email)){
       emailGateCallbackRef.current=null;
-      setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setShowEmailGate(true);
+      setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setShowEmailGate(true);
     }
   },[setup]);
 
@@ -1011,10 +1012,14 @@ const loadAllEssaySections=async(essayId)=>{
 
       // Step 3: Brand new user — register
       if(!profile){
-        await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',firstName:'',lastName:'',email,persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en'})});
-        profile={email};
-        gaEvent('profile_created');
+        const regCampus=emailGateCampus||'';
+        await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',firstName:'',lastName:'',email,campus:regCampus,persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en'})});
+        profile={email,campus:regCampus};
+        gaEvent('profile_created',{campus:regCampus||'none'});
       }
+
+      // If user picked a campus in the gate and profile doesn't have one yet, apply it
+      if(emailGateCampus&&!profile.campus){profile.campus=emailGateCampus;}
 
       localStorage.setItem('dw_profile',JSON.stringify(profile));
       setUserProfile(profile);
@@ -3042,6 +3047,7 @@ const loadAllEssaySections=async(essayId)=>{
                 </div>
                 {emailGateError&&<div className="pm-error">{emailGateError}</div>}
                 <div className="pm-field"><input type="email" value={emailGateInput} onChange={e=>setEmailGateInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submitEmailGate()}} placeholder="you@example.com" autoFocus style={{fontSize:16,padding:'12px 16px'}}/></div>
+                {!emailGateCallbackRef.current&&<div className="pm-field" style={{marginTop:8}}><select value={emailGateCampus} onChange={e=>setEmailGateCampus(e.target.value)} style={{width:'100%',padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--light)',fontFamily:'inherit'}}><option value="">{lang==='es'?'Selecciona tu campus...':lang==='pt'?'Selecione seu campus...':'Select your campus...'}</option>{CAMPUSES.map(c=><option key={c.id} value={c.id}>{c.name}{c.city?' — '+c.city:''}</option>)}</select></div>}
                 <div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':'Just devotionals & updates. We never share your info.'}</div>
                 <div className="pm-actions">
                   <button className="pm-btn-primary" disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':'Continue'}</button>
