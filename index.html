@@ -897,7 +897,13 @@ const loadAllEssaySections=async(essayId)=>{
   const [showUpdateBanner,setShowUpdateBanner]=useState(false);
   useEffect(()=>{
     if(!('serviceWorker' in navigator))return;
+    // Listen for SW postMessage when new version activates
+    navigator.serviceWorker.addEventListener('message',e=>{
+      if(e.data&&e.data.type==='SW_UPDATED')setShowUpdateBanner(true);
+    });
     navigator.serviceWorker.ready.then(reg=>{
+      // Check for waiting worker on page load (already updated but not refreshed)
+      if(reg.waiting){setShowUpdateBanner(true);}
       reg.addEventListener('updatefound',()=>{
         const newSW=reg.installing;
         if(!newSW)return;
@@ -907,6 +913,8 @@ const loadAllEssaySections=async(essayId)=>{
           }
         });
       });
+      // Force check for updates on every page load
+      reg.update().catch(()=>{});
     });
   },[]);
 
@@ -5566,8 +5574,7 @@ function Onboarding({onComplete,lang,setLang}){
   const [step,setStep]=useState(1);
 
   const personas=[
-    {id:'new_believer',label:"I'm a new believer"},
-    {id:'returning',label:"I'm returning to faith"},
+    {id:'new_believer',label:"I'm new to faith or returning"},
     {id:'pastor',label:"I'm a pastor / minister"},
     {id:'difficult',label:"I'm going through a difficult season"},
     {id:'deeper',label:"I'm studying for deeper understanding"}
