@@ -56,6 +56,19 @@ exports.handler = async (event) => {
     const voice = voiceId || 'Lucia'; // Lucia = Spain Spanish female (professional)
     const ttsEngine = engine || 'neural'; // neural for best quality
 
+    // Auto-detect language from voice ID
+    const VOICE_LANG = {
+      // English voices
+      'Matthew': 'en-US', 'Joanna': 'en-US', 'Amy': 'en-GB', 'Brian': 'en-GB', 'Ruth': 'en-US', 'Stephen': 'en-US', 'Gregory': 'en-US', 'Danielle': 'en-US',
+      // Spanish voices
+      'Lucia': 'es-ES', 'Lupe': 'es-US', 'Pedro': 'es-US', 'Mia': 'es-MX', 'Sergio': 'es-ES',
+      // Portuguese voices
+      'Camila': 'pt-BR', 'Vitoria': 'pt-BR', 'Thiago': 'pt-BR',
+      // Indonesian voices
+      'Andika': 'id-ID'
+    };
+    const langCode = VOICE_LANG[voice] || (voice.match(/^(Lucia|Lupe|Pedro|Mia|Sergio)$/) ? 'es-ES' : voice.match(/^(Camila|Vitoria|Thiago)$/) ? 'pt-BR' : 'en-US');
+
     const client = new PollyClient({
       region,
       credentials: {
@@ -98,7 +111,7 @@ exports.handler = async (event) => {
         OutputFormat: 'mp3',
         VoiceId: voice,
         Engine: ttsEngine,
-        LanguageCode: 'es-ES',
+        LanguageCode: langCode,
         SampleRate: '24000'
       });
 
