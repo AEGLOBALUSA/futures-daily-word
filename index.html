@@ -47,7 +47,7 @@
       "operatingSystem": "Any",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "author": { "@type": "Organization", "name": "Futures Church", "url": "https://futures.global" },
-      "inLanguage": ["en", "es", "pt"]
+      "inLanguage": ["en", "es", "pt", "id"]
     }
     </script>
     <!-- Google Analytics 4 -->
@@ -205,6 +205,7 @@ function App(){
     if(!campusId)return null;
     if(campusId.startsWith('br-'))return 'pt';
     if(campusId.includes('futuros'))return 'es';
+    if(campusId.startsWith('id-'))return 'id';
     return null; // keep current language for all other campuses
   };
 
@@ -397,7 +398,7 @@ function App(){
       }
     }catch(e){
       setKjvDownloading(false);
-      alert(lang==='es'?'Error al descargar. Verifica tu conexión.':lang==='pt'?'Falha no download. Verifique sua conexão.':'Download failed. Check your connection.');
+      alert(lang==='es'?'Error al descargar. Verifica tu conexión.':lang==='pt'?'Falha no download. Verifique sua conexão.':lang==='id'?'Gagal mengunduh. Periksa koneksi Anda.':'Download failed. Check your connection.');
     }
   };
 
@@ -625,7 +626,7 @@ const loadAllEssaySections=async(essayId)=>{
         }else{throw new Error('Bad book format')}
       }catch(e2){
         console.error('Failed to load book:',e2);
-        setBookError(lang==='es'?'No se pudo cargar el libro. Verifica tu conexión e intenta de nuevo.':lang==='pt'?'Não foi possível carregar o livro. Verifique sua conexão e tente novamente.':'Could not load book. Please check your connection and try again.');
+        setBookError(lang==='es'?'No se pudo cargar el libro. Verifica tu conexión e intenta de nuevo.':lang==='pt'?'Não foi possível carregar o livro. Verifique sua conexão e tente novamente.':lang==='id'?'Tidak dapat memuat buku. Periksa koneksi Anda dan coba lagi.':'Could not load book. Please check your connection and try again.');
       }
     }
     setBookLoading(null);
@@ -656,7 +657,7 @@ const loadAllEssaySections=async(essayId)=>{
       }else{throw new Error('Bad chapter format')}
     }catch(e){
       console.error('Failed to load chapter:',e);
-      setBookError(lang==='es'?'No se pudo cargar el capítulo. Intenta de nuevo.':lang==='pt'?'Não foi possível carregar o capítulo. Tente novamente.':'Could not load chapter. Please try again.');
+      setBookError(lang==='es'?'No se pudo cargar el capítulo. Intenta de nuevo.':lang==='pt'?'Não foi possível carregar o capítulo. Tente novamente.':lang==='id'?'Tidak dapat memuat pasal. Silakan coba lagi.':'Could not load chapter. Please try again.');
     }
   };
 
@@ -691,7 +692,7 @@ const loadAllEssaySections=async(essayId)=>{
   const askClaude=async(question)=>{
     if(!question.trim()||aiLoading)return;
     if(!checkClaudeRate()){
-      setAiMessages(p=>[...p,{role:'user',content:question},{role:'assistant',content:lang==='es'?'Demasiadas solicitudes. Por favor espera unos minutos.':lang==='pt'?'Muitas solicitações. Por favor, aguarde alguns minutos.':'Too many requests. Please wait a few minutes before asking again.'}]);
+      setAiMessages(p=>[...p,{role:'user',content:question},{role:'assistant',content:lang==='es'?'Demasiadas solicitudes. Por favor espera unos minutos.':lang==='pt'?'Muitas solicitações. Por favor, aguarde alguns minutos.':lang==='id'?'Terlalu banyak permintaan. Harap tunggu beberapa menit.':'Too many requests. Please wait a few minutes before asking again.'}]);
       setAiInput('');
       return;
     }
@@ -703,7 +704,7 @@ const loadAllEssaySections=async(essayId)=>{
     setAiInput('');
     setAiLoading(true);
     try{
-      const sysPrompt=`You are a Bible study assistant embedded in a devotional app called Daily Word. You help users understand Scripture deeply. You can explain passages, provide cross-references, discuss Greek and Hebrew word meanings, offer historical context, suggest devotional insights, help with memorization, and answer theological questions. Keep responses warm, clear, and grounded in Scripture. When referencing other passages, mention the book, chapter and verse. Current context: The user is studying ${aiContext||'the Bible'}. Always respond in ${lang==='es'?'Spanish':lang==='pt'?'Portuguese':'English'}.`;
+      const sysPrompt=`You are a Bible study assistant embedded in a devotional app called Daily Word. You help users understand Scripture deeply. You can explain passages, provide cross-references, discuss Greek and Hebrew word meanings, offer historical context, suggest devotional insights, help with memorization, and answer theological questions. Keep responses warm, clear, and grounded in Scripture. When referencing other passages, mention the book, chapter and verse. Current context: The user is studying ${aiContext||'the Bible'}. Always respond in ${lang==='es'?'Spanish':lang==='pt'?'Portuguese':lang==='id'?'Indonesian':'English'}.`;
       const apiMsgs=newMsgs.map(m=>({role:m.role,content:m.content}));
       const resp=await fetchWithTimeout('/.netlify/functions/claude',{
         method:'POST',
@@ -712,14 +713,14 @@ const loadAllEssaySections=async(essayId)=>{
       },25000);
       if(resp.ok){
         const data=await resp.json();
-        const reply=data.content?data.content.map(c=>c.text).join(''):(lang==='es'?'No se recibió respuesta.':lang==='pt'?'Nenhuma resposta recebida.':'No response received.');
+        const reply=data.content?data.content.map(c=>c.text).join(''):(lang==='es'?'No se recibió respuesta.':lang==='pt'?'Nenhuma resposta recebida.':lang==='id'?'Tidak ada respons diterima.':'No response received.');
         setAiMessages(p=>[...p,{role:'assistant',content:reply}]);
       }else{
         const err=await resp.text();
-        setAiMessages(p=>[...p,{role:'assistant',content:lang==='es'?`Error: ${resp.status}. Intenta de nuevo más tarde.`:lang==='pt'?`Erro: ${resp.status}. Tente novamente mais tarde.`:`Error: ${resp.status}. Please try again later.`}]);
+        setAiMessages(p=>[...p,{role:'assistant',content:lang==='es'?`Error: ${resp.status}. Intenta de nuevo más tarde.`:lang==='pt'?`Erro: ${resp.status}. Tente novamente mais tarde.`:lang==='id'?`Kesalahan: ${resp.status}. Silakan coba lagi nanti.`:`Error: ${resp.status}. Please try again later.`}]);
       }
     }catch(e){
-      setAiMessages(p=>[...p,{role:'assistant',content:lang==='es'?'Error de conexión. Verifica tu internet e intenta de nuevo.':lang==='pt'?'Erro de conexão. Verifique sua internet e tente novamente.':'Connection error. Please check your internet and try again.'}]);
+      setAiMessages(p=>[...p,{role:'assistant',content:lang==='es'?'Error de conexión. Verifica tu internet e intenta de nuevo.':lang==='pt'?'Erro de conexão. Verifique sua internet e tente novamente.':lang==='id'?'Kesalahan koneksi. Periksa internet Anda dan coba lagi.':'Connection error. Please check your internet and try again.'}]);
     }
     setAiLoading(false);
   };
@@ -998,7 +999,7 @@ const loadAllEssaySections=async(essayId)=>{
 
   const submitEmailGate=async()=>{
     const email=emailGateInput.trim().toLowerCase();
-    if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setEmailGateError(lang==='es'?'Ingresa un correo válido':lang==='pt'?'Digite um email válido':'Enter a valid email');return;}
+    if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setEmailGateError(lang==='es'?'Ingresa un correo válido':lang==='pt'?'Digite um email válido':lang==='id'?'Masukkan email yang valid':'Enter a valid email');return;}
     setEmailGateSaving(true);setEmailGateError('');
     try{
       let profile;
@@ -1391,7 +1392,7 @@ const loadAllEssaySections=async(essayId)=>{
     }catch(e){console.log('Plan API fetch failed, using KJV:',e.message)}
     // If API failed but KJV loaded, we're fine — user already has content
     if(!kjvLoaded){
-      setPlanReading(p=>({...p,loading:false,text:lang==='es'?'No se pudo cargar el pasaje.':lang==='pt'?'Não foi possível carregar a passagem.':'Could not load passage. Please try again.',verses:[]}));
+      setPlanReading(p=>({...p,loading:false,text:lang==='es'?'No se pudo cargar el pasaje.':lang==='pt'?'Não foi possível carregar a passagem.':lang==='id'?'Tidak dapat memuat bacaan. Silakan coba lagi.':'Could not load passage. Please try again.',verses:[]}));
     }
   };
 
@@ -1548,7 +1549,7 @@ const loadAllEssaySections=async(essayId)=>{
   const getPollyAudio=async(text,voiceId)=>{
     return fetchAudioWithRetry('/.netlify/functions/polly-tts',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text,voiceId:voiceId||(lang==='pt'?'Camila':lang==='es'?'Lucia':'Matthew'),engine:'neural'})
+      body:JSON.stringify({text,voiceId:voiceId||(lang==='pt'?'Camila':lang==='es'?'Lucia':lang==='id'?'Andika':'Matthew'),engine:'neural'})
     },20000,2);
   };
 
@@ -1590,7 +1591,7 @@ const loadAllEssaySections=async(essayId)=>{
     const verses=allV.slice(0,numV);
     const text=verses.join(' ');
 
-    if(lang==='es'||lang==='pt'){
+    if(lang==='es'||lang==='pt'||lang==='id'){
       // Spanish/Portuguese: Polly → Browser TTS
       if(!text){setAudioLoading(null);playNextInQueue(pName);return}
       (async()=>{
@@ -1699,7 +1700,7 @@ const loadAllEssaySections=async(essayId)=>{
     setAudioLoading(pName);
     const speed=audioSpeed;
 
-    if(lang==='es'||lang==='pt'){
+    if(lang==='es'||lang==='pt'||lang==='id'){
       (async()=>{
         try{
           const url=await getPollyAudio(text);
@@ -1810,7 +1811,7 @@ const loadAllEssaySections=async(essayId)=>{
 
   const subscribePush=async()=>{
     if(!('serviceWorker' in navigator)||!('PushManager' in window)){
-      alert(lang==='es'?'Las notificaciones no están disponibles en este navegador.':lang==='pt'?'As notificações não estão disponíveis neste navegador. Certifique-se de ter adicionado o app à tela inicial.':'Notifications are not available on this browser. Make sure you\'ve added the app to your home screen.');
+      alert(lang==='es'?'Las notificaciones no están disponibles en este navegador.':lang==='pt'?'As notificações não estão disponíveis neste navegador. Certifique-se de ter adicionado o app à tela inicial.':lang==='id'?'Notifikasi tidak tersedia di browser ini. Pastikan Anda sudah menambahkan aplikasi ke layar beranda.':'Notifications are not available on this browser. Make sure you\'ve added the app to your home screen.');
       return;
     }
     setPushLoading(true);
@@ -1818,7 +1819,7 @@ const loadAllEssaySections=async(essayId)=>{
       const permission=await Notification.requestPermission();
       if(permission!=='granted'){
         setPushLoading(false);
-        alert(lang==='es'?'Permiso de notificación denegado.':lang==='pt'?'Permissão de notificação negada. Você pode habilitá-la nas configurações do navegador.':'Notification permission denied. You can enable it in your browser settings.');
+        alert(lang==='es'?'Permiso de notificación denegado.':lang==='pt'?'Permissão de notificação negada. Você pode habilitá-la nas configurações do navegador.':lang==='id'?'Izin notifikasi ditolak. Anda dapat mengaktifkannya di pengaturan browser.':'Notification permission denied. You can enable it in your browser settings.');
         return;
       }
       const reg=await navigator.serviceWorker.ready;
@@ -1838,13 +1839,13 @@ const loadAllEssaySections=async(essayId)=>{
       setPushLoading(false);
       setShowNotifPrompt(false);
       try{localStorage.setItem('dw_notif_dismissed','subscribed')}catch(e){}
-      setCopyMsg(lang==='es'?'¡Notificaciones activadas!':lang==='pt'?'Notificações ativadas!':'Notifications enabled!');
+      setCopyMsg(lang==='es'?'¡Notificaciones activadas!':lang==='pt'?'Notificações ativadas!':lang==='id'?'Notifikasi diaktifkan!':'Notifications enabled!');
       setTimeout(()=>setCopyMsg(''),2000);
       gaEvent('push_subscribed',{hour:notifHour});
     }catch(err){
       console.error('Push subscribe error:',err);
       setPushLoading(false);
-      alert(lang==='es'?'No se pudieron activar las notificaciones.':lang==='pt'?'Não foi possível ativar as notificações. Tente novamente.':'Could not enable notifications. Please try again.');
+      alert(lang==='es'?'No se pudieron activar las notificaciones.':lang==='pt'?'Não foi possível ativar as notificações. Tente novamente.':lang==='id'?'Tidak dapat mengaktifkan notifikasi. Silakan coba lagi.':'Could not enable notifications. Please try again.');
     }
   };
 
@@ -1863,7 +1864,7 @@ const loadAllEssaySections=async(essayId)=>{
       setPushEnabled(false);
       setPushLoading(false);
       localStorage.removeItem('dw_notif_dismissed');
-      setCopyMsg(lang==='es'?'Notificaciones desactivadas':lang==='pt'?'Notificações desativadas':'Notifications turned off');
+      setCopyMsg(lang==='es'?'Notificaciones desactivadas':lang==='pt'?'Notificações desativadas':lang==='id'?'Notifikasi dimatikan':'Notifications turned off');
       setTimeout(()=>setCopyMsg(''),2000);
       gaEvent('push_unsubscribed');
     }catch(err){
@@ -1974,7 +1975,7 @@ const loadAllEssaySections=async(essayId)=>{
   // Date
   const today=new Date();
   today.setDate(today.getDate()+dayOffset);
-  const dateStr=today.toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const dateStr=today.toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':lang==='id'?'en-US':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   const dayOfYear=Math.floor((today-new Date(today.getFullYear(),0,0))/(1000*60*60*24));
   const quote=QUOTES[dayOfYear%QUOTES.length];
 
@@ -2359,7 +2360,7 @@ const loadAllEssaySections=async(essayId)=>{
       }
     }catch(err){
       console.error('Camera access denied:',err);
-      alert(lang==='es'?'Se requiere acceso a la cámara para grabar un devocional. Por favor habilita los permisos de cámara.':lang==='pt'?'O acesso à câmera é necessário para gravar um devocional. Por favor, habilite as permissões da câmera.':'Camera access is required to record a devotion. Please enable camera permissions.');
+      alert(lang==='es'?'Se requiere acceso a la cámara para grabar un devocional. Por favor habilita los permisos de cámara.':lang==='pt'?'O acesso à câmera é necessário para gravar um devocional. Por favor, habilite as permissões da câmera.':lang==='id'?'Akses kamera diperlukan untuk merekam renungan. Silakan aktifkan izin kamera.':'Camera access is required to record a devotion. Please enable camera permissions.');
       closeVideoModal();
     }
   };
@@ -2445,7 +2446,7 @@ const loadAllEssaySections=async(essayId)=>{
     }catch(err){
       console.error('Failed to save video:',err);
       setCopyMsg('');
-      alert(lang==='es'?'Error al guardar el video. El almacenamiento puede estar lleno.':lang==='pt'?'Falha ao salvar o vídeo. O armazenamento pode estar cheio.':'Failed to save video. Storage may be full.');
+      alert(lang==='es'?'Error al guardar el video. El almacenamiento puede estar lleno.':lang==='pt'?'Falha ao salvar o vídeo. O armazenamento pode estar cheio.':lang==='id'?'Gagal menyimpan video. Penyimpanan mungkin penuh.':'Failed to save video. Storage may be full.');
     }
   };
 
@@ -2488,8 +2489,8 @@ const loadAllEssaySections=async(essayId)=>{
         try{canShareFiles=navigator.canShare&&navigator.canShare({files:[file]})}catch(e){}
         if(canShareFiles){
           try{
-            await navigator.share({files:[file],title:lang==='es'?'Mi Video Devocional':lang==='pt'?'Meu Vídeo Devocional':'My Video Devotion',text:lang==='es'?'¡Mira mi video devocional de Palabra Diaria!':lang==='pt'?'Assista meu vídeo devocional do Daily Word!':'Watch my video devotion from Daily Word!'});
-            setCopyMsg(lang==='es'?'¡Compartido!':lang==='pt'?'Compartilhado!':'Shared!');setTimeout(()=>setCopyMsg(''),2000);
+            await navigator.share({files:[file],title:lang==='es'?'Mi Video Devocional':lang==='pt'?'Meu Vídeo Devocional':lang==='id'?'Video Renungan Saya':'My Video Devotion',text:lang==='es'?'¡Mira mi video devocional de Palabra Diaria!':lang==='pt'?'Assista meu vídeo devocional do Daily Word!':lang==='id'?'Tonton video renungan saya dari Daily Word!':'Watch my video devotion from Daily Word!'});
+            setCopyMsg(lang==='es'?'¡Compartido!':lang==='pt'?'Compartilhado!':lang==='id'?'Dibagikan!':'Shared!');setTimeout(()=>setCopyMsg(''),2000);
             return;
           }catch(shareErr){
             if(shareErr.name==='AbortError'){setCopyMsg('');return}
@@ -2499,10 +2500,10 @@ const loadAllEssaySections=async(essayId)=>{
         // Strategy 2: Share text with link (fallback for browsers that don't support file sharing)
         try{
           // Save to a temp blob URL user can share
-          await navigator.share({title:lang==='es'?'Mi Video Devocional':lang==='pt'?'Meu Vídeo Devocional':'My Video Devotion',text:lang==='es'?'¡Mira mi video devocional grabado en Palabra Diaria! https://futures-daily-word.netlify.app':lang==='pt'?'Confira meu vídeo devocional gravado no Daily Word! https://futures-daily-word.netlify.app':'Check out my video devotion recorded on Daily Word! https://futures-daily-word.netlify.app'});
+          await navigator.share({title:lang==='es'?'Mi Video Devocional':lang==='pt'?'Meu Vídeo Devocional':lang==='id'?'Video Renungan Saya':'My Video Devotion',text:lang==='es'?'¡Mira mi video devocional grabado en Palabra Diaria! https://futures-daily-word.netlify.app':lang==='pt'?'Confira meu vídeo devocional gravado no Daily Word! https://futures-daily-word.netlify.app':lang==='id'?'Tonton video renungan saya dari Daily Word! https://futures-daily-word.netlify.app':'Check out my video devotion recorded on Daily Word! https://futures-daily-word.netlify.app'});
           // Also auto-download the file so they can attach it
           triggerVideoDownload(record.blob,fileName);
-          setCopyMsg(lang==='es'?'Video guardado — adjúntalo a tu mensaje!':lang==='pt'?'Vídeo salvo — anexe à sua mensagem!':'Video saved — attach it to your message!');setTimeout(()=>setCopyMsg(''),3000);
+          setCopyMsg(lang==='es'?'Video guardado — adjúntalo a tu mensaje!':lang==='pt'?'Vídeo salvo — anexe à sua mensagem!':lang==='id'?'Video tersimpan — lampirkan ke pesan Anda!':'Video saved — attach it to your message!');setTimeout(()=>setCopyMsg(''),3000);
           return;
         }catch(e2){
           if(e2.name==='AbortError'){setCopyMsg('');return}
@@ -2510,7 +2511,7 @@ const loadAllEssaySections=async(essayId)=>{
       }
       // Strategy 3: No share API at all (desktop) — just download
       triggerVideoDownload(record.blob,fileName);
-      setCopyMsg(lang==='es'?'¡Video guardado en el dispositivo!':lang==='pt'?'Vídeo salvo no dispositivo!':'Video saved to device!');setTimeout(()=>setCopyMsg(''),2000);
+      setCopyMsg(lang==='es'?'¡Video guardado en el dispositivo!':lang==='pt'?'Vídeo salvo no dispositivo!':lang==='id'?'Video tersimpan di perangkat!':'Video saved to device!');setTimeout(()=>setCopyMsg(''),2000);
     }catch(err){
       console.error('Share error:',err);
       setCopyMsg('');
@@ -2518,8 +2519,8 @@ const loadAllEssaySections=async(essayId)=>{
       try{
         const record=await VideoDB.get(id);
         if(record)triggerVideoDownload(record.blob,'devotion.webm');
-        setCopyMsg(lang==='es'?'¡Video guardado!':lang==='pt'?'Vídeo salvo!':'Video saved!');setTimeout(()=>setCopyMsg(''),2000);
-      }catch(e){alert(lang==='es'?'No se pudo compartir o guardar el video. Intenta de nuevo.':lang==='pt'?'Não foi possível compartilhar ou salvar o vídeo. Tente novamente.':'Could not share or save video. Please try again.')}
+        setCopyMsg(lang==='es'?'¡Video guardado!':lang==='pt'?'Vídeo salvo!':lang==='id'?'Video tersimpan!':'Video saved!');setTimeout(()=>setCopyMsg(''),2000);
+      }catch(e){alert(lang==='es'?'No se pudo compartir o guardar el video. Intenta de nuevo.':lang==='pt'?'Não foi possível compartilhar ou salvar o vídeo. Tente novamente.':lang==='id'?'Could not share or save video. Please try again.':'Could not share or save video. Please try again.')}
     }
   };
 
@@ -2819,7 +2820,7 @@ const loadAllEssaySections=async(essayId)=>{
     if(!selectedBookPara)return;
     const book=selectedBookPara.bookTitle||'';
     const ch=selectedBookPara.chTitle||'';
-    const text=`"${selectedBookPara.text}"\n\n— ${book}, ${ch}\n${lang==='es'?'Compartido desde Daily Word':lang==='pt'?'Compartilhado do Palavra Diária':'Shared from Daily Word'}`;
+    const text=`"${selectedBookPara.text}"\n\n— ${book}, ${ch}\n${lang==='es'?'Compartido desde Daily Word':lang==='pt'?'Compartilhado do Palavra Diária':lang==='id'?'Dibagikan dari Daily Word':'Shared from Daily Word'}`;
     if(navigator.share){navigator.share({text}).catch(()=>{})}
     else{navigator.clipboard.writeText(text).then(()=>{setCopyMsg(L.copied);setTimeout(()=>setCopyMsg(''),2000)}).catch(()=>{})}
   };
@@ -2884,11 +2885,11 @@ const loadAllEssaySections=async(essayId)=>{
         return;
       }
       const utter=new SpeechSynthesisUtterance(chunks[idx]);
-      utter.lang=lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-GB';
+      utter.lang=lang==='es'?'es-ES':lang==='pt'?'pt-BR':lang==='id'?'en-GB':'en-GB';
       utter.rate=audioSpeed;
       // Try to pick a good voice
       const voices=window.speechSynthesis.getVoices();
-      if(lang==='es'){
+      if(lang==='es'||lang==='id'){
         const v=voices.find(v=>v.lang.startsWith('es')&&v.name.toLowerCase().includes('mónica'))||
                 voices.find(v=>v.lang.startsWith('es'))||null;
         if(v)utter.voice=v;
@@ -3024,7 +3025,7 @@ const loadAllEssaySections=async(essayId)=>{
     q.totalChapters=(catalog&&catalog.chapterCount)||0;
 
     // Start — Spanish/Portuguese use Polly (Lucia/Camila), English uses ElevenLabs→Polly→BrowserTTS
-    if(lang==='es'||lang==='pt'){playPollyQueue(0)}else{playParaQueue(0)}
+    if(lang==='es'||lang==='pt'||lang==='id'){playPollyQueue(0)}else{playParaQueue(0)}
   };
 
   // Auto-advance to next chapter when current chapter finishes naturally
@@ -3064,8 +3065,8 @@ const loadAllEssaySections=async(essayId)=>{
               <div className="pm-success">
                 <div className="pm-check">✓</div>
                 <h3>{userProfile&&userProfile.firstName
-                  ?(lang==='es'?`¡Bienvenido, ${userProfile.firstName}!`:lang==='pt'?`Bem-vindo, ${userProfile.firstName}!`:`Welcome, ${userProfile.firstName}!`)
-                  :(lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':'You\'re in!')}</h3>
+                  ?(lang==='es'?`¡Bienvenido, ${userProfile.firstName}!`:lang==='pt'?`Bem-vindo, ${userProfile.firstName}!`:lang==='id'?`Welcome, ${userProfile.firstName}!`:`Welcome, ${userProfile.firstName}!`)
+                  :(lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':lang==='id'?'You\':'You\'re in!')}</h3>
                 {userProfile&&userProfile.campus&&userProfile.campus!=='other'&&(
                   <div style={{fontSize:13,color:'var(--sage)',marginTop:4}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''}</div>
                 )}
@@ -3077,29 +3078,30 @@ const loadAllEssaySections=async(essayId)=>{
                   return(<>
                 <h3 style={{fontSize:20}}>{isWelcome
                   ?(returning
-                    ?(lang==='es'?'¡Bienvenido de nuevo!':lang==='pt'?'Bem-vindo de volta!':'Welcome back!')
-                    :(lang==='es'?'¡Bienvenido!':lang==='pt'?'Bem-vindo!':'Welcome!'))
-                  :(lang==='es'?'Accede a Libros y Recursos':lang==='pt'?'Acesse Livros e Recursos':'Unlock Books & Resources')}</h3>
+                    ?(lang==='es'?'¡Bienvenido de nuevo!':lang==='pt'?'Bem-vindo de volta!':lang==='id'?'Selamat datang kembali!':'Welcome back!')
+                    :(lang==='es'?'¡Bienvenido!':lang==='pt'?'Bem-vindo!':lang==='id'?'Selamat datang!':'Welcome!'))
+                  :(lang==='es'?'Accede a Libros y Recursos':lang==='pt'?'Acesse Livros e Recursos':lang==='id'?'Buka Buku & Sumber Daya':'Unlock Books & Resources')}</h3>
                 <div className="pm-sub" style={{marginBottom:12}}>{isWelcome
                   ?(returning
-                    ?(lang==='es'?'Confirma o cambia tu campus':lang==='pt'?'Confirme ou mude seu campus':'Confirm or change your campus')
-                    :(lang==='es'?'Completa tu perfil para comenzar':lang==='pt'?'Complete seu perfil para começar':'Complete your profile to get started'))
-                  :(lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access')}</div>
+                    ?(lang==='es'?'Confirma o cambia tu campus':lang==='pt'?'Confirme ou mude seu campus':lang==='id'?'Konfirmasi atau ubah kampus Anda':'Confirm or change your campus')
+                    :(lang==='es'?'Completa tu perfil para comenzar':lang==='pt'?'Complete seu perfil para começar':lang==='id'?'Lengkapi profil Anda untuk memulai':'Complete your profile to get started'))
+                  :(lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':lang==='id'?'Masukkan email untuk akses penuh':'Enter your email for full access')}</div>
                 {!returning&&<div style={{background:'rgba(74,99,64,0.08)',borderRadius:10,padding:'12px 14px',marginBottom:14,fontSize:13,lineHeight:1.5,color:'var(--text)'}}>
                   {lang==='es'?'Tu perfil te conecta con tu campus, guarda tu progreso en todos tus dispositivos y te da acceso a la muro de oración y recursos de tu pastor.'
                    :lang==='pt'?'Seu perfil conecta você ao seu campus, salva seu progresso em todos os dispositivos e dá acesso ao mural de oração e recursos do seu pastor.'
+                   :lang==='id'?'Profil Anda menghubungkan Anda dengan kampus, menyimpan progres di semua perangkat, dan memberi akses ke tembok doa dan sumber daya pendeta.'
                    :'Your profile connects you to your campus, saves your progress across all your devices, and gives you access to the prayer wall and your pastor\'s resources.'}
                 </div>}
                 {emailGateError&&<div className="pm-error">{emailGateError}</div>}
-                {isWelcome&&<div style={{display:'flex',gap:8,marginBottom:0}}><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateFirstName} onChange={e=>setEmailGateFirstName(e.target.value)} placeholder={lang==='es'?'Nombre':lang==='pt'?'Nome':'First name'} style={{fontSize:15,padding:'12px 16px'}}/></div><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateLastName} onChange={e=>setEmailGateLastName(e.target.value)} placeholder={lang==='es'?'Apellido':lang==='pt'?'Sobrenome':'Last name'} style={{fontSize:15,padding:'12px 16px'}}/></div></div>}
+                {isWelcome&&<div style={{display:'flex',gap:8,marginBottom:0}}><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateFirstName} onChange={e=>setEmailGateFirstName(e.target.value)} placeholder={lang==='es'?'Nombre':lang==='pt'?'Nome':lang==='id'?'Nama depan':'First name'} style={{fontSize:15,padding:'12px 16px'}}/></div><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateLastName} onChange={e=>setEmailGateLastName(e.target.value)} placeholder={lang==='es'?'Apellido':lang==='pt'?'Sobrenome':lang==='id'?'Nama belakang':'Last name'} style={{fontSize:15,padding:'12px 16px'}}/></div></div>}
                 <div className="pm-field"><input type="email" value={emailGateInput} onChange={e=>setEmailGateInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submitEmailGate()}} placeholder="you@example.com" autoFocus={!returning} style={{fontSize:16,padding:'12px 16px'}}/></div>
-                {isWelcome&&<div className="pm-field" style={{marginTop:8}}><select value={emailGateCampus} onChange={e=>setEmailGateCampus(e.target.value)} style={{width:'100%',padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:emailGateCampus?'var(--text)':'var(--sage)',background:'var(--light)',fontFamily:'inherit',fontWeight:emailGateCampus?400:600}}><option value="">{lang==='es'?'Selecciona tu campus...':lang==='pt'?'Selecione seu campus...':'Select your campus...'}</option>{CAMPUSES.map(c=><option key={c.id} value={c.id}>{c.name}{c.city?' — '+c.city:''}</option>)}</select></div>}
-                {!returning&&<div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':'Just devotionals & updates. We never share your info.'}</div>}
+                {isWelcome&&<div className="pm-field" style={{marginTop:8}}><select value={emailGateCampus} onChange={e=>setEmailGateCampus(e.target.value)} style={{width:'100%',padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:emailGateCampus?'var(--text)':'var(--sage)',background:'var(--light)',fontFamily:'inherit',fontWeight:emailGateCampus?400:600}}><option value="">{lang==='es'?'Selecciona tu campus...':lang==='pt'?'Selecione seu campus...':lang==='id'?'Pilih kampus Anda...':'Select your campus...'}</option>{CAMPUSES.map(c=><option key={c.id} value={c.id}>{c.name}{c.city?' — '+c.city:''}</option>)}</select></div>}
+                {!returning&&<div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':lang==='id'?'Hanya renungan & pembaruan. Kami tidak pernah membagikan info Anda.':'Just devotionals & updates. We never share your info.'}</div>}
                 <div className="pm-actions" style={{display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
-                  <button className="pm-btn-primary" style={{width:'100%'}} disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':(returning?(lang==='es'?'Continuar':lang==='pt'?'Continuar':'Continue'):'Continue')}</button>
-                  {isWelcome&&returning&&<button onClick={()=>setShowEmailGate(false)} style={{padding:'10px 0',background:'none',color:'var(--text)',border:'none',fontSize:13,cursor:'pointer',opacity:0.5}}>{lang==='es'?'Saltar':lang==='pt'?'Pular':'Skip'}</button>}
-                  {isWelcome&&!returning&&canSkip&&<div style={{fontSize:11,color:'var(--text)',opacity:0.35,cursor:'pointer',marginTop:4}} onClick={()=>setShowEmailGate(false)}>{lang==='es'?'omitir por ahora':lang==='pt'?'pular por agora':'skip for now'}</div>}
-                  {!isWelcome&&<button onClick={()=>setShowEmailGate(false)} style={{padding:'10px 0',background:'none',color:'var(--text)',border:'none',fontSize:13,cursor:'pointer',opacity:0.5}}>{lang==='es'?'Cancelar':lang==='pt'?'Cancelar':'Cancel'}</button>}
+                  <button className="pm-btn-primary" style={{width:'100%'}} disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':(returning?(lang==='es'?'Continuar':lang==='pt'?'Continuar':lang==='id'?'Lanjutkan':'Continue'):'Continue')}</button>
+                  {isWelcome&&returning&&<button onClick={()=>setShowEmailGate(false)} style={{padding:'10px 0',background:'none',color:'var(--text)',border:'none',fontSize:13,cursor:'pointer',opacity:0.5}}>{lang==='es'?'Saltar':lang==='pt'?'Pular':lang==='id'?'Lewati':'Skip'}</button>}
+                  {isWelcome&&!returning&&canSkip&&<div style={{fontSize:11,color:'var(--text)',opacity:0.35,cursor:'pointer',marginTop:4}} onClick={()=>setShowEmailGate(false)}>{lang==='es'?'omitir por ahora':lang==='pt'?'pular por agora':lang==='id'?'lewati untuk saat ini':'skip for now'}</div>}
+                  {!isWelcome&&<button onClick={()=>setShowEmailGate(false)} style={{padding:'10px 0',background:'none',color:'var(--text)',border:'none',fontSize:13,cursor:'pointer',opacity:0.5}}>{lang==='es'?'Cancelar':lang==='pt'?'Cancelar':lang==='id'?'Batal':'Cancel'}</button>}
                 </div>
                 </>)})()}
               </>
@@ -3114,11 +3116,11 @@ const loadAllEssaySections=async(essayId)=>{
             {profileSuccess?(
               <div className="pm-success">
                 <div className="pm-check">✓</div>
-                <h3>{lang==='es'?'Perfil guardado':lang==='pt'?'Perfil salvo':'Profile saved'}</h3>
+                <h3>{lang==='es'?'Perfil guardado':lang==='pt'?'Perfil salvo':lang==='id'?'Profil tersimpan':'Profile saved'}</h3>
               </div>
             ):(
               <>
-                <h3>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':'Edit Profile'}</h3>
+                <h3>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':lang==='id'?'Edit Profil':'Edit Profile'}</h3>
                 {profileError&&<div className="pm-error">{profileError}</div>}
                 <div className="pm-pic-area" onClick={()=>profilePicInputRef.current&&profilePicInputRef.current.click()}>
                   {profilePic?(
@@ -3128,7 +3130,7 @@ const loadAllEssaySections=async(essayId)=>{
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:32,height:32,opacity:0.4}}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
                   )}
-                  <div className="pm-pic-label">{profilePic?(lang==='es'?'Cambiar Foto':lang==='pt'?'Mudar Foto':'Change Photo'):(lang==='es'?'Agregar Foto':lang==='pt'?'Adicionar Foto':'Add Photo')}</div>
+                  <div className="pm-pic-label">{profilePic?(lang==='es'?'Cambiar Foto':lang==='pt'?'Mudar Foto':lang==='id'?'Ganti Foto':'Change Photo'):(lang==='es'?'Agregar Foto':lang==='pt'?'Adicionar Foto':lang==='id'?'Tambah Foto':'Add Photo')}</div>
                   <input ref={profilePicInputRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleProfilePic}/>
                 </div>
                 <div className="pm-row">
@@ -3206,13 +3208,13 @@ const loadAllEssaySections=async(essayId)=>{
               </div>
               <div style={{width:1,height:12,background:'var(--border)'}}/>
               <div style={{fontSize:11,color:'var(--text)',opacity:0.4,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile.firstName||'');setEmailGateLastName(userProfile.lastName||'');setEmailGateInput(userProfile.email||'');setEmailGateCampus(userProfile.campus||'');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
-                {lang==='es'?'Cambiar':lang==='pt'?'Mudar':'Switch'}
+                {lang==='es'?'Cambiar':lang==='pt'?'Mudar':lang==='id'?'Ganti':'Switch'}
               </div>
             </div>
           ):(
             <div style={{textAlign:'center',margin:'-4px 0 12px'}}>
               <div style={{fontSize:12,color:'var(--sage)',fontWeight:600,opacity:0.7,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile?.firstName||'');setEmailGateLastName(userProfile?.lastName||'');setEmailGateInput(userProfile?.email||'');setEmailGateCampus('');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
-                {lang==='es'?'Seleccionar campus':lang==='pt'?'Selecionar campus':'Select a campus'} →
+                {lang==='es'?'Seleccionar campus':lang==='pt'?'Selecionar campus':lang==='id'?'Pilih kampus':'Select a campus'} →
               </div>
             </div>
           )}
@@ -3250,23 +3252,23 @@ const loadAllEssaySections=async(essayId)=>{
 
 
           <div style={{marginBottom:16,position:'relative'}}>
-            <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'📖 Buscar en la Biblia':lang==='pt'?'📖 Pesquisar na Bíblia':'📖 Search the Bible'}</div>
+            <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'📖 Buscar en la Biblia':lang==='pt'?'📖 Pesquisar na Bíblia':lang==='id'?'📖 Search the Bible':'📖 Search the Bible'}</div>
             <form onSubmit={(e)=>{e.preventDefault();doScriptureSearch(scriptureSearch)}} style={{display:'flex',gap:8,position:'relative'}}>
               <div style={{position:'relative',flex:1}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8faa84" strokeWidth="2" style={{width:18,height:18,position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input className="search-bar" style={{flex:1,marginBottom:0}} placeholder={lang==='es'?'Buscar versículo o tema... (ej. "amor", "Juan 3:16")':lang==='pt'?'Pesquisar versículo ou tema... (ex. "amor", "João 3:16")':'Search any verse or topic... (e.g. "love", "John 3:16")'} value={scriptureSearch} onChange={e=>setScriptureSearch(e.target.value)}/>
+                <input className="search-bar" style={{flex:1,marginBottom:0}} placeholder={lang==='es'?'Buscar versículo o tema... (ej. "amor", "Juan 3:16")':lang==='pt'?'Pesquisar versículo ou tema... (ex. "amor", "João 3:16")':lang==='id'?'Search any verse or topic... (e.g. "love", "John 3:16")':'Search any verse or topic... (e.g. "love", "John 3:16")'} value={scriptureSearch} onChange={e=>setScriptureSearch(e.target.value)}/>
               </div>
               <button type="submit" style={{padding:'12px 20px',background:'var(--sage)',color:'white',border:'none',borderRadius:14,fontSize:15,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',boxShadow:'0 2px 8px rgba(90,125,79,0.25)',transition:'background 0.2s'}} disabled={searchLoading}>
-                {searchLoading?'...':(lang==='es'?'Buscar':lang==='pt'?'Buscar':'Search')}
+                {searchLoading?'...':(lang==='es'?'Buscar':lang==='pt'?'Buscar':lang==='id'?'Cari':'Search')}
               </button>
             </form>
             {searchResults!==null&&(
               <div style={{marginTop:12,padding:16,background:'var(--light)',border:'1.5px solid var(--border)',borderRadius:12}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                  <span style={{fontSize:12,fontWeight:600,color:'var(--sage)',textTransform:'uppercase',letterSpacing:1}}>{lang==='es'?'Resultados':lang==='pt'?'Resultados':'Results'}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:'var(--sage)',textTransform:'uppercase',letterSpacing:1}}>{lang==='es'?'Resultados':lang==='pt'?'Resultados':lang==='id'?'Hasil':'Results'}</span>
                   <button style={{background:'none',border:'none',fontSize:16,color:'var(--sage)',cursor:'pointer'}} onClick={()=>{setSearchResults(null);setScriptureSearch('')}}>✕</button>
                 </div>
-                {searchResults.length===0&&<div style={{fontSize:13,color:'var(--sage)',fontStyle:'italic'}}>{lang==='es'?'No se encontraron resultados. Intenta con otra búsqueda.':lang==='pt'?'Nenhum resultado encontrado. Tente uma busca diferente.':'No results found. Try a different search.'}</div>}
+                {searchResults.length===0&&<div style={{fontSize:13,color:'var(--sage)',fontStyle:'italic'}}>{lang==='es'?'No se encontraron resultados. Intenta con otra búsqueda.':lang==='pt'?'Nenhum resultado encontrado. Tente uma busca diferente.':lang==='id'?'Tidak ada hasil. Coba pencarian lain.':'No results found. Try a different search.'}</div>}
                 {searchResults.map((r,ri)=>(
                   <div key={ri} style={{marginBottom:ri<searchResults.length-1?16:0}}>
                     <div style={{fontFamily:'Georgia,serif',fontSize:15,fontWeight:600,color:'var(--gold)',marginBottom:6}}>{r.ref}</div>
@@ -3275,12 +3277,12 @@ const loadAllEssaySections=async(essayId)=>{
                     </div>
                     {r.text.length>800&&!r.expanded&&(
                       <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:true}:x))}>
-                        {lang==='es'?'Leer todo el capítulo ▾':lang==='pt'?'Ler capítulo inteiro ▾':'Read full chapter ▾'}
+                        {lang==='es'?'Leer todo el capítulo ▾':lang==='pt'?'Ler capítulo inteiro ▾':lang==='id'?'Read full chapter ▾':'Read full chapter ▾'}
                       </button>
                     )}
                     {r.expanded&&r.text.length>800&&(
                       <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:false}:x))}>
-                        {lang==='es'?'Mostrar menos ▴':lang==='pt'?'Mostrar menos ▴':'Show less ▴'}
+                        {lang==='es'?'Mostrar menos ▴':lang==='pt'?'Mostrar menos ▴':lang==='id'?'Show less ▴':'Show less ▴'}
                       </button>
                     )}
                   </div>
@@ -3301,13 +3303,13 @@ const loadAllEssaySections=async(essayId)=>{
               <div style={{position:'relative'}}>
                 <button className={`audio-btn ${speaking||speakingAll?'playing':''}`} style={{padding:'7px 14px',borderRadius:20}} onClick={()=>{if(speaking||speakingAll){stopAudio();setShowSpeedPicker(false)}else{setShowSpeedPicker(!showSpeedPicker)}}} disabled={!!audioLoading}>
                   {audioLoading?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:14,height:14,animation:'spin 1s linear infinite'}}><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>:(speaking||speakingAll)?<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>:<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>}
-                  {audioLoading?'...':(speaking||speakingAll)?(lang==='es'?'Parar':lang==='pt'?'Parar':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':'Listen')}
+                  {audioLoading?'...':(speaking||speakingAll)?(lang==='es'?'Parar':lang==='pt'?'Parar':lang==='id'?'Berhenti':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':lang==='id'?'Dengarkan':'Listen')}
                 </button>
                 {showSpeedPicker&&!speaking&&!speakingAll&&(
                   <React.Fragment>
                   <div className="speed-backdrop" onClick={()=>setShowSpeedPicker(false)}/>
                   <div className="speed-picker">
-                    <div className="speed-picker-title">{lang==='es'?'Velocidad':lang==='pt'?'Velocidade':'Speed'}</div>
+                    <div className="speed-picker-title">{lang==='es'?'Velocidad':lang==='pt'?'Velocidade':lang==='id'?'Kecepatan':'Speed'}</div>
                     <div className="speed-picker-options">
                       {[0.5,0.75,1,1.25,1.5,1.75,2].map(s=>(
                         <button key={s} className={`speed-opt ${audioSpeed===s?'active':''}`} onClick={()=>{changeAudioSpeed(s);setShowSpeedPicker(false);speakAllPassages(passages)}}>
@@ -3357,7 +3359,7 @@ const loadAllEssaySections=async(essayId)=>{
               <React.Fragment key={pi}>
               <div className="passage-section" style={{textAlign:'center',padding:'40px 20px',color:'var(--sage)'}}>
                 <h2 style={{marginBottom:12}}>{lang==='es'?passageToEs(pName):lang==='pt'?passageToPt(pName):pName}</h2>
-                <div style={{fontSize:14}}>{loadingTrans?(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':'Loading...'):(lang==='es'?'No se pudo cargar este pasaje':lang==='pt'?'Não foi possível carregar esta passagem':'Could not load this passage')}</div>
+                <div style={{fontSize:14}}>{loadingTrans?(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':lang==='id'?'Memuat...':'Loading...'):(lang==='es'?'No se pudo cargar este pasaje':lang==='pt'?'Não foi possível carregar esta passagem':lang==='id'?'Could not load this passage':'Could not load this passage')}</div>
               </div>
               </React.Fragment>
             );
@@ -3380,7 +3382,7 @@ const loadAllEssaySections=async(essayId)=>{
                     {(()=>{const allHl=verses.every((_,vi)=>highlights[vKey(pName,vi)]);return(
                     <button className="comm-btn" style={{borderColor:'var(--gold)',color:'var(--gold)'}} onClick={()=>selectAllDailyPassages()}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:14,height:14,verticalAlign:'middle',marginRight:3}}><rect x="3" y="3" width="18" height="18" rx="2"/>{allHl&&<path d="M9 11l3 3L22 4"/>}</svg>
-                      {allHl?(lang==='es'?'Deseleccionar':lang==='pt'?'Desmarcar':'Deselect'):(lang==='es'?'Seleccionar Todo':lang==='pt'?'Selecionar Tudo':'Select All')}
+                      {allHl?(lang==='es'?'Deseleccionar':lang==='pt'?'Desmarcar':lang==='id'?'Batal Pilih':'Deselect'):(lang==='es'?'Seleccionar Todo':lang==='pt'?'Selecionar Tudo':lang==='id'?'Pilih Semua':'Select All')}
                     </button>)})()}
                     <button className="comm-btn" onClick={()=>{setCommPassage(pName);setShowComm(true);gaEvent('open_commentary',{passage:pName})}}>{L.commentary}</button>
                   </div>
@@ -3404,7 +3406,7 @@ const loadAllEssaySections=async(essayId)=>{
                         <span className="vnum">{vi+1}</span>
                         {hasIL?renderInterlinearVerse(v,key):renderVerse(v,key,pName,vi)}
                       </div>
-                      {isLoading&&<div style={{textAlign:'center',fontSize:11,color:'var(--gold)',padding:'4px 0'}}>{lang==='es'?'Cargando':lang==='pt'?'Carregando':'Loading'} {pData.book==='Psalms'||pData.book==='Proverbs'||pData.book==='Isaiah'||pData.book==='Genesis'?(lang==='es'?'Hebreo':lang==='pt'?'Hebraico':'Hebrew'):(lang==='es'?'Griego':lang==='pt'?'Grego':'Greek')}...</div>}
+                      {isLoading&&<div style={{textAlign:'center',fontSize:11,color:'var(--gold)',padding:'4px 0'}}>{lang==='es'?'Cargando':lang==='pt'?'Carregando':lang==='id'?'Memuat':'Loading'} {pData.book==='Psalms'||pData.book==='Proverbs'||pData.book==='Isaiah'||pData.book==='Genesis'?(lang==='es'?'Hebreo':lang==='pt'?'Hebraico':lang==='id'?'Ibrani':'Hebrew'):(lang==='es'?'Griego':lang==='pt'?'Grego':lang==='id'?'Yunani':'Greek')}...</div>}
                     </div>
                   );
                 })}
@@ -3465,7 +3467,7 @@ const loadAllEssaySections=async(essayId)=>{
                       </button>
                     )}
                     <div className="ve-overlay">
-                      <div className="ve-date">{new Date(v.date).toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-US',{month:'short',day:'numeric',year:'numeric'})} — {formatTime(v.duration)}</div>
+                      <div className="ve-date">{new Date(v.date).toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':lang==='id'?'en-US':'en-US',{month:'short',day:'numeric',year:'numeric'})} — {formatTime(v.duration)}</div>
                     </div>
                     <div className="ve-bar">
                       <button className="ve-bar-btn share" onClick={()=>shareVideo(v.id)}>
@@ -3494,7 +3496,7 @@ const loadAllEssaySections=async(essayId)=>{
               filteredJournal.map(e=>(
                 <div key={e.id} className="journal-entry">
                   <button className="je-del" onClick={()=>setJournal(p=>p.filter(x=>x.id!==e.id))}>×</button>
-                  <div className="je-date">{new Date(e.date).toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+                  <div className="je-date">{new Date(e.date).toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':lang==='id'?'en-US':'en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
                   {e.ref&&<div className="je-ref">{e.ref}</div>}
                   {e.verse&&<div style={{fontSize:13,fontStyle:'italic',color:'var(--text)',opacity:0.6,lineHeight:1.5,marginBottom:8}}>"{e.verse.length>150?e.verse.slice(0,150)+'...':e.verse}"</div>}
                   <div className="je-text">{e.text}</div>
@@ -3512,8 +3514,8 @@ const loadAllEssaySections=async(essayId)=>{
           {/* CHURCH MESSAGES - locked Spotify feed */}
           <div className="latest-sermon">
             <div className="ls-label" style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontSize:11,background:'rgba(139,157,131,0.15)',color:'var(--sage)',padding:'2px 8px',borderRadius:10,fontWeight:600}}>⛪ {lang==='es'?'Iglesia':lang==='pt'?'Igreja':'Church'}</span>
-              {lang==='es'?'Mensajes de la Iglesia':lang==='pt'?'Mensagens da Igreja':'Church Messages'}
+              <span style={{fontSize:11,background:'rgba(139,157,131,0.15)',color:'var(--sage)',padding:'2px 8px',borderRadius:10,fontWeight:600}}>⛪ {lang==='es'?'Iglesia':lang==='pt'?'Igreja':lang==='id'?'Gereja':'Church'}</span>
+              {lang==='es'?'Mensajes de la Iglesia':lang==='pt'?'Mensagens da Igreja':lang==='id'?'Church Messages':'Church Messages'}
             </div>
             {(()=>{
               const id=CHURCH_SPOTIFY.split('/show/')[1].split('?')[0];
@@ -3527,7 +3529,7 @@ const loadAllEssaySections=async(essayId)=>{
                 <div style={{marginTop:10,textAlign:'center'}}>
                   <button className="primary-btn" style={{padding:'10px 24px',fontSize:13}} onClick={()=>{
                     const today=new Date().toISOString().split('T')[0];
-                    setSermons(p=>[{title:L.msgNotesLabel+new Date().toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-US',{month:'long',day:'numeric',year:'numeric'}),date:today,scripture:'',theme:'',audioUrl:'',notes:liveNotes,id:Date.now()},...p]);
+                    setSermons(p=>[{title:L.msgNotesLabel+new Date().toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':lang==='id'?'en-US':'en-US',{month:'long',day:'numeric',year:'numeric'}),date:today,scripture:'',theme:'',audioUrl:'',notes:liveNotes,id:Date.now()},...p]);
                     setLiveNotes('');try{localStorage.setItem('dw_livenotes','')}catch(e){}
                   }}>{L.saveToArchive}</button>
                 </div>
@@ -3538,8 +3540,8 @@ const loadAllEssaySections=async(essayId)=>{
           {/* YOUR MEDIA - user's personal Spotify/podcast/video feed */}
           <div className="latest-sermon" style={{marginTop:20}}>
             <div className="ls-label" style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontSize:11,background:'rgba(196,169,98,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:10,fontWeight:600}}>🎧 {lang==='es'?'Personal':lang==='pt'?'Pessoal':'Personal'}</span>
-              {lang==='es'?'Tu Feed de Medios':lang==='pt'?'Seu Feed de Mídia':'Your Media Feed'}
+              <span style={{fontSize:11,background:'rgba(196,169,98,0.15)',color:'var(--gold)',padding:'2px 8px',borderRadius:10,fontWeight:600}}>🎧 {lang==='es'?'Personal':lang==='pt'?'Pessoal':lang==='id'?'Personal':'Personal'}</span>
+              {lang==='es'?'Tu Feed de Medios':lang==='pt'?'Seu Feed de Mídia':lang==='id'?'Your Media Feed':'Your Media Feed'}
             </div>
             {userSpotify?(()=>{
               let embedUrl=userSpotify;
@@ -3556,7 +3558,7 @@ const loadAllEssaySections=async(essayId)=>{
               return React.createElement('iframe',{src:embedUrl,width:'100%',height:'352',frameBorder:'0',allow:'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',loading:'lazy',style:{borderRadius:12}});
             })():(
               <div style={{padding:20,background:'var(--light)',borderRadius:12,textAlign:'center'}}>
-                <div style={{fontSize:14,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'Agrega tu propio enlace de Spotify, podcast o video en Ajustes':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':'Add your own Spotify, podcast or video link in Settings'}</div>
+                <div style={{fontSize:14,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'Agrega tu propio enlace de Spotify, podcast o video en Ajustes':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':lang==='id'?'Add your own Spotify, podcast or video link in Settings':'Add your own Spotify, podcast or video link in Settings'}</div>
                 <button className="comm-btn" onClick={()=>setPage('settings')}>{L.goToSettings}</button>
               </div>
             )}
@@ -3588,14 +3590,14 @@ const loadAllEssaySections=async(essayId)=>{
             sermonIdeas.map(s=>(
               <div key={s.id} className="sermon-card">
                 <h3>{s.title}</h3>
-                {s.date&&<div className="sc-date">{new Date(s.date+'T12:00:00').toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>}
+                {s.date&&<div className="sc-date">{new Date(s.date+'T12:00:00').toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':lang==='id'?'en-US':'en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>}
                 {s.scripture&&<div className="sc-scripture">{s.scripture}</div>}
                 {s.theme&&<div className="sc-theme">{s.theme}</div>}
                 {s.audioUrl&&renderAudioPlayer(s.audioUrl)}
                 {s.notes&&<div className="sc-notes">{s.notes}</div>}
                 <div className="sc-actions">
-                  <button className="btn-cancel" onClick={()=>editSermon(s)}>{lang==='es'?'Editar':lang==='pt'?'Editar':'Edit'}</button>
-                  <button className="btn-cancel" style={{color:'#c85050'}} onClick={()=>setSermons(p=>p.filter(x=>x.id!==s.id))}>{lang==='es'?'Eliminar':lang==='pt'?'Excluir':'Delete'}</button>
+                  <button className="btn-cancel" onClick={()=>editSermon(s)}>{lang==='es'?'Editar':lang==='pt'?'Editar':lang==='id'?'Edit':'Edit'}</button>
+                  <button className="btn-cancel" style={{color:'#c85050'}} onClick={()=>setSermons(p=>p.filter(x=>x.id!==s.id))}>{lang==='es'?'Eliminar':lang==='pt'?'Excluir':lang==='id'?'Delete':'Delete'}</button>
                 </div>
               </div>
             ))
@@ -3616,7 +3618,7 @@ const loadAllEssaySections=async(essayId)=>{
               const devo=DEVOTIONS[dayOfYear%DEVOTIONS.length];
               return(
                 <div className="devotion-card">
-                  <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':'Daily'}</span></div>
+                  <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':lang==='id'?'Devotion of the Day':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Daily':'Daily'}</span></div>
                   <div className="devotion-title">{lang==='es'?(devo.titleEs||devo.title):lang==='pt'?(devo.titlePt||devo.title):devo.title}</div>
                   <div className="devotion-verse-ref" onClick={()=>{
                     setMoreSection('plans');
@@ -3646,7 +3648,7 @@ const loadAllEssaySections=async(essayId)=>{
             {/* YOUR PLANS */}
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:4}}>
               <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--sage)',display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':'Your Plans'}
+                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':lang==='id'?'Your Plans':'Your Plans'}
               </div>
               <div style={{flex:1,height:1,background:'var(--border)'}}/>
             </div>
@@ -3673,7 +3675,7 @@ const loadAllEssaySections=async(essayId)=>{
             {/* PS A'S BOOKS */}
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:20}}>
               <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--gold)',display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:12}}>📖</span> {lang==='es'?`Libros de ${L.psA}`:lang==='pt'?`Livros de ${L.psA}`:`${L.psA}'s Books`}
+                <span style={{fontSize:12}}>📖</span> {lang==='es'?`Libros de ${L.psA}`:lang==='pt'?`Livros de ${L.psA}`:lang==='id'?`${L.psA}'s Books`:`${L.psA}'s Books`}
               </div>
               <div style={{flex:1,height:1,background:'var(--border)'}}/>
             </div>
@@ -3684,7 +3686,7 @@ const loadAllEssaySections=async(essayId)=>{
                   <div className="bc-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</div>
                   <div className="bc-author">{book.author}</div>
                   <div className="bc-desc">{lang==='es'?(book.descriptionEs||book.description):lang==='pt'?(book.descriptionPt||book.description):book.description}</div>
-                  <div className="bc-chapters">{book.chapterCount} {book.chapterCount===1?(lang==='es'?'capítulo':lang==='pt'?'capítulo':'chapter'):(lang==='es'?'capítulos':lang==='pt'?'capítulos':'chapters')}</div>
+                  <div className="bc-chapters">{book.chapterCount} {book.chapterCount===1?(lang==='es'?'capítulo':lang==='pt'?'capítulo':lang==='id'?'pasal':'chapter'):(lang==='es'?'capítulos':lang==='pt'?'capítulos':lang==='id'?'pasal':'chapters')}</div>
                 </div>
               </div>
             ))}
@@ -3693,7 +3695,7 @@ const loadAllEssaySections=async(essayId)=>{
               <React.Fragment>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:20}}>
                 <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--gold)',display:'flex',alignItems:'center',gap:8}}>
-                  <span style={{fontSize:12}}>📖</span> {lang==='es'?`Libros de ${L.psJane}`:lang==='pt'?`Livros de ${L.psJane}`:`${L.psJane}'s Books`}
+                  <span style={{fontSize:12}}>📖</span> {lang==='es'?`Libros de ${L.psJane}`:lang==='pt'?`Livros de ${L.psJane}`:lang==='id'?`${L.psJane}'s Books`:`${L.psJane}'s Books`}
                 </div>
                 <div style={{flex:1,height:1,background:'var(--border)'}}/>
               </div>
@@ -3716,7 +3718,7 @@ const loadAllEssaySections=async(essayId)=>{
               <React.Fragment>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:20}}>
                 <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--gold)',display:'flex',alignItems:'center',gap:8}}>
-                  <span style={{fontSize:12}}>📝</span> {lang==='es'?'Ensayos de Ps':'Ps Essays'}
+                  <span style={{fontSize:12}}>📝</span> {lang==='es'?'Ensayos de Ps':lang==='id'?'Esai Ps':'Ps Essays'}
                 </div>
                 <div style={{flex:1,height:1,background:'var(--border)'}}/>
               </div>
@@ -3751,7 +3753,7 @@ const loadAllEssaySections=async(essayId)=>{
             const devo=DEVOTIONS[dayOfYear%DEVOTIONS.length];
             return(
               <div className="devotion-card">
-                <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':'Daily'}</span></div>
+                <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':lang==='id'?'Devotion of the Day':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Daily':'Daily'}</span></div>
                 <div className="devotion-title">{lang==='es'?(devo.titleEs||devo.title):lang==='pt'?(devo.titlePt||devo.title):devo.title}</div>
                 <div className="devotion-verse-ref" onClick={()=>{
                   openPlanReading('__devo__',0,devo.verse);
@@ -3766,10 +3768,10 @@ const loadAllEssaySections=async(essayId)=>{
           {!planReading&&!planView&&(
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,marginTop:4}}>
               <div style={{fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:2,color:'var(--sage)',display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':'Your Plans'}
+                <span style={{fontSize:12}}>📋</span> {lang==='es'?'Tus Planes':lang==='pt'?'Seus Planos':lang==='id'?'Your Plans':'Your Plans'}
               </div>
               <div style={{flex:1,height:1,background:'var(--border)'}}/>
-              <span style={{fontSize:10,background:'rgba(139,157,131,0.12)',color:'var(--sage)',padding:'3px 8px',borderRadius:20,fontWeight:600}}>{lang==='es'?'Elegidos por ti':lang==='pt'?'Escolhidos por você':'Chosen by you'}</span>
+              <span style={{fontSize:10,background:'rgba(139,157,131,0.12)',color:'var(--sage)',padding:'3px 8px',borderRadius:20,fontWeight:600}}>{lang==='es'?'Elegidos por ti':lang==='pt'?'Escolhidos por você':lang==='id'?'Chosen by you':'Chosen by you'}</span>
             </div>
           )}
 
@@ -3782,7 +3784,7 @@ const loadAllEssaySections=async(essayId)=>{
               </div>
               {planReading.loading?(
                 <div style={{textAlign:'center',padding:'60px 0'}}>
-                  <div style={{fontSize:14,color:'var(--sage)'}}>{lang==='es'?'Cargando pasaje...':lang==='pt'?'Carregando passagem...':'Loading passage...'}</div>
+                  <div style={{fontSize:14,color:'var(--sage)'}}>{lang==='es'?'Cargando pasaje...':lang==='pt'?'Carregando passagem...':lang==='id'?'Loading passage...':'Loading passage...'}</div>
                 </div>
               ):(
                 <div style={{padding:'12px 0'}}>
@@ -3793,7 +3795,7 @@ const loadAllEssaySections=async(essayId)=>{
                         <div style={{display:'flex',gap:6,alignItems:'center'}}>
                           <button className={`plan-listen-btn ${speaking?'playing':''}`} onClick={()=>speakPlanReading()} disabled={!!audioLoading}>
                             {audioLoading?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:14,height:14,animation:'spin 1s linear infinite'}}><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>:speaking?<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>:<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>}
-                            {audioLoading?'...':speaking?(lang==='es'?'Parar':lang==='pt'?'Parar':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':'Listen')}
+                            {audioLoading?'...':speaking?(lang==='es'?'Parar':lang==='pt'?'Parar':lang==='id'?'Berhenti':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':lang==='id'?'Dengarkan':'Listen')}
                           </button>
                           <button className="select-all-btn" onClick={()=>selectPassage('plan:'+planReading.ref,planReading.verses)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:14,height:14}}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
@@ -3828,7 +3830,7 @@ const loadAllEssaySections=async(essayId)=>{
                     <div style={{fontFamily:'Georgia,serif',fontSize:'calc(17px * var(--font-scale))',lineHeight:1.8,color:'var(--text)',whiteSpace:'pre-wrap'}}>{planReading.text}</div>
                   )}
                   <div style={{textAlign:'center',marginTop:24}}>
-                    <button className="primary-btn" onClick={()=>setPlanReading(null)}>{lang==='es'?'Volver al Plan':lang==='pt'?'Voltar ao Plano':'Back to Plan'}</button>
+                    <button className="primary-btn" onClick={()=>setPlanReading(null)}>{lang==='es'?'Volver al Plan':lang==='pt'?'Voltar ao Plano':lang==='id'?'Back to Plan':'Back to Plan'}</button>
                   </div>
                 </div>
               )}
@@ -3849,8 +3851,8 @@ const loadAllEssaySections=async(essayId)=>{
 
                 {ap&&(
                   <div className="plan-stats">
-                    <div className="plan-stat"><div className="stat-val">{completedDays.length}</div><div className="stat-label">{lang==='es'?'Completados':lang==='pt'?'Concluídos':'Completed'}</div></div>
-                    <div className="plan-stat"><div className="stat-val">{plan.readings.length-completedDays.length}</div><div className="stat-label">{lang==='es'?'Restantes':lang==='pt'?'Restantes':'Remaining'}</div></div>
+                    <div className="plan-stat"><div className="stat-val">{completedDays.length}</div><div className="stat-label">{lang==='es'?'Completados':lang==='pt'?'Concluídos':lang==='id'?'Completed':'Completed'}</div></div>
+                    <div className="plan-stat"><div className="stat-val">{plan.readings.length-completedDays.length}</div><div className="stat-label">{lang==='es'?'Restantes':lang==='pt'?'Restantes':lang==='id'?'Remaining':'Remaining'}</div></div>
                     <div className="plan-stat"><div className="stat-val">{pct}%</div><div className="stat-label">{L.planProgress}</div></div>
                   </div>
                 )}
@@ -3871,7 +3873,7 @@ const loadAllEssaySections=async(essayId)=>{
                       const isToday=i===todayIdx;
                       return(
                         <div key={i} className={`plan-day-item ${isToday?'today':''} ${done?'completed':''}`} style={{cursor:'pointer'}} onClick={()=>openPlanReading(plan.id,i,reading)}>
-                          <div className="plan-day-num">{lang==='es'?'Día':lang==='pt'?'Dia':'Day'} {i+1}</div>
+                          <div className="plan-day-num">{lang==='es'?'Día':lang==='pt'?'Dia':lang==='id'?'Hari':'Day'} {i+1}</div>
                           <div className="plan-day-reading" style={{flex:1}}>{reading}</div>
                           <div className={`plan-check ${done?'done':''}`} onClick={(e)=>{e.stopPropagation();togglePlanDay(plan.id,i)}}>
                             {done&&<svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>}
@@ -3884,7 +3886,7 @@ const loadAllEssaySections=async(essayId)=>{
 
                 {ap&&(
                   <div style={{textAlign:'center',padding:'20px 0'}}>
-                    <button className="comm-btn" style={{color:'#c44',borderColor:'#c44'}} onClick={()=>{if(confirm(lang==='es'?'¿Eliminar este plan?':lang==='pt'?'Remover este plano?':'Remove this plan?'))removePlan(plan.id)}}>{L.removePlan}</button>
+                    <button className="comm-btn" style={{color:'#c44',borderColor:'#c44'}} onClick={()=>{if(confirm(lang==='es'?'¿Eliminar este plan?':lang==='pt'?'Remover este plano?':lang==='id'?'Remove this plan?':'Remove this plan?'))removePlan(plan.id)}}>{L.removePlan}</button>
                   </div>
                 )}
               </div>
@@ -3924,7 +3926,7 @@ const loadAllEssaySections=async(essayId)=>{
                     const daysSinceStart=Math.max(1,Math.floor((new Date()-new Date(firstDate))/(1000*60*60*24))+1);
                     const consistency=totalRead>0?Math.round((totalRead/daysSinceStart)*100):0;
                     const calDate=new Date(calYear,calMonth,1);
-                    const monthName=calDate.toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':'en-US',{month:'long',year:'numeric'});
+                    const monthName=calDate.toLocaleDateString(lang==='es'?'es-ES':lang==='pt'?'pt-BR':lang==='id'?'en-US':'en-US',{month:'long',year:'numeric'});
                     const firstDayOfWeek=calDate.getDay();
                     const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
                     const todayObj=new Date();
@@ -3991,7 +3993,7 @@ const loadAllEssaySections=async(essayId)=>{
                           <div className="plan-name">{lang==='es'?(plan.nameEs||plan.name):lang==='pt'?(plan.namePt||plan.name):plan.name}</div>
                           <div className="plan-duration" style={{color:pct>=100?'var(--sage)':'var(--gold)'}}>{pct>=100?L.planCompleted:`${pct}%`}</div>
                         </div>
-                        <div style={{fontSize:13,color:'var(--sage)',marginBottom:6}}>{lang==='es'?'Hoy':lang==='pt'?'Hoje':'Today'}: {plan.readings[todayIdx]||plan.readings[plan.readings.length-1]}</div>
+                        <div style={{fontSize:13,color:'var(--sage)',marginBottom:6}}>{lang==='es'?'Hoy':lang==='pt'?'Hoje':lang==='id'?'Today':'Today'}: {plan.readings[todayIdx]||plan.readings[plan.readings.length-1]}</div>
                         <div className="plan-progress-bar"><div className="plan-progress-fill" style={{width:`${pct}%`}}/></div>
                         <div style={{fontSize:11,color:'var(--sage)',marginTop:4}}>{L.daysCompleted.replace('{n}',ap.completedDays.length).replace('{t}',plan.readings.length)}</div>
                       </div>
@@ -4037,7 +4039,7 @@ const loadAllEssaySections=async(essayId)=>{
               </button>
               {!selectedBook&&(
                 <React.Fragment>
-                  <h1 className="section-title">{lang==='es'?`${L.libraryBooks} de ${L.psA}`:lang==='pt'?`${L.libraryBooks} de ${L.psA}`:`${L.psA}'s ${L.libraryBooks}`}</h1>
+                  <h1 className="section-title">{lang==='es'?`${L.libraryBooks} de ${L.psA}`:lang==='pt'?`${L.libraryBooks} de ${L.psA}`:lang==='id'?`${L.psA}'s ${L.libraryBooks}`:`${L.psA}'s ${L.libraryBooks}`}</h1>
                   {BOOK_CATALOG.psA.map(book=>(
                     <div key={book.id} className="book-card" onClick={()=>requireEmail(()=>{setSelectedBook(book.id);loadBookData(book.id)})}>
                       <div className="bc-icon">{book.icon}</div>
@@ -4045,7 +4047,7 @@ const loadAllEssaySections=async(essayId)=>{
                         <div className="bc-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</div>
                         <div className="bc-author">{book.author}</div>
                         <div className="bc-desc">{lang==='es'?(book.descriptionEs||book.description):lang==='pt'?(book.descriptionPt||book.description):book.description}</div>
-                        <div className="bc-chapters">{book.chapterCount} {book.chapterCount===1?(lang==='es'?'capítulo':lang==='pt'?'capítulo':'chapter'):(lang==='es'?'capítulos':lang==='pt'?'capítulos':'chapters')}</div>
+                        <div className="bc-chapters">{book.chapterCount} {book.chapterCount===1?(lang==='es'?'capítulo':lang==='pt'?'capítulo':lang==='id'?'pasal':'chapter'):(lang==='es'?'capítulos':lang==='pt'?'capítulos':lang==='id'?'pasal':'chapters')}</div>
                       </div>
                     </div>
                   ))}
@@ -4054,9 +4056,9 @@ const loadAllEssaySections=async(essayId)=>{
               {selectedBook&&selectedChapter===null&&(()=>{
                 const book=getBook('psA',selectedBook);
                 if(!book)return null;
-                if(bookLoading===selectedBook)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':'Loading book...'}</div>);
-                if(bookError)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);setLoadedBooks(prev=>{const n={...prev};delete n[selectedBook];return n});loadBookData(selectedBook)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':'Try Again'}</button></div>);
-                if(!book.chapters||book.chapters.length===0)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':'Loading book...'}<button onClick={()=>loadBookData(selectedBook)} style={{display:'block',margin:'12px auto 0',padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Recargar':lang==='pt'?'Recarregar':'Reload'}</button></div>);
+                if(bookLoading===selectedBook)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':lang==='id'?'Memuat buku...':'Loading book...'}</div>);
+                if(bookError)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);setLoadedBooks(prev=>{const n={...prev};delete n[selectedBook];return n});loadBookData(selectedBook)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':lang==='id'?'Coba Lagi':'Try Again'}</button></div>);
+                if(!book.chapters||book.chapters.length===0)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':lang==='id'?'Memuat buku...':'Loading book...'}<button onClick={()=>loadBookData(selectedBook)} style={{display:'block',margin:'12px auto 0',padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Recargar':lang==='pt'?'Recarregar':lang==='id'?'Muat Ulang':'Reload'}</button></div>);
                 return(
                   <React.Fragment>
                     <h1 className="section-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</h1>
@@ -4075,7 +4077,7 @@ const loadAllEssaySections=async(essayId)=>{
                 const book=getBook('psA',selectedBook);
                 if(!book||!book.chapters[selectedChapter])return null;
                 const ch=book.chapters[selectedChapter];
-                if(!ch.paragraphs)return(<div style={{textAlign:'center',padding:60,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:12}}>📖</div>{bookError?(<><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);loadChapter(selectedBook,selectedChapter)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':'Try Again'}</button></>):(lang==='es'?'Cargando capítulo...':lang==='pt'?'Carregando capítulo...':'Loading chapter...')}</div>);
+                if(!ch.paragraphs)return(<div style={{textAlign:'center',padding:60,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:12}}>📖</div>{bookError?(<><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);loadChapter(selectedBook,selectedChapter)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':lang==='id'?'Coba Lagi':'Try Again'}</button></>):(lang==='es'?'Cargando capítulo...':lang==='pt'?'Carregando capítulo...':lang==='id'?'Memuat pasal...':'Loading chapter...')}</div>);
                 const speakingKey=book.id+'_ch'+selectedChapter;
                 const chParas=(lang==='es'&&ch.paragraphsEs&&ch.paragraphsEs.length>0)?ch.paragraphsEs:(lang==='pt'&&ch.paragraphsPt&&ch.paragraphsPt.length>0)?ch.paragraphsPt:ch.paragraphs;
                 const chTitle=lang==='es'&&ch.titleEs?ch.titleEs:lang==='pt'&&ch.titlePt?ch.titlePt:ch.title;
@@ -4085,7 +4087,7 @@ const loadAllEssaySections=async(essayId)=>{
                     <div className="br-chapter">{chTitle}</div>
                     <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
                       <button className={`audio-btn ${speaking===speakingKey?'playing':''}`} style={{padding:'7px 14px',borderRadius:20}} onClick={()=>{if(speaking===speakingKey){stopAudio()}else{readBookChapter(book.id,selectedChapter)}}} disabled={audioLoading===speakingKey}>
-                        {audioLoading===speakingKey?'...':speaking===speakingKey?(lang==='es'?'Parar':lang==='pt'?'Parar':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':'Listen')}
+                        {audioLoading===speakingKey?'...':speaking===speakingKey?(lang==='es'?'Parar':lang==='pt'?'Parar':lang==='id'?'Berhenti':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':lang==='id'?'Dengarkan':'Listen')}
                       </button>
                       {speaking===speakingKey&&(
                         <div className="speed-live" style={{position:'relative',bottom:'auto',left:'auto'}}>
@@ -4130,7 +4132,7 @@ const loadAllEssaySections=async(essayId)=>{
               </button>
               {!selectedBook&&(
                 <React.Fragment>
-                  <h1 className="section-title">{lang==='es'?`${L.libraryBooks} de ${L.psJane}`:lang==='pt'?`${L.libraryBooks} de ${L.psJane}`:`${L.psJane}'s ${L.libraryBooks}`}</h1>
+                  <h1 className="section-title">{lang==='es'?`${L.libraryBooks} de ${L.psJane}`:lang==='pt'?`${L.libraryBooks} de ${L.psJane}`:lang==='id'?`${L.psJane}'s ${L.libraryBooks}`:`${L.psJane}'s ${L.libraryBooks}`}</h1>
                   {BOOK_CATALOG.psJane.map(book=>(
                     <div key={book.id} className="book-card" onClick={()=>requireEmail(()=>{setSelectedBook(book.id);loadBookData(book.id)})}>
                       <div className="bc-icon">{book.icon}</div>
@@ -4138,7 +4140,7 @@ const loadAllEssaySections=async(essayId)=>{
                         <div className="bc-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</div>
                         <div className="bc-author">{book.author}</div>
                         <div className="bc-desc">{lang==='es'?(book.descriptionEs||book.description):lang==='pt'?(book.descriptionPt||book.description):book.description}</div>
-                        <div className="bc-chapters">{book.chapterCount} {book.chapterCount===1?(lang==='es'?'capítulo':lang==='pt'?'capítulo':'chapter'):(lang==='es'?'capítulos':lang==='pt'?'capítulos':'chapters')}</div>
+                        <div className="bc-chapters">{book.chapterCount} {book.chapterCount===1?(lang==='es'?'capítulo':lang==='pt'?'capítulo':lang==='id'?'pasal':'chapter'):(lang==='es'?'capítulos':lang==='pt'?'capítulos':lang==='id'?'pasal':'chapters')}</div>
                       </div>
                     </div>
                   ))}
@@ -4147,9 +4149,9 @@ const loadAllEssaySections=async(essayId)=>{
               {selectedBook&&selectedChapter===null&&(()=>{
                 const book=getBook('psJane',selectedBook);
                 if(!book)return null;
-                if(bookLoading===selectedBook)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':'Loading book...'}</div>);
-                if(bookError)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);setLoadedBooks(prev=>{const n={...prev};delete n[selectedBook];return n});loadBookData(selectedBook)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':'Try Again'}</button></div>);
-                if(!book.chapters||book.chapters.length===0)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':'Loading book...'}<button onClick={()=>loadBookData(selectedBook)} style={{display:'block',margin:'12px auto 0',padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Recargar':lang==='pt'?'Recarregar':'Reload'}</button></div>);
+                if(bookLoading===selectedBook)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':lang==='id'?'Memuat buku...':'Loading book...'}</div>);
+                if(bookError)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);setLoadedBooks(prev=>{const n={...prev};delete n[selectedBook];return n});loadBookData(selectedBook)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':lang==='id'?'Coba Lagi':'Try Again'}</button></div>);
+                if(!book.chapters||book.chapters.length===0)return(<div style={{textAlign:'center',padding:40,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:8}}>📖</div>{lang==='es'?'Cargando libro...':lang==='pt'?'Carregando livro...':lang==='id'?'Memuat buku...':'Loading book...'}<button onClick={()=>loadBookData(selectedBook)} style={{display:'block',margin:'12px auto 0',padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Recargar':lang==='pt'?'Recarregar':lang==='id'?'Muat Ulang':'Reload'}</button></div>);
                 return(
                   <React.Fragment>
                     <h1 className="section-title">{lang==='es'?(book.titleEs||book.title):lang==='pt'?(book.titlePt||book.title):book.title}</h1>
@@ -4168,7 +4170,7 @@ const loadAllEssaySections=async(essayId)=>{
                 const book=getBook('psJane',selectedBook);
                 if(!book||!book.chapters[selectedChapter])return null;
                 const ch=book.chapters[selectedChapter];
-                if(!ch.paragraphs)return(<div style={{textAlign:'center',padding:60,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:12}}>📖</div>{bookError?(<><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);loadChapter(selectedBook,selectedChapter)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':'Try Again'}</button></>):(lang==='es'?'Cargando capítulo...':lang==='pt'?'Carregando capítulo...':'Loading chapter...')}</div>);
+                if(!ch.paragraphs)return(<div style={{textAlign:'center',padding:60,color:'var(--sage)'}}><div style={{fontSize:24,marginBottom:12}}>📖</div>{bookError?(<><div style={{marginBottom:12}}>{bookError}</div><button onClick={()=>{setBookError(null);loadChapter(selectedBook,selectedChapter)}} style={{padding:'10px 24px',background:'var(--sage)',color:'white',border:'none',borderRadius:8,cursor:'pointer'}}>{lang==='es'?'Intentar de Nuevo':lang==='pt'?'Tentar Novamente':lang==='id'?'Coba Lagi':'Try Again'}</button></>):(lang==='es'?'Cargando capítulo...':lang==='pt'?'Carregando capítulo...':lang==='id'?'Memuat pasal...':'Loading chapter...')}</div>);
                 const speakingKey=book.id+'_ch'+selectedChapter;
                 const chParas=(lang==='es'&&ch.paragraphsEs&&ch.paragraphsEs.length>0)?ch.paragraphsEs:(lang==='pt'&&ch.paragraphsPt&&ch.paragraphsPt.length>0)?ch.paragraphsPt:ch.paragraphs;
                 const chTitle=lang==='es'&&ch.titleEs?ch.titleEs:lang==='pt'&&ch.titlePt?ch.titlePt:ch.title;
@@ -4178,7 +4180,7 @@ const loadAllEssaySections=async(essayId)=>{
                     <div className="br-chapter">{chTitle}</div>
                     <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
                       <button className={`audio-btn ${speaking===speakingKey?'playing':''}`} style={{padding:'7px 14px',borderRadius:20}} onClick={()=>{if(speaking===speakingKey){stopAudio()}else{readBookChapter(book.id,selectedChapter)}}} disabled={audioLoading===speakingKey}>
-                        {audioLoading===speakingKey?'...':speaking===speakingKey?(lang==='es'?'Parar':lang==='pt'?'Parar':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':'Listen')}
+                        {audioLoading===speakingKey?'...':speaking===speakingKey?(lang==='es'?'Parar':lang==='pt'?'Parar':lang==='id'?'Berhenti':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':lang==='id'?'Dengarkan':'Listen')}
                       </button>
                       {speaking===speakingKey&&(
                         <div className="speed-live" style={{position:'relative',bottom:'auto',left:'auto'}}>
@@ -4516,7 +4518,7 @@ const loadAllEssaySections=async(essayId)=>{
           <div style={{fontSize:10,color:'var(--border)',textAlign:'right',marginBottom:4,cursor:'pointer'}} onClick={()=>{
             if(!window._vTaps)window._vTaps=0;window._vTaps++;
             if(window._vTaps>=5){window._vTaps=0;
-              if(confirm(lang==='es'?'¿Borrar caché y recargar?':lang==='pt'?'Limpar cache e recarregar?':'Clear cache and reload?')){
+              if(confirm(lang==='es'?'¿Borrar caché y recargar?':lang==='pt'?'Limpar cache e recarregar?':lang==='id'?'Hapus cache dan muat ulang?':'Clear cache and reload?')){
                 caches.keys().then(k=>Promise.all(k.map(c=>caches.delete(c)))).then(()=>{
                   navigator.serviceWorker.getRegistrations().then(r=>r.forEach(reg=>reg.unregister())).then(()=>window.location.reload(true));
                 });
@@ -4538,14 +4540,15 @@ const loadAllEssaySections=async(essayId)=>{
                   {(userProfile.church||userProfile.city)&&<div className="spc-details">{[userProfile.church,userProfile.city].filter(Boolean).join(' • ')}</div>}
                 </div>
               </div>
-              <button className="spc-edit" onClick={openEditProfile}>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':'Edit Profile'}</button>
+              <button className="spc-edit" onClick={openEditProfile}>{lang==='es'?'Editar Perfil':lang==='pt'?'Editar Perfil':lang==='id'?'Edit Profil':'Edit Profile'}</button>
             </div>
           ):(
             <div className="settings-no-profile">
               <p style={{marginBottom:8}}>{lang==='es'?'Tu correo es tu clave — conecta tu campus, oración y progreso en cualquier dispositivo.'
                 :lang==='pt'?'Seu email é sua chave — conecta seu campus, oração e progresso em qualquer dispositivo.'
+                :lang==='id'?'Email Anda adalah kunci Anda — menghubungkan kampus, tembok doa, dan progres Anda di perangkat apa pun.'
                 :'Your email is your key — it connects your campus, prayer wall, and progress across any device.'}</p>
-              <button onClick={()=>requireEmail(()=>{})}>{lang==='es'?'Agregar Correo':lang==='pt'?'Adicionar Email':'Add Your Email'}</button>
+              <button onClick={()=>requireEmail(()=>{})}>{lang==='es'?'Agregar Correo':lang==='pt'?'Adicionar Email':lang==='id'?'Tambahkan Email Anda':'Add Your Email'}</button>
             </div>
           )}
 
@@ -4559,7 +4562,7 @@ const loadAllEssaySections=async(essayId)=>{
               <div style={{marginTop:-4,marginBottom:10}}>
                 <button onClick={()=>setShowSourcePicker(true)} style={{width:'100%',padding:'12px',background:'rgba(196,169,98,0.1)',border:'1.5px solid var(--gold)',borderRadius:12,color:'var(--gold)',fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:16,height:16}}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                  {lang==='es'?'Elegir Fuentes de Capítulos':lang==='pt'?'Escolher Fontes dos Capítulos':'Choose Chapter Sources'}
+                  {lang==='es'?'Elegir Fuentes de Capítulos':lang==='pt'?'Escolher Fontes dos Capítulos':lang==='id'?'Pilih Sumber Pasal':'Choose Chapter Sources'}
                   {setup.chapterSources&&setup.chapterSources.length>0&&(
                     <span style={{background:'var(--gold)',color:'white',borderRadius:10,padding:'2px 8px',fontSize:11,marginLeft:4}}>{setup.chapterSources.length}</span>
                   )}
@@ -4578,7 +4581,7 @@ const loadAllEssaySections=async(essayId)=>{
               <input type="text" inputMode="numeric" pattern="[0-9]*" value={setup.versesPerPassage===''?'':setup.versesPerPassage||10} onFocus={e=>e.target.select()} onChange={e=>{setSettingsSaved(false);const v=e.target.value;if(v==='')setSetup(p=>({...p,versesPerPassage:''}));else{const n=parseInt(v);if(!isNaN(n))setSetup(p=>({...p,versesPerPassage:Math.min(30,Math.max(1,n))}));}}} onBlur={()=>{if(setup.versesPerPassage===''||!setup.versesPerPassage)setSetup(p=>({...p,versesPerPassage:10}))}}/>
             </div>
             <button onClick={()=>{setSettingsSaved(true);setTimeout(()=>setSettingsSaved(false),2500)}} style={{width:'100%',marginTop:12,padding:'14px 0',background:settingsSaved?'#4CAF50':'var(--sage)',color:'white',border:'none',borderRadius:12,fontSize:16,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'background 0.3s'}}>
-              {settingsSaved?(<><svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" style={{width:20,height:20}}><path d="M5 13l4 4L19 7"/></svg>{lang==='es'?'Guardado':lang==='pt'?'Salvo':'Saved'}</>):(<>{lang==='es'?'Guardar cambios':lang==='pt'?'Salvar Alterações':'Save Changes'}</>)}
+              {settingsSaved?(<><svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" style={{width:20,height:20}}><path d="M5 13l4 4L19 7"/></svg>{lang==='es'?'Guardado':lang==='pt'?'Salvo':lang==='id'?'Tersimpan':'Saved'}</>):(<>{lang==='es'?'Guardar cambios':lang==='pt'?'Salvar Alterações':lang==='id'?'Simpan Perubahan':'Save Changes'}</>)}
             </button>
           </div>
           <div className="setting-group">
@@ -4597,26 +4600,28 @@ const loadAllEssaySections=async(essayId)=>{
                 <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={()=>{setLang('en');try{localStorage.setItem('dw_lang','en')}catch(e){}gaEvent('change_language',{language:'en'})}}>English</button>
                 <button className={`lang-btn ${lang==='es'?'active':''}`} onClick={()=>{setLang('es');try{localStorage.setItem('dw_lang','es')}catch(e){}gaEvent('change_language',{language:'es'})}}>Español</button>
                 <button className={`lang-btn ${lang==='pt'?'active':''}`} onClick={()=>{setLang('pt');try{localStorage.setItem('dw_lang','pt')}catch(e){}gaEvent('change_language',{language:'pt'})}}>Português</button>
+                <button className={`lang-btn ${lang==='id'?'active':''}`} onClick={()=>{setLang('id');try{localStorage.setItem('dw_lang','id')}catch(e){}gaEvent('change_language',{language:'id'})}}>Bahasa</button>
               </div>
             </div>
           </div>
           <div className="setting-group">
-            <h3>{lang==='es'?'Biblia Sin Conexión':lang==='pt'?'Bíblia Offline':'Offline Bible'}</h3>
+            <h3>{lang==='es'?'Biblia Sin Conexión':lang==='pt'?'Bíblia Offline':lang==='id'?'Alkitab Offline':'Offline Bible'}</h3>
             <div style={{fontSize:13,color:'var(--sage)',lineHeight:1.6,marginBottom:12}}>
               {lang==='es'
                 ?'Descarga la Biblia KJV completa (4.4 MB) para leer sin conexión a internet — perfecto para viajes en avión.'
+                :lang==='id'?'Unduh Alkitab KJV lengkap (4,4 MB) untuk dibaca secara offline — cocok untuk mode pesawat.'
                 :'Download the complete KJV Bible (4.4 MB) to read offline — perfect for airplane mode.'}
             </div>
             {kjvDownloaded?(
               <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',background:'rgba(76,175,80,0.1)',borderRadius:12,border:'1.5px solid rgba(76,175,80,0.3)'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2.5" style={{width:20,height:20,flexShrink:0}}><path d="M5 13l4 4L19 7"/></svg>
-                <span style={{fontSize:14,fontWeight:600,color:'#4CAF50'}}>{lang==='es'?'KJV descargada — disponible sin conexión':lang==='pt'?'KJV baixada — disponível offline':'KJV downloaded — available offline'}</span>
+                <span style={{fontSize:14,fontWeight:600,color:'#4CAF50'}}>{lang==='es'?'KJV descargada — disponible sin conexión':lang==='pt'?'KJV baixada — disponível offline':lang==='id'?'KJV terunduh — tersedia offline':'KJV downloaded — available offline'}</span>
               </div>
             ):kjvDownloading?(
               <div>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
                   <div className="loading-spinner" style={{width:16,height:16,borderWidth:2}}/>
-                  <span style={{fontSize:13,color:'var(--text)'}}>{lang==='es'?'Descargando...':lang==='pt'?'Baixando...':'Downloading...'} {kjvProgress?`${kjvProgress.done}/${kjvProgress.total}`:''}</span>
+                  <span style={{fontSize:13,color:'var(--text)'}}>{lang==='es'?'Descargando...':lang==='pt'?'Baixando...':lang==='id'?'Mengunduh...':'Downloading...'} {kjvProgress?`${kjvProgress.done}/${kjvProgress.total}`:''}</span>
                 </div>
                 {kjvProgress&&<div style={{height:6,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
                   <div style={{height:'100%',background:'var(--sage)',borderRadius:3,width:`${(kjvProgress.done/kjvProgress.total)*100}%`,transition:'width 0.3s'}}/>
@@ -4625,7 +4630,7 @@ const loadAllEssaySections=async(essayId)=>{
             ):(
               <button onClick={downloadKjvForOffline} style={{width:'100%',padding:'14px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:12,fontSize:15,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{width:18,height:18}}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                {lang==='es'?'Descargar KJV para uso sin conexión':lang==='pt'?'Baixar KJV para Uso Offline':'Download KJV for Offline Use'}
+                {lang==='es'?'Descargar KJV para uso sin conexión':lang==='pt'?'Baixar KJV para Uso Offline':lang==='id'?'Unduh KJV untuk Penggunaan Offline':'Download KJV for Offline Use'}
               </button>
             )}
           </div>
@@ -4643,31 +4648,31 @@ const loadAllEssaySections=async(essayId)=>{
             </div>
           </div>
           <div className="setting-group">
-            <h3>{lang==='es'?'Feeds de Audio':lang==='pt'?'Feeds de Áudio':'Audio Feeds'}</h3>
+            <h3>{lang==='es'?'Feeds de Audio':lang==='pt'?'Feeds de Áudio':lang==='id'?'Feed Audio':'Audio Feeds'}</h3>
             <div className="setting-item" style={{flexDirection:'column',alignItems:'flex-start',gap:8}}>
               <label style={{display:'flex',alignItems:'center',gap:8}}>
                 <span style={{fontSize:10,background:'rgba(139,157,131,0.15)',color:'var(--sage)',padding:'2px 6px',borderRadius:8,fontWeight:600}}>⛪</span>
-                {lang==='es'?'Mensajes de la Iglesia (fijo)':lang==='pt'?'Mensagens da Igreja (fixo)':'Church Messages (locked)'}
+                {lang==='es'?'Mensajes de la Iglesia (fijo)':lang==='pt'?'Mensagens da Igreja (fixo)':lang==='id'?'Pesan Gereja (terkunci)':'Church Messages (locked)'}
               </label>
               <input type="url" value={CHURCH_SPOTIFY} disabled style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:8,fontSize:14,background:'var(--light)',color:'var(--sage)',opacity:0.6}}/>
-              <div style={{fontSize:12,color:'var(--sage)',lineHeight:1.5}}>{lang==='es'?'Este feed está fijado y siempre aparecerá en Mensajes.':lang==='pt'?'Sermões e mensagens da nossa igreja':'This feed is locked and always appears in Messages.'}</div>
+              <div style={{fontSize:12,color:'var(--sage)',lineHeight:1.5}}>{lang==='es'?'Este feed está fijado y siempre aparecerá en Mensajes.':lang==='pt'?'Sermões e mensagens da nossa igreja':lang==='id'?'Feed ini terkunci dan selalu muncul di Pesan.':'This feed is locked and always appears in Messages.'}</div>
             </div>
             <div className="setting-item" style={{flexDirection:'column',alignItems:'flex-start',gap:8,marginTop:12}}>
               <label style={{display:'flex',alignItems:'center',gap:8}}>
                 <span style={{fontSize:10,background:'rgba(196,169,98,0.15)',color:'var(--gold)',padding:'2px 6px',borderRadius:8,fontWeight:600}}>🎧</span>
-                {lang==='es'?'Tu Feed Personal':lang==='pt'?'Seu Feed Pessoal':'Your Personal Feed'}
+                {lang==='es'?'Tu Feed Personal':lang==='pt'?'Seu Feed Pessoal':lang==='id'?'Feed Pribadi Anda':'Your Personal Feed'}
               </label>
               <input type="url" placeholder="https://open.spotify.com/show/..." value={userSpotify} onChange={e=>{setUserSpotify(e.target.value);try{localStorage.setItem('dw_user_spotify',e.target.value)}catch(e){}}} style={{width:'100%',padding:'10px 12px',border:'1.5px solid var(--border)',borderRadius:8,fontSize:14,background:'var(--light)',color:'var(--text)'}}/>
-              <div style={{fontSize:12,color:'var(--sage)',lineHeight:1.5}}>{lang==='es'?'Pega tu enlace de Spotify, podcast o video. Aparecerá en Mensajes debajo de los mensajes de la iglesia.':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':'Paste your Spotify show, podcast or video link. It will appear in Messages below the church messages.'}</div>
+              <div style={{fontSize:12,color:'var(--sage)',lineHeight:1.5}}>{lang==='es'?'Pega tu enlace de Spotify, podcast o video. Aparecerá en Mensajes debajo de los mensajes de la iglesia.':lang==='pt'?'Adicione seu próprio link do Spotify, podcast ou vídeo em Configurações':lang==='id'?'Paste your Spotify show, podcast or video link. It will appear in Messages below the church messages.':'Paste your Spotify show, podcast or video link. It will appear in Messages below the church messages.'}</div>
             </div>
           </div>
           {'PushManager' in window&&(
           <div className="setting-group">
-            <h3>{lang==='es'?'Notificaciones':lang==='pt'?'Notificações':'Notifications'}</h3>
+            <h3>{lang==='es'?'Notificaciones':lang==='pt'?'Notificações':lang==='id'?'Notifikasi':'Notifications'}</h3>
             <div className="pref-card" style={{maxWidth:'100%'}}>
               <div>
-                <div className="pref-label">{lang==='es'?'Recordatorio diario':lang==='pt'?'Lembrete diário':'Daily reminder'}</div>
-                <div className="pref-desc">{lang==='es'?'Recibe tu lectura cada mañana':lang==='pt'?'Receba sua leitura diária toda manhã':'Get your daily reading each morning'}</div>
+                <div className="pref-label">{lang==='es'?'Recordatorio diario':lang==='pt'?'Lembrete diário':lang==='id'?'Pengingat harian':'Daily reminder'}</div>
+                <div className="pref-desc">{lang==='es'?'Recibe tu lectura cada mañana':lang==='pt'?'Receba sua leitura diária toda manhã':lang==='id'?'Dapatkan bacaan harian setiap pagi':'Get your daily reading each morning'}</div>
               </div>
               {pushEnabled?(
                 <button className="toggle on" onClick={unsubscribePush} disabled={pushLoading}/>
@@ -4678,8 +4683,8 @@ const loadAllEssaySections=async(essayId)=>{
             {pushEnabled&&(
               <div className="pref-card" style={{maxWidth:'100%'}}>
                 <div>
-                  <div className="pref-label">{lang==='es'?'Hora del recordatorio':lang==='pt'?'Hora do lembrete':'Reminder time'}</div>
-                  <div className="pref-desc">{lang==='es'?'Cuándo quieres recibir tu notificación':lang==='pt'?'Quando você quer receber sua notificação':'When you want to receive your notification'}</div>
+                  <div className="pref-label">{lang==='es'?'Hora del recordatorio':lang==='pt'?'Hora do lembrete':lang==='id'?'Waktu pengingat':'Reminder time'}</div>
+                  <div className="pref-desc">{lang==='es'?'Cuándo quieres recibir tu notificación':lang==='pt'?'Quando você quer receber sua notificação':lang==='id'?'Kapan Anda ingin menerima notifikasi':'When you want to receive your notification'}</div>
                 </div>
                 <select value={notifHour} onChange={e=>updateNotifHour(parseInt(e.target.value))} style={{padding:'8px 12px',border:'1.5px solid var(--border)',borderRadius:8,fontSize:14,background:'var(--light)',color:'var(--text)'}}>
                   {Array.from({length:24},(_,i)=>i).map(h=>(
@@ -4784,7 +4789,7 @@ const loadAllEssaySections=async(essayId)=>{
               </button>
               <button className="va-btn" style={{borderColor:ilData[selectedVerse.key]?'var(--gold)':'var(--border)',color:ilData[selectedVerse.key]?'var(--gold)':'var(--text)'}} onClick={showInterlinearForVerse}>
                 <span style={{fontSize:16,fontWeight:600,lineHeight:1}}>{(()=>{const pn=selectedVerse.key.split(':').slice(0,-1).join(':');const pd=BIBLE[pn]||parsePassage(pn);const OTB=['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi'];return pd&&OTB.includes(pd.book)?'עבר':'Ελλ'})()}</span>
-                {(()=>{const pn=selectedVerse.key.split(':').slice(0,-1).join(':');const pd=BIBLE[pn]||parsePassage(pn);const OTB=['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi'];return pd&&OTB.includes(pd.book)?(lang==='es'?'Hebreo':lang==='pt'?'Hebraico':'Hebrew'):(lang==='es'?'Griego':lang==='pt'?'Grego':'Greek')})()}
+                {(()=>{const pn=selectedVerse.key.split(':').slice(0,-1).join(':');const pd=BIBLE[pn]||parsePassage(pn);const OTB=['Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth','1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles','Ezra','Nehemiah','Esther','Job','Psalms','Proverbs','Ecclesiastes','Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel','Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk','Zephaniah','Haggai','Zechariah','Malachi'];return pd&&OTB.includes(pd.book)?(lang==='es'?'Hebreo':lang==='pt'?'Hebraico':lang==='id'?'Ibrani':'Hebrew'):(lang==='es'?'Griego':lang==='pt'?'Grego':lang==='id'?'Yunani':'Greek')})()}
               </button>
             </div>
             <div style={{display:'flex',gap:6,justifyContent:'center',margin:'12px 0 4px'}}>
@@ -4828,7 +4833,7 @@ const loadAllEssaySections=async(essayId)=>{
             <div className="ilp-strongs">{ilPopup.strongs}</div>
             <div className="ilp-def">{ilPopup.definition}</div>
             <div style={{marginTop:12,fontSize:12,color:'var(--sage)'}}>"{ilPopup.word}"</div>
-            {ilPopup.verseKey&&<button style={{marginTop:12,width:'100%',padding:'10px',background:'none',border:'1.5px solid var(--gold)',borderRadius:10,color:'var(--gold)',fontSize:13,fontWeight:600,cursor:'pointer'}} onClick={()=>{setIlData(p=>{const n={...p};delete n[ilPopup.verseKey];return n});setIlPopup(null)}}>{lang==='es'?'Quitar Griego/Hebreo':lang==='pt'?'Remover Grego/Hebraico':'Remove Greek/Hebrew'}</button>}
+            {ilPopup.verseKey&&<button style={{marginTop:12,width:'100%',padding:'10px',background:'none',border:'1.5px solid var(--gold)',borderRadius:10,color:'var(--gold)',fontSize:13,fontWeight:600,cursor:'pointer'}} onClick={()=>{setIlData(p=>{const n={...p};delete n[ilPopup.verseKey];return n});setIlPopup(null)}}>{lang==='es'?'Quitar Griego/Hebreo':lang==='pt'?'Remover Grego/Hebraico':lang==='id'?'Hapus Yunani/Ibrani':'Remove Greek/Hebrew'}</button>}
           </div>
         </>
       )}
@@ -4876,11 +4881,11 @@ const loadAllEssaySections=async(essayId)=>{
             <div className="profile-era">{c.era}</div>
             <div className="profile-desc">{c.description}</div>
             <div className="profile-section">
-              <h4>{lang==='es'?'Eventos Clave':lang==='pt'?'Eventos Chave':'Key Events'}</h4>
+              <h4>{lang==='es'?'Eventos Clave':lang==='pt'?'Eventos Chave':lang==='id'?'Peristiwa Penting':'Key Events'}</h4>
               {c.keyEvents.map((ev,i)=><div key={i} className="profile-event">{ev}</div>)}
             </div>
             <div className="profile-section">
-              <h4>{lang==='es'?'Versículos Clave':lang==='pt'?'Versículos Chave':'Key Verses'}</h4>
+              <h4>{lang==='es'?'Versículos Clave':lang==='pt'?'Versículos Chave':lang==='id'?'Ayat Kunci':'Key Verses'}</h4>
               <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{c.keyVerses.map((v,i)=><span key={i} className="profile-verse">{v}</span>)}</div>
             </div>
           </>);
@@ -4893,11 +4898,11 @@ const loadAllEssaySections=async(essayId)=>{
             <div className="profile-region">{l.region}</div>
             <div className="profile-desc">{l.description}</div>
             <div className="profile-section">
-              <h4>{lang==='es'?'Eventos Clave':lang==='pt'?'Eventos Chave':'Key Events'}</h4>
+              <h4>{lang==='es'?'Eventos Clave':lang==='pt'?'Eventos Chave':lang==='id'?'Peristiwa Penting':'Key Events'}</h4>
               {l.keyEvents.map((ev,i)=><div key={i} className="profile-event">{ev}</div>)}
             </div>
             <div className="profile-section">
-              <h4>{lang==='es'?'Versículos Clave':lang==='pt'?'Versículos Chave':'Key Verses'}</h4>
+              <h4>{lang==='es'?'Versículos Clave':lang==='pt'?'Versículos Chave':lang==='id'?'Ayat Kunci':'Key Verses'}</h4>
               <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.keyVerses.map((v,i)=><span key={i} className="profile-verse">{v}</span>)}</div>
             </div>
           </>);
@@ -4908,8 +4913,8 @@ const loadAllEssaySections=async(essayId)=>{
       {planPicker&&(
         <div className="plan-picker-overlay" onClick={()=>setPlanPicker(null)}>
           <div className="plan-picker" onClick={e=>e.stopPropagation()}>
-            <h2>{lang==='es'?'¿Qué plan hoy?':lang==='pt'?'Continuar Lendo':'Continue Reading'}</h2>
-            <div className="pp-sub">{lang==='es'?'Elige el plan para hoy':lang==='pt'?'Continue de onde parou':'Pick up where you left off'}</div>
+            <h2>{lang==='es'?'¿Qué plan hoy?':lang==='pt'?'Continuar Lendo':lang==='id'?'Lanjutkan Membaca':'Continue Reading'}</h2>
+            <div className="pp-sub">{lang==='es'?'Elige el plan para hoy':lang==='pt'?'Continue de onde parou':lang==='id'?'Lanjutkan dari terakhir':'Pick up where you left off'}</div>
             {planPicker.map(p=>(
               <div key={p.planId} className="plan-picker-item" onClick={()=>{
                 setPlanPicker(null);
@@ -4919,12 +4924,12 @@ const loadAllEssaySections=async(essayId)=>{
                 <div className="pp-icon">{p.icon}</div>
                 <div className="pp-info">
                   <div className="pp-name">{p.planName}</div>
-                  <div className="pp-reading">{lang==='es'?'Día':lang==='pt'?'Dia':'Day'} {p.dayIdx+1}: {p.reading}</div>
+                  <div className="pp-reading">{lang==='es'?'Día':lang==='pt'?'Dia':lang==='id'?'Hari':'Day'} {p.dayIdx+1}: {p.reading}</div>
                 </div>
                 <div className="pp-pct">{p.pct}%</div>
               </div>
             ))}
-            <button className="plan-picker-skip" onClick={()=>setPlanPicker(null)}>{lang==='es'?'Ir al inicio':lang==='pt'?'Ir para o início':'Skip to Home'}</button>
+            <button className="plan-picker-skip" onClick={()=>setPlanPicker(null)}>{lang==='es'?'Ir al inicio':lang==='pt'?'Ir para o início':lang==='id'?'Langsung ke Beranda':'Skip to Home'}</button>
           </div>
         </div>
       )}
@@ -5020,7 +5025,7 @@ const loadAllEssaySections=async(essayId)=>{
               const done=pathwayProgress.completedDays.includes(day.day);
               return(
                 <div>
-                  <button onClick={()=>setPathwayViewDay(null)} style={{background:'none',border:'none',fontSize:14,color:'var(--sage)',cursor:'pointer',marginBottom:12,padding:0}}>{lang==='es'?'← Volver a todos los días':lang==='pt'?'← Voltar para todos os dias':'← Back to all days'}</button>
+                  <button onClick={()=>setPathwayViewDay(null)} style={{background:'none',border:'none',fontSize:14,color:'var(--sage)',cursor:'pointer',marginBottom:12,padding:0}}>{lang==='es'?'← Volver a todos los días':lang==='pt'?'← Voltar para todos os dias':lang==='id'?'← Kembali ke semua hari':'← Back to all days'}</button>
                   <div style={{fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:1.5,color:'var(--sage)',marginBottom:6}}>{(L.dayOfJourney||'').replace('{d}',day.day)}</div>
                   <h2 style={{fontSize:22,fontFamily:'Georgia,serif',margin:'0 0 4px',color:'var(--text)'}}>{lang==='es'?(day.titleEs||day.title):lang==='pt'?(day.titlePt||day.title):day.title}</h2>
                   <div style={{fontSize:14,color:'var(--gold)',fontWeight:500,marginBottom:20}}>{lang==='es'?(day.themeEs||day.theme):lang==='pt'?(day.themePt||day.theme):day.theme}</div>
@@ -5048,8 +5053,8 @@ const loadAllEssaySections=async(essayId)=>{
 
                   {/* Nav buttons */}
                   <div style={{display:'flex',justifyContent:'space-between',marginTop:16}}>
-                    <button disabled={day.day<=1} onClick={()=>setPathwayViewDay(day.day-1)} style={{background:'none',border:'none',color:day.day<=1?'var(--border)':'var(--sage)',fontSize:14,cursor:'pointer'}}>{lang==='es'?'← Día Anterior':lang==='pt'?'← Dia Anterior':'← Previous Day'}</button>
-                    <button disabled={day.day>=30} onClick={()=>setPathwayViewDay(day.day+1)} style={{background:'none',border:'none',color:day.day>=30?'var(--border)':'var(--sage)',fontSize:14,cursor:'pointer'}}>{lang==='es'?'Día Siguiente →':lang==='pt'?'Próximo Dia →':'Next Day →'}</button>
+                    <button disabled={day.day<=1} onClick={()=>setPathwayViewDay(day.day-1)} style={{background:'none',border:'none',color:day.day<=1?'var(--border)':'var(--sage)',fontSize:14,cursor:'pointer'}}>{lang==='es'?'← Día Anterior':lang==='pt'?'← Dia Anterior':lang==='id'?'← Hari Sebelumnya':'← Previous Day'}</button>
+                    <button disabled={day.day>=30} onClick={()=>setPathwayViewDay(day.day+1)} style={{background:'none',border:'none',color:day.day>=30?'var(--border)':'var(--sage)',fontSize:14,cursor:'pointer'}}>{lang==='es'?'Día Siguiente →':lang==='pt'?'Próximo Dia →':lang==='id'?'Hari Berikutnya →':'Next Day →'}</button>
                   </div>
                 </div>
               );
@@ -5063,7 +5068,7 @@ const loadAllEssaySections=async(essayId)=>{
         <div className="share-picker-overlay" onClick={()=>setShowSharePicker(false)}>
           <div className="share-picker" onClick={e=>e.stopPropagation()}>
             <div className="sp-handle"/>
-            <div className="sp-title">{lang==='es'?'Compartir':lang==='pt'?'Compartilhar':'Share'}</div>
+            <div className="sp-title">{lang==='es'?'Compartir':lang==='pt'?'Compartilhar':lang==='id'?'Bagikan':'Share'}</div>
             <div className="sp-preview">"{selectedVerse.text.length>80?selectedVerse.text.slice(0,80)+'...':selectedVerse.text}"</div>
             <div className="sp-grid">
               <button className="sp-btn" onClick={shareToWhatsApp}>
@@ -5091,7 +5096,7 @@ const loadAllEssaySections=async(essayId)=>{
               {navigator.share&&(
                 <button className="sp-btn" onClick={shareNative}>
                   <div className="sp-icon" style={{background:'var(--gold)'}}><svg viewBox="0 0 24 24" fill="white" style={{width:22,height:22}}><circle cx="18" cy="5" r="3" fill="none" stroke="white" strokeWidth="2"/><circle cx="6" cy="12" r="3" fill="none" stroke="white" strokeWidth="2"/><circle cx="18" cy="19" r="3" fill="none" stroke="white" strokeWidth="2"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="white" strokeWidth="2"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="white" strokeWidth="2"/></svg></div>
-                  <div className="sp-label">{lang==='es'?'Más':lang==='pt'?'Mais':'More'}</div>
+                  <div className="sp-label">{lang==='es'?'Más':lang==='pt'?'Mais':lang==='id'?'Lainnya':'More'}</div>
                 </button>
               )}
             </div>
@@ -5104,8 +5109,8 @@ const loadAllEssaySections=async(essayId)=>{
       {showSourcePicker&&(
         <div className="source-picker-overlay" onClick={()=>setShowSourcePicker(false)}>
           <div className="source-picker" onClick={e=>e.stopPropagation()}>
-            <h2>{lang==='es'?'Fuentes de los Capítulos':lang==='pt'?'Fontes dos Capítulos':'Chapter Sources'}</h2>
-            <p className="sp-sub">{lang==='es'?`Selecciona de dónde quieres tus ${setup?.chapters||2} capítulos`:lang==='pt'?`Escolha de onde você quer seus ${setup?.chapters||2} capítulos`:`Pick where you want your ${setup?.chapters||2} chapters from`}</p>
+            <h2>{lang==='es'?'Fuentes de los Capítulos':lang==='pt'?'Fontes dos Capítulos':lang==='id'?'Sumber Pasal':'Chapter Sources'}</h2>
+            <p className="sp-sub">{lang==='es'?`Selecciona de dónde quieres tus ${setup?.chapters||2} capítulos`:lang==='pt'?`Escolha de onde você quer seus ${setup?.chapters||2} capítulos`:lang==='id'?`Pilih dari mana Anda ingin ${setup?.chapters||2} pasal Anda`:`Pick where you want your ${setup?.chapters||2} chapters from`}</p>
             {Object.entries(BIBLE_SECTIONS).map(([key,sec])=>{
               const sources=setup?.chapterSources||[];
               const isSelected=sources.includes(key);
@@ -5128,7 +5133,7 @@ const loadAllEssaySections=async(essayId)=>{
                   <div className="sp-emoji">{sec.emoji}</div>
                   <div className="sp-info">
                     <div className="sp-name">{lang==='es'?sec.labelEs:lang==='pt'?(sec.labelPt||sec.label):sec.label}</div>
-                    <div className="sp-count">{sec.passages.length} {lang==='es'?'pasajes':lang==='pt'?'passagens':'passages'}</div>
+                    <div className="sp-count">{sec.passages.length} {lang==='es'?'pasajes':lang==='pt'?'passagens':lang==='id'?'bacaan':'passages'}</div>
                   </div>
                   <div className="sp-check">
                     {isSelected&&<svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" style={{width:14,height:14}}><path d="M5 13l4 4L19 7"/></svg>}
@@ -5137,10 +5142,10 @@ const loadAllEssaySections=async(essayId)=>{
               );
             })}
             <div style={{textAlign:'center',fontSize:13,color:'var(--sage)',margin:'12px 0'}}>
-              {lang==='es'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} seleccionados`:lang==='pt'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} selecionados`:`${(setup?.chapterSources||[]).length} of ${setup?.chapters||2} selected`}
+              {lang==='es'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} seleccionados`:lang==='pt'?`${(setup?.chapterSources||[]).length} de ${setup?.chapters||2} selecionados`:lang==='id'?`${(setup?.chapterSources||[]).length} of ${setup?.chapters||2} selected`:`${(setup?.chapterSources||[]).length} of ${setup?.chapters||2} selected`}
             </div>
             <button onClick={()=>setShowSourcePicker(false)} style={{width:'100%',padding:'14px 0',background:'var(--sage)',color:'white',border:'none',borderRadius:12,fontSize:16,fontWeight:600,cursor:'pointer',marginTop:4}}>
-              {lang==='es'?'Listo':lang==='pt'?'Pronto':'Done'}
+              {lang==='es'?'Listo':lang==='pt'?'Pronto':lang==='id'?'Selesai':'Done'}
             </button>
           </div>
         </div>
@@ -5154,10 +5159,10 @@ const loadAllEssaySections=async(essayId)=>{
             <div className="notif-prompt-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
             </div>
-            <h3>{lang==='es'?'Recordatorio Diario':lang==='pt'?'Lembrete de Leitura Diária':'Daily Reading Reminder'}</h3>
-            <p>{lang==='es'?'Recibe un mensaje tranquilo cada mañana con la lectura del día. Una notificación al día, nada más.':lang==='pt'?'Nunca perca sua leitura diária. Definiremos um lembrete suave.':'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.'}</p>
+            <h3>{lang==='es'?'Recordatorio Diario':lang==='pt'?'Lembrete de Leitura Diária':lang==='id'?'Pengingat Bacaan Harian':'Daily Reading Reminder'}</h3>
+            <p>{lang==='es'?'Recibe un mensaje tranquilo cada mañana con la lectura del día. Una notificación al día, nada más.':lang==='pt'?'Nunca perca sua leitura diária. Definiremos um lembrete suave.':lang==='id'?'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.':'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.'}</p>
             <div className="notif-prompt-time">
-              <label>{lang==='es'?'Hora del recordatorio':lang==='pt'?'Hora do lembrete':'Reminder time'}</label>
+              <label>{lang==='es'?'Hora del recordatorio':lang==='pt'?'Hora do lembrete':lang==='id'?'Waktu pengingat':'Reminder time'}</label>
               <select value={notifHour} onChange={e=>setNotifHour(parseInt(e.target.value))}>
                 {Array.from({length:24},(_,i)=>i).map(h=>(
                   <option key={h} value={h}>{h===0?'12:00 AM':h<12?h+':00 AM':h===12?'12:00 PM':(h-12)+':00 PM'}</option>
@@ -5165,10 +5170,10 @@ const loadAllEssaySections=async(essayId)=>{
               </select>
             </div>
             <button className="notif-prompt-yes" onClick={subscribePush} disabled={pushLoading}>
-              {pushLoading?(lang==='es'?'Activando...':lang==='pt'?'Ativando...':'Enabling...'):(lang==='es'?'Sí, recuérdame':lang==='pt'?'Sim, me lembre':'Yes, remind me')}
+              {pushLoading?(lang==='es'?'Activando...':lang==='pt'?'Ativando...':lang==='id'?'Mengaktifkan...':'Enabling...'):(lang==='es'?'Sí, recuérdame':lang==='pt'?'Sim, me lembre':lang==='id'?'Ya, ingatkan saya':'Yes, remind me')}
             </button>
             <button className="notif-prompt-no" onClick={()=>{setShowNotifPrompt(false);try{localStorage.setItem('dw_notif_dismissed','later')}catch(e){}}}>
-              {lang==='es'?'Quizás después':lang==='pt'?'Talvez depois':'Maybe later'}
+              {lang==='es'?'Quizás después':lang==='pt'?'Talvez depois':lang==='id'?'Mungkin nanti':'Maybe later'}
             </button>
           </div>
         </div>
@@ -5224,7 +5229,7 @@ const loadAllEssaySections=async(essayId)=>{
                     <div style={{flex:1,overflowY:'auto',padding:'12px 14px',WebkitOverflowScrolling:'touch'}}>
                       {teleprompterTab==='notes'&&(
                         <div style={{color:'white',fontFamily:'Georgia,serif',fontSize:Math.round(16*teleprompterSize),lineHeight:1.8,whiteSpace:'pre-wrap'}}>
-                          {liveNotes.trim()?liveNotes:(lang==='es'?'No hay notas aún. Escribe notas en la pestaña de Mensajes primero.':lang==='pt'?'Nenhuma nota ainda. Escreva notas na aba Mensagens primeiro.':'No notes yet. Write notes on the Messages tab first.')}
+                          {liveNotes.trim()?liveNotes:(lang==='es'?'No hay notas aún. Escribe notas en la pestaña de Mensajes primero.':lang==='pt'?'Nenhuma nota ainda. Escreva notas na aba Mensagens primeiro.':lang==='id'?'No notes yet. Write notes on the Messages tab first.':'No notes yet. Write notes on the Messages tab first.')}
                         </div>
                       )}
                       {teleprompterTab==='journal'&&(
@@ -5234,7 +5239,7 @@ const loadAllEssaySections=async(essayId)=>{
                               <div style={{fontSize:Math.round(12*teleprompterSize),color:'rgba(255,255,255,0.6)',marginBottom:4}}>{new Date(j.date).toLocaleDateString()}{j.tags?' — '+j.tags:''}</div>
                               <div style={{whiteSpace:'pre-wrap'}}>{j.text}</div>
                             </div>
-                          )):(lang==='es'?'No hay entradas en el diario aún.':lang==='pt'?'Nenhuma entrada no diário ainda.':'No journal entries yet.')}
+                          )):(lang==='es'?'No hay entradas en el diario aún.':lang==='pt'?'Nenhuma entrada no diário ainda.':lang==='id'?'Belum ada entri jurnal.':'No journal entries yet.')}
                         </div>
                       )}
                       {teleprompterTab==='passages'&&(
@@ -5244,7 +5249,7 @@ const loadAllEssaySections=async(essayId)=>{
                             const verses=apiVerses[key];
                             return(<div key={pi} style={{marginBottom:16}}>
                               <div style={{fontSize:Math.round(13*teleprompterSize),fontWeight:700,color:'rgba(196,169,98,0.9)',marginBottom:6}}>{p}</div>
-                              <div style={{whiteSpace:'pre-wrap'}}>{verses?verses.map((v,vi)=>'['+v.num+'] '+v.text).join(' '):(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':'Loading...')}</div>
+                              <div style={{whiteSpace:'pre-wrap'}}>{verses?verses.map((v,vi)=>'['+v.num+'] '+v.text).join(' '):(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':lang==='id'?'Memuat...':'Loading...')}</div>
                             </div>);
                           })}
                         </div>
@@ -5252,7 +5257,7 @@ const loadAllEssaySections=async(essayId)=>{
                     </div>
                     {/* Teleprompter tab bar */}
                     <div style={{display:'flex',borderTop:'1px solid rgba(255,255,255,0.15)',background:'rgba(0,0,0,0.4)'}}>
-                      {[['notes',lang==='es'?'Notas':lang==='pt'?'Notas':'Notes'],['journal',lang==='es'?'Diario':lang==='pt'?'Diário':'Journal'],['passages',lang==='es'?'Pasajes':lang==='pt'?'Passagens':'Passages']].map(([tab,label])=>(
+                      {[['notes',lang==='es'?'Notas':lang==='pt'?'Notas':lang==='id'?'Catatan':'Notes'],['journal',lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Jurnal':'Journal'],['passages',lang==='es'?'Pasajes':lang==='pt'?'Passagens':lang==='id'?'Bacaan':'Passages']].map(([tab,label])=>(
                         <button key={tab} onClick={()=>setTeleprompterTab(tab)} style={{flex:1,padding:'8px 0',background:'none',border:'none',color:teleprompterTab===tab?'#C4A962':'rgba(255,255,255,0.5)',fontSize:11,fontWeight:teleprompterTab===tab?700:400,cursor:'pointer'}}>{label}</button>
                       ))}
                     </div>
@@ -5268,7 +5273,7 @@ const loadAllEssaySections=async(essayId)=>{
               <div style={{display:'flex',alignItems:'center',gap:12,marginTop:8}}>
                 <button onClick={()=>{setShowTeleprompter(t=>!t);gaEvent('teleprompter_toggle',{enabled:!showTeleprompter})}} style={{background:showTeleprompter?'rgba(196,169,98,0.3)':'rgba(255,255,255,0.12)',border:showTeleprompter?'1.5px solid rgba(196,169,98,0.6)':'1.5px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'6px 14px',color:'white',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:14,height:14}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                  {lang==='es'?'Notas':lang==='pt'?'Notas':'Notes'}
+                  {lang==='es'?'Notas':lang==='pt'?'Notas':lang==='id'?'Catatan':'Notes'}
                 </button>
                 <div className={`vm-timer ${isRecording?'recording':''}`} style={{margin:0}}>{formatTime(recordTime)}</div>
               </div>
@@ -5348,6 +5353,7 @@ function Onboarding({onComplete,lang,setLang}){
         <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={()=>{setLang('en');try{localStorage.setItem('dw_lang','en')}catch(e){}gaEvent('change_language',{language:'en'})}}>English</button>
         <button className={`lang-btn ${lang==='es'?'active':''}`} onClick={()=>{setLang('es');try{localStorage.setItem('dw_lang','es')}catch(e){}gaEvent('change_language',{language:'es'})}}>Español</button>
         <button className={`lang-btn ${lang==='pt'?'active':''}`} onClick={()=>{setLang('pt');try{localStorage.setItem('dw_lang','pt')}catch(e){}gaEvent('change_language',{language:'pt'})}}>Português</button>
+        <button className={`lang-btn ${lang==='id'?'active':''}`} onClick={()=>{setLang('id');try{localStorage.setItem('dw_lang','id')}catch(e){}gaEvent('change_language',{language:'id'})}}>Bahasa</button>
       </div>
       <div style={{textAlign:'center',marginBottom:8}}>
         <img src="/icons/futures-church-logo-sage.png" alt="Futures Church" style={{width:200,height:'auto'}}/>
@@ -5372,7 +5378,7 @@ function Onboarding({onComplete,lang,setLang}){
       </div>
       {chapters>1&&(
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:14,fontWeight:600,color:'var(--text)',marginBottom:8}}>{lang==='es'?'Elige de dónde':lang==='pt'?'Escolha de onde':'Choose where from'}:</div>
+          <div style={{fontSize:14,fontWeight:600,color:'var(--text)',marginBottom:8}}>{lang==='es'?'Elige de dónde':lang==='pt'?'Escolha de onde':lang==='id'?'Pilih dari mana':'Choose where from'}:</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
             {Object.entries(BIBLE_SECTIONS).map(([key,sec])=>{
               const isSelected=chapterSources.includes(key);
@@ -5388,7 +5394,7 @@ function Onboarding({onComplete,lang,setLang}){
               );
             })}
           </div>
-          <div style={{fontSize:12,color:'var(--sage)',marginTop:6}}>{lang==='es'?`${chapterSources.length} de ${chapters} seleccionados`:lang==='pt'?`${chapterSources.length} de ${chapters} selecionados`:`${chapterSources.length} of ${chapters} selected`}</div>
+          <div style={{fontSize:12,color:'var(--sage)',marginTop:6}}>{lang==='es'?`${chapterSources.length} de ${chapters} seleccionados`:lang==='pt'?`${chapterSources.length} de ${chapters} selecionados`:lang==='id'?`${chapterSources.length} of ${chapters} selected`:`${chapterSources.length} of ${chapters} selected`}</div>
         </div>
       )}
       <div className="pref-card">
