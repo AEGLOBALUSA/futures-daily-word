@@ -122,29 +122,34 @@
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback} = React;
 
-// 21 campus slots + Non-Futures option. Replace placeholder names/cities/URLs as details come in.
+// 21 Futures campuses (8 AU + 7 US + 5 ID + 1 BR) + Non-Futures option
 const CAMPUSES=[
-  {id:'futures-alpharetta',name:'Futures Alpharetta',city:'Alpharetta, GA',videoUrl:'',pastorName:''},
-  {id:'futures-bali',name:'Futures Bali',city:'Bali, Indonesia',videoUrl:'',pastorName:''},
-  {id:'futures-lagos',name:'Futures Lagos',city:'Lagos, Nigeria',videoUrl:'',pastorName:''},
-  {id:'futures-london',name:'Futures London',city:'London, UK',videoUrl:'',pastorName:''},
-  {id:'futures-online',name:'Futures Online',city:'Online',videoUrl:'',pastorName:''},
-  {id:'campus-06',name:'Campus 6',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-07',name:'Campus 7',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-08',name:'Campus 8',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-09',name:'Campus 9',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-10',name:'Campus 10',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-11',name:'Campus 11',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-12',name:'Campus 12',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-13',name:'Campus 13',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-14',name:'Campus 14',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-15',name:'Campus 15',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-16',name:'Campus 16',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-17',name:'Campus 17',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-18',name:'Campus 18',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-19',name:'Campus 19',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-20',name:'Campus 20',city:'',videoUrl:'',pastorName:''},
-  {id:'campus-21',name:'Campus 21',city:'',videoUrl:'',pastorName:''},
+  // ── Australia (8) ──
+  {id:'au-paradise',name:'Futures Paradise',city:'Paradise, SA',videoUrl:'',pastorName:''},
+  {id:'au-adelaide-city',name:'Futures Adelaide City',city:'Adelaide, SA',videoUrl:'',pastorName:''},
+  {id:'au-salisbury',name:'Futures Salisbury',city:'Salisbury, SA',videoUrl:'',pastorName:''},
+  {id:'au-south',name:'Futures South',city:'South Australia',videoUrl:'',pastorName:''},
+  {id:'au-clare-valley',name:'Futures Clare Valley',city:'Clare Valley, SA',videoUrl:'',pastorName:''},
+  {id:'au-mount-barker',name:'Futures Mount Barker',city:'Mount Barker, SA',videoUrl:'',pastorName:''},
+  {id:'au-victor-harbor',name:'Futures Victor Harbor',city:'Victor Harbor, SA',videoUrl:'',pastorName:''},
+  {id:'au-copper-coast',name:'Futures Copper Coast',city:'Copper Coast, SA',videoUrl:'',pastorName:''},
+  // ── North America (7) ──
+  {id:'us-gwinnett',name:'Futures Gwinnett',city:'Gwinnett, GA',videoUrl:'',pastorName:''},
+  {id:'us-kennesaw',name:'Futures Kennesaw',city:'Kennesaw, GA',videoUrl:'',pastorName:''},
+  {id:'us-alpharetta',name:'Futures Alpharetta',city:'Alpharetta, GA',videoUrl:'',pastorName:''},
+  {id:'us-futuros-duluth',name:'Futuros Duluth',city:'Duluth, GA',videoUrl:'',pastorName:''},
+  {id:'us-futuros-kennesaw',name:'Futuros Kennesaw',city:'Kennesaw, GA',videoUrl:'',pastorName:''},
+  {id:'us-futuros-grayson',name:'Futuros Grayson',city:'Grayson, GA',videoUrl:'',pastorName:''},
+  {id:'us-franklin',name:'Futures Franklin',city:'Franklin, TN',videoUrl:'',pastorName:''},
+  // ── Indonesia (5) ──
+  {id:'id-solo',name:'Futures Solo',city:'Surakarta, Central Java',videoUrl:'',pastorName:''},
+  {id:'id-cemani',name:'Futures Cemani',city:'Cemani, Central Java',videoUrl:'',pastorName:''},
+  {id:'id-bali',name:'Futures Bali',city:'Denpasar, Bali',videoUrl:'',pastorName:''},
+  {id:'id-samarinda',name:'Futures Samarinda',city:'Samarinda, East Kalimantan',videoUrl:'',pastorName:''},
+  {id:'id-langowan',name:'Futures Langowan',city:'Langowan, North Sulawesi',videoUrl:'',pastorName:''},
+  // ── Brazil (1) ──
+  {id:'br-rio',name:'Futures Rio',city:'Rio de Janeiro, Brazil',videoUrl:'',pastorName:''},
+  // ── Other ──
   {id:'other',name:'Non-Futures Church',city:'',videoUrl:'',pastorName:''}
 ];
 

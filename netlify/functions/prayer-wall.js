@@ -7,19 +7,25 @@ const ALLOWED_ORIGINS = [
   "http://localhost:8888"
 ];
 
-// 21 campus slots + Non-Futures. Server-side lookup for prayer wall campus names.
+// 21 Futures campuses (8 AU + 7 US + 5 ID + 1 BR) + Non-Futures
 const CAMPUSES={
-  'futures-alpharetta':'Futures Alpharetta',
-  'futures-bali':'Futures Bali',
-  'futures-lagos':'Futures Lagos',
-  'futures-london':'Futures London',
-  'futures-online':'Futures Online',
-  'campus-06':'Campus 6','campus-07':'Campus 7','campus-08':'Campus 8',
-  'campus-09':'Campus 9','campus-10':'Campus 10','campus-11':'Campus 11',
-  'campus-12':'Campus 12','campus-13':'Campus 13','campus-14':'Campus 14',
-  'campus-15':'Campus 15','campus-16':'Campus 16','campus-17':'Campus 17',
-  'campus-18':'Campus 18','campus-19':'Campus 19','campus-20':'Campus 20',
-  'campus-21':'Campus 21',
+  // Australia
+  'au-paradise':'Futures Paradise','au-adelaide-city':'Futures Adelaide City',
+  'au-salisbury':'Futures Salisbury','au-south':'Futures South',
+  'au-clare-valley':'Futures Clare Valley','au-mount-barker':'Futures Mount Barker',
+  'au-victor-harbor':'Futures Victor Harbor','au-copper-coast':'Futures Copper Coast',
+  // North America
+  'us-gwinnett':'Futures Gwinnett','us-kennesaw':'Futures Kennesaw',
+  'us-alpharetta':'Futures Alpharetta',
+  'us-futuros-duluth':'Futuros Duluth','us-futuros-kennesaw':'Futuros Kennesaw',
+  'us-futuros-grayson':'Futuros Grayson','us-franklin':'Futures Franklin',
+  // Indonesia
+  'id-solo':'Futures Solo','id-cemani':'Futures Cemani',
+  'id-bali':'Futures Bali','id-samarinda':'Futures Samarinda',
+  'id-langowan':'Futures Langowan',
+  // Brazil
+  'br-rio':'Futures Rio',
+  // Other
   'other':'Non-Futures Church'
 };
 
