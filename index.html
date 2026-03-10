@@ -3083,7 +3083,7 @@ const loadAllEssaySections=async(essayId)=>{
                 <div className="pm-check">✓</div>
                 <h3>{userProfile&&userProfile.firstName
                   ?(lang==='es'?`¡Bienvenido, ${userProfile.firstName}!`:lang==='pt'?`Bem-vindo, ${userProfile.firstName}!`:lang==='id'?`Welcome, ${userProfile.firstName}!`:`Welcome, ${userProfile.firstName}!`)
-                  :(lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':lang==='id'?'You\':'You\'re in!')}</h3>
+                  :(lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':lang==='id'?'Anda berhasil masuk!':'You\'re in!')}</h3>
                 {userProfile&&userProfile.campus&&userProfile.campus!=='other'&&(
                   <div style={{fontSize:13,color:'var(--sage)',marginTop:4}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''}</div>
                 )}
