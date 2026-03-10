@@ -20,7 +20,8 @@ html{height:100%}
 .onboard h1{font-family:Georgia,serif;font-size:32px;font-weight:400;margin-bottom:8px;color:var(--text)}
 .onboard p{color:var(--sage);margin-bottom:40px;font-size:15px;max-width:320px}
 .persona-btn{width:100%;max-width:360px;padding:16px 20px;margin:6px 0;background:var(--light);border:1.5px solid var(--border);border-radius:12px;font-size:15px;color:var(--text);cursor:pointer;transition:all 0.2s;text-align:left}
-.persona-btn:hover,.persona-btn.selected{border-color:var(--sage);background:rgba(139,157,131,0.08)}
+.persona-btn:hover{border-color:var(--sage);background:rgba(139,157,131,0.08)}
+.persona-btn.selected{border-color:var(--sage);background:rgba(74,99,64,0.18);color:var(--sage);font-weight:600;box-shadow:0 0 0 1px var(--sage)}
 .custom-input{width:100%;max-width:360px;padding:14px 16px;margin:12px 0;border:1.5px solid var(--border);border-radius:12px;font-size:15px;background:var(--light);color:var(--text);outline:none;resize:none}
 .custom-input:focus{border-color:var(--sage)}
 .settings-row{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px;padding:12px 0}

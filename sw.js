@@ -9,7 +9,7 @@ const PRECACHE_URLS = [
   '/index.html',
   '/offline.html',
   '/404.html',
-  '/styles.css?v=14',
+  '/styles.css?v=15',
   '/manifest.json',
   '/data/quotes.js',
   '/data/devotions.js',
