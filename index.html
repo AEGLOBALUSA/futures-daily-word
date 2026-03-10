@@ -904,6 +904,8 @@ const loadAllEssaySections=async(essayId)=>{
   const [emailGateError,setEmailGateError]=useState('');
   const [emailGateDone,setEmailGateDone]=useState(false);
   const [emailGateCampus,setEmailGateCampus]=useState('');
+  const [emailGateFirstName,setEmailGateFirstName]=useState('');
+  const [emailGateLastName,setEmailGateLastName]=useState('');
   const [showProfileModal,setShowProfileModal]=useState(false);
   const [profileForm,setProfileForm]=useState({firstName:'',lastName:'',email:'',phone:'',church:'',city:'',campus:''});
   const [profileSaving,setProfileSaving]=useState(false);
@@ -966,15 +968,18 @@ const loadAllEssaySections=async(essayId)=>{
   const requireEmail=(callback)=>{
     if(userProfile&&userProfile.email){callback();return;}
     emailGateCallbackRef.current=callback;
-    setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setShowEmailGate(true);
+    setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setEmailGateFirstName('');setEmailGateLastName('');setShowEmailGate(true);
   };
 
-  // Auto-show email gate right after onboarding completes (login is 1st screen after setup)
+  // Auto-show login gate on app open — first 5 opens if user hasn't completed profile
   useEffect(()=>{
-    if(setup&&(!userProfile||!userProfile.email)){
-      emailGateCallbackRef.current=null;
-      setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setShowEmailGate(true);
-    }
+    if(!setup)return;
+    if(userProfile&&userProfile.email)return;
+    let opens=0;try{opens=parseInt(localStorage.getItem('dw_gate_opens')||'0',10)}catch(e){}
+    if(opens>=5)return; // stop asking after 5 opens
+    opens++;try{localStorage.setItem('dw_gate_opens',String(opens))}catch(e){}
+    emailGateCallbackRef.current=null;
+    setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setEmailGateFirstName('');setEmailGateLastName('');setShowEmailGate(true);
   },[setup]);
 
   const submitEmailGate=async()=>{
@@ -1010,14 +1015,21 @@ const loadAllEssaySections=async(essayId)=>{
 
       // Step 3: Brand new user — register
       if(!profile){
+        const regFirst=emailGateFirstName.trim();
+        const regLast=emailGateLastName.trim();
         const regCampus=emailGateCampus||'';
-        await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',firstName:'',lastName:'',email,campus:regCampus,persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en'})});
-        profile={email,campus:regCampus};
+        await fetch('/api/user-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'register',firstName:regFirst,lastName:regLast,email,campus:regCampus,persona:setup?setup.persona:'',lang:localStorage.getItem('dw_lang')||'en'})});
+        profile={firstName:regFirst,lastName:regLast,email,campus:regCampus};
         gaEvent('profile_created',{campus:regCampus||'none'});
       }
 
-      // If user picked a campus in the gate and profile doesn't have one yet, apply it
+      // If user entered name/campus in the gate and profile doesn't have them yet, apply
+      if(emailGateFirstName.trim()&&!profile.firstName){profile.firstName=emailGateFirstName.trim();}
+      if(emailGateLastName.trim()&&!profile.lastName){profile.lastName=emailGateLastName.trim();}
       if(emailGateCampus&&!profile.campus){profile.campus=emailGateCampus;}
+
+      // Clear gate open counter since they completed it
+      try{localStorage.removeItem('dw_gate_opens')}catch(e){}
 
       localStorage.setItem('dw_profile',JSON.stringify(profile));
       setUserProfile(profile);
@@ -3018,13 +3030,13 @@ const loadAllEssaySections=async(essayId)=>{
       {/* APP UPDATE BANNER */}
       {/* EMAIL GATE — appears after onboarding or when accessing gated features */}
       {showEmailGate&&(
-        <div className="profile-modal-overlay" onClick={e=>{if(e.target===e.currentTarget&&!emailGateSaving&&emailGateCallbackRef.current){setShowEmailGate(false)}}}>
-          <div className="profile-modal" style={{maxWidth:360,padding:'28px 24px'}}>
+        <div className="profile-modal-overlay" onClick={e=>{if(e.target===e.currentTarget&&!emailGateSaving){setShowEmailGate(false)}}}>
+          <div className="profile-modal" style={{maxWidth:380,padding:'28px 24px'}}>
             {emailGateDone?(
               <div className="pm-success">
                 <div className="pm-check">✓</div>
                 <h3>{userProfile&&userProfile.firstName
-                  ?(lang==='es'?`¡Bienvenido de nuevo, ${userProfile.firstName}!`:lang==='pt'?`Bem-vindo de volta, ${userProfile.firstName}!`:`Welcome back, ${userProfile.firstName}!`)
+                  ?(lang==='es'?`¡Bienvenido, ${userProfile.firstName}!`:lang==='pt'?`Bem-vindo, ${userProfile.firstName}!`:`Welcome, ${userProfile.firstName}!`)
                   :(lang==='es'?'¡Acceso concedido!':lang==='pt'?'Acesso liberado!':'You\'re in!')}</h3>
                 {userProfile&&userProfile.campus&&userProfile.campus!=='other'&&(
                   <div style={{fontSize:13,color:'var(--sage)',marginTop:4}}>{(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''}</div>
@@ -3037,18 +3049,20 @@ const loadAllEssaySections=async(essayId)=>{
                   :(lang==='es'?'¡Bienvenido!':lang==='pt'?'Bem-vindo!':'Welcome!')}</h3>
                 <div className="pm-sub" style={{marginBottom:12}}>{emailGateCallbackRef.current
                   ?(lang==='es'?'Ingresa tu correo para acceso completo':lang==='pt'?'Digite seu email para acesso completo':'Enter your email for full access')
-                  :(lang==='es'?'Ingresa tu correo para comenzar':lang==='pt'?'Digite seu email para começar':'Enter your email to get started')}</div>
+                  :(lang==='es'?'Completa tu perfil para comenzar':lang==='pt'?'Complete seu perfil para começar':'Complete your profile to get started')}</div>
                 <div style={{background:'rgba(74,99,64,0.08)',borderRadius:10,padding:'12px 14px',marginBottom:14,fontSize:13,lineHeight:1.5,color:'var(--text)'}}>
-                  {lang==='es'?'Tu correo te conecta con tu campus, guarda tu progreso en todos tus dispositivos y te da acceso a la muro de oración y recursos de tu pastor.'
-                   :lang==='pt'?'Seu email conecta você ao seu campus, salva seu progresso em todos os dispositivos e dá acesso ao mural de oração e recursos do seu pastor.'
-                   :'Your email connects you to your campus, saves your progress across all your devices, and gives you access to the prayer wall and your pastor\'s resources.'}
+                  {lang==='es'?'Tu perfil te conecta con tu campus, guarda tu progreso en todos tus dispositivos y te da acceso a la muro de oración y recursos de tu pastor.'
+                   :lang==='pt'?'Seu perfil conecta você ao seu campus, salva seu progresso em todos os dispositivos e dá acesso ao mural de oração e recursos do seu pastor.'
+                   :'Your profile connects you to your campus, saves your progress across all your devices, and gives you access to the prayer wall and your pastor\'s resources.'}
                 </div>
                 {emailGateError&&<div className="pm-error">{emailGateError}</div>}
+                {!emailGateCallbackRef.current&&<div style={{display:'flex',gap:8,marginBottom:0}}><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateFirstName} onChange={e=>setEmailGateFirstName(e.target.value)} placeholder={lang==='es'?'Nombre':lang==='pt'?'Nome':'First name'} style={{fontSize:15,padding:'12px 16px'}}/></div><div className="pm-field" style={{flex:1}}><input type="text" value={emailGateLastName} onChange={e=>setEmailGateLastName(e.target.value)} placeholder={lang==='es'?'Apellido':lang==='pt'?'Sobrenome':'Last name'} style={{fontSize:15,padding:'12px 16px'}}/></div></div>}
                 <div className="pm-field"><input type="email" value={emailGateInput} onChange={e=>setEmailGateInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submitEmailGate()}} placeholder="you@example.com" autoFocus style={{fontSize:16,padding:'12px 16px'}}/></div>
                 {!emailGateCallbackRef.current&&<div className="pm-field" style={{marginTop:8}}><select value={emailGateCampus} onChange={e=>setEmailGateCampus(e.target.value)} style={{width:'100%',padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,color:'var(--text)',background:'var(--light)',fontFamily:'inherit'}}><option value="">{lang==='es'?'Selecciona tu campus...':lang==='pt'?'Selecione seu campus...':'Select your campus...'}</option>{CAMPUSES.map(c=><option key={c.id} value={c.id}>{c.name}{c.city?' — '+c.city:''}</option>)}</select></div>}
                 <div className="pm-privacy">{lang==='es'?'Solo devocionales y actualizaciones. Nunca compartimos tu info.':lang==='pt'?'Apenas devocionais e atualizações. Nunca compartilhamos.':'Just devotionals & updates. We never share your info.'}</div>
-                <div className="pm-actions">
-                  <button className="pm-btn-primary" disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':'Continue'}</button>
+                <div className="pm-actions" style={{display:'flex',gap:10}}>
+                  {!emailGateCallbackRef.current&&<button onClick={()=>setShowEmailGate(false)} style={{flex:1,padding:'14px 0',background:'var(--light)',color:'var(--text)',border:'1.5px solid var(--border)',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',opacity:0.7}}>{lang==='es'?'Más tarde':lang==='pt'?'Depois':'Later'}</button>}
+                  <button className="pm-btn-primary" style={{flex:2}} disabled={emailGateSaving} onClick={submitEmailGate}>{emailGateSaving?'...':'Continue'}</button>
                 </div>
               </>
             )}
