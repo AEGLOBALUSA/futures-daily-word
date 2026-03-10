@@ -3327,8 +3327,8 @@ const loadAllEssaySections=async(essayId)=>{
                   <div style={{fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:1.5,opacity:0.8}}>{L.faithJourney}</div>
                   <div style={{fontSize:11,opacity:0.7}}>{(L.journeyProgress||'').replace('{n}',completed)}</div>
                 </div>
-                <div style={{fontSize:17,fontWeight:600,marginBottom:4}}>{L.todayLesson}: {today?(lang==='es'?(today.titleEs||today.title):lang==='pt'?(today.titlePt||today.title):today.title):''}</div>
-                <div style={{fontSize:13,opacity:0.8,marginBottom:12}}>{today?(lang==='es'?(today.themeEs||today.theme):lang==='pt'?(today.themePt||today.theme):today.theme):''}</div>
+                <div style={{fontSize:17,fontWeight:600,marginBottom:4}}>{L.todayLesson}: {today?(lang==='es'?(today.titleEs||today.title):lang==='pt'?(today.titlePt||today.title):lang==='id'?(today.titleId||today.title):today.title):''}</div>
+                <div style={{fontSize:13,opacity:0.8,marginBottom:12}}>{today?(lang==='es'?(today.themeEs||today.theme):lang==='pt'?(today.themePt||today.theme):lang==='id'?(today.themeId||today.theme):today.theme):''}</div>
                 <div style={{display:'flex',gap:8,alignItems:'center'}}>
                   <div style={{flex:1,height:4,background:'rgba(255,255,255,0.2)',borderRadius:2,overflow:'hidden'}}>
                     <div style={{width:(completed/30*100)+'%',height:'100%',background:'var(--gold)',borderRadius:2,transition:'width 0.3s'}}></div>
@@ -5235,8 +5235,8 @@ const loadAllEssaySections=async(essayId)=>{
                         color:done||isCurrent?'white':'var(--sage)'
                       }}>{done?'✓':day.day}</div>
                       <div style={{flex:1}}>
-                        <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{lang==='es'?(day.titleEs||day.title):lang==='pt'?(day.titlePt||day.title):day.title}</div>
-                        <div style={{fontSize:12,color:'var(--sage)'}}>{lang==='es'?(day.themeEs||day.theme):lang==='pt'?(day.themePt||day.theme):day.theme} • {day.reading.ref}</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{lang==='es'?(day.titleEs||day.title):lang==='pt'?(day.titlePt||day.title):lang==='id'?(day.titleId||day.title):day.title}</div>
+                        <div style={{fontSize:12,color:'var(--sage)'}}>{lang==='es'?(day.themeEs||day.theme):lang==='pt'?(day.themePt||day.theme):lang==='id'?(day.themeId||day.theme):day.theme} • {day.reading.ref}</div>
                       </div>
                       {!locked&&<div style={{fontSize:18,color:'var(--sage)'}}>›</div>}
                     </div>
@@ -5252,8 +5252,8 @@ const loadAllEssaySections=async(essayId)=>{
                 <div>
                   <button onClick={()=>setPathwayViewDay(null)} style={{background:'none',border:'none',fontSize:14,color:'var(--sage)',cursor:'pointer',marginBottom:12,padding:0}}>{lang==='es'?'← Volver a todos los días':lang==='pt'?'← Voltar para todos os dias':lang==='id'?'← Kembali ke semua hari':'← Back to all days'}</button>
                   <div style={{fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:1.5,color:'var(--sage)',marginBottom:6}}>{(L.dayOfJourney||'').replace('{d}',day.day)}</div>
-                  <h2 style={{fontSize:22,fontFamily:'Georgia,serif',margin:'0 0 4px',color:'var(--text)'}}>{lang==='es'?(day.titleEs||day.title):lang==='pt'?(day.titlePt||day.title):day.title}</h2>
-                  <div style={{fontSize:14,color:'var(--gold)',fontWeight:500,marginBottom:20}}>{lang==='es'?(day.themeEs||day.theme):lang==='pt'?(day.themePt||day.theme):day.theme}</div>
+                  <h2 style={{fontSize:22,fontFamily:'Georgia,serif',margin:'0 0 4px',color:'var(--text)'}}>{lang==='es'?(day.titleEs||day.title):lang==='pt'?(day.titlePt||day.title):lang==='id'?(day.titleId||day.title):day.title}</h2>
+                  <div style={{fontSize:14,color:'var(--gold)',fontWeight:500,marginBottom:20}}>{lang==='es'?(day.themeEs||day.theme):lang==='pt'?(day.themePt||day.theme):lang==='id'?(day.themeId||day.theme):day.theme}</div>
 
                   {/* Scripture Reading */}
                   <div style={{background:'var(--light)',border:'1.5px solid var(--border)',borderRadius:14,padding:16,marginBottom:20}}>
@@ -5265,7 +5265,7 @@ const loadAllEssaySections=async(essayId)=>{
                   {/* Lesson */}
                   <div style={{marginBottom:24}}>
                     <div style={{fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:1,color:'var(--sage)',marginBottom:12}}>{L.todayLesson}</div>
-                    {(lang==='es'?(day.lessonEs||day.lesson):lang==='pt'?(day.lessonPt||day.lesson):day.lesson).split('\n\n').map((para,pi)=>(
+                    {(lang==='es'?(day.lessonEs||day.lesson):lang==='pt'?(day.lessonPt||day.lesson):lang==='id'?(day.lessonId||day.lesson):day.lesson).split('\n\n').map((para,pi)=>(
                       <p key={pi} style={{fontSize:15,lineHeight:1.7,color:'var(--text)',margin:'0 0 14px'}}>{para}</p>
                     ))}
                   </div>
