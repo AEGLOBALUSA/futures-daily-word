@@ -3690,18 +3690,18 @@ const loadAllEssaySections=async(essayId)=>{
 
           {/* CAMPUS BADGE — tap to go to community or switch campus */}
           {userProfile?.campus&&userProfile.campus!=='other'?(
-            <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:12,margin:'-4px 0 12px'}}>
-              <div style={{fontSize:12,color:'var(--sage)',fontWeight:600,opacity:0.7,cursor:'pointer'}} onClick={()=>{setPage('plans');setMoreSection('campus');fetchCampusContent();fetchPrayers();gaEvent('open_campus_from_home')}}>
+            <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:14,margin:'4px 0 16px'}}>
+              <div style={{fontSize:16,color:'var(--sage)',fontWeight:700,cursor:'pointer'}} onClick={()=>{setPage('plans');setMoreSection('campus');fetchCampusContent();fetchPrayers();gaEvent('open_campus_from_home')}}>
                 {(CAMPUSES.find(c=>c.id===userProfile.campus)||{}).name||''} ↗
               </div>
-              <div style={{width:1,height:12,background:'var(--border)'}}/>
-              <div style={{fontSize:11,color:'var(--text)',opacity:0.4,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile.firstName||'');setEmailGateLastName(userProfile.lastName||'');setEmailGateInput(userProfile.email||'');setEmailGateCampus(userProfile.campus||'');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
+              <div style={{width:1,height:16,background:'var(--border)'}}/>
+              <div style={{fontSize:14,color:'var(--text)',opacity:0.5,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile.firstName||'');setEmailGateLastName(userProfile.lastName||'');setEmailGateInput(userProfile.email||'');setEmailGateCampus(userProfile.campus||'');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
                 {lang==='es'?'Cambiar':lang==='pt'?'Mudar':lang==='id'?'Ganti':'Switch'}
               </div>
             </div>
           ):(
-            <div style={{textAlign:'center',margin:'-4px 0 12px'}}>
-              <div style={{fontSize:12,color:'var(--sage)',fontWeight:600,opacity:0.7,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile?.firstName||'');setEmailGateLastName(userProfile?.lastName||'');setEmailGateInput(userProfile?.email||'');setEmailGateCampus('');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
+            <div style={{textAlign:'center',margin:'4px 0 16px'}}>
+              <div style={{fontSize:16,color:'var(--sage)',fontWeight:700,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile?.firstName||'');setEmailGateLastName(userProfile?.lastName||'');setEmailGateInput(userProfile?.email||'');setEmailGateCampus('');setEmailGateError('';setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
                 {lang==='es'?'Seleccionar campus':lang==='pt'?'Selecionar campus':lang==='id'?'Pilih kampus':'Select a campus'} →
               </div>
             </div>
