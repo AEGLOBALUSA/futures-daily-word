@@ -1495,27 +1495,27 @@ const loadAllEssaySections=async(essayId)=>{
   ];
   // Persist badges
   useEffect(()=>{try{localStorage.setItem('dw_badges',JSON.stringify(earnedBadges))}catch(e){}},[earnedBadges]);
-  // Check for new badges
-  useEffect(()=>{
-    if(!setup)return;
-    const journalCount=journalEntries?journalEntries.length:0;
-    const prayerCount=prayers?prayers.filter(p=>p.user_email===userProfile?.email).length:0;
-    const hour=new Date().getHours();
-    const earlyBird=devotionCompleted&&hour<7;
-    const nightOwl=devotionCompleted&&hour>=22;
-    let newBadge=null;
-    BADGE_DEFS.forEach(b=>{
-      if(!earnedBadges.includes(b.id)&&b.check(streakInfo,readDays,earlyBird,journalCount,prayerCount,nightOwl)){
-        setEarnedBadges(prev=>[...prev,b.id]);
-        newBadge=b;
-      }
-    });
-    if(newBadge){
-      setShowBadgeUnlock(newBadge);
-      trackActivity('badge_earned',newBadge.id);
-      gaEvent('badge_earned',{badge:newBadge.id,name:newBadge.name});
-    }
-  },[readDays,devotionCompleted,journalEntries,prayers]);
+  // Badge checking disabled for now
+  // useEffect(()=>{
+  //   if(!setup)return;
+  //   const journalCount=journalEntries?journalEntries.length:0;
+  //   const prayerCount=prayers?prayers.filter(p=>p.user_email===userProfile?.email).length:0;
+  //   const hour=new Date().getHours();
+  //   const earlyBird=devotionCompleted&&hour<7;
+  //   const nightOwl=devotionCompleted&&hour>=22;
+  //   let newBadge=null;
+  //   BADGE_DEFS.forEach(b=>{
+  //     if(!earnedBadges.includes(b.id)&&b.check(streakInfo,readDays,earlyBird,journalCount,prayerCount,nightOwl)){
+  //       setEarnedBadges(prev=>[...prev,b.id]);
+  //       newBadge=b;
+  //     }
+  //   });
+  //   if(newBadge){
+  //     setShowBadgeUnlock(newBadge);
+  //     trackActivity('badge_earned',newBadge.id);
+  //     gaEvent('badge_earned',{badge:newBadge.id,name:newBadge.name});
+  //   }
+  // },[readDays,devotionCompleted,journalEntries,prayers]);
 
   // Plans auto-open removed — app always starts on home page with today's devotion
 
@@ -3313,53 +3313,9 @@ const loadAllEssaySections=async(essayId)=>{
         </div>
       )}
 
-      {/* ===== BADGE UNLOCK CELEBRATION ===== */}
-      {showBadgeUnlock&&(
-        <div className="milestone-overlay" onClick={()=>setShowBadgeUnlock(null)}>
-          <div className="milestone-card badge-unlock" onClick={e=>e.stopPropagation()}>
-            <div className="bdg-unlock-circle" style={{background:`linear-gradient(135deg,${showBadgeUnlock.grad[0]},${showBadgeUnlock.grad[1]})`}}>
-              <div dangerouslySetInnerHTML={{__html:showBadgeUnlock.svg}} style={{width:48,height:48}}/>
-            </div>
-            <div className="ms-number">{lang==='es'?'¡Insignia desbloqueada!':lang==='pt'?'Insígnia desbloqueada!':'Badge unlocked!'}</div>
-            <div className="ms-message">{lang==='es'?showBadgeUnlock.nameEs:lang==='pt'?showBadgeUnlock.namePt:showBadgeUnlock.name}</div>
-            <div className="ms-sub">{showBadgeUnlock.desc}</div>
-            <button className="ms-btn" onClick={()=>setShowBadgeUnlock(null)}>{lang==='es'?'¡Genial!':'Awesome!'}</button>
-          </div>
-        </div>
-      )}
+      {/* ===== BADGE UNLOCK CELEBRATION — hidden for now ===== */}
 
-      {/* ===== BADGE CASE ===== */}
-      {showBadgeCase&&(
-        <div className="milestone-overlay" onClick={()=>setShowBadgeCase(false)}>
-          <div className="bdg-case-card" onClick={e=>e.stopPropagation()}>
-            <div className="bdg-header">
-              <div className="bdg-title">{lang==='es'?'Mis Insignias':'My Badges'}</div>
-              <div className="bdg-count">{earnedBadges.length} / {BADGE_DEFS.length}</div>
-              <div className="bdg-close" onClick={()=>setShowBadgeCase(false)}>✕</div>
-            </div>
-            <div className="bdg-progress-bar">
-              <div className="bdg-progress-fill" style={{width:(earnedBadges.length/BADGE_DEFS.length*100)+'%'}}></div>
-            </div>
-            <div className="bdg-grid">
-              {BADGE_DEFS.map(b=>{
-                const earned=earnedBadges.includes(b.id);
-                return(
-                  <div key={b.id} className={'bdg-item'+(earned?' earned':' locked')}>
-                    <div className="bdg-circle" style={earned?{background:`linear-gradient(135deg,${b.grad[0]},${b.grad[1]})`,boxShadow:`0 4px 14px ${b.grad[0]}40`}:{}}>
-                      {earned
-                        ?<div dangerouslySetInnerHTML={{__html:b.svg}} className="bdg-svg"/>
-                        :<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="bdg-svg"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                      }
-                    </div>
-                    <div className="bdg-name">{earned?(lang==='es'?b.nameEs:lang==='pt'?b.namePt:b.name):'???'}</div>
-                    {earned&&<div className="bdg-desc">{b.desc}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ===== BADGE CASE — hidden for now ===== */}
 
       {/* APP UPDATE BANNER */}
       {/* LOGIN GATE — appears after onboarding or when accessing gated features */}
