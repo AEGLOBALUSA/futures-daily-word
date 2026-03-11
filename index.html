@@ -1494,7 +1494,7 @@ const loadAllEssaySections=async(essayId)=>{
   // Check for new badges
   useEffect(()=>{
     if(!setup)return;
-    const journalCount=journal?journal.length:0;
+    const journalCount=journalEntries?journalEntries.length:0;
     const prayerCount=prayers?prayers.filter(p=>p.user_email===userProfile?.email).length:0;
     const hour=new Date().getHours();
     const earlyBird=devotionCompleted&&hour<7;
@@ -1511,7 +1511,7 @@ const loadAllEssaySections=async(essayId)=>{
       trackActivity('badge_earned',newBadge.id);
       gaEvent('badge_earned',{badge:newBadge.id,name:newBadge.name});
     }
-  },[readDays,devotionCompleted,journal,prayers]);
+  },[readDays,devotionCompleted,journalEntries,prayers]);
 
   // Plans auto-open removed — app always starts on home page with today's devotion
 
