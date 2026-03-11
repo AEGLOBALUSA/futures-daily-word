@@ -3433,7 +3433,7 @@ const loadAllEssaySections=async(essayId)=>{
                   <div className="speed-picker">
                     <div className="speed-picker-title">{lang==='es'?'Velocidad':lang==='pt'?'Velocidade':lang==='id'?'Kecepatan':'Speed'}</div>
                     <div className="speed-picker-options">
-                      {[0.5,0.75,1,1.25,1.5,1.75,2].map(s=>(
+                      {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
                         <button key={s} className={`speed-opt ${audioSpeed===s?'active':''}`} onClick={()=>{changeAudioSpeed(s);setShowSpeedPicker(false);speakAllPassages(passages)}}>
                           {s===1?'1x':s+'x'}
                         </button>
@@ -3444,7 +3444,7 @@ const loadAllEssaySections=async(essayId)=>{
                 )}
                 {(speaking||speakingAll)&&(
                   <div className="speed-live">
-                    {[0.5,0.75,1,1.25,1.5,1.75,2].map(s=>(
+                    {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
                       <button key={s} className={`speed-live-btn ${audioSpeed===s?'active':''}`} onClick={()=>changeAudioSpeed(s)}>
                         {s===1?'1x':s+'x'}
                       </button>
@@ -4213,7 +4213,7 @@ const loadAllEssaySections=async(essayId)=>{
                       </button>
                       {speaking===speakingKey&&(
                         <div className="speed-live" style={{position:'relative',bottom:'auto',left:'auto'}}>
-                          {[0.5,0.75,1,1.25,1.5,1.75,2].map(s=>(
+                          {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
                             <button key={s} className={`speed-live-btn ${audioSpeed===s?'active':''}`} onClick={()=>changeAudioSpeed(s)}>{s===1?'1x':s+'x'}</button>
                           ))}
                         </div>
@@ -4306,7 +4306,7 @@ const loadAllEssaySections=async(essayId)=>{
                       </button>
                       {speaking===speakingKey&&(
                         <div className="speed-live" style={{position:'relative',bottom:'auto',left:'auto'}}>
-                          {[0.5,0.75,1,1.25,1.5,1.75,2].map(s=>(
+                          {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
                             <button key={s} className={`speed-live-btn ${audioSpeed===s?'active':''}`} onClick={()=>changeAudioSpeed(s)}>{s===1?'1x':s+'x'}</button>
                           ))}
                         </div>
