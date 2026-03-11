@@ -211,6 +211,17 @@ function App(){
 
   const [liveNotes,setLiveNotes]=useState('');
   const [readDays,setReadDays]=useState({});
+  const [streakFreeze,setStreakFreeze]=useState(()=>{try{return JSON.parse(localStorage.getItem('dw_streak_freeze'))||{used:false,weekOf:''}}catch(e){return{used:false,weekOf:''}}});
+  const [showStreakMilestone,setShowStreakMilestone]=useState(null);
+  const [showQuickDevotion,setShowQuickDevotion]=useState(false);
+  const [devotionCompleted,setDevotionCompleted]=useState(()=>{try{const d=localStorage.getItem('dw_completed_today');return d===new Date().toISOString().split('T')[0]}catch(e){return false}});
+  const [showInsightCard,setShowInsightCard]=useState(false);
+  const [insightQuestion,setInsightQuestion]=useState('');
+  const [campusReadCount,setCampusReadCount]=useState(0);
+  const [verseReaction,setVerseReaction]=useState(null);
+  const [earnedBadges,setEarnedBadges]=useState(()=>{try{return JSON.parse(localStorage.getItem('dw_badges'))||[]}catch(e){return[]}});
+  const [showBadgeUnlock,setShowBadgeUnlock]=useState(null);
+  const [showBadgeCase,setShowBadgeCase]=useState(false);
   const [fontScale,setFontScale]=useState(1);
   const [calMonth,setCalMonth]=useState(new Date().getMonth());
   const [calYear,setCalYear]=useState(new Date().getFullYear());
@@ -1388,6 +1399,119 @@ const loadAllEssaySections=async(essayId)=>{
   useEffect(()=>{if(userSpotify)safeSet('dw_user_spotify',userSpotify)},[userSpotify]);
   useEffect(()=>{try{localStorage.setItem('dw_bookHighlights',JSON.stringify(bookHighlights))}catch(e){}},[bookHighlights]);
   useEffect(()=>{try{localStorage.setItem('dw_wordHighlights',JSON.stringify(wordHighlights))}catch(e){}},[wordHighlights]);
+  useEffect(()=>{safeSet('dw_streak_freeze',JSON.stringify(streakFreeze))},[streakFreeze]);
+
+  // ===== STREAK ENGINE =====
+  const calcStreak=()=>{
+    const allDays=Object.keys(readDays).sort();
+    if(allDays.length===0)return{current:0,longest:0,total:0};
+    let streak=0;
+    const checkDate=new Date();
+    const todayStr=checkDate.toISOString().split('T')[0];
+    // Check if today is done
+    if(!readDays[todayStr]){
+      // Check if freeze available
+      const weekKey=getWeekKey();
+      if(streakFreeze.used&&streakFreeze.weekOf===weekKey){
+        // Freeze already used this week, streak may break at midnight
+      }
+    }
+    while(true){
+      const key=checkDate.toISOString().split('T')[0];
+      if(readDays[key]){streak++;checkDate.setDate(checkDate.getDate()-1)}
+      else break;
+    }
+    // Longest streak
+    let longest=0,run=0,prev=null;
+    allDays.forEach(d=>{
+      const dt=new Date(d+'T12:00:00');
+      if(prev){
+        const diff=Math.round((dt-prev)/(1000*60*60*24));
+        if(diff===1){run++}else{run=1}
+      }else{run=1}
+      if(run>longest)longest=run;
+      prev=dt;
+    });
+    return{current:streak,longest:Math.max(longest,streak),total:allDays.length};
+  };
+  const getWeekKey=()=>{const d=new Date();const day=d.getDay();const diff=d.getDate()-day;const sun=new Date(d.setDate(diff));return sun.toISOString().split('T')[0]};
+  const useStreakFreeze=()=>{
+    const weekKey=getWeekKey();
+    if(streakFreeze.used&&streakFreeze.weekOf===weekKey)return false;
+    setStreakFreeze({used:true,weekOf:weekKey});
+    return true;
+  };
+  const streakInfo=calcStreak();
+
+  // Check for milestone celebrations
+  useEffect(()=>{
+    const s=streakInfo.current;
+    const milestones=[7,14,30,60,90,180,365];
+    const shown=JSON.parse(localStorage.getItem('dw_milestones_shown')||'[]');
+    const hit=milestones.find(m=>s>=m&&!shown.includes(m));
+    if(hit){
+      setShowStreakMilestone(hit);
+      localStorage.setItem('dw_milestones_shown',JSON.stringify([...shown,hit]));
+    }
+  },[readDays]);
+
+  // Mark devotion complete
+  const markDevotionComplete=()=>{
+    const todayKey=new Date().toISOString().split('T')[0];
+    setReadDays(p=>({...p,[todayKey]:true}));
+    setDevotionCompleted(true);
+    localStorage.setItem('dw_completed_today',todayKey);
+    trackActivity('streak_complete','Day '+streakInfo.current);
+    gaEvent('devotion_complete',{streak:streakInfo.current});
+    // Generate AI insight question
+    if(passages&&passages.length>0){
+      const prompts=['What does this passage mean for your life today?','What word or phrase stood out to you?','How could you apply this to something you\'re facing?','What is God saying to you through this?','Who could you share this verse with today?','What surprised you about this passage?','How does this connect to your week so far?'];
+      setInsightQuestion(prompts[Math.floor(Math.random()*prompts.length)]);
+      setShowInsightCard(true);
+    }
+  };
+
+  // ===== BADGES SYSTEM =====
+  const BADGE_DEFS=[
+    {id:'first_read',icon:'📖',name:'First Read',nameEs:'Primera Lectura',namePt:'Primeira Leitura',desc:'Complete your first devotion',check:(s,rd,eb,j,pr)=>s.total>=1},
+    {id:'streak_3',icon:'🔥',name:'On Fire',nameEs:'En Llamas',namePt:'Em Chamas',desc:'3-day streak',check:(s)=>s.current>=3},
+    {id:'streak_7',icon:'🌟',name:'Faithful Week',nameEs:'Semana Fiel',namePt:'Semana Fiel',desc:'7-day streak',check:(s)=>s.current>=7},
+    {id:'streak_14',icon:'💪',name:'Two Strong',nameEs:'Dos Fuerte',namePt:'Duas Fortes',desc:'14-day streak',check:(s)=>s.current>=14},
+    {id:'streak_30',icon:'⭐',name:'Monthly Warrior',nameEs:'Guerrero Mensual',namePt:'Guerreiro Mensal',desc:'30-day streak',check:(s)=>s.current>=30},
+    {id:'streak_90',icon:'🏆',name:'Quarterly Champion',nameEs:'Campeón Trimestral',namePt:'Campeão Trimestral',desc:'90-day streak',check:(s)=>s.current>=90},
+    {id:'streak_365',icon:'👑',name:'Year of the Word',nameEs:'Año de la Palabra',namePt:'Ano da Palavra',desc:'365-day streak',check:(s)=>s.current>=365},
+    {id:'journal_1',icon:'✏️',name:'First Entry',nameEs:'Primera Entrada',namePt:'Primeira Entrada',desc:'Write your first journal entry',check:(s,rd,eb,j)=>j>=1},
+    {id:'journal_10',icon:'📝',name:'Reflector',nameEs:'Reflexivo',namePt:'Reflexivo',desc:'Write 10 journal entries',check:(s,rd,eb,j)=>j>=10},
+    {id:'prayer_1',icon:'🙏',name:'Prayer Warrior',nameEs:'Guerrero de Oración',namePt:'Guerreiro de Oração',desc:'Post your first prayer',check:(s,rd,eb,j,pr)=>pr>=1},
+    {id:'total_10',icon:'📚',name:'Committed',nameEs:'Comprometido',namePt:'Comprometido',desc:'Read 10 total days',check:(s)=>s.total>=10},
+    {id:'total_50',icon:'🎯',name:'Half Century',nameEs:'Medio Siglo',namePt:'Meio Século',desc:'Read 50 total days',check:(s)=>s.total>=50},
+    {id:'total_100',icon:'💯',name:'Centurion',nameEs:'Centurión',namePt:'Centurião',desc:'Read 100 total days',check:(s)=>s.total>=100},
+    {id:'early_bird',icon:'🌅',name:'Early Bird',nameEs:'Madrugador',namePt:'Madrugador',desc:'Complete devotion before 7am',check:(s,rd,eb)=>eb},
+    {id:'night_owl',icon:'🌙',name:'Night Owl',nameEs:'Noctámbulo',namePt:'Coruja',desc:'Complete devotion after 10pm',check:(s,rd,eb,j,pr,no)=>no},
+  ];
+  // Persist badges
+  useEffect(()=>{try{localStorage.setItem('dw_badges',JSON.stringify(earnedBadges))}catch(e){}},[earnedBadges]);
+  // Check for new badges
+  useEffect(()=>{
+    if(!setup)return;
+    const journalCount=journal?journal.length:0;
+    const prayerCount=prayers?prayers.filter(p=>p.user_email===userProfile?.email).length:0;
+    const hour=new Date().getHours();
+    const earlyBird=devotionCompleted&&hour<7;
+    const nightOwl=devotionCompleted&&hour>=22;
+    let newBadge=null;
+    BADGE_DEFS.forEach(b=>{
+      if(!earnedBadges.includes(b.id)&&b.check(streakInfo,readDays,earlyBird,journalCount,prayerCount,nightOwl)){
+        setEarnedBadges(prev=>[...prev,b.id]);
+        newBadge=b;
+      }
+    });
+    if(newBadge){
+      setShowBadgeUnlock(newBadge);
+      trackActivity('badge_earned',newBadge.id);
+      gaEvent('badge_earned',{badge:newBadge.id,name:newBadge.name});
+    }
+  },[readDays,devotionCompleted,journal,prayers]);
 
   // Plans auto-open removed — app always starts on home page with today's devotion
 
@@ -1883,12 +2007,25 @@ const loadAllEssaySections=async(essayId)=>{
       }catch(e){}
     };
     checkPush();
-    // Show notification prompt after 3rd visit if not already decided
+    // Smart notification prompt — surfaces at the right moment
     const visits=parseInt(localStorage.getItem('dw_visits')||'0')+1;
     try{localStorage.setItem('dw_visits',String(visits))}catch(e){}
     const dismissed=localStorage.getItem('dw_notif_dismissed');
-    if(visits>=3&&!dismissed&&!pushEnabled&&'PushManager' in window){
-      setTimeout(()=>setShowNotifPrompt(true),3000);
+    const dismissedAt=localStorage.getItem('dw_notif_dismissed_at');
+    const daysSinceDismiss=dismissedAt?Math.floor((Date.now()-parseInt(dismissedAt))/(1000*60*60*24)):999;
+    if(!pushEnabled&&'PushManager' in window){
+      // Original: show after 3rd visit if never dismissed
+      if(visits>=3&&!dismissed){
+        setTimeout(()=>setShowNotifPrompt(true),3000);
+      }
+      // Re-surface for users with a streak who dismissed > 7 days ago (invested users)
+      else if(dismissed==='later'&&daysSinceDismiss>=7){
+        const rd=JSON.parse(localStorage.getItem('dw_readDays')||'{}');
+        const streakDays=Object.keys(rd).length;
+        if(streakDays>=3){
+          setTimeout(()=>setShowNotifPrompt(true),5000);
+        }
+      }
     }
   },[]);
 
@@ -2045,11 +2182,11 @@ const loadAllEssaySections=async(essayId)=>{
     try{localStorage.setItem('dw_fontscale',newScale)}catch(e){}
   };
 
-  // Auto-log today as read when viewing home
+  // Check if today already completed on load
   useEffect(()=>{
     if(setup&&page==='home'){
       const todayKey=new Date().toISOString().split('T')[0];
-      setReadDays(p=>{if(p[todayKey])return p;return{...p,[todayKey]:true}});
+      if(readDays[todayKey])setDevotionCompleted(true);
     }
   },[page,setup]);
 
@@ -3151,6 +3288,68 @@ const loadAllEssaySections=async(essayId)=>{
 
   return(
     <div className="app-container">
+      {/* ===== STREAK MILESTONE CELEBRATION ===== */}
+      {showStreakMilestone&&(
+        <div className="milestone-overlay" onClick={()=>setShowStreakMilestone(null)}>
+          <div className="milestone-card" onClick={e=>e.stopPropagation()}>
+            <div className="ms-emoji">{showStreakMilestone>=365?'👑':showStreakMilestone>=90?'🏆':showStreakMilestone>=30?'⭐':'🔥'}</div>
+            <div className="ms-number">{showStreakMilestone} {lang==='es'?'días':lang==='pt'?'dias':'days'}!</div>
+            <div className="ms-message">{
+              showStreakMilestone>=365?(lang==='es'?'¡Un año completo en la Palabra!':'A full year in the Word!'):
+              showStreakMilestone>=180?(lang==='es'?'¡Medio año de fidelidad!':'Six months of faithfulness!'):
+              showStreakMilestone>=90?(lang==='es'?'¡Tres meses de consistencia!':'Three months of consistency!'):
+              showStreakMilestone>=60?(lang==='es'?'¡Dos meses fuertes!':'Two strong months!'):
+              showStreakMilestone>=30?(lang==='es'?'¡Un mes en la Palabra!':'One month in the Word!'):
+              showStreakMilestone>=14?(lang==='es'?'¡Dos semanas seguidas!':'Two weeks running!'):
+              (lang==='es'?'¡Primera semana completa!':'First full week!')
+            }</div>
+            <div className="ms-sub">{lang==='es'?'Estás construyendo algo real.':'You\'re building something real.'}</div>
+            <button className="ms-btn" onClick={()=>setShowStreakMilestone(null)}>{lang==='es'?'Seguir adelante':'Keep going'}</button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== BADGE UNLOCK CELEBRATION ===== */}
+      {showBadgeUnlock&&(
+        <div className="milestone-overlay" onClick={()=>setShowBadgeUnlock(null)}>
+          <div className="milestone-card badge-unlock" onClick={e=>e.stopPropagation()}>
+            <div className="ms-emoji" style={{fontSize:64}}>{showBadgeUnlock.icon}</div>
+            <div className="ms-number">{lang==='es'?'¡Insignia desbloqueada!':lang==='pt'?'Insígnia desbloqueada!':'Badge unlocked!'}</div>
+            <div className="ms-message">{lang==='es'?showBadgeUnlock.nameEs:lang==='pt'?showBadgeUnlock.namePt:showBadgeUnlock.name}</div>
+            <div className="ms-sub">{showBadgeUnlock.desc}</div>
+            <button className="ms-btn" onClick={()=>setShowBadgeUnlock(null)}>🎉 {lang==='es'?'¡Genial!':'Awesome!'}</button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== BADGE CASE ===== */}
+      {showBadgeCase&&(
+        <div className="milestone-overlay" onClick={()=>setShowBadgeCase(false)}>
+          <div className="bdg-case-card" onClick={e=>e.stopPropagation()}>
+            <div className="bdg-header">
+              <div className="bdg-title">🏅 {lang==='es'?'Mis Insignias':'My Badges'}</div>
+              <div className="bdg-count">{earnedBadges.length}/{BADGE_DEFS.length}</div>
+              <div className="bdg-close" onClick={()=>setShowBadgeCase(false)}>✕</div>
+            </div>
+            <div className="bdg-progress-bar">
+              <div className="bdg-progress-fill" style={{width:(earnedBadges.length/BADGE_DEFS.length*100)+'%'}}></div>
+            </div>
+            <div className="bdg-grid">
+              {BADGE_DEFS.map(b=>{
+                const earned=earnedBadges.includes(b.id);
+                return(
+                  <div key={b.id} className={'bdg-item'+(earned?' earned':' locked')}>
+                    <div className="bdg-icon">{earned?b.icon:'🔒'}</div>
+                    <div className="bdg-name">{earned?(lang==='es'?b.nameEs:lang==='pt'?b.namePt:b.name):'???'}</div>
+                    {earned&&<div className="bdg-desc">{b.desc}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* APP UPDATE BANNER */}
       {/* LOGIN GATE — appears after onboarding or when accessing gated features */}
       {showEmailGate&&(()=>{
@@ -3303,6 +3502,219 @@ const loadAllEssaySections=async(essayId)=>{
             <div className="author">— {quote.author}</div>
           </div>
 
+          <div style={{marginBottom:20}}>
+            <div className="trans-row" style={{marginBottom:10,alignItems:'center',justifyContent:'center'}}>
+              {lang==='es'?(
+                <button className="trans-btn active">RVR</button>
+              ):TRANSLATIONS.map(t=>(
+                <button key={t} className={`trans-btn ${translation===t?'active':''}`} onClick={()=>{setTranslation(t);gaEvent('change_translation',{translation:t})}}>{t}</button>
+              ))}
+            </div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
+              <div style={{position:'relative'}}>
+                <button className={`audio-btn ${speaking||speakingAll?'playing':''}`} style={{padding:'7px 14px',borderRadius:20}} onClick={()=>{if(speaking||speakingAll){stopAudio();setShowSpeedPicker(false)}else{setShowSpeedPicker(!showSpeedPicker)}}} disabled={!!audioLoading}>
+                  {audioLoading?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:14,height:14,animation:'spin 1s linear infinite'}}><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>:(speaking||speakingAll)?<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>:<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>}
+                  {audioLoading?'...':(speaking||speakingAll)?(lang==='es'?'Parar':lang==='pt'?'Parar':lang==='id'?'Berhenti':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':lang==='id'?'Dengarkan':'Listen')}
+                </button>
+                {showSpeedPicker&&!speaking&&!speakingAll&&(
+                  <React.Fragment>
+                  <div className="speed-backdrop" onClick={()=>setShowSpeedPicker(false)}/>
+                  <div className="speed-picker">
+                    <div className="speed-picker-title">{lang==='es'?'Velocidad':lang==='pt'?'Velocidade':lang==='id'?'Kecepatan':'Speed'}</div>
+                    <div className="speed-picker-options">
+                      {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
+                        <button key={s} className={`speed-opt ${audioSpeed===s?'active':''}`} onClick={()=>{changeAudioSpeed(s);setShowSpeedPicker(false);speakAllPassages(passages)}}>
+                          {s===1?'1x':s+'x'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  </React.Fragment>
+                )}
+                {(speaking||speakingAll)&&(
+                  <div className="speed-live">
+                    {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
+                      <button key={s} className={`speed-live-btn ${audioSpeed===s?'active':''}`} onClick={()=>changeAudioSpeed(s)}>
+                        {s===1?'1x':s+'x'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="font-controls">
+                <button className="font-btn" onClick={()=>changeFontSize(-0.1)}>A-</button>
+                <span className="font-label">{Math.round(fontScale*100)}%</span>
+                <button className="font-btn" onClick={()=>changeFontSize(0.1)}>A+</button>
+              </div>
+            </div>
+          </div>
+          {loadingTrans&&<div style={{textAlign:'center',fontSize:13,color:'var(--sage)',marginBottom:12}}>{L.loadingTrans}</div>}
+          <div style={{textAlign:'center',marginBottom:16}}>
+            <button className="comm-btn" style={{fontSize:12,padding:'6px 16px'}} onClick={()=>setPage('settings')}>
+              {L.chaptersPerDay}: {setup.chapters||1} &middot; {L.versesPerPassage}: {setup.versesPerPassage||30}
+            </button>
+          </div>
+          <div className="day-nav">
+            <button onClick={()=>{setDayOffset(d=>d-1);gaEvent('day_navigate',{direction:'previous'})}}>{L.prev}</button>
+            {dayOffset!==0&&<button onClick={()=>{setDayOffset(0);gaEvent('day_navigate',{direction:'today'})}}>{L.today}</button>}
+            <button onClick={()=>{setDayOffset(d=>d+1);gaEvent('day_navigate',{direction:'next'})}}>{L.next}</button>
+          </div>
+          {(showQuickDevotion?[passages[0]]:passages).map((pName,pi)=>{
+            if(!pName)return null;
+            const pData=BIBLE[pName]||parsePassage(pName);
+            if(!pData)return null;
+            const numV=showQuickDevotion?5:(setup.versesPerPassage||30);
+            const sources=setup.chapterSources;
+            const allVerses=getVerses(pName);
+            const verses=allVerses.slice(0,numV);
+            if(verses.length===0)return(
+              <React.Fragment key={pi}>
+              <div className="passage-section" style={{textAlign:'center',padding:'40px 20px',color:'var(--sage)'}}>
+                <h2 style={{marginBottom:12}}>{lang==='es'?passageToEs(pName):lang==='pt'?passageToPt(pName):pName}</h2>
+                <div style={{fontSize:14}}>{loadingTrans?(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':lang==='id'?'Memuat...':'Loading...'):(lang==='es'?'No se pudo cargar este pasaje':lang==='pt'?'Não foi possível carregar esta passagem':lang==='id'?'Tidak dapat memuat bacaan ini':'Could not load this passage')}</div>
+              </div>
+              </React.Fragment>
+            );
+            // Show section divider for each chapter when sources are set
+            const showSectionLabel=sources&&sources.length>0&&(setup.chapters||1)>1;
+            const sectionKey=showSectionLabel?sources[pi%sources.length]:null;
+            const section=sectionKey?BIBLE_SECTIONS[sectionKey]:null;
+            return(
+              <React.Fragment key={pi}>
+              {section&&(
+                <div style={{display:'flex',alignItems:'center',gap:10,margin:'18px 0 8px',paddingBottom:8,borderBottom:'1px solid var(--border)'}}>
+                  <span style={{fontSize:18}}>{section.emoji}</span>
+                  <span style={{fontSize:14,fontWeight:600,color:'var(--sage)',letterSpacing:'0.5px',textTransform:'uppercase'}}>{lang==='es'?section.labelEs:lang==='pt'?(section.labelPt||section.label):section.label}</span>
+                </div>
+              )}
+              <div key={pi} className={`passage-section ${speaking===pName?'now-playing':''}`}>
+                <div className="passage-header">
+                  <h2>{lang==='es'?passageToEs(pName):lang==='pt'?passageToPt(pName):pName}</h2>
+                  <div style={{display:'flex',gap:6}}>
+                    {(()=>{const allHl=verses.every((_,vi)=>highlights[vKey(pName,vi)]);return(
+                    <button className="comm-btn" style={{borderColor:'var(--gold)',color:'var(--gold)'}} onClick={()=>selectAllDailyPassages()}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:14,height:14,verticalAlign:'middle',marginRight:3}}><rect x="3" y="3" width="18" height="18" rx="2"/>{allHl&&<path d="M9 11l3 3L22 4"/>}</svg>
+                      {allHl?(lang==='es'?'Deseleccionar':lang==='pt'?'Desmarcar':lang==='id'?'Batal Pilih':'Deselect'):(lang==='es'?'Seleccionar Todo':lang==='pt'?'Selecionar Tudo':lang==='id'?'Pilih Semua':'Select All')}
+                    </button>)})()}
+                    <button className="comm-btn" onClick={()=>{setCommPassage(pName);setShowComm(true);gaEvent('open_commentary',{passage:pName})}}>{L.commentary}</button>
+                  </div>
+                </div>
+                {verses.map((v,vi)=>{
+                  const key=vKey(pName,vi);
+                  const hlClass=highlights[key]?`hl-${highlights[key]}`:'';
+                  const hasIL=!!ilData[key];
+                  const isLoading=!!ilLoading[key];
+                  const isDragSelected=dragSelect&&dragSelect.pName===pName&&vi>=Math.min(dragSelect.startIdx,dragSelect.endIdx)&&vi<=Math.max(dragSelect.startIdx,dragSelect.endIdx);
+                  return(
+                    <div key={vi}>
+                      <div className={`verse ${hlClass} ${hasIL?'il-verse':''}`}
+                        data-vidx={vi}
+                        style={isDragSelected?{background:'rgba(196,169,98,0.25)',borderRadius:8}:undefined}
+                        onPointerDown={(e)=>onVersePointerDown(e,pName,vi,verses)}
+                        onPointerMove={(e)=>onVersePointerMove(e,pName,vi)}
+                        onPointerUp={(e)=>onVersePointerUp(e,pName,vi)}
+                        onTouchMove={(e)=>onVerseTouchMove(e,pName,verses)}
+                        onClick={(e)=>onVerseClick(e,pName,vi,verses)}>
+                        <span className="vnum">{vi+1}</span>
+                        {hasIL?renderInterlinearVerse(v,key):renderVerse(v,key,pName,vi)}
+                      </div>
+                      {isLoading&&<div style={{textAlign:'center',fontSize:11,color:'var(--gold)',padding:'4px 0'}}>{lang==='es'?'Cargando':lang==='pt'?'Carregando':lang==='id'?'Memuat':'Loading'} {pData.book==='Psalms'||pData.book==='Proverbs'||pData.book==='Isaiah'||pData.book==='Genesis'?(lang==='es'?'Hebreo':lang==='pt'?'Hebraico':lang==='id'?'Ibrani':'Hebrew'):(lang==='es'?'Griego':lang==='pt'?'Grego':lang==='id'?'Yunani':'Greek')}...</div>}
+                    </div>
+                  );
+                })}
+              </div>
+              </React.Fragment>
+            );
+          })}
+
+          {/* ===== VERSE REACTIONS ===== */}
+          {passages&&passages.length>0&&(
+            <div className="verse-reactions">
+              <div className="vr-label">{lang==='es'?'¿Cómo te habló la lectura de hoy?':'How did today\'s reading speak to you?'}</div>
+              <div className="vr-buttons">
+                {[{e:'🙏',l:'Amen'},{e:'💡',l:'Insight'},{e:'❤️',l:'Love'},{e:'🔥',l:'Fire'},{e:'😢',l:'Moved'}].map(r=>(
+                  <button key={r.e} className={'vr-btn'+(verseReaction===r.e?' active':'')} onClick={()=>{setVerseReaction(verseReaction===r.e?null:r.e);trackActivity('verse_reaction',r.l);gaEvent('verse_reaction',{type:r.l})}}>
+                    <span className="vr-emoji">{r.e}</span>
+                    <span className="vr-name">{r.l}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ===== STREAK BAR + COMPLETION ===== */}
+          <div className="streak-home-bar">
+            <div className="shb-left">
+              <div className="shb-fire">{streakInfo.current>0?'🔥':'○'}</div>
+              <div className="shb-info">
+                <div className="shb-count">{streakInfo.current} {streakInfo.current===1?(lang==='es'?'día':lang==='pt'?'dia':'day'):(lang==='es'?'días':lang==='pt'?'dias':'days')}</div>
+                <div className="shb-label">{lang==='es'?'Racha actual':lang==='pt'?'Sequência atual':lang==='id'?'Streak saat ini':'Current streak'}</div>
+              </div>
+            </div>
+            <div className="shb-week">
+              {[0,1,2,3,4,5,6].map(i=>{
+                const d=new Date();d.setDate(d.getDate()-d.getDay()+i);
+                const key=d.toISOString().split('T')[0];
+                const done=readDays[key];
+                const isToday=key===new Date().toISOString().split('T')[0];
+                return <div key={i} className={'shb-dot'+(done?' done':'')+(isToday?' today':'')} title={['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]}>{done?'✓':['S','M','T','W','T','F','S'][i]}</div>
+              })}
+            </div>
+            {!devotionCompleted?(
+              <button className="shb-complete-btn" onClick={markDevotionComplete}>
+                {lang==='es'?'✓ Completar':lang==='pt'?'✓ Completar':lang==='id'?'✓ Selesai':'✓ Complete'}
+              </button>
+            ):(
+              <div className="shb-done-badge">✓ {lang==='es'?'Hecho':lang==='pt'?'Feito':lang==='id'?'Selesai':'Done'}</div>
+            )}
+            {/* Streak freeze + badge count row */}
+            <div className="shb-extras">
+              {streakInfo.current>0&&!devotionCompleted&&(()=>{
+                const weekKey=getWeekKey();
+                const freezeAvail=!(streakFreeze.used&&streakFreeze.weekOf===weekKey);
+                return freezeAvail?(
+                  <button className="shb-freeze-btn" onClick={()=>{if(useStreakFreeze()){trackActivity('streak_freeze','used');gaEvent('streak_freeze')}}}>
+                    🧊 {lang==='es'?'Congelar racha (1/semana)':'Freeze streak (1/week)'}
+                  </button>
+                ):(
+                  <span className="shb-freeze-used">🧊 {lang==='es'?'Congelación usada esta semana':'Freeze used this week'}</span>
+                );
+              })()}
+              {earnedBadges.length>0&&(
+                <button className="shb-badges-btn" onClick={()=>setShowBadgeCase(true)}>
+                  🏅 {earnedBadges.length}/{BADGE_DEFS.length} {lang==='es'?'insignias':'badges'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* QUICK DEVOTION MODE */}
+          {!devotionCompleted&&(
+            <div style={{textAlign:'center',marginBottom:12}}>
+              <span className="quick-devo-link" onClick={()=>setShowQuickDevotion(!showQuickDevotion)}>
+                {showQuickDevotion?(lang==='es'?'Ver lectura completa':'See full reading'):(lang==='es'?'⚡ Devoción de 60 segundos':'⚡ 60-second devotion')}
+              </span>
+            </div>
+          )}
+
+          {/* AI INSIGHT CARD — shows after marking complete */}
+          {showInsightCard&&devotionCompleted&&(
+            <div className="insight-card">
+              <div className="ic-close" onClick={()=>setShowInsightCard(false)}>✕</div>
+              <div className="ic-icon">💭</div>
+              <div className="ic-question">{insightQuestion}</div>
+              <button className="ic-journal-btn" onClick={()=>{setShowInsightCard(false);setPage('journal');setShowJournalForm(true);setNewJournalText(insightQuestion+'\n\n')}}>{lang==='es'?'Escribir en diario':'Write in journal'}</button>
+            </div>
+          )}
+
+          {/* CAMPUS READING COUNT */}
+          {userProfile?.campus&&campusReadCount>0&&(
+            <div className="campus-pulse">
+              <span className="cp-dot"></span>
+              {campusReadCount} {lang==='es'?'personas en tu campus leyeron hoy':'people at your campus read today'}
+            </div>
+          )}
+
           {/* CAMPUS BADGE — tap to go to community or switch campus */}
           {userProfile?.campus&&userProfile.campus!=='other'?(
             <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:12,margin:'-4px 0 12px'}}>
@@ -3412,130 +3824,6 @@ const loadAllEssaySections=async(essayId)=>{
               </div>
             )}
           </div>
-
-          <div style={{marginBottom:20}}>
-            <div className="trans-row" style={{marginBottom:10,alignItems:'center',justifyContent:'center'}}>
-              {lang==='es'?(
-                <button className="trans-btn active">RVR</button>
-              ):TRANSLATIONS.map(t=>(
-                <button key={t} className={`trans-btn ${translation===t?'active':''}`} onClick={()=>{setTranslation(t);gaEvent('change_translation',{translation:t})}}>{t}</button>
-              ))}
-            </div>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12}}>
-              <div style={{position:'relative'}}>
-                <button className={`audio-btn ${speaking||speakingAll?'playing':''}`} style={{padding:'7px 14px',borderRadius:20}} onClick={()=>{if(speaking||speakingAll){stopAudio();setShowSpeedPicker(false)}else{setShowSpeedPicker(!showSpeedPicker)}}} disabled={!!audioLoading}>
-                  {audioLoading?<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:14,height:14,animation:'spin 1s linear infinite'}}><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round"/></svg>:(speaking||speakingAll)?<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>:<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>}
-                  {audioLoading?'...':(speaking||speakingAll)?(lang==='es'?'Parar':lang==='pt'?'Parar':lang==='id'?'Berhenti':'Stop'):(lang==='es'?'Escuchar':lang==='pt'?'Ouvir':lang==='id'?'Dengarkan':'Listen')}
-                </button>
-                {showSpeedPicker&&!speaking&&!speakingAll&&(
-                  <React.Fragment>
-                  <div className="speed-backdrop" onClick={()=>setShowSpeedPicker(false)}/>
-                  <div className="speed-picker">
-                    <div className="speed-picker-title">{lang==='es'?'Velocidad':lang==='pt'?'Velocidade':lang==='id'?'Kecepatan':'Speed'}</div>
-                    <div className="speed-picker-options">
-                      {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
-                        <button key={s} className={`speed-opt ${audioSpeed===s?'active':''}`} onClick={()=>{changeAudioSpeed(s);setShowSpeedPicker(false);speakAllPassages(passages)}}>
-                          {s===1?'1x':s+'x'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  </React.Fragment>
-                )}
-                {(speaking||speakingAll)&&(
-                  <div className="speed-live">
-                    {[0.5,0.75,0.85,1,1.25,1.5,1.75,2].map(s=>(
-                      <button key={s} className={`speed-live-btn ${audioSpeed===s?'active':''}`} onClick={()=>changeAudioSpeed(s)}>
-                        {s===1?'1x':s+'x'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="font-controls">
-                <button className="font-btn" onClick={()=>changeFontSize(-0.1)}>A-</button>
-                <span className="font-label">{Math.round(fontScale*100)}%</span>
-                <button className="font-btn" onClick={()=>changeFontSize(0.1)}>A+</button>
-              </div>
-            </div>
-          </div>
-          {loadingTrans&&<div style={{textAlign:'center',fontSize:13,color:'var(--sage)',marginBottom:12}}>{L.loadingTrans}</div>}
-          <div style={{textAlign:'center',marginBottom:16}}>
-            <button className="comm-btn" style={{fontSize:12,padding:'6px 16px'}} onClick={()=>setPage('settings')}>
-              {L.chaptersPerDay}: {setup.chapters||1} &middot; {L.versesPerPassage}: {setup.versesPerPassage||30}
-            </button>
-          </div>
-          <div className="day-nav">
-            <button onClick={()=>{setDayOffset(d=>d-1);gaEvent('day_navigate',{direction:'previous'})}}>{L.prev}</button>
-            {dayOffset!==0&&<button onClick={()=>{setDayOffset(0);gaEvent('day_navigate',{direction:'today'})}}>{L.today}</button>}
-            <button onClick={()=>{setDayOffset(d=>d+1);gaEvent('day_navigate',{direction:'next'})}}>{L.next}</button>
-          </div>
-          {passages.map((pName,pi)=>{
-            const pData=BIBLE[pName]||parsePassage(pName);
-            if(!pData)return null;
-            const numV=setup.versesPerPassage||30;
-            const sources=setup.chapterSources;
-            const allVerses=getVerses(pName);
-            const verses=allVerses.slice(0,numV);
-            if(verses.length===0)return(
-              <React.Fragment key={pi}>
-              <div className="passage-section" style={{textAlign:'center',padding:'40px 20px',color:'var(--sage)'}}>
-                <h2 style={{marginBottom:12}}>{lang==='es'?passageToEs(pName):lang==='pt'?passageToPt(pName):pName}</h2>
-                <div style={{fontSize:14}}>{loadingTrans?(lang==='es'?'Cargando...':lang==='pt'?'Carregando...':lang==='id'?'Memuat...':'Loading...'):(lang==='es'?'No se pudo cargar este pasaje':lang==='pt'?'Não foi possível carregar esta passagem':lang==='id'?'Tidak dapat memuat bacaan ini':'Could not load this passage')}</div>
-              </div>
-              </React.Fragment>
-            );
-            // Show section divider for each chapter when sources are set
-            const showSectionLabel=sources&&sources.length>0&&(setup.chapters||1)>1;
-            const sectionKey=showSectionLabel?sources[pi%sources.length]:null;
-            const section=sectionKey?BIBLE_SECTIONS[sectionKey]:null;
-            return(
-              <React.Fragment key={pi}>
-              {section&&(
-                <div style={{display:'flex',alignItems:'center',gap:10,margin:'18px 0 8px',paddingBottom:8,borderBottom:'1px solid var(--border)'}}>
-                  <span style={{fontSize:18}}>{section.emoji}</span>
-                  <span style={{fontSize:14,fontWeight:600,color:'var(--sage)',letterSpacing:'0.5px',textTransform:'uppercase'}}>{lang==='es'?section.labelEs:lang==='pt'?(section.labelPt||section.label):section.label}</span>
-                </div>
-              )}
-              <div key={pi} className={`passage-section ${speaking===pName?'now-playing':''}`}>
-                <div className="passage-header">
-                  <h2>{lang==='es'?passageToEs(pName):lang==='pt'?passageToPt(pName):pName}</h2>
-                  <div style={{display:'flex',gap:6}}>
-                    {(()=>{const allHl=verses.every((_,vi)=>highlights[vKey(pName,vi)]);return(
-                    <button className="comm-btn" style={{borderColor:'var(--gold)',color:'var(--gold)'}} onClick={()=>selectAllDailyPassages()}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{width:14,height:14,verticalAlign:'middle',marginRight:3}}><rect x="3" y="3" width="18" height="18" rx="2"/>{allHl&&<path d="M9 11l3 3L22 4"/>}</svg>
-                      {allHl?(lang==='es'?'Deseleccionar':lang==='pt'?'Desmarcar':lang==='id'?'Batal Pilih':'Deselect'):(lang==='es'?'Seleccionar Todo':lang==='pt'?'Selecionar Tudo':lang==='id'?'Pilih Semua':'Select All')}
-                    </button>)})()}
-                    <button className="comm-btn" onClick={()=>{setCommPassage(pName);setShowComm(true);gaEvent('open_commentary',{passage:pName})}}>{L.commentary}</button>
-                  </div>
-                </div>
-                {verses.map((v,vi)=>{
-                  const key=vKey(pName,vi);
-                  const hlClass=highlights[key]?`hl-${highlights[key]}`:'';
-                  const hasIL=!!ilData[key];
-                  const isLoading=!!ilLoading[key];
-                  const isDragSelected=dragSelect&&dragSelect.pName===pName&&vi>=Math.min(dragSelect.startIdx,dragSelect.endIdx)&&vi<=Math.max(dragSelect.startIdx,dragSelect.endIdx);
-                  return(
-                    <div key={vi}>
-                      <div className={`verse ${hlClass} ${hasIL?'il-verse':''}`}
-                        data-vidx={vi}
-                        style={isDragSelected?{background:'rgba(196,169,98,0.25)',borderRadius:8}:undefined}
-                        onPointerDown={(e)=>onVersePointerDown(e,pName,vi,verses)}
-                        onPointerMove={(e)=>onVersePointerMove(e,pName,vi)}
-                        onPointerUp={(e)=>onVersePointerUp(e,pName,vi)}
-                        onTouchMove={(e)=>onVerseTouchMove(e,pName,verses)}
-                        onClick={(e)=>onVerseClick(e,pName,vi,verses)}>
-                        <span className="vnum">{vi+1}</span>
-                        {hasIL?renderInterlinearVerse(v,key):renderVerse(v,key,pName,vi)}
-                      </div>
-                      {isLoading&&<div style={{textAlign:'center',fontSize:11,color:'var(--gold)',padding:'4px 0'}}>{lang==='es'?'Cargando':lang==='pt'?'Carregando':lang==='id'?'Memuat':'Loading'} {pData.book==='Psalms'||pData.book==='Proverbs'||pData.book==='Isaiah'||pData.book==='Genesis'?(lang==='es'?'Hebreo':lang==='pt'?'Hebraico':lang==='id'?'Ibrani':'Hebrew'):(lang==='es'?'Griego':lang==='pt'?'Grego':lang==='id'?'Yunani':'Greek')}...</div>}
-                    </div>
-                  );
-                })}
-              </div>
-              </React.Fragment>
-            );
-          })}
 
           {/* Developer Credit */}
           <div style={{textAlign:'center',padding:'24px 0 12px',marginTop:24,borderTop:'1px solid var(--border)',opacity:0.45,fontSize:11,letterSpacing:0.5,color:'var(--sage)'}}>
@@ -3845,7 +4133,7 @@ const loadAllEssaySections=async(essayId)=>{
                 <div style={{flex:1,height:1,background:'var(--border)'}}/>
               </div>
               {ESSAY_CATALOG.map(essay=>(
-                <div key={essay.id} className="book-card" onClick={()=>requireEmail(()=>{setSelectedEssay(essay.id);setMoreSection('essays');loadEssayToc(essay.id)})}>
+                <div key={essay.id} className="book-card" onClick={()=>{setSelectedEssay(essay.id);setMoreSection('essays');loadEssayToc(essay.id)}}>
                   <div className="bc-icon">{essay.icon}</div>
                   <div className="bc-info">
                     <div className="bc-title">{essay.title}</div>
@@ -5413,14 +5701,18 @@ const loadAllEssaySections=async(essayId)=>{
 
       {/* NOTIFICATION OPT-IN PROMPT */}
       {showNotifPrompt&&!pushEnabled&&(
-        <div className="notif-prompt-overlay" onClick={()=>{setShowNotifPrompt(false);try{localStorage.setItem('dw_notif_dismissed','later')}catch(e){}}}>
+        <div className="notif-prompt-overlay" onClick={()=>{setShowNotifPrompt(false);try{localStorage.setItem('dw_notif_dismissed','later');localStorage.setItem('dw_notif_dismissed_at',String(Date.now()))}catch(e){}}}>
           <div className="notif-prompt" onClick={e=>e.stopPropagation()}>
-            <button className="notif-prompt-close" onClick={()=>{setShowNotifPrompt(false);try{localStorage.setItem('dw_notif_dismissed','later')}catch(e){}}}>×</button>
+            <button className="notif-prompt-close" onClick={()=>{setShowNotifPrompt(false);try{localStorage.setItem('dw_notif_dismissed','later');localStorage.setItem('dw_notif_dismissed_at',String(Date.now()))}catch(e){}}}>×</button>
             <div className="notif-prompt-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
             </div>
             <h3>{lang==='es'?'Recordatorio Diario':lang==='pt'?'Lembrete de Leitura Diária':lang==='id'?'Pengingat Bacaan Harian':'Daily Reading Reminder'}</h3>
-            <p>{lang==='es'?'Recibe un mensaje tranquilo cada mañana con la lectura del día. Una notificación al día, nada más.':lang==='pt'?'Nunca perca sua leitura diária. Definiremos um lembrete suave.':lang==='id'?'Dapatkan pengingat pagi yang tenang dengan bacaan harian Anda. Satu notifikasi per hari, tidak lebih.':'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.'}</p>
+            <p>{streakInfo.current>=3?(
+              lang==='es'?`¡Tienes una racha de ${streakInfo.current} días! Activa recordatorios para no perderla.`:`You have a ${streakInfo.current}-day streak! Turn on reminders to protect it.`
+            ):(
+              lang==='es'?'Recibe un mensaje tranquilo cada mañana con la lectura del día. Una notificación al día, nada más.':lang==='pt'?'Nunca perca sua leitura diária. Definiremos um lembrete suave.':lang==='id'?'Dapatkan pengingat pagi yang tenang dengan bacaan harian Anda. Satu notifikasi per hari, tidak lebih.':'Get a quiet morning reminder with your daily reading. One notification per day, nothing more.'
+            )}</p>
             <div className="notif-prompt-time">
               <label>{lang==='es'?'Hora del recordatorio':lang==='pt'?'Hora do lembrete':lang==='id'?'Waktu pengingat':'Reminder time'}</label>
               <select value={notifHour} onChange={e=>setNotifHour(parseInt(e.target.value))}>
@@ -5432,7 +5724,7 @@ const loadAllEssaySections=async(essayId)=>{
             <button className="notif-prompt-yes" onClick={subscribePush} disabled={pushLoading}>
               {pushLoading?(lang==='es'?'Activando...':lang==='pt'?'Ativando...':lang==='id'?'Mengaktifkan...':'Enabling...'):(lang==='es'?'Sí, recuérdame':lang==='pt'?'Sim, me lembre':lang==='id'?'Ya, ingatkan saya':'Yes, remind me')}
             </button>
-            <button className="notif-prompt-no" onClick={()=>{setShowNotifPrompt(false);try{localStorage.setItem('dw_notif_dismissed','later')}catch(e){}}}>
+            <button className="notif-prompt-no" onClick={()=>{setShowNotifPrompt(false);try{localStorage.setItem('dw_notif_dismissed','later');localStorage.setItem('dw_notif_dismissed_at',String(Date.now()))}catch(e){}}}>
               {lang==='es'?'Quizás después':lang==='pt'?'Talvez depois':lang==='id'?'Mungkin nanti':'Maybe later'}
             </button>
           </div>
@@ -5596,10 +5888,12 @@ function Onboarding({onComplete,lang,setLang}){
   const [chapters,setChapters]=useState(1);
   const [versesPerPassage,setVPP]=useState(30);
   const [chapterSources,setChapterSources]=useState([]);
+  const [reminderTime,setReminderTime]=useState(7);
+  const [reminderEnabled,setReminderEnabled]=useState(true);
   const [step,setStep]=useState(1);
 
   const personas=[
-    {id:'new_believer',label:"I am new to faith / I am returning to faith"},
+    {id:'new_believer',label:"I'm new to faith or returning"},
     {id:'pastor',label:"I'm a pastor / minister"},
     {id:'difficult',label:"I'm going through a difficult season"},
     {id:'deeper',label:"I'm studying for deeper understanding"}
@@ -5659,7 +5953,30 @@ function Onboarding({onComplete,lang,setLang}){
         <div><div className="pref-label">{L.versesPerPassage}</div><div className="pref-desc">{L.versesDesc}</div></div>
         <input type="text" inputMode="numeric" pattern="[0-9]*" value={versesPerPassage===''?'':versesPerPassage} onFocus={e=>e.target.select()} onChange={e=>{const v=e.target.value;if(v==='')setVPP('');else{const n=parseInt(v);if(!isNaN(n))setVPP(Math.min(200,Math.max(1,n)));}}} onBlur={()=>{if(versesPerPassage===''||!versesPerPassage)setVPP(30)}}/>
       </div>
-      <button className="primary-btn" onClick={()=>onComplete({persona:persona||custom||'new_believer',chapters,versesPerPassage,chapterSources:chapterSources.length>0?chapterSources:undefined})}>{L.begin}</button>
+      {/* DAILY REMINDER TIME */}
+      <div style={{background:'var(--light)',borderRadius:16,padding:20,marginBottom:20,marginTop:8}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+          <div>
+            <div style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>{lang==='es'?'Recordatorio diario':lang==='pt'?'Lembrete diário':lang==='id'?'Pengingat harian':'Daily reminder'}</div>
+            <div style={{fontSize:12,color:'var(--sage)',marginTop:2}}>{lang==='es'?'Te ayudamos a no olvidar':lang==='pt'?'Nós ajudamos você a lembrar':lang==='id'?'Kami bantu mengingatkan':'We\'ll help you remember'}</div>
+          </div>
+          <div style={{width:44,height:26,borderRadius:13,background:reminderEnabled?'var(--sage)':'var(--border)',cursor:'pointer',position:'relative',transition:'background 0.2s'}} onClick={()=>setReminderEnabled(!reminderEnabled)}>
+            <div style={{width:22,height:22,borderRadius:11,background:'white',position:'absolute',top:2,left:reminderEnabled?20:2,transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+          </div>
+        </div>
+        {reminderEnabled&&(
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {[{h:6,l:'6am'},{h:7,l:'7am'},{h:8,l:'8am'},{h:9,l:'9am'},{h:12,l:'12pm'},{h:18,l:'6pm'},{h:20,l:'8pm'},{h:21,l:'9pm'}].map(t=>(
+              <button key={t.h} onClick={()=>setReminderTime(t.h)} style={{padding:'8px 14px',borderRadius:20,border:reminderTime===t.h?'2px solid var(--sage)':'2px solid var(--border)',background:reminderTime===t.h?'rgba(74,99,64,0.15)':'transparent',color:reminderTime===t.h?'var(--sage)':'var(--text)',fontSize:13,fontWeight:reminderTime===t.h?700:400,cursor:'pointer',transition:'all 0.2s'}}>{t.l}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button className="primary-btn" onClick={()=>{
+        if(reminderEnabled){try{localStorage.setItem('dw_notif_hour',String(reminderTime))}catch(e){}}
+        onComplete({persona:persona||custom||'new_believer',chapters,versesPerPassage,chapterSources:chapterSources.length>0?chapterSources:undefined,reminderTime:reminderEnabled?reminderTime:null});
+      }}>{L.begin}</button>
     </div>
   );
 }
