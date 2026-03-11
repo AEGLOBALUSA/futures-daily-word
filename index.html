@@ -1005,19 +1005,21 @@ const loadAllEssaySections=async(essayId)=>{
     setEmailGateInput('');setEmailGateError('');setEmailGateDone(false);setEmailGateCampus('');setEmailGateFirstName('');setEmailGateLastName('');setShowEmailGate(true);
   };
 
-  // Show login/campus gate on every app open so users can always switch campus
+  // Show welcome gate ONLY on first visit (no profile saved yet)
   const [gateOpenCount,setGateOpenCount]=useState(1);
   useEffect(()=>{
     if(!setup)return;
-    // Pre-fill with existing profile data if returning user
     const hasProfile=userProfile&&userProfile.email;
+    // If user already has a profile, skip the welcome modal entirely
+    if(hasProfile)return;
+    // First-time user: show welcome gate
     emailGateCallbackRef.current=null;
-    setEmailGateFirstName(hasProfile?userProfile.firstName||'':'');
-    setEmailGateLastName(hasProfile?userProfile.lastName||'':'');
-    setEmailGateInput(hasProfile?userProfile.email:'');
-    setEmailGateCampus(hasProfile?userProfile.campus||'':'');
+    setEmailGateFirstName('');
+    setEmailGateLastName('');
+    setEmailGateInput('');
+    setEmailGateCampus('');
     setEmailGateError('');setEmailGateDone(false);
-    setGateOpenCount(hasProfile?99:1); // returning users can always dismiss easily
+    setGateOpenCount(1);
     setShowEmailGate(true);
   },[setup]);
 
@@ -1472,22 +1474,24 @@ const loadAllEssaySections=async(essayId)=>{
   };
 
   // ===== BADGES SYSTEM =====
+  // Modern SVG badge icon helper
+  const badgeSvg=(path,vb='0 0 24 24')=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
   const BADGE_DEFS=[
-    {id:'first_read',icon:'📖',name:'First Read',nameEs:'Primera Lectura',namePt:'Primeira Leitura',desc:'Complete your first devotion',check:(s,rd,eb,j,pr)=>s.total>=1},
-    {id:'streak_3',icon:'🔥',name:'On Fire',nameEs:'En Llamas',namePt:'Em Chamas',desc:'3-day streak',check:(s)=>s.current>=3},
-    {id:'streak_7',icon:'🌟',name:'Faithful Week',nameEs:'Semana Fiel',namePt:'Semana Fiel',desc:'7-day streak',check:(s)=>s.current>=7},
-    {id:'streak_14',icon:'💪',name:'Two Strong',nameEs:'Dos Fuerte',namePt:'Duas Fortes',desc:'14-day streak',check:(s)=>s.current>=14},
-    {id:'streak_30',icon:'⭐',name:'Monthly Warrior',nameEs:'Guerrero Mensual',namePt:'Guerreiro Mensal',desc:'30-day streak',check:(s)=>s.current>=30},
-    {id:'streak_90',icon:'🏆',name:'Quarterly Champion',nameEs:'Campeón Trimestral',namePt:'Campeão Trimestral',desc:'90-day streak',check:(s)=>s.current>=90},
-    {id:'streak_365',icon:'👑',name:'Year of the Word',nameEs:'Año de la Palabra',namePt:'Ano da Palavra',desc:'365-day streak',check:(s)=>s.current>=365},
-    {id:'journal_1',icon:'✏️',name:'First Entry',nameEs:'Primera Entrada',namePt:'Primeira Entrada',desc:'Write your first journal entry',check:(s,rd,eb,j)=>j>=1},
-    {id:'journal_10',icon:'📝',name:'Reflector',nameEs:'Reflexivo',namePt:'Reflexivo',desc:'Write 10 journal entries',check:(s,rd,eb,j)=>j>=10},
-    {id:'prayer_1',icon:'🙏',name:'Prayer Warrior',nameEs:'Guerrero de Oración',namePt:'Guerreiro de Oração',desc:'Post your first prayer',check:(s,rd,eb,j,pr)=>pr>=1},
-    {id:'total_10',icon:'📚',name:'Committed',nameEs:'Comprometido',namePt:'Comprometido',desc:'Read 10 total days',check:(s)=>s.total>=10},
-    {id:'total_50',icon:'🎯',name:'Half Century',nameEs:'Medio Siglo',namePt:'Meio Século',desc:'Read 50 total days',check:(s)=>s.total>=50},
-    {id:'total_100',icon:'💯',name:'Centurion',nameEs:'Centurión',namePt:'Centurião',desc:'Read 100 total days',check:(s)=>s.total>=100},
-    {id:'early_bird',icon:'🌅',name:'Early Bird',nameEs:'Madrugador',namePt:'Madrugador',desc:'Complete devotion before 7am',check:(s,rd,eb)=>eb},
-    {id:'night_owl',icon:'🌙',name:'Night Owl',nameEs:'Noctámbulo',namePt:'Coruja',desc:'Complete devotion after 10pm',check:(s,rd,eb,j,pr,no)=>no},
+    {id:'first_read',svg:badgeSvg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'),grad:['#4a6340','#6b8f5e'],name:'First Read',nameEs:'Primera Lectura',namePt:'Primeira Leitura',desc:'Complete your first devotion',check:(s,rd,eb,j,pr)=>s.total>=1},
+    {id:'streak_3',svg:badgeSvg('<path d="M12 2c.5 3.5 4 6 4 10a6 6 0 0 1-12 0c0-4 3.5-6.5 4-10"/><path d="M12 22v-4"/><path d="M10 18h4"/>'),grad:['#e85d26','#f59e0b'],name:'On Fire',nameEs:'En Llamas',namePt:'Em Chamas',desc:'3-day streak',check:(s)=>s.current>=3},
+    {id:'streak_7',svg:badgeSvg('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'),grad:['#c8aa50','#e8d282'],name:'Faithful Week',nameEs:'Semana Fiel',namePt:'Semana Fiel',desc:'7-day streak',check:(s)=>s.current>=7},
+    {id:'streak_14',svg:badgeSvg('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="12" y1="2" x2="12" y2="5"/>'),grad:['#7c3aed','#a78bfa'],name:'Two Strong',nameEs:'Dos Fuerte',namePt:'Duas Fortes',desc:'14-day streak',check:(s)=>s.current>=14},
+    {id:'streak_30',svg:badgeSvg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>'),grad:['#0891b2','#22d3ee'],name:'Monthly Warrior',nameEs:'Guerrero Mensual',namePt:'Guerreiro Mensal',desc:'30-day streak',check:(s)=>s.current>=30},
+    {id:'streak_90',svg:badgeSvg('<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 22V8a2 2 0 0 1 4 0v14"/><path d="M8 22v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/>'),grad:['#b45309','#f59e0b'],name:'Quarterly Champion',nameEs:'Campeón Trimestral',namePt:'Campeão Trimestral',desc:'90-day streak',check:(s)=>s.current>=90},
+    {id:'streak_365',svg:badgeSvg('<path d="m2 4 3 12h14l3-12"/><path d="m7.5 16 .5 5"/><path d="m16.5 16-.5 5"/><path d="m8 21h8"/><path d="M12 4v4"/><path d="m10 6 2-2 2 2"/>'),grad:['#d4a017','#fde68a'],name:'Year of the Word',nameEs:'Año de la Palabra',namePt:'Ano da Palavra',desc:'365-day streak',check:(s)=>s.current>=365},
+    {id:'journal_1',svg:badgeSvg('<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>'),grad:['#4a6340','#7da36e'],name:'First Entry',nameEs:'Primera Entrada',namePt:'Primeira Entrada',desc:'Write your first journal entry',check:(s,rd,eb,j)=>j>=1},
+    {id:'journal_10',svg:badgeSvg('<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/>'),grad:['#059669','#34d399'],name:'Reflector',nameEs:'Reflexivo',namePt:'Reflexivo',desc:'Write 10 journal entries',check:(s,rd,eb,j)=>j>=10},
+    {id:'prayer_1',svg:badgeSvg('<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/>'),grad:['#7c3aed','#c4b5fd'],name:'Prayer Warrior',nameEs:'Guerrero de Oración',namePt:'Guerreiro de Oração',desc:'Post your first prayer',check:(s,rd,eb,j,pr)=>pr>=1},
+    {id:'total_10',svg:badgeSvg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 11.5A2.5 2.5 0 0 1 6.5 9H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'),grad:['#2563eb','#60a5fa'],name:'Committed',nameEs:'Comprometido',namePt:'Comprometido',desc:'Read 10 total days',check:(s)=>s.total>=10},
+    {id:'total_50',svg:badgeSvg('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>'),grad:['#dc2626','#f87171'],name:'Half Century',nameEs:'Medio Siglo',namePt:'Meio Século',desc:'Read 50 total days',check:(s)=>s.total>=50},
+    {id:'total_100',svg:badgeSvg('<path d="M12 2 L12 6"/><path d="M12 18 L12 22"/><path d="M4.93 4.93 L7.76 7.76"/><path d="M16.24 16.24 L19.07 19.07"/><path d="M2 12 L6 12"/><path d="M18 12 L22 12"/><circle cx="12" cy="12" r="4" fill="white" stroke="white"/><text x="12" y="15" text-anchor="middle" fill="currentColor" font-size="8" font-weight="900" stroke="none" font-family="system-ui">100</text>','0 0 24 24'),grad:['#ea580c','#fb923c'],name:'Centurion',nameEs:'Centurión',namePt:'Centurião',desc:'Read 100 total days',check:(s)=>s.total>=100},
+    {id:'early_bird',svg:badgeSvg('<circle cx="12" cy="12" r="4"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="m16.24 7.76 2.83-2.83"/><path d="M18 12h4"/><path d="m16.24 16.24 2.83 2.83"/>'),grad:['#f59e0b','#fde68a'],name:'Early Bird',nameEs:'Madrugador',namePt:'Madrugador',desc:'Complete devotion before 7am',check:(s,rd,eb)=>eb},
+    {id:'night_owl',svg:badgeSvg('<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'),grad:['#312e81','#818cf8'],name:'Night Owl',nameEs:'Noctámbulo',namePt:'Coruja',desc:'Complete devotion after 10pm',check:(s,rd,eb,j,pr,no)=>no},
   ];
   // Persist badges
   useEffect(()=>{try{localStorage.setItem('dw_badges',JSON.stringify(earnedBadges))}catch(e){}},[earnedBadges]);
@@ -3313,11 +3317,13 @@ const loadAllEssaySections=async(essayId)=>{
       {showBadgeUnlock&&(
         <div className="milestone-overlay" onClick={()=>setShowBadgeUnlock(null)}>
           <div className="milestone-card badge-unlock" onClick={e=>e.stopPropagation()}>
-            <div className="ms-emoji" style={{fontSize:64}}>{showBadgeUnlock.icon}</div>
+            <div className="bdg-unlock-circle" style={{background:`linear-gradient(135deg,${showBadgeUnlock.grad[0]},${showBadgeUnlock.grad[1]})`}}>
+              <div dangerouslySetInnerHTML={{__html:showBadgeUnlock.svg}} style={{width:48,height:48}}/>
+            </div>
             <div className="ms-number">{lang==='es'?'¡Insignia desbloqueada!':lang==='pt'?'Insígnia desbloqueada!':'Badge unlocked!'}</div>
             <div className="ms-message">{lang==='es'?showBadgeUnlock.nameEs:lang==='pt'?showBadgeUnlock.namePt:showBadgeUnlock.name}</div>
             <div className="ms-sub">{showBadgeUnlock.desc}</div>
-            <button className="ms-btn" onClick={()=>setShowBadgeUnlock(null)}>🎉 {lang==='es'?'¡Genial!':'Awesome!'}</button>
+            <button className="ms-btn" onClick={()=>setShowBadgeUnlock(null)}>{lang==='es'?'¡Genial!':'Awesome!'}</button>
           </div>
         </div>
       )}
@@ -3327,8 +3333,8 @@ const loadAllEssaySections=async(essayId)=>{
         <div className="milestone-overlay" onClick={()=>setShowBadgeCase(false)}>
           <div className="bdg-case-card" onClick={e=>e.stopPropagation()}>
             <div className="bdg-header">
-              <div className="bdg-title">🏅 {lang==='es'?'Mis Insignias':'My Badges'}</div>
-              <div className="bdg-count">{earnedBadges.length}/{BADGE_DEFS.length}</div>
+              <div className="bdg-title">{lang==='es'?'Mis Insignias':'My Badges'}</div>
+              <div className="bdg-count">{earnedBadges.length} / {BADGE_DEFS.length}</div>
               <div className="bdg-close" onClick={()=>setShowBadgeCase(false)}>✕</div>
             </div>
             <div className="bdg-progress-bar">
@@ -3339,7 +3345,12 @@ const loadAllEssaySections=async(essayId)=>{
                 const earned=earnedBadges.includes(b.id);
                 return(
                   <div key={b.id} className={'bdg-item'+(earned?' earned':' locked')}>
-                    <div className="bdg-icon">{earned?b.icon:'🔒'}</div>
+                    <div className="bdg-circle" style={earned?{background:`linear-gradient(135deg,${b.grad[0]},${b.grad[1]})`,boxShadow:`0 4px 14px ${b.grad[0]}40`}:{}}>
+                      {earned
+                        ?<div dangerouslySetInnerHTML={{__html:b.svg}} className="bdg-svg"/>
+                        :<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="bdg-svg"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      }
+                    </div>
                     <div className="bdg-name">{earned?(lang==='es'?b.nameEs:lang==='pt'?b.namePt:b.name):'???'}</div>
                     {earned&&<div className="bdg-desc">{b.desc}</div>}
                   </div>
@@ -3701,7 +3712,7 @@ const loadAllEssaySections=async(essayId)=>{
               })()}
               {earnedBadges.length>0&&(
                 <button className="shb-badges-btn" onClick={()=>setShowBadgeCase(true)}>
-                  🏅 {earnedBadges.length}/{BADGE_DEFS.length} {lang==='es'?'insignias':'badges'}
+                  {earnedBadges.length}/{BADGE_DEFS.length} {lang==='es'?'insignias':'badges'}
                 </button>
               )}
             </div>

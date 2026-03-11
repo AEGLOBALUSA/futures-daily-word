@@ -657,19 +657,31 @@ body.dark .profile-modal .pm-field input{background:#1E1E1E;border-color:#444;co
 .shb-badges-btn{padding:6px 14px;background:rgba(200,170,80,0.12);color:var(--gold);border:1px solid rgba(200,170,80,0.25);border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s}
 .shb-badges-btn:active{transform:scale(0.95)}
 
-/* ===== BADGE CASE ===== */
-.bdg-case-card{background:var(--bg);border-radius:20px;padding:24px;width:90vw;max-width:400px;max-height:80vh;overflow-y:auto;animation:scaleIn 0.3s}
-.bdg-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.bdg-title{font-family:Georgia,serif;font-size:20px;color:var(--sage);flex:1}
-.bdg-count{font-size:13px;font-weight:700;color:var(--gold)}
-.bdg-close{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--light);font-size:14px;cursor:pointer;color:var(--text);opacity:0.5}
-.bdg-progress-bar{height:6px;background:var(--light);border-radius:3px;margin-bottom:20px;overflow:hidden}
-.bdg-progress-fill{height:100%;background:linear-gradient(90deg,var(--sage),var(--gold));border-radius:3px;transition:width 0.5s}
-.bdg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.bdg-item{text-align:center;padding:14px 6px;border-radius:14px;background:var(--light);transition:transform 0.2s}
-.bdg-item.earned{background:linear-gradient(135deg,rgba(74,99,64,0.08),rgba(200,170,80,0.1))}
-.bdg-item.locked{opacity:0.4}
-.bdg-icon{font-size:32px;line-height:1;margin-bottom:6px}
-.bdg-name{font-size:11px;font-weight:700;color:var(--text);line-height:1.2}
-.bdg-desc{font-size:9px;color:var(--text);opacity:0.5;margin-top:3px;line-height:1.2}
-.badge-unlock .ms-emoji{animation:bounce 0.6s}
+/* ===== MODERN BADGE CASE ===== */
+.bdg-case-card{background:var(--bg);border-radius:24px;padding:24px 20px;width:92vw;max-width:420px;max-height:80vh;overflow-y:auto;animation:scaleIn 0.3s;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.bdg-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.bdg-title{font-family:Georgia,serif;font-size:22px;color:var(--sage);flex:1;font-weight:700;letter-spacing:-0.3px}
+.bdg-count{font-size:14px;font-weight:700;color:var(--gold);background:rgba(200,170,80,0.12);padding:4px 10px;border-radius:20px}
+.bdg-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--light);font-size:16px;cursor:pointer;color:var(--text);opacity:0.5;transition:all 0.2s}
+.bdg-close:hover{opacity:1;background:var(--border)}
+.bdg-progress-bar{height:5px;background:var(--light);border-radius:3px;margin-bottom:24px;overflow:hidden}
+.bdg-progress-fill{height:100%;background:linear-gradient(90deg,var(--sage),var(--gold));border-radius:3px;transition:width 0.6s ease-out}
+.bdg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.bdg-item{text-align:center;padding:16px 8px 12px;border-radius:16px;background:var(--light);transition:all 0.25s ease;position:relative;overflow:hidden}
+.bdg-item.earned{background:rgba(255,255,255,0.9);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.bdg-item.earned:active{transform:scale(0.95)}
+.bdg-item.locked{opacity:0.35}
+.bdg-circle{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease}
+.bdg-item.locked .bdg-circle{background:var(--border);color:var(--text);opacity:0.5}
+.bdg-item.earned .bdg-circle{box-shadow:0 4px 14px rgba(0,0,0,0.15)}
+.bdg-svg{width:28px;height:28px}
+.bdg-name{font-size:11px;font-weight:700;color:var(--text);line-height:1.3;letter-spacing:-0.1px}
+.bdg-desc{font-size:9px;color:var(--text);opacity:0.45;margin-top:3px;line-height:1.3}
+/* Badge unlock modal circle */
+.bdg-unlock-circle{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;animation:badgePop 0.6s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 8px 30px rgba(0,0,0,0.2)}
+@keyframes badgePop{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{transform:scale(1.15) rotate(5deg)}100%{transform:scale(1) rotate(0deg)}}
+.badge-unlock .ms-number{font-size:14px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;color:var(--sage);margin-bottom:4px}
+.badge-unlock .ms-message{font-family:Georgia,serif;font-size:22px;color:var(--text)}
+/* Badges button on home page */
+.shb-badges-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:linear-gradient(135deg,var(--sage),#6b8f5e);color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;letter-spacing:0.3px;transition:all 0.2s}
+.shb-badges-btn:active{transform:scale(0.95)}
