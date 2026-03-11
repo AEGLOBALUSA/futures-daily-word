@@ -3726,8 +3726,8 @@ const loadAllEssaySections=async(essayId)=>{
             </div>
           )}
 
-          {/* FAITH PATHWAY CARD */}
-          {pathwayProgress.enrolled&&pathwayData&&(()=>{
+          {/* FAITH PATHWAY CARD — only for new_believer/returning personas */}
+          {pathwayProgress.enrolled&&pathwayData&&setup&&(setup.persona==='new_believer'||setup.persona==='returning')&&(()=>{
             const completed=pathwayProgress.completedDays.length;
             const currentDay=pathwayProgress.currentDay;
             const today=pathwayData.days.find(d=>d.day===currentDay);
