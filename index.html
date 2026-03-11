@@ -3701,7 +3701,7 @@ const loadAllEssaySections=async(essayId)=>{
             </div>
           ):(
             <div style={{textAlign:'center',margin:'4px 0 16px'}}>
-              <div style={{fontSize:16,color:'var(--sage)',fontWeight:700,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile?.firstName||'');setEmailGateLastName(userProfile?.lastName||'');setEmailGateInput(userProfile?.email||'');setEmailGateCampus('');setEmailGateError('';setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
+              <div style={{fontSize:16,color:'var(--sage)',fontWeight:700,cursor:'pointer'}} onClick={()=>{emailGateCallbackRef.current=null;setEmailGateFirstName(userProfile?.firstName||'');setEmailGateLastName(userProfile?.lastName||'');setEmailGateInput(userProfile?.email||'');setEmailGateCampus('');setEmailGateError('');setEmailGateDone(false);setGateOpenCount(99);setShowEmailGate(true)}}>
                 {lang==='es'?'Seleccionar campus':lang==='pt'?'Selecionar campus':lang==='id'?'Pilih kampus':'Select a campus'} →
               </div>
             </div>
