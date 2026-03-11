@@ -3502,6 +3502,25 @@ const loadAllEssaySections=async(essayId)=>{
             <div className="author">— {quote.author}</div>
           </div>
 
+          {/* DEVOTION OF THE DAY — on home page */}
+          {(()=>{
+            const dayOfYear=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/86400000);
+            const devo=DEVOTIONS[dayOfYear%DEVOTIONS.length];
+            return(
+              <div className="devotion-card">
+                <div className="devotion-label">{lang==='es'?'Devocional del Día':lang==='pt'?'Devocional do Dia':lang==='id'?'Renungan Hari Ini':'Devotion of the Day'} <span className="devotion-label-tag">{lang==='es'?'Diario':lang==='pt'?'Diário':lang==='id'?'Harian':'Daily'}</span></div>
+                <div className="devotion-title">{lang==='es'?(devo.titleEs||devo.title):lang==='pt'?(devo.titlePt||devo.title):devo.title}</div>
+                <div className="devotion-verse-ref" onClick={()=>{
+                  setPage('plans');
+                  setMoreSection('plans');
+                  openPlanReading('__devo__',0,devo.verse);
+                }}>{devo.verse} →</div>
+                <div className="devotion-body">{lang==='es'?(devo.bodyEs||devo.body):lang==='pt'?(devo.bodyPt||devo.body):devo.body}</div>
+                <div className="devotion-author">— {devo.author}</div>
+              </div>
+            );
+          })()}
+
           <div style={{marginBottom:20}}>
             <div className="trans-row" style={{marginBottom:10,alignItems:'center',justifyContent:'center'}}>
               {lang==='es'?(
