@@ -3532,6 +3532,47 @@ const loadAllEssaySections=async(essayId)=>{
             );
           })()}
 
+          {/* Scripture Search — right below devotion */}
+          <div style={{marginBottom:16,position:'relative'}}>
+            <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'📖 Buscar en la Biblia':lang==='pt'?'📖 Pesquisar na Bíblia':lang==='id'?'📖 Search the Bible':'📖 Search the Bible'}</div>
+            <form onSubmit={(e)=>{e.preventDefault();doScriptureSearch(scriptureSearch)}} style={{display:'flex',gap:8,position:'relative'}}>
+              <div style={{position:'relative',flex:1}}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#8faa84" strokeWidth="2" style={{width:18,height:18,position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input className="search-bar" style={{flex:1,marginBottom:0}} placeholder={lang==='es'?'Buscar versículo o tema... (ej. "amor", "Juan 3:16")':lang==='pt'?'Pesquisar versículo ou tema... (ex. "amor", "João 3:16")':lang==='id'?'Cari ayat atau topik... (misal "kasih", "Yohanes 3:16")':'Search any verse or topic... (e.g. "love", "John 3:16")'} value={scriptureSearch} onChange={e=>setScriptureSearch(e.target.value)}/>
+              </div>
+              <button type="submit" style={{padding:'12px 20px',background:'var(--sage)',color:'white',border:'none',borderRadius:14,fontSize:15,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',boxShadow:'0 2px 8px rgba(90,125,79,0.25)',transition:'background 0.2s'}} disabled={searchLoading}>
+                {searchLoading?'...':(lang==='es'?'Buscar':lang==='pt'?'Buscar':lang==='id'?'Cari':'Search')}
+              </button>
+            </form>
+            {searchResults!==null&&(
+              <div style={{marginTop:12,padding:16,background:'var(--light)',border:'1.5px solid var(--border)',borderRadius:12}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                  <span style={{fontSize:12,fontWeight:600,color:'var(--sage)',textTransform:'uppercase',letterSpacing:1}}>{lang==='es'?'Resultados':lang==='pt'?'Resultados':lang==='id'?'Hasil':'Results'}</span>
+                  <button style={{background:'none',border:'none',fontSize:16,color:'var(--sage)',cursor:'pointer'}} onClick={()=>{setSearchResults(null);setScriptureSearch('')}}>✕</button>
+                </div>
+                {searchResults.length===0&&<div style={{fontSize:13,color:'var(--sage)',fontStyle:'italic'}}>{lang==='es'?'No se encontraron resultados. Intenta con otra búsqueda.':lang==='pt'?'Nenhum resultado encontrado. Tente uma busca diferente.':lang==='id'?'Tidak ada hasil. Coba pencarian lain.':'No results found. Try a different search.'}</div>}
+                {searchResults.map((r,ri)=>(
+                  <div key={ri} style={{marginBottom:ri<searchResults.length-1?16:0}}>
+                    <div style={{fontFamily:'Georgia,serif',fontSize:15,fontWeight:600,color:'var(--gold)',marginBottom:6}}>{r.ref}</div>
+                    <div style={{fontFamily:'Georgia,serif',fontSize:14,color:'var(--text)',lineHeight:1.7,whiteSpace:'pre-wrap',maxHeight:r.expanded?'none':'400px',overflow:r.expanded?'visible':'hidden',position:'relative'}}>
+                      {r.text}
+                    </div>
+                    {r.text.length>800&&!r.expanded&&(
+                      <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:true}:x))}>
+                        {lang==='es'?'Leer todo el capítulo ▾':lang==='pt'?'Ler capítulo inteiro ▾':lang==='id'?'Baca seluruh pasal ▾':'Read full chapter ▾'}
+                      </button>
+                    )}
+                    {r.expanded&&r.text.length>800&&(
+                      <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:false}:x))}>
+                        {lang==='es'?'Mostrar menos ▴':lang==='pt'?'Mostrar menos ▴':lang==='id'?'Tampilkan lebih sedikit ▴':'Show less ▴'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div style={{marginBottom:20}}>
             <div className="trans-row" style={{marginBottom:10,alignItems:'center',justifyContent:'center'}}>
               {lang==='es'?(
@@ -3710,11 +3751,13 @@ const loadAllEssaySections=async(essayId)=>{
                   <span className="shb-freeze-used">🧊 {lang==='es'?'Congelación usada esta semana':'Freeze used this week'}</span>
                 );
               })()}
+              {/* Badges hidden for now
               {earnedBadges.length>0&&(
                 <button className="shb-badges-btn" onClick={()=>setShowBadgeCase(true)}>
                   {earnedBadges.length}/{BADGE_DEFS.length} {lang==='es'?'insignias':'badges'}
                 </button>
               )}
+              */}
             </div>
           </div>
 
@@ -3812,48 +3855,7 @@ const loadAllEssaySections=async(essayId)=>{
             );
           })()}
 
-          {/* Scripture Search */}
-
-
-          <div style={{marginBottom:16,position:'relative'}}>
-            <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--sage)',marginBottom:8}}>{lang==='es'?'📖 Buscar en la Biblia':lang==='pt'?'📖 Pesquisar na Bíblia':lang==='id'?'📖 Search the Bible':'📖 Search the Bible'}</div>
-            <form onSubmit={(e)=>{e.preventDefault();doScriptureSearch(scriptureSearch)}} style={{display:'flex',gap:8,position:'relative'}}>
-              <div style={{position:'relative',flex:1}}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8faa84" strokeWidth="2" style={{width:18,height:18,position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input className="search-bar" style={{flex:1,marginBottom:0}} placeholder={lang==='es'?'Buscar versículo o tema... (ej. "amor", "Juan 3:16")':lang==='pt'?'Pesquisar versículo ou tema... (ex. "amor", "João 3:16")':lang==='id'?'Cari ayat atau topik... (misal "kasih", "Yohanes 3:16")':'Search any verse or topic... (e.g. "love", "John 3:16")'} value={scriptureSearch} onChange={e=>setScriptureSearch(e.target.value)}/>
-              </div>
-              <button type="submit" style={{padding:'12px 20px',background:'var(--sage)',color:'white',border:'none',borderRadius:14,fontSize:15,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap',boxShadow:'0 2px 8px rgba(90,125,79,0.25)',transition:'background 0.2s'}} disabled={searchLoading}>
-                {searchLoading?'...':(lang==='es'?'Buscar':lang==='pt'?'Buscar':lang==='id'?'Cari':'Search')}
-              </button>
-            </form>
-            {searchResults!==null&&(
-              <div style={{marginTop:12,padding:16,background:'var(--light)',border:'1.5px solid var(--border)',borderRadius:12}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                  <span style={{fontSize:12,fontWeight:600,color:'var(--sage)',textTransform:'uppercase',letterSpacing:1}}>{lang==='es'?'Resultados':lang==='pt'?'Resultados':lang==='id'?'Hasil':'Results'}</span>
-                  <button style={{background:'none',border:'none',fontSize:16,color:'var(--sage)',cursor:'pointer'}} onClick={()=>{setSearchResults(null);setScriptureSearch('')}}>✕</button>
-                </div>
-                {searchResults.length===0&&<div style={{fontSize:13,color:'var(--sage)',fontStyle:'italic'}}>{lang==='es'?'No se encontraron resultados. Intenta con otra búsqueda.':lang==='pt'?'Nenhum resultado encontrado. Tente uma busca diferente.':lang==='id'?'Tidak ada hasil. Coba pencarian lain.':'No results found. Try a different search.'}</div>}
-                {searchResults.map((r,ri)=>(
-                  <div key={ri} style={{marginBottom:ri<searchResults.length-1?16:0}}>
-                    <div style={{fontFamily:'Georgia,serif',fontSize:15,fontWeight:600,color:'var(--gold)',marginBottom:6}}>{r.ref}</div>
-                    <div style={{fontFamily:'Georgia,serif',fontSize:14,color:'var(--text)',lineHeight:1.7,whiteSpace:'pre-wrap',maxHeight:r.expanded?'none':'400px',overflow:r.expanded?'visible':'hidden',position:'relative'}}>
-                      {r.text}
-                    </div>
-                    {r.text.length>800&&!r.expanded&&(
-                      <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:true}:x))}>
-                        {lang==='es'?'Leer todo el capítulo ▾':lang==='pt'?'Ler capítulo inteiro ▾':lang==='id'?'Baca seluruh pasal ▾':'Read full chapter ▾'}
-                      </button>
-                    )}
-                    {r.expanded&&r.text.length>800&&(
-                      <button style={{background:'none',border:'none',color:'var(--sage)',fontSize:13,fontWeight:600,cursor:'pointer',padding:'8px 0',marginTop:4}} onClick={()=>setSearchResults(prev=>prev.map((x,xi)=>xi===ri?{...x,expanded:false}:x))}>
-                        {lang==='es'?'Mostrar menos ▴':lang==='pt'?'Mostrar menos ▴':lang==='id'?'Tampilkan lebih sedikit ▴':'Show less ▴'}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Scripture Search moved to after Devotion card */}
 
           {/* Developer Credit */}
           <div style={{textAlign:'center',padding:'24px 0 12px',marginTop:24,borderTop:'1px solid var(--border)',opacity:0.45,fontSize:11,letterSpacing:0.5,color:'var(--sage)'}}>
