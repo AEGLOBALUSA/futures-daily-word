@@ -7,18 +7,18 @@
 
 /* ---------- Dark Mode (Default) ---------- */
 :root {
-  --dw-canvas: #0F0F0F;
-  --dw-surface: #1A1A1A;
-  --dw-surface-hover: #242424;
-  --dw-surface-active: #2E2E2E;
-  --dw-accent: #C8956A;
-  --dw-accent-bg: rgba(200, 149, 106, 0.1);
-  --dw-text-primary: #F5F0EB;
-  --dw-text-secondary: #BDB5AB;
-  --dw-text-muted: #7A7570;
-  --dw-text-faint: #4A4540;
-  --dw-border: #2A2A2A;
-  --dw-border-subtle: #1F1F1F;
+  --dw-canvas: #0A0A0A;
+  --dw-surface: #161616;
+  --dw-surface-hover: #1E1E1E;
+  --dw-surface-active: #282828;
+  --dw-accent: #D4A574;
+  --dw-accent-bg: rgba(212, 165, 116, 0.15);
+  --dw-text-primary: #FFFFFF;
+  --dw-text-secondary: #D4CEC6;
+  --dw-text-muted: #9A948E;
+  --dw-text-faint: #5A554F;
+  --dw-border: #333333;
+  --dw-border-subtle: #252525;
 
   --font-serif: 'Source Serif 4', 'Georgia', serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -32,18 +32,18 @@
 
 /* ---------- Light Mode ---------- */
 [data-theme="light"] {
-  --dw-canvas: #FAF9F7;
-  --dw-surface: #EFECE7;
-  --dw-surface-hover: #E5E0DA;
-  --dw-surface-active: #DBD5CD;
-  --dw-accent: #C8956A;
-  --dw-accent-bg: rgba(200, 149, 106, 0.12);
-  --dw-text-primary: #1A1714;
-  --dw-text-secondary: #5C564E;
-  --dw-text-muted: #9A9490;
-  --dw-text-faint: #C8C4BE;
-  --dw-border: #D4D0CA;
-  --dw-border-subtle: #E8E4DE;
+  --dw-canvas: #FAFAF8;
+  --dw-surface: #EDEAE4;
+  --dw-surface-hover: #E2DED7;
+  --dw-surface-active: #D6D1C9;
+  --dw-accent: #B07D4F;
+  --dw-accent-bg: rgba(176, 125, 79, 0.14);
+  --dw-text-primary: #111111;
+  --dw-text-secondary: #3D3832;
+  --dw-text-muted: #706A62;
+  --dw-text-faint: #B0AAA2;
+  --dw-border: #C4BFB7;
+  --dw-border-subtle: #DAD5CD;
 
   color-scheme: light;
 }
@@ -74,7 +74,7 @@ body {
 .text-scripture {
   font-family: var(--font-serif);
   font-size: 28px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.6;
   letter-spacing: -0.01em;
   color: var(--dw-text-primary);
@@ -83,24 +83,24 @@ body {
 .text-devotion {
   font-family: var(--font-serif);
   font-size: 17px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.7;
-  color: var(--dw-text-secondary);
+  color: var(--dw-text-primary);
 }
 
 .text-section-header {
   font-family: var(--font-sans);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dw-text-muted);
+  color: var(--dw-text-secondary);
 }
 
 .text-card-title {
   font-family: var(--font-serif);
   font-size: 18px;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--dw-text-primary);
 }
 
@@ -125,7 +125,7 @@ body {
   padding: 12px 24px;
   font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: opacity var(--transition-fast);
   min-height: 44px;
@@ -142,7 +142,7 @@ body {
   padding: 12px 24px;
   font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background var(--transition-fast);
   min-height: 44px;
@@ -186,7 +186,7 @@ body {
 .tab-bar-item span {
   font-family: var(--font-sans);
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* ---------- Screen Container ---------- */
