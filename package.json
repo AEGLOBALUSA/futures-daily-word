@@ -10,7 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@aws-sdk/client-polly": "3.729.0",
+    "@aws-sdk/client-polly": "3.799.0",
     "@supabase/supabase-js": "2.47.12",
     "@tailwindcss/vite": "4.2.1",
     "lucide-react": "0.577.0",
