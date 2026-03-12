@@ -8,7 +8,8 @@ import type { TranslationCode } from '../utils/api';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
-  Download, Languages, MapPin, Heart, ChevronDown
+  Download, Languages, MapPin, Heart, ChevronDown,
+  BookOpen, Link, Music
 } from 'lucide-react';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
@@ -47,6 +48,13 @@ export function MoreScreen() {
   const fontScale = parseFloat(localStorage.getItem('dw_fontscale') || '1');
   const lang = localStorage.getItem('dw_lang') || 'en';
   const kjvDownloaded = localStorage.getItem('dw_kjv_downloaded') === 'true';
+  const [chaptersPerDay, setChaptersPerDay] = useState<number>(() => {
+    return parseInt(localStorage.getItem('dw_chapters_per_day') || '3', 10);
+  });
+  const [personalMediaUrl, setPersonalMediaUrl] = useState<string>(() => {
+    return localStorage.getItem('dw_personal_media_url') || '';
+  });
+  const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
 
   const handlePushToggle = async () => {
@@ -109,6 +117,16 @@ export function MoreScreen() {
 
   const handlePersonaSelect = (personaId: string) => {
     saveSetup({ persona: personaId, source: setup?.source || 'settings' });
+  };
+
+  const handleChaptersPerDaySelect = (val: number) => {
+    setChaptersPerDay(val);
+    localStorage.setItem('dw_chapters_per_day', String(val));
+  };
+
+  const handlePersonalMediaUrlChange = (url: string) => {
+    setPersonalMediaUrl(url);
+    localStorage.setItem('dw_personal_media_url', url);
   };
 
   const handleCampusSelect = (campusId: string) => {
@@ -174,7 +192,7 @@ export function MoreScreen() {
           </p>
         </div>
 
-        {/* ── PROFILE ── */}
+        {/* ─── PROFILE ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PROFILE</p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -192,7 +210,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ── PERSONA ── */}
+        {/* ─── PERSONA ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Heart size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -226,7 +244,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ── TRANSLATION ── */}
+        {/* ─── TRANSLATION ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Globe size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -253,7 +271,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ── CAMPUS ── */}
+        {/* ─── CAMPUS ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -309,7 +327,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ── FONT SIZE ── */}
+        {/* ─── FONT SIZE ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Type size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -317,7 +335,7 @@ export function MoreScreen() {
           </p>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              {FONT_SIZES.map(fs => (
+           IZES.map(fs => (
                 <button
                   key={fs.value}
                   onClick={() => handleFontSelect(fs.value)}
@@ -363,6 +381,108 @@ export function MoreScreen() {
                   {l.label}
                 </button>
               ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ── DAILY READING ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <BookOpen size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            DAILY READING
+          </p>
+          <Card style={{ padding: 12 }}>
+            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
+              Chapters to show on home screen each day
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <button
+                  key={n}
+                  onClick={() => handleChaptersPerDaySelect(n)}
+                  style={{
+                    flex: 1,
+                    background: chaptersPerDay === n ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: chaptersPerDay === n ? '#fff' : 'var(--dw-text-secondary)',
+                    border: 'none', borderRadius: 10,
+                    padding: '12px 0', fontSize: 16, fontWeight: 700,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
+                    textAlign: 'center',
+                  }}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ── MEDIA ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <Music size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            MEDIA
+          </p>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Locked campus stream URL */}
+            <div style={rowStyle}>
+              <Link size={18} style={iconStyle} />
+              <div style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontWeight: 500 }}>Church Stream</span>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', marginTop: 2, wordBreak: 'break-all' }}>
+                  {campusData?.videoUrl || 'Set your campus to see stream URL'}
+                </span>
+              </div>
+              <span style={{ ...valStyle, fontSize: 11, background: 'var(--dw-surface-hover)', padding: '4px 8px', borderRadius: 6 }}>Locked</span>
+            </div>
+            <div style={dividerStyle} />
+            {/* Personal media URL */}
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <Music size={18} style={iconStyle} />
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 500, color: 'var(--dw-text-primary)' }}>Your Media URL</span>
+              </div>
+              <input
+                type="url"
+                placeholder="Paste Spotify, YouTube, or podcast link..."
+                value={personalMediaUrl}
+                onChange={e => handlePersonalMediaUrlChange(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'var(--dw-surface)',
+                  border: '1px solid var(--dw-border)',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  fontSize: 13,
+                  fontFamily: 'var(--font-sans)',
+                  color: 'var(--dw-text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {personalMediaUrl && (
+                <a
+                  href={personalMediaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginTop: 10,
+                    padding: '8px 16px',
+                    background: 'var(--dw-accent)',
+                    color: '#fff',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-sans)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <Link size={14} /> Open Media
+                </a>
+              )}
             </div>
           </Card>
         </div>
