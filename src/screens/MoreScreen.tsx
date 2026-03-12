@@ -1,5 +1,6 @@
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { useUser } from '../contexts/UserContext';
 
 import {
   User, Globe, Bell, Type, Book, Info, Shield, Mail,
@@ -14,24 +15,40 @@ interface SettingsRow {
 }
 
 export function MoreScreen() {
+  const { userProfile, profilePic, requireEmail, setup } = useUser();
   
 
+  const displayName = userProfile?.firstName
+    ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
+    : 'Guest';
+
+  const translation = localStorage.getItem('dw_translation') || 'ESV';
+  const fontScale = parseFloat(localStorage.getItem('dw_fontscale') || '1');
+  const fontLabel = fontScale <= 0.9 ? 'Small' : fontScale >= 1.3 ? 'Large' : 'Medium';
+  const lang = localStorage.getItem('dw_lang') || 'en';
+  const langLabel = lang === 'es' ? 'Español' : lang === 'pt' ? 'Português' : 'English';
+  const kjvDownloaded = localStorage.getItem('dw_kjv_downloaded') === 'true';
+
+  const campusName = userProfile?.campus
+    ? (userProfile.campus.replace(/^futures-/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+    : 'Not set';
+
   const profileRows: SettingsRow[] = [
-    { icon: User, label: 'Profile', value: 'Set up your profile' },
-    { icon: Church, label: 'Campus', value: 'Futures Alpharetta' },
-    { icon: Mail, label: 'Email', value: 'Not set' },
+    { icon: User, label: 'Profile', value: displayName, action: () => requireEmail() },
+    { icon: Church, label: 'Campus', value: campusName },
+    { icon: Mail, label: 'Email', value: userProfile?.email || 'Not set', action: () => requireEmail() },
   ];
 
   const preferenceRows: SettingsRow[] = [
-    { icon: Globe, label: 'Translation', value: 'ESV' },
-    { icon: Type, label: 'Font Size', value: 'Medium' },
-    { icon: Languages, label: 'Language', value: 'English' },
-    { icon: Bell, label: 'Notifications', value: 'Enabled' },
+    { icon: Globe, label: 'Translation', value: translation },
+    { icon: Type, label: 'Font Size', value: fontLabel },
+    { icon: Languages, label: 'Language', value: langLabel },
+    { icon: Bell, label: 'Notifications', value: 'Tap to configure' },
   ];
 
   const contentRows: SettingsRow[] = [
-    { icon: Book, label: 'Library', value: '3 books available' },
-    { icon: Download, label: 'Offline Bible', value: 'KJV — Not downloaded' },
+    { icon: Book, label: 'Library', value: 'Books & essays' },
+    { icon: Download, label: 'Offline Bible', value: kjvDownloaded ? 'KJV — Downloaded' : 'KJV — Not downloaded' },
   ];
 
   const aboutRows: SettingsRow[] = [
@@ -56,7 +73,7 @@ export function MoreScreen() {
                 background: 'none',
                 border: 'none',
                 borderBottom: i < rows.length - 1 ? '1px solid var(--dw-border-subtle)' : 'none',
-                cursor: 'pointer',
+                cursor: row.action ? 'pointer' : 'default',
                 color: 'var(--dw-text-primary)',
                 fontFamily: 'var(--font-sans)',
                 fontSize: 14,
@@ -97,26 +114,41 @@ export function MoreScreen() {
           <ThemeToggle />
         </div>
 
-        {/* Profile avatar placeholder */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 }}>
-          <div style={{
-            width: 72,
-            height: 72,
-            borderRadius: '50%',
-            background: 'var(--dw-accent-bg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 10,
-            border: '2px solid var(--dw-accent)',
-          }}>
-            <User size={32} style={{ color: 'var(--dw-accent)' }} />
-          </div>
+        {/* Profile avatar */}
+        <div
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28, cursor: 'pointer' }}
+          onClick={() => requireEmail()}
+        >
+          {profilePic ? (
+            <img
+              src={profilePic}
+              alt="Profile"
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                objectFit: 'cover', marginBottom: 10,
+                border: '2px solid var(--dw-accent)',
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: 'var(--dw-accent-bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 10, border: '2px solid var(--dw-accent)',
+            }}>
+              <User size={32} style={{ color: 'var(--dw-accent)' }} />
+            </div>
+          )}
           <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
-            Guest
+            {displayName}
           </p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
-            Tap to set up your profile
+          {setup?.persona && (
+            <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2, textTransform: 'capitalize' }}>
+              {setup.persona.replace(/_/g, ' ')}
+            </p>
+          )}
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+            {userProfile?.email || 'Tap to set up your profile'}
           </p>
         </div>
 

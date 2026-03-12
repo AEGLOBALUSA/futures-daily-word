@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { UserProvider } from './contexts/UserContext';
 import { TabBar } from './components/TabBar';
+import { EmailGate } from './components/EmailGate';
 import type { TabId } from './components/TabBar';
 import { HomeScreen } from './screens/HomeScreen';
 import { JournalScreen } from './screens/JournalScreen';
@@ -24,6 +26,7 @@ function AppContent() {
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>
       {screens[activeTab]}
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <EmailGate />
     </div>
   );
 }
@@ -31,7 +34,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <UserProvider>
+        <AppContent />
+      </UserProvider>
     </ThemeProvider>
   );
 }
