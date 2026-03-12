@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { UserProvider } from './contexts/UserContext';
+import { UserProvider, useUser } from './contexts/UserContext';
 import { TabBar } from './components/TabBar';
 import { EmailGate } from './components/EmailGate';
 import type { TabId } from './components/TabBar';
@@ -10,9 +10,30 @@ import { JournalScreen } from './screens/JournalScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
 import { PlansScreen } from './screens/PlansScreen';
 import { MoreScreen } from './screens/MoreScreen';
+import { hideSplash, registerNativePush, isNative } from './utils/native';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
+  const { userProfile } = useUser();
+
+  // Native startup: hide splash + register push
+  useEffect(() => {
+    hideSplash();
+    if (isNative() && userProfile?.email) {
+      registerNativePush((token) => {
+        // Send native push token to server
+        fetch('/api/subscribe-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userProfile.email,
+            nativeToken: token,
+            platform: (window as Record<string, unknown>).Capacitor ? 'native' : 'web',
+          }),
+        }).catch(() => {});
+      });
+    }
+  }, [userProfile?.email]);
 
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen />,
