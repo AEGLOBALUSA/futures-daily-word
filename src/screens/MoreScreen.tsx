@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
+import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
 
 import {
   User, Globe, Bell, Type, Book, Info, Shield, Mail,
-  ChevronRight, Download, Languages, Church
+  ChevronRight, Download, Languages, Church, Loader2
 } from 'lucide-react';
 
 interface SettingsRow {
@@ -16,7 +18,11 @@ interface SettingsRow {
 
 export function MoreScreen() {
   const { userProfile, profilePic, requireEmail, setup } = useUser();
-  
+  const [pushState, setPushState] = useState<'idle' | 'loading'>(
+    'idle'
+  );
+  const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
+  const [downloadingKJV, setDownloadingKJV] = useState(false);
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -33,6 +39,71 @@ export function MoreScreen() {
     ? (userProfile.campus.replace(/^futures-/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
     : 'Not set';
 
+  const handlePushToggle = async () => {
+    if (pushSubscribed) {
+      await unsubscribePush();
+      setPushSubscribed(false);
+      return;
+    }
+    if (!userProfile?.email) { requireEmail(); return; }
+    setPushState('loading');
+    const success = await subscribePush(userProfile.email);
+    setPushSubscribed(success);
+    setPushState('idle');
+  };
+
+  const handleKJVDownload = async () => {
+    if (kjvDownloaded || downloadingKJV) return;
+    setDownloadingKJV(true);
+    try {
+      // Pre-cache KJV bible files via service worker
+      const books = ['genesis','exodus','leviticus','numbers','deuteronomy','joshua','judges','ruth',
+        '1-samuel','2-samuel','1-kings','2-kings','1-chronicles','2-chronicles','ezra','nehemiah',
+        'esther','job','psalms','proverbs','ecclesiastes','song-of-solomon','isaiah','jeremiah',
+        'lamentations','ezekiel','daniel','hosea','joel','amos','obadiah','jonah','micah','nahum',
+        'habakkuk','zephaniah','haggai','zechariah','malachi','matthew','mark','luke','john','acts',
+        'romans','1-corinthians','2-corinthians','galatians','ephesians','philippians','colossians',
+        '1-thessalonians','2-thessalonians','1-timothy','2-timothy','titus','philemon','hebrews',
+        'james','1-peter','2-peter','1-john','2-john','3-john','jude','revelation'];
+
+      const chapters: string[] = [];
+      for (const book of books) {
+        // Fetch chapter 1 to prime the cache; SW will cache on fetch
+        chapters.push(`/bible/kjv/${book}/1.json`);
+      }
+
+      // Batch fetch in groups of 10
+      for (let i = 0; i < chapters.length; i += 10) {
+        const batch = chapters.slice(i, i + 10);
+        await Promise.allSettled(batch.map(url => fetch(url)));
+      }
+
+      localStorage.setItem('dw_kjv_downloaded', 'true');
+    } catch {
+      // Partial download is fine — SW will cache what it can
+    } finally {
+      setDownloadingKJV(false);
+    }
+  };
+
+  const cycleFontSize = () => {
+    const current = parseFloat(localStorage.getItem('dw_fontscale') || '1');
+    let next: number;
+    if (current <= 0.9) next = 1;
+    else if (current >= 1.3) next = 0.85;
+    else next = 1.35;
+    localStorage.setItem('dw_fontscale', String(next));
+    document.documentElement.style.setProperty('--dw-font-scale', String(next));
+    window.location.reload();
+  };
+
+  const cycleLang = () => {
+    const current = localStorage.getItem('dw_lang') || 'en';
+    const next = current === 'en' ? 'es' : current === 'es' ? 'pt' : 'en';
+    localStorage.setItem('dw_lang', next);
+    window.location.reload();
+  };
+
   const profileRows: SettingsRow[] = [
     { icon: User, label: 'Profile', value: displayName, action: () => requireEmail() },
     { icon: Church, label: 'Campus', value: campusName },
@@ -41,14 +112,24 @@ export function MoreScreen() {
 
   const preferenceRows: SettingsRow[] = [
     { icon: Globe, label: 'Translation', value: translation },
-    { icon: Type, label: 'Font Size', value: fontLabel },
-    { icon: Languages, label: 'Language', value: langLabel },
-    { icon: Bell, label: 'Notifications', value: 'Tap to configure' },
+    { icon: Type, label: 'Font Size', value: fontLabel, action: cycleFontSize },
+    { icon: Languages, label: 'Language', value: langLabel, action: cycleLang },
+    {
+      icon: Bell,
+      label: 'Notifications',
+      value: pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'On' : 'Off',
+      action: handlePushToggle,
+    },
   ];
 
   const contentRows: SettingsRow[] = [
     { icon: Book, label: 'Library', value: 'Books & essays' },
-    { icon: Download, label: 'Offline Bible', value: kjvDownloaded ? 'KJV — Downloaded' : 'KJV — Not downloaded' },
+    {
+      icon: Download,
+      label: 'Offline Bible',
+      value: downloadingKJV ? 'Downloading...' : kjvDownloaded ? 'KJV — Downloaded' : 'KJV — Tap to download',
+      action: handleKJVDownload,
+    },
   ];
 
   const aboutRows: SettingsRow[] = [
