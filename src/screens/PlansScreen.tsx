@@ -20,16 +20,17 @@ interface Book {
   title: string;
   description: string;
   author: string;
+  url?: string;
 }
 
 const BOOKS: Book[] = [
-  { id: 'from-scarcity', title: 'From Scarcity to Abundance', description: 'A guide to God\'s provision', author: 'Ps A' },
-  { id: 'church', title: 'The Church Awakening', description: 'Understanding our purpose in faith', author: 'Ps A' },
-  { id: 'no-more-fear', title: 'No More Fear', description: 'Living boldly in faith', author: 'Ps A' },
+  { id: 'from-scarcity', title: 'From Scarcity to Abundance', description: 'A guide to God\'s provision', author: 'Ps A', url: 'https://futuresstore.com.au/collections/books/products/from-scarcity-to-abundance' },
+  { id: 'church', title: 'The Church Awakening', description: 'Understanding our purpose in faith', author: 'Ps A', url: 'https://futuresstore.com.au/collections/books/products/the-church-awakening' },
+  { id: 'no-more-fear', title: 'No More Fear', description: 'Living boldly in faith', author: 'Ps A', url: 'https://futuresstore.com.au/collections/books/products/no-more-fear' },
 ];
 
 const JANE_BOOKS: Book[] = [
-  { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Ps Jane' },
+  { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Ps Jane', url: 'https://futuresstore.com.au/collections/books' },
 ];
 
 const PLAN_CATALOGUE: PlanDef[] = [
@@ -218,7 +219,7 @@ export function PlansScreen() {
                 {devotion.body}
               </p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                â {devotion.author}
+                — {devotion.author}
               </p>
             </Card>
           )}
@@ -243,9 +244,15 @@ export function PlansScreen() {
                   <Heart size={14} /> Prayer Wall
                 </button>
                 {campusData.videoUrl && (
-                  <button className="dw-btn-secondary" style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <a
+                    href={campusData.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="dw-btn-secondary"
+                    style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flex: 1, textDecoration: 'none' }}
+                  >
                     <Video size={14} /> Live Stream
-                  </button>
+                  </a>
                 )}
               </div>
             </Card>
@@ -297,7 +304,11 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS A'S BOOKS</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {BOOKS.map(book => (
-                <Card key={book.id} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}>
+                <Card
+                  key={book.id}
+                  style={{ cursor: book.url ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
+                  onClick={() => book.url && window.open(book.url, '_blank', 'noopener,noreferrer')}
+                >
                   <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
                   </div>
@@ -306,8 +317,13 @@ export function PlansScreen() {
                     <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
                       {book.description}
                     </p>
+                    {book.url && (
+                      <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
+                        Tap to view →
+                      </p>
+                    )}
                   </div>
-                  <ChevronRight size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
+                  <ChevronRight size={18} style={{ color: book.url ? 'var(--dw-accent)' : 'var(--dw-text-muted)', flexShrink: 0 }} />
                 </Card>
               ))}
             </div>
@@ -318,7 +334,11 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS JANE'S BOOKS</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {JANE_BOOKS.map(book => (
-                <Card key={book.id} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}>
+                <Card
+                  key={book.id}
+                  style={{ cursor: book.url ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
+                  onClick={() => book.url && window.open(book.url, '_blank', 'noopener,noreferrer')}
+                >
                   <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
                   </div>
@@ -327,8 +347,13 @@ export function PlansScreen() {
                     <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
                       {book.description}
                     </p>
+                    {book.url && (
+                      <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
+                        Tap to view →
+                      </p>
+                    )}
                   </div>
-                  <ChevronRight size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
+                  <ChevronRight size={18} style={{ color: book.url ? 'var(--dw-accent)' : 'var(--dw-text-muted)', flexShrink: 0 }} />
                 </Card>
               ))}
             </div>
@@ -373,7 +398,7 @@ export function PlansScreen() {
               minHeight: 44,
             }}
           >
-            â Back
+            ← Back
           </button>
         </div>
 
@@ -475,7 +500,7 @@ export function PlansScreen() {
                           {!isComplete && nextDay <= plan.totalDays && (
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
-                                Day {nextDay}: {plan.passages[nextDay - 1] || 'â'}
+                                Day {nextDay}: {plan.passages[nextDay - 1] || '—'}
                               </p>
                               <button
                                 onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
@@ -528,7 +553,7 @@ export function PlansScreen() {
                     {plan.description}
                   </p>
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, marginBottom: 10, fontFamily: 'var(--font-sans)' }}>
-                    {plan.totalDays} days Â· {plan.passages.length} passages
+                    {plan.totalDays} days · {plan.passages.length} passages
                   </p>
                   <button
                     onClick={() => { startPlan(plan.id); setPlanView('active'); }}
@@ -562,7 +587,7 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-              Perfect for new believers â a guided journey through the foundations of faith.
+              Perfect for new believers — a guided journey through the foundations of faith.
             </p>
             <button
               onClick={() => { startPlan('faith-pathway'); }}
