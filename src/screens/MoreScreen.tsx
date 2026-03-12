@@ -6,7 +6,7 @@ import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push'
 
 import {
   User, Globe, Bell, Type, Book, Info, Shield, Mail,
-  ChevronRight, Download, Languages, Church, Loader2
+  ChevronRight, Download, Languages, Church
 } from 'lucide-react';
 
 interface SettingsRow {

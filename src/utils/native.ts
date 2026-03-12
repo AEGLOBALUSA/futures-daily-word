@@ -6,13 +6,13 @@
 
 // Detect if running inside Capacitor native shell
 export function isNative(): boolean {
-  return typeof window !== 'undefined' && !!(window as Record<string, unknown>).Capacitor;
+  return typeof window !== 'undefined' && !!(window as unknown as Record<string, unknown>).Capacitor;
 }
 
 // Get Capacitor plugin from the global Capacitor.Plugins object
 function getPlugin(name: string): Record<string, unknown> | null {
   try {
-    const cap = (window as Record<string, unknown>).Capacitor as Record<string, unknown> | undefined;
+    const cap = (window as unknown as Record<string, unknown>).Capacitor as Record<string, unknown> | undefined;
     if (!cap) return null;
     const plugins = cap.Plugins as Record<string, Record<string, unknown>> | undefined;
     return plugins?.[name] || null;

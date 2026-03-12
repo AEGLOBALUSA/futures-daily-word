@@ -28,7 +28,7 @@ function AppContent() {
           body: JSON.stringify({
             email: userProfile.email,
             nativeToken: token,
-            platform: (window as Record<string, unknown>).Capacitor ? 'native' : 'web',
+            platform: (window as unknown as Record<string, unknown>).Capacitor ? 'native' : 'web',
           }),
         }).catch(() => {});
       });

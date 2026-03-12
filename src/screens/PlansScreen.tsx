@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
-import { useUser } from '../contexts/UserContext';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen } from 'lucide-react';
-import { getDailyPassages } from '../utils/daily-passages';
 
 /* ── Plan catalogue ── */
 interface PlanDef {
@@ -112,7 +110,6 @@ function recordStreak() {
 }
 
 export function PlansScreen() {
-  const { userProfile } = useUser();
   const [activeView, setActiveView] = useState<'active' | 'browse'>('active');
   const [activePlans, setActivePlans] = useState<Record<string, PlanProgress>>(getActivePlans);
   const [streak, setStreak] = useState(getStreak);
@@ -126,8 +123,6 @@ export function PlansScreen() {
   })();
 
   const activePlanIds = Object.keys(activePlans);
-  const todayPassages = getDailyPassages(0);
-
   const startPlan = useCallback((planId: string) => {
     const updated = {
       ...getActivePlans(),
