@@ -204,7 +204,59 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* Daily Passages */}
+        {/* 1. Daily Quote */}
+        <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 15,
+            fontStyle: 'italic',
+            color: 'var(--dw-text-secondary)',
+            lineHeight: 1.6,
+          }}>
+            "{quote.text}"
+          </p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
+            — {quote.author}
+          </p>
+        </Card>
+
+        {/* 2. Devotion of the Day */}
+        <Card style={{ marginBottom: 16 }}>
+          <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
+          <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
+          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+            {devotion.verse}
+          </p>
+          <p className="text-devotion">{devotion.body}</p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
+            — {devotion.author}
+          </p>
+        </Card>
+
+        {/* 3. Scripture Search */}
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Search size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search scripture or topic..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--dw-text-primary)',
+                fontSize: 15,
+                fontFamily: 'var(--font-sans)',
+              }}
+            />
+          </div>
+        </Card>
+
+        {/* 4. Daily Passages / Chapters */}
+        <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>TODAY'S CHAPTERS</p>
         {passages.map((p) => {
           const isExpanded = expandedPassage === p.passage;
           const textKey = `${p.passage}_${translation}`;
@@ -286,69 +338,8 @@ export function HomeScreen() {
           );
         })}
 
-        {/* Devotion of the Day */}
-        <Card style={{ marginBottom: 16, marginTop: 8 }}>
-          <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
-          <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
-          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-            {devotion.verse}
-          </p>
-          <p className="text-devotion">{devotion.body}</p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            — {devotion.author}
-          </p>
-        </Card>
-
-        {/* Commentary (if available for today's passage) */}
-        {commentaryText && (
-          <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY — {commentarySource.toUpperCase()}</p>
-            <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>
-              {commentaryText}
-            </p>
-          </Card>
-        )}
-
-        {/* Scripture Search */}
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Search size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search scripture or topic..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--dw-text-primary)',
-                fontSize: 15,
-                fontFamily: 'var(--font-sans)',
-              }}
-            />
-          </div>
-        </Card>
-
-        {/* Daily Quote */}
-        <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-          <p style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 15,
-            fontStyle: 'italic',
-            color: 'var(--dw-text-secondary)',
-            lineHeight: 1.6,
-          }}>
-            "{quote.text}"
-          </p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
-            — {quote.author}
-          </p>
-        </Card>
-
         {/* Translation Picker */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24, position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20, marginTop: 4, position: 'relative' }}>
           <button
             onClick={() => setShowTransPicker(!showTransPicker)}
             style={{
@@ -408,6 +399,19 @@ export function HomeScreen() {
             </div>
           )}
         </div>
+
+        {/* 5. Commentary (if available for today's passage) */}
+        {commentaryText && (
+          <Card style={{ marginBottom: 16 }}>
+            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY — {commentarySource.toUpperCase()}</p>
+            <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>
+              {commentaryText}
+            </p>
+          </Card>
+        )}
+
+        {/* Bottom spacing */}
+        <div style={{ height: 24 }} />
       </div>
 
       {/* Spinner keyframe */}
