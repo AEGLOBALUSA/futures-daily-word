@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { TabBar } from './components/TabBar';
 import { EmailGate } from './components/EmailGate';
+import { BibleAI } from './components/BibleAI';
 import type { TabId } from './components/TabBar';
 import { HomeScreen } from './screens/HomeScreen';
 import { JournalScreen } from './screens/JournalScreen';
@@ -11,17 +12,17 @@ import { MessagesScreen } from './screens/MessagesScreen';
 import { PlansScreen } from './screens/PlansScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
+import { Sparkles } from 'lucide-react';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [showBibleAI, setShowBibleAI] = useState(false);
   const { userProfile } = useUser();
 
-  // Native startup: hide splash + register push
   useEffect(() => {
     hideSplash();
     if (isNative() && userProfile?.email) {
       registerNativePush((token) => {
-        // Send native push token to server
         fetch('/api/subscribe-push', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -48,6 +49,23 @@ function AppContent() {
       {screens[activeTab]}
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
       <EmailGate />
+      <button
+        onClick={() => setShowBibleAI(true)}
+        style={{
+          position: 'fixed',
+          bottom: 'calc(72px + var(--safe-bottom))',
+          right: 20, width: 56, height: 56,
+          borderRadius: '50%',
+          background: 'var(--dw-accent)',
+          border: 'none', color: '#fff', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 12px rgba(168, 50, 59, 0.3)',
+          zIndex: 40, minHeight: 56, minWidth: 56,
+        }}
+      >
+        <Sparkles size={24} />
+      </button>
+      <BibleAI isOpen={showBibleAI} onClose={() => setShowBibleAI(false)} />
     </div>
   );
 }
