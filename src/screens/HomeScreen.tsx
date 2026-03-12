@@ -20,6 +20,33 @@ const PERSONAS = [
   { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 
+/* ── Plan reading helpers ── */
+interface PlanDef { id: string; title: string; totalDays: number; passages: string[]; }
+interface PlanProgress { startedAt: string; completedDays: number[]; lastDay: number; }
+
+const PLAN_CATALOGUE: PlanDef[] = [
+  { id: 'faith-pathway', title: '30-Day Faith Pathway', totalDays: 30, passages: ['John 3','Romans 3','Ephesians 2','John 1','Romans 5','Romans 6','Romans 8','Galatians 5','Philippians 4','Colossians 3','1 John 1','1 John 3','1 John 4','James 1','James 2','Hebrews 11','Hebrews 12','Psalm 23','Psalm 27','Psalm 37','Psalm 91','Psalm 139','Proverbs 3','Isaiah 40','Isaiah 55','Matthew 5','Matthew 6','Matthew 7','Luke 15','Revelation 21'] },
+  { id: 'psalms-30', title: 'Psalms in 30 Days', totalDays: 30, passages: Array.from({ length: 30 }, (_, i) => `Psalm ${i * 5 + 1}-${(i + 1) * 5}`) },
+  { id: 'prayer-life', title: 'Building a Prayer Life', totalDays: 14, passages: ['Matthew 6','Luke 11','1 Thessalonians 5','Philippians 4','James 5','Psalm 5','Psalm 63','Daniel 6','Nehemiah 1','Acts 4','Ephesians 6','Colossians 4','1 Timothy 2','Jude 1'] },
+  { id: 'gospel-john', title: 'Gospel of John', totalDays: 21, passages: Array.from({ length: 21 }, (_, i) => `John ${i + 1}`) },
+  { id: 'armor-of-god', title: 'The Armor of God', totalDays: 7, passages: ['Ephesians 6','Isaiah 59','Romans 13','1 Thessalonians 5','2 Corinthians 10','Hebrews 4','Psalm 18'] },
+];
+
+function getActivePlanReading(): { planTitle: string; dayNum: number; passage: string } | null {
+  try {
+    const plans: Record<string, PlanProgress> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+    for (const [planId, progress] of Object.entries(plans)) {
+      const def = PLAN_CATALOGUE.find(p => p.id === planId);
+      if (!def) continue;
+      const nextDay = progress.lastDay + 1;
+      if (nextDay <= def.totalDays && def.passages[nextDay - 1]) {
+        return { planTitle: def.title, dayNum: nextDay, passage: def.passages[nextDay - 1] };
+      }
+    }
+  } catch { /* no plans */ }
+  return null;
+}
+
 export function HomeScreen() {
   const { userProfile, setup, profilePic, saveProfile, saveSetup, requireEmail } = useUser();
   const [dayOffset, setDayOffset] = useState(0);
@@ -31,6 +58,7 @@ export function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCampusPicker, setShowCampusPicker] = useState(false);
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+  const planReading = getActivePlanReading();
 
   // Audio state
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -80,6 +108,7 @@ export function HomeScreen() {
 
   // Auto-fetch ALL passage texts on load — no clicks needed
   useEffect(() => {
+    // Fetch daily passages
     passages.forEach(p => {
       const key = `${p.passage}_${translation}`;
       if (passageTexts[key]) return;
@@ -98,6 +127,26 @@ export function HomeScreen() {
           });
         });
     });
+
+    // Also fetch plan reading passage if active
+    if (planReading) {
+      const planKey = `${planReading.passage}_${translation}`;
+      if (!passageTexts[planKey]) {
+        setLoadingPassages(prev => new Set(prev).add(planReading.passage));
+        fetchPassage(planReading.passage, translation)
+          .then(text => {
+            setPassageTexts(prev => ({ ...prev, [planKey]: text }));
+          })
+          .catch(() => {})
+          .finally(() => {
+            setLoadingPassages(prev => {
+              const next = new Set(prev);
+              next.delete(planReading.passage);
+              return next;
+            });
+          });
+      }
+    }
   }, [passages.map(p => p.passage).join(','), translation]);
 
   // Clean up audio on unmount
@@ -357,6 +406,60 @@ export function HomeScreen() {
             </>
           )}
         </button>
+
+        {/* Current Plan Reading — if user has an active plan */}
+        {planReading && (() => {
+          const planKey = `${planReading.passage}_${translation}`;
+          const planText = passageTexts[planKey];
+          const planLoading = loadingPassages.has(planReading.passage);
+          return (
+            <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <p className="text-section-header" style={{ marginBottom: 2 }}>YOUR PLAN</p>
+                  <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
+                    {planReading.planTitle} — Day {planReading.dayNum}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button
+                    onClick={() => handleAudio(planReading.passage)}
+                    disabled={!planText}
+                    style={{
+                      background: 'none', border: 'none',
+                      color: audioPlaying && audioCurrentPassage === planReading.passage ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+                      cursor: planText ? 'pointer' : 'default', padding: 4, minHeight: 36, minWidth: 36,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: planText ? 1 : 0.3,
+                    }}
+                    aria-label="Listen to plan reading"
+                  >
+                    {audioLoading && audioCurrentPassage === planReading.passage ? (
+                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    ) : audioPlaying && audioCurrentPassage === planReading.passage ? (
+                      <VolumeX size={16} />
+                    ) : (
+                      <Volume2 size={16} />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+                {planReading.passage}
+              </p>
+              {planLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+                  <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
+                </div>
+              ) : planText ? (
+                <p className="text-scripture" style={{ fontSize: 18 }}>{planText}</p>
+              ) : (
+                <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, fontStyle: 'italic' }}>Loading...</p>
+              )}
+            </Card>
+          );
+        })()}
 
         {/* Translation Selector — always visible */}
         <div style={{
