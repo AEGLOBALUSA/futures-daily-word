@@ -30,7 +30,6 @@ export function HomeScreen() {
   });
   const [passageTexts, setPassageTexts] = useState<Record<string, string>>({});
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
-  const [expandedPassage, setExpandedPassage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCampusPicker, setShowCampusPicker] = useState(false);
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
@@ -39,6 +38,7 @@ export function HomeScreen() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
+  const [audioCurrentPassage, setAudioCurrentPassage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
@@ -80,40 +80,29 @@ export function HomeScreen() {
     }
   }
 
-  // Auto-fetch primary passage text on load (for hero listen button)
+  // Auto-fetch ALL passage texts on load — no clicks needed
   useEffect(() => {
-    if (!primaryPassage) return;
-    const key = `${primaryPassage}_${translation}`;
-    if (passageTexts[key]) return;
+    passages.forEach(p => {
+      const key = `${p.passage}_${translation}`;
+      if (passageTexts[key]) return;
 
-    fetchPassage(primaryPassage, translation)
-      .then(text => {
-        setPassageTexts(prev => ({ ...prev, [key]: text }));
-      })
-      .catch(() => {});
-  }, [primaryPassage, translation]);
-
-  // Fetch passage text when a passage is expanded
-  useEffect(() => {
-    if (!expandedPassage) return;
-    const key = `${expandedPassage}_${translation}`;
-    if (passageTexts[key]) return;
-
-    setLoadingPassages(prev => new Set(prev).add(expandedPassage));
-    fetchPassage(expandedPassage, translation)
-      .then(text => {
-        setPassageTexts(prev => ({ ...prev, [key]: text }));
-      })
-      .finally(() => {
-        setLoadingPassages(prev => {
-          const next = new Set(prev);
-          next.delete(expandedPassage);
-          return next;
+      setLoadingPassages(prev => new Set(prev).add(p.passage));
+      fetchPassage(p.passage, translation)
+        .then(text => {
+          setPassageTexts(prev => ({ ...prev, [key]: text }));
+        })
+        .catch(() => {})
+        .finally(() => {
+          setLoadingPassages(prev => {
+            const next = new Set(prev);
+            next.delete(p.passage);
+            return next;
+          });
         });
-      });
-  }, [expandedPassage, translation]);
+    });
+  }, [passages.map(p => p.passage).join(','), translation]);
 
-  // Clean up audio on unmount or passage change
+  // Clean up audio on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -122,7 +111,7 @@ export function HomeScreen() {
       }
       if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, [expandedPassage]);
+  }, []);
 
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
@@ -138,22 +127,25 @@ export function HomeScreen() {
     }
     setAudioPlaying(false);
     setAudioUrl(null);
+    setAudioCurrentPassage(null);
   };
 
   const handleAudio = async (passage: string) => {
     // If already playing this passage, stop
-    if (audioPlaying) {
+    if (audioPlaying && audioCurrentPassage === passage) {
       stopAudio();
       return;
     }
+    // If playing a different passage, stop it first
+    if (audioPlaying) stopAudio();
 
     const textKey = `${passage}_${translation}`;
     const text = passageTexts[textKey];
     if (!text) return;
 
     setAudioLoading(true);
+    setAudioCurrentPassage(passage);
     try {
-      // For ESV, fetchAudio hits /api/esv-audio; for others, uses /api/polly-tts
       const url = await fetchAudio(text.slice(0, 3000), translation);
       if (url) {
         setAudioUrl(url);
@@ -162,16 +154,18 @@ export function HomeScreen() {
         audio.onended = () => {
           setAudioPlaying(false);
           setAudioUrl(null);
+          setAudioCurrentPassage(null);
         };
         audio.onerror = () => {
           setAudioPlaying(false);
           setAudioUrl(null);
+          setAudioCurrentPassage(null);
         };
         await audio.play();
         setAudioPlaying(true);
       }
     } catch {
-      // Audio not available
+      setAudioCurrentPassage(null);
     } finally {
       setAudioLoading(false);
     }
@@ -302,7 +296,7 @@ export function HomeScreen() {
           margin: '20px 0',
         }}>
           <button
-            onClick={() => { setDayOffset(d => d - 1); setExpandedPassage(null); stopAudio(); }}
+            onClick={() => { setDayOffset(d => d - 1); stopAudio(); }}
             style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Previous day"
           >
@@ -315,7 +309,7 @@ export function HomeScreen() {
             </p>
           </div>
           <button
-            onClick={() => { setDayOffset(d => d + 1); setExpandedPassage(null); stopAudio(); }}
+            onClick={() => { setDayOffset(d => d + 1); stopAudio(); }}
             disabled={dayOffset >= 30}
             style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'var(--dw-text-faint)' : 'var(--dw-text-muted)', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Next day"
@@ -449,27 +443,23 @@ export function HomeScreen() {
           </div>
         </Card>
 
-        {/* 4. Daily Passages / Chapters */}
+        {/* 4. Daily Passages / Chapters — auto-loaded, no clicks needed */}
         <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>TODAY'S CHAPTERS</p>
         {passages.map((p) => {
-          const isExpanded = expandedPassage === p.passage;
           const textKey = `${p.passage}_${translation}`;
           const text = passageTexts[textKey];
           const isLoading = loadingPassages.has(p.passage);
 
           return (
-            <Card
-              key={p.passage}
-              style={{ marginBottom: 12, cursor: 'pointer' }}
-              onClick={() => { setExpandedPassage(isExpanded ? null : p.passage); if (!isExpanded) stopAudio(); }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isExpanded ? 16 : 0 }}>
+            <Card key={p.passage} style={{ marginBottom: 16 }}>
+              {/* Passage header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                 <span style={{ fontSize: 20 }}>{p.sectionEmoji}</span>
                 <div style={{ flex: 1 }}>
                   <p style={{
                     color: 'var(--dw-accent)',
                     fontSize: 14,
-                    fontWeight: 500,
+                    fontWeight: 600,
                     fontFamily: 'var(--font-sans)',
                   }}>
                     {p.passage}
@@ -478,55 +468,52 @@ export function HomeScreen() {
                     {p.sectionLabel}
                   </p>
                 </div>
-                <BookOpen size={16} style={{ color: 'var(--dw-text-faint)' }} />
+                {/* Audio + Share inline */}
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button
+                    onClick={() => handleAudio(p.passage)}
+                    disabled={!text}
+                    style={{
+                      background: 'none', border: 'none',
+                      color: audioPlaying && audioCurrentPassage === p.passage ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+                      cursor: text ? 'pointer' : 'default', padding: 4, minHeight: 36, minWidth: 36,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: text ? 1 : 0.3,
+                    }}
+                    aria-label="Listen"
+                  >
+                    {audioLoading && audioCurrentPassage === p.passage ? (
+                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    ) : audioPlaying && audioCurrentPassage === p.passage ? (
+                      <VolumeX size={16} />
+                    ) : (
+                      <Volume2 size={16} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleShare(p.passage)}
+                    style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    aria-label="Share"
+                  >
+                    <Share2 size={16} />
+                  </button>
+                </div>
               </div>
 
-              {isExpanded && (
-                <div>
-                  {isLoading ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 0' }}>
-                      <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                      <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
-                    </div>
-                  ) : text ? (
-                    <div>
-                      <p className="text-scripture" style={{ fontSize: 22, marginBottom: 12 }}>
-                        {text}
-                      </p>
-                      <div style={{ display: 'flex', gap: 12 }}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleAudio(p.passage); }}
-                          style={{
-                            background: 'none', border: 'none',
-                            color: audioPlaying ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
-                            cursor: 'pointer', padding: 4, minHeight: 44, minWidth: 44,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}
-                          aria-label={audioPlaying ? 'Stop audio' : 'Listen'}
-                        >
-                          {audioLoading ? (
-                            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                          ) : audioPlaying ? (
-                            <VolumeX size={18} />
-                          ) : (
-                            <Volume2 size={18} />
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleShare(p.passage); }}
-                          style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          aria-label="Share"
-                        >
-                          <Share2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, padding: '8px 0' }}>
-                      Tap to load passage in {translation}
-                    </p>
-                  )}
+              {/* Scripture text — always visible */}
+              {isLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                  <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
                 </div>
+              ) : text ? (
+                <p className="text-scripture" style={{ fontSize: 20 }}>
+                  {text}
+                </p>
+              ) : (
+                <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
+                  Loading...
+                </p>
               )}
             </Card>
           );

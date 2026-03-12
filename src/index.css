@@ -11,15 +11,15 @@
   --dw-surface: #1A1A1A;
   --dw-surface-hover: #222222;
   --dw-surface-active: #2A2A2A;
-  --dw-accent: #C41E2A;
-  --dw-accent-hover: #9B1620;
-  --dw-accent-active: #7D1019;
-  --dw-accent-bg: rgba(196, 30, 42, 0.12);
+  --dw-accent: #A8323B;
+  --dw-accent-hover: #8C2830;
+  --dw-accent-active: #711F27;
+  --dw-accent-bg: rgba(168, 50, 59, 0.12);
   --dw-text-primary: #FFFFFF;
   --dw-text-secondary: #D4CEC6;
   --dw-text-muted: #9A948E;
   --dw-text-faint: #5A554F;
-  --dw-text-christ: #C41E2A;
+  --dw-text-christ: #A8323B;
   --dw-border: #333333;
   --dw-border-subtle: #252525;
 
@@ -35,21 +35,21 @@
 
 /* ---------- Light Mode ---------- */
 [data-theme="light"] {
-  --dw-canvas: #FFFCFA;
-  --dw-surface: #FFF9F5;
-  --dw-surface-hover: #F5F0EB;
-  --dw-surface-active: #EDE8E3;
-  --dw-accent: #C41E2A;
-  --dw-accent-hover: #9B1620;
-  --dw-accent-active: #7D1019;
-  --dw-accent-bg: rgba(196, 30, 42, 0.06);
-  --dw-text-primary: #0A0A0A;
-  --dw-text-secondary: #1A1A1A;
-  --dw-text-muted: #555555;
-  --dw-text-faint: #999999;
-  --dw-text-christ: #C41E2A;
-  --dw-border: #E0DCD8;
-  --dw-border-subtle: #EBE8E4;
+  --dw-canvas: #FFFFFF;
+  --dw-surface: #FDFCFB;
+  --dw-surface-hover: #F8F6F4;
+  --dw-surface-active: #F2F0ED;
+  --dw-accent: #A8323B;
+  --dw-accent-hover: #8C2830;
+  --dw-accent-active: #711F27;
+  --dw-accent-bg: rgba(168, 50, 59, 0.05);
+  --dw-text-primary: #050505;
+  --dw-text-secondary: #111111;
+  --dw-text-muted: #4A4A4A;
+  --dw-text-faint: #8A8A8A;
+  --dw-text-christ: #A8323B;
+  --dw-border: #ECEAE7;
+  --dw-border-subtle: #F3F1EF;
 
   color-scheme: light;
 }
@@ -75,23 +75,31 @@ body {
   font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
-/* Glass-like text — sharp, crisp, inky black with depth */
+/* Glass-like text — deep inky black with crystalline sharpness */
 [data-theme="light"] body {
   -webkit-font-smoothing: auto;
 }
 
-[data-theme="light"] .text-scripture,
-[data-theme="light"] .text-devotion {
+[data-theme="light"] .text-scripture {
   color: #000000;
-  text-shadow: 0 0 0.5px rgba(0,0,0,0.1);
+  text-shadow: 0 0 0.3px rgba(0,0,0,0.15), 0 0.5px 0 rgba(0,0,0,0.03);
+  -webkit-text-stroke: 0.2px rgba(0,0,0,0.08);
+}
+
+[data-theme="light"] .text-devotion {
+  color: #020202;
+  text-shadow: 0 0 0.3px rgba(0,0,0,0.12);
+  -webkit-text-stroke: 0.15px rgba(0,0,0,0.06);
 }
 
 [data-theme="light"] .text-card-title {
-  color: #0A0A0A;
+  color: #050505;
+  text-shadow: 0 0 0.2px rgba(0,0,0,0.1);
 }
 
 [data-theme="light"] .text-section-header {
-  color: #333333;
+  color: #2A2A2A;
+  letter-spacing: 0.1em;
 }
 
 /* ---------- Typography Classes ---------- */
@@ -175,7 +183,7 @@ body {
   min-height: 44px;
 }
 
-.dw-btn-secondary:hover { background: rgba(196, 30, 42, 0.18); }
+.dw-btn-secondary:hover { background: rgba(168, 50, 59, 0.18); }
 
 /* ---------- Tab Bar ---------- */
 .tab-bar {
@@ -233,7 +241,7 @@ body {
 }
 
 /* ---------- Highlight Colors ---------- */
-.hl-red { background: rgba(196, 30, 42, 0.20); }
+.hl-red { background: rgba(168, 50, 59, 0.20); }
 .hl-gold { background: rgba(200, 149, 106, 0.25); }
 .hl-blue { background: rgba(106, 149, 200, 0.25); }
 .hl-green { background: rgba(106, 200, 149, 0.25); }

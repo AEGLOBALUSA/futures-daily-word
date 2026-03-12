@@ -3,9 +3,9 @@
 
 export const tokens = {
   color: {
-    accent: '#C41E2A',
-    accentHover: '#9B1620',
-    accentActive: '#7D1019',
+    accent: '#A8323B',
+    accentHover: '#8C2830',
+    accentActive: '#711F27',
     accentBg: 'var(--dw-accent-bg)',
     christ: 'var(--dw-text-christ)',
     canvas: 'var(--dw-canvas)',
