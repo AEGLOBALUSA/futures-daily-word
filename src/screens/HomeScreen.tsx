@@ -11,7 +11,7 @@ import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
 import { useUser } from '../contexts/UserContext';
 
-const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB', 'TB'];
+const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
 const PERSONAS = [
   { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
