@@ -144,7 +144,7 @@ export function HomeScreen() {
     setAudioLoading(true);
     setAudioCurrentPassage(passage);
     try {
-      const url = await fetchAudio(text.slice(0, 3000), translation);
+      const url = await fetchAudio(text.slice(0, 5000), translation, passage);
       if (url) {
         setAudioUrl(url);
         const audio = new Audio(url);

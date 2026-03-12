@@ -121,22 +121,27 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
 }
 
 /**
- * Fetch audio URL for a passage.
+ * Fetch audio for a passage.
+ * ESV translation → ESV.org native audio (passage reference needed).
+ * All other translations → ElevenLabs TTS with the actual scripture text.
  */
-export async function fetchAudio(passage: string, translation: TranslationCode): Promise<string | null> {
+export async function fetchAudio(text: string, translation: TranslationCode, passageRef?: string): Promise<string | null> {
   try {
-    if (translation === 'ESV') {
-      const res = await fetch(`/api/esv-audio?passage=${encodeURIComponent(passage)}`);
+    // ESV has native human-read audio — use the passage reference
+    if (translation === 'ESV' && passageRef) {
+      const res = await fetch(`/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
       if (res.ok) {
-        const data = await res.json();
-        return data.url || null;
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
       }
     }
-    // For other translations, use Polly TTS
-    const res = await fetch('/api/polly-tts', {
+
+    // All other translations → ElevenLabs AI voice
+    if (!text) return null;
+    const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: passage, lang: 'en' }),
+      body: JSON.stringify({ text: text.slice(0, 5000) }),
     });
     if (res.ok) {
       const blob = await res.blob();
