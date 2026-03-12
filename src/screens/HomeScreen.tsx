@@ -14,12 +14,12 @@ import { useUser } from '../contexts/UserContext';
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
 const PERSONAS = [
-  { id: 'new_believer', label: 'New Believer', emoji: '🌱' },
-  { id: 'growing_christian', label: 'Growing Christian', emoji: '📖' },
-  { id: 'mature_believer', label: 'Mature Believer', emoji: '⛪' },
-  { id: 'church_leader', label: 'Church Leader', emoji: '🙏' },
-  { id: 'youth', label: 'Youth', emoji: '⚡' },
-  { id: 'parent', label: 'Parent', emoji: '👨‍👩‍👧' },
+  { id: 'new_believer', label: 'New Believer', desc: 'Just starting my faith journey' },
+  { id: 'returning', label: 'Returning to Faith', desc: 'Coming back to church' },
+  { id: 'pastor', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
+  { id: 'deeper', label: 'Going Deeper', desc: 'Deeper study and theology' },
+  { id: 'worship', label: 'Worship', desc: 'Prayer and worship focused' },
+  { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 
 export function HomeScreen() {
@@ -256,7 +256,7 @@ export function HomeScreen() {
                 display: 'flex', alignItems: 'center', gap: 4, marginTop: 2,
               }}
             >
-              {currentPersona ? `${currentPersona.emoji} ${currentPersona.label}` : 'Set your journey type'}
+              {currentPersona ? currentPersona.label : 'Set your journey type'}
               <ChevronDown size={12} />
             </button>
           </div>
@@ -266,26 +266,27 @@ export function HomeScreen() {
         {showPersonaPicker && (
           <Card style={{ marginBottom: 16, padding: 12 }}>
             <p className="text-section-header" style={{ marginBottom: 10 }}>YOUR JOURNEY</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {PERSONAS.map(p => (
                 <button
                   key={p.id}
                   onClick={() => handlePersonaSelect(p.id)}
                   style={{
                     background: setup?.persona === p.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: setup?.persona === p.id ? '#fff' : 'var(--dw-text-secondary)',
+                    color: setup?.persona === p.id ? '#fff' : 'var(--dw-text-primary)',
                     border: 'none',
                     borderRadius: 10,
-                    padding: '10px 14px',
-                    fontSize: 13,
+                    padding: '12px 16px',
+                    fontSize: 14,
                     fontWeight: 500,
                     cursor: 'pointer',
                     fontFamily: 'var(--font-sans)',
-                    minHeight: 40,
-                    display: 'flex', alignItems: 'center', gap: 6,
+                    minHeight: 44,
+                    textAlign: 'left',
                   }}
                 >
-                  <span>{p.emoji}</span> {p.label}
+                  <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
                 </button>
               ))}
             </div>
@@ -581,37 +582,49 @@ export function HomeScreen() {
           </div>
 
           {showCampusPicker && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {CAMPUSES.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => handleCampusSelect(c.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    padding: '12px 14px',
-                    background: userProfile?.campus === c.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: userProfile?.campus === c.id ? '#fff' : 'var(--dw-text-primary)',
-                    border: 'none',
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textAlign: 'left',
-                    minHeight: 48,
-                    transition: 'background var(--transition-fast)',
-                  }}
-                >
-                  <MapPin size={16} style={{ opacity: 0.6, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 14, fontWeight: 500 }}>{c.name}</p>
-                    <p style={{ fontSize: 11, opacity: 0.7, marginTop: 1 }}>{c.city}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
+                const regionCampuses = CAMPUSES.filter(c => c.region === region);
+                if (!regionCampuses.length) return null;
+                return (
+                  <div key={region}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6, paddingLeft: 4, fontFamily: 'var(--font-sans)' }}>
+                      {region}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {regionCampuses.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleCampusSelect(c.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            width: '100%',
+                            padding: '10px 14px',
+                            background: userProfile?.campus === c.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                            color: userProfile?.campus === c.id ? '#fff' : 'var(--dw-text-primary)',
+                            border: 'none',
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: 13,
+                            fontWeight: 500,
+                            textAlign: 'left',
+                            minHeight: 42,
+                          }}
+                        >
+                          <MapPin size={14} style={{ opacity: 0.5, flexShrink: 0 }} />
+                          <div>
+                            <span style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</span>
+                            <span style={{ fontSize: 11, opacity: 0.6, marginLeft: 8 }}>{c.city}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>

@@ -264,28 +264,39 @@ export function MoreScreen() {
         {showCampusPicker && (
           <Card style={{ marginBottom: 16, padding: 12 }}>
             <p className="text-section-header" style={{ marginBottom: 10 }}>SELECT CAMPUS</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {CAMPUSES.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => handleCampusSelect(c.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    width: '100%', padding: '12px 14px',
-                    background: userProfile?.campus === c.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: userProfile?.campus === c.id ? '#fff' : 'var(--dw-text-primary)',
-                    border: 'none', borderRadius: 10, cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 500,
-                    textAlign: 'left', minHeight: 48,
-                  }}
-                >
-                  <MapPin size={16} style={{ opacity: 0.6, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 14, fontWeight: 500 }}>{c.name}</p>
-                    <p style={{ fontSize: 11, opacity: 0.7, marginTop: 1 }}>{c.city}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
+                const regionCampuses = CAMPUSES.filter(c => c.region === region);
+                if (!regionCampuses.length) return null;
+                return (
+                  <div key={region}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6, paddingLeft: 4, fontFamily: 'var(--font-sans)' }}>
+                      {region}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {regionCampuses.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleCampusSelect(c.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            width: '100%', padding: '10px 14px',
+                            background: userProfile?.campus === c.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                            color: userProfile?.campus === c.id ? '#fff' : 'var(--dw-text-primary)',
+                            border: 'none', borderRadius: 10, cursor: 'pointer',
+                            fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
+                            textAlign: 'left', minHeight: 42,
+                          }}
+                        >
+                          <MapPin size={14} style={{ opacity: 0.5, flexShrink: 0 }} />
+                          <span>{c.name}</span>
+                          <span style={{ fontSize: 11, opacity: 0.6 }}>{c.city}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </Card>
         )}

@@ -35,21 +35,21 @@
 
 /* ---------- Light Mode ---------- */
 [data-theme="light"] {
-  --dw-canvas: #FAFAF8;
-  --dw-surface: #F2F0ED;
-  --dw-surface-hover: #E8E5E0;
-  --dw-surface-active: #DDD9D3;
+  --dw-canvas: #FFFCFA;
+  --dw-surface: #FFF9F5;
+  --dw-surface-hover: #F5F0EB;
+  --dw-surface-active: #EDE8E3;
   --dw-accent: #C41E2A;
   --dw-accent-hover: #9B1620;
   --dw-accent-active: #7D1019;
-  --dw-accent-bg: rgba(196, 30, 42, 0.08);
-  --dw-text-primary: #111111;
-  --dw-text-secondary: #3D3832;
-  --dw-text-muted: #706A62;
-  --dw-text-faint: #B0AAA2;
+  --dw-accent-bg: rgba(196, 30, 42, 0.06);
+  --dw-text-primary: #0A0A0A;
+  --dw-text-secondary: #1A1A1A;
+  --dw-text-muted: #555555;
+  --dw-text-faint: #999999;
   --dw-text-christ: #C41E2A;
-  --dw-border: #C4BFB7;
-  --dw-border-subtle: #DAD5CD;
+  --dw-border: #E0DCD8;
+  --dw-border-subtle: #EBE8E4;
 
   color-scheme: light;
 }
@@ -71,6 +71,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+/* Glass-like text — sharp, crisp, inky black with depth */
+[data-theme="light"] body {
+  -webkit-font-smoothing: auto;
+}
+
+[data-theme="light"] .text-scripture,
+[data-theme="light"] .text-devotion {
+  color: #000000;
+  text-shadow: 0 0 0.5px rgba(0,0,0,0.1);
+}
+
+[data-theme="light"] .text-card-title {
+  color: #0A0A0A;
+}
+
+[data-theme="light"] .text-section-header {
+  color: #333333;
 }
 
 /* ---------- Typography Classes ---------- */
