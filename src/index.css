@@ -2,21 +2,24 @@
 
 /* ============================================
    FUTURES DAILY WORD v2 — Design Token System
-   Dwell + Stripe Design Language
+   Red + Black + White
    ============================================ */
 
 /* ---------- Dark Mode (Default) ---------- */
 :root {
   --dw-canvas: #0A0A0A;
-  --dw-surface: #161616;
-  --dw-surface-hover: #1E1E1E;
-  --dw-surface-active: #282828;
-  --dw-accent: #D4A574;
-  --dw-accent-bg: rgba(212, 165, 116, 0.15);
+  --dw-surface: #1A1A1A;
+  --dw-surface-hover: #222222;
+  --dw-surface-active: #2A2A2A;
+  --dw-accent: #C41E2A;
+  --dw-accent-hover: #9B1620;
+  --dw-accent-active: #7D1019;
+  --dw-accent-bg: rgba(196, 30, 42, 0.12);
   --dw-text-primary: #FFFFFF;
   --dw-text-secondary: #D4CEC6;
   --dw-text-muted: #9A948E;
   --dw-text-faint: #5A554F;
+  --dw-text-christ: #C41E2A;
   --dw-border: #333333;
   --dw-border-subtle: #252525;
 
@@ -33,15 +36,18 @@
 /* ---------- Light Mode ---------- */
 [data-theme="light"] {
   --dw-canvas: #FAFAF8;
-  --dw-surface: #EDEAE4;
-  --dw-surface-hover: #E2DED7;
-  --dw-surface-active: #D6D1C9;
-  --dw-accent: #B07D4F;
-  --dw-accent-bg: rgba(176, 125, 79, 0.14);
+  --dw-surface: #F2F0ED;
+  --dw-surface-hover: #E8E5E0;
+  --dw-surface-active: #DDD9D3;
+  --dw-accent: #C41E2A;
+  --dw-accent-hover: #9B1620;
+  --dw-accent-active: #7D1019;
+  --dw-accent-bg: rgba(196, 30, 42, 0.08);
   --dw-text-primary: #111111;
   --dw-text-secondary: #3D3832;
   --dw-text-muted: #706A62;
   --dw-text-faint: #B0AAA2;
+  --dw-text-christ: #C41E2A;
   --dw-border: #C4BFB7;
   --dw-border-subtle: #DAD5CD;
 
@@ -127,12 +133,12 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: background var(--transition-fast);
   min-height: 44px;
 }
 
-.dw-btn-primary:hover { opacity: 0.9; }
-.dw-btn-primary:active { opacity: 0.8; }
+.dw-btn-primary:hover { background: var(--dw-accent-hover); }
+.dw-btn-primary:active { background: var(--dw-accent-active); }
 
 .dw-btn-secondary {
   background: var(--dw-accent-bg);
@@ -148,7 +154,7 @@ body {
   min-height: 44px;
 }
 
-.dw-btn-secondary:hover { background: rgba(200, 149, 106, 0.18); }
+.dw-btn-secondary:hover { background: rgba(196, 30, 42, 0.18); }
 
 /* ---------- Tab Bar ---------- */
 .tab-bar {
@@ -200,7 +206,13 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ---------- Red-Letter Scripture ---------- */
+.text-christ {
+  color: var(--dw-text-christ);
+}
+
 /* ---------- Highlight Colors ---------- */
+.hl-red { background: rgba(196, 30, 42, 0.20); }
 .hl-gold { background: rgba(200, 149, 106, 0.25); }
 .hl-blue { background: rgba(106, 149, 200, 0.25); }
 .hl-green { background: rgba(106, 200, 149, 0.25); }

@@ -3,8 +3,11 @@
 
 export const tokens = {
   color: {
-    accent: '#C8956A',
+    accent: '#C41E2A',
+    accentHover: '#9B1620',
+    accentActive: '#7D1019',
     accentBg: 'var(--dw-accent-bg)',
+    christ: 'var(--dw-text-christ)',
     canvas: 'var(--dw-canvas)',
     surface: 'var(--dw-surface)',
     surfaceHover: 'var(--dw-surface-hover)',
