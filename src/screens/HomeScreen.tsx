@@ -14,11 +14,9 @@ import { useUser } from '../contexts/UserContext';
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
 const PERSONAS = [
-  { id: 'new_believer', label: 'New Believer', desc: 'Just starting my faith journey' },
-  { id: 'returning', label: 'Returning to Faith', desc: 'Coming back to church' },
+  { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
   { id: 'pastor', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
   { id: 'deeper', label: 'Going Deeper', desc: 'Deeper study and theology' },
-  { id: 'worship', label: 'Worship', desc: 'Prayer and worship focused' },
   { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 

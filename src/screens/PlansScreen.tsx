@@ -156,7 +156,7 @@ export function PlansScreen() {
 
   // Auto-suggest faith-pathway for new believers
   useEffect(() => {
-    if (persona === 'new_believer' && !activePlans['faith-pathway']) {
+    if (persona === 'new_returning' && !activePlans['faith-pathway']) {
       // Don't auto-start, just show browse view
     }
   }, [persona]);
@@ -348,7 +348,7 @@ export function PlansScreen() {
         </Card>
 
         {/* Suggested faith pathway for new believers */}
-        {persona === 'new_believer' && !activePlans['faith-pathway'] && (
+        {persona === 'new_returning' && !activePlans['faith-pathway'] && (
           <Card style={{ marginTop: 16, borderLeft: '3px solid var(--dw-accent)' }}>
             <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
