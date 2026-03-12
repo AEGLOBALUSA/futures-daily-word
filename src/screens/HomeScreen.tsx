@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, BookOpen, Loader2, MapPin, User, ChevronDown, Headphones, Pause } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
