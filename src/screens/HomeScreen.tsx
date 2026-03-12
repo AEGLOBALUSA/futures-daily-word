@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, Loader2, MapPin, User, ChevronDown } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -11,7 +11,7 @@ import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
 import { useUser } from '../contexts/UserContext';
 
-const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
+const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB', 'TB'];
 
 const PERSONAS = [
   { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
@@ -20,31 +20,33 @@ const PERSONAS = [
   { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 
-/* ── Plan reading helpers ── */
-interface PlanDef { id: string; title: string; totalDays: number; passages: string[]; }
-interface PlanProgress { startedAt: string; completedDays: number[]; lastDay: number; }
+/* ── Faith Pathway types ── */
+interface PathwayDay {
+  day: number;
+  title: string;
+  titleEs?: string;
+  titlePt?: string;
+  titleId?: string;
+  theme: string;
+  themeEs?: string;
+  themePt?: string;
+  themeId?: string;
+  passages?: string[];
+  reflection?: string;
+}
 
-const PLAN_CATALOGUE: PlanDef[] = [
-  { id: 'faith-pathway', title: '30-Day Faith Pathway', totalDays: 30, passages: ['John 3','Romans 3','Ephesians 2','John 1','Romans 5','Romans 6','Romans 8','Galatians 5','Philippians 4','Colossians 3','1 John 1','1 John 3','1 John 4','James 1','James 2','Hebrews 11','Hebrews 12','Psalm 23','Psalm 27','Psalm 37','Psalm 91','Psalm 139','Proverbs 3','Isaiah 40','Isaiah 55','Matthew 5','Matthew 6','Matthew 7','Luke 15','Revelation 21'] },
-  { id: 'psalms-30', title: 'Psalms in 30 Days', totalDays: 30, passages: Array.from({ length: 30 }, (_, i) => `Psalm ${i * 5 + 1}-${(i + 1) * 5}`) },
-  { id: 'prayer-life', title: 'Building a Prayer Life', totalDays: 14, passages: ['Matthew 6','Luke 11','1 Thessalonians 5','Philippians 4','James 5','Psalm 5','Psalm 63','Daniel 6','Nehemiah 1','Acts 4','Ephesians 6','Colossians 4','1 Timothy 2','Jude 1'] },
-  { id: 'gospel-john', title: 'Gospel of John', totalDays: 21, passages: Array.from({ length: 21 }, (_, i) => `John ${i + 1}`) },
-  { id: 'armor-of-god', title: 'The Armor of God', totalDays: 7, passages: ['Ephesians 6','Isaiah 59','Romans 13','1 Thessalonians 5','2 Corinthians 10','Hebrews 4','Psalm 18'] },
-];
+interface PathwayData {
+  title: string;
+  titleEs?: string;
+  titlePt?: string;
+  titleId?: string;
+  days: PathwayDay[];
+}
 
-function getActivePlanReading(): { planTitle: string; dayNum: number; passage: string } | null {
-  try {
-    const plans: Record<string, PlanProgress> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-    for (const [planId, progress] of Object.entries(plans)) {
-      const def = PLAN_CATALOGUE.find(p => p.id === planId);
-      if (!def) continue;
-      const nextDay = progress.lastDay + 1;
-      if (nextDay <= def.totalDays && def.passages[nextDay - 1]) {
-        return { planTitle: def.title, dayNum: nextDay, passage: def.passages[nextDay - 1] };
-      }
-    }
-  } catch { /* no plans */ }
-  return null;
+interface PathwayProgress {
+  completedDays: number[];
+  currentDay: number;
+  enrolled: boolean;
 }
 
 export function HomeScreen() {
@@ -55,10 +57,18 @@ export function HomeScreen() {
   });
   const [passageTexts, setPassageTexts] = useState<Record<string, string>>({});
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
+  const [expandedPassages, setExpandedPassages] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [showCampusPicker, setShowCampusPicker] = useState(false);
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
-  const planReading = getActivePlanReading();
+
+  // Faith Pathway state
+  const [pathwayData, setPathwayData] = useState<PathwayData | null>(null);
+  const [pathwayProgress, setPathwayProgress] = useState<PathwayProgress>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dw_pathway_progress') || '{}') as PathwayProgress;
+    } catch { return { completedDays: [], currentDay: 1, enrolled: false }; }
+  });
 
   // Audio state
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -70,12 +80,34 @@ export function HomeScreen() {
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
   const displayName = userProfile?.firstName || 'Friend';
+  const lang = localStorage.getItem('dw_lang') || 'en';
+
+  // Load Faith Pathway for new_returning persona
+  useEffect(() => {
+    if (setup?.persona === 'new_returning') {
+      if (!pathwayProgress.enrolled) {
+        const updated = { ...pathwayProgress, enrolled: true, completedDays: pathwayProgress.completedDays || [], currentDay: pathwayProgress.currentDay || 1 };
+        setPathwayProgress(updated);
+        try { localStorage.setItem('dw_pathway_progress', JSON.stringify(updated)); } catch {}
+      }
+      if (!pathwayData) {
+        fetch('/books/faith-pathway.json')
+          .then(r => r.json())
+          .then((data: PathwayData) => setPathwayData(data))
+          .catch(() => {});
+      }
+    }
+  }, [setup?.persona]);
+
+  const savePathwayProgress = (p: PathwayProgress) => {
+    setPathwayProgress(p);
+    try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
+  };
 
   const handleCampusSelect = (campusId: string) => {
     if (userProfile) {
       saveProfile({ ...userProfile, campus: campusId });
     } else {
-      // Need email first
       requireEmail(() => {});
     }
     setShowCampusPicker(false);
@@ -106,48 +138,41 @@ export function HomeScreen() {
     }
   }
 
-  // Auto-fetch ALL passage texts on load — no clicks needed
-  useEffect(() => {
-    // Fetch daily passages
-    passages.forEach(p => {
-      const key = `${p.passage}_${translation}`;
-      if (passageTexts[key]) return;
+  // Fetch a single passage on demand (tap to read)
+  const loadPassage = (passage: string) => {
+    const key = `${passage}_${translation}`;
+    if (passageTexts[key]) return; // already loaded
+    if (loadingPassages.has(passage)) return; // already loading
 
-      setLoadingPassages(prev => new Set(prev).add(p.passage));
-      fetchPassage(p.passage, translation)
-        .then(text => {
-          setPassageTexts(prev => ({ ...prev, [key]: text }));
-        })
-        .catch(() => {})
-        .finally(() => {
-          setLoadingPassages(prev => {
-            const next = new Set(prev);
-            next.delete(p.passage);
-            return next;
-          });
+    setLoadingPassages(prev => new Set(prev).add(passage));
+    fetchPassage(passage, translation)
+      .then(text => {
+        setPassageTexts(prev => ({ ...prev, [key]: text }));
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoadingPassages(prev => {
+          const next = new Set(prev);
+          next.delete(passage);
+          return next;
         });
-    });
+      });
+  };
 
-    // Also fetch plan reading passage if active
-    if (planReading) {
-      const planKey = `${planReading.passage}_${translation}`;
-      if (!passageTexts[planKey]) {
-        setLoadingPassages(prev => new Set(prev).add(planReading.passage));
-        fetchPassage(planReading.passage, translation)
-          .then(text => {
-            setPassageTexts(prev => ({ ...prev, [planKey]: text }));
-          })
-          .catch(() => {})
-          .finally(() => {
-            setLoadingPassages(prev => {
-              const next = new Set(prev);
-              next.delete(planReading.passage);
-              return next;
-            });
-          });
-      }
+  // Toggle a passage open/closed — loads on first open
+  const togglePassage = (passage: string) => {
+    const isExpanded = expandedPassages.has(passage);
+    if (isExpanded) {
+      setExpandedPassages(prev => {
+        const next = new Set(prev);
+        next.delete(passage);
+        return next;
+      });
+    } else {
+      setExpandedPassages(prev => new Set(prev).add(passage));
+      loadPassage(passage);
     }
-  }, [passages.map(p => p.passage).join(','), translation]);
+  };
 
   // Clean up audio on unmount
   useEffect(() => {
@@ -160,11 +185,16 @@ export function HomeScreen() {
     };
   }, []);
 
+  // Reset expanded passages when day or translation changes
+  useEffect(() => {
+    setExpandedPassages(new Set());
+    setPassageTexts({});
+    stopAudio();
+  }, [dayOffset, translation]);
+
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
     localStorage.setItem('dw_translation', t);
-    setPassageTexts({});
-    stopAudio();
   };
 
   const stopAudio = () => {
@@ -178,12 +208,10 @@ export function HomeScreen() {
   };
 
   const handleAudio = async (passage: string) => {
-    // If already playing this passage, stop
     if (audioPlaying && audioCurrentPassage === passage) {
       stopAudio();
       return;
     }
-    // If playing a different passage, stop it first
     if (audioPlaying) stopAudio();
 
     const textKey = `${passage}_${translation}`;
@@ -227,9 +255,7 @@ export function HomeScreen() {
     if (navigator.share) {
       try {
         await navigator.share({ title: passage, text: shareText });
-      } catch {
-        // User cancelled
-      }
+      } catch { /* User cancelled */ }
     } else {
       await navigator.clipboard.writeText(shareText);
     }
@@ -334,6 +360,103 @@ export function HomeScreen() {
           </Card>
         )}
 
+        {/* ── FAITH PATHWAY CARD ── for new_returning persona */}
+        {pathwayProgress.enrolled && pathwayData && setup?.persona === 'new_returning' && (() => {
+          const completed = pathwayProgress.completedDays?.length || 0;
+          const currentDay = pathwayProgress.currentDay || 1;
+          const today = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
+          const totalDays = pathwayData.days?.length || 40;
+          const pathTitle = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
+            : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
+            : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
+            : pathwayData.title;
+
+          if (completed >= totalDays) {
+            return (
+              <div style={{
+                background: 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
+                color: 'white',
+                padding: 20,
+                borderRadius: 16,
+                marginBottom: 16,
+                cursor: 'pointer',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.9, marginBottom: 6 }}>
+                  Journey Complete
+                </div>
+                <div style={{ fontSize: 14, opacity: 0.85 }}>
+                  You've completed {pathTitle}! Start again or explore other plans.
+                </div>
+              </div>
+            );
+          }
+
+          const todayTitle = today
+            ? (lang === 'es' ? (today.titleEs || today.title)
+              : lang === 'pt' ? (today.titlePt || today.title)
+              : lang === 'id' ? (today.titleId || today.title)
+              : today.title)
+            : '';
+          const todayTheme = today
+            ? (lang === 'es' ? (today.themeEs || today.theme)
+              : lang === 'pt' ? (today.themePt || today.theme)
+              : lang === 'id' ? (today.themeId || today.theme)
+              : today.theme)
+            : '';
+
+          return (
+            <div
+              onClick={() => {
+                // Mark the current day as complete, advance to next
+                if (today) {
+                  const newCompleted = pathwayProgress.completedDays.includes(currentDay)
+                    ? pathwayProgress.completedDays
+                    : [...pathwayProgress.completedDays, currentDay];
+                  const nextDay = Math.min(totalDays, Math.max(...newCompleted, currentDay) + 1);
+                  savePathwayProgress({ ...pathwayProgress, completedDays: newCompleted, currentDay: nextDay });
+                }
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #2c3e50, #34495e)',
+                color: 'white',
+                padding: 20,
+                borderRadius: 16,
+                marginBottom: 16,
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.8 }}>
+                  {pathTitle}
+                </div>
+                <div style={{ fontSize: 11, opacity: 0.7 }}>
+                  {completed} of {totalDays} completed
+                </div>
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>
+                Today's Lesson: {todayTitle}
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 12 }}>
+                {todayTheme}
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${(completed / totalDays) * 100}%`,
+                    height: '100%',
+                    background: '#D4A574',
+                    borderRadius: 2,
+                    transition: 'width 0.3s',
+                  }} />
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#D4A574' }}>
+                  Continue Journey &rarr;
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Date Navigation */}
         <div style={{
           display: 'flex',
@@ -343,7 +466,7 @@ export function HomeScreen() {
           margin: '20px 0',
         }}>
           <button
-            onClick={() => { setDayOffset(d => d - 1); stopAudio(); }}
+            onClick={() => setDayOffset(d => d - 1)}
             style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Previous day"
           >
@@ -356,7 +479,7 @@ export function HomeScreen() {
             </p>
           </div>
           <button
-            onClick={() => { setDayOffset(d => d + 1); stopAudio(); }}
+            onClick={() => setDayOffset(d => d + 1)}
             disabled={dayOffset >= 30}
             style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'var(--dw-text-faint)' : 'var(--dw-text-muted)', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Next day"
@@ -364,102 +487,6 @@ export function HomeScreen() {
             <ChevronRight size={20} />
           </button>
         </div>
-
-        {/* Hero Listen Button — Audio First */}
-        <button
-          onClick={() => handleAudio(primaryPassage)}
-          disabled={audioLoading}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            background: audioPlaying ? 'var(--dw-surface)' : 'var(--dw-accent)',
-            color: audioPlaying ? 'var(--dw-accent)' : '#fff',
-            border: audioPlaying ? '2px solid var(--dw-accent)' : '2px solid transparent',
-            borderRadius: 14,
-            padding: '16px 24px',
-            fontSize: 16,
-            fontWeight: 600,
-            fontFamily: 'var(--font-sans)',
-            cursor: 'pointer',
-            minHeight: 56,
-            marginBottom: 8,
-            transition: 'all var(--transition-normal)',
-          }}
-        >
-          {audioLoading ? (
-            <>
-              <Loader2 size={22} style={{ animation: 'spin 1s linear infinite' }} />
-              Loading audio...
-            </>
-          ) : audioPlaying ? (
-            <>
-              <Pause size={22} />
-              Pause — {primaryPassage}
-            </>
-          ) : (
-            <>
-              <Headphones size={22} />
-              Listen to Today's Reading
-            </>
-          )}
-        </button>
-
-        {/* Current Plan Reading — if user has an active plan */}
-        {planReading && (() => {
-          const planKey = `${planReading.passage}_${translation}`;
-          const planText = passageTexts[planKey];
-          const planLoading = loadingPassages.has(planReading.passage);
-          return (
-            <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div>
-                  <p className="text-section-header" style={{ marginBottom: 2 }}>YOUR PLAN</p>
-                  <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
-                    {planReading.planTitle} — Day {planReading.dayNum}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button
-                    onClick={() => handleAudio(planReading.passage)}
-                    disabled={!planText}
-                    style={{
-                      background: 'none', border: 'none',
-                      color: audioPlaying && audioCurrentPassage === planReading.passage ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
-                      cursor: planText ? 'pointer' : 'default', padding: 4, minHeight: 36, minWidth: 36,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: planText ? 1 : 0.3,
-                    }}
-                    aria-label="Listen to plan reading"
-                  >
-                    {audioLoading && audioCurrentPassage === planReading.passage ? (
-                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                    ) : audioPlaying && audioCurrentPassage === planReading.passage ? (
-                      <VolumeX size={16} />
-                    ) : (
-                      <Volume2 size={16} />
-                    )}
-                  </button>
-                </div>
-              </div>
-              <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
-                {planReading.passage}
-              </p>
-              {planLoading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
-                  <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
-                </div>
-              ) : planText ? (
-                <p className="text-scripture" style={{ fontSize: 18 }}>{planText}</p>
-              ) : (
-                <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, fontStyle: 'italic' }}>Loading...</p>
-              )}
-            </Card>
-          );
-        })()}
 
         {/* Translation Selector — always visible */}
         <div style={{
@@ -502,7 +529,7 @@ export function HomeScreen() {
             color: 'var(--dw-text-secondary)',
             lineHeight: 1.6,
           }}>
-            "{quote.text}"
+            &ldquo;{quote.text}&rdquo;
           </p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
             — {quote.author}
@@ -544,17 +571,18 @@ export function HomeScreen() {
           </div>
         </Card>
 
-        {/* 4. Daily Passages / Chapters — auto-loaded, no clicks needed */}
+        {/* 4. Daily Passages / Chapters — TAP TO EXPAND, load one at a time */}
         <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>TODAY'S CHAPTERS</p>
         {passages.map((p) => {
           const textKey = `${p.passage}_${translation}`;
           const text = passageTexts[textKey];
           const isLoading = loadingPassages.has(p.passage);
+          const isExpanded = expandedPassages.has(p.passage);
 
           return (
-            <Card key={p.passage} style={{ marginBottom: 16 }}>
+            <Card key={p.passage} style={{ marginBottom: 16, cursor: 'pointer' }} onClick={() => togglePassage(p.passage)}>
               {/* Passage header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20 }}>{p.sectionEmoji}</span>
                 <div style={{ flex: 1 }}>
                   <p style={{
@@ -569,52 +597,61 @@ export function HomeScreen() {
                     {p.sectionLabel}
                   </p>
                 </div>
-                {/* Audio + Share inline */}
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button
-                    onClick={() => handleAudio(p.passage)}
-                    disabled={!text}
-                    style={{
-                      background: 'none', border: 'none',
-                      color: audioPlaying && audioCurrentPassage === p.passage ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
-                      cursor: text ? 'pointer' : 'default', padding: 4, minHeight: 36, minWidth: 36,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: text ? 1 : 0.3,
-                    }}
-                    aria-label="Listen"
-                  >
-                    {audioLoading && audioCurrentPassage === p.passage ? (
-                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                    ) : audioPlaying && audioCurrentPassage === p.passage ? (
-                      <VolumeX size={16} />
-                    ) : (
-                      <Volume2 size={16} />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleShare(p.passage)}
-                    style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    aria-label="Share"
-                  >
-                    <Share2 size={16} />
-                  </button>
-                </div>
+                {/* Audio + Share — only when expanded and text loaded */}
+                {isExpanded && text && (
+                  <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleAudio(p.passage)}
+                      style={{
+                        background: 'none', border: 'none',
+                        color: audioPlaying && audioCurrentPassage === p.passage ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+                        cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                      aria-label="Listen"
+                    >
+                      {audioLoading && audioCurrentPassage === p.passage ? (
+                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : audioPlaying && audioCurrentPassage === p.passage ? (
+                        <VolumeX size={16} />
+                      ) : (
+                        <Volume2 size={16} />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleShare(p.passage)}
+                      style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      aria-label="Share"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                  </div>
+                )}
+                {!isExpanded && (
+                  <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
+                    Tap to read
+                  </p>
+                )}
               </div>
 
-              {/* Scripture text — always visible */}
-              {isLoading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-                  <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
+              {/* Scripture text — only shown when expanded */}
+              {isExpanded && (
+                <div style={{ marginTop: 14 }}>
+                  {isLoading ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                      <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                      <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
+                    </div>
+                  ) : text ? (
+                    <p className="text-scripture" style={{ fontSize: 20 }}>
+                      {text}
+                    </p>
+                  ) : (
+                    <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
+                      Loading...
+                    </p>
+                  )}
                 </div>
-              ) : text ? (
-                <p className="text-scripture" style={{ fontSize: 20 }}>
-                  {text}
-                </p>
-              ) : (
-                <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
-                  Loading...
-                </p>
               )}
             </Card>
           );
@@ -716,6 +753,20 @@ export function HomeScreen() {
             </div>
           )}
         </Card>
+
+        {/* Developer credit */}
+        <div style={{
+          textAlign: 'center',
+          padding: '24px 0 12px',
+          marginTop: 24,
+          borderTop: '1px solid var(--dw-border-subtle)',
+          opacity: 0.45,
+          fontSize: 11,
+          letterSpacing: 0.5,
+          color: 'var(--dw-text-muted)',
+        }}>
+          Created &amp; Developed by Ashley Evans for Futures Church
+        </div>
 
         {/* Bottom spacing */}
         <div style={{ height: 24 }} />

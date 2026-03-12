@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { LibraryScreen } from './LibraryScreen';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
 import { CAMPUSES } from '../data/tokens';
@@ -8,10 +9,10 @@ import type { TranslationCode } from '../utils/api';
 
 import {
   User, Globe, Bell, Type, Book, Info, Shield, Mail,
-  Download, Languages, MapPin, Heart
+  Download, Languages, MapPin, Heart, ChevronDown
 } from 'lucide-react';
 
-const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
+const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB', 'TB'];
 
 const PERSONAS = [
   { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
@@ -30,6 +31,7 @@ const LANGUAGES = [
   { value: 'en', label: 'English' },
   { value: 'es', label: 'Español' },
   { value: 'pt', label: 'Português' },
+  { value: 'id', label: 'Bahasa Indonesia' },
 ];
 
 export function MoreScreen() {
@@ -37,6 +39,7 @@ export function MoreScreen() {
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [downloadingKJV, setDownloadingKJV] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -118,7 +121,10 @@ export function MoreScreen() {
     }
   };
 
-  const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
+  // Show Library as a full-screen overlay when opened
+  if (showLibrary) {
+    return <LibraryScreen onBack={() => setShowLibrary(false)} />;
+  }
 
   return (
     <div className="screen-container">
@@ -261,48 +267,51 @@ export function MoreScreen() {
             YOUR CAMPUS
           </p>
           <Card style={{ padding: 12 }}>
-            {currentCampus && (
-              <div style={{
-                background: 'var(--dw-accent)', color: '#fff',
-                borderRadius: 10, padding: '10px 16px', marginBottom: 12,
-                fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-sans)',
-              }}>
-                {currentCampus.name} — {currentCampus.city}
-              </div>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
-                const regionCampuses = CAMPUSES.filter(c => c.region === region);
-                if (!regionCampuses.length) return null;
-                return (
-                  <div key={region}>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6, paddingLeft: 4, fontFamily: 'var(--font-sans)' }}>
-                      {region}
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={userProfile?.campus || ''}
+                onChange={e => handleCampusSelect(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'var(--dw-canvas)',
+                  color: 'var(--dw-text-primary)',
+                  border: '1px solid var(--dw-border)',
+                  borderRadius: 10,
+                  padding: '14px 40px 14px 16px',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  fontFamily: 'var(--font-sans)',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  minHeight: 48,
+                  outline: 'none',
+                }}
+              >
+                <option value="">Select your campus</option>
+                {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
+                  const regionCampuses = CAMPUSES.filter(c => c.region === region);
+                  if (!regionCampuses.length) return null;
+                  return (
+                    <optgroup key={region} label={region}>
                       {regionCampuses.map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => handleCampusSelect(c.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            width: '100%', padding: '10px 14px',
-                            background: userProfile?.campus === c.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                            color: userProfile?.campus === c.id ? '#fff' : 'var(--dw-text-primary)',
-                            border: 'none', borderRadius: 10, cursor: 'pointer',
-                            fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
-                            textAlign: 'left', minHeight: 42,
-                          }}
-                        >
-                          <MapPin size={14} style={{ opacity: 0.5, flexShrink: 0 }} />
-                          <span>{c.name}</span>
-                          <span style={{ fontSize: 11, opacity: 0.6 }}>{c.city}</span>
-                        </button>
+                        <option key={c.id} value={c.id}>{c.name} — {c.city}</option>
                       ))}
-                    </div>
-                  </div>
-                );
-              })}
+                    </optgroup>
+                  );
+                })}
+              </select>
+              <ChevronDown
+                size={18}
+                style={{
+                  position: 'absolute',
+                  right: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--dw-text-muted)',
+                  pointerEvents: 'none',
+                }}
+              />
             </div>
           </Card>
         </div>
@@ -393,7 +402,7 @@ export function MoreScreen() {
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <button style={rowStyle}>
+            <button onClick={() => setShowLibrary(true)} style={rowStyle}>
               <Book size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>Library</span>
               <span style={valStyle}>Books & essays</span>
