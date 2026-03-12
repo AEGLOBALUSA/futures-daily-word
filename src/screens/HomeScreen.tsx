@@ -20,7 +20,7 @@ const PERSONAS = [
   { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 
-/* ââ Bible Books and Chapters ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Bible Books and Chapters Ã¢ÂÂÃ¢ÂÂ */
 const BIBLE_BOOKS = [
   'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth',
   '1 Samuel', '2 Samuel', '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah',
@@ -46,7 +46,7 @@ const BOOK_CHAPTERS: Record<string, number> = {
   '1 John': 5, '2 John': 1, '3 John': 1, Jude: 1, Revelation: 22,
 };
 
-/* ââ Faith Pathway types ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Faith Pathway types Ã¢ÂÂÃ¢ÂÂ */
 interface PathwayDay {
   day: number;
   title: string;
@@ -105,6 +105,11 @@ export function HomeScreen() {
   const [bookPickerSearch, setBookPickerSearch] = useState('');
   const [loadedFirstSlotPassage, setLoadedFirstSlotPassage] = useState(false);
 
+  // Chapters per day (from Settings)
+  const [chaptersPerDay] = useState<number>(() => {
+    return parseInt(localStorage.getItem('dw_chapters_per_day') || '3', 10);
+  });
+
   // Faith Pathway state
   const [pathwayData, setPathwayData] = useState<PathwayData | null>(null);
   const [pathwayProgress, setPathwayProgress] = useState<PathwayProgress>(() => {
@@ -154,7 +159,7 @@ export function HomeScreen() {
 
   const savePathwayProgress = (p: PathwayProgress) => {
     setPathwayProgress(p);
-    try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
+    try { localStorage.setItem('dw_pathway_progress', JSON.stringify())); } catch {}
   };
 
   const saveReadingSlots = (slots: ReadingSlot[]) => {
@@ -243,7 +248,7 @@ export function HomeScreen() {
       });
   };
 
-  // Pending audio â when user taps Listen before text is loaded
+  // Pending audio Ã¢ÂÂ when user taps Listen before text is loaded
   const pendingAudioRef = useRef<string | null>(null);
 
   // Watch for text to arrive so we can auto-play audio
@@ -364,8 +369,8 @@ export function HomeScreen() {
     const textKey = `${passage}_${translation}`;
     const text = passageTexts[textKey];
     const shareText = text
-      ? `${passage} (${translation})\n\n${text.slice(0, 500)}\n\nâ Futures Daily Word`
-      : `${passage} â Futures Daily Word`;
+      ? `${passage} (${translation})\n\n${text.slice(0, 500)}\n\nÃ¢ÂÂ Futures Daily Word`
+      : `${passage} Ã¢ÂÂ Futures Daily Word`;
     if (navigator.share) {
       try {
         await navigator.share({ title: passage, text: shareText });
@@ -478,7 +483,7 @@ export function HomeScreen() {
           </Card>
         )}
 
-        {/* ââ FAITH PATHWAY CARD ââ for new_returning persona */}
+        {/* Ã¢ÂÂÃ¢ÂÂ FAITH PATHWAY CARD Ã¢ÂÂÃ¢ÂÂ for new_returning persona */}
         {pathwayProgress.enrolled && pathwayData && setup?.persona === 'new_returning' && (() => {
           const completed = pathwayProgress.completedDays?.length || 0;
           const currentDay = pathwayProgress.currentDay || 1;
@@ -606,7 +611,7 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* Translation Selector â always visible */}
+        {/* Translation Selector Ã¢ÂÂ always visible */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -650,7 +655,7 @@ export function HomeScreen() {
             &ldquo;{quote.text}&rdquo;
           </p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
-            â {quote.author}
+            Ã¢ÂÂ {quote.author}
           </p>
         </Card>
 
@@ -663,14 +668,37 @@ export function HomeScreen() {
           </p>
           <p className="text-devotion">{devotion.body}</p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            â {devotion.author}
+            Ã¢ÂÂ {devotion.author}
           </p>
         </Card>
 
-        {/* 3. MY DAILY READING */}
+        {/* Scripture Search â prominent, before daily chapters */}
+        <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Search size={22} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search scripture or topic..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--dw-text-primary)',
+                fontSize: 17,
+                fontFamily: 'var(--font-sans)',
+                padding: '4px 0',
+              }}
+            />
+          </div>
+        </Card>
+
+        {/* 3. TODAY'S CHAPTERS */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <p className="text-section-header">MY DAILY READING</p>
+            <p className="text-section-header">TODAY'S CHAPTERS</p>
             <button
               onClick={() => setShowReadingSetup(!showReadingSetup)}
               style={{
@@ -702,7 +730,7 @@ export function HomeScreen() {
             </Card>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {readingSlots.map(slot => {
+              {readingSlots.slice(0, chaptersPerDay).map(slot => {
                 const passage = `${slot.book} ${slot.currentChapter}`;
                 const maxChapter = BOOK_CHAPTERS[slot.book] || 1;
                 const textKey = `${passage}_${translation}`;
@@ -806,7 +834,7 @@ export function HomeScreen() {
                       </button>
                     </div>
 
-                    {/* Scripture text â only shown when expanded */}
+                    {/* Scripture text Ã¢ÂÂ only shown when expanded */}
                     {isExpanded && (
                       <div style={{ marginBottom: 14 }}>
                         {isLoading ? (
@@ -960,32 +988,12 @@ export function HomeScreen() {
           )}
         </div>
 
-        {/* 4. Scripture Search */}
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Search size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search scripture or topic..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--dw-text-primary)',
-                fontSize: 15,
-                fontFamily: 'var(--font-sans)',
-              }}
-            />
-          </div>
-        </Card>
+
 
         {/* 5. Commentary (if available for today's passage) */}
         {commentaryText && (
           <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY â {commentarySource.toUpperCase()}</p>
+            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY Ã¢ÂÂ {commentarySource.toUpperCase()}</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>
               {commentaryText}
             </p>
