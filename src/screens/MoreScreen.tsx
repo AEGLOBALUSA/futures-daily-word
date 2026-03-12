@@ -8,27 +8,35 @@ import type { TranslationCode } from '../utils/api';
 
 import {
   User, Globe, Bell, Type, Book, Info, Shield, Mail,
-  ChevronRight, Download, Languages, Church, MapPin
+  Download, Languages, MapPin, Heart
 } from 'lucide-react';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
-interface SettingsRow {
-  icon: typeof User;
-  label: string;
-  value?: string;
-  action?: () => void;
-}
+const PERSONAS = [
+  { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
+  { id: 'pastor', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
+  { id: 'deeper', label: 'Going Deeper', desc: 'Deeper study and theology' },
+  { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
+];
+
+const FONT_SIZES = [
+  { value: 0.85, label: 'Small' },
+  { value: 1, label: 'Medium' },
+  { value: 1.35, label: 'Large' },
+];
+
+const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Español' },
+  { value: 'pt', label: 'Português' },
+];
 
 export function MoreScreen() {
-  const { userProfile, profilePic, requireEmail, setup, saveProfile } = useUser();
-  const [pushState, setPushState] = useState<'idle' | 'loading'>(
-    'idle'
-  );
+  const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
+  const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [downloadingKJV, setDownloadingKJV] = useState(false);
-  const [showTransPicker, setShowTransPicker] = useState(false);
-  const [showCampusPicker, setShowCampusPicker] = useState(false);
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -36,14 +44,9 @@ export function MoreScreen() {
 
   const translation = localStorage.getItem('dw_translation') || 'ESV';
   const fontScale = parseFloat(localStorage.getItem('dw_fontscale') || '1');
-  const fontLabel = fontScale <= 0.9 ? 'Small' : fontScale >= 1.3 ? 'Large' : 'Medium';
   const lang = localStorage.getItem('dw_lang') || 'en';
-  const langLabel = lang === 'es' ? 'Español' : lang === 'pt' ? 'Português' : 'English';
   const kjvDownloaded = localStorage.getItem('dw_kjv_downloaded') === 'true';
-
-  const campusName = userProfile?.campus
-    ? (userProfile.campus.replace(/^futures-/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
-    : 'Not set';
+  const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
 
   const handlePushToggle = async () => {
     if (pushSubscribed) {
@@ -62,7 +65,6 @@ export function MoreScreen() {
     if (kjvDownloaded || downloadingKJV) return;
     setDownloadingKJV(true);
     try {
-      // Pre-cache KJV bible files via service worker
       const books = ['genesis','exodus','leviticus','numbers','deuteronomy','joshua','judges','ruth',
         '1-samuel','2-samuel','1-kings','2-kings','1-chronicles','2-chronicles','ezra','nehemiah',
         'esther','job','psalms','proverbs','ecclesiastes','song-of-solomon','isaiah','jeremiah',
@@ -74,50 +76,38 @@ export function MoreScreen() {
 
       const chapters: string[] = [];
       for (const book of books) {
-        // Fetch chapter 1 to prime the cache; SW will cache on fetch
         chapters.push(`/bible/kjv/${book}/1.json`);
       }
-
-      // Batch fetch in groups of 10
       for (let i = 0; i < chapters.length; i += 10) {
         const batch = chapters.slice(i, i + 10);
         await Promise.allSettled(batch.map(url => fetch(url)));
       }
-
       localStorage.setItem('dw_kjv_downloaded', 'true');
     } catch {
-      // Partial download is fine — SW will cache what it can
+      // Partial download is fine
     } finally {
       setDownloadingKJV(false);
     }
   };
 
-  const cycleFontSize = () => {
-    const current = parseFloat(localStorage.getItem('dw_fontscale') || '1');
-    let next: number;
-    if (current <= 0.9) next = 1;
-    else if (current >= 1.3) next = 0.85;
-    else next = 1.35;
-    localStorage.setItem('dw_fontscale', String(next));
-    document.documentElement.style.setProperty('--dw-font-scale', String(next));
-    window.location.reload();
-  };
-
-  const cycleLang = () => {
-    const current = localStorage.getItem('dw_lang') || 'en';
-    const next = current === 'en' ? 'es' : current === 'es' ? 'pt' : 'en';
-    localStorage.setItem('dw_lang', next);
-    window.location.reload();
-  };
-
-  const cycleTranslation = () => {
-    setShowTransPicker(prev => !prev);
-  };
-
   const handleTranslationSelect = (t: TranslationCode) => {
     localStorage.setItem('dw_translation', t);
-    setShowTransPicker(false);
     window.location.reload();
+  };
+
+  const handleFontSelect = (val: number) => {
+    localStorage.setItem('dw_fontscale', String(val));
+    document.documentElement.style.setProperty('--dw-font-scale', String(val));
+    window.location.reload();
+  };
+
+  const handleLangSelect = (val: string) => {
+    localStorage.setItem('dw_lang', val);
+    window.location.reload();
+  };
+
+  const handlePersonaSelect = (personaId: string) => {
+    saveSetup({ persona: personaId, source: setup?.source || 'settings' });
   };
 
   const handleCampusSelect = (campusId: string) => {
@@ -126,82 +116,9 @@ export function MoreScreen() {
     } else {
       requireEmail();
     }
-    setShowCampusPicker(false);
   };
 
-  const profileRows: SettingsRow[] = [
-    { icon: User, label: 'Profile', value: displayName, action: () => requireEmail() },
-    { icon: Church, label: 'Campus', value: campusName, action: () => setShowCampusPicker(prev => !prev) },
-    { icon: Mail, label: 'Email', value: userProfile?.email || 'Not set', action: () => requireEmail() },
-  ];
-
-  const preferenceRows: SettingsRow[] = [
-    { icon: Globe, label: 'Translation', value: translation, action: cycleTranslation },
-    { icon: Type, label: 'Font Size', value: fontLabel, action: cycleFontSize },
-    { icon: Languages, label: 'Language', value: langLabel, action: cycleLang },
-    {
-      icon: Bell,
-      label: 'Notifications',
-      value: pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'On' : 'Off',
-      action: handlePushToggle,
-    },
-  ];
-
-  const contentRows: SettingsRow[] = [
-    { icon: Book, label: 'Library', value: 'Books & essays' },
-    {
-      icon: Download,
-      label: 'Offline Bible',
-      value: downloadingKJV ? 'Downloading...' : kjvDownloaded ? 'KJV — Downloaded' : 'KJV — Tap to download',
-      action: handleKJVDownload,
-    },
-  ];
-
-  const aboutRows: SettingsRow[] = [
-    { icon: Info, label: 'About Daily Word', value: 'v2.0' },
-    { icon: Shield, label: 'Privacy Policy' },
-  ];
-
-  function SettingsSection({ title, rows }: { title: string; rows: SettingsRow[] }) {
-    return (
-      <div style={{ marginBottom: 24 }}>
-        <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>{title}</p>
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {rows.map((row, i) => (
-            <button
-              key={row.label}
-              onClick={row.action}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                width: '100%',
-                padding: '14px 16px',
-                background: 'none',
-                border: 'none',
-                borderBottom: i < rows.length - 1 ? '1px solid var(--dw-border-subtle)' : 'none',
-                cursor: row.action ? 'pointer' : 'default',
-                color: 'var(--dw-text-primary)',
-                fontFamily: 'var(--font-sans)',
-                fontSize: 14,
-                textAlign: 'left',
-                minHeight: 48,
-                transition: 'background var(--transition-fast)',
-              }}
-            >
-              <row.icon size={18} style={{ color: 'var(--dw-text-muted)', marginRight: 12, flexShrink: 0 }} />
-              <span style={{ flex: 1 }}>{row.label}</span>
-              {row.value && (
-                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginRight: 8 }}>
-                  {row.value}
-                </span>
-              )}
-              <ChevronRight size={16} style={{ color: 'var(--dw-text-faint)' }} />
-            </button>
-          ))}
-        </Card>
-      </div>
-    );
-  }
+  const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
 
   return (
     <div className="screen-container">
@@ -248,9 +165,9 @@ export function MoreScreen() {
           <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
             {displayName}
           </p>
-          {setup?.persona && (
-            <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2, textTransform: 'capitalize' }}>
-              {setup.persona.replace(/_/g, ' ')}
+          {currentPersona && (
+            <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+              {currentPersona.label}
             </p>
           )}
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
@@ -258,13 +175,102 @@ export function MoreScreen() {
           </p>
         </div>
 
-        <SettingsSection title="PROFILE" rows={profileRows} />
+        {/* ── PROFILE ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PROFILE</p>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <button onClick={() => requireEmail()} style={rowStyle}>
+              <User size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>Name</span>
+              <span style={valStyle}>{displayName}</span>
+            </button>
+            <div style={dividerStyle} />
+            <button onClick={() => requireEmail()} style={rowStyle}>
+              <Mail size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>Email</span>
+              <span style={valStyle}>{userProfile?.email || 'Not set'}</span>
+            </button>
+          </Card>
+        </div>
 
-        {/* Campus Picker (expanded) */}
-        {showCampusPicker && (
-          <Card style={{ marginBottom: 16, padding: 12 }}>
-            <p className="text-section-header" style={{ marginBottom: 10 }}>SELECT CAMPUS</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* ── PERSONA ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <Heart size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            YOUR JOURNEY
+          </p>
+          <Card style={{ padding: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {PERSONAS.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => handlePersonaSelect(p.id)}
+                  style={{
+                    background: setup?.persona === p.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: setup?.persona === p.id ? '#fff' : 'var(--dw-text-primary)',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '12px 16px',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    minHeight: 44,
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ── TRANSLATION ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <Globe size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            BIBLE TRANSLATION
+          </p>
+          <Card style={{ padding: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {TRANSLATIONS.map(t => (
+                <button
+                  key={t}
+                  onClick={() => handleTranslationSelect(t)}
+                  style={{
+                    background: t === translation ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: t === translation ? '#fff' : 'var(--dw-text-secondary)',
+                    border: 'none', borderRadius: 10,
+                    padding: '10px 18px', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 44,
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ── CAMPUS ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            YOUR CAMPUS
+          </p>
+          <Card style={{ padding: 12 }}>
+            {currentCampus && (
+              <div style={{
+                background: 'var(--dw-accent)', color: '#fff',
+                borderRadius: 10, padding: '10px 16px', marginBottom: 12,
+                fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-sans)',
+              }}>
+                {currentCampus.name} — {currentCampus.city}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
                 const regionCampuses = CAMPUSES.filter(c => c.region === region);
                 if (!regionCampuses.length) return null;
@@ -299,35 +305,126 @@ export function MoreScreen() {
               })}
             </div>
           </Card>
-        )}
+        </div>
 
-        <SettingsSection title="PREFERENCES" rows={preferenceRows} />
-
-        {/* Translation Picker (expanded) */}
-        {showTransPicker && (
-          <Card style={{ marginBottom: 16, padding: 12 }}>
-            <p className="text-section-header" style={{ marginBottom: 10 }}>SELECT TRANSLATION</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {TRANSLATIONS.map(t => (
+        {/* ── FONT SIZE ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <Type size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            FONT SIZE
+          </p>
+          <Card style={{ padding: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {FONT_SIZES.map(fs => (
                 <button
-                  key={t}
-                  onClick={() => handleTranslationSelect(t)}
+                  key={fs.value}
+                  onClick={() => handleFontSelect(fs.value)}
                   style={{
-                    background: t === translation ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: t === translation ? '#fff' : 'var(--dw-text-secondary)',
+                    flex: 1,
+                    background: Math.abs(fontScale - fs.value) < 0.1 ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: Math.abs(fontScale - fs.value) < 0.1 ? '#fff' : 'var(--dw-text-secondary)',
                     border: 'none', borderRadius: 10,
-                    padding: '10px 16px', fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 40,
+                    padding: '12px 0', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 44,
+                    textAlign: 'center',
                   }}
                 >
-                  {t}
+                  {fs.label}
                 </button>
               ))}
             </div>
           </Card>
-        )}
-        <SettingsSection title="CONTENT" rows={contentRows} />
-        <SettingsSection title="ABOUT" rows={aboutRows} />
+        </div>
+
+        {/* ── LANGUAGE ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <Languages size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            LANGUAGE
+          </p>
+          <Card style={{ padding: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {LANGUAGES.map(l => (
+                <button
+                  key={l.value}
+                  onClick={() => handleLangSelect(l.value)}
+                  style={{
+                    flex: 1,
+                    background: lang === l.value ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: lang === l.value ? '#fff' : 'var(--dw-text-secondary)',
+                    border: 'none', borderRadius: 10,
+                    padding: '12px 0', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 44,
+                    textAlign: 'center',
+                  }}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ── NOTIFICATIONS ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <Bell size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            NOTIFICATIONS
+          </p>
+          <Card style={{ padding: 12 }}>
+            <button
+              onClick={handlePushToggle}
+              style={{
+                width: '100%',
+                background: pushSubscribed ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                color: pushSubscribed ? '#fff' : 'var(--dw-text-primary)',
+                border: 'none', borderRadius: 10,
+                padding: '14px 16px', fontSize: 14, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
+                textAlign: 'center',
+              }}
+            >
+              {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : 'Turn On Push Notifications'}
+            </button>
+          </Card>
+        </div>
+
+        {/* ── CONTENT ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</p>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <button style={rowStyle}>
+              <Book size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>Library</span>
+              <span style={valStyle}>Books & essays</span>
+            </button>
+            <div style={dividerStyle} />
+            <button onClick={handleKJVDownload} style={rowStyle}>
+              <Download size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>Offline Bible</span>
+              <span style={valStyle}>
+                {downloadingKJV ? 'Downloading...' : kjvDownloaded ? 'KJV — Downloaded' : 'KJV — Tap to download'}
+              </span>
+            </button>
+          </Card>
+        </div>
+
+        {/* ── ABOUT ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>ABOUT</p>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={rowStyle}>
+              <Info size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>About Daily Word</span>
+              <span style={valStyle}>v2.0</span>
+            </div>
+            <div style={dividerStyle} />
+            <div style={rowStyle}>
+              <Shield size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>Privacy Policy</span>
+            </div>
+          </Card>
+        </div>
 
         {/* Version */}
         <p style={{
@@ -343,3 +440,36 @@ export function MoreScreen() {
     </div>
   );
 }
+
+/* ── Shared styles ── */
+const rowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  padding: '14px 16px',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: 'var(--dw-text-primary)',
+  fontFamily: 'var(--font-sans)',
+  fontSize: 14,
+  textAlign: 'left',
+  minHeight: 48,
+};
+
+const iconStyle: React.CSSProperties = {
+  color: 'var(--dw-text-muted)',
+  marginRight: 12,
+  flexShrink: 0,
+};
+
+const valStyle: React.CSSProperties = {
+  color: 'var(--dw-text-muted)',
+  fontSize: 13,
+};
+
+const dividerStyle: React.CSSProperties = {
+  height: 1,
+  background: 'var(--dw-border-subtle)',
+  margin: '0 16px',
+};

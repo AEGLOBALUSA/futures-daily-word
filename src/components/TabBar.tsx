@@ -1,4 +1,4 @@
-import { Home, BookOpen, MessageCircle, Calendar, MoreHorizontal } from 'lucide-react';
+import { Home, BookOpen, MessageCircle, Calendar, Settings } from 'lucide-react';
 
 export type TabId = 'home' | 'journal' | 'messages' | 'plans' | 'more';
 
@@ -12,7 +12,7 @@ const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'journal', label: 'Journal', icon: BookOpen },
   { id: 'messages', label: 'Messages', icon: MessageCircle },
   { id: 'plans', label: 'Plans', icon: Calendar },
-  { id: 'more', label: 'More', icon: MoreHorizontal },
+  { id: 'more', label: 'Settings', icon: Settings },
 ];
 
 export function TabBar({ activeTab, onTabChange }: TabBarProps) {
