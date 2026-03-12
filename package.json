@@ -19,6 +19,13 @@
     "build:native": "npm run build && npx cap sync"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.2.1"
+  },
+  "optionalDependencies": {
     "@capacitor/android": "^6.2.0",
     "@capacitor/camera": "^6.1.0",
     "@capacitor/core": "^6.2.0",
@@ -28,12 +35,7 @@
     "@capacitor/push-notifications": "^6.0.3",
     "@capacitor/share": "^6.0.3",
     "@capacitor/splash-screen": "^6.0.3",
-    "@capacitor/status-bar": "^6.0.2",
-    "@tailwindcss/vite": "^4.2.1",
-    "lucide-react": "^0.577.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "tailwindcss": "^4.2.1"
+    "@capacitor/status-bar": "^6.0.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.0",
