@@ -1,9 +1,19 @@
 [build]
-  publish = "."
+  command = "npm run build"
+  publish = "dist"
   functions = "netlify/functions"
 
-[functions]
-  node_bundler = "esbuild"
+# API function redirects — MUST come before SPA fallback
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA fallback — last redirect
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 # Security headers for all pages
 [[headers]]
@@ -12,48 +22,47 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://*.netlify.app https://api.esv.org https://bolls.life https://www.google-analytics.com https://www.googletagmanager.com https://futuresdailyword.com https://*.google-analytics.com https://*.analytics.google.com; media-src 'self' blob: https:; worker-src 'self' blob:; manifest-src 'self'"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    X-XSS-Protection = "1; mode=block"
 
-# Cache icons for 1 year (immutable, fingerprinted)
+# Hashed assets — immutable cache (1 year)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Service worker — no cache
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Manifest — short cache
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# Icons — long cache
 [[headers]]
   for = "/icons/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Cache CSS aggressively — uses ?v=N query param for busting
-[[headers]]
-  for = "/styles.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Cache data files for 1 week (they only change with deploys)
-[[headers]]
-  for = "/data/*"
-  [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# Cache Bible JSON files for 1 year (immutable content)
+# Bible data — long cache (offline KJV)
 [[headers]]
   for = "/bible/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Cache book JSON files for 1 year (immutable content)
+# Book data — long cache
 [[headers]]
   for = "/books/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Manifest — 1 day
+# Data files — moderate cache
 [[headers]]
-  for = "/manifest.json"
+  for = "/data/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"
-
-# Service worker — must always be fresh
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache"
