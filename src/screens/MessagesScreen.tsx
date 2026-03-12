@@ -1,118 +1,82 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
-import { BibleAI } from '../components/BibleAI';
 import { useUser } from '../contexts/UserContext';
-import { Heart, Globe, Users, Sparkles, Send, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
 
-interface Prayer {
+interface SermonNote {
   id: string;
-  name: string;
-  campus: string;
-  text: string;
-  prayerCount: number;
+  title: string;
   date: string;
+  content: string;
+  sermon?: string;
 }
 
 export function MessagesScreen() {
   const { userProfile, requireEmail } = useUser();
-  const [filter, setFilter] = useState<'all' | 'campus'>('all');
-  const [prayers, setPrayers] = useState<Prayer[]>([]);
+  const [notes, setNotes] = useState<SermonNote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [showAI, setShowAI] = useState(false);
-  const [prayerText, setPrayerText] = useState('');
-  const [agreedIds, setAgreedIds] = useState<Set<string>>(new Set());
-  const [showPrayerForm, setShowPrayerForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ title: '', sermon: '', content: '' });
 
-  const campus = userProfile?.campus || '';
-
-  const loadPrayers = useCallback(async () => {
+  const loadNotes = useCallback(async () => {
+    setLoading(true);
     try {
-      const campusParam = filter === 'campus' && campus ? `&campus=${encodeURIComponent(campus)}` : '';
-      const res = await fetch(`/api/prayer-wall?action=list${campusParam}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setPrayers(data.map((p: Record<string, unknown>, i: number) => ({
-            id: (p.id as string) || String(i),
-            name: (p.name as string) || 'Anonymous',
-            campus: (p.campus as string) || '',
-            text: (p.text as string) || (p.prayer as string) || '',
-            prayerCount: (p.pray_count as number) || (p.prayerCount as number) || 0,
-            date: formatDate(p.created_at as string),
-          })));
-        }
+      const storedNotes = localStorage.getItem('dw_sermon_notes');
+      if (storedNotes) {
+        setNotes(JSON.parse(storedNotes));
       }
     } catch {
-      // Keep existing prayers on error
+      // Use default empty notes
     } finally {
       setLoading(false);
     }
-  }, [filter, campus]);
+  }, []);
 
   useEffect(() => {
-    loadPrayers();
-  }, [loadPrayers]);
+    loadNotes();
+  }, [loadNotes]);
 
-  const submitPrayer = async () => {
-    if (!prayerText.trim()) return;
+  const saveNote = async () => {
+    if (!formData.title.trim() || !formData.content.trim()) return;
+
     if (!userProfile?.email) {
       requireEmail();
       return;
     }
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/prayer-wall', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'submit',
-          email: userProfile.email,
-          name: userProfile.firstName || 'Anonymous',
-          campus: campus,
-          text: prayerText.trim(),
-        }),
-      });
-      if (res.ok) {
-        setPrayerText('');
-        setShowPrayerForm(false);
-        await loadPrayers();
-      }
-    } catch {
-      // Silent fail
-    } finally {
-      setSubmitting(false);
+
+    const newNote: SermonNote = {
+      id: editingId || Date.now().toString(),
+      title: formData.title,
+      sermon: formData.sermon,
+      content: formData.content,
+      date: new Date().toISOString().slice(0, 10),
+    };
+
+    let updated: SermonNote[];
+    if (editingId) {
+      updated = notes.map(n => n.id === editingId ? newNote : n);
+    } else {
+      updated = [newNote, ...notes];
     }
+
+    setNotes(updated);
+    localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
+    setFormData({ title: '', sermon: '', content: '' });
+    setShowForm(false);
+    setEditingId(null);
   };
 
-  const agreePrayer = async (prayerId: string) => {
-    if (agreedIds.has(prayerId)) return;
-    setAgreedIds(prev => new Set(prev).add(prayerId));
-    // Optimistic update
-    setPrayers(prev => prev.map(p =>
-      p.id === prayerId ? { ...p, prayerCount: p.prayerCount + 1 } : p
-    ));
-    try {
-      await fetch('/api/prayer-wall', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'agree',
-          prayer_id: prayerId,
-          email: userProfile?.email || '',
-        }),
-      });
-    } catch {
-      // Revert on error
-      setAgreedIds(prev => {
-        const next = new Set(prev);
-        next.delete(prayerId);
-        return next;
-      });
-      setPrayers(prev => prev.map(p =>
-        p.id === prayerId ? { ...p, prayerCount: p.prayerCount - 1 } : p
-      ));
-    }
+  const deleteNote = (id: string) => {
+    const updated = notes.filter(n => n.id !== id);
+    setNotes(updated);
+    localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
+  };
+
+  const editNote = (note: SermonNote) => {
+    setFormData({ title: note.title, sermon: note.sermon || '', content: note.content });
+    setEditingId(note.id);
+    setShowForm(true);
   };
 
   return (
@@ -127,182 +91,180 @@ export function MessagesScreen() {
             color: 'var(--dw-text-primary)',
             letterSpacing: '-0.02em',
           }}>
-            Prayer Wall
+            Sermon Notes
           </h1>
           <button
             className="dw-btn-primary"
-            style={{ fontSize: 13, padding: '8px 16px' }}
+            style={{ fontSize: 13, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}
             onClick={() => {
               if (!userProfile?.email) { requireEmail(); return; }
-              setShowPrayerForm(true);
+              setFormData({ title: '', sermon: '', content: '' });
+              setEditingId(null);
+              setShowForm(true);
             }}
           >
-            + Prayer
+            <Plus size={14} /> New Note
           </button>
         </div>
         <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20, fontFamily: 'var(--font-sans)' }}>
-          Lift each other up in prayer across all campuses
+          Capture insights from sermons and teachings
         </p>
 
-        {/* Filter */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          <button
-            onClick={() => setFilter('all')}
-            style={{
-              background: filter === 'all' ? 'var(--dw-accent)' : 'var(--dw-surface)',
-              color: filter === 'all' ? '#fff' : 'var(--dw-text-muted)',
-              border: filter === 'all' ? 'none' : '1px solid var(--dw-border)',
-              borderRadius: 999, padding: '8px 18px', fontSize: 12, fontWeight: 500,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              minHeight: 44, fontFamily: 'var(--font-sans)',
-            }}
-          >
-            <Globe size={14} /> All Campuses
-          </button>
-          <button
-            onClick={() => setFilter('campus')}
-            style={{
-              background: filter === 'campus' ? 'var(--dw-accent)' : 'var(--dw-surface)',
-              color: filter === 'campus' ? '#fff' : 'var(--dw-text-muted)',
-              border: filter === 'campus' ? 'none' : '1px solid var(--dw-border)',
-              borderRadius: 999, padding: '8px 18px', fontSize: 12, fontWeight: 500,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              minHeight: 44, fontFamily: 'var(--font-sans)',
-            }}
-          >
-            <Users size={14} /> My Campus
-          </button>
-        </div>
-
-        {/* Bible AI Launch Card */}
-        <Card
-          style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)', cursor: 'pointer' }}
-          onClick={() => setShowAI(true)}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <Sparkles size={20} style={{ color: 'var(--dw-accent)' }} />
-            <p className="text-card-title">Bible AI</p>
-          </div>
-          <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-            Ask questions about scripture, get context on passages, or explore biblical topics with AI.
-          </p>
-          <button className="dw-btn-secondary" style={{ fontSize: 13, padding: '8px 16px' }}>
-            Start Conversation
-          </button>
-        </Card>
-
-        {/* Prayer Submit Form */}
-        {showPrayerForm && (
-          <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 10 }}>SUBMIT A PRAYER</p>
-            <textarea
-              placeholder="Share your prayer request..."
-              value={prayerText}
-              onChange={e => setPrayerText(e.target.value)}
-              maxLength={500}
+        {/* New/Edit Note Form */}
+        {showForm && (
+          <Card style={{ marginBottom: 20 }}>
+            <p className="text-section-header" style={{ marginBottom: 12 }}>
+              {editingId ? 'EDIT NOTE' : 'NEW SERMON NOTE'}
+            </p>
+            <input
+              type="text"
+              placeholder="Note title..."
+              value={formData.title}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
               style={{
-                width: '100%', minHeight: 80, background: 'var(--dw-surface)',
+                width: '100%', background: 'var(--dw-surface)',
                 border: '1px solid var(--dw-border)', borderRadius: 10,
-                padding: 12, color: 'var(--dw-text-primary)', fontSize: 14,
-                fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical',
+                padding: '12px 14px', color: 'var(--dw-text-primary)', fontSize: 14,
+                fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 12,
+                minHeight: 44,
               }}
             />
-            <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+            <input
+              type="text"
+              placeholder="Sermon title (optional)..."
+              value={formData.sermon}
+              onChange={e => setFormData({ ...formData, sermon: e.target.value })}
+              style={{
+                width: '100%', background: 'var(--dw-surface)',
+                border: '1px solid var(--dw-border)', borderRadius: 10,
+                padding: '12px 14px', color: 'var(--dw-text-primary)', fontSize: 13,
+                fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 12,
+                minHeight: 44,
+              }}
+            />
+            <textarea
+              placeholder="Write your notes..."
+              value={formData.content}
+              onChange={e => setFormData({ ...formData, content: e.target.value })}
+              style={{
+                width: '100%', minHeight: 120, background: 'var(--dw-surface)',
+                border: '1px solid var(--dw-border)', borderRadius: 10,
+                padding: 12, color: 'var(--dw-text-primary)', fontSize: 14,
+                fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', marginBottom: 12,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
-                onClick={() => { setShowPrayerForm(false); setPrayerText(''); }}
+                onClick={() => { setShowForm(false); setEditingId(null); setFormData({ title: '', sermon: '', content: '' }); }}
                 className="dw-btn-secondary"
                 style={{ fontSize: 13, padding: '8px 16px' }}
               >
                 Cancel
               </button>
               <button
-                onClick={submitPrayer}
-                disabled={submitting || !prayerText.trim()}
+                onClick={saveNote}
+                disabled={!formData.title.trim() || !formData.content.trim()}
                 className="dw-btn-primary"
                 style={{
                   fontSize: 13, padding: '8px 16px',
-                  opacity: submitting || !prayerText.trim() ? 0.5 : 1,
-                  display: 'flex', alignItems: 'center', gap: 6,
+                  opacity: !formData.title.trim() || !formData.content.trim() ? 0.5 : 1,
                 }}
               >
-                {submitting ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
-                Submit
+                {editingId ? 'Update' : 'Save'}
               </button>
             </div>
           </Card>
         )}
 
-        {/* Prayer entries */}
-        <p className="text-section-header" style={{ marginBottom: 12 }}>RECENT PRAYERS</p>
-
+        {/* Notes list */}
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0', gap: 8 }}>
             <Loader2 size={18} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-            <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading prayers...</span>
+            <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading notes...</span>
           </div>
-        ) : prayers.length === 0 ? (
+        ) : notes.length === 0 ? (
           <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
+            <Pencil size={24} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-              No prayers yet. Be the first to share a prayer request.
+              No sermon notes yet. Create your first one!
             </p>
           </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {prayers.map(prayer => (
-              <Card key={prayer.id}>
+            {notes.map(note => (
+              <Card key={note.id}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div>
-                    <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
-                      {prayer.name}
-                    </p>
-                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)' }}>
-                      {prayer.campus ? `${prayer.campus} · ` : ''}{prayer.date}
+                  <div style={{ flex: 1 }}>
+                    <p className="text-card-title">{note.title}</p>
+                    {note.sermon && (
+                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+                        {note.sermon}
+                      </p>
+                    )}
+                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', marginTop: 4 }}>
+                      {formatDate(note.date)}
                     </p>
                   </div>
+                  <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
+                    <button
+                      onClick={() => editNote(note)}
+                      style={{
+                        background: 'var(--dw-accent-bg)',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '8px 12px',
+                        color: 'var(--dw-accent)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        minHeight: 36,
+                      }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => deleteNote(note.id)}
+                      style={{
+                        background: 'var(--dw-border)',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '8px 12px',
+                        color: 'var(--dw-text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        minHeight: 36,
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-                <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.6, marginBottom: 12, fontFamily: 'var(--font-serif)' }}>
-                  {prayer.text}
-                </p>
-                <button
-                  onClick={() => agreePrayer(prayer.id)}
-                  style={{
-                    background: agreedIds.has(prayer.id) ? 'var(--dw-accent)' : 'var(--dw-accent-bg)',
-                    border: 'none', borderRadius: 999, padding: '6px 14px',
-                    color: agreedIds.has(prayer.id) ? '#fff' : 'var(--dw-accent)',
-                    fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    minHeight: 36, fontFamily: 'var(--font-sans)',
-                    transition: 'all 200ms ease',
-                  }}
-                >
-                  <Heart size={13} fill={agreedIds.has(prayer.id) ? '#fff' : 'none'} />
-                  {agreedIds.has(prayer.id) ? 'Praying' : 'Pray'} · {prayer.prayerCount}
-                </button>
+                {note.content && (
+                  <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>
+                    {note.content.slice(0, 150)}{note.content.length > 150 ? '...' : ''}
+                  </p>
+                )}
               </Card>
             ))}
           </div>
         )}
       </div>
 
-      {/* Bible AI Full Screen */}
-      <BibleAI isOpen={showAI} onClose={() => setShowAI(false)} />
-
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
-function formatDate(isoStr?: string): string {
-  if (!isoStr) return 'Recently';
+function formatDate(isoStr: string): string {
   try {
     const d = new Date(isoStr);
     const now = new Date();
     const diff = now.getTime() - d.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
     return 'Recently';
