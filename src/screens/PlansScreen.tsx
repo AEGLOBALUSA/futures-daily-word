@@ -5,7 +5,7 @@ import { DEVOTIONS } from '../data/devotions';
 import { CAMPUSES } from '../data/tokens';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight } from 'lucide-react';
 
-/* ── Plan catalogue ── */
+/* ââ Plan catalogue ââ */
 interface PlanDef {
   id: string;
   title: string;
@@ -85,7 +85,7 @@ const PLAN_CATALOGUE: PlanDef[] = [
   },
 ];
 
-/* ── localStorage helpers ── */
+/* ââ localStorage helpers ââ */
 interface PlanProgress {
   startedAt: string;
   completedDays: number[];
@@ -218,7 +218,7 @@ export function PlansScreen() {
                 {devotion.body}
               </p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                — {devotion.author}
+                â {devotion.author}
               </p>
             </Card>
           )}
@@ -297,11 +297,17 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS A'S BOOKS</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {BOOKS.map(book => (
-                <Card key={book.id} style={{ cursor: 'pointer' }}>
-                  <p className="text-card-title" style={{ marginBottom: 4 }}>{book.title}</p>
-                  <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
-                    {book.description}
-                  </p>
+                <Card key={book.id} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}>
+                  <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', marginBottom: 4 }}>{book.title}</p>
+                    <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
+                      {book.description}
+                    </p>
+                  </div>
+                  <ChevronRight size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
                 </Card>
               ))}
             </div>
@@ -312,11 +318,17 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS JANE'S BOOKS</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {JANE_BOOKS.map(book => (
-                <Card key={book.id} style={{ cursor: 'pointer' }}>
-                  <p className="text-card-title" style={{ marginBottom: 4 }}>{book.title}</p>
-                  <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
-                    {book.description}
-                  </p>
+                <Card key={book.id} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}>
+                  <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', marginBottom: 4 }}>{book.title}</p>
+                    <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
+                      {book.description}
+                    </p>
+                  </div>
+                  <ChevronRight size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
                 </Card>
               ))}
             </div>
@@ -361,7 +373,7 @@ export function PlansScreen() {
               minHeight: 44,
             }}
           >
-            ← Back
+            â Back
           </button>
         </div>
 
@@ -463,7 +475,7 @@ export function PlansScreen() {
                           {!isComplete && nextDay <= plan.totalDays && (
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
-                                Day {nextDay}: {plan.passages[nextDay - 1] || '—'}
+                                Day {nextDay}: {plan.passages[nextDay - 1] || 'â'}
                               </p>
                               <button
                                 onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
@@ -516,7 +528,7 @@ export function PlansScreen() {
                     {plan.description}
                   </p>
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, marginBottom: 10, fontFamily: 'var(--font-sans)' }}>
-                    {plan.totalDays} days · {plan.passages.length} passages
+                    {plan.totalDays} days Â· {plan.passages.length} passages
                   </p>
                   <button
                     onClick={() => { startPlan(plan.id); setPlanView('active'); }}
@@ -550,7 +562,7 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-              Perfect for new believers — a guided journey through the foundations of faith.
+              Perfect for new believers â a guided journey through the foundations of faith.
             </p>
             <button
               onClick={() => { startPlan('faith-pathway'); }}
