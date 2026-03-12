@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { LibraryScreen } from './LibraryScreen';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 
 import {
-  User, Globe, Bell, Type, Book, Info, Shield, Mail,
+  User, Globe, Bell, Type, Info, Shield, Mail,
   Download, Languages, MapPin, Heart, ChevronDown
 } from 'lucide-react';
 
-const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB', 'TB'];
+const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
 const PERSONAS = [
   { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
@@ -39,7 +38,6 @@ export function MoreScreen() {
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [downloadingKJV, setDownloadingKJV] = useState(false);
-  const [showLibrary, setShowLibrary] = useState(false);
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -120,11 +118,6 @@ export function MoreScreen() {
       requireEmail();
     }
   };
-
-  // Show Library as a full-screen overlay when opened
-  if (showLibrary) {
-    return <LibraryScreen onBack={() => setShowLibrary(false)} />;
-  }
 
   return (
     <div className="screen-container">
@@ -402,12 +395,6 @@ export function MoreScreen() {
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <button onClick={() => setShowLibrary(true)} style={rowStyle}>
-              <Book size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>Library</span>
-              <span style={valStyle}>Books & essays</span>
-            </button>
-            <div style={dividerStyle} />
             <button onClick={handleKJVDownload} style={rowStyle}>
               <Download size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>Offline Bible</span>
