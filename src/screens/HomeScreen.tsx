@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Share2, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, BookOpen, Plus, X } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -20,7 +20,33 @@ const PERSONAS = [
   { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 
-/* ── Faith Pathway types ── */
+/* ââ Bible Books and Chapters ââ */
+const BIBLE_BOOKS = [
+  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth',
+  '1 Samuel', '2 Samuel', '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah',
+  'Esther', 'Job', 'Psalms', 'Proverbs', 'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah',
+  'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah',
+  'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
+  'Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1 Corinthians', '2 Corinthians',
+  'Galatians', 'Ephesians', 'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians',
+  '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James', '1 Peter', '2 Peter',
+  '1 John', '2 John', '3 John', 'Jude', 'Revelation',
+];
+
+const BOOK_CHAPTERS: Record<string, number> = {
+  Genesis: 50, Exodus: 40, Leviticus: 27, Numbers: 36, Deuteronomy: 34, Joshua: 24, Judges: 21, Ruth: 4,
+  '1 Samuel': 31, '2 Samuel': 24, '1 Kings': 22, '2 Kings': 25, '1 Chronicles': 29, '2 Chronicles': 36,
+  Ezra: 10, Nehemiah: 13, Esther: 10, Job: 42, Psalms: 150, Proverbs: 31, Ecclesiastes: 12,
+  'Song of Solomon': 8, Isaiah: 66, Jeremiah: 52, Lamentations: 5, Ezekiel: 48, Daniel: 12,
+  Hosea: 14, Joel: 3, Amos: 9, Obadiah: 1, Jonah: 4, Micah: 7, Nahum: 3, Habakkuk: 3,
+  Zephaniah: 3, Haggai: 2, Zechariah: 14, Malachi: 4, Matthew: 28, Mark: 16, Luke: 24, John: 21,
+  Acts: 28, Romans: 16, '1 Corinthians': 16, '2 Corinthians': 13, Galatians: 6, Ephesians: 6,
+  Philippians: 4, Colossians: 4, '1 Thessalonians': 5, '2 Thessalonians': 3, '1 Timothy': 6,
+  '2 Timothy': 4, Titus: 3, Philemon: 1, Hebrews: 13, James: 5, '1 Peter': 5, '2 Peter': 3,
+  '1 John': 5, '2 John': 1, '3 John': 1, Jude: 1, Revelation: 22,
+};
+
+/* ââ Faith Pathway types ââ */
 interface PathwayDay {
   day: number;
   title: string;
@@ -49,6 +75,12 @@ interface PathwayProgress {
   enrolled: boolean;
 }
 
+interface ReadingSlot {
+  id: string;
+  book: string;
+  currentChapter: number;
+}
+
 export function HomeScreen() {
   const { userProfile, setup, profilePic, saveProfile, saveSetup, requireEmail } = useUser();
   const [dayOffset, setDayOffset] = useState(0);
@@ -61,6 +93,17 @@ export function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCampusPicker, setShowCampusPicker] = useState(false);
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+
+  // Reading Slots state
+  const [readingSlots, setReadingSlots] = useState<ReadingSlot[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dw_reading_slots') || '[]') as ReadingSlot[];
+    } catch { return []; }
+  });
+  const [showReadingSetup, setShowReadingSetup] = useState(false);
+  const [showBookPicker, setShowBookPicker] = useState(false);
+  const [bookPickerSearch, setBookPickerSearch] = useState('');
+  const [loadedFirstSlotPassage, setLoadedFirstSlotPassage] = useState(false);
 
   // Faith Pathway state
   const [pathwayData, setPathwayData] = useState<PathwayData | null>(null);
@@ -99,9 +142,50 @@ export function HomeScreen() {
     }
   }, [setup?.persona]);
 
+  // Auto-load first reading slot's passage on mount
+  useEffect(() => {
+    if (readingSlots.length > 0 && !loadedFirstSlotPassage) {
+      const firstSlot = readingSlots[0];
+      const passage = `${firstSlot.book} ${firstSlot.currentChapter}`;
+      loadPassage(passage);
+      setLoadedFirstSlotPassage(true);
+    }
+  }, [readingSlots, loadedFirstSlotPassage]);
+
   const savePathwayProgress = (p: PathwayProgress) => {
     setPathwayProgress(p);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
+  };
+
+  const saveReadingSlots = (slots: ReadingSlot[]) => {
+    setReadingSlots(slots);
+    try { localStorage.setItem('dw_reading_slots', JSON.stringify(slots)); } catch {}
+  };
+
+  const addReadingSlot = (book: string) => {
+    const newSlot: ReadingSlot = {
+      id: Math.random().toString(36).substr(2, 9),
+      book,
+      currentChapter: 1,
+    };
+    saveReadingSlots([...readingSlots, newSlot]);
+    setShowBookPicker(false);
+    setBookPickerSearch('');
+  };
+
+  const removeReadingSlot = (id: string) => {
+    saveReadingSlots(readingSlots.filter(s => s.id !== id));
+  };
+
+  const advanceChapter = (id: string) => {
+    const updated = readingSlots.map(s => {
+      if (s.id === id) {
+        const maxChapter = BOOK_CHAPTERS[s.book] || 1;
+        return { ...s, currentChapter: Math.min(s.currentChapter + 1, maxChapter) };
+      }
+      return s;
+    });
+    saveReadingSlots(updated);
   };
 
   const handleCampusSelect = (campusId: string) => {
@@ -159,7 +243,7 @@ export function HomeScreen() {
       });
   };
 
-  // Pending audio — when user taps Listen before text is loaded
+  // Pending audio â when user taps Listen before text is loaded
   const pendingAudioRef = useRef<string | null>(null);
 
   // Watch for text to arrive so we can auto-play audio
@@ -280,8 +364,8 @@ export function HomeScreen() {
     const textKey = `${passage}_${translation}`;
     const text = passageTexts[textKey];
     const shareText = text
-      ? `${passage} (${translation})\n\n${text.slice(0, 500)}\n\n— Futures Daily Word`
-      : `${passage} — Futures Daily Word`;
+      ? `${passage} (${translation})\n\n${text.slice(0, 500)}\n\nâ Futures Daily Word`
+      : `${passage} â Futures Daily Word`;
     if (navigator.share) {
       try {
         await navigator.share({ title: passage, text: shareText });
@@ -290,6 +374,10 @@ export function HomeScreen() {
       await navigator.clipboard.writeText(shareText);
     }
   };
+
+  const filteredBooks = BIBLE_BOOKS.filter(book =>
+    book.toLowerCase().includes(bookPickerSearch.toLowerCase())
+  );
 
   return (
     <div className="screen-container">
@@ -390,7 +478,7 @@ export function HomeScreen() {
           </Card>
         )}
 
-        {/* ── FAITH PATHWAY CARD ── for new_returning persona */}
+        {/* ââ FAITH PATHWAY CARD ââ for new_returning persona */}
         {pathwayProgress.enrolled && pathwayData && setup?.persona === 'new_returning' && (() => {
           const completed = pathwayProgress.completedDays?.length || 0;
           const currentDay = pathwayProgress.currentDay || 1;
@@ -518,7 +606,7 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* Translation Selector — always visible */}
+        {/* Translation Selector â always visible */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -562,7 +650,7 @@ export function HomeScreen() {
             &ldquo;{quote.text}&rdquo;
           </p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
-            — {quote.author}
+            â {quote.author}
           </p>
         </Card>
 
@@ -575,11 +663,304 @@ export function HomeScreen() {
           </p>
           <p className="text-devotion">{devotion.body}</p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            — {devotion.author}
+            â {devotion.author}
           </p>
         </Card>
 
-        {/* 3. Scripture Search */}
+        {/* 3. MY DAILY READING */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p className="text-section-header">MY DAILY READING</p>
+            <button
+              onClick={() => setShowReadingSetup(!showReadingSetup)}
+              style={{
+                background: 'var(--dw-accent-bg)',
+                border: '1px solid var(--dw-accent)',
+                borderRadius: 8,
+                padding: '6px 12px',
+                color: 'var(--dw-accent)',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                minHeight: 32,
+              }}
+            >
+              <Plus size={14} />
+              Add
+            </button>
+          </div>
+
+          {readingSlots.length === 0 ? (
+            <Card style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+                No reading slots yet. Add your first book to get started.
+              </p>
+            </Card>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {readingSlots.map(slot => {
+                const passage = `${slot.book} ${slot.currentChapter}`;
+                const maxChapter = BOOK_CHAPTERS[slot.book] || 1;
+                const textKey = `${passage}_${translation}`;
+                const text = passageTexts[textKey];
+                const isLoading = loadingPassages.has(passage);
+                const isExpanded = expandedPassages.has(passage);
+                const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
+                const isLoadingThis = audioLoading && audioCurrentPassage === passage;
+
+                return (
+                  <Card key={slot.id} style={{ marginBottom: 0 }}>
+                    {/* Reading Slot Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div>
+                        <p style={{
+                          color: 'var(--dw-text-primary)',
+                          fontSize: 15,
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-sans)',
+                        }}>
+                          {slot.book}
+                        </p>
+                        <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+                          Chapter {slot.currentChapter} of {maxChapter}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeReadingSlot(slot.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--dw-text-muted)',
+                          cursor: 'pointer',
+                          padding: 4,
+                          minHeight: 36,
+                          minWidth: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        aria-label="Remove reading slot"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    {/* Read + Listen buttons */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: isExpanded ? 14 : 0 }}>
+                      <button
+                        onClick={() => handleRead(passage)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          background: isExpanded ? 'var(--dw-surface-hover)' : 'var(--dw-accent-bg)',
+                          color: isExpanded ? 'var(--dw-text-secondary)' : 'var(--dw-accent)',
+                          border: isExpanded ? '1px solid var(--dw-border)' : '1px solid var(--dw-accent)',
+                          borderRadius: 10,
+                          padding: '10px 16px',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-sans)',
+                          minHeight: 42,
+                          transition: 'all var(--transition-fast)',
+                        }}
+                      >
+                        <BookOpen size={16} />
+                        {isExpanded ? 'Reading' : 'Read'}
+                      </button>
+                      <button
+                        onClick={() => handleListen(passage)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          background: isPlayingThis ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                          color: isPlayingThis ? '#fff' : 'var(--dw-text-primary)',
+                          border: isPlayingThis ? '1px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                          borderRadius: 10,
+                          padding: '10px 16px',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-sans)',
+                          minHeight: 42,
+                          transition: 'all var(--transition-fast)',
+                        }}
+                      >
+                        {isLoadingThis ? (
+                          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...</>
+                        ) : isPlayingThis ? (
+                          <><Pause size={16} /> Pause</>
+                        ) : (
+                          <><Headphones size={16} /> Listen</>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Scripture text â only shown when expanded */}
+                    {isExpanded && (
+                      <div style={{ marginBottom: 14 }}>
+                        {isLoading ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                            <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                            <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
+                          </div>
+                        ) : text ? (
+                          <p className="text-scripture" style={{ fontSize: 20 }}>
+                            {text}
+                          </p>
+                        ) : (
+                          <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
+                            Loading...
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Advance chapter button */}
+                    {slot.currentChapter < maxChapter && (
+                      <button
+                        onClick={() => advanceChapter(slot.id)}
+                        style={{
+                          width: '100%',
+                          background: 'var(--dw-surface-hover)',
+                          border: '1px solid var(--dw-border)',
+                          borderRadius: 10,
+                          padding: '10px 16px',
+                          color: 'var(--dw-accent)',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-sans)',
+                          minHeight: 42,
+                          transition: 'all var(--transition-fast)',
+                        }}
+                      >
+                        Next Chapter ({slot.currentChapter + 1})
+                      </button>
+                    )}
+                    {slot.currentChapter === maxChapter && (
+                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, textAlign: 'center', padding: '10px 0' }}>
+                        You've finished {slot.book}!
+                      </p>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Book Picker Modal */}
+          {showBookPicker && (
+            <Card style={{ marginTop: 12, padding: '16px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Search size={16} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search books..."
+                  value={bookPickerSearch}
+                  onChange={e => setBookPickerSearch(e.target.value)}
+                  autoFocus
+                  style={{
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--dw-text-primary)',
+                    fontSize: 14,
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 300, overflowY: 'auto' }}>
+                {filteredBooks.map(book => (
+                  <button
+                    key={book}
+                    onClick={() => addReadingSlot(book)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      background: 'var(--dw-surface-hover)',
+                      border: '1px solid var(--dw-border)',
+                      borderRadius: 8,
+                      color: 'var(--dw-text-primary)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)',
+                      textAlign: 'left',
+                      minHeight: 40,
+                      transition: 'all var(--transition-fast)',
+                    }}
+                  >
+                    {book}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  setShowBookPicker(false);
+                  setBookPickerSearch('');
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: 10,
+                  padding: '8px 12px',
+                  background: 'none',
+                  border: '1px solid var(--dw-border-subtle)',
+                  borderRadius: 8,
+                  color: 'var(--dw-text-muted)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  minHeight: 36,
+                }}
+              >
+                Close
+              </button>
+            </Card>
+          )}
+
+          {showReadingSetup && !showBookPicker && (
+            <Card style={{ marginTop: 12, textAlign: 'center', padding: '16px 12px' }}>
+              <button
+                onClick={() => setShowBookPicker(true)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: 'var(--dw-accent)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)',
+                  minHeight: 44,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <Plus size={16} />
+                Choose a Book
+              </button>
+            </Card>
+          )}
+        </div>
+
+        {/* 4. Scripture Search */}
         <Card style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Search size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
@@ -601,130 +982,10 @@ export function HomeScreen() {
           </div>
         </Card>
 
-        {/* 4. Daily Passages / Chapters — TAP TO EXPAND, load one at a time */}
-        <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>TODAY'S CHAPTERS</p>
-        {passages.map((p) => {
-          const textKey = `${p.passage}_${translation}`;
-          const text = passageTexts[textKey];
-          const isLoading = loadingPassages.has(p.passage);
-          const isExpanded = expandedPassages.has(p.passage);
-          const isPlayingThis = audioPlaying && audioCurrentPassage === p.passage;
-          const isLoadingThis = audioLoading && audioCurrentPassage === p.passage;
-
-          return (
-            <Card key={p.passage} style={{ marginBottom: 16 }}>
-              {/* Passage header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 20 }}>{p.sectionEmoji}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{
-                    color: 'var(--dw-accent)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-sans)',
-                  }}>
-                    {p.passage}
-                  </p>
-                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)' }}>
-                    {p.sectionLabel}
-                  </p>
-                </div>
-                {/* Share button — always visible */}
-                {text && (
-                  <button
-                    onClick={() => handleShare(p.passage)}
-                    style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    aria-label="Share"
-                  >
-                    <Share2 size={16} />
-                  </button>
-                )}
-              </div>
-
-              {/* READ + LISTEN buttons — always visible */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: isExpanded ? 14 : 0 }}>
-                <button
-                  onClick={() => handleRead(p.passage)}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    background: isExpanded ? 'var(--dw-surface-hover)' : 'var(--dw-accent-bg)',
-                    color: isExpanded ? 'var(--dw-text-secondary)' : 'var(--dw-accent)',
-                    border: isExpanded ? '1px solid var(--dw-border)' : '1px solid var(--dw-accent)',
-                    borderRadius: 10,
-                    padding: '10px 16px',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    minHeight: 42,
-                    transition: 'all var(--transition-fast)',
-                  }}
-                >
-                  <BookOpen size={16} />
-                  {isExpanded ? 'Reading' : 'Read'}
-                </button>
-                <button
-                  onClick={() => handleListen(p.passage)}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    background: isPlayingThis ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: isPlayingThis ? '#fff' : 'var(--dw-text-primary)',
-                    border: isPlayingThis ? '1px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                    borderRadius: 10,
-                    padding: '10px 16px',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    minHeight: 42,
-                    transition: 'all var(--transition-fast)',
-                  }}
-                >
-                  {isLoadingThis ? (
-                    <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...</>
-                  ) : isPlayingThis ? (
-                    <><Pause size={16} /> Pause</>
-                  ) : (
-                    <><Headphones size={16} /> Listen</>
-                  )}
-                </button>
-              </div>
-
-              {/* Scripture text — only shown when expanded */}
-              {isExpanded && (
-                <div>
-                  {isLoading ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-                      <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                      <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
-                    </div>
-                  ) : text ? (
-                    <p className="text-scripture" style={{ fontSize: 20 }}>
-                      {text}
-                    </p>
-                  ) : (
-                    <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
-                      Loading...
-                    </p>
-                  )}
-                </div>
-              )}
-            </Card>
-          );
-        })}
-
         {/* 5. Commentary (if available for today's passage) */}
         {commentaryText && (
           <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY — {commentarySource.toUpperCase()}</p>
+            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY â {commentarySource.toUpperCase()}</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>
               {commentaryText}
             </p>
