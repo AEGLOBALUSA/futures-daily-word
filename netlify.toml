@@ -6,20 +6,19 @@
 [functions]
   node_bundler = "esbuild"
 
-# SPA fallback — all routes serve index.html
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin"]}
-
-# API proxy to Netlify Functions
+# API proxy to Netlify Functions (must be before the SPA fallback)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
-# Security headers for all pages
+# SPA fallback — all non-file routes serve index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -47,7 +46,7 @@
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# Cache Bible JSON files for 1 year (immutable content)
+# Cache Bible JSON files for 1 year
 [[headers]]
   for = "/bible/*"
   [headers.values]
