@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Volume2, Share2, Search, BookOpen, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, BookOpen, Loader2 } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
-import { fetchPassage } from '../utils/api';
+import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { DEVOTIONS } from '../data/devotions';
 import { QUOTES } from '../data/quotes';
@@ -21,6 +21,12 @@ export function HomeScreen() {
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassage, setExpandedPassage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Audio state
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const passages = getDailyPassages(dayOffset);
   const dateStr = getDateString(dayOffset);
@@ -62,12 +68,87 @@ export function HomeScreen() {
       });
   }, [expandedPassage, translation]);
 
+  // Clean up audio on unmount or passage change
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [expandedPassage]);
+
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
     localStorage.setItem('dw_translation', t);
     setShowTransPicker(false);
-    // Clear cached texts so they re-fetch in new translation
     setPassageTexts({});
+    // Stop audio on translation change
+    stopAudio();
+  };
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setAudioPlaying(false);
+    setAudioUrl(null);
+  };
+
+  const handleAudio = async (passage: string) => {
+    // If already playing this passage, stop
+    if (audioPlaying) {
+      stopAudio();
+      return;
+    }
+
+    const textKey = `${passage}_${translation}`;
+    const text = passageTexts[textKey];
+    if (!text) return;
+
+    setAudioLoading(true);
+    try {
+      // For ESV, fetchAudio hits /api/esv-audio; for others, uses /api/polly-tts
+      const url = await fetchAudio(text.slice(0, 3000), translation);
+      if (url) {
+        setAudioUrl(url);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setAudioPlaying(false);
+          setAudioUrl(null);
+        };
+        audio.onerror = () => {
+          setAudioPlaying(false);
+          setAudioUrl(null);
+        };
+        await audio.play();
+        setAudioPlaying(true);
+      }
+    } catch {
+      // Audio not available
+    } finally {
+      setAudioLoading(false);
+    }
+  };
+
+  const handleShare = async (passage: string) => {
+    const textKey = `${passage}_${translation}`;
+    const text = passageTexts[textKey];
+    const shareText = text
+      ? `${passage} (${translation})\n\n${text.slice(0, 500)}\n\n— Futures Daily Word`
+      : `${passage} — Futures Daily Word`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: passage, text: shareText });
+      } catch {
+        // User cancelled
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+    }
   };
 
   return (
@@ -101,7 +182,7 @@ export function HomeScreen() {
           margin: '20px 0',
         }}>
           <button
-            onClick={() => { setDayOffset(d => d - 1); setExpandedPassage(null); }}
+            onClick={() => { setDayOffset(d => d - 1); setExpandedPassage(null); stopAudio(); }}
             style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Previous day"
           >
@@ -114,7 +195,7 @@ export function HomeScreen() {
             </p>
           </div>
           <button
-            onClick={() => { setDayOffset(d => d + 1); setExpandedPassage(null); }}
+            onClick={() => { setDayOffset(d => d + 1); setExpandedPassage(null); stopAudio(); }}
             disabled={dayOffset >= 30}
             style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'var(--dw-text-faint)' : 'var(--dw-text-muted)', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Next day"
@@ -134,7 +215,7 @@ export function HomeScreen() {
             <Card
               key={p.passage}
               style={{ marginBottom: 12, cursor: 'pointer' }}
-              onClick={() => setExpandedPassage(isExpanded ? null : p.passage)}
+              onClick={() => { setExpandedPassage(isExpanded ? null : p.passage); if (!isExpanded) stopAudio(); }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isExpanded ? 16 : 0 }}>
                 <span style={{ fontSize: 20 }}>{p.sectionEmoji}</span>
@@ -167,10 +248,29 @@ export function HomeScreen() {
                         {text}
                       </p>
                       <div style={{ display: 'flex', gap: 12 }}>
-                        <button style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Listen">
-                          <Volume2 size={18} />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleAudio(p.passage); }}
+                          style={{
+                            background: 'none', border: 'none',
+                            color: audioPlaying ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+                            cursor: 'pointer', padding: 4, minHeight: 44, minWidth: 44,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                          aria-label={audioPlaying ? 'Stop audio' : 'Listen'}
+                        >
+                          {audioLoading ? (
+                            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                          ) : audioPlaying ? (
+                            <VolumeX size={18} />
+                          ) : (
+                            <Volume2 size={18} />
+                          )}
                         </button>
-                        <button style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-label="Share">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleShare(p.passage); }}
+                          style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          aria-label="Share"
+                        >
                           <Share2 size={18} />
                         </button>
                       </div>
