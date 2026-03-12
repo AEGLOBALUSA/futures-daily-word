@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, Loader2, MapPin, User, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, BookOpen } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -159,18 +159,48 @@ export function HomeScreen() {
       });
   };
 
-  // Toggle a passage open/closed — loads on first open
-  const togglePassage = (passage: string) => {
-    const isExpanded = expandedPassages.has(passage);
-    if (isExpanded) {
-      setExpandedPassages(prev => {
-        const next = new Set(prev);
-        next.delete(passage);
-        return next;
-      });
-    } else {
+  // Pending audio — when user taps Listen before text is loaded
+  const pendingAudioRef = useRef<string | null>(null);
+
+  // Watch for text to arrive so we can auto-play audio
+  useEffect(() => {
+    if (!pendingAudioRef.current) return;
+    const passage = pendingAudioRef.current;
+    const key = `${passage}_${translation}`;
+    if (passageTexts[key]) {
+      pendingAudioRef.current = null;
+      handleAudio(passage);
+    }
+  }, [passageTexts]);
+
+  // Read: expand + load. Listen: expand + load + play audio when ready.
+  const handleRead = (passage: string) => {
+    if (!expandedPassages.has(passage)) {
       setExpandedPassages(prev => new Set(prev).add(passage));
       loadPassage(passage);
+    }
+  };
+
+  const handleListen = (passage: string) => {
+    const key = `${passage}_${translation}`;
+    // If already playing this passage, stop
+    if (audioPlaying && audioCurrentPassage === passage) {
+      stopAudio();
+      return;
+    }
+    // Expand and load if needed
+    if (!expandedPassages.has(passage)) {
+      setExpandedPassages(prev => new Set(prev).add(passage));
+    }
+    if (passageTexts[key]) {
+      // Text already loaded, play immediately
+      handleAudio(passage);
+    } else {
+      // Load text first, audio will auto-play via the useEffect above
+      loadPassage(passage);
+      pendingAudioRef.current = passage;
+      setAudioLoading(true);
+      setAudioCurrentPassage(passage);
     }
   };
 
@@ -578,11 +608,13 @@ export function HomeScreen() {
           const text = passageTexts[textKey];
           const isLoading = loadingPassages.has(p.passage);
           const isExpanded = expandedPassages.has(p.passage);
+          const isPlayingThis = audioPlaying && audioCurrentPassage === p.passage;
+          const isLoadingThis = audioLoading && audioCurrentPassage === p.passage;
 
           return (
-            <Card key={p.passage} style={{ marginBottom: 16, cursor: 'pointer' }} onClick={() => togglePassage(p.passage)}>
+            <Card key={p.passage} style={{ marginBottom: 16 }}>
               {/* Passage header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <span style={{ fontSize: 20 }}>{p.sectionEmoji}</span>
                 <div style={{ flex: 1 }}>
                   <p style={{
@@ -597,46 +629,78 @@ export function HomeScreen() {
                     {p.sectionLabel}
                   </p>
                 </div>
-                {/* Audio + Share — only when expanded and text loaded */}
-                {isExpanded && text && (
-                  <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => handleAudio(p.passage)}
-                      style={{
-                        background: 'none', border: 'none',
-                        color: audioPlaying && audioCurrentPassage === p.passage ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
-                        cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                      aria-label="Listen"
-                    >
-                      {audioLoading && audioCurrentPassage === p.passage ? (
-                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                      ) : audioPlaying && audioCurrentPassage === p.passage ? (
-                        <VolumeX size={16} />
-                      ) : (
-                        <Volume2 size={16} />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleShare(p.passage)}
-                      style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      aria-label="Share"
-                    >
-                      <Share2 size={16} />
-                    </button>
-                  </div>
+                {/* Share button — always visible */}
+                {text && (
+                  <button
+                    onClick={() => handleShare(p.passage)}
+                    style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4, minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    aria-label="Share"
+                  >
+                    <Share2 size={16} />
+                  </button>
                 )}
-                {!isExpanded && (
-                  <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                    Tap to read
-                  </p>
-                )}
+              </div>
+
+              {/* READ + LISTEN buttons — always visible */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: isExpanded ? 14 : 0 }}>
+                <button
+                  onClick={() => handleRead(p.passage)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    background: isExpanded ? 'var(--dw-surface-hover)' : 'var(--dw-accent-bg)',
+                    color: isExpanded ? 'var(--dw-text-secondary)' : 'var(--dw-accent)',
+                    border: isExpanded ? '1px solid var(--dw-border)' : '1px solid var(--dw-accent)',
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    minHeight: 42,
+                    transition: 'all var(--transition-fast)',
+                  }}
+                >
+                  <BookOpen size={16} />
+                  {isExpanded ? 'Reading' : 'Read'}
+                </button>
+                <button
+                  onClick={() => handleListen(p.passage)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    background: isPlayingThis ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: isPlayingThis ? '#fff' : 'var(--dw-text-primary)',
+                    border: isPlayingThis ? '1px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    minHeight: 42,
+                    transition: 'all var(--transition-fast)',
+                  }}
+                >
+                  {isLoadingThis ? (
+                    <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...</>
+                  ) : isPlayingThis ? (
+                    <><Pause size={16} /> Pause</>
+                  ) : (
+                    <><Headphones size={16} /> Listen</>
+                  )}
+                </button>
               </div>
 
               {/* Scripture text — only shown when expanded */}
               {isExpanded && (
-                <div style={{ marginTop: 14 }}>
+                <div>
                   {isLoading ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                       <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
