@@ -1,32 +1,64 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, BookOpen, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX, Share2, Search, BookOpen, Loader2, MapPin, User, ChevronDown, Headphones, Pause } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { DEVOTIONS } from '../data/devotions';
 import { QUOTES } from '../data/quotes';
 import { COMMENTARY } from '../data/commentary';
+import { CAMPUSES } from '../data/tokens';
+import { useUser } from '../contexts/UserContext';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
+const PERSONAS = [
+  { id: 'new_believer', label: 'New Believer', emoji: '🌱' },
+  { id: 'growing_christian', label: 'Growing Christian', emoji: '📖' },
+  { id: 'mature_believer', label: 'Mature Believer', emoji: '⛪' },
+  { id: 'church_leader', label: 'Church Leader', emoji: '🙏' },
+  { id: 'youth', label: 'Youth', emoji: '⚡' },
+  { id: 'parent', label: 'Parent', emoji: '👨‍👩‍👧' },
+];
+
 export function HomeScreen() {
+  const { userProfile, setup, profilePic, saveProfile, saveSetup, requireEmail } = useUser();
   const [dayOffset, setDayOffset] = useState(0);
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
   });
-  const [showTransPicker, setShowTransPicker] = useState(false);
   const [passageTexts, setPassageTexts] = useState<Record<string, string>>({});
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassage, setExpandedPassage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCampusPicker, setShowCampusPicker] = useState(false);
+  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
 
   // Audio state
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
+  const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
+  const displayName = userProfile?.firstName || 'Friend';
+
+  const handleCampusSelect = (campusId: string) => {
+    if (userProfile) {
+      saveProfile({ ...userProfile, campus: campusId });
+    } else {
+      // Need email first
+      requireEmail(() => {});
+    }
+    setShowCampusPicker(false);
+  };
+
+  const handlePersonaSelect = (personaId: string) => {
+    saveSetup({ persona: personaId, source: setup?.source || '' });
+    setShowPersonaPicker(false);
+  };
 
   const passages = getDailyPassages(dayOffset);
   const dateStr = getDateString(dayOffset);
@@ -47,6 +79,19 @@ export function HomeScreen() {
       break;
     }
   }
+
+  // Auto-fetch primary passage text on load (for hero listen button)
+  useEffect(() => {
+    if (!primaryPassage) return;
+    const key = `${primaryPassage}_${translation}`;
+    if (passageTexts[key]) return;
+
+    fetchPassage(primaryPassage, translation)
+      .then(text => {
+        setPassageTexts(prev => ({ ...prev, [key]: text }));
+      })
+      .catch(() => {});
+  }, [primaryPassage, translation]);
 
   // Fetch passage text when a passage is expanded
   useEffect(() => {
@@ -82,9 +127,7 @@ export function HomeScreen() {
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
     localStorage.setItem('dw_translation', t);
-    setShowTransPicker(false);
     setPassageTexts({});
-    // Stop audio on translation change
     stopAudio();
   };
 
@@ -173,6 +216,82 @@ export function HomeScreen() {
           <ThemeToggle />
         </div>
 
+        {/* Persona Greeting */}
+        <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+          {profilePic ? (
+            <img
+              src={profilePic}
+              alt="Profile"
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                objectFit: 'cover', flexShrink: 0,
+                border: '2px solid var(--dw-accent)',
+              }}
+            />
+          ) : (
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'var(--dw-accent-bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, border: '2px solid var(--dw-accent)',
+            }}>
+              <User size={20} style={{ color: 'var(--dw-accent)' }} />
+            </div>
+          )}
+          <div style={{ flex: 1 }}>
+            <p style={{
+              color: 'var(--dw-text-primary)',
+              fontSize: 15,
+              fontWeight: 500,
+              fontFamily: 'var(--font-sans)',
+            }}>
+              Welcome, {displayName}
+            </p>
+            <button
+              onClick={() => setShowPersonaPicker(!showPersonaPicker)}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                color: 'var(--dw-accent)', fontSize: 12,
+                fontFamily: 'var(--font-sans)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 4, marginTop: 2,
+              }}
+            >
+              {currentPersona ? `${currentPersona.emoji} ${currentPersona.label}` : 'Set your journey type'}
+              <ChevronDown size={12} />
+            </button>
+          </div>
+        </Card>
+
+        {/* Persona Picker Dropdown */}
+        {showPersonaPicker && (
+          <Card style={{ marginBottom: 16, padding: 12 }}>
+            <p className="text-section-header" style={{ marginBottom: 10 }}>YOUR JOURNEY</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {PERSONAS.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => handlePersonaSelect(p.id)}
+                  style={{
+                    background: setup?.persona === p.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: setup?.persona === p.id ? '#fff' : 'var(--dw-text-secondary)',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    minHeight: 40,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  <span>{p.emoji}</span> {p.label}
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {/* Date Navigation */}
         <div style={{
           display: 'flex',
@@ -202,6 +321,80 @@ export function HomeScreen() {
           >
             <ChevronRight size={20} />
           </button>
+        </div>
+
+        {/* Hero Listen Button — Audio First */}
+        <button
+          onClick={() => handleAudio(primaryPassage)}
+          disabled={audioLoading}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            background: audioPlaying ? 'var(--dw-surface)' : 'var(--dw-accent)',
+            color: audioPlaying ? 'var(--dw-accent)' : '#fff',
+            border: audioPlaying ? '2px solid var(--dw-accent)' : '2px solid transparent',
+            borderRadius: 14,
+            padding: '16px 24px',
+            fontSize: 16,
+            fontWeight: 600,
+            fontFamily: 'var(--font-sans)',
+            cursor: 'pointer',
+            minHeight: 56,
+            marginBottom: 8,
+            transition: 'all var(--transition-normal)',
+          }}
+        >
+          {audioLoading ? (
+            <>
+              <Loader2 size={22} style={{ animation: 'spin 1s linear infinite' }} />
+              Loading audio...
+            </>
+          ) : audioPlaying ? (
+            <>
+              <Pause size={22} />
+              Pause — {primaryPassage}
+            </>
+          ) : (
+            <>
+              <Headphones size={22} />
+              Listen to Today's Reading
+            </>
+          )}
+        </button>
+
+        {/* Translation Selector — always visible */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          marginBottom: 20,
+          flexWrap: 'wrap',
+        }}>
+          {TRANSLATIONS.map(t => (
+            <button
+              key={t}
+              onClick={() => handleTranslationChange(t)}
+              style={{
+                background: t === translation ? 'var(--dw-accent)' : 'transparent',
+                color: t === translation ? '#fff' : 'var(--dw-text-muted)',
+                border: t === translation ? 'none' : '1px solid var(--dw-border-subtle)',
+                borderRadius: 8,
+                padding: '6px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                minHeight: 32,
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              {t}
+            </button>
+          ))}
         </div>
 
         {/* 1. Daily Quote */}
@@ -338,68 +531,6 @@ export function HomeScreen() {
           );
         })}
 
-        {/* Translation Picker */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20, marginTop: 4, position: 'relative' }}>
-          <button
-            onClick={() => setShowTransPicker(!showTransPicker)}
-            style={{
-              background: 'var(--dw-accent-bg)',
-              border: '1px solid var(--dw-accent)',
-              borderRadius: 999,
-              padding: '8px 20px',
-              color: 'var(--dw-accent)',
-              fontSize: 13,
-              fontWeight: 500,
-              fontFamily: 'var(--font-sans)',
-              cursor: 'pointer',
-              minHeight: 44,
-            }}
-          >
-            {translation} ▾
-          </button>
-
-          {showTransPicker && (
-            <div style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'var(--dw-surface)',
-              border: '1px solid var(--dw-border)',
-              borderRadius: 12,
-              padding: 8,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 6,
-              marginBottom: 8,
-              zIndex: 10,
-              minWidth: 220,
-              justifyContent: 'center',
-            }}>
-              {TRANSLATIONS.map(t => (
-                <button
-                  key={t}
-                  onClick={(e) => { e.stopPropagation(); handleTranslationChange(t); }}
-                  style={{
-                    background: t === translation ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: t === translation ? '#fff' : 'var(--dw-text-secondary)',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 14px',
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    minHeight: 36,
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* 5. Commentary (if available for today's passage) */}
         {commentaryText && (
           <Card style={{ marginBottom: 16 }}>
@@ -409,6 +540,81 @@ export function HomeScreen() {
             </p>
           </Card>
         )}
+
+        {/* 6. Campus Section */}
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: showCampusPicker ? 14 : 0 }}>
+            <MapPin size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <p className="text-section-header" style={{ marginBottom: 2 }}>YOUR CAMPUS</p>
+              <p style={{
+                color: 'var(--dw-text-primary)',
+                fontSize: 15,
+                fontWeight: 500,
+                fontFamily: 'var(--font-sans)',
+              }}>
+                {currentCampus?.name || 'Select your campus'}
+              </p>
+              {currentCampus?.city && (
+                <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 1 }}>
+                  {currentCampus.city}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setShowCampusPicker(!showCampusPicker)}
+              style={{
+                background: 'var(--dw-accent-bg)',
+                border: '1px solid var(--dw-accent)',
+                borderRadius: 8,
+                padding: '8px 14px',
+                color: 'var(--dw-accent)',
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                minHeight: 36,
+              }}
+            >
+              {currentCampus ? 'Change' : 'Select'}
+            </button>
+          </div>
+
+          {showCampusPicker && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {CAMPUSES.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => handleCampusSelect(c.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: userProfile?.campus === c.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: userProfile?.campus === c.id ? '#fff' : 'var(--dw-text-primary)',
+                    border: 'none',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    minHeight: 48,
+                    transition: 'background var(--transition-fast)',
+                  }}
+                >
+                  <MapPin size={16} style={{ opacity: 0.6, flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 500 }}>{c.name}</p>
+                    <p style={{ fontSize: 11, opacity: 0.7, marginTop: 1 }}>{c.city}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Card>
 
         {/* Bottom spacing */}
         <div style={{ height: 24 }} />

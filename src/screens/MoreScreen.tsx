@@ -3,11 +3,15 @@ import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
+import { CAMPUSES } from '../data/tokens';
+import type { TranslationCode } from '../utils/api';
 
 import {
   User, Globe, Bell, Type, Book, Info, Shield, Mail,
-  ChevronRight, Download, Languages, Church
+  ChevronRight, Download, Languages, Church, MapPin
 } from 'lucide-react';
+
+const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
 interface SettingsRow {
   icon: typeof User;
@@ -17,12 +21,14 @@ interface SettingsRow {
 }
 
 export function MoreScreen() {
-  const { userProfile, profilePic, requireEmail, setup } = useUser();
+  const { userProfile, profilePic, requireEmail, setup, saveProfile } = useUser();
   const [pushState, setPushState] = useState<'idle' | 'loading'>(
     'idle'
   );
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [downloadingKJV, setDownloadingKJV] = useState(false);
+  const [showTransPicker, setShowTransPicker] = useState(false);
+  const [showCampusPicker, setShowCampusPicker] = useState(false);
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -104,14 +110,33 @@ export function MoreScreen() {
     window.location.reload();
   };
 
+  const cycleTranslation = () => {
+    setShowTransPicker(prev => !prev);
+  };
+
+  const handleTranslationSelect = (t: TranslationCode) => {
+    localStorage.setItem('dw_translation', t);
+    setShowTransPicker(false);
+    window.location.reload();
+  };
+
+  const handleCampusSelect = (campusId: string) => {
+    if (userProfile) {
+      saveProfile({ ...userProfile, campus: campusId });
+    } else {
+      requireEmail();
+    }
+    setShowCampusPicker(false);
+  };
+
   const profileRows: SettingsRow[] = [
     { icon: User, label: 'Profile', value: displayName, action: () => requireEmail() },
-    { icon: Church, label: 'Campus', value: campusName },
+    { icon: Church, label: 'Campus', value: campusName, action: () => setShowCampusPicker(prev => !prev) },
     { icon: Mail, label: 'Email', value: userProfile?.email || 'Not set', action: () => requireEmail() },
   ];
 
   const preferenceRows: SettingsRow[] = [
-    { icon: Globe, label: 'Translation', value: translation },
+    { icon: Globe, label: 'Translation', value: translation, action: cycleTranslation },
     { icon: Type, label: 'Font Size', value: fontLabel, action: cycleFontSize },
     { icon: Languages, label: 'Language', value: langLabel, action: cycleLang },
     {
@@ -133,7 +158,7 @@ export function MoreScreen() {
   ];
 
   const aboutRows: SettingsRow[] = [
-    { icon: Info, label: 'About Daily Word' },
+    { icon: Info, label: 'About Daily Word', value: 'v2.0' },
     { icon: Shield, label: 'Privacy Policy' },
   ];
 
@@ -234,7 +259,62 @@ export function MoreScreen() {
         </div>
 
         <SettingsSection title="PROFILE" rows={profileRows} />
+
+        {/* Campus Picker (expanded) */}
+        {showCampusPicker && (
+          <Card style={{ marginBottom: 16, padding: 12 }}>
+            <p className="text-section-header" style={{ marginBottom: 10 }}>SELECT CAMPUS</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {CAMPUSES.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => handleCampusSelect(c.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    width: '100%', padding: '12px 14px',
+                    background: userProfile?.campus === c.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: userProfile?.campus === c.id ? '#fff' : 'var(--dw-text-primary)',
+                    border: 'none', borderRadius: 10, cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 500,
+                    textAlign: 'left', minHeight: 48,
+                  }}
+                >
+                  <MapPin size={16} style={{ opacity: 0.6, flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 500 }}>{c.name}</p>
+                    <p style={{ fontSize: 11, opacity: 0.7, marginTop: 1 }}>{c.city}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
+
         <SettingsSection title="PREFERENCES" rows={preferenceRows} />
+
+        {/* Translation Picker (expanded) */}
+        {showTransPicker && (
+          <Card style={{ marginBottom: 16, padding: 12 }}>
+            <p className="text-section-header" style={{ marginBottom: 10 }}>SELECT TRANSLATION</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {TRANSLATIONS.map(t => (
+                <button
+                  key={t}
+                  onClick={() => handleTranslationSelect(t)}
+                  style={{
+                    background: t === translation ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: t === translation ? '#fff' : 'var(--dw-text-secondary)',
+                    border: 'none', borderRadius: 10,
+                    padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 40,
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
         <SettingsSection title="CONTENT" rows={contentRows} />
         <SettingsSection title="ABOUT" rows={aboutRows} />
 
