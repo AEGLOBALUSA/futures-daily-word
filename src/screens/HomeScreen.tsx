@@ -18,6 +18,20 @@ import { SetupPromptModal } from '../components/SetupPromptModal';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
+/** Calendar-based plan day — advances automatically each day regardless of completion */
+function calcPlanDay(startedAt: string, totalDays: number): number {
+  try {
+    const start = new Date(startedAt);
+    start.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const elapsed = Math.floor((today.getTime() - start.getTime()) / 86400000);
+    return Math.max(1, Math.min(elapsed + 1, totalDays));
+  } catch {
+    return 1;
+  }
+}
+
 const PERSONAS = [
   { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
   { id: 'pastor', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
@@ -347,7 +361,7 @@ export function HomeScreen() {
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
-        const dn = Math.max(1, Math.min((prog.lastDay || 0) + 1, plan.totalDays));
+        const dn = calcPlanDay(prog.startedAt, plan.totalDays);
         const dp = plan.passages[dn - 1];
         if (!dp) continue;
         dp.split(', ').forEach(p => loadPassage(p.trim()));
@@ -503,7 +517,7 @@ export function HomeScreen() {
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
-        const dn = Math.max(1, Math.min((prog.lastDay || 0) + 1, plan.totalDays));
+        const dn = calcPlanDay(prog.startedAt, plan.totalDays);
         const dp = plan.passages[dn - 1];
         if (dp) dp.split(', ').forEach(p => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn }));
       }
@@ -542,6 +556,84 @@ export function HomeScreen() {
           </div>
           <ThemeToggle />
         </div>
+
+        {/* ── Hero Listen Button ── */}
+        {(todaysPlanPassages.length > 0 || readingSlots.length > 0) && (() => {
+          const firstPlan = todaysPlanPassages[0];
+          const firstSlot = readingSlots[0];
+          const heroPassage = firstPlan
+            ? firstPlan.passage
+            : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : null;
+          if (!heroPassage) return null;
+
+          const allLabels = [
+            ...todaysPlanPassages.map(p => p.passage),
+            ...readingSlots
+              .slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length))
+              .map(s => `${s.book} ${s.currentChapter}`),
+          ];
+          const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
+          const isPlayingHero = audioPlaying && audioCurrentPassage === heroPassage;
+          const isLoadingHero = audioLoading && audioCurrentPassage === heroPassage;
+
+          return (
+            <button
+              key="hero-listen"
+              onClick={() => handleListen(heroPassage)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                background: isPlayingHero ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
+                border: 'none',
+                borderRadius: 14,
+                padding: '16px 18px',
+                cursor: 'pointer',
+                color: '#fff',
+                fontFamily: 'var(--font-sans)',
+                textAlign: 'left',
+                marginBottom: 16,
+                transition: 'background 0.2s ease',
+              }}
+            >
+              <div style={{
+                width: 46, height: 46, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.18)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {isLoadingHero
+                  ? <Loader2 size={22} style={{ animation: 'spin 1s linear infinite' }} />
+                  : isPlayingHero
+                  ? <Pause size={22} />
+                  : <Headphones size={22} />
+                }
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {planLabel && (
+                  <p style={{
+                    fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                    textTransform: 'uppercase', opacity: 0.75,
+                    margin: '0 0 3px', fontFamily: 'var(--font-sans)',
+                  }}>
+                    {planLabel}
+                  </p>
+                )}
+                <p style={{ fontSize: 15, fontWeight: 700, margin: 0, fontFamily: 'var(--font-sans)' }}>
+                  {isLoadingHero ? 'Loading audio…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
+                </p>
+                <p style={{
+                  fontSize: 13, opacity: 0.82, margin: '3px 0 0',
+                  fontFamily: 'var(--font-sans)',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  {allLabels.join(' · ')}
+                </p>
+              </div>
+            </button>
+          );
+        })()}
 
         {/* Persona Greeting */}
         <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
