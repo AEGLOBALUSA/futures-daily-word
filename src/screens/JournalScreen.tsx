@@ -422,14 +422,24 @@ function ModalSelectionBar({
   const [selectedText, setSelectedText] = useState('');
   const [copied, setCopied] = useState(false);
   const [listening, setListening] = useState(false);
+  const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     function onSelectionChange() {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-        setSelectedText('');
+        // Debounce the clear — mobile fires spurious empty-selection events
+        if (clearTimer.current) clearTimeout(clearTimer.current);
+        clearTimer.current = setTimeout(() => {
+          const recheck = window.getSelection();
+          if (!recheck || recheck.isCollapsed || !recheck.toString().trim()) {
+            setSelectedText('');
+          }
+        }, 600);
         return;
       }
+      // Selection is non-empty — cancel any pending clear
+      if (clearTimer.current) { clearTimeout(clearTimer.current); clearTimer.current = null; }
       // Only show toolbar if selection is inside our modal container
       const range = sel.getRangeAt(0);
       if (containerRef.current && containerRef.current.contains(range.commonAncestorContainer)) {
@@ -439,7 +449,10 @@ function ModalSelectionBar({
       }
     }
     document.addEventListener('selectionchange', onSelectionChange);
-    return () => document.removeEventListener('selectionchange', onSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', onSelectionChange);
+      if (clearTimer.current) clearTimeout(clearTimer.current);
+    };
   }, [containerRef]);
 
   if (!selectedText) return null;
