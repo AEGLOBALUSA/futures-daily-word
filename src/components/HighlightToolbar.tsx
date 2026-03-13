@@ -145,12 +145,12 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
             position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', gap: 3, padding: '8px 16px',
-            background: 'linear-gradient(135deg, #312E81 0%, #4338CA 20%, #6D28D9 45%, #5B21B6 65%, #4338CA 85%, #312E81 100%)',
+            background: 'linear-gradient(135deg, #831843 0%, #9D174D 20%, #BE185D 45%, #DB2777 65%, #BE185D 85%, #9D174D 100%)',
             backgroundSize: '250% 250%',
             animation: 'aiAurora 5s ease infinite',
             color: 'rgba(255,255,255,0.95)',
             border: 'none', cursor: 'pointer', minWidth: 62,
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
           }}
         >
           {/* Single fine light beam — infrequent, fast, subtle */}
