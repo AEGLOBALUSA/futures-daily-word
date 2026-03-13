@@ -66,7 +66,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
       animation: 'slideUp 0.2s ease',
     }}>
       <div style={{
-        background: 'var(--dw-card)', borderRadius: 16,
+        background: 'var(--dw-surface)', borderRadius: 16,
         boxShadow: '0 4px 24px rgba(0,0,0,0.22)',
         border: '1px solid var(--dw-border)',
         display: 'flex', overflow: 'hidden',
