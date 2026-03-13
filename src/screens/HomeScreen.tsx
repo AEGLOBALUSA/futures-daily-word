@@ -918,45 +918,72 @@ export function HomeScreen() {
               Futures Church
             </p>
           </div>
-          {/* Streak display */}
+          {/* Streak display — infinite cycling ring */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {streakCount > 0 && (
-              <div
-                onClick={() => streakCount >= 7 && setShowMilestone(streakCount)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  background: streakCount >= 7
-                    ? 'linear-gradient(135deg, #D95E00 0%, #FF8C00 60%, #FFAA33 100%)'
-                    : 'linear-gradient(135deg, #8B6914 0%, #C49A3C 100%)',
-                  borderRadius: 999,
-                  padding: '5px 11px 5px 7px',
-                  cursor: streakCount >= 7 ? 'pointer' : 'default',
-                  animation: streakCount >= 7 ? 'streakGlow 2.4s ease-in-out infinite' : 'none',
-                  transition: 'transform 0.15s ease',
-                }}
-                onPointerDown={e => streakCount >= 7 && (e.currentTarget.style.transform = 'scale(0.93)')}
-                onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-              >
-                <span style={{
-                  fontSize: 18, lineHeight: 1, display: 'block',
-                  animation: streakCount >= 7 ? 'streakFireWiggle 1.8s ease-in-out infinite' : 'none',
-                }}>🔥</span>
-                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1, gap: 1 }}>
-                  <span style={{
-                    fontSize: 15, fontWeight: 800, color: '#fff',
-                    fontFamily: 'var(--font-sans)', letterSpacing: '-0.02em',
+            {streakCount > 0 && (() => {
+              const cycle = 7;
+              const fillRatio = streakCount % cycle === 0 ? 1 : (streakCount % cycle) / cycle;
+              const r = 17;
+              const circ = 2 * Math.PI * r;
+              const offset = circ * (1 - fillRatio);
+              const isMilestone = streakCount >= 7;
+              const ringColor = isMilestone ? '#FF8C00' : '#C49A3C';
+              const glowFilter = isMilestone ? 'drop-shadow(0 0 5px rgba(255,140,0,0.75))' : 'none';
+              return (
+                <div
+                  onClick={() => isMilestone && setShowMilestone(streakCount)}
+                  style={{
+                    position: 'relative', width: 46, height: 46,
+                    cursor: isMilestone ? 'pointer' : 'default',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                    animation: isMilestone ? 'streakGlow 2.4s ease-in-out infinite' : 'none',
+                    borderRadius: '50%',
+                  }}
+                  onPointerDown={e => isMilestone && (e.currentTarget.style.transform = 'scale(0.9)')}
+                  onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  {/* SVG ring */}
+                  <svg
+                    width={46} height={46}
+                    style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}
+                    viewBox="0 0 46 46"
+                  >
+                    {/* track */}
+                    <circle cx={23} cy={23} r={r} fill="none"
+                      stroke="rgba(180,140,40,0.18)" strokeWidth={3.5} />
+                    {/* fill arc */}
+                    <circle cx={23} cy={23} r={r} fill="none"
+                      stroke={ringColor}
+                      strokeWidth={3.5}
+                      strokeLinecap="round"
+                      strokeDasharray={circ}
+                      strokeDashoffset={offset}
+                      style={{
+                        transition: 'stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1)',
+                        filter: glowFilter,
+                      }}
+                    />
+                  </svg>
+                  {/* Center */}
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    justifyContent: 'center', lineHeight: 1, gap: 1,
+                    position: 'relative',
                   }}>
-                    {streakCount}
-                  </span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.82)',
-                    fontFamily: 'var(--font-sans)', letterSpacing: '0.06em', textTransform: 'uppercase',
-                  }}>
-                    {streakCount === 1 ? 'day' : 'days'}
-                  </span>
+                    <span style={{ fontSize: 12, lineHeight: 1 }}>🔥</span>
+                    <span style={{
+                      fontSize: streakCount >= 100 ? 10 : streakCount >= 10 ? 11 : 13,
+                      fontWeight: 800, lineHeight: 1,
+                      color: isMilestone ? '#FF8C00' : 'var(--dw-accent)',
+                      fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em',
+                    }}>
+                      {streakCount}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             <ThemeToggle />
           </div>
         </div>
