@@ -121,20 +121,18 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
 
 /**
  * Fetch audio for a passage.
- * ESV translation → ESV.org native audio (passage reference needed).
- * All other translations → ElevenLabs TTS with the actual scripture text.
+ * Priority: ESV.org native audio → ElevenLabs AI voice → AWS Polly neural voice
  */
 export async function fetchAudio(text: string, translation: TranslationCode, passageRef?: string): Promise<string | null> {
+  // ── 1. ESV native human-read audio ──
   try {
-    // ESV has native human-read audio — use the passage reference
     if (translation === 'ESV' && passageRef) {
-      // Try the combined ref first
       const res = await fetch(`/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
       if (res.ok) {
         const blob = await res.blob();
         if (blob.size > 1000) return URL.createObjectURL(blob);
       }
-      // If combined ref failed or returned tiny response, try first individual ref
+      // Try first individual ref if combined failed
       const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
       if (refs.length > 1) {
         const singleRes = await fetch(`/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
@@ -144,9 +142,12 @@ export async function fetchAudio(text: string, translation: TranslationCode, pas
         }
       }
     }
+  } catch { /* continue to TTS */ }
 
-    // All translations → ElevenLabs AI voice
-    if (!text) return null;
+  if (!text) return null;
+
+  // ── 2. ElevenLabs AI voice (primary TTS) ──
+  try {
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -156,9 +157,23 @@ export async function fetchAudio(text: string, translation: TranslationCode, pas
       const blob = await res.blob();
       if (blob.size > 500) return URL.createObjectURL(blob);
     }
-  } catch {
-    // Audio not available
-  }
+  } catch { /* continue to Polly */ }
+
+  // ── 3. AWS Polly neural voice (fallback) ──
+  try {
+    const lang = localStorage.getItem('dw_lang') || 'en';
+    const voiceId = lang === 'es' ? 'Lucia' : lang === 'pt' ? 'Camila' : lang === 'id' ? 'Andika' : 'Matthew';
+    const res = await fetch('/api/polly-tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.slice(0, 20000), voiceId, engine: 'neural' }),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 500) return URL.createObjectURL(blob);
+    }
+  } catch { /* no audio available */ }
+
   return null;
 }
 
