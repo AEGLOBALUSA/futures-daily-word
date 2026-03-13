@@ -335,7 +335,7 @@ export function MoreScreen() {
           </p>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-           IZES.map(fs => (
+              {FONT_SIZES.map(fs => (
                 <button
                   key={fs.value}
                   onClick={() => handleFontSelect(fs.value)}
