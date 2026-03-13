@@ -115,32 +115,57 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
 
   return (
     <>
-      {/* Floating trigger button */}
+      {/* Floating trigger button — burnished gold rectangle */}
       <button
         onClick={onOpen ?? onClose}
         aria-label="Bible AI"
         style={{
           position: 'fixed',
-          bottom: 80,
+          bottom: 84,
           right: 16,
-          width: 52,
-          height: 52,
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)',
-          boxShadow: '0 4px 20px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.25)',
-          border: 'none',
+          height: 44,
+          padding: '0 16px',
+          borderRadius: 11,
+          background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
+          backgroundSize: '200% 200%',
+          animation: 'aiAurora 4s ease infinite',
+          border: '1px solid rgba(245,207,85,0.55)',
+          boxShadow: '0 3px 18px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.22)',
           display: isOpen ? 'none' : 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 6,
           cursor: 'pointer',
           zIndex: 90,
-          transition: 'transform 0.15s ease',
+          overflow: 'hidden',
         }}
-        onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+        onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.93)')}
         onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        <BibleAIBadge size="sm" />
+        {/* glass highlight */}
+        <span style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '46%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
+          borderRadius: '11px 11px 0 0', pointerEvents: 'none',
+        }} />
+        {/* shimmer */}
+        <span style={{
+          position: 'absolute', top: 0, bottom: 0, width: '55%',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.26) 50%, transparent 100%)',
+          animation: 'aiBeam 3s ease-in-out infinite', pointerEvents: 'none',
+        }} />
+        <span style={{
+          fontSize: 11, fontWeight: 900, color: '#fff',
+          fontFamily: 'var(--font-sans)', letterSpacing: '0.14em',
+          textTransform: 'uppercase', position: 'relative',
+          textShadow: '0 1px 3px rgba(80,40,0,0.6)',
+        }}>Bible AI</span>
       </button>
+
+      <style>{`
+        @keyframes aiAurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes aiBeam { 0% { left: -60%; opacity: 0; } 8% { opacity: 1; } 40% { left: 160%; opacity: 0; } 100% { left: 160%; opacity: 0; } }
+      `}</style>
 
       {/* Panel backdrop */}
       {isOpen && (
@@ -183,22 +208,33 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           borderBottom: '1px solid var(--dw-border, #E8E6E0)',
           flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Gold badge icon */}
             <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
+              width: 34, height: 34, borderRadius: 9, flexShrink: 0,
               background: 'linear-gradient(145deg, #4D2E00, #C8920E, #F5C842)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(140,95,5,0.45)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(140,95,5,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', position: 'relative',
             }}>
+              <span style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%)',
+                borderRadius: '9px 9px 0 0',
+              }} />
               <BibleAIBadge size="sm" />
             </div>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)' }}>
-              Bible AI
-            </span>
+            <div>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)', display: 'block', lineHeight: 1.2 }}>
+                Bible AI
+              </span>
+              <span style={{
+                fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.03em', display: 'block', marginTop: 1,
+              }}>
+                Powered by Claude · Anthropic
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
