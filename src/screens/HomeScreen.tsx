@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Share2, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, BookOpen, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, BookOpen, Plus, X } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -362,21 +362,6 @@ export function HomeScreen() {
       setAudioCurrentPassage(null);
     } finally {
       setAudioLoading(false);
-    }
-  };
-
-  const handleShare = async (passage: string) => {
-    const textKey = `${passage}_${translation}`;
-    const text = passageTexts[textKey];
-    const shareText = text
-      ? `${passage} (${translation})\n\n${text.slice(0, 500)}\n\nÃ¢ÂÂ Futures Daily Word`
-      : `${passage} Ã¢ÂÂ Futures Daily Word`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: passage, text: shareText });
-      } catch { /* User cancelled */ }
-    } else {
-      await navigator.clipboard.writeText(shareText);
     }
   };
 
