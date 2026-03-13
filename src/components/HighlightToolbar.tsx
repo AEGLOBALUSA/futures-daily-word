@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Share2, BookOpen, Languages, Binoculars, X, Check, Volume2 } from 'lucide-react';
+import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2 } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 
 interface HighlightToolbarProps {
@@ -95,21 +95,16 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
   return (
     <>
     <style>{`
-      @keyframes aiGlow {
-        0%, 100% {
-          box-shadow: 0 0 8px 2px rgba(255,179,0,0.45), inset 0 0 12px rgba(255,210,80,0.15);
-          background: linear-gradient(135deg, #C8860A 0%, #E8A820 40%, #F5C842 60%, #E8A820 100%);
-        }
-        50% {
-          box-shadow: 0 0 18px 6px rgba(255,179,0,0.7), inset 0 0 20px rgba(255,220,100,0.25);
-          background: linear-gradient(135deg, #E8A820 0%, #F5C842 35%, #FFD966 55%, #F5C842 75%, #E8A820 100%);
-        }
+      @keyframes aiAurora {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
-      @keyframes aiShimmer {
-        0%   { left: -80%; opacity: 0; }
-        10%  { opacity: 1; }
-        80%  { opacity: 1; }
-        100% { left: 160%; opacity: 0; }
+      @keyframes aiBeam {
+        0%        { left: -30%; opacity: 0; }
+        4%        { opacity: 1; }
+        22%       { left: 130%; opacity: 0; }
+        100%      { left: 130%; opacity: 0; }
       }
       @keyframes slideUp {
         from { opacity: 0; transform: translateY(12px); }
@@ -143,29 +138,30 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           greekHebrewMode
         )}
 
-        {/* ── AI / Go Deeper button — glowing amber shimmer ── */}
+        {/* ── AI / Ask AI button — deep indigo aurora ── */}
         <button
           onClick={onGoDeeper}
           style={{
             position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', gap: 3, padding: '8px 16px',
-            background: 'linear-gradient(135deg, #C8860A 0%, #E8A820 40%, #F5C842 60%, #E8A820 100%)',
-            color: '#fff',
+            background: 'linear-gradient(135deg, #312E81 0%, #4338CA 20%, #6D28D9 45%, #5B21B6 65%, #4338CA 85%, #312E81 100%)',
+            backgroundSize: '250% 250%',
+            animation: 'aiAurora 5s ease infinite',
+            color: 'rgba(255,255,255,0.95)',
             border: 'none', cursor: 'pointer', minWidth: 62,
-            animation: 'aiGlow 2.8s ease-in-out infinite',
-            textShadow: '0 1px 3px rgba(0,0,0,0.35)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
           }}
         >
-          {/* Shimmer sweep */}
+          {/* Single fine light beam — infrequent, fast, subtle */}
           <span style={{
-            position: 'absolute', top: '-50%', bottom: '-50%', width: '45%',
-            background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.32) 50%, rgba(255,255,255,0.18) 55%, transparent 100%)',
-            animation: 'aiShimmer 2.2s ease-in-out infinite',
+            position: 'absolute', top: 0, bottom: 0, width: '22%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.13) 50%, transparent 100%)',
+            animation: 'aiBeam 4.5s ease-in-out infinite',
             pointerEvents: 'none',
           }} />
-          <Binoculars size={16} />
-          <span style={{ fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: 0.5, position: 'relative' }}>AI</span>
+          <Sparkles size={15} strokeWidth={1.8} style={{ position: 'relative' }} />
+          <span style={{ fontSize: 9, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: 0.6, position: 'relative', opacity: 0.9 }}>Ask AI</span>
         </button>
 
         <button
