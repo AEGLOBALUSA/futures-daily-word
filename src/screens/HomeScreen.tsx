@@ -662,10 +662,12 @@ export function HomeScreen() {
                 border: '1px solid rgba(255,255,255,0.13)',
               }}
             >
-              {/* ── Layer 1: rich crimson-to-dark gradient ── */}
+              {/* ── Layer 1: animated wave gradient ── */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(150deg, #C03840 0%, #6B1A22 42%, #1C0508 100%)',
+                background: 'linear-gradient(150deg, #E04858 0%, #C03840 20%, #6B1A22 50%, #1C0508 75%, #8B2030 90%, #C03840 100%)',
+                backgroundSize: '280% 280%',
+                animation: 'heroColorWave 7s ease infinite',
               }} />
 
               {/* ── Layer 2: glass sheen ── */}
@@ -673,6 +675,18 @@ export function HomeScreen() {
                 position: 'absolute', inset: 0,
                 background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.12) 100%)',
               }} />
+
+              {/* ── Layer 3: rolling shimmer sweep ── */}
+              <div style={{
+                position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 24,
+              }}>
+                <div style={{
+                  position: 'absolute', top: '-50%', bottom: '-50%', width: '40%',
+                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.07) 60%, transparent 100%)',
+                  animation: 'heroShimmerSweep 4s ease-in-out infinite',
+                  animationDelay: '1.2s',
+                }} />
+              </div>
 
               {/* ── Content ── */}
               <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
@@ -706,12 +720,16 @@ export function HomeScreen() {
                     onClick={() => handleListen(heroPassage)}
                     style={{
                       width: 78, height: 78, borderRadius: '50%',
-                      background: 'rgba(255,255,255,0.16)',
-                      border: '2px solid rgba(255,255,255,0.3)',
+                      background: isPlayingHero
+                        ? 'rgba(255,255,255,0.22)'
+                        : 'rgba(255,255,255,0.16)',
+                      border: '2px solid rgba(255,255,255,0.35)',
                       boxShadow: isPlayingHero
                         ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
                         : '0 10px 32px rgba(0,0,0,0.35)',
-                      animation: isPlayingHero ? 'heroRingPulse 2.2s ease-in-out infinite' : 'none',
+                      animation: isPlayingHero
+                        ? 'heroRingPulse 2.2s ease-in-out infinite'
+                        : 'heroIdlePulse 3.5s ease-in-out infinite',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', color: '#fff',
                       transition: 'box-shadow 0.4s ease, background 0.2s ease',
@@ -1678,9 +1696,40 @@ export function HomeScreen() {
         <div style={{ height: 24 }} />
       </div>
 
-      {/* Spinner keyframe */}
+      {/* Animations */}
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Hero card: slow colour wave rolling through gradient stops */
+        @keyframes heroColorWave {
+          0%   { background-position: 0% 30%; }
+          25%  { background-position: 60% 70%; }
+          50%  { background-position: 100% 40%; }
+          75%  { background-position: 40% 80%; }
+          100% { background-position: 0% 30%; }
+        }
+
+        /* Shimmer light sweeping left→right across the card */
+        @keyframes heroShimmerSweep {
+          0%   { left: -45%; opacity: 0; }
+          10%  { opacity: 1; }
+          85%  { opacity: 1; }
+          100% { left: 120%; opacity: 0; }
+        }
+
+        /* Play button idle: subtle border + shadow pulse */
+        @keyframes heroIdlePulse {
+          0%, 100% {
+            box-shadow: 0 10px 32px rgba(0,0,0,0.35), 0 0 0 0px rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.3);
+          }
+          50% {
+            box-shadow: 0 10px 36px rgba(0,0,0,0.4), 0 0 0 8px rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.55);
+          }
+        }
+
+        /* Play button active: bigger ring pulse */
         @keyframes heroRingPulse {
           0%, 100% { box-shadow: 0 0 0 10px rgba(255,255,255,0.07), 0 0 0 22px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4); }
           50% { box-shadow: 0 0 0 16px rgba(255,255,255,0.1), 0 0 0 30px rgba(255,255,255,0.04), 0 10px 32px rgba(0,0,0,0.4); }
