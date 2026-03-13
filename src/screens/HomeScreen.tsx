@@ -10,7 +10,6 @@ import { QUOTES } from '../data/quotes';
 import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
 import { useUser } from '../contexts/UserContext';
-import { ScriptureBlock } from '../components/ScriptureBlock';
 import { HighlightToolbar } from '../components/HighlightToolbar';
 import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
