@@ -560,6 +560,23 @@ function ModalSelectionBar({
   );
 }
 
+/* ── Reflection questions ── */
+function getReflectionQuestions(title: string, isBookChapter?: boolean): string[] {
+  // Derive a topic-anchored opening question from the title
+  const topic = title.replace(/^(Day \d+:|Chapter \d+:)\s*/i, '').replace(/["'"]/g, '').trim();
+  const short = topic.length > 60 ? topic.slice(0, 57) + '…' : topic;
+
+  const q1 = isBookChapter
+    ? `Which sentence from "${short}" are you still thinking about — and what does it stir in you?`
+    : `What one line from today's devotional about "${short}" hit you hardest, and why?`;
+
+  const q2 = `Where in your life right now does this truth most need to land? Be specific — what situation, relationship, or season are you bringing this into?`;
+
+  const q3 = `What's one concrete thing you'll do differently this week because of what you just read? Not a feeling — an action.`;
+
+  return [q1, q2, q3];
+}
+
 /* ── Scripture Study Modal ── */
 function ScriptureModal({
   passage,
@@ -783,6 +800,81 @@ function ScriptureModal({
               </div>
             </div>
           )}
+
+          {/* SECTION 1b: Reflection questions — shown whenever there's devotional content */}
+          {devotional && (() => {
+            const questions = getReflectionQuestions(devotional.title, isBookChapter);
+            return (
+              <div style={{ margin: '14px 18px 0' }}>
+                <div style={{
+                  borderRadius: 16,
+                  background: 'var(--dw-card)',
+                  border: '1px solid var(--dw-border)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '12px 18px 10px', borderBottom: '1px solid var(--dw-border)' }}>
+                    <p style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                      color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0,
+                    }}>
+                      Reflect &amp; Respond
+                    </p>
+                  </div>
+                  <div style={{ padding: '4px 0 8px' }}>
+                    {questions.map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleNoteSelected(`Q${i + 1}: ${q}`)}
+                        style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 14,
+                          width: '100%', textAlign: 'left',
+                          padding: '13px 18px',
+                          background: 'transparent', border: 'none', cursor: 'pointer',
+                          borderBottom: i < questions.length - 1 ? '1px solid var(--dw-border)' : 'none',
+                          transition: 'background 0.13s',
+                        }}
+                        onPointerDown={e => (e.currentTarget.style.background = 'var(--dw-surface)')}
+                        onPointerUp={e => (e.currentTarget.style.background = 'transparent')}
+                        onPointerLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        {/* Number badge */}
+                        <span style={{
+                          flexShrink: 0,
+                          width: 24, height: 24, borderRadius: '50%',
+                          background: authorColor(devotional.author) + '20',
+                          color: authorColor(devotional.author),
+                          fontSize: 11, fontWeight: 800,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontFamily: 'var(--font-sans)',
+                          marginTop: 1,
+                        }}>
+                          {i + 1}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{
+                            fontSize: 14, lineHeight: 1.6,
+                            fontFamily: 'var(--font-serif)',
+                            color: 'var(--dw-text-primary)',
+                            margin: '0 0 5px', fontWeight: 400,
+                          }}>
+                            {q}
+                          </p>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+                            color: authorColor(devotional.author),
+                            fontFamily: 'var(--font-sans)',
+                            textTransform: 'uppercase',
+                          }}>
+                            Tap to answer in notes →
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* SECTION 2: Scripture passage — hidden for book chapters */}
           {!isBookChapter && <div style={{ margin: '20px 18px 0' }}>
