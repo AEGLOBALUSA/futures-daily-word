@@ -33,6 +33,24 @@ interface PlanProgress {
   lastDay: number;
 }
 
+interface BookPlan {
+  jsonFile: string;
+  title: string;
+  author: string;
+  currentChapter: number;
+  totalChapters: number;
+  startedAt: string;
+}
+
+function getBookPlans(): Record<string, BookPlan> {
+  try { return JSON.parse(localStorage.getItem('dw_book_plans') || '{}'); }
+  catch { return {}; }
+}
+
+function saveBookToday(bookId: string, data: { title: string; paragraphs: string[]; chapterIndex: number; bookTitle: string; bookAuthor: string }) {
+  try { localStorage.setItem(`dw_book_today_${bookId}`, JSON.stringify(data)); } catch {}
+}
+
 function getActivePlans(): Record<string, PlanProgress> {
   try {
     return JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
@@ -80,6 +98,52 @@ export function PlansScreen() {
   const [streak, setStreak] = useState(getStreak);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [selectedToStart, setSelectedToStart] = useState<string[]>([]);
+
+  // Book plan state
+  const [bookPlans, setBookPlans] = useState<Record<string, BookPlan>>(getBookPlans);
+  const [startingBook, setStartingBook] = useState<string | null>(null);
+
+  const startBookPlan = async (book: Book) => {
+    if (!book.jsonFile) return;
+    setStartingBook(book.id);
+    try {
+      const resp = await fetch(book.jsonFile);
+      const data = await resp.json();
+      const chapters = data.chapters as Array<{ title: string; paragraphs: string[] }>;
+      const plan: BookPlan = {
+        jsonFile: book.jsonFile,
+        title: book.title,
+        author: book.author,
+        currentChapter: 0,
+        totalChapters: chapters.length,
+        startedAt: new Date().toISOString(),
+      };
+      const updated = { ...getBookPlans(), [book.id]: plan };
+      localStorage.setItem('dw_book_plans', JSON.stringify(updated));
+      saveBookToday(book.id, { title: chapters[0].title, paragraphs: chapters[0].paragraphs, chapterIndex: 0, bookTitle: book.title, bookAuthor: book.author });
+      setBookPlans(updated);
+    } catch {}
+    setStartingBook(null);
+  };
+
+  const advanceBookChapter = async (bookId: string) => {
+    const plans = getBookPlans();
+    const plan = plans[bookId];
+    if (!plan) return;
+    const nextChapter = plan.currentChapter + 1;
+    if (nextChapter >= plan.totalChapters) return;
+    try {
+      const resp = await fetch(plan.jsonFile);
+      const data = await resp.json();
+      const chapters = data.chapters as Array<{ title: string; paragraphs: string[] }>;
+      const ch = chapters[nextChapter];
+      plan.currentChapter = nextChapter;
+      plans[bookId] = plan;
+      localStorage.setItem('dw_book_plans', JSON.stringify(plans));
+      saveBookToday(bookId, { title: ch.title, paragraphs: ch.paragraphs, chapterIndex: nextChapter, bookTitle: plan.title, bookAuthor: plan.author });
+      setBookPlans({ ...plans });
+    } catch {}
+  };
 
   // Book reader state — must be at top level (Rules of Hooks)
   const [activeBook, setActiveBook] = useState<string | null>(null);
@@ -492,29 +556,78 @@ export function PlansScreen() {
           <div style={{ marginBottom: 24 }}>
             <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS A'S BOOKS</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {BOOKS.map(book => (
-                <Card
-                  key={book.id}
-                  style={{ cursor: book.jsonFile ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
-                  onClick={() => book.jsonFile && setActiveBook(book.jsonFile)}
-                >
-                  <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', marginBottom: 4 }}>{book.title}</p>
-                    <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
-                      {book.description}
-                    </p>
+              {BOOKS.map(book => {
+                const bp = bookPlans[book.id];
+                return (
+                  <Card key={book.id} style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}
+                      onClick={() => book.jsonFile && setActiveBook(book.jsonFile)}>
+                      <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', marginBottom: 2 }}>{book.title}</p>
+                        <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
+                          {book.description}
+                        </p>
+                        {bp && (
+                          <p style={{ fontSize: 12, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginTop: 3, fontWeight: 600 }}>
+                            Chapter {bp.currentChapter + 1} of {bp.totalChapters} · in Study Notes
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                    </div>
+                    {/* Reading plan controls */}
                     {book.jsonFile && (
-                      <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
-                        Tap to view →
-                      </p>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        {!bp ? (
+                          <button
+                            onClick={() => startBookPlan(book)}
+                            disabled={startingBook === book.id}
+                            style={{
+                              flex: 1, padding: '9px 14px', borderRadius: 10,
+                              background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
+                              color: '#fff', border: 'none', cursor: 'pointer',
+                              fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
+                              letterSpacing: '0.04em',
+                            }}
+                          >
+                            {startingBook === book.id ? '+ Adding…' : '+ Add to Reading Plan'}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => book.jsonFile && setActiveBook(book.jsonFile)}
+                              style={{
+                                flex: 1, padding: '9px 14px', borderRadius: 10,
+                                background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
+                                border: '1px solid var(--dw-border)', cursor: 'pointer',
+                                fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                              }}
+                            >
+                              Read Chapter
+                            </button>
+                            {bp.currentChapter + 1 < bp.totalChapters && (
+                              <button
+                                onClick={() => advanceBookChapter(book.id)}
+                                style={{
+                                  flex: 1, padding: '9px 14px', borderRadius: 10,
+                                  background: 'var(--dw-surface)', color: 'var(--dw-text-muted)',
+                                  border: '1px solid var(--dw-border)', cursor: 'pointer',
+                                  fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                                }}
+                              >
+                                Next Chapter →
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     )}
-                  </div>
-                  <ChevronRight size={18} style={{ color: book.jsonFile ? 'var(--dw-accent)' : 'var(--dw-text-muted)', flexShrink: 0 }} />
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </div>
 

@@ -362,6 +362,7 @@ interface TodayPassage {
   planTitle: string | null;
   dayNum: number | null;
   devotional?: Devotional;
+  isBookChapter?: boolean;
 }
 
 /** Strip :verse suffix so we always fetch the full chapter for context */
@@ -380,6 +381,28 @@ function getTodaysPassages(): TodayPassage[] {
       ...plan.map(p => ({ ref: p.passage, planTitle: p.planTitle, dayNum: p.dayNum, devotional: p.devotional })),
       ...slots.map(s => ({ ref: `${s.book} ${s.currentChapter}`, planTitle: null, dayNum: null })),
     ];
+
+    // Also include any active book reading plans
+    const bookPlans: Record<string, { title: string; author: string; currentChapter: number; totalChapters: number }> =
+      JSON.parse(localStorage.getItem('dw_book_plans') || '{}');
+    for (const [bookId, bp] of Object.entries(bookPlans)) {
+      try {
+        const today = JSON.parse(localStorage.getItem(`dw_book_today_${bookId}`) || 'null');
+        if (!today) continue;
+        out.push({
+          ref: `book:${bookId}`,
+          planTitle: bp.title,
+          dayNum: bp.currentChapter + 1,
+          isBookChapter: true,
+          devotional: {
+            title: today.title,
+            author: bp.author,
+            body: (today.paragraphs as string[]).join('\n\n'),
+          },
+        });
+      } catch {}
+    }
+
     return out.filter((p, i, arr) => arr.findIndex(x => x.ref === p.ref) === i);
   } catch { return []; }
 }
@@ -543,6 +566,7 @@ function ScriptureModal({
   planTitle,
   dayNum,
   devotional,
+  isBookChapter,
   existingNote,
   onSave,
   onClose,
@@ -551,6 +575,7 @@ function ScriptureModal({
   planTitle: string | null;
   dayNum: number | null;
   devotional?: Devotional;
+  isBookChapter?: boolean;
   existingNote: JournalEntry | undefined;
   onSave: (entry: JournalEntry) => void;
   onClose: () => void;
@@ -571,12 +596,13 @@ function ScriptureModal({
   const scrollBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isBookChapter) { setLoadingText(false); return; }
     setLoadingText(true);
     fetchPassage(chapterRef, translation)
       .then(text => setScriptureText(text))
       .catch(() => setScriptureText(''))
       .finally(() => setLoadingText(false));
-  }, [chapterRef, translation]);
+  }, [chapterRef, translation, isBookChapter]);
 
   function handleSave() {
     if (!draftNote.trim()) return;
@@ -653,21 +679,21 @@ function ScriptureModal({
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
                   color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 3,
                 }}>
-                  {planTitle}{dayNum ? ` · Day ${dayNum}` : ''}
+                  {planTitle}{dayNum ? ` · Chapter ${dayNum}` : ''}
                 </p>
               )}
               <p style={{
                 fontSize: 20, fontWeight: 500, fontFamily: 'var(--font-serif)',
                 color: 'var(--dw-text-primary)', margin: 0, letterSpacing: '-0.01em',
               }}>
-                {chapterRef !== passage ? `${chapterRef}` : passage}
+                {isBookChapter ? (devotional?.title || planTitle || 'Reading') : (chapterRef !== passage ? `${chapterRef}` : passage)}
               </p>
-              {chapterRef !== passage && (
+              {!isBookChapter && chapterRef !== passage && (
                 <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
                   Key verse: {passage} · showing full chapter · {translation}
                 </p>
               )}
-              {chapterRef === passage && (
+              {!isBookChapter && chapterRef === passage && (
                 <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
                   {translation}
                 </p>
@@ -702,12 +728,31 @@ function ScriptureModal({
               overflow: 'hidden',
             }}>
               <div style={{ padding: '16px 18px 0' }}>
-                <p style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-                  color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8,
-                }}>
-                  Today's Devotional
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <p style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0,
+                  }}>
+                    {isBookChapter ? 'Reading' : "Today's Devotional"}
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (!scrollBodyRef.current) return;
+                      const range = document.createRange();
+                      range.selectNodeContents(scrollBodyRef.current);
+                      const sel = window.getSelection();
+                      if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+                    }}
+                    style={{
+                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                      borderRadius: 6, padding: '3px 9px', cursor: 'pointer',
+                      fontSize: 11, fontWeight: 600, color: 'var(--dw-accent)',
+                      fontFamily: 'var(--font-sans)', letterSpacing: '0.03em',
+                    }}
+                  >
+                    Select All
+                  </button>
+                </div>
                 <p style={{
                   fontSize: 19, fontWeight: 500, fontFamily: 'var(--font-serif)',
                   color: 'var(--dw-text-primary)', lineHeight: 1.3, marginBottom: 10,
@@ -739,8 +784,8 @@ function ScriptureModal({
             </div>
           )}
 
-          {/* SECTION 2: Scripture passage */}
-          <div style={{ margin: '20px 18px 0' }}>
+          {/* SECTION 2: Scripture passage — hidden for book chapters */}
+          {!isBookChapter && <div style={{ margin: '20px 18px 0' }}>
             <div style={{
               borderRadius: 16,
               background: 'var(--dw-card)',
@@ -781,7 +826,7 @@ function ScriptureModal({
                 )}
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* SECTION 3: My Notes */}
           <div style={{ margin: '20px 18px 32px' }}>
@@ -924,7 +969,7 @@ function TodayPanel({ allEntries, onSave }: {
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {passages.map(({ ref, planTitle, dayNum, devotional }) => {
+        {passages.map(({ ref, planTitle, dayNum, devotional, isBookChapter }) => {
           const existingNote = getExistingNote(ref);
           const wasSaved = saved.has(ref);
           const authorColor = devotional?.author === 'Ashley' ? '#9A6A08' : devotional?.author === 'Jane' ? '#4A5568' : '#6B5C3E';
@@ -932,7 +977,7 @@ function TodayPanel({ allEntries, onSave }: {
           return (
             <div
               key={ref}
-              onClick={() => setModalPassage({ ref, planTitle, dayNum, devotional })}
+              onClick={() => setModalPassage({ ref, planTitle, dayNum, devotional, isBookChapter })}
               style={{
                 background: 'var(--dw-card)',
                 border: '1px solid var(--dw-border)',
@@ -968,9 +1013,16 @@ function TodayPanel({ allEntries, onSave }: {
                       }}>
                         {devotional.author}
                       </span>
-                      <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                        {ref}
-                      </span>
+                      {!isBookChapter && (
+                        <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                          {ref}
+                        </span>
+                      )}
+                      {isBookChapter && dayNum && (
+                        <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                          Chapter {dayNum}
+                        </span>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -1005,7 +1057,7 @@ function TodayPanel({ allEntries, onSave }: {
                   {wasSaved ? (
                     <><CheckCircle2 size={13} /> Saved</>
                   ) : (
-                    <><PenLine size={13} />{existingNote ? 'Edit note' : devotional ? 'Read devotional & notes' : 'Read & add note'}</>
+                    <><PenLine size={13} />{existingNote ? 'Edit note' : isBookChapter ? 'Read chapter & notes' : devotional ? 'Read devotional & notes' : 'Read & add note'}</>
                   )}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
@@ -1024,6 +1076,7 @@ function TodayPanel({ allEntries, onSave }: {
           planTitle={modalPassage.planTitle}
           dayNum={modalPassage.dayNum}
           devotional={modalPassage.devotional}
+          isBookChapter={modalPassage.isBookChapter}
           existingNote={getExistingNote(modalPassage.ref)}
           onSave={handleSaveFromModal}
           onClose={() => setModalPassage(null)}
