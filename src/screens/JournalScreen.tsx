@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, ChevronDown } from 'lucide-react';
+import { fetchPassage } from '../utils/api';
+import type { TranslationCode } from '../utils/api';
 
 interface JournalEntry {
   id: string;
@@ -373,45 +375,235 @@ function getTodaysPassages(): TodayPassage[] {
   } catch { return []; }
 }
 
+/* ── Scripture Study Modal ── */
+function ScriptureModal({
+  passage,
+  planTitle,
+  dayNum,
+  existingNote,
+  onSave,
+  onClose,
+}: {
+  passage: string;
+  planTitle: string | null;
+  dayNum: number | null;
+  existingNote: JournalEntry | undefined;
+  onSave: (entry: JournalEntry) => void;
+  onClose: () => void;
+}) {
+  const translation: TranslationCode =
+    (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const [scriptureText, setScriptureText] = useState('');
+  const [loadingText, setLoadingText] = useState(true);
+  const [draftNote, setDraftNote] = useState(existingNote?.body || '');
+  const [noteSaved, setNoteSaved] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setLoadingText(true);
+    fetchPassage(passage, translation)
+      .then(text => setScriptureText(text))
+      .catch(() => setScriptureText(''))
+      .finally(() => setLoadingText(false));
+  }, [passage, translation]);
+
+  function handleSave() {
+    if (!draftNote.trim()) return;
+    const entry: JournalEntry = existingNote
+      ? { ...existingNote, body: draftNote }
+      : {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+          date: today,
+          title: passage,
+          body: draftNote,
+          tags: ['study'],
+          type: 'journal',
+          verseRef: passage,
+        };
+    onSave(entry);
+    setNoteSaved(true);
+    setTimeout(() => { setNoteSaved(false); onClose(); }, 1200);
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          zIndex: 200,
+        }}
+      />
+
+      {/* Modal panel */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        height: '90vh',
+        background: 'var(--dw-canvas, #FAFAF8)',
+        borderRadius: '20px 20px 0 0',
+        zIndex: 201,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        boxShadow: '0 -6px 40px rgba(0,0,0,0.22)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '14px 18px 12px',
+          borderBottom: '1px solid var(--dw-border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <div>
+            {planTitle && (
+              <p style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 2,
+              }}>
+                {planTitle}{dayNum ? ` — Day ${dayNum}` : ''}
+              </p>
+            )}
+            <p style={{
+              fontSize: 18, fontWeight: 600,
+              fontFamily: 'var(--font-serif)',
+              color: 'var(--dw-text-primary)',
+              margin: 0,
+            }}>
+              {passage}
+            </p>
+            <p style={{
+              fontSize: 11, color: 'var(--dw-text-muted)',
+              fontFamily: 'var(--font-sans)', marginTop: 2,
+            }}>{translation}</p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--dw-text-muted)' }}
+          >
+            <ChevronDown size={22} />
+          </button>
+        </div>
+
+        {/* Scrollable body: scripture + notes */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Scripture text */}
+          <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--dw-border)' }}>
+            {loadingText ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+                <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                  Loading {passage}…
+                </span>
+              </div>
+            ) : scriptureText ? (
+              <p style={{
+                fontSize: 16, lineHeight: 1.85,
+                fontFamily: 'var(--font-serif)',
+                color: 'var(--dw-text-primary)',
+                margin: 0,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {scriptureText}
+              </p>
+            ) : (
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>
+                Could not load passage text.
+              </p>
+            )}
+          </div>
+
+          {/* Notes area */}
+          <div style={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <p style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 10,
+            }}>
+              MY NOTES
+            </p>
+            <textarea
+              ref={textareaRef}
+              value={draftNote}
+              onChange={e => setDraftNote(e.target.value)}
+              placeholder={`What is God saying to you through ${passage}?`}
+              style={{
+                flex: 1, minHeight: 120,
+                resize: 'none',
+                border: '1px solid var(--dw-border)',
+                borderRadius: 12,
+                padding: '12px 14px',
+                fontSize: 14, lineHeight: 1.65,
+                color: 'var(--dw-text)',
+                fontFamily: 'var(--font-sans)',
+                background: 'var(--dw-card)',
+                outline: 'none',
+                boxSizing: 'border-box',
+                width: '100%',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Save bar */}
+        <div style={{
+          padding: '12px 18px',
+          paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          borderTop: '1px solid var(--dw-border)',
+          background: 'var(--dw-canvas)',
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={handleSave}
+            disabled={!draftNote.trim() || noteSaved}
+            style={{
+              width: '100%',
+              background: noteSaved ? '#4A8C40' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-border)',
+              border: 'none', borderRadius: 14,
+              padding: '15px 20px',
+              color: '#fff',
+              fontSize: 15, fontWeight: 700,
+              fontFamily: 'var(--font-sans)',
+              cursor: draftNote.trim() && !noteSaved ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background 0.2s',
+            }}
+          >
+            {noteSaved ? (
+              <><CheckCircle2 size={17} /> Saved!</>
+            ) : (
+              <><Save size={15} /> Save Note</>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </>
+  );
+}
+
 function TodayPanel({ allEntries, onSave }: {
   allEntries: JournalEntry[];
   onSave: (entry: JournalEntry) => void;
 }) {
   const passages = getTodaysPassages();
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const [openRef, setOpenRef] = useState<string | null>(null);
-  const [draftText, setDraftText] = useState('');
+  const [modalPassage, setModalPassage] = useState<TodayPassage | null>(null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
   function getExistingNote(ref: string): JournalEntry | undefined {
     return allEntries.find(e => e.verseRef === ref && e.date === today);
   }
 
-  function handleOpen(ref: string) {
-    if (openRef === ref) { setOpenRef(null); return; }
-    const existing = getExistingNote(ref);
-    setDraftText(existing?.body || '');
-    setOpenRef(ref);
-  }
-
-  function handleSave(ref: string) {
-    if (!draftText.trim()) return;
-    const existing = getExistingNote(ref);
-    const entry: JournalEntry = existing
-      ? { ...existing, body: draftText }
-      : {
-          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
-          date: today,
-          title: ref,
-          body: draftText,
-          tags: ['study'],
-          type: 'journal',
-          verseRef: ref,
-        };
+  function handleSaveFromModal(entry: JournalEntry) {
     onSave(entry);
-    setSaved(prev => new Set([...prev, ref]));
-    setOpenRef(null);
-    setTimeout(() => setSaved(prev => { const s = new Set(prev); s.delete(ref); return s; }), 2500);
+    setSaved(prev => new Set([...prev, entry.verseRef || entry.title]));
+    setTimeout(() => setSaved(prev => { const s = new Set(prev); s.delete(entry.verseRef || entry.title); return s; }), 3000);
   }
 
   if (passages.length === 0) {
@@ -422,128 +614,99 @@ function TodayPanel({ allEntries, onSave }: {
           No passages scheduled for today
         </p>
         <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-          Add a reading plan or book in the Home tab
+          Add a reading plan in Plans &amp; More
         </p>
       </Card>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {passages.map(({ ref, planTitle, dayNum }) => {
-        const existingNote = getExistingNote(ref);
-        const isOpen = openRef === ref;
-        const wasSaved = saved.has(ref);
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {passages.map(({ ref, planTitle, dayNum }) => {
+          const existingNote = getExistingNote(ref);
+          const wasSaved = saved.has(ref);
 
-        return (
-          <div key={ref} style={{
-            background: 'var(--dw-card)',
-            border: '1px solid var(--dw-border)',
-            borderRadius: 14,
-            overflow: 'hidden',
-          }}>
-            {/* Passage header */}
-            <div style={{ padding: '14px 16px 12px' }}>
-              {planTitle && (
+          return (
+            <div
+              key={ref}
+              onClick={() => setModalPassage({ ref, planTitle, dayNum })}
+              style={{
+                background: 'var(--dw-card)',
+                border: '1px solid var(--dw-border)',
+                borderRadius: 14,
+                overflow: 'hidden',
+                cursor: 'pointer',
+                transition: 'opacity 0.15s',
+              }}
+            >
+              {/* Passage header */}
+              <div style={{ padding: '14px 16px 12px' }}>
+                {planTitle && (
+                  <p style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4,
+                  }}>
+                    {planTitle}{dayNum ? ` — Day ${dayNum}` : ''}
+                  </p>
+                )}
                 <p style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                  color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4,
+                  fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)',
+                  color: 'var(--dw-text-primary)', marginBottom: existingNote ? 8 : 0,
                 }}>
-                  {planTitle}{dayNum ? ` — Day ${dayNum}` : ''}
+                  {ref}
                 </p>
-              )}
-              <p style={{
-                fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)',
-                color: 'var(--dw-text-primary)', marginBottom: existingNote ? 8 : 0,
-              }}>
-                {ref}
-              </p>
-              {existingNote && !isOpen && (
-                <p style={{
-                  fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
-                  lineHeight: 1.5, fontStyle: 'italic',
-                  display: '-webkit-box', overflow: 'hidden',
-                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                }}>
-                  {existingNote.body}
-                </p>
-              )}
-            </div>
-
-            {/* Inline note editor */}
-            {isOpen && (
-              <div style={{ borderTop: '1px solid var(--dw-border)', padding: '12px 16px' }}>
-                <textarea
-                  autoFocus
-                  value={draftText}
-                  onChange={e => setDraftText(e.target.value)}
-                  placeholder={`What is God saying to you through ${ref}?`}
-                  style={{
-                    width: '100%', minHeight: 100, resize: 'none',
-                    border: 'none', outline: 'none',
-                    background: 'transparent',
-                    fontSize: 14, lineHeight: 1.6,
-                    color: 'var(--dw-text)',
-                    fontFamily: 'var(--font-sans)',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-                  <button
-                    onClick={() => setOpenRef(null)}
-                    style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => handleSave(ref)}
-                    disabled={!draftText.trim()}
-                    style={{
-                      background: 'var(--dw-accent)', border: 'none', borderRadius: 8,
-                      padding: '7px 16px', color: '#fff', fontSize: 13, fontWeight: 600,
-                      cursor: draftText.trim() ? 'pointer' : 'default',
-                      opacity: draftText.trim() ? 1 : 0.45,
-                      fontFamily: 'var(--font-sans)',
-                      display: 'flex', alignItems: 'center', gap: 5,
-                    }}
-                  >
-                    <Save size={13} /> Save note
-                  </button>
-                </div>
+                {existingNote && (
+                  <p style={{
+                    fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
+                    lineHeight: 1.5, fontStyle: 'italic',
+                    display: '-webkit-box', overflow: 'hidden',
+                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                  }}>
+                    {existingNote.body}
+                  </p>
+                )}
               </div>
-            )}
 
-            {/* Footer action row */}
-            <div style={{
-              borderTop: '1px solid var(--dw-border)',
-              padding: '8px 12px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              {wasSaved ? (
-                <span style={{ fontSize: 12, color: '#4A8C40', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)' }}>
-                  <CheckCircle2 size={13} /> Saved
+              {/* Footer */}
+              <div style={{
+                borderTop: '1px solid var(--dw-border)',
+                padding: '8px 14px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 600,
+                  color: wasSaved ? '#4A8C40' : 'var(--dw-accent)',
+                  fontFamily: 'var(--font-sans)',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}>
+                  {wasSaved ? (
+                    <><CheckCircle2 size={13} /> Saved</>
+                  ) : (
+                    <><PenLine size={13} />{existingNote ? 'Edit note' : 'Read & add note'}</>
+                  )}
                 </span>
-              ) : (
-                <button
-                  onClick={() => handleOpen(ref)}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: 12, fontWeight: 600,
-                    color: isOpen ? 'var(--dw-text-muted)' : 'var(--dw-accent)',
-                    fontFamily: 'var(--font-sans)',
-                    padding: '4px 0',
-                    display: 'flex', alignItems: 'center', gap: 4,
-                  }}
-                >
-                  <PenLine size={13} />
-                  {isOpen ? 'Cancel' : existingNote ? 'Edit note' : 'Add note'}
-                </button>
-              )}
+                <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  Tap to open →
+                </span>
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+
+      {/* Scripture study modal */}
+      {modalPassage && (
+        <ScriptureModal
+          passage={modalPassage.ref}
+          planTitle={modalPassage.planTitle}
+          dayNum={modalPassage.dayNum}
+          existingNote={getExistingNote(modalPassage.ref)}
+          onSave={handleSaveFromModal}
+          onClose={() => setModalPassage(null)}
+        />
+      )}
+    </>
   );
 }
 

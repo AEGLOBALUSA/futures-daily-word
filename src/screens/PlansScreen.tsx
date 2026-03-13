@@ -4,7 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import { DEVOTIONS } from '../data/devotions';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight , Loader2, ChevronLeft, Headphones, Pause } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Circle } from 'lucide-react';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -79,6 +79,7 @@ export function PlansScreen() {
   const [activePlans, setActivePlans] = useState<Record<string, PlanProgress>>(getActivePlans);
   const [streak, setStreak] = useState(getStreak);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+  const [selectedToStart, setSelectedToStart] = useState<string[]>([]);
 
   // Book reader state — must be at top level (Rules of Hooks)
   const [activeBook, setActiveBook] = useState<string | null>(null);
@@ -729,31 +730,111 @@ export function PlansScreen() {
                 </p>
               </Card>
             ) : (
-              browsePlans.map(plan => (
-                <Card key={plan.id}>
-                  <span style={{
-                    background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
-                    fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
-                    letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)',
+              <>
+                {/* Multi-select hint */}
+                <div style={{
+                  background: 'var(--dw-accent-bg)',
+                  border: '1px solid var(--dw-border)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                }}>
+                  <Circle size={16} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                  <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.4 }}>
+                    You can run <strong>multiple plans at once.</strong> Tap any plan to select it, then save your choices.
+                  </p>
+                </div>
+
+                {browsePlans.map(plan => {
+                  const isSelected = selectedToStart.includes(plan.id);
+                  return (
+                    <div
+                      key={plan.id}
+                      onClick={() => setSelectedToStart(prev =>
+                        isSelected ? prev.filter(id => id !== plan.id) : [...prev, plan.id]
+                      )}
+                      style={{
+                        background: isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
+                        border: isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                        borderRadius: 14,
+                        padding: '14px 16px',
+                        cursor: 'pointer',
+                        transition: 'border 0.15s, background 0.15s',
+                        position: 'relative',
+                      }}
+                    >
+                      {/* Checkmark circle */}
+                      <div style={{
+                        position: 'absolute', top: 14, right: 14,
+                        width: 22, height: 22, borderRadius: '50%',
+                        background: isSelected ? 'var(--dw-accent)' : 'var(--dw-border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'background 0.15s',
+                        flexShrink: 0,
+                      }}>
+                        {isSelected && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+
+                      <span style={{
+                        background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
+                        fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
+                        letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)',
+                      }}>
+                        {plan.category}
+                      </span>
+                      <p className="text-card-title" style={{ marginTop: 8, paddingRight: 28 }}>{plan.title}</p>
+                      <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
+                        {plan.description}
+                      </p>
+                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', margin: 0 }}>
+                        {plan.totalDays} days · {plan.passages.length} passages
+                      </p>
+                    </div>
+                  );
+                })}
+
+                {/* Save button — appears when plans selected */}
+                {selectedToStart.length > 0 && (
+                  <div style={{
+                    position: 'sticky', bottom: 80,
+                    zIndex: 10,
                   }}>
-                    {plan.category}
-                  </span>
-                  <p className="text-card-title" style={{ marginTop: 8 }}>{plan.title}</p>
-                  <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-                    {plan.description}
-                  </p>
-                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, marginBottom: 10, fontFamily: 'var(--font-sans)' }}>
-                    {plan.totalDays} days · {plan.passages.length} passages
-                  </p>
-                  <button
-                    onClick={() => { startPlan(plan.id); setPlanView('active'); }}
-                    className="dw-btn-primary"
-                    style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <Play size={14} /> Start Plan
-                  </button>
-                </Card>
-              ))
+                    <button
+                      onClick={() => {
+                        selectedToStart.forEach(id => startPlan(id));
+                        setSelectedToStart([]);
+                        setPlanView('active');
+                      }}
+                      style={{
+                        width: '100%',
+                        background: 'var(--dw-accent)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 14,
+                        padding: '16px 20px',
+                        fontSize: 15,
+                        fontWeight: 700,
+                        fontFamily: 'var(--font-sans)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.20)',
+                      }}
+                    >
+                      <Play size={16} />
+                      Save {selectedToStart.length} Plan{selectedToStart.length > 1 ? 's' : ''}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
