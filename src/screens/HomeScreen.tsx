@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, Play, BookOpen, Plus, X, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, Play, BookOpen, Plus, X } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -844,44 +844,52 @@ export function HomeScreen() {
         {/* Header — compact, sits above the centered hero */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* AI button — top left, always accessible */}
+            {/* Bible AI button — burnished gold + glass */}
             <button
               onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}
               style={{
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 3,
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: 'linear-gradient(145deg, #7A5200 0%, #B8820A 30%, #D4A017 55%, #F5C842 75%, #B8820A 100%)',
+                padding: '0 16px',
+                height: 44,
+                borderRadius: 11,
+                background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
                 backgroundSize: '200% 200%',
                 animation: 'aiAurora 4s ease infinite',
-                border: '1px solid rgba(212,160,23,0.55)',
-                boxShadow: '0 2px 16px rgba(180,130,10,0.55)',
+                border: '1px solid rgba(245,207,85,0.55)',
+                boxShadow: '0 3px 18px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.22)',
                 cursor: 'pointer',
                 flexShrink: 0,
               }}
-              onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+              onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.93)')}
               onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              {/* gold shimmer sweep */}
+              {/* Glass top-catch highlight */}
               <span style={{
-                position: 'absolute', top: 0, bottom: 0, width: '60%',
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)',
+                position: 'absolute', top: 0, left: 0, right: 0, height: '46%',
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
+                borderRadius: '11px 11px 0 0',
+                pointerEvents: 'none',
+              }} />
+              {/* Burnished shimmer sweep */}
+              <span style={{
+                position: 'absolute', top: 0, bottom: 0, width: '55%',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.26) 50%, transparent 100%)',
                 animation: 'aiBeam 3s ease-in-out infinite',
                 pointerEvents: 'none',
               }} />
-              <Sparkles size={16} color="#fff" strokeWidth={2} style={{ position: 'relative' }} />
               <span style={{
-                fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.9)',
-                fontFamily: 'var(--font-sans)', letterSpacing: '0.08em',
-                textTransform: 'uppercase', position: 'relative',
-              }}>AI</span>
+                fontSize: 11, fontWeight: 900,
+                color: '#fff',
+                fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                position: 'relative',
+                textShadow: '0 1px 3px rgba(80,40,0,0.6)',
+              }}>Bible AI</span>
             </button>
             <div>
               <h1 style={{

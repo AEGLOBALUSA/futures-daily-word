@@ -11,7 +11,7 @@ const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
   return (
     <span style={{
       ...styles[size],
-      background: 'linear-gradient(135deg, #9D174D, #DB2777)',
+      background: 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)',
       color: '#fff',
       fontWeight: 800,
       fontFamily: 'var(--font-sans)',
@@ -126,8 +126,8 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           width: 52,
           height: 52,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #9D174D, #DB2777)',
-          boxShadow: '0 4px 16px rgba(157,23,77,0.55)',
+          background: 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)',
+          boxShadow: '0 4px 20px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.25)',
           border: 'none',
           display: isOpen ? 'none' : 'flex',
           alignItems: 'center',
@@ -188,7 +188,8 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #9D174D, #DB2777)',
+              background: 'linear-gradient(145deg, #4D2E00, #C8920E, #F5C842)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(140,95,5,0.45)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -278,7 +279,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                       padding: '10px 14px',
                       borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                       background: m.role === 'user'
-                        ? 'linear-gradient(135deg, #9D174D, #DB2777)'
+                        ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
                         : 'var(--dw-card, #F5F3EF)',
                       color: m.role === 'user' ? '#fff' : 'var(--dw-text)',
                       fontSize: 14,
@@ -346,7 +347,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
               height: 40,
               borderRadius: '50%',
               background: input.trim() && !loading
-                ? 'linear-gradient(135deg, #9D174D, #DB2777)'
+                ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
                 : 'var(--dw-border, #E8E6E0)',
               border: 'none',
               display: 'flex',
