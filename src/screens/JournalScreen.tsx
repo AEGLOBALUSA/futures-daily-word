@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check } from 'lucide-react';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 
@@ -384,6 +384,159 @@ function getTodaysPassages(): TodayPassage[] {
   } catch { return []; }
 }
 
+/* ── In-modal text selection toolbar ── */
+function ModalSelectionBar({
+  containerRef,
+  onNoteSelected,
+  onAskAI,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  onNoteSelected: (text: string) => void;
+  onAskAI: (text: string) => void;
+}) {
+  const [selectedText, setSelectedText] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [listening, setListening] = useState(false);
+
+  useEffect(() => {
+    function onSelectionChange() {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        setSelectedText('');
+        return;
+      }
+      // Only show toolbar if selection is inside our modal container
+      const range = sel.getRangeAt(0);
+      if (containerRef.current && containerRef.current.contains(range.commonAncestorContainer)) {
+        setSelectedText(sel.toString().trim());
+      } else {
+        setSelectedText('');
+      }
+    }
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => document.removeEventListener('selectionchange', onSelectionChange);
+  }, [containerRef]);
+
+  if (!selectedText) return null;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(selectedText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = selectedText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ text: selectedText }).catch(() => {});
+    } else {
+      window.open('mailto:?body=' + encodeURIComponent(selectedText));
+    }
+  };
+
+  const handleListen = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (listening) { window.speechSynthesis.cancel(); setListening(false); return; }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(selectedText.slice(0, 5000));
+    utter.lang = 'en-US'; utter.rate = 0.92;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
+      || voices.find(v => v.lang.startsWith('en') && v.localService);
+    if (preferred) utter.voice = preferred;
+    utter.onend = () => setListening(false);
+    utter.onerror = () => setListening(false);
+    setListening(true);
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        window.speechSynthesis.speak(utter);
+      };
+    } else { window.speechSynthesis.speak(utter); }
+  };
+
+  const dismiss = () => { window.getSelection()?.removeAllRanges(); setSelectedText(''); window.speechSynthesis?.cancel(); setListening(false); };
+
+  const tbBtn = (onClick: () => void, icon: React.ReactNode, label: string, active = false) => (
+    <button onClick={onClick} style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 3, padding: '7px 13px',
+      background: active ? 'var(--dw-accent)' : 'transparent',
+      color: active ? '#fff' : 'var(--dw-text)',
+      border: 'none', cursor: 'pointer', minWidth: 48,
+      borderRight: '1px solid var(--dw-border)',
+      transition: 'background 0.15s',
+    }}>
+      {icon}
+      <span style={{ fontSize: 9, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: 0.3 }}>{label}</span>
+    </button>
+  );
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 80, left: 0, right: 0, zIndex: 210,
+      display: 'flex', justifyContent: 'center', padding: '0 12px',
+      animation: 'slideInBar 0.2s ease',
+    }}>
+      <div style={{
+        background: 'var(--dw-surface)', borderRadius: 10,
+        boxShadow: '0 4px 28px rgba(0,0,0,0.28)', border: '1px solid var(--dw-border)',
+        display: 'flex', overflow: 'hidden', maxWidth: '100%',
+      }}>
+        {tbBtn(handleCopy, copied ? <Check size={15} color="#4A6340" /> : <Copy size={15} />, copied ? 'Copied!' : 'Copy')}
+        {tbBtn(handleListen, <Volume2 size={15} />, listening ? 'Stop' : 'Listen', listening)}
+        {tbBtn(handleShare, <Share2 size={15} />, 'Share')}
+        {tbBtn(() => { onNoteSelected(selectedText); dismiss(); }, <BookOpen size={15} />, 'Note')}
+
+        {/* Ask AI — burnished gold */}
+        <button
+          onClick={() => { onAskAI(selectedText); dismiss(); }}
+          style={{
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            gap: 5, padding: '0 14px', alignSelf: 'stretch',
+            background: 'linear-gradient(110deg, #7A5200 0%, #B8820A 30%, #D4A017 60%, #F5C842 80%, #B8820A 100%)',
+            backgroundSize: '220% 100%', animation: 'aiAurora 4s ease infinite',
+            color: '#fff', border: 'none', borderLeft: '1px solid rgba(212,160,23,0.4)',
+            cursor: 'pointer', minWidth: 66, borderRadius: 0,
+          }}
+        >
+          <span style={{
+            position: 'absolute', top: 0, bottom: 0, width: '30%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
+            animation: 'aiBeam 3.8s ease-in-out infinite', pointerEvents: 'none',
+          }} />
+          <Sparkles size={13} strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', position: 'relative' }}>Ask AI</span>
+        </button>
+
+        <button onClick={dismiss} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '8px 10px', background: 'transparent', color: 'var(--dw-text-muted)', border: 'none', cursor: 'pointer',
+        }}>
+          <X size={13} />
+        </button>
+      </div>
+      <style>{`
+        @keyframes slideInBar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes aiAurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes aiBeam { 0% { left: -40%; opacity: 0; } 5% { opacity: 1; } 25% { left: 140%; opacity: 0; } 100% { left: 140%; opacity: 0; } }
+      `}</style>
+    </div>
+  );
+}
+
 /* ── Scripture Study Modal ── */
 function ScriptureModal({
   passage,
@@ -415,6 +568,7 @@ function ScriptureModal({
   const [draftNote, setDraftNote] = useState(existingNote?.body || '');
   const [noteSaved, setNoteSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoadingText(true);
@@ -442,12 +596,27 @@ function ScriptureModal({
     setTimeout(() => { setNoteSaved(false); onClose(); }, 1200);
   }
 
-  function handleAskAI() {
-    const context = devotional
-      ? `${devotional.title} — ${passage}\n\n${devotional.body.slice(0, 300)}…`
-      : `${passage}: ${scriptureText.slice(0, 300)}`;
+  function handleAskAI(text?: string) {
+    const context = text
+      ? text
+      : devotional
+        ? `${devotional.title} — ${passage}\n\n${devotional.body.slice(0, 300)}…`
+        : `${passage}: ${scriptureText.slice(0, 300)}`;
     setSelection({ text: context, verseRefs: [passage], source: 'range' });
     onClose();
+  }
+
+  function handleNoteSelected(text: string) {
+    // Append selected text as a quote into the notes area
+    const quote = `"${text}"\n\n`;
+    setDraftNote(prev => prev ? prev + '\n\n' + quote : quote);
+    // Scroll to + focus the textarea
+    setTimeout(() => {
+      textareaRef.current?.focus();
+      if (scrollBodyRef.current) {
+        scrollBodyRef.current.scrollTo({ top: scrollBodyRef.current.scrollHeight, behavior: 'smooth' });
+      }
+    }, 100);
   }
 
   const authorColor = (author: string) =>
@@ -511,8 +680,15 @@ function ScriptureModal({
           </div>
         </div>
 
+        {/* ── In-modal selection toolbar ── */}
+        <ModalSelectionBar
+          containerRef={scrollBodyRef}
+          onNoteSelected={handleNoteSelected}
+          onAskAI={handleAskAI}
+        />
+
         {/* ── Scrollable study content ── */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div ref={scrollBodyRef} style={{ flex: 1, overflowY: 'auto' }}>
 
           {/* SECTION 1: Devotional (if present) */}
           {devotional && (
@@ -658,7 +834,7 @@ function ScriptureModal({
         }}>
           {/* Bible AI button */}
           <button
-            onClick={handleAskAI}
+            onClick={() => handleAskAI()}
             style={{
               position: 'relative', overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
