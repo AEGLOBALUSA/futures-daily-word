@@ -151,6 +151,8 @@ export function HomeScreen() {
   const { selection, setSelection } = useScriptureSelection();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlCache = useRef<Map<string, string>>(new Map());
+  const audioUnlocked = useRef(false);
+  const [audioError, setAudioError] = useState(false);
 
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
@@ -303,6 +305,9 @@ export function HomeScreen() {
   };
 
   const handleListen = (passage: string) => {
+    // Unlock iOS audio immediately on user gesture tap — must happen synchronously
+    ensureAudioUnlocked();
+    setAudioError(false);
     const key = `${passage}_${translation}`;
     // If already playing this passage, pause/stop (toggle)
     if (audioPlaying && audioCurrentPassage === passage) {
@@ -434,6 +439,18 @@ export function HomeScreen() {
     navigator.mediaSession.playbackState = 'playing';
   };
 
+  /** Unlock iOS audio context on first user gesture so deferred plays work */
+  const ensureAudioUnlocked = async () => {
+    if (audioUnlocked.current) return;
+    try {
+      const silence = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAA' +
+        'EAAQARAAAAIgAAABAAEAZGF0YQAAAAA=');
+      await silence.play();
+      silence.pause();
+      audioUnlocked.current = true;
+    } catch { /* ignore */ }
+  };
+
   const handleAudio = async (passage: string) => {
     if (audioPlaying && audioCurrentPassage === passage) {
       stopAudio();
@@ -446,9 +463,11 @@ export function HomeScreen() {
     const text = passageTexts[textKey];
     if (!text) return;
 
+    setAudioError(false);
     setAudioLoading(true);
     setAudioCurrentPassage(passage);
     try {
+      await ensureAudioUnlocked();
       const cacheKey = `${passage}_${translation}`;
       const cachedUrl = audioUrlCache.current.get(cacheKey);
       const url = cachedUrl || await fetchAudio(text.slice(0, 5000), translation, passage);
@@ -467,6 +486,7 @@ export function HomeScreen() {
           setAudioPlaying(false);
           setAudioUrl(null);
           setAudioCurrentPassage(null);
+          setAudioError(true);
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
         };
         audio.onpause = () => {
@@ -478,8 +498,13 @@ export function HomeScreen() {
         await audio.play();
         setAudioPlaying(true);
         setupMediaSession(passage, audio);
+      } else {
+        // fetchAudio returned null — API unavailable
+        setAudioError(true);
+        setAudioCurrentPassage(null);
       }
     } catch {
+      setAudioError(true);
       setAudioCurrentPassage(null);
     } finally {
       setAudioLoading(false);
@@ -542,20 +567,30 @@ export function HomeScreen() {
           onDismiss={handleSetupDismiss}
         />
       )}
-      <div style={{ padding: '24px 24px 0' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <div style={{ padding: '0 24px 0' }}>
+        {/* ── Hero viewport ── fills visible screen, hero centered */}
+        <div style={{
+          minHeight: 'calc(100svh - 80px)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          paddingTop: 20,
+          paddingBottom: 28,
+        }}>
+
+        {/* Header — compact, sits above the centered hero */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div>
             <h1 style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: 26,
+              fontSize: 24,
               fontWeight: 400,
               color: 'var(--dw-text-primary)',
               letterSpacing: '-0.02em',
             }}>
               Daily Word
             </h1>
-            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginTop: 2 }}>
+            <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 1 }}>
               Futures Church
             </p>
           </div>
@@ -676,29 +711,76 @@ export function HomeScreen() {
                   </p>
                 </div>
 
+                {/* Error message */}
+                {audioError && audioCurrentPassage === heroPassage && (
+                  <p style={{
+                    fontSize: 11, color: 'rgba(255,180,180,0.9)', textAlign: 'center',
+                    fontFamily: 'var(--font-sans)', margin: '0 20px 10px',
+                  }}>
+                    Audio unavailable — tap Read to follow along
+                  </p>
+                )}
+
                 {/* Hairline divider */}
                 <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '0 20px' }} />
 
-                {/* Read link footer */}
-                <button
-                  onClick={() => handleRead(heroPassage)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', gap: 7,
-                    padding: '13px 20px',
-                    background: 'transparent', border: 'none', cursor: 'pointer',
-                    color: expandedPassages.has(heroPassage) ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.62)',
-                    fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
-                    letterSpacing: '0.03em', transition: 'color 0.2s ease',
-                  }}
-                >
-                  <BookOpen size={14} />
-                  {expandedPassages.has(heroPassage) ? 'Close Reading' : 'Read'}
-                </button>
+                {/* Footer: Read + Translation picker */}
+                <div style={{
+                  display: 'flex', alignItems: 'center',
+                  padding: '2px 8px 2px',
+                }}>
+                  {/* Read button */}
+                  <button
+                    onClick={() => handleRead(heroPassage)}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      padding: '12px 8px',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: expandedPassages.has(heroPassage) ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
+                      fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+                      letterSpacing: '0.03em', transition: 'color 0.2s ease',
+                      borderRight: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    <BookOpen size={13} />
+                    {expandedPassages.has(heroPassage) ? 'Close' : 'Read'}
+                  </button>
+
+                  {/* Translation picker — horizontal scrollable pills */}
+                  <div style={{
+                    flex: 2, display: 'flex', alignItems: 'center', gap: 5,
+                    overflowX: 'auto', padding: '10px 12px',
+                    scrollbarWidth: 'none',
+                  }}>
+                    {TRANSLATIONS.map(t => (
+                      <button
+                        key={t}
+                        onClick={() => handleTranslationChange(t)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '4px 9px',
+                          borderRadius: 20,
+                          fontSize: 11, fontWeight: 700,
+                          fontFamily: 'var(--font-sans)',
+                          letterSpacing: '0.04em',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          border: t === translation ? '1.5px solid rgba(255,255,255,0.7)' : '1.5px solid rgba(255,255,255,0.2)',
+                          background: t === translation ? 'rgba(255,255,255,0.22)' : 'transparent',
+                          color: t === translation ? '#fff' : 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           );
         })()}
+
+        </div>{/* end hero viewport */}
 
         {/* Persona Greeting */}
         <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
