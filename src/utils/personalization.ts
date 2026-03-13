@@ -58,7 +58,7 @@ export interface PersonalizationResult {
   /** Short human-readable insight about this user's reading style */
   insight: string | null
   /** Detected signal (used for UI labelling) */
-  signal: 'comfort' | 'depth' | 'teach' | 'worship' | 'new' | 'audio' | 'mixed' | null
+  signal: 'comfort' | 'depth' | 'teach' | 'worship' | 'new' | 'audio' | 'mixed' | 'short' | null
 }
 
 export function personalize(

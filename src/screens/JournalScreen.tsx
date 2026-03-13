@@ -3,7 +3,7 @@ import { trackBehavior } from '../utils/behavior';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, ChevronRight } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play } from 'lucide-react';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';

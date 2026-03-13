@@ -18,7 +18,7 @@ import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
-import { personalize, signalLabel } from '../utils/personalization';
+import { personalize } from '../utils/personalization';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -414,10 +414,6 @@ export function HomeScreen() {
       allCommentaries.push({ source, text: entries[primaryPassage] });
     }
   }
-  // Keep single-source vars for backward compat
-  const commentaryText = allCommentaries[0]?.text || '';
-  const commentarySource = allCommentaries[0]?.source || '';
-
   // Fetch a single passage on demand (tap to read)
   const loadPassage = (passage: string) => {
     const key = `${passage}_${translation}`;
