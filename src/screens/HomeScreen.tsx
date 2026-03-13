@@ -1690,43 +1690,39 @@ export function HomeScreen() {
         {/* Variable reward: homeLeadType 0=quote first, 1=devotion first, 2=reflection question first */}
         {/* Quote card */}
         {homeLeadType !== 1 && (
-        <Card style={{
-          marginBottom: 16,
-          background: 'linear-gradient(135deg, rgba(168,50,59,0.10) 0%, rgba(154,123,46,0.08) 100%)',
-          border: '1.5px solid rgba(168,50,59,0.25)',
-          borderLeft: '4px solid var(--dw-accent)',
-          position: 'relative',
-          overflow: 'hidden',
-          padding: '22px 20px 18px',
+        <div style={{
+          marginBottom: 20,
+          padding: '8px 0',
+          textAlign: 'center',
         }}>
-          <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 10, fontSize: 10, letterSpacing: '0.14em' }}>QUOTE OF THE DAY</p>
-          <div style={{ position: 'relative' }}>
-            <span style={{
-              position: 'absolute', top: -14, left: -6,
-              fontSize: 56, fontFamily: 'var(--font-serif)', color: 'var(--dw-accent)',
-              opacity: 0.15, lineHeight: 1, pointerEvents: 'none',
-            }}>&ldquo;</span>
-            <p
-              onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
-              style={{
-                fontFamily: 'var(--font-serif-text)',
-                fontSize: 17,
-                fontStyle: 'italic',
-                color: 'var(--dw-text-primary)',
-                lineHeight: 1.7,
-                cursor: 'pointer',
-                WebkitUserSelect: 'text',
-                userSelect: 'text',
-                paddingLeft: 4,
-              }}
-            >
-              {quote.text}
-            </p>
-          </div>
-          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 12, fontFamily: 'var(--font-sans)' }}>
+          <p
+            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: 19,
+              fontStyle: 'italic',
+              color: 'var(--dw-text-primary)',
+              lineHeight: 1.8,
+              cursor: 'pointer',
+              WebkitUserSelect: 'text',
+              userSelect: 'text',
+              letterSpacing: '0.01em',
+            }}
+          >
+            &ldquo;{quote.text}&rdquo;
+          </p>
+          <p style={{
+            color: 'var(--dw-text-muted)',
+            fontSize: 13,
+            fontWeight: 500,
+            marginTop: 10,
+            fontFamily: 'var(--font-sans)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}>
             — {quote.author}
           </p>
-        </Card>
+        </div>
         )}
 
         {/* Scripture Search — always shown under quote, before devotion */}
@@ -1789,43 +1785,39 @@ export function HomeScreen() {
 
         {/* Quote shows AFTER devotion on days when devotion leads (type 1) */}
         {homeLeadType === 1 && (
-        <Card style={{
-          marginBottom: 16,
-          background: 'linear-gradient(135deg, rgba(168,50,59,0.10) 0%, rgba(154,123,46,0.08) 100%)',
-          border: '1.5px solid rgba(168,50,59,0.25)',
-          borderLeft: '4px solid var(--dw-accent)',
-          position: 'relative',
-          overflow: 'hidden',
-          padding: '22px 20px 18px',
+        <div style={{
+          marginBottom: 20,
+          padding: '8px 0',
+          textAlign: 'center',
         }}>
-          <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 10, fontSize: 10, letterSpacing: '0.14em' }}>QUOTE OF THE DAY</p>
-          <div style={{ position: 'relative' }}>
-            <span style={{
-              position: 'absolute', top: -14, left: -6,
-              fontSize: 56, fontFamily: 'var(--font-serif)', color: 'var(--dw-accent)',
-              opacity: 0.15, lineHeight: 1, pointerEvents: 'none',
-            }}>&ldquo;</span>
-            <p
-              onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
-              style={{
-                fontFamily: 'var(--font-serif-text)',
-                fontSize: 17,
-                fontStyle: 'italic',
-                color: 'var(--dw-text-primary)',
-                lineHeight: 1.7,
-                cursor: 'pointer',
-                WebkitUserSelect: 'text',
-                userSelect: 'text',
-                paddingLeft: 4,
-              }}
-            >
-              {quote.text}
-            </p>
-          </div>
-          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 12, fontFamily: 'var(--font-sans)' }}>
+          <p
+            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: 19,
+              fontStyle: 'italic',
+              color: 'var(--dw-text-primary)',
+              lineHeight: 1.8,
+              cursor: 'pointer',
+              WebkitUserSelect: 'text',
+              userSelect: 'text',
+              letterSpacing: '0.01em',
+            }}
+          >
+            &ldquo;{quote.text}&rdquo;
+          </p>
+          <p style={{
+            color: 'var(--dw-text-muted)',
+            fontSize: 13,
+            fontWeight: 500,
+            marginTop: 10,
+            fontFamily: 'var(--font-sans)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}>
             — {quote.author}
           </p>
-        </Card>
+        </div>
         )}
 
         {/* (Scripture Search moved below devotion) */}
