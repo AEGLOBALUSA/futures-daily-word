@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2, Headphones, Pause } from 'lucide-react';
@@ -35,6 +35,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
   const [sectionContent, setSectionContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [audioActive, setAudioActive] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Fetch essay TOC when selected
   useEffect(() => {
@@ -63,35 +64,43 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
       .finally(() => setLoading(false));
   }, [essaySection]);
 
-  const readText = (text: string) => {
-    if (!('speechSynthesis' in window)) return;
-    if (audioActive) { window.speechSynthesis.cancel(); setAudioActive(false); return; }
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text.slice(0, 10000));
-    utter.lang = 'en-US'; utter.rate = 0.91;
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')) || voices.find(v => v.lang.startsWith('en') && v.localService);
-    if (preferred) utter.voice = preferred;
-    utter.onend = () => setAudioActive(false);
-    utter.onerror = () => setAudioActive(false);
+  const readText = async (text: string) => {
+    if (audioActive) {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      setAudioActive(false);
+      return;
+    }
     setAudioActive(true);
-    if (voices.length === 0) { window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; window.speechSynthesis.speak(utter); }; }
-    else { window.speechSynthesis.speak(utter); }
+    try {
+      const { fetchAudio } = await import('../utils/api');
+      const url = await fetchAudio(text.slice(0, 20000), 'ESV');
+      if (url) {
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => { setAudioActive(false); audioRef.current = null; };
+        audio.onerror = () => { setAudioActive(false); audioRef.current = null; };
+        await audio.play();
+      } else {
+        setAudioActive(false);
+      }
+    } catch {
+      setAudioActive(false);
+    }
   };
 
   const handleBack = () => {
     if (essaySection !== null) {
-      window.speechSynthesis?.cancel();
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setAudioActive(false);
       setEssaySection(null);
       setSectionContent('');
     } else if (activeItem) {
-      window.speechSynthesis?.cancel();
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setAudioActive(false);
       setActiveItem(null);
       setEssayTOC(null);
     } else if (onBack) {
-      window.speechSynthesis?.cancel();
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setAudioActive(false);
       onBack();
     }

@@ -303,7 +303,6 @@ export function HomeScreen() {
   const audioUrlCache = useRef<Map<string, string>>(new Map());
   const audioUnlocked = useRef(false);
   const [audioError, setAudioError] = useState(false);
-  const speechSynthRef = useRef(false); // true when Web Speech API is active
   const [streakCount, setStreakCount] = useState(() => getStreak().count);
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
   const dailyWord = getDailyWord();
@@ -601,10 +600,6 @@ export function HomeScreen() {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
-    }
-    if (speechSynthRef.current) {
-      window.speechSynthesis?.cancel();
-      speechSynthRef.current = false;
     }
     setAudioPlaying(false);
     setAudioUrl(null);

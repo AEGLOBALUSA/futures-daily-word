@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2 } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 
@@ -11,6 +11,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
   const { selection, setSelection, clearHighlights, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const [copied, setCopied] = useState(false);
   const [listening, setListening] = useState(false);
+  const listenAudioRef = useRef<HTMLAudioElement | null>(null);
 
   if (!selection) return null;
 
@@ -33,39 +34,32 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
     }
   };
 
-  const handleListen = () => {
-    if (!('speechSynthesis' in window)) return;
+  const handleListen = async () => {
     if (listening) {
-      window.speechSynthesis.cancel();
+      if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; }
       setListening(false);
       return;
     }
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(selection.text.slice(0, 5000));
-    utter.lang = 'en-US';
-    utter.rate = 0.92;
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
-      || voices.find(v => v.lang.startsWith('en') && v.localService);
-    if (preferred) utter.voice = preferred;
-    utter.onend = () => setListening(false);
-    utter.onerror = () => setListening(false);
     setListening(true);
-    if (voices.length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        const v2 = window.speechSynthesis.getVoices();
-        const p2 = v2.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')) || v2.find(v => v.lang.startsWith('en') && v.localService);
-        if (p2) utter.voice = p2;
-        window.speechSynthesis.speak(utter);
-      };
-    } else {
-      window.speechSynthesis.speak(utter);
+    try {
+      const { fetchAudio } = await import('../utils/api');
+      const url = await fetchAudio(selection.text.slice(0, 20000), 'ESV');
+      if (url) {
+        const audio = new Audio(url);
+        listenAudioRef.current = audio;
+        audio.onended = () => { setListening(false); listenAudioRef.current = null; };
+        audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
+        await audio.play();
+      } else {
+        setListening(false);
+      }
+    } catch {
+      setListening(false);
     }
   };
 
   const handleDismiss = () => {
-    window.speechSynthesis?.cancel();
+    if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; }
     setListening(false);
     setSelection(null);
     clearHighlights();

@@ -483,28 +483,33 @@ function ModalSelectionBar({
     }
   };
 
-  const handleListen = () => {
-    if (!('speechSynthesis' in window)) return;
-    if (listening) { window.speechSynthesis.cancel(); setListening(false); return; }
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(selectedText.slice(0, 5000));
-    utter.lang = 'en-US'; utter.rate = 0.92;
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
-      || voices.find(v => v.lang.startsWith('en') && v.localService);
-    if (preferred) utter.voice = preferred;
-    utter.onend = () => setListening(false);
-    utter.onerror = () => setListening(false);
+  const listenAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleListen = async () => {
+    if (listening) {
+      if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; }
+      setListening(false);
+      return;
+    }
     setListening(true);
-    if (voices.length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        window.speechSynthesis.speak(utter);
-      };
-    } else { window.speechSynthesis.speak(utter); }
+    try {
+      const { fetchAudio } = await import('../utils/api');
+      const url = await fetchAudio(selectedText.slice(0, 20000), 'ESV');
+      if (url) {
+        const audio = new Audio(url);
+        listenAudioRef.current = audio;
+        audio.onended = () => { setListening(false); listenAudioRef.current = null; };
+        audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
+        await audio.play();
+      } else {
+        setListening(false);
+      }
+    } catch {
+      setListening(false);
+    }
   };
 
-  const dismiss = () => { window.getSelection()?.removeAllRanges(); setSelectedText(''); window.speechSynthesis?.cancel(); setListening(false); };
+  const dismiss = () => { window.getSelection()?.removeAllRanges(); setSelectedText(''); if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; } setListening(false); };
 
   const tbBtn = (onClick: () => void, icon: React.ReactNode, label: string, active = false) => (
     <button onClick={onClick} style={{

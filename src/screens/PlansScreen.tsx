@@ -1,5 +1,5 @@
 import { trackBehavior } from '../utils/behavior';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { DEVOTIONS } from '../data/devotions';
@@ -154,6 +154,7 @@ export function PlansScreen() {
   const [bookChapter, setBookChapter] = useState<number | null>(null);
   const [bookLoading, setBookLoading] = useState(false);
   const [bookAudioActive, setBookAudioActive] = useState(false);
+  const bookAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Essay reader state
   const [activeEssay, setActiveEssay] = useState<string | null>(null);
@@ -162,6 +163,7 @@ export function PlansScreen() {
   const [sectionContent, setSectionContent] = useState<string>('');
   const [essayLoading, setEssayLoading] = useState(false);
   const [essayAudioActive, setEssayAudioActive] = useState(false);
+  const essayAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Persona-based plan suggestions
   const persona = (() => {
@@ -170,52 +172,53 @@ export function PlansScreen() {
     } catch { return ''; }
   })();
 
-  const readChapter = (paragraphs: string[]) => {
-    if (!('speechSynthesis' in window)) return;
+  const readChapter = async (paragraphs: string[]) => {
     if (bookAudioActive) {
-      window.speechSynthesis.cancel();
+      if (bookAudioRef.current) { bookAudioRef.current.pause(); bookAudioRef.current = null; }
       setBookAudioActive(false);
       return;
     }
-    window.speechSynthesis.cancel();
-    const text = paragraphs.join(' ');
-    const utter = new SpeechSynthesisUtterance(text.slice(0, 10000));
-    utter.lang = 'en-US'; utter.rate = 0.91;
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
-      || voices.find(v => v.lang.startsWith('en') && v.localService);
-    if (preferred) utter.voice = preferred;
-    utter.onend = () => setBookAudioActive(false);
-    utter.onerror = () => setBookAudioActive(false);
     setBookAudioActive(true);
-    if (voices.length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        window.speechSynthesis.speak(utter);
-      };
-    } else { window.speechSynthesis.speak(utter); }
+    try {
+      const { fetchAudio } = await import('../utils/api');
+      const text = paragraphs.join(' ');
+      const url = await fetchAudio(text.slice(0, 20000), 'ESV');
+      if (url) {
+        const audio = new Audio(url);
+        bookAudioRef.current = audio;
+        audio.onended = () => { setBookAudioActive(false); bookAudioRef.current = null; };
+        audio.onerror = () => { setBookAudioActive(false); bookAudioRef.current = null; };
+        await audio.play();
+      } else {
+        setBookAudioActive(false);
+      }
+    } catch {
+      setBookAudioActive(false);
+    }
   };
 
-  const readSection = (text: string) => {
-    if (!('speechSynthesis' in window)) return;
+  const readSection = async (text: string) => {
     if (essayAudioActive) {
-      window.speechSynthesis.cancel();
+      if (essayAudioRef.current) { essayAudioRef.current.pause(); essayAudioRef.current = null; }
       setEssayAudioActive(false);
       return;
     }
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text.slice(0, 10000));
-    utter.lang = 'en-US'; utter.rate = 0.91;
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
-      || voices.find(v => v.lang.startsWith('en') && v.localService);
-    if (preferred) utter.voice = preferred;
-    utter.onend = () => setEssayAudioActive(false);
-    utter.onerror = () => setEssayAudioActive(false);
     setEssayAudioActive(true);
-    if (voices.length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; window.speechSynthesis.speak(utter); };
-    } else { window.speechSynthesis.speak(utter); }
+    try {
+      const { fetchAudio } = await import('../utils/api');
+      const url = await fetchAudio(text.slice(0, 20000), 'ESV');
+      if (url) {
+        const audio = new Audio(url);
+        essayAudioRef.current = audio;
+        audio.onended = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
+        audio.onerror = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
+        await audio.play();
+      } else {
+        setEssayAudioActive(false);
+      }
+    } catch {
+      setEssayAudioActive(false);
+    }
   };
 
   const activePlanIds = Object.keys(activePlans);
@@ -348,7 +351,7 @@ export function PlansScreen() {
           {/* Reader header */}
           <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <button
-              onClick={() => { if (bookChapter !== null) { window.speechSynthesis?.cancel(); setBookAudioActive(false); setBookChapter(null); } else { window.speechSynthesis?.cancel(); setBookAudioActive(false); setActiveBook(null); } }}
+              onClick={() => { if (bookChapter !== null) { if (bookAudioRef.current) { bookAudioRef.current.pause(); bookAudioRef.current = null; } setBookAudioActive(false); setBookChapter(null); } else { if (bookAudioRef.current) { bookAudioRef.current.pause(); bookAudioRef.current = null; } setBookAudioActive(false); setActiveBook(null); } }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >
               <ChevronLeft size={18} />
@@ -424,8 +427,8 @@ export function PlansScreen() {
           <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <button
               onClick={() => {
-                if (essaySection !== null) { window.speechSynthesis?.cancel(); setEssayAudioActive(false); setEssaySection(null); setSectionContent(''); }
-                else { window.speechSynthesis?.cancel(); setEssayAudioActive(false); setActiveEssay(null); }
+                if (essaySection !== null) { if (essayAudioRef.current) { essayAudioRef.current.pause(); essayAudioRef.current = null; } setEssayAudioActive(false); setEssaySection(null); setSectionContent(''); }
+                else { if (essayAudioRef.current) { essayAudioRef.current.pause(); essayAudioRef.current = null; } setEssayAudioActive(false); setActiveEssay(null); }
               }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >
