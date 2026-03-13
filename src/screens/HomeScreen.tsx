@@ -785,7 +785,7 @@ export function HomeScreen() {
               )}
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button
-                  onClick={() => speak(txt || '', passage)}
+                  onClick={() => handleAudio(passage)}
                   style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--dw-border)', background: 'var(--dw-card)', color: 'var(--dw-text)', cursor: 'pointer' }}
                 >
                   🔊 Listen
