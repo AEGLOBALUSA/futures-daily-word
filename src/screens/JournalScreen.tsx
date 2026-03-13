@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen } from 'lucide-react';
 
 interface JournalEntry {
   id: string;
@@ -10,6 +10,9 @@ interface JournalEntry {
   body: string;
   tags: string[];
   type: 'journal' | 'sermon' | 'saved';
+  /** Set when this entry was created from a scripture note */
+  verseRef?: string;
+  highlightedText?: string;
 }
 
 /* ── localStorage helpers ── */
@@ -33,6 +36,11 @@ export function JournalScreen() {
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+
+  // Re-read entries every time the screen mounts so scripture notes from HomeScreen appear
+  useEffect(() => {
+    setEntries(getEntries());
+  }, []);
 
   const tabs = [
     { id: 'journal' as const, label: 'Journal', icon: PenLine },
@@ -144,6 +152,25 @@ export function JournalScreen() {
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
             {editingEntry.date}
           </p>
+
+          {/* Scripture context — shown for scripture notes */}
+          {editingEntry.highlightedText && (
+            <div style={{
+              padding: '10px 14px',
+              background: 'rgba(154,123,46,0.1)',
+              borderLeft: '3px solid var(--dw-accent)',
+              borderRadius: '0 8px 8px 0',
+              marginBottom: 16,
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--dw-accent)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {editingEntry.verseRef}
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'var(--font-serif)' }}>
+                "{editingEntry.highlightedText}"
+              </p>
+            </div>
+          )}
+
           <input
             type="text"
             placeholder="Title..."
@@ -282,7 +309,35 @@ export function JournalScreen() {
                 }}>
                   {entry.date}
                 </p>
-                <p className="text-card-title" style={{ marginBottom: 8 }}>{entry.title}</p>
+
+                {/* Title row — scripture notes show verse ref with icon */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  {entry.verseRef && (
+                    <BookOpen size={13} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                  )}
+                  <p className="text-card-title" style={{ margin: 0 }}>{entry.title}</p>
+                </div>
+
+                {/* Highlighted scripture quote */}
+                {entry.highlightedText && (
+                  <div style={{
+                    padding: '8px 12px',
+                    background: 'rgba(154,123,46,0.1)',
+                    borderLeft: '3px solid var(--dw-accent)',
+                    borderRadius: '0 6px 6px 0',
+                    marginBottom: 10,
+                  }}>
+                    <p style={{
+                      fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.5,
+                      fontStyle: 'italic', fontFamily: 'var(--font-serif)',
+                      overflow: 'hidden', textOverflow: 'ellipsis',
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    }}>
+                      "{entry.highlightedText}"
+                    </p>
+                  </div>
+                )}
+
                 <p style={{
                   color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.5,
                   fontFamily: 'var(--font-sans)',

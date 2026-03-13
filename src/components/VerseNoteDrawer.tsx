@@ -7,18 +7,20 @@ interface VerseNoteDrawerProps {
   onClose: () => void;
 }
 
-const JOURNAL_KEY = 'dw_journal_notes';
+const JOURNAL_KEY = 'dw_journal';
 
 function saveToJournal(verseRef: string, highlightedText: string, note: string) {
   try {
     const existing = JSON.parse(localStorage.getItem(JOURNAL_KEY) || '[]');
     existing.unshift({
       id: Date.now().toString(),
-      date: new Date().toISOString(),
-      type: 'scripture_note',
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      type: 'journal',
+      title: verseRef || 'Scripture Note',
+      body: note,
+      tags: ['scripture'],
       verseRef,
       highlightedText,
-      note,
     });
     localStorage.setItem(JOURNAL_KEY, JSON.stringify(existing.slice(0, 500)));
   } catch {}
@@ -39,7 +41,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
   }, [open]);
 
   const handleSave = () => {
-    if (!selection) return;
+    if (!selection || !note.trim()) return;
     const ref = selection.verseRefs[0] || '';
     saveToJournal(ref, selection.text, note);
     setSaved(true);
