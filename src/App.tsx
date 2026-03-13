@@ -37,15 +37,6 @@ function AppContent() {
     }
   }, [userProfile?.email]);
 
-  // Auto-open AI panel on first visit
-  useEffect(() => {
-    if (!localStorage.getItem('dw_ai_panel_seen')) {
-      const t = setTimeout(() => setShowBibleAI(true), 1400);
-      localStorage.setItem('dw_ai_panel_seen', '1');
-      return () => clearTimeout(t);
-    }
-  }, []);
-
   // Auto-open AI when Go Deeper is triggered from a selection
   useEffect(() => {
     if (selection?.text && selection.source === 'range') {

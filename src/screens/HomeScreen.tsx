@@ -253,7 +253,7 @@ interface ReadingSlot {
 }
 
 export function HomeScreen() {
-  const { userProfile, setup, profilePic, saveProfile, saveSetup, requireEmail } = useUser();
+  const { userProfile, setup, profilePic, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
   const [dayOffset, setDayOffset] = useState(0);
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
@@ -347,6 +347,17 @@ export function HomeScreen() {
       setLoadedFirstSlotPassage(true);
     }
   }, [readingSlots, loadedFirstSlotPassage]);
+
+  // Auto-show setup modal for new users after EmailGate closes
+  useEffect(() => {
+    if (showEmailGate) return; // EmailGate still open
+    if (!setup) return; // No persona yet (truly first visit)
+    if (localStorage.getItem('dw_setup_dismissed')) return; // Already dismissed
+    const ap = (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
+    if (Object.keys(ap).length > 0) return; // Already has plans
+    const t = setTimeout(() => setShowSetupModal(true), 600);
+    return () => clearTimeout(t);
+  }, [showEmailGate, setup]);
 
   const savePathwayProgress = (p: PathwayProgress) => {
     setPathwayProgress(p);
@@ -1336,6 +1347,112 @@ export function HomeScreen() {
                   </div>
                 </div>
               </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Start Your Journey — inline plan picker for users with no plans ── */}
+        {(() => {
+          const activePlans: Record<string, unknown> = (() => {
+            try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; }
+          })();
+          const hasPlans = Object.keys(activePlans).length > 0;
+          if (hasPlans) return null;
+
+          const persona = setup?.persona || '';
+          const PERSONA_PLANS: Record<string, string[]> = {
+            new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30'],
+            pastor: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60'],
+            deeper: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89'],
+            difficult: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god'],
+          };
+          const recommendedIds = PERSONA_PLANS[persona] || ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30'];
+          const recommendedPlans = recommendedIds.map(id => PLAN_CATALOGUE.find(p => p.id === id)).filter(Boolean) as typeof PLAN_CATALOGUE;
+
+          return (
+            <div style={{
+              background: 'var(--dw-surface)',
+              border: '2px solid var(--dw-accent)',
+              borderRadius: 16,
+              padding: '20px 18px',
+              marginBottom: 20,
+            }}>
+              <p style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 19,
+                color: 'var(--dw-text-primary)',
+                marginBottom: 4,
+                textAlign: 'center',
+              }}>
+                Start Your Journey
+              </p>
+              <p style={{
+                fontSize: 13,
+                color: 'var(--dw-text-muted)',
+                fontFamily: 'var(--font-sans)',
+                marginBottom: 16,
+                textAlign: 'center',
+              }}>
+                Pick a plan to begin your daily reading
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {recommendedPlans.map(plan => (
+                  <button
+                    key={plan.id}
+                    onClick={() => {
+                      const existing: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
+                        (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
+                      existing[plan.id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
+                      localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+                      localStorage.setItem('dw_setup_dismissed', '1');
+                      window.location.reload();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '14px 16px',
+                      background: 'var(--dw-canvas)',
+                      border: '1px solid var(--dw-border)',
+                      borderRadius: 12,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <BookOpen size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                        {plan.title}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
+                        {plan.totalDays} days · {plan.description.slice(0, 60)}{plan.description.length > 60 ? '…' : ''}
+                      </p>
+                    </div>
+                    <Plus size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowSetupModal(true)}
+                style={{
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--dw-accent)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-sans)',
+                  cursor: 'pointer',
+                  padding: '12px 0 0',
+                  textAlign: 'center',
+                }}
+              >
+                Browse all plans →
+              </button>
             </div>
           );
         })()}
