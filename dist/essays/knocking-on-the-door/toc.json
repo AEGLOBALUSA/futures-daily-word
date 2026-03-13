@@ -1,0 +1,18 @@
+{
+  "id": "knocking-on-the-door",
+  "title": "Knocking on the Door",
+  "subtitle": "A Room-by-Room Guide to the Seven Conflict Personas",
+  "author": "Pastor Ashley Evans",
+  "year": "2026",
+  "icon": "🚪",
+  "gridImage": "seven-personas-grid.png",
+  "openingVerse": "Proverbs 27:5–6 — \"Better is open rebuke than hidden love. Faithful are the wounds of a friend; but the kisses of an enemy are deceitful.\"",
+  "sections": [
+    {"title": "The Conversation You've Been Avoiding", "file": "section-0.json"},
+    {"title": "The Science Behind the Seven", "file": "section-1.json"},
+    {"title": "The House: Four Rooms You Cannot Skip", "file": "section-2.json"},
+    {"title": "The Seven Personas: Room by Room", "file": "section-3.json"},
+    {"title": "Biblical Guard Rails", "file": "section-4.json"},
+    {"title": "The Assignment", "file": "section-5.json"}
+  ]
+}

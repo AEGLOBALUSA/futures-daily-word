@@ -909,29 +909,36 @@ export function HomeScreen() {
                 border: '1px solid rgba(255,255,255,0.13)',
               }}
             >
-              {/* ── Layer 1: animated wave gradient ── */}
+              {/* ── Layer 1: animated wave gradient — deep crimson rolls through near-black ── */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(150deg, #E04858 0%, #C03840 20%, #6B1A22 50%, #1C0508 75%, #8B2030 90%, #C03840 100%)',
-                backgroundSize: '280% 280%',
-                animation: 'heroColorWave 7s ease infinite',
+                background: 'linear-gradient(145deg, #FF3B52 0%, #D42F44 12%, #8B1A26 28%, #3A0810 48%, #6B1A22 62%, #B83040 78%, #E84858 92%, #D42F44 100%)',
+                backgroundSize: '350% 350%',
+                animation: 'heroColorWave 5s ease infinite',
               }} />
 
-              {/* ── Layer 2: glass sheen ── */}
+              {/* ── Layer 2: glass highlight top edge + depth at bottom ── */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.12) 100%)',
+                background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)',
               }} />
 
-              {/* ── Layer 3: rolling shimmer sweep ── */}
+              {/* ── Layer 3: rolling shimmer sweep — wide bright band ── */}
               <div style={{
                 position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 24,
               }}>
                 <div style={{
-                  position: 'absolute', top: '-50%', bottom: '-50%', width: '40%',
-                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.07) 60%, transparent 100%)',
-                  animation: 'heroShimmerSweep 4s ease-in-out infinite',
-                  animationDelay: '1.2s',
+                  position: 'absolute', top: '-60%', bottom: '-60%', width: '55%',
+                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.18) 48%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.18) 52%, rgba(255,255,255,0.04) 70%, transparent 100%)',
+                  animation: 'heroShimmerSweep 3.5s ease-in-out infinite',
+                  animationDelay: '0.8s',
+                }} />
+                {/* Secondary slower sweep for layered depth */}
+                <div style={{
+                  position: 'absolute', top: '-60%', bottom: '-60%', width: '30%',
+                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.08) 60%, transparent 100%)',
+                  animation: 'heroShimmerSweep 5.5s ease-in-out infinite',
+                  animationDelay: '2.4s',
                 }} />
               </div>
 
@@ -2039,21 +2046,22 @@ export function HomeScreen() {
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* Hero card: slow colour wave rolling through gradient stops */
+        /* Hero card: dramatic colour wave — crimson ↔ near-black rolling through stops */
         @keyframes heroColorWave {
-          0%   { background-position: 0% 30%; }
-          25%  { background-position: 60% 70%; }
-          50%  { background-position: 100% 40%; }
-          75%  { background-position: 40% 80%; }
-          100% { background-position: 0% 30%; }
+          0%   { background-position: 0% 0%; }
+          20%  { background-position: 80% 20%; }
+          40%  { background-position: 100% 60%; }
+          60%  { background-position: 50% 100%; }
+          80%  { background-position: 20% 50%; }
+          100% { background-position: 0% 0%; }
         }
 
-        /* Shimmer light sweeping left→right across the card */
+        /* Wide bright band sweeping left→right like glass catching light */
         @keyframes heroShimmerSweep {
-          0%   { left: -45%; opacity: 0; }
-          10%  { opacity: 1; }
-          85%  { opacity: 1; }
-          100% { left: 120%; opacity: 0; }
+          0%   { left: -60%; opacity: 0; }
+          8%   { opacity: 1; }
+          80%  { opacity: 1; }
+          100% { left: 130%; opacity: 0; }
         }
 
         /* Play button idle: subtle border + shadow pulse */
