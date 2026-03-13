@@ -55,8 +55,8 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
     if (!sec) return;
     fetch(`/essays/knocking-on-the-door/${sec.file}`)
       .then(r => r.json())
-      .then((data: { content?: string; text?: string; body?: string }) => {
-        setSectionContent(data.content || data.text || data.body || JSON.stringify(data));
+      .then((data: { content?: string; text?: string; body?: string; paragraphs?: string[] }) => {
+        setSectionContent(data.content || data.text || data.body || (data.paragraphs ? data.paragraphs.join('\n\n') : JSON.stringify(data)));
       })
       .catch(() => setSectionContent('Could not load section.'))
       .finally(() => setLoading(false));
