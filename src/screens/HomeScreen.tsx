@@ -798,6 +798,42 @@ export function HomeScreen() {
   const ashleyJanePassage = todaysPlanPassages.find(p => p.planId === 'ashley-jane-daily-word');
   const ajDevotional = ashleyJanePassage?.devotional;
 
+  // All active plans with progress — used for home page plan strip
+  const homeActivePlans = (() => {
+    try {
+      const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
+        JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      const bp: Record<string, { currentChapter: number; totalChapters: number }> =
+        JSON.parse(localStorage.getItem('dw_book_plans') || '{}');
+      return Object.entries(ap).map(([pid, prog]) => {
+        const plan = PLAN_CATALOGUE.find(p => p.id === pid);
+        if (!plan) return null;
+        const completedCount = plan.bookId && bp[plan.bookId]
+          ? bp[plan.bookId].currentChapter + 1
+          : prog.completedDays.length;
+        return { plan, completedCount };
+      }).filter(Boolean) as { plan: typeof PLAN_CATALOGUE[0]; completedCount: number }[];
+    } catch { return []; }
+  })();
+
+  // Start a plan directly from home screen
+  const startPlanFromHome = (planId: string) => {
+    try {
+      const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      if (existing[planId]) return; // already active
+      existing[planId] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
+      localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+    } catch {}
+  };
+
+  const removePlanFromHome = (planId: string) => {
+    try {
+      const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      delete existing[planId];
+      localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+    } catch {}
+  };
+
   // ── Hero chapter refs — all today's passages expanded to full chapter level ──
   const expandChapterRef = (ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim();
   const heroChapterRefs = (() => {
@@ -2348,6 +2384,116 @@ export function HomeScreen() {
             </div>
           )}
         </Card>
+
+        {/* ── Active Plans Strip ── */}
+        {homeActivePlans.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <p className="text-section-header" style={{ marginBottom: 10 }}>YOUR ACTIVE PLANS</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {homeActivePlans.map(({ plan, completedCount }) => {
+                const pct = Math.min((completedCount / plan.totalDays) * 100, 100);
+                const isComplete = completedCount >= plan.totalDays;
+                return (
+                  <div key={plan.id} style={{
+                    background: 'var(--dw-card)',
+                    border: '1px solid rgba(74,140,64,0.35)',
+                    borderLeft: '3px solid #4A8C40',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', flex: 1, paddingRight: 8 }}>
+                        {plan.title}
+                      </span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, color: isComplete ? '#6ac895' : '#4A8C40',
+                        fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(106,200,149,0.12)' : 'rgba(74,140,64,0.1)',
+                        padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
+                      }}>
+                        {isComplete ? '✓ Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${completedCount} / ${plan.totalDays}`}
+                      </span>
+                    </div>
+                    <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${pct}%`, height: '100%',
+                        background: isComplete ? '#6ac895' : 'linear-gradient(90deg, #4A8C40, #7AC870)',
+                        borderRadius: 2, transition: 'width 400ms ease',
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Reading Plans Discovery ── */}
+        {(() => {
+          const activePlanIds = homeActivePlans.map(a => a.plan.id);
+          const categories = Array.from(new Set(PLAN_CATALOGUE.map(p => p.category)));
+          return (
+            <div style={{ marginBottom: 20 }}>
+              <p className="text-section-header" style={{ marginBottom: 12 }}>READING PLANS</p>
+              {categories.map(cat => (
+                <div key={cat} style={{ marginBottom: 16 }}>
+                  <p style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8,
+                  }}>{cat}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {PLAN_CATALOGUE.filter(p => p.category === cat).map(plan => {
+                      const isActive = activePlanIds.includes(plan.id);
+                      return (
+                        <div
+                          key={plan.id}
+                          onClick={() => {
+                            if (isActive) {
+                              removePlanFromHome(plan.id);
+                            } else {
+                              startPlanFromHome(plan.id);
+                            }
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            background: isActive ? 'rgba(74,140,64,0.07)' : 'var(--dw-card)',
+                            border: isActive ? '1px solid rgba(74,140,64,0.4)' : '1px solid var(--dw-border)',
+                            borderRadius: 10, padding: '10px 12px', cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <div style={{ flex: 1, paddingRight: 10 }}>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0, marginBottom: 2 }}>
+                              {plan.title}
+                            </p>
+                            <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                              {plan.totalDays} {plan.bookId ? 'chapters' : 'days'}
+                            </p>
+                          </div>
+                          <div style={{
+                            minWidth: 28, height: 28, borderRadius: '50%',
+                            background: isActive ? '#4A8C40' : 'var(--dw-accent)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            {isActive ? (
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            ) : (
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                <path d="M5 1v8M1 5h8" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Developer credit */}
         <div style={{

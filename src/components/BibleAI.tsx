@@ -82,21 +82,26 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     setMessages(prev => [...prev, userMsg])
     setLoading(true)
 
-    const context = selectedText
-      ? `The user has highlighted this scripture: "${selectedText}"\n\n${initialContext ?? ''}`
-      : initialContext ?? ''
+    const systemParts: string[] = [
+      'You are a Bible study assistant for Futures Church Daily Word. You help people understand scripture, explore original languages, find application for daily life, and go deeper in their faith. Be warm, pastoral, and insightful. Keep responses clear and digestible — aim for 2-4 short paragraphs unless a longer answer is truly needed.',
+    ]
+    if (selectedText) systemParts.push(`The user has highlighted this passage: "${selectedText.substring(0, 600)}"`)
+    if (initialContext) systemParts.push(initialContext)
+    const systemPrompt = systemParts.join('\n\n')
 
     try {
-      const res = await fetch('/.netlify/functions/bible-ai', {
+      const res = await fetch('/.netlify/functions/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, userMsg],
-          context,
+          system: systemPrompt,
+          max_tokens: 1024,
         }),
       })
       const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply ?? 'Sorry, I couldn\'t process that.' }])
+      const reply = data?.content?.[0]?.text ?? data?.error ?? 'Sorry, something went wrong. Please try again.'
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }])
     } finally {
