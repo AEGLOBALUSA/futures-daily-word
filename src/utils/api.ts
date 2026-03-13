@@ -52,27 +52,26 @@ export async function fetchPassage(passage: string, translation: TranslationCode
 }
 
 async function fetchESV(passage: string): Promise<string> {
-  const res = await fetch(`/api/esv?passage=${encodeURIComponent(passage)}`);
+  const res = await fetch(`/api/esv?q=${encodeURIComponent(passage)}`);
   if (!res.ok) throw new Error(`ESV API error: ${res.status}`);
   const data = await res.json();
   return data.passages?.[0] || data.text || '';
 }
 
 async function fetchNLT(passage: string): Promise<string> {
-  const res = await fetch(`/api/nlt?passage=${encodeURIComponent(passage)}`);
+  const res = await fetch(`/api/nlt?q=${encodeURIComponent(passage)}`);
   if (!res.ok) throw new Error(`NLT API error: ${res.status}`);
   const data = await res.json();
   return data.text || data.passage || '';
 }
 
 async function fetchBolls(passage: string, translation: string): Promise<string> {
-  const res = await fetch(`/api/bolls?passage=${encodeURIComponent(passage)}&translation=${translation}`);
+  const res = await fetch(`/api/bolls?q=${encodeURIComponent(passage)}&v=${encodeURIComponent(translation)}`);
   if (!res.ok) throw new Error(`Bolls API error: ${res.status}`);
   const data = await res.json();
-  // Bolls returns array of verses
-  if (Array.isArray(data)) {
-    return data.map((v: { text: string }) => v.text).join(' ');
-  }
+  // Bolls function returns { passages: [text] }
+  if (data.passages?.[0]) return data.passages[0];
+  if (Array.isArray(data)) return data.map((v: { text: string }) => v.text).join(' ');
   return data.text || '';
 }
 
