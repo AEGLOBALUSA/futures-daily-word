@@ -97,6 +97,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
         50%  { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
       }
+
       @keyframes aiBeam {
         0%   { left: -40%; opacity: 0; }
         5%   { opacity: 1; }
@@ -123,7 +124,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
     }}>
       <div style={{
         background: 'var(--dw-surface)',
-        borderRadius: 16,
+        borderRadius: 10,
         boxShadow: '0 4px 24px rgba(0,0,0,0.22)',
         border: '1px solid var(--dw-border)',
         display: 'flex',
@@ -144,24 +145,25 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           greekHebrewMode
         )}
 
-        {/* ── Ask AI — full-height rectangle block inside the toolbar ── */}
+        {/* ── Ask AI — deep red rectangle ── */}
         <button
           onClick={onGoDeeper}
           style={{
             position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'row',
             alignItems: 'center', justifyContent: 'center',
-            gap: 6,
-            padding: '0 18px',
+            gap: 5,
+            padding: '0 14px',
             alignSelf: 'stretch',
-            background: 'linear-gradient(110deg, #831843 0%, #9D174D 25%, #DB2777 55%, #BE185D 78%, #9D174D 100%)',
+            background: 'linear-gradient(110deg, #1A0304 0%, #4A0A10 35%, #7A1520 65%, #3A0810 100%)',
             backgroundSize: '220% 100%',
-            animation: 'aiAurora 4s ease infinite',
+            animation: 'aiAurora 5s ease infinite',
             color: '#fff',
             border: 'none',
-            borderLeft: '1px solid rgba(255,255,255,0.15)',
+            borderLeft: '1px solid rgba(255,255,255,0.1)',
             cursor: 'pointer',
-            minWidth: 72,
+            minWidth: 66,
+            borderRadius: 0,
           }}
         >
           <span style={{

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2 } from 'lucide-react';
 
 interface JournalEntry {
   id: string;
@@ -351,9 +351,205 @@ function getDailyJournalPrompt() {
   return JOURNAL_PROMPTS[dayOfYear % JOURNAL_PROMPTS.length];
 }
 
+/* ── Today's Study Panel ─────────────────────────────────────── */
+interface TodayPassage {
+  ref: string;
+  planTitle: string | null;
+  dayNum: number | null;
+}
+
+function getTodaysPassages(): TodayPassage[] {
+  try {
+    const plan: Array<{ passage: string; planTitle: string; dayNum: number }> =
+      JSON.parse(localStorage.getItem('dw_todays_plan_passages') || '[]');
+    const slots: Array<{ book: string; currentChapter: number }> =
+      JSON.parse(localStorage.getItem('dw_reading_slots') || '[]');
+    const out: TodayPassage[] = [
+      ...plan.map(p => ({ ref: p.passage, planTitle: p.planTitle, dayNum: p.dayNum })),
+      ...slots.map(s => ({ ref: `${s.book} ${s.currentChapter}`, planTitle: null, dayNum: null })),
+    ];
+    // Deduplicate by ref
+    return out.filter((p, i, arr) => arr.findIndex(x => x.ref === p.ref) === i);
+  } catch { return []; }
+}
+
+function TodayPanel({ allEntries, onSave }: {
+  allEntries: JournalEntry[];
+  onSave: (entry: JournalEntry) => void;
+}) {
+  const passages = getTodaysPassages();
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const [openRef, setOpenRef] = useState<string | null>(null);
+  const [draftText, setDraftText] = useState('');
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+
+  function getExistingNote(ref: string): JournalEntry | undefined {
+    return allEntries.find(e => e.verseRef === ref && e.date === today);
+  }
+
+  function handleOpen(ref: string) {
+    if (openRef === ref) { setOpenRef(null); return; }
+    const existing = getExistingNote(ref);
+    setDraftText(existing?.body || '');
+    setOpenRef(ref);
+  }
+
+  function handleSave(ref: string) {
+    if (!draftText.trim()) return;
+    const existing = getExistingNote(ref);
+    const entry: JournalEntry = existing
+      ? { ...existing, body: draftText }
+      : {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+          date: today,
+          title: ref,
+          body: draftText,
+          tags: ['study'],
+          type: 'journal',
+          verseRef: ref,
+        };
+    onSave(entry);
+    setSaved(prev => new Set([...prev, ref]));
+    setOpenRef(null);
+    setTimeout(() => setSaved(prev => { const s = new Set(prev); s.delete(ref); return s; }), 2500);
+  }
+
+  if (passages.length === 0) {
+    return (
+      <Card style={{ textAlign: 'center', padding: '40px 16px' }}>
+        <BookOpen size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
+        <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
+          No passages scheduled for today
+        </p>
+        <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
+          Add a reading plan or book in the Home tab
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {passages.map(({ ref, planTitle, dayNum }) => {
+        const existingNote = getExistingNote(ref);
+        const isOpen = openRef === ref;
+        const wasSaved = saved.has(ref);
+
+        return (
+          <div key={ref} style={{
+            background: 'var(--dw-card)',
+            border: '1px solid var(--dw-border)',
+            borderRadius: 14,
+            overflow: 'hidden',
+          }}>
+            {/* Passage header */}
+            <div style={{ padding: '14px 16px 12px' }}>
+              {planTitle && (
+                <p style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4,
+                }}>
+                  {planTitle}{dayNum ? ` — Day ${dayNum}` : ''}
+                </p>
+              )}
+              <p style={{
+                fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)',
+                color: 'var(--dw-text-primary)', marginBottom: existingNote ? 8 : 0,
+              }}>
+                {ref}
+              </p>
+              {existingNote && !isOpen && (
+                <p style={{
+                  fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
+                  lineHeight: 1.5, fontStyle: 'italic',
+                  display: '-webkit-box', overflow: 'hidden',
+                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                }}>
+                  {existingNote.body}
+                </p>
+              )}
+            </div>
+
+            {/* Inline note editor */}
+            {isOpen && (
+              <div style={{ borderTop: '1px solid var(--dw-border)', padding: '12px 16px' }}>
+                <textarea
+                  autoFocus
+                  value={draftText}
+                  onChange={e => setDraftText(e.target.value)}
+                  placeholder={`What is God saying to you through ${ref}?`}
+                  style={{
+                    width: '100%', minHeight: 100, resize: 'none',
+                    border: 'none', outline: 'none',
+                    background: 'transparent',
+                    fontSize: 14, lineHeight: 1.6,
+                    color: 'var(--dw-text)',
+                    fontFamily: 'var(--font-sans)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                  <button
+                    onClick={() => setOpenRef(null)}
+                    style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSave(ref)}
+                    disabled={!draftText.trim()}
+                    style={{
+                      background: 'var(--dw-accent)', border: 'none', borderRadius: 8,
+                      padding: '7px 16px', color: '#fff', fontSize: 13, fontWeight: 600,
+                      cursor: draftText.trim() ? 'pointer' : 'default',
+                      opacity: draftText.trim() ? 1 : 0.45,
+                      fontFamily: 'var(--font-sans)',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                    }}
+                  >
+                    <Save size={13} /> Save note
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Footer action row */}
+            <div style={{
+              borderTop: '1px solid var(--dw-border)',
+              padding: '8px 12px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              {wasSaved ? (
+                <span style={{ fontSize: 12, color: '#4A8C40', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)' }}>
+                  <CheckCircle2 size={13} /> Saved
+                </span>
+              ) : (
+                <button
+                  onClick={() => handleOpen(ref)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 12, fontWeight: 600,
+                    color: isOpen ? 'var(--dw-text-muted)' : 'var(--dw-accent)',
+                    fontFamily: 'var(--font-sans)',
+                    padding: '4px 0',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <PenLine size={13} />
+                  {isOpen ? 'Cancel' : existingNote ? 'Edit note' : 'Add note'}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function JournalScreen() {
   const { userProfile, requireEmail } = useUser();
-  const [activeTab, setActiveTab] = useState<'journal' | 'sermon' | 'saved'>('journal');
+  const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -366,12 +562,21 @@ export function JournalScreen() {
   }, []);
 
   const tabs = [
+    { id: 'today' as const, label: 'Today', icon: BookOpen },
     { id: 'journal' as const, label: 'Journal', icon: PenLine },
     { id: 'sermon' as const, label: 'Sermons', icon: PenLine },
     { id: 'saved' as const, label: 'Saved', icon: Bookmark },
   ];
 
-  const filteredEntries = entries.filter(e => e.type === activeTab);
+  const filteredEntries = activeTab !== 'today' ? entries.filter(e => e.type === activeTab) : [];
+
+  const handleTodaySave = useCallback((entry: JournalEntry) => {
+    const all = getEntries();
+    const idx = all.findIndex(e => e.id === entry.id);
+    if (idx >= 0) { all[idx] = entry; } else { all.unshift(entry); }
+    saveEntries(all);
+    setEntries(all);
+  }, []);
 
   const openNewEntry = useCallback(() => {
     if (!userProfile?.email) { requireEmail(); return; }
@@ -381,7 +586,7 @@ export function JournalScreen() {
       title: '',
       body: '',
       tags: [],
-      type: activeTab === 'saved' ? 'journal' : activeTab,
+      type: (activeTab === 'saved' || activeTab === 'today') ? 'journal' : activeTab,
     });
     setShowEditor(true);
   }, [activeTab, userProfile, requireEmail]);
@@ -592,7 +797,7 @@ export function JournalScreen() {
             color: 'var(--dw-text-primary)',
             letterSpacing: '-0.02em',
           }}>
-            Journal
+            Study Notes
           </h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {/* Record yourself button */}
@@ -656,8 +861,13 @@ export function JournalScreen() {
           ))}
         </div>
 
+        {/* Today's passages — inline note-taking */}
+        {activeTab === 'today' && (
+          <TodayPanel allEntries={entries} onSave={handleTodaySave} />
+        )}
+
         {/* Entries */}
-        {filteredEntries.length === 0 ? (
+        {activeTab !== 'today' && filteredEntries.length === 0 ? (
           <Card style={{ textAlign: 'center', padding: '40px 16px' }}>
             <PenLine size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
@@ -667,7 +877,7 @@ export function JournalScreen() {
               Create Your First Entry
             </button>
           </Card>
-        ) : (
+        ) : activeTab !== 'today' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filteredEntries.map(entry => (
               <Card key={entry.id} onClick={() => openEntry(entry)}>

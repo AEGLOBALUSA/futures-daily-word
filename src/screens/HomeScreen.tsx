@@ -304,7 +304,6 @@ export function HomeScreen() {
   const speechSynthRef = useRef(false); // true when Web Speech API is active
   const [streakCount, setStreakCount] = useState(() => getStreak().count);
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
-  const [morningModeActive, setMorningModeActive] = useState(false);
   const dailyWord = getDailyWord();
   // Emoji reaction
   const [todayReaction, setTodayReaction] = useState<string | null>(() => getTodayReaction());
@@ -764,69 +763,6 @@ export function HomeScreen() {
     setShowSetupModal(false);
   };
 
-  /** Morning Mode: speak quote → devotion body → all loaded passages → commentary in sequence */
-  const handleMorningMode = () => {
-    if (!('speechSynthesis' in window)) return;
-    if (morningModeActive) {
-      window.speechSynthesis.cancel();
-      setMorningModeActive(false);
-      speechSynthRef.current = false;
-      setAudioPlaying(false);
-      setAudioCurrentPassage(null);
-      return;
-    }
-    window.speechSynthesis.cancel();
-
-    // Build text queue
-    const segments: string[] = [];
-    if (quote?.text) segments.push(`Today's quote. "${quote.text}" — ${quote.author}.`);
-    if (devotion?.body) segments.push(`Devotion of the day. ${devotion.title}. ${devotion.body}`);
-
-    // All loaded passages
-    const allPassageIds = [
-      ...todaysPlanPassages.map(p => p.passage),
-      ...readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length)).map(s => `${s.book} ${s.currentChapter}`),
-    ];
-    for (const pid of allPassageIds) {
-      const txt = passageTexts[`${pid}_${translation}`];
-      if (txt) segments.push(`${pid}. ${txt.slice(0, 3000)}`);
-    }
-    if (commentaryText) segments.push(`Commentary. ${commentaryText.slice(0, 1500)}`);
-
-    if (segments.length === 0) return;
-
-    setMorningModeActive(true);
-    speechSynthRef.current = true;
-    setAudioPlaying(true);
-
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
-      || voices.find(v => v.lang.startsWith('en') && v.localService);
-
-    let idx = 0;
-    const speakNext = () => {
-      if (idx >= segments.length) {
-        setMorningModeActive(false);
-        speechSynthRef.current = false;
-        setAudioPlaying(false);
-        setAudioCurrentPassage(null);
-        return;
-      }
-      const utter = new SpeechSynthesisUtterance(segments[idx]);
-      utter.lang = 'en-US';
-      utter.rate = 0.91;
-      if (preferred) utter.voice = preferred;
-      utter.onend = () => { idx++; speakNext(); };
-      utter.onerror = () => { idx++; speakNext(); };
-      window.speechSynthesis.speak(utter);
-    };
-
-    if (voices.length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; speakNext(); };
-    } else {
-      speakNext();
-    }
-  };
 
   const todaysPlanPassages = (() => {
     try {
@@ -841,6 +777,8 @@ export function HomeScreen() {
         const dev = plan.devotionals?.[dn - 1];
         if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
       }
+      // Persist today's plan passages so Study Notes tab can read them
+      try { localStorage.setItem('dw_todays_plan_passages', JSON.stringify(out)); } catch {}
       return out;
     } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }>; }
   })()
@@ -1119,22 +1057,6 @@ export function HomeScreen() {
                   </p>
                 </div>
 
-                {/* Morning Mode button */}
-                <button
-                  onClick={handleMorningMode}
-                  style={{
-                    marginTop: 10,
-                    background: morningModeActive ? 'rgba(255,149,0,0.2)' : 'rgba(255,255,255,0.1)',
-                    border: `1px solid ${morningModeActive ? 'rgba(255,149,0,0.5)' : 'rgba(255,255,255,0.25)'}`,
-                    borderRadius: 999, padding: '7px 18px',
-                    color: morningModeActive ? '#FF9500' : 'rgba(255,255,255,0.85)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', letterSpacing: '0.05em',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  {morningModeActive ? '⏹ Stop Morning Mode' : '☀ Morning Mode'}
-                </button>
 
                 {/* Error message */}
                 {audioError && audioCurrentPassage === heroPassage && (
