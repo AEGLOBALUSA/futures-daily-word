@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, Play, BookOpen, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, Play, BookOpen, Plus, X, Sparkles } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -843,19 +843,60 @@ export function HomeScreen() {
 
         {/* Header — compact, sits above the centered hero */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div>
-            <h1 style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 24,
-              fontWeight: 400,
-              color: 'var(--dw-text-primary)',
-              letterSpacing: '-0.02em',
-            }}>
-              Daily Word
-            </h1>
-            <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 1 }}>
-              Futures Church
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* AI button — top left, always accessible */}
+            <button
+              onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                background: 'linear-gradient(145deg, #1A0304 0%, #4A0A10 40%, #7A1520 75%, #3A0810 100%)',
+                backgroundSize: '200% 200%',
+                animation: 'aiAurora 5s ease infinite',
+                border: '1px solid rgba(255,80,60,0.25)',
+                boxShadow: '0 2px 12px rgba(100,10,15,0.45)',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+              onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              {/* shimmer sweep */}
+              <span style={{
+                position: 'absolute', top: 0, bottom: 0, width: '60%',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
+                animation: 'aiBeam 4s ease-in-out infinite',
+                pointerEvents: 'none',
+              }} />
+              <Sparkles size={16} color="#fff" strokeWidth={2} style={{ position: 'relative' }} />
+              <span style={{
+                fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.9)',
+                fontFamily: 'var(--font-sans)', letterSpacing: '0.08em',
+                textTransform: 'uppercase', position: 'relative',
+              }}>AI</span>
+            </button>
+            <div>
+              <h1 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 24,
+                fontWeight: 400,
+                color: 'var(--dw-text-primary)',
+                letterSpacing: '-0.02em',
+              }}>
+                Daily Word
+              </h1>
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 1 }}>
+                Futures Church
+              </p>
+            </div>
           </div>
           {/* Streak display — clean counter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2218,6 +2259,17 @@ export function HomeScreen() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes aiAurora {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes aiBeam {
+          0%   { left: -60%; opacity: 0; }
+          8%   { opacity: 1; }
+          40%  { left: 160%; opacity: 0; }
+          100% { left: 160%; opacity: 0; }
+        }
         @keyframes scaleIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         /* Hero card: dramatic colour wave — crimson ↔ near-black rolling through stops */
