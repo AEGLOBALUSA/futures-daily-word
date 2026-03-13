@@ -148,7 +148,7 @@ export function HomeScreen() {
   const [showNoteDrawer, setShowNoteDrawer] = useState(false);
   const [showBibleAI, setShowBibleAI] = useState(false);
   const [bibleAIContext, setBibleAIContext] = useState<string>('');
-  const { selection, setSelection } = useScriptureSelection();
+  const { selection, setSelection, greekHebrewMode } = useScriptureSelection();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlCache = useRef<Map<string, string>>(new Map());
   const audioUnlocked = useRef(false);
@@ -558,6 +558,40 @@ export function HomeScreen() {
   const filteredBooks = BIBLE_BOOKS.filter(book =>
     book.toLowerCase().includes(bookPickerSearch.toLowerCase())
   );
+
+  /** Render scripture text with tappable words when Gk/Heb mode is active */
+  const renderScripture = (text: string, passage: string) => {
+    if (!greekHebrewMode) return text;
+    // Split preserving whitespace tokens
+    const tokens = text.split(/(\s+)/);
+    return tokens.map((token, i) => {
+      if (/^\s+$/.test(token)) return token;
+      const word = token.replace(/[^a-zA-Z']/g, '');
+      if (!word) return token;
+      return (
+        <span
+          key={i}
+          onClick={(e) => {
+            e.stopPropagation();
+            // Open BibleAI with word study context
+            setBibleAIContext(`Please explain the original Greek or Hebrew meaning of the word "${word}" as it appears in ${passage}. Include the Strongs number if known, the original language word, its transliteration, definition, and how it enriches understanding of this verse.`);
+            setShowBibleAI(true);
+          }}
+          style={{
+            cursor: 'pointer',
+            borderBottom: '1px dotted #9A7B2E',
+            paddingBottom: 1,
+            borderRadius: 2,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(154,123,46,0.18)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          {token}
+        </span>
+      );
+    });
+  };
 
   return (
     <div className="screen-container">
@@ -1076,7 +1110,28 @@ export function HomeScreen() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p className="text-section-header">TODAY'S CHAPTERS</p>
-              <button onClick={() => { const t = readingSlots.map(s => passageTexts[`${s.book} ${s.currentChapter}_${translation}`]||'').filter(Boolean).join('\n\n'); if (t) setSelection({ text: t, verseRefs: readingSlots.map(s=>`${s.book} ${s.currentChapter}`), source: 'select-all' }); }} style={{ background:'rgba(154,123,46,0.12)', border:'1px solid rgba(154,123,46,0.3)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#9A7B2E', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
+              <button onClick={() => {
+                // All visible passages = plan passages + reading slot passages
+                const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
+                const allPassageIds = [
+                  ...todaysPlanPassages.map(p => p.passage),
+                  ...slotPassages.map(s => `${s.book} ${s.currentChapter}`),
+                ];
+                // Trigger loading + expand all so texts become available
+                allPassageIds.forEach(p => loadPassage(p));
+                setExpandedPassages(new Set(allPassageIds));
+                // Select whatever is already loaded right now
+                const loadedPairs = allPassageIds
+                  .map(p => ({ p, t: passageTexts[`${p}_${translation}`] || '' }))
+                  .filter(x => x.t);
+                if (loadedPairs.length > 0) {
+                  setSelection({
+                    text: loadedPairs.map(x => x.t).join('\n\n'),
+                    verseRefs: loadedPairs.map(x => x.p),
+                    source: 'select-all',
+                  });
+                }
+              }} style={{ background:'rgba(154,123,46,0.12)', border:'1px solid rgba(154,123,46,0.3)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#9A7B2E', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
             <button
               onClick={() => setShowReadingSetup(!showReadingSetup)}
               style={{
@@ -1169,11 +1224,16 @@ export function HomeScreen() {
                 {txt ? (
                   <>
                     <div
-                      onClick={() => txt && setSelection({ text: txt, verseRefs: [passage], source: 'tap' })}
-                      style={{ cursor: 'pointer', borderRadius: 4, transition: 'background 0.2s', background: selection?.verseRefs?.includes(passage) ? 'rgba(154,123,46,0.12)' : 'transparent' }}
+                      onClick={() => !greekHebrewMode && txt && setSelection({ text: txt, verseRefs: [passage], source: 'tap' })}
+                      style={{ cursor: greekHebrewMode ? 'default' : 'pointer', borderRadius: 4, transition: 'background 0.2s', background: selection?.verseRefs?.includes(passage) ? 'rgba(154,123,46,0.12)' : 'transparent' }}
                     >
+                      {greekHebrewMode && (
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#9A7B2E', marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+                          Tap any word to explore its meaning
+                        </p>
+                      )}
                       <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif, Georgia, serif)', margin: 0 }}>
-                        {txt}
+                        {renderScripture(txt, passage)}
                       </p>
                     </div>
                     {selection?.verseRefs?.includes(passage) && (
@@ -1345,9 +1405,14 @@ export function HomeScreen() {
                           </div>
                         ) : text ? (
               <>
-              <div onClick={() => text && setSelection({ text, verseRefs: [passage], source: 'tap' })} style={{ cursor:'pointer', padding:'2px 0' }}>
-                <p className="text-scripture" style={{ fontSize:15, lineHeight:1.7, color:'var(--dw-text)', fontFamily:'var(--font-serif)', background: selection?.text===text ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius:4, transition:'background 0.2s' }}>
-                  {text}
+              <div onClick={() => !greekHebrewMode && text && setSelection({ text, verseRefs: [passage], source: 'tap' })} style={{ cursor: greekHebrewMode ? 'default' : 'pointer', padding:'2px 0' }}>
+                {greekHebrewMode && (
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#9A7B2E', marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+                    Tap any word to explore its meaning
+                  </p>
+                )}
+                <p className="text-scripture" style={{ fontSize:15, lineHeight:1.7, color:'var(--dw-text)', fontFamily:'var(--font-serif)', background: !greekHebrewMode && selection?.text===text ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius:4, transition:'background 0.2s' }}>
+                  {renderScripture(text, passage)}
                 </p>
               </div>
               {selection?.verseRefs?.includes(passage) && (
