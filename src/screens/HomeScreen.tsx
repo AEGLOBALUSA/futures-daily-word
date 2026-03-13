@@ -1616,6 +1616,26 @@ export function HomeScreen() {
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
               {dateStr}
             </p>
+            {todaysPlanPassages.length > 0 && (
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
+                {(() => {
+                  // Deduplicate by planId so each plan shows once
+                  const seen = new Set<string>();
+                  const plans: { title: string; dayNum: number; passages: string[] }[] = [];
+                  todaysPlanPassages.forEach(p => {
+                    if (seen.has(p.planId)) {
+                      plans[plans.length - 1].passages.push(p.passage);
+                    } else {
+                      seen.add(p.planId);
+                      plans.push({ title: p.planTitle, dayNum: p.dayNum, passages: [p.passage] });
+                    }
+                  });
+                  return plans.map(p =>
+                    `Day ${p.dayNum} of ${p.title} · ${p.passages.join(', ')}`
+                  ).join(' | ');
+                })()}
+              </p>
+            )}
           </div>
           <button
             onClick={() => setDayOffset(d => d + 1)}
