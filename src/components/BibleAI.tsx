@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Sparkles, Send, ChevronDown } from 'lucide-react'
+import { Sparkles, Send, ChevronDown } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
