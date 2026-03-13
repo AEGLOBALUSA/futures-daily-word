@@ -924,21 +924,37 @@ export function HomeScreen() {
               <div
                 onClick={() => streakCount >= 7 && setShowMilestone(streakCount)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: streakCount >= 7 ? 'rgba(255,149,0,0.15)' : 'rgba(154,123,46,0.12)',
-                  border: `1px solid ${streakCount >= 7 ? 'rgba(255,149,0,0.35)' : 'rgba(154,123,46,0.3)'}`,
-                  borderRadius: 999, padding: '5px 12px',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: streakCount >= 7
+                    ? 'linear-gradient(135deg, #D95E00 0%, #FF8C00 60%, #FFAA33 100%)'
+                    : 'linear-gradient(135deg, #8B6914 0%, #C49A3C 100%)',
+                  borderRadius: 999,
+                  padding: '5px 11px 5px 7px',
                   cursor: streakCount >= 7 ? 'pointer' : 'default',
+                  animation: streakCount >= 7 ? 'streakGlow 2.4s ease-in-out infinite' : 'none',
+                  transition: 'transform 0.15s ease',
                 }}
+                onPointerDown={e => streakCount >= 7 && (e.currentTarget.style.transform = 'scale(0.93)')}
+                onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                <span style={{ fontSize: 16 }}>🔥</span>
                 <span style={{
-                  fontSize: 13, fontWeight: 700,
-                  color: streakCount >= 7 ? '#FF9500' : 'var(--dw-accent)',
-                  fontFamily: 'var(--font-sans)',
-                }}>
-                  {streakCount}
-                </span>
+                  fontSize: 18, lineHeight: 1, display: 'block',
+                  animation: streakCount >= 7 ? 'streakFireWiggle 1.8s ease-in-out infinite' : 'none',
+                }}>🔥</span>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1, gap: 1 }}>
+                  <span style={{
+                    fontSize: 15, fontWeight: 800, color: '#fff',
+                    fontFamily: 'var(--font-sans)', letterSpacing: '-0.02em',
+                  }}>
+                    {streakCount}
+                  </span>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.82)',
+                    fontFamily: 'var(--font-sans)', letterSpacing: '0.06em', textTransform: 'uppercase',
+                  }}>
+                    {streakCount === 1 ? 'day' : 'days'}
+                  </span>
+                </div>
               </div>
             )}
             <ThemeToggle />
@@ -2275,6 +2291,15 @@ export function HomeScreen() {
         @keyframes heroRingPulse {
           0%, 100% { box-shadow: 0 0 0 10px rgba(255,255,255,0.07), 0 0 0 22px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4); }
           50% { box-shadow: 0 0 0 16px rgba(255,255,255,0.1), 0 0 0 30px rgba(255,255,255,0.04), 0 10px 32px rgba(0,0,0,0.4); }
+        }
+        /* Streak badge glow pulse for milestones */
+        @keyframes streakGlow {
+          0%, 100% { box-shadow: 0 0 10px rgba(255,120,0,0.45), 0 2px 6px rgba(0,0,0,0.2); }
+          50% { box-shadow: 0 0 22px rgba(255,120,0,0.75), 0 2px 10px rgba(0,0,0,0.25); }
+        }
+        @keyframes streakFireWiggle {
+          0%, 100% { transform: rotate(-4deg) scale(1); }
+          50% { transform: rotate(4deg) scale(1.12); }
         }
       `}</style>
       {/* Milestone celebration overlay */}
