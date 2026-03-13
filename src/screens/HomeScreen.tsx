@@ -792,6 +792,10 @@ export function HomeScreen() {
     book.toLowerCase().includes(bookPickerSearch.toLowerCase())
   );
 
+  // Ashley & Jane plan devotional — replaces default Devotion of the Day when active
+  const ashleyJanePassage = todaysPlanPassages.find(p => p.planId === 'ashley-jane-daily-word');
+  const ajDevotional = ashleyJanePassage?.devotional;
+
   // ── Hero chapter refs — all today's passages expanded to full chapter level ──
   const expandChapterRef = (ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim();
   const heroChapterRefs = (() => {
@@ -965,9 +969,9 @@ export function HomeScreen() {
                 pointerEvents: 'none',
               }} />
               <span style={{
-                fontSize: 11, fontWeight: 900,
+                fontSize: 11, fontWeight: 700,
                 color: '#fff',
-                fontFamily: 'var(--font-sans)',
+                fontFamily: "'SF Pro Display', 'system-ui', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
                 position: 'relative',
@@ -1515,21 +1519,37 @@ export function HomeScreen() {
         </Card>
         )}
 
-        {/* Devotion of the Day */}
+        {/* Devotion of the Day — shows A&J devotional when that plan is active, otherwise default */}
         <Card style={{ marginBottom: 16 }}>
           <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
-          <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
-          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-            {devotion.verse}
-          </p>
-          <p
-            className="text-devotion"
-            onClick={() => setSelection({ text: devotion.body, verseRefs: [devotion.verse || ''], source: 'tap' })}
-            style={{ cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-          >{devotion.body}</p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            — {devotion.author}
-          </p>
+          {ajDevotional ? (
+            <>
+              <p className="text-card-title" style={{ marginBottom: 12 }}>{ajDevotional.title}</p>
+              <p
+                className="text-devotion"
+                onClick={() => setSelection({ text: ajDevotional.body, verseRefs: [ashleyJanePassage?.passage || ''], source: 'tap' })}
+                style={{ cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+              >{ajDevotional.body}</p>
+              <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
+                — {ajDevotional.author}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
+              <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+                {devotion.verse}
+              </p>
+              <p
+                className="text-devotion"
+                onClick={() => setSelection({ text: devotion.body, verseRefs: [devotion.verse || ''], source: 'tap' })}
+                style={{ cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+              >{devotion.body}</p>
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
+                — {devotion.author}
+              </p>
+            </>
+          )}
         </Card>
 
         {/* Quote shows AFTER devotion on days when devotion leads (type 1) */}
@@ -1877,8 +1897,8 @@ export function HomeScreen() {
                   </div>
                 )}
               </div>
-              {/* ── Daily Devotional — shown after scripture when plan has one ── */}
-              {devotional && (
+              {/* ── Daily Devotional — shown after scripture when plan has one (suppressed for A&J since it shows as main devotion) ── */}
+              {devotional && planId !== 'ashley-jane-daily-word' && (
                 <div style={{
                   borderTop: '1px solid var(--dw-border-subtle)',
                   padding: '18px 18px 20px',
