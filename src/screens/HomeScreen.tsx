@@ -159,7 +159,7 @@ export function HomeScreen() {
 
   const savePathwayProgress = (p: PathwayProgress) => {
     setPathwayProgress(p);
-    try { localStorage.setItem('dw_pathway_progress', JSON.stringify())); } catch {}
+    try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
   };
 
   const saveReadingSlots = (slots: ReadingSlot[]) => {
