@@ -146,6 +146,21 @@ export function PrayerGlobe({ prayers = [], style }: PrayerGlobeProps) {
       const w = dims.w;
       const h = dims.h;
 
+      // Slow horizontal scroll — full rotation every ~120 seconds
+      const scrollOffset = (t * 0.008333) % 1; // normalized 0-1
+
+      // Helper: wrap an x coordinate (0-1) with scroll offset, return pixel x
+      // Returns an array of pixel positions (usually 1, but 2 if near the edge for seamless wrap)
+      function wrapX(nx: number): number[] {
+        const shifted = ((nx + scrollOffset) % 1 + 1) % 1;
+        const px = shifted * w;
+        const positions = [px];
+        // Draw a duplicate near edges for seamless wrapping
+        if (shifted > 0.85) positions.push((shifted - 1) * w);
+        if (shifted < 0.15) positions.push((shifted + 1) * w);
+        return positions;
+      }
+
       // Clear
       ctx.clearRect(0, 0, w, h);
 
@@ -153,7 +168,7 @@ export function PrayerGlobe({ prayers = [], style }: PrayerGlobeProps) {
       ctx.fillStyle = 'rgba(10, 12, 18, 0.95)';
       ctx.fillRect(0, 0, w, h);
 
-      // Grid lines (subtle)
+      // Grid lines (subtle) — these stay fixed for a nice parallax feel
       ctx.strokeStyle = 'rgba(100, 120, 160, 0.06)';
       ctx.lineWidth = 0.5;
       for (let i = 1; i < 6; i++) {
@@ -163,85 +178,86 @@ export function PrayerGlobe({ prayers = [], style }: PrayerGlobeProps) {
         ctx.stroke();
       }
       for (let i = 1; i < 12; i++) {
+        const gx = (((i / 12) + scrollOffset) % 1) * w;
         ctx.beginPath();
-        ctx.moveTo((w / 12) * i, 0);
-        ctx.lineTo((w / 12) * i, h);
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, h);
         ctx.stroke();
       }
 
-      // Draw continents
+      // Draw continents (with scroll wrapping)
       CONTINENTS.forEach(poly => {
-        ctx.beginPath();
-        poly.forEach(([px, py], i) => {
-          const cx = px * w;
-          const cy = py * h;
-          if (i === 0) ctx.moveTo(cx, cy);
-          else ctx.lineTo(cx, cy);
-        });
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(60, 70, 90, 0.35)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(100, 120, 160, 0.15)';
-        ctx.lineWidth = 0.7;
-        ctx.stroke();
+        // Draw the polygon at its scrolled position, plus a duplicate for wrap
+        for (let dup = 0; dup < 2; dup++) {
+          ctx.beginPath();
+          poly.forEach(([px, py], i) => {
+            const sx = (((px + scrollOffset) % 1 + 1) % 1 + dup - (dup === 1 ? 1 : 0)) * w;
+            const sy = py * h;
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+          });
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(60, 70, 90, 0.35)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(100, 120, 160, 0.15)';
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+        }
       });
 
       // Draw campus region glows
       CAMPUS_POINTS.forEach(point => {
-        const cx = point.x * w;
+        const positions = wrapX(point.x);
         const cy = point.y * h;
         const color = REGION_COLORS[point.region] || '#F5C842';
         const pulse = 0.7 + 0.3 * Math.sin(t * 1.5 + point.x * 10);
         const radius = Math.min(w, h) * 0.025;
 
-        // Outer glow
-        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 4);
-        grad.addColorStop(0, color.replace(')', `,${0.25 * pulse})`).replace('rgb', 'rgba').replace('#', ''));
-        grad.addColorStop(1, 'transparent');
+        positions.forEach(cx => {
+          // Simple glow circle
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius * 4, 0, Math.PI * 2);
+          ctx.fillStyle = `${color}${Math.round(25 * pulse).toString(16).padStart(2, '0')}`;
+          ctx.fill();
 
-        // Simple glow circle
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius * 4, 0, Math.PI * 2);
-        ctx.fillStyle = `${color}${Math.round(25 * pulse).toString(16).padStart(2, '0')}`;
-        ctx.fill();
-
-        // Core dot
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.7 + 0.3 * pulse;
-        ctx.fill();
-        ctx.globalAlpha = 1;
+          // Core dot
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.7 + 0.3 * pulse;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
       });
 
       // Draw prayer dots
       prayerDots.current.forEach((dot, i) => {
-        const cx = dot.x * w;
+        const positions = wrapX(dot.x);
         const cy = dot.y * h;
         const pulse = 0.5 + 0.5 * Math.sin(t * 2 + i * 1.3);
         const radius = Math.min(w, h) * 0.012;
 
-        if (dot.prayedFor) {
-          // Prayed for = warm white/gold glow (answered)
-          ctx.beginPath();
-          ctx.arc(cx, cy, radius * 3, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 255, 255, ${0.08 * pulse})`;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 248, 220, ${0.6 + 0.4 * pulse})`;
-          ctx.fill();
-        } else {
-          // Needs prayer = pulsing amber/gold
-          ctx.beginPath();
-          ctx.arc(cx, cy, radius * 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(245, 200, 66, ${0.12 * pulse})`;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(212, 160, 23, ${0.5 + 0.5 * pulse})`;
-          ctx.fill();
-        }
+        positions.forEach(cx => {
+          if (dot.prayedFor) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius * 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.08 * pulse})`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 248, 220, ${0.6 + 0.4 * pulse})`;
+            ctx.fill();
+          } else {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius * 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(245, 200, 66, ${0.12 * pulse})`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(212, 160, 23, ${0.5 + 0.5 * pulse})`;
+            ctx.fill();
+          }
+        });
       });
 
       // Region labels (small, elegant)
@@ -254,10 +270,12 @@ export function PrayerGlobe({ prayers = [], style }: PrayerGlobeProps) {
         { label: 'BRAZIL', ...latLng(-15, -50) },
       ];
       regionCenters.forEach(r => {
-        const rx = r.x * w;
+        const positions = wrapX(r.x);
         const ry = r.y * h;
-        ctx.fillStyle = 'rgba(200, 210, 230, 0.35)';
-        ctx.fillText(r.label, rx, ry);
+        positions.forEach(rx => {
+          ctx.fillStyle = 'rgba(200, 210, 230, 0.35)';
+          ctx.fillText(r.label, rx, ry);
+        });
       });
 
       animFrame.current = requestAnimationFrame(draw);
