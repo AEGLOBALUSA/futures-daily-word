@@ -1715,7 +1715,12 @@ export function HomeScreen() {
           <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
           {ajDevotional ? (
             <>
-              <p className="text-card-title" style={{ marginBottom: 12 }}>{ajDevotional.title}</p>
+              <p className="text-card-title" style={{ marginBottom: 6 }}>{ajDevotional.title}</p>
+              {ashleyJanePassage?.passage && (
+                <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+                  {ashleyJanePassage.passage}
+                </p>
+              )}
               <p className="text-devotion">{ajDevotional.body}</p>
               <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
                 — {ajDevotional.author}
