@@ -10,6 +10,10 @@ import { QUOTES } from '../data/quotes';
 import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
 import { useUser } from '../contexts/UserContext';
+import { ScriptureBlock } from '../components/ScriptureBlock';
+import { HighlightToolbar } from '../components/HighlightToolbar';
+import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
+import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -20,7 +24,7 @@ const PERSONAS = [
   { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 
-/* Ã¢ÂÂÃ¢ÂÂ Bible Books and Chapters Ã¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Bible Books and Chapters ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 const BIBLE_BOOKS = [
   'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth',
   '1 Samuel', '2 Samuel', '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah',
@@ -46,7 +50,7 @@ const BOOK_CHAPTERS: Record<string, number> = {
   '1 John': 5, '2 John': 1, '3 John': 1, Jude: 1, Revelation: 22,
 };
 
-/* Ã¢ÂÂÃ¢ÂÂ Faith Pathway types Ã¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Faith Pathway types ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 interface PathwayDay {
   day: number;
   title: string;
@@ -123,6 +127,8 @@ export function HomeScreen() {
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioCurrentPassage, setAudioCurrentPassage] = useState<string | null>(null);
+  const [showNoteDrawer, setShowNoteDrawer] = useState(false);
+  const { selection, setSelection } = useScriptureSelection();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
@@ -248,7 +254,7 @@ export function HomeScreen() {
       });
   };
 
-  // Pending audio Ã¢ÂÂ when user taps Listen before text is loaded
+  // Pending audio ÃÂ¢ÃÂÃÂ when user taps Listen before text is loaded
   const pendingAudioRef = useRef<string | null>(null);
 
   // Watch for text to arrive so we can auto-play audio
@@ -468,7 +474,7 @@ export function HomeScreen() {
           </Card>
         )}
 
-        {/* Ã¢ÂÂÃ¢ÂÂ FAITH PATHWAY CARD Ã¢ÂÂÃ¢ÂÂ for new_returning persona */}
+        {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FAITH PATHWAY CARD ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ for new_returning persona */}
         {pathwayProgress.enrolled && pathwayData && setup?.persona === 'new_returning' && (() => {
           const completed = pathwayProgress.completedDays?.length || 0;
           const currentDay = pathwayProgress.currentDay || 1;
@@ -596,7 +602,59 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* Translation Selector Ã¢ÂÂ always visible */}
+        {/* 1. Daily Quote */}
+        <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 15,
+            fontStyle: 'italic',
+            color: 'var(--dw-text-secondary)',
+            lineHeight: 1.6,
+          }}>
+            &ldquo;{quote.text}&rdquo;
+          </p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
+            ÃÂ¢ÃÂÃÂ {quote.author}
+          </p>
+        </Card>
+
+        {/* 2. Devotion of the Day */}
+        <Card style={{ marginBottom: 16 }}>
+          <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
+          <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
+          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+            {devotion.verse}
+          </p>
+          <p className="text-devotion">{devotion.body}</p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
+            ÃÂ¢ÃÂÃÂ {devotion.author}
+          </p>
+        </Card>
+
+        {/* Scripture Search Ã¢ÂÂ prominent, before daily chapters */}
+        <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Search size={22} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search scripture or topic..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--dw-text-primary)',
+                fontSize: 17,
+                fontFamily: 'var(--font-sans)',
+                padding: '4px 0',
+              }}
+            />
+          </div>
+        </Card>
+
+        {/* Translation Selector ÃÂ¢ÃÂÃÂ always visible */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -628,62 +686,12 @@ export function HomeScreen() {
           ))}
         </div>
 
-        {/* 1. Daily Quote */}
-        <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-          <p style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 15,
-            fontStyle: 'italic',
-            color: 'var(--dw-text-secondary)',
-            lineHeight: 1.6,
-          }}>
-            &ldquo;{quote.text}&rdquo;
-          </p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
-            Ã¢ÂÂ {quote.author}
-          </p>
-        </Card>
-
-        {/* 2. Devotion of the Day */}
-        <Card style={{ marginBottom: 16 }}>
-          <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
-          <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
-          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-            {devotion.verse}
-          </p>
-          <p className="text-devotion">{devotion.body}</p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            Ã¢ÂÂ {devotion.author}
-          </p>
-        </Card>
-
-        {/* Scripture Search â prominent, before daily chapters */}
-        <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Search size={22} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search scripture or topic..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--dw-text-primary)',
-                fontSize: 17,
-                fontFamily: 'var(--font-sans)',
-                padding: '4px 0',
-              }}
-            />
-          </div>
-        </Card>
 
         {/* 3. TODAY'S CHAPTERS */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p className="text-section-header">TODAY'S CHAPTERS</p>
+              <button onClick={() => { const t = readingSlots.map(s => passageTexts[s.id]||'').join(' '); setSelection({ text: t, verseRefs: readingSlots.map(s=>s.book), source: 'select-all' }); }} style={{ background:'rgba(154,123,46,0.12)', border:'1px solid rgba(154,123,46,0.3)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#9A7B2E', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
             <button
               onClick={() => setShowReadingSetup(!showReadingSetup)}
               style={{
@@ -790,24 +798,7 @@ export function HomeScreen() {
                       </button>
                       <button
                         onClick={() => handleListen(passage)}
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                          background: isPlayingThis ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                          color: isPlayingThis ? '#fff' : 'var(--dw-text-primary)',
-                          border: isPlayingThis ? '1px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                          borderRadius: 10,
-                          padding: '10px 16px',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          fontFamily: 'var(--font-sans)',
-                          minHeight: 42,
-                          transition: 'all var(--transition-fast)',
-                        }}
+              style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(135deg, #4A6340, #5A7A50)', boxShadow:'0 3px 12px rgba(74,99,64,0.4)', border:'none', borderRadius:10, padding:'10px 16px', fontSize:13, fontWeight:600, cursor:'pointer', color:'#fff', fontFamily:'var(--font-sans)', minHeight:42 }}
                       >
                         {isLoadingThis ? (
                           <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...</>
@@ -819,7 +810,7 @@ export function HomeScreen() {
                       </button>
                     </div>
 
-                    {/* Scripture text Ã¢ÂÂ only shown when expanded */}
+                    {/* Scripture text ÃÂ¢ÃÂÃÂ only shown when expanded */}
                     {isExpanded && (
                       <div style={{ marginBottom: 14 }}>
                         {isLoading ? (
@@ -828,9 +819,14 @@ export function HomeScreen() {
                             <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
                           </div>
                         ) : text ? (
-                          <p className="text-scripture" style={{ fontSize: 20 }}>
-                            {text}
-                          </p>
+              <div onClick={() => text && setSelection({ text, verseRefs: [passage], source: 'tap' })} style={{ cursor:'pointer', padding:'2px 0' }}>
+                <p className="text-scripture" style={{ fontSize:15, lineHeight:1.7, color:'var(--dw-text)', fontFamily:'var(--font-serif)', background: selection?.text===text ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius:4, transition:'background 0.2s' }}>
+                  {text}
+                </p>
+              </div>
+              {selection?.verseRefs?.includes(passage) && (
+                <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => {}} />
+              )}
                         ) : (
                           <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
                             Loading...
@@ -978,7 +974,7 @@ export function HomeScreen() {
         {/* 5. Commentary (if available for today's passage) */}
         {commentaryText && (
           <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY Ã¢ÂÂ {commentarySource.toUpperCase()}</p>
+            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY ÃÂ¢ÃÂÃÂ {commentarySource.toUpperCase()}</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>
               {commentaryText}
             </p>
@@ -1092,6 +1088,7 @@ export function HomeScreen() {
 
       {/* Spinner keyframe */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
     </div>
   );
 }
