@@ -128,23 +128,33 @@ export async function fetchAudio(text: string, translation: TranslationCode, pas
   try {
     // ESV has native human-read audio — use the passage reference
     if (translation === 'ESV' && passageRef) {
+      // Try the combined ref first
       const res = await fetch(`/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
       if (res.ok) {
         const blob = await res.blob();
-        return URL.createObjectURL(blob);
+        if (blob.size > 1000) return URL.createObjectURL(blob);
+      }
+      // If combined ref failed or returned tiny response, try first individual ref
+      const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
+      if (refs.length > 1) {
+        const singleRes = await fetch(`/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
+        if (singleRes.ok) {
+          const blob = await singleRes.blob();
+          if (blob.size > 1000) return URL.createObjectURL(blob);
+        }
       }
     }
 
-    // All other translations → ElevenLabs AI voice
+    // All translations → ElevenLabs AI voice
     if (!text) return null;
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.slice(0, 5000) }),
+      body: JSON.stringify({ text: text.slice(0, 20000) }),
     });
     if (res.ok) {
       const blob = await res.blob();
-      return URL.createObjectURL(blob);
+      if (blob.size > 500) return URL.createObjectURL(blob);
     }
   } catch {
     // Audio not available

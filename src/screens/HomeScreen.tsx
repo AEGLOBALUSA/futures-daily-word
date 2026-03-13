@@ -671,7 +671,7 @@ export function HomeScreen() {
       await ensureAudioUnlocked();
       const cacheKey = `${passage}_${translation}`;
       const cachedUrl = audioUrlCache.current.get(cacheKey);
-      const url = cachedUrl || await fetchAudio(text.slice(0, 5000), translation, passage);
+      const url = cachedUrl || await fetchAudio(text.slice(0, 20000), translation, passage);
       if (url) {
         if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
         setAudioUrl(url);
@@ -700,49 +700,7 @@ export function HomeScreen() {
         setAudioPlaying(true);
         setupMediaSession(passage, audio);
       } else {
-        // fetchAudio returned null — fall back to Web Speech API (no key needed)
-        if ('speechSynthesis' in window) {
-          const utter = new SpeechSynthesisUtterance(text.slice(0, 5000));
-          utter.lang = 'en-US';
-          utter.rate = 0.92;
-          utter.pitch = 1.0;
-          // Prefer a natural-sounding voice if available
-          const voices = window.speechSynthesis.getVoices();
-          const preferred = voices.find(v =>
-            /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')
-          ) || voices.find(v => v.lang.startsWith('en') && v.localService);
-          if (preferred) utter.voice = preferred;
-          utter.onstart = () => {
-            setAudioPlaying(true);
-            setAudioLoading(false);
-            speechSynthRef.current = true;
-          };
-          utter.onend = () => {
-            setAudioPlaying(false);
-            setAudioCurrentPassage(null);
-            speechSynthRef.current = false;
-          };
-          utter.onerror = () => {
-            setAudioPlaying(false);
-            setAudioCurrentPassage(null);
-            setAudioError(true);
-            speechSynthRef.current = false;
-          };
-          // Voices may not be loaded yet — wait if needed
-          if (voices.length === 0) {
-            window.speechSynthesis.onvoiceschanged = () => {
-              const v2 = window.speechSynthesis.getVoices();
-              const pref2 = v2.find(v =>
-                /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')
-              ) || v2.find(v => v.lang.startsWith('en') && v.localService);
-              if (pref2) utter.voice = pref2;
-              window.speechSynthesis.speak(utter);
-            };
-          } else {
-            window.speechSynthesis.speak(utter);
-          }
-          return; // don't fall through to setAudioError
-        }
+        // No audio available — show error, never fall back to browser robot voice
         setAudioError(true);
         setAudioCurrentPassage(null);
       }
@@ -920,7 +878,7 @@ export function HomeScreen() {
       const combinedRef = heroChapterRefs.join('; ');
       const cacheKey = HERO_KEY + heroKey;
       const cachedUrl = audioUrlCache.current.get(cacheKey);
-      const url = cachedUrl || await fetchAudio(heroFullText.slice(0, 5000), 'ESV', combinedRef);
+      const url = cachedUrl || await fetchAudio(heroFullText.slice(0, 20000), 'ESV', combinedRef);
       if (url) {
         if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
         setAudioUrl(url);
@@ -933,27 +891,8 @@ export function HomeScreen() {
         await audio.play();
         setAudioPlaying(true);
         setupMediaSession(combinedRef, audio);
-      } else if ('speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(heroFullText.slice(0, 10000));
-        utter.lang = 'en-US'; utter.rate = 0.91; utter.pitch = 1.0;
-        const voices = window.speechSynthesis.getVoices();
-        const pref = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
-          || voices.find(v => v.lang.startsWith('en') && v.localService);
-        if (pref) utter.voice = pref;
-        utter.onstart = () => { setAudioPlaying(true); setAudioLoading(false); speechSynthRef.current = true; };
-        utter.onend = () => { setAudioPlaying(false); setAudioCurrentPassage(null); speechSynthRef.current = false; };
-        utter.onerror = () => { setAudioPlaying(false); setAudioCurrentPassage(null); setAudioError(true); speechSynthRef.current = false; };
-        if (voices.length === 0) {
-          window.speechSynthesis.onvoiceschanged = () => {
-            const v2 = window.speechSynthesis.getVoices();
-            const pref2 = v2.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
-              || v2.find(v => v.lang.startsWith('en') && v.localService);
-            if (pref2) utter.voice = pref2;
-            window.speechSynthesis.speak(utter);
-          };
-        } else { window.speechSynthesis.speak(utter); }
-        return;
       } else {
+        // No audio available — show error, never fall back to browser robot voice
         setAudioError(true); setAudioCurrentPassage(null);
       }
     } catch { setAudioError(true); setAudioCurrentPassage(null); }
