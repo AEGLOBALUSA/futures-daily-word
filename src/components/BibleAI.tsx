@@ -11,7 +11,7 @@ const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
   return (
     <span style={{
       ...styles[size],
-      background: 'linear-gradient(135deg, #7B5EA7, #9B6FBF)',
+      background: 'linear-gradient(135deg, #9D174D, #DB2777)',
       color: '#fff',
       fontWeight: 800,
       fontFamily: 'var(--font-sans)',
@@ -125,8 +125,8 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
           width: 52,
           height: 52,
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, #7B5EA7, #9B6FBF)',
-          boxShadow: '0 4px 16px rgba(123,94,167,0.55)',
+          background: 'linear-gradient(135deg, #9D174D, #DB2777)',
+          boxShadow: '0 4px 16px rgba(157,23,77,0.55)',
           border: 'none',
           display: isOpen ? 'none' : 'flex',
           alignItems: 'center',
@@ -187,7 +187,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #7B5EA7, #9B6FBF)',
+              background: 'linear-gradient(135deg, #9D174D, #DB2777)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -209,7 +209,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
         {/* Messages or empty state */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
           {messages.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <div style={{ textAlign: 'center', padding: '24px 8px 16px' }}>
               <BibleAIBadge size="lg" />
               <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--dw-text)', marginBottom: 4 }}>
                 {selectedText ? 'Go deeper on this passage' : 'Ask me about scripture'}
@@ -236,7 +236,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
                   {selectedText.substring(0, 200)}{selectedText.length > 200 ? '…' : ''}
                 </div>
               )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 340, margin: '0 auto' }}>
                 {promptsToShow.map(p => (
                   <button
                     key={p}
@@ -244,12 +244,15 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
                     style={{
                       background: 'var(--dw-card, #F5F3EF)',
                       border: '1px solid var(--dw-border, #E8E6E0)',
-                      borderRadius: 20,
-                      padding: '7px 14px',
+                      borderRadius: 10,
+                      padding: '10px 16px',
                       fontSize: 13,
                       color: 'var(--dw-text)',
                       cursor: 'pointer',
                       fontFamily: 'var(--font-sans)',
+                      textAlign: 'left',
+                      lineHeight: 1.4,
+                      transition: 'background 0.12s',
                     }}
                   >
                     {p}
@@ -274,7 +277,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
                       padding: '10px 14px',
                       borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                       background: m.role === 'user'
-                        ? 'linear-gradient(135deg, #7B5EA7, #9B6FBF)'
+                        ? 'linear-gradient(135deg, #9D174D, #DB2777)'
                         : 'var(--dw-card, #F5F3EF)',
                       color: m.role === 'user' ? '#fff' : 'var(--dw-text)',
                       fontSize: 14,
@@ -342,7 +345,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
               height: 40,
               borderRadius: '50%',
               background: input.trim() && !loading
-                ? 'linear-gradient(135deg, #7B5EA7, #9B6FBF)'
+                ? 'linear-gradient(135deg, #9D174D, #DB2777)'
                 : 'var(--dw-border, #E8E6E0)',
               border: 'none',
               display: 'flex',
