@@ -145,7 +145,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
             disabled={!note.trim() || saved}
             style={{
               width: '100%', padding: '13px', borderRadius: 14,
-              background: saved ? '#4A6340' : 'var(--dw-accent)',
+              background: saved ? '#2563EB' : 'var(--dw-accent)',
               color: '#fff', border: 'none', cursor: note.trim() ? 'pointer' : 'default',
               fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center',
               justifyContent: 'center', gap: 8,

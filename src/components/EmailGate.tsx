@@ -294,7 +294,7 @@ export function EmailGate() {
         {/* Step: Done */}
         {step === 'done' && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <CheckCircle size={48} style={{ color: '#6ac895', marginBottom: 16 }} />
+            <CheckCircle size={48} style={{ color: '#93C5FD', marginBottom: 16 }} />
             <h2 style={{
               fontFamily: 'var(--font-serif)',
               fontSize: 22,

@@ -810,7 +810,7 @@ export function PlansScreen() {
                           <p className="text-card-title" style={{ marginTop: 8 }}>{plan.title}</p>
                         </div>
                         {isComplete ? (
-                          <CheckCircle size={22} style={{ color: '#6ac895', flexShrink: 0 }} />
+                          <CheckCircle size={22} style={{ color: '#93C5FD', flexShrink: 0 }} />
                         ) : (
                           <ArrowRight size={18} style={{ color: 'var(--dw-text-muted)', flexShrink: 0, marginTop: 4 }} />
                         )}
@@ -821,7 +821,7 @@ export function PlansScreen() {
                         <div style={{ flex: 1, height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{
                             width: `${pct}%`, height: '100%',
-                            background: isComplete ? '#6ac895' : 'var(--dw-accent)',
+                            background: isComplete ? '#93C5FD' : 'var(--dw-accent)',
                             borderRadius: 2, transition: 'width 300ms ease',
                           }} />
                         </div>
@@ -960,7 +960,7 @@ export function PlansScreen() {
                           {isActive ? (
                             <div style={{
                               position: 'absolute', top: 14, right: 14,
-                              background: isConfirmingDeactivate ? '#c0392b' : '#4A8C40',
+                              background: isConfirmingDeactivate ? '#c0392b' : '#2563EB',
                               borderRadius: 999, padding: '2px 9px',
                               fontSize: 10, fontWeight: 700, color: '#fff',
                               fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
@@ -996,12 +996,12 @@ export function PlansScreen() {
                                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                                   Day {progress.completedDays.length} of {plan.totalDays}
                                 </span>
-                                <span style={{ fontSize: 11, color: '#4A8C40', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 11, color: '#2563EB', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                                   {Math.round((progress.completedDays.length / plan.totalDays) * 100)}%
                                 </span>
                               </div>
                               <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: '#4A8C40', borderRadius: 2 }} />
+                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 2 }} />
                               </div>
                             </div>
                           )}
@@ -1011,12 +1011,12 @@ export function PlansScreen() {
                                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                                   Chapter {bookPlanData.currentChapter + 1} of {bookPlanData.totalChapters}
                                 </span>
-                                <span style={{ fontSize: 11, color: '#4A8C40', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 11, color: '#2563EB', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                                   {Math.round(((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100)}%
                                 </span>
                               </div>
                               <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: '#4A8C40', borderRadius: 2 }} />
+                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 2 }} />
                               </div>
                             </div>
                           )}

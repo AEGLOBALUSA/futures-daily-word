@@ -2397,7 +2397,7 @@ export function HomeScreen() {
                   <div key={plan.id} style={{
                     background: 'var(--dw-card)',
                     border: '1px solid rgba(74,140,64,0.35)',
-                    borderLeft: '3px solid #4A8C40',
+                    borderLeft: '3px solid #2563EB',
                     borderRadius: 10,
                     padding: '10px 14px',
                   }}>
@@ -2406,7 +2406,7 @@ export function HomeScreen() {
                         {plan.title}
                       </span>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, color: isComplete ? '#6ac895' : '#4A8C40',
+                        fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : '#2563EB',
                         fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(106,200,149,0.12)' : 'rgba(74,140,64,0.1)',
                         padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
                       }}>
@@ -2416,7 +2416,7 @@ export function HomeScreen() {
                     <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
                       <div style={{
                         width: `${pct}%`, height: '100%',
-                        background: isComplete ? '#6ac895' : 'linear-gradient(90deg, #4A8C40, #7AC870)',
+                        background: isComplete ? '#93C5FD' : 'linear-gradient(90deg, #2563EB, #60A5FA)',
                         borderRadius: 2, transition: 'width 400ms ease',
                       }} />
                     </div>
@@ -2471,7 +2471,7 @@ export function HomeScreen() {
                           </div>
                           <div style={{
                             minWidth: 28, height: 28, borderRadius: '50%',
-                            background: isActive ? '#4A8C40' : 'var(--dw-accent)',
+                            background: isActive ? '#2563EB' : 'var(--dw-accent)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             flexShrink: 0,
                           }}>

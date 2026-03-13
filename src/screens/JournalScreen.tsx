@@ -517,7 +517,7 @@ function ModalSelectionBar({
         boxShadow: '0 4px 28px rgba(0,0,0,0.28)', border: '1px solid var(--dw-border)',
         display: 'flex', overflow: 'hidden', maxWidth: '100%',
       }}>
-        {tbBtn(handleCopy, copied ? <Check size={15} color="#4A6340" /> : <Copy size={15} />, copied ? 'Copied!' : 'Copy')}
+        {tbBtn(handleCopy, copied ? <Check size={15} color="#2563EB" /> : <Copy size={15} />, copied ? 'Copied!' : 'Copy')}
         {tbBtn(handleListen, <Volume2 size={15} />, listening ? 'Stop' : 'Listen', listening)}
         {tbBtn(handleShare, <Share2 size={15} />, 'Share')}
         {tbBtn(() => { onNoteSelected(selectedText); dismiss(); }, <BookOpen size={15} />, 'Note')}
@@ -1008,8 +1008,8 @@ function ScriptureModal({
             disabled={!draftNote.trim() || noteSaved}
             style={{
               flex: 1, height: 48, borderRadius: 12,
-              background: noteSaved ? '#4A8C40' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-surface)',
-              border: `1px solid ${noteSaved ? '#4A8C40' : draftNote.trim() ? 'transparent' : 'var(--dw-border)'}`,
+              background: noteSaved ? '#2563EB' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-surface)',
+              border: `1px solid ${noteSaved ? '#2563EB' : draftNote.trim() ? 'transparent' : 'var(--dw-border)'}`,
               color: draftNote.trim() || noteSaved ? '#fff' : 'var(--dw-text-muted)',
               fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
               cursor: draftNote.trim() && !noteSaved ? 'pointer' : 'default',
@@ -1148,7 +1148,7 @@ function TodayPanel({ allEntries, onSave }: {
               }}>
                 <span style={{
                   fontSize: 12, fontWeight: 600,
-                  color: wasSaved ? '#4A8C40' : 'var(--dw-accent)',
+                  color: wasSaved ? '#2563EB' : 'var(--dw-accent)',
                   fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4,
                 }}>
                   {wasSaved ? (

@@ -132,7 +132,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
         maxWidth: '100%',
       }}>
         {btn(handleCopy,
-          copied ? <Check size={16} color="#4A6340" /> : <Copy size={16} />,
+          copied ? <Check size={16} color="#2563EB" /> : <Copy size={16} />,
           copied ? 'Copied!' : 'Copy'
         )}
         {btn(handleListen, <Volume2 size={16} />, listening ? 'Stop' : 'Listen', listening)}
