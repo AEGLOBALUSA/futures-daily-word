@@ -13,6 +13,7 @@ import { useUser } from '../contexts/UserContext';
 import { HighlightToolbar } from '../components/HighlightToolbar';
 import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
+import { PLAN_CATALOGUE } from '../data/plans';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -370,6 +371,24 @@ export function HomeScreen() {
     }
   };
 
+  const todaysPlanPassages = (() => {
+    try {
+      const ap: Record<string, { startedAt: string }> =
+        JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      const now = new Date();
+      const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number }> = [];
+      for (const [pid, prog] of Object.entries(ap)) {
+        const plan = PLAN_CATALOGUE.find(p => p.id === pid);
+        if (!plan) continue;
+        const start = new Date(prog.startedAt);
+        const dn = Math.max(1, Math.min(Math.floor((now.getTime() - start.getTime()) / 86400000) + 1, plan.totalDays));
+        const dp = plan.passages[dn - 1];
+        if (dp) dp.split(', ').forEach(p => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn }));
+      }
+      return out;
+    } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number }>; }
+  })();
+
   const filteredBooks = BIBLE_BOOKS.filter(book =>
     book.toLowerCase().includes(bookPickerSearch.toLowerCase())
   );
@@ -714,15 +733,59 @@ export function HomeScreen() {
             </button>
           </div>
 
-          {readingSlots.length === 0 ? (
+          {readingSlots.length === 0 && todaysPlanPassages.length === 0 ? (
             <Card style={{ textAlign: 'center', padding: '24px 16px' }}>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-                No reading slots yet. Add your first book to get started.
+                No reading slots yet. Add a book or start a reading plan to get started.
               </p>
             </Card>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {readingSlots.slice(0, chaptersPerDay).map(slot => {
+              {todaysPlanPassages.slice(0, chaptersPerDay).map(({ planId, planTitle, passage, dayNum }) => {
+              const tKey = passage + '_' + translation;
+              const txt = passageTexts[tKey];
+              const isExp = expandedPassages.has(passage);
+              const isPl = audioPlaying && audioCurrentPassage === passage;
+              const isLd = audioLoading && audioCurrentPassage === passage;
+              return (
+                <Card key={planId + passage} style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div>
+                      <p style={{ color: 'var(--dw-text-primary)', fontSize: 15, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{passage}</p>
+                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>{planTitle} &middot; Day {dayNum}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: isExp ? 14 : 0 }}>
+                    <button onClick={() => handleRead(passage)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: isExp ? 'var(--dw-surface-hover)' : 'var(--dw-accent-bg)', color: isExp ? 'var(--dw-text-secondary)' : 'var(--dw-accent)', border: isExp ? '1px solid var(--dw-border)' : '1px solid var(--dw-accent)', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 42 }}>
+                      <BookOpen size={16} />{isExp ? 'Reading' : 'Read'}
+                    </button>
+                    <button onClick={() => handleListen(passage)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(135deg, #4A6340, #5A7A50)', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)', minHeight: 42 }}>
+                      {isLd ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...</> : isPl ? <><Pause size={16} /> Pause</> : <><Headphones size={16} /> Listen</>}
+                    </button>
+                  </div>
+                  {isExp && (
+                    <div style={{ marginBottom: 14 }}>
+                      {loadingPassages.has(passage) ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                          <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                          <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
+                        </div>
+                      ) : txt ? (
+                        <>
+                          <div onClick={() => setSelection({ text: txt, verseRefs: [passage], source: 'tap' })} style={{ cursor: 'pointer', padding: '2px 0' }}>
+                            <p className="text-scripture" style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--dw-text)', fontFamily: 'var(--font-serif)', background: selection?.text === txt ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius: 4 }}>{txt}</p>
+                          </div>
+                          {selection?.verseRefs?.includes(passage) && <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => {}} />}
+                        </>
+                      ) : (
+                        <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>Loading...</p>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+            {readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length)).map(slot => {
                 const passage = `${slot.book} ${slot.currentChapter}`;
                 const maxChapter = BOOK_CHAPTERS[slot.book] || 1;
                 const textKey = `${passage}_${translation}`;
