@@ -3,9 +3,10 @@ import { trackBehavior } from '../utils/behavior';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, ChevronRight } from 'lucide-react';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
+import { PLAN_CATALOGUE } from '../data/plans';
 
 interface JournalEntry {
   id: string;
@@ -1187,16 +1188,26 @@ function TodayPanel({ allEntries, onSave }: {
 
 export function JournalScreen() {
   const { userProfile, requireEmail } = useUser();
+  const { setSelection } = useScriptureSelection();
   const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
+  const [planPopup, setPlanPopup] = useState<string | null>(null);
   const dailyPrompt = getDailyJournalPrompt();
+
+  // Read active plans from localStorage
+  const getActivePlansData = () => {
+    try { return JSON.parse(localStorage.getItem('dw_plans') || '{}'); }
+    catch { return {}; }
+  };
+  const [activePlansData, setActivePlansData] = useState(getActivePlansData);
 
   // Re-read entries every time the screen mounts so scripture notes from HomeScreen appear
   useEffect(() => {
     setEntries(getEntries());
+    setActivePlansData(getActivePlansData());
   }, []);
 
   const tabs = [
@@ -1500,6 +1511,131 @@ export function JournalScreen() {
           ))}
         </div>
 
+        {/* Active plans strip — show active plans at top of Study tab */}
+        {activeTab === 'today' && (() => {
+          const planIds = Object.keys(activePlansData);
+          const myPlans = PLAN_CATALOGUE.filter(p => planIds.includes(p.id));
+          if (myPlans.length === 0) return null;
+          return (
+            <div style={{ marginBottom: 20 }}>
+              <p style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 10,
+              }}>YOUR ACTIVE PLANS</p>
+              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+                {myPlans.map(plan => {
+                  const progress = activePlansData[plan.id];
+                  const completed = progress?.completedDays?.length || 0;
+                  const pct = Math.round((completed / plan.totalDays) * 100);
+                  return (
+                    <div
+                      key={plan.id}
+                      onClick={() => setPlanPopup(plan.id)}
+                      style={{
+                        minWidth: 160, maxWidth: 200, flexShrink: 0,
+                        background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                        borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
+                      }}
+                    >
+                      <p style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)', marginBottom: 6, lineHeight: 1.3 }}>
+                        {plan.title}
+                      </p>
+                      <div style={{
+                        height: 4, borderRadius: 2, background: 'var(--dw-border)',
+                        marginBottom: 6, overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${pct}%`, height: '100%', borderRadius: 2,
+                          background: 'var(--dw-accent)',
+                          transition: 'width 0.3s',
+                        }} />
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                        Day {completed} of {plan.totalDays} · {pct}%
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Plan detail popup */}
+        {planPopup && (() => {
+          const plan = PLAN_CATALOGUE.find(p => p.id === planPopup);
+          const progress = activePlansData[planPopup];
+          if (!plan) return null;
+          const completed = progress?.completedDays?.length || 0;
+          const nextDay = completed + 1;
+          const nextPassage = nextDay <= plan.totalDays ? plan.passages[nextDay - 1] : null;
+          return (
+            <>
+              <div onClick={() => setPlanPopup(null)} style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300,
+              }} />
+              <div style={{
+                position: 'fixed', bottom: '15%', left: 20, right: 20, zIndex: 301,
+                background: 'var(--dw-canvas)', borderRadius: 20, padding: '24px 20px',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
+                maxHeight: '60vh', overflowY: 'auto',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <div>
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', margin: 0, lineHeight: 1.3 }}>
+                      {plan.title}
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 4 }}>
+                      {plan.description}
+                    </p>
+                  </div>
+                  <button onClick={() => setPlanPopup(null)} style={{
+                    background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4,
+                  }}>
+                    <X size={20} />
+                  </button>
+                </div>
+                <div style={{
+                  height: 6, borderRadius: 3, background: 'var(--dw-border)',
+                  marginBottom: 16, overflow: 'hidden',
+                }}>
+                  <div style={{
+                    width: `${Math.round((completed / plan.totalDays) * 100)}%`, height: '100%',
+                    borderRadius: 3, background: 'var(--dw-accent)',
+                  }} />
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', marginBottom: 16 }}>
+                  {completed} of {plan.totalDays} days completed
+                </p>
+                {nextPassage && (
+                  <div style={{
+                    background: 'var(--dw-accent-bg)', border: '1px solid var(--dw-accent)',
+                    borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+                  }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                      UP NEXT · DAY {nextDay}
+                    </p>
+                    <p style={{ fontSize: 15, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)' }}>
+                      {nextPassage}
+                    </p>
+                  </div>
+                )}
+                <button
+                  onClick={() => setPlanPopup(null)}
+                  style={{
+                    width: '100%', background: 'var(--dw-accent)', color: '#fff',
+                    border: 'none', borderRadius: 12, padding: '14px 20px',
+                    fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}
+                >
+                  <Play size={16} /> Continue Reading
+                </button>
+              </div>
+            </>
+          );
+        })()}
+
         {/* Today's passages — inline note-taking */}
         {activeTab === 'today' && (
           <TodayPanel allEntries={entries} onSave={handleTodaySave} />
@@ -1582,6 +1718,48 @@ export function JournalScreen() {
           </div>
         )}
       </div>
+
+      {/* Floating Bible AI button — bottom right corner */}
+      <button
+        onClick={() => setSelection({ text: '', verseRefs: [], source: 'tap' })}
+        style={{
+          position: 'fixed',
+          bottom: 84,
+          right: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          height: 44,
+          padding: '0 16px',
+          borderRadius: 22,
+          background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
+          backgroundSize: '200% 200%',
+          animation: 'aiAurora 4s ease infinite',
+          border: '1px solid rgba(245,207,85,0.55)',
+          boxShadow: '0 3px 18px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.28)',
+          cursor: 'pointer',
+          zIndex: 90,
+          overflow: 'hidden',
+        }}
+      >
+        <span style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '46%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
+          borderRadius: '22px 22px 0 0', pointerEvents: 'none',
+        }} />
+        <Sparkles size={14} color="#fff" strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
+        <span style={{
+          fontSize: 11, fontWeight: 900, color: '#fff',
+          fontFamily: 'var(--font-sans)', letterSpacing: '0.12em',
+          textTransform: 'uppercase', position: 'relative',
+          textShadow: '0 1px 2px rgba(80,40,0,0.6)',
+        }}>Bible AI</span>
+      </button>
+
+      <style>{`
+        @keyframes aiAurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+      `}</style>
 
       {/* Video recorder modal */}
       {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} />}

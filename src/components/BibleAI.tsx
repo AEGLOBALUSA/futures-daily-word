@@ -258,93 +258,47 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         {/* Messages or empty state */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
           {messages.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 8px 16px' }}>
-              <BibleAIBadge size="lg" />
-              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--dw-text)', marginBottom: 4 }}>
-                {selectedText ? 'Go deeper on this passage' : 'Ask me about scripture'}
-              </p>
-              <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20 }}>
-                {selectedText
-                  ? 'Context, meaning, language, application'
-                  : 'Context, meaning, application, Greek/Hebrew, and more'}
-              </p>
+            <div style={{ textAlign: 'center', padding: '16px 8px 16px' }}>
 
-              {/* How-to flow strip — only shown when no text is pre-selected */}
-              {!selectedText && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0,
-                  marginBottom: 22,
-                  flexWrap: 'wrap',
-                  rowGap: 8,
-                }}>
-                  {[
-                    { step: '1', label: 'Tap any passage\nor devotion' },
-                    { step: '2', label: 'Press Ask AI\nin the toolbar' },
-                    { step: '3', label: 'Choose a\nquick prompt' },
-                    { step: '4', label: 'Get your\nanswer instantly' },
-                  ].map(({ step, label }, i, arr) => (
-                    <>
-                      <div key={step} style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 5,
-                        minWidth: 64,
-                      }}>
-                        <div style={{
-                          width: 30, height: 30, borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #7A5200, #C8920E)',
-                          color: '#fff', fontSize: 12, fontWeight: 700,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontFamily: 'var(--font-sans)',
-                          boxShadow: '0 2px 8px rgba(140,95,5,0.35)',
-                        }}>{step}</div>
-                        <span style={{
-                          fontSize: 10.5, color: 'var(--dw-text-muted)',
-                          fontFamily: 'var(--font-sans)', lineHeight: 1.4,
-                          whiteSpace: 'pre-line', textAlign: 'center',
-                        }}>{label}</span>
-                      </div>
-                      {i < arr.length - 1 && (
-                        <span key={`arrow-${i}`} style={{
-                          fontSize: 14, color: 'rgba(154,123,46,0.5)',
-                          alignSelf: 'flex-start', marginTop: 8, padding: '0 2px',
-                        }}>›</span>
-                      )}
-                    </>
-                  ))}
-                </div>
-              )}
-
-              {/* Prominent input box in empty state */}
+              {/* ── TOP: Prominent input box — first thing the user sees ── */}
               <div style={{
                 width: '100%',
-                maxWidth: 340,
-                margin: '0 auto 16px',
+                maxWidth: 380,
+                margin: '0 auto 20px',
                 position: 'relative',
               }}>
+                <p style={{
+                  fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text)',
+                  marginBottom: 6, textAlign: 'center',
+                }}>
+                  {selectedText ? 'Go deeper on this passage' : 'Ask anything about the Bible'}
+                </p>
+                <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 14, textAlign: 'center' }}>
+                  {selectedText
+                    ? 'Context, meaning, language, application'
+                    : 'Type your question below and press send'}
+                </p>
                 <textarea
+                  ref={inputRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={selectedText ? 'Ask anything about this passage...' : 'Type your question here...'}
-                  rows={2}
+                  placeholder={selectedText ? 'Ask anything about this passage...' : 'e.g. What does Romans 8:28 mean?'}
+                  rows={3}
                   style={{
                     width: '100%',
                     resize: 'none',
                     border: '2px solid var(--dw-accent, #A8323B)',
-                    borderRadius: 14,
-                    padding: '12px 50px 12px 14px',
-                    fontSize: 14,
+                    borderRadius: 16,
+                    padding: '14px 56px 14px 16px',
+                    fontSize: 16,
                     fontFamily: 'var(--font-sans)',
-                    background: 'var(--dw-card, #F5F3EF)',
+                    background: 'var(--dw-surface, #1A1A1A)',
                     color: 'var(--dw-text)',
                     outline: 'none',
                     boxSizing: 'border-box',
                     lineHeight: 1.5,
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                   }}
                 />
                 <button
@@ -352,10 +306,10 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                   disabled={!input.trim() || loading}
                   style={{
                     position: 'absolute',
-                    right: 8,
-                    bottom: 8,
-                    width: 34,
-                    height: 34,
+                    right: 10,
+                    bottom: 12,
+                    width: 40,
+                    height: 40,
                     borderRadius: '50%',
                     background: input.trim() && !loading
                       ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
@@ -366,14 +320,15 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                     justifyContent: 'center',
                     cursor: input.trim() && !loading ? 'pointer' : 'default',
                     transition: 'background 0.2s',
+                    boxShadow: input.trim() && !loading ? '0 2px 10px rgba(140,95,5,0.4)' : 'none',
                   }}
                 >
-                  <Send size={15} color={input.trim() && !loading ? '#fff' : 'var(--dw-text-muted)'} />
+                  <Send size={18} color={input.trim() && !loading ? '#fff' : 'var(--dw-text-muted)'} />
                 </button>
               </div>
 
               <p style={{
-                fontSize: 11, color: 'rgba(154,123,46,0.75)', fontFamily: 'var(--font-sans)',
+                fontSize: 12, color: 'rgba(154,123,46,0.75)', fontFamily: 'var(--font-sans)',
                 marginBottom: 14, letterSpacing: '0.03em',
               }}>
                 — or choose a quick question —
