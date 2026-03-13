@@ -130,6 +130,7 @@ export function HomeScreen() {
   const [showNoteDrawer, setShowNoteDrawer] = useState(false);
   const { selection, setSelection } = useScriptureSelection();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlCache = useRef<Map<string, string>>(new Map());
 
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
@@ -333,6 +334,23 @@ export function HomeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translation]);
 
+  // Preload audio for plan passages in the background once text is available
+  useEffect(() => {
+    if (todaysPlanPassages.length === 0) return;
+    todaysPlanPassages.forEach(({ passage }) => {
+      const tKey = `${passage}_${translation}`;
+      const text = passageTexts[tKey];
+      if (!text) return;
+      const cacheKey = tKey;
+      if (audioUrlCache.current.has(cacheKey)) return; // already cached
+      // Silently preload — don't auto-play, just warm the cache
+      fetchAudio(text.slice(0, 5000), translation, passage).then(url => {
+        if (url) audioUrlCache.current.set(cacheKey, url);
+      }).catch(() => {});
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passageTexts, translation]);
+
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
     localStorage.setItem('dw_translation', t);
@@ -362,8 +380,11 @@ export function HomeScreen() {
     setAudioLoading(true);
     setAudioCurrentPassage(passage);
     try {
-      const url = await fetchAudio(text.slice(0, 5000), translation, passage);
+      const cacheKey = `${passage}_${translation}`;
+      const cachedUrl = audioUrlCache.current.get(cacheKey);
+      const url = cachedUrl || await fetchAudio(text.slice(0, 5000), translation, passage);
       if (url) {
+        if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
         setAudioUrl(url);
         const audio = new Audio(url);
         audioRef.current = audio;
@@ -784,12 +805,45 @@ export function HomeScreen() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button
-                  onClick={() => handleAudio(passage)}
-                  style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, border: '1px solid var(--dw-border)', background: 'var(--dw-card)', color: 'var(--dw-text)', cursor: 'pointer' }}
-                >
-                  🔊 Listen
-                </button>
+                {(() => {
+                  const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
+                  const isLoadingThis = audioLoading && audioCurrentPassage === passage;
+                  const isCached = audioUrlCache.current.has(`${passage}_${translation}`);
+                  return (
+                    <button
+                      onClick={() => handleListen(passage)}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        background: isPlayingThis
+                          ? 'linear-gradient(135deg, #7A4040, #9A5050)'
+                          : 'linear-gradient(135deg, #4A6340, #5A7A50)',
+                        boxShadow: '0 3px 12px rgba(74,99,64,0.4)',
+                        border: 'none',
+                        borderRadius: 10,
+                        padding: '11px 16px',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        color: '#fff',
+                        fontFamily: 'var(--font-sans)',
+                        minHeight: 44,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {isLoadingThis ? (
+                        <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading audio…</>
+                      ) : isPlayingThis ? (
+                        <><Pause size={16} /> Pause</>
+                      ) : (
+                        <><Headphones size={16} /> {isCached ? 'Listen (ready)' : 'Listen'}</>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           </div>
