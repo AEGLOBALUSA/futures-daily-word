@@ -117,54 +117,11 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
       position: 'fixed',
       bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)',
       left: 0, right: 0, zIndex: 95,
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 8, padding: '0 12px',
-      pointerEvents: 'none',
+      display: 'flex', justifyContent: 'center',
+      padding: '0 12px',
       animation: 'slideUp 0.22s ease',
     }}>
-
-      {/* ── Floating Ask AI pill — sits above the toolbar row ── */}
-      <button
-        onClick={onGoDeeper}
-        style={{
-          pointerEvents: 'auto',
-          position: 'relative', overflow: 'hidden',
-          display: 'flex', flexDirection: 'row',
-          alignItems: 'center', gap: 7,
-          padding: '10px 22px',
-          borderRadius: 10,
-          background: 'linear-gradient(110deg, #831843 0%, #9D174D 25%, #DB2777 55%, #BE185D 78%, #9D174D 100%)',
-          backgroundSize: '220% 100%',
-          animation: 'aiAurora 4s ease infinite, aiFloat 3.5s ease-in-out infinite',
-          color: '#fff',
-          border: '1.5px solid rgba(255,255,255,0.2)',
-          cursor: 'pointer',
-          boxShadow: '0 6px 24px rgba(190,24,93,0.45), 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-        }}
-      >
-        {/* Beam sweep */}
-        <span style={{
-          position: 'absolute', top: 0, bottom: 0, width: '30%',
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
-          animation: 'aiBeam 3.8s ease-in-out infinite',
-          pointerEvents: 'none',
-        }} />
-        <Sparkles size={14} strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
-        <span style={{
-          fontSize: 13, fontWeight: 700,
-          fontFamily: 'var(--font-sans)',
-          letterSpacing: '0.04em',
-          position: 'relative',
-        }}>
-          Ask AI
-        </span>
-      </button>
-
-      {/* ── Main toolbar row ── */}
       <div style={{
-        pointerEvents: 'auto',
         background: 'var(--dw-surface)',
         borderRadius: 16,
         boxShadow: '0 4px 24px rgba(0,0,0,0.22)',
@@ -186,18 +143,53 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           greekHebrewMode ? 'Hide' : 'Gk/Heb',
           greekHebrewMode
         )}
+
+        {/* ── Ask AI — full-height rectangle block inside the toolbar ── */}
+        <button
+          onClick={onGoDeeper}
+          style={{
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'row',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 6,
+            padding: '0 18px',
+            alignSelf: 'stretch',
+            background: 'linear-gradient(110deg, #831843 0%, #9D174D 25%, #DB2777 55%, #BE185D 78%, #9D174D 100%)',
+            backgroundSize: '220% 100%',
+            animation: 'aiAurora 4s ease infinite',
+            color: '#fff',
+            border: 'none',
+            borderLeft: '1px solid rgba(255,255,255,0.15)',
+            cursor: 'pointer',
+            minWidth: 72,
+          }}
+        >
+          <span style={{
+            position: 'absolute', top: 0, bottom: 0, width: '30%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
+            animation: 'aiBeam 3.8s ease-in-out infinite',
+            pointerEvents: 'none',
+          }} />
+          <Sparkles size={14} strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
+          <span style={{
+            fontSize: 12, fontWeight: 700,
+            fontFamily: 'var(--font-sans)',
+            letterSpacing: '0.05em',
+            position: 'relative',
+          }}>Ask AI</span>
+        </button>
+
         <button
           onClick={handleDismiss}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '8px 12px', background: 'transparent',
+            padding: '8px 10px', background: 'transparent',
             color: 'var(--dw-text-muted)', border: 'none', cursor: 'pointer',
           }}
         >
           <X size={14} />
         </button>
       </div>
-
     </div>
     </>
   );
