@@ -123,9 +123,9 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           position: 'fixed',
           bottom: 84,
           right: 16,
-          height: 44,
-          padding: '0 16px',
-          borderRadius: 11,
+          height: 26,
+          padding: '0 10px',
+          borderRadius: 6,
           background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
           backgroundSize: '200% 200%',
           animation: 'aiAurora 4s ease infinite',
@@ -146,7 +146,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         <span style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: '46%',
           background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
-          borderRadius: '11px 11px 0 0', pointerEvents: 'none',
+          borderRadius: '6px 6px 0 0', pointerEvents: 'none',
         }} />
         {/* shimmer */}
         <span style={{
@@ -155,11 +155,11 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           animation: 'aiBeam 3s ease-in-out infinite', pointerEvents: 'none',
         }} />
         <span style={{
-          fontSize: 11, fontWeight: 900, color: '#fff',
+          fontSize: 9, fontWeight: 900, color: '#fff',
           fontFamily: 'var(--font-sans)', letterSpacing: '0.14em',
           textTransform: 'uppercase', position: 'relative',
-          textShadow: '0 1px 3px rgba(80,40,0,0.6)',
-        }}>Bible AI</span>
+          textShadow: '0 1px 2px rgba(80,40,0,0.6)',
+        }}>AI</span>
       </button>
 
       <style>{`
