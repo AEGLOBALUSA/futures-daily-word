@@ -427,7 +427,7 @@ function PrayerWallPanel({
           {prayers.map(prayer => {
             const hasPrayed = prayedFor.has(prayer.id);
             return (
-              <Card key={prayer.id} style={{ borderLeft: '3px solid var(--dw-accent-bg)' }}>
+              <Card key={prayer.id} style={{ borderLeft: '3px solid var(--dw-accent)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div>
                     <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>

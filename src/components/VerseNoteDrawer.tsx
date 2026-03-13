@@ -45,7 +45,7 @@ function getCommentariesForRef(ref: string): { source: string; text: string }[] 
 }
 
 // Source display order preference
-const SOURCE_ORDER = ["Matthew Henry", "Thayer's", "Spurgeon", "Wesley", "A.W. Tozer", "Wigglesworth", "Teachers"];
+const SOURCE_ORDER = ["Matthew Henry", "Thayer's", "Spurgeon", "Wesley", "A.W. Tozer", "Wigglesworth", "Teachers (Structure)", "Teachers (Application)"];
 
 function sortSources(commentaries: { source: string; text: string }[]) {
   return [...commentaries].sort((a, b) => {
@@ -282,7 +282,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
                   No commentary available for {normalizeRef(passage) || 'this passage'} yet
                 </p>
                 <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 6 }}>
-                  Commentary covers 20 key passages. Try asking Bible AI instead.
+                  Try asking Bible AI for insight on this passage.
                 </p>
               </div>
             ) : (

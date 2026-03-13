@@ -348,12 +348,12 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                     key={p}
                     onClick={() => { trackBehavior('ai_prompt', p); sendMessage(p); }}
                     style={{
-                      background: '#F5F3EF',
-                      border: '1px solid #E0DDD6',
+                      background: 'var(--dw-card, #F5F3EF)',
+                      border: '1px solid var(--dw-border, #E0DDD6)',
                       borderRadius: 10,
                       padding: '10px 16px',
                       fontSize: 13,
-                      color: '#1A1714',
+                      color: 'var(--dw-text, #1A1714)',
                       cursor: 'pointer',
                       fontFamily: 'var(--font-sans)',
                       textAlign: 'left',
