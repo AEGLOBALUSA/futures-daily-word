@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send } from 'lucide-react';
+import { PrayerGlobe } from '../components/PrayerGlobe';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SermonNote {
@@ -405,6 +406,22 @@ function PrayerWallPanel({
           </div>
         </Card>
       )}
+
+      {/* Prayer Globe — world map showing prayer activity */}
+      <div style={{ marginBottom: 16 }}>
+        <PrayerGlobe
+          prayers={prayers.map(p => ({ campus: p.campus, prayerCount: p.prayerCount }))}
+          style={{ border: '1px solid var(--dw-border)' }}
+        />
+        {prayers.length > 0 && (
+          <p style={{
+            textAlign: 'center', fontSize: 11, color: 'var(--dw-text-muted)',
+            fontFamily: 'var(--font-sans)', marginTop: 8, fontStyle: 'italic',
+          }}>
+            {prayers.length} prayer request{prayers.length !== 1 ? 's' : ''} across the global church
+          </p>
+        )}
+      </div>
 
       {/* Prayer list */}
       {loading && prayers.length === 0 ? (

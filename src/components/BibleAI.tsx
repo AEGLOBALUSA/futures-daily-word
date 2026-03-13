@@ -319,11 +319,64 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 </div>
               )}
 
+              {/* Prominent input box in empty state */}
+              <div style={{
+                width: '100%',
+                maxWidth: 340,
+                margin: '0 auto 16px',
+                position: 'relative',
+              }}>
+                <textarea
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={selectedText ? 'Ask anything about this passage...' : 'Type your question here...'}
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    resize: 'none',
+                    border: '2px solid var(--dw-accent, #A8323B)',
+                    borderRadius: 14,
+                    padding: '12px 50px 12px 14px',
+                    fontSize: 14,
+                    fontFamily: 'var(--font-sans)',
+                    background: 'var(--dw-card, #F5F3EF)',
+                    color: 'var(--dw-text)',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    lineHeight: 1.5,
+                  }}
+                />
+                <button
+                  onClick={() => sendMessage()}
+                  disabled={!input.trim() || loading}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    bottom: 8,
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    background: input.trim() && !loading
+                      ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
+                      : 'var(--dw-border, #E8E6E0)',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: input.trim() && !loading ? 'pointer' : 'default',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <Send size={15} color={input.trim() && !loading ? '#fff' : 'var(--dw-text-muted)'} />
+                </button>
+              </div>
+
               <p style={{
                 fontSize: 11, color: 'rgba(154,123,46,0.75)', fontFamily: 'var(--font-sans)',
-                marginBottom: 18, letterSpacing: '0.03em',
+                marginBottom: 14, letterSpacing: '0.03em',
               }}>
-                {selectedText ? '— or choose a question below —' : '— or type your own question below —'}
+                — or choose a quick question —
               </p>
               {selectedText && (
                 <div style={{
