@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
+import { ScriptureSelectionProvider, useScriptureSelection } from './contexts/ScriptureSelectionContext';
 import { TabBar } from './components/TabBar';
 import { EmailGate } from './components/EmailGate';
 import { BibleAI } from './components/BibleAI';
@@ -12,12 +13,12 @@ import { MessagesScreen } from './screens/MessagesScreen';
 import { PlansScreen } from './screens/PlansScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
-import { Sparkles } from 'lucide-react';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [showBibleAI, setShowBibleAI] = useState(false);
   const { userProfile } = useUser();
+  const { selection } = useScriptureSelection();
 
   useEffect(() => {
     hideSplash();
@@ -29,12 +30,28 @@ function AppContent() {
           body: JSON.stringify({
             email: userProfile.email,
             nativeToken: token,
-            platform: (window as unknown as Record<string, unknown>).Capacitor ? 'native' : 'web',
+            platform: (window as unknown as Record<string, unknown>).Capacitor,
           }),
         }).catch(() => {});
       });
     }
   }, [userProfile?.email]);
+
+  // Auto-open AI panel on first visit
+  useEffect(() => {
+    if (!localStorage.getItem('dw_ai_panel_seen')) {
+      const t = setTimeout(() => setShowBibleAI(true), 1400);
+      localStorage.setItem('dw_ai_panel_seen', '1');
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  // Auto-open AI when Go Deeper is triggered from a selection
+  useEffect(() => {
+    if (selection?.text && selection.source === 'range') {
+      setShowBibleAI(true);
+    }
+  }, [selection?.text]);
 
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen />,
@@ -49,23 +66,11 @@ function AppContent() {
       {screens[activeTab]}
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
       <EmailGate />
-      <button
-        onClick={() => setShowBibleAI(true)}
-        style={{
-          position: 'fixed',
-          bottom: 'calc(72px + var(--safe-bottom))',
-          right: 20, width: 56, height: 56,
-          borderRadius: '50%',
-          background: 'var(--dw-accent)',
-          border: 'none', color: '#fff', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(168, 50, 59, 0.3)',
-          zIndex: 40, minHeight: 56, minWidth: 56,
-        }}
-      >
-        <Sparkles size={24} />
-      </button>
-      <BibleAI isOpen={showBibleAI} onClose={() => setShowBibleAI(false)} />
+      <BibleAI
+        isOpen={showBibleAI}
+        onClose={() => setShowBibleAI(prev => !prev)}
+        selectedText={selection?.text}
+      />
     </div>
   );
 }
@@ -74,7 +79,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <UserProvider>
-        <AppContent />
+        <ScriptureSelectionProvider>
+          <AppContent />
+        </ScriptureSelectionProvider>
       </UserProvider>
     </ThemeProvider>
   );
