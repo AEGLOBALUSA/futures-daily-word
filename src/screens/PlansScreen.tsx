@@ -3,17 +3,8 @@ import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { DEVOTIONS } from '../data/devotions';
 import { CAMPUSES } from '../data/tokens';
+import { PLAN_CATALOGUE } from '../data/plans';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight , Loader2, ChevronLeft } from 'lucide-react';
-
-/* Ã¢ÂÂÃ¢ÂÂ Plan catalogue Ã¢ÂÂÃ¢ÂÂ */
-interface PlanDef {
-  id: string;
-  title: string;
-  description: string;
-  totalDays: number;
-  category: string;
-  passages: string[]; // one passage per day
-}
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -35,60 +26,7 @@ const JANE_BOOKS: Book[] = [
   { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Ps Jane', jsonFile: undefined },
 ];
 
-const PLAN_CATALOGUE: PlanDef[] = [
-  {
-    id: 'faith-pathway',
-    title: '30-Day Faith Pathway',
-    description: 'A guided journey through the foundations of faith for new believers.',
-    totalDays: 30,
-    category: 'Foundation',
-    passages: [
-      'John 3','Romans 3','Ephesians 2','John 1','Romans 5','Romans 6','Romans 8',
-      'Galatians 5','Philippians 4','Colossians 3','1 John 1','1 John 3','1 John 4',
-      'James 1','James 2','Hebrews 11','Hebrews 12','Psalm 23','Psalm 27','Psalm 37',
-      'Psalm 91','Psalm 139','Proverbs 3','Isaiah 40','Isaiah 55','Matthew 5',
-      'Matthew 6','Matthew 7','Luke 15','Revelation 21',
-    ],
-  },
-  {
-    id: 'psalms-30',
-    title: 'Psalms in 30 Days',
-    description: 'Read through the entire book of Psalms with daily reflections.',
-    totalDays: 30,
-    category: 'Bible Reading',
-    passages: Array.from({ length: 30 }, (_, i) => `Psalm ${i * 5 + 1}-${(i + 1) * 5}`),
-  },
-  {
-    id: 'prayer-life',
-    title: 'Building a Prayer Life',
-    description: 'Learn different prayer models and build a consistent prayer habit.',
-    totalDays: 14,
-    category: 'Spiritual Growth',
-    passages: [
-      'Matthew 6','Luke 11','1 Thessalonians 5','Philippians 4','James 5',
-      'Psalm 5','Psalm 63','Daniel 6','Nehemiah 1','Acts 4',
-      'Ephesians 6','Colossians 4','1 Timothy 2','Jude 1',
-    ],
-  },
-  {
-    id: 'gospel-john',
-    title: 'Gospel of John',
-    description: 'Walk through the Gospel of John chapter by chapter.',
-    totalDays: 21,
-    category: 'Bible Reading',
-    passages: Array.from({ length: 21 }, (_, i) => `John ${i + 1}`),
-  },
-  {
-    id: 'armor-of-god',
-    title: 'The Armor of God',
-    description: 'Study each piece of spiritual armor described in Ephesians 6.',
-    totalDays: 7,
-    category: 'Spiritual Growth',
-    passages: ['Ephesians 6','Isaiah 59','Romans 13','1 Thessalonians 5','2 Corinthians 10','Hebrews 4','Psalm 18'],
-  },
-];
-
-/* Ã¢ÂÂÃ¢ÂÂ localStorage helpers Ã¢ÂÂÃ¢ÂÂ */
+/* ── localStorage helpers ── */
 interface PlanProgress {
   startedAt: string;
   completedDays: number[];
@@ -110,7 +48,6 @@ function getStreak(): number {
     const data = JSON.parse(localStorage.getItem('dw_streak') || '{}');
     const today = new Date().toISOString().slice(0, 10);
     if (data.lastDate === today) return data.count || 0;
-    // Check if yesterday
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     if (data.lastDate === yesterday.toISOString().slice(0, 10)) return data.count || 0;
@@ -122,7 +59,7 @@ function recordStreak() {
   const today = new Date().toISOString().slice(0, 10);
   try {
     const data = JSON.parse(localStorage.getItem('dw_streak') || '{}');
-    if (data.lastDate === today) return; // already recorded today
+    if (data.lastDate === today) return;
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const count = data.lastDate === yesterday.toISOString().slice(0, 10) ? (data.count || 0) + 1 : 1;
@@ -132,6 +69,9 @@ function recordStreak() {
   }
 }
 
+interface EssaySection { title: string; file: string; }
+interface EssayTOC { title: string; author: string; sections: EssaySection[]; }
+
 export function PlansScreen() {
   const { userProfile } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
@@ -139,6 +79,19 @@ export function PlansScreen() {
   const [activePlans, setActivePlans] = useState<Record<string, PlanProgress>>(getActivePlans);
   const [streak, setStreak] = useState(getStreak);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+
+  // Book reader state — must be at top level (Rules of Hooks)
+  const [activeBook, setActiveBook] = useState<string | null>(null);
+  const [bookData, setBookData] = useState<BookData | null>(null);
+  const [bookChapter, setBookChapter] = useState<number | null>(null);
+  const [bookLoading, setBookLoading] = useState(false);
+
+  // Essay reader state
+  const [activeEssay, setActiveEssay] = useState<string | null>(null);
+  const [essayTOC, setEssayTOC] = useState<EssayTOC | null>(null);
+  const [essaySection, setEssaySection] = useState<number | null>(null);
+  const [sectionContent, setSectionContent] = useState<string>('');
+  const [essayLoading, setEssayLoading] = useState(false);
 
   // Persona-based plan suggestions
   const persona = (() => {
@@ -186,18 +139,7 @@ export function PlansScreen() {
     }
   }, [persona]);
 
-  const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
-  const browsePlans = PLAN_CATALOGUE.filter(p => !activePlanIds.includes(p.id));
-  const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
-  const devotion = DEVOTIONS[0]; // Today's devotion
-
-  // Hub view (V1 structure) - the main Plans & More page
-  if (!showPlanDetail) {
-  const [activeBook, setActiveBook] = useState<string | null>(null);
-  const [bookData, setBookData] = useState<BookData | null>(null);
-  const [bookChapter, setBookChapter] = useState<number | null>(null);
-  const [bookLoading, setBookLoading] = useState(false);
-
+  // Book fetch effect — top level (Rules of Hooks)
   useEffect(() => {
     if (!activeBook) { setBookData(null); setBookChapter(null); return; }
     setBookLoading(true);
@@ -208,9 +150,43 @@ export function PlansScreen() {
       .finally(() => setBookLoading(false));
   }, [activeBook]);
 
+  // Essay TOC fetch
+  useEffect(() => {
+    if (!activeEssay) { setEssayTOC(null); setEssaySection(null); setSectionContent(''); return; }
+    setEssayLoading(true);
+    fetch(`/essays/${activeEssay}/toc.json`)
+      .then(r => r.json())
+      .then((toc: EssayTOC) => setEssayTOC(toc))
+      .catch(() => {})
+      .finally(() => setEssayLoading(false));
+  }, [activeEssay]);
+
+  // Essay section fetch
+  useEffect(() => {
+    if (essaySection === null || !essayTOC || !activeEssay) return;
+    setEssayLoading(true);
+    setSectionContent('');
+    const sec = essayTOC.sections[essaySection];
+    if (!sec) return;
+    fetch(`/essays/${activeEssay}/${sec.file}`)
+      .then(r => r.json())
+      .then((data: { content?: string; text?: string; body?: string }) => {
+        setSectionContent(data.content || data.text || data.body || '');
+      })
+      .catch(() => setSectionContent('Could not load section.'))
+      .finally(() => setEssayLoading(false));
+  }, [essaySection, essayTOC, activeEssay]);
+
+  const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
+  const browsePlans = PLAN_CATALOGUE.filter(p => !activePlanIds.includes(p.id));
+  const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
+  const devotion = DEVOTIONS[0]; // Today's devotion
+
+  // Hub view (V1 structure) - the main Plans & More page
+  if (!showPlanDetail) {
     return (
       <div className="screen-container">
-      {/* ââ In-app book reader ââ */}
+      {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Reader header */}
@@ -238,7 +214,7 @@ export function PlansScreen() {
             {bookLoading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 24 }}>
                 <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loadingâ¦</span>
+                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
               </div>
             )}
             {/* Chapter list */}
@@ -271,6 +247,62 @@ export function PlansScreen() {
           <style>{'.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }'}</style>
         </div>
       )}
+
+      {/* ── In-app essay reader ── */}
+      {activeEssay && (
+        <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            <button
+              onClick={() => {
+                if (essaySection !== null) { setEssaySection(null); setSectionContent(''); }
+                else { setActiveEssay(null); }
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
+            >
+              <ChevronLeft size={18} />
+              {essaySection !== null ? 'Contents' : 'Back'}
+            </button>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
+              {essaySection !== null && essayTOC ? essayTOC.sections[essaySection]?.title : (essayTOC?.title || 'Essay')}
+            </p>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 40px' }}>
+            {essayLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 24 }}>
+                <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
+              </div>
+            )}
+            {/* Section list */}
+            {essayTOC && essaySection === null && !essayLoading && (
+              <div style={{ padding: '16px 20px' }}>
+                {essayTOC.author && (
+                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 20 }}>by {essayTOC.author}</p>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {essayTOC.sections.map((sec, i) => (
+                    <Card key={i} style={{ cursor: 'pointer' }} onClick={() => setEssaySection(i)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)', minWidth: 22 }}>{i + 1}</span>
+                        <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)', margin: 0 }}>{sec.title}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Section content */}
+            {essaySection !== null && sectionContent && !essayLoading && (
+              <div style={{ padding: '20px 20px' }}>
+                {sectionContent.split('\n\n').map((para, i) => (
+                  <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif)', marginBottom: 20 }}>{para}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
         <div style={{ padding: '24px 24px 0' }}>
           {/* Header */}
           <h1 style={{
@@ -297,7 +329,7 @@ export function PlansScreen() {
                 {devotion.body}
               </p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                â {devotion.author}
+                — {devotion.author}
               </p>
             </Card>
           )}
@@ -397,7 +429,7 @@ export function PlansScreen() {
                     </p>
                     {book.jsonFile && (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
-                        Tap to view â
+                        Tap to view →
                       </p>
                     )}
                   </div>
@@ -427,7 +459,7 @@ export function PlansScreen() {
                     </p>
                     {book.jsonFile && (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
-                        Tap to view â
+                        Tap to view →
                       </p>
                     )}
                   </div>
@@ -440,15 +472,16 @@ export function PlansScreen() {
           {/* Essays */}
           <div style={{ marginBottom: 24 }}>
             <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>ESSAYS</p>
-            <Card style={{ cursor: 'pointer' }}>
+            <Card style={{ cursor: 'pointer' }} onClick={() => setActiveEssay('knocking-on-the-door')}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Scroll size={18} style={{ color: 'var(--dw-accent)' }} />
-                <div>
+                <div style={{ flex: 1 }}>
                   <p className="text-card-title">Knocking on the Door</p>
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                    Conflict personas & biblical guard rails
+                    Conflict personas &amp; biblical guard rails
                   </p>
                 </div>
+                <ChevronRight size={18} style={{ color: 'var(--dw-accent)' }} />
               </div>
             </Card>
           </div>
@@ -458,7 +491,6 @@ export function PlansScreen() {
   }
 
   // Plans detail view
-
 
   return (
     <div className="screen-container">
@@ -478,7 +510,7 @@ export function PlansScreen() {
               minHeight: 44,
             }}
           >
-            â Back
+            ← Back
           </button>
         </div>
 
@@ -580,7 +612,7 @@ export function PlansScreen() {
                           {!isComplete && nextDay <= plan.totalDays && (
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
-                                Day {nextDay}: {plan.passages[nextDay - 1] || 'â'}
+                                Day {nextDay}: {plan.passages[nextDay - 1] || '—'}
                               </p>
                               <button
                                 onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
@@ -633,7 +665,7 @@ export function PlansScreen() {
                     {plan.description}
                   </p>
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, marginBottom: 10, fontFamily: 'var(--font-sans)' }}>
-                    {plan.totalDays} days Â· {plan.passages.length} passages
+                    {plan.totalDays} days · {plan.passages.length} passages
                   </p>
                   <button
                     onClick={() => { startPlan(plan.id); setPlanView('active'); }}
@@ -667,7 +699,7 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-              Perfect for new believers â a guided journey through the foundations of faith.
+              Perfect for new believers — a guided journey through the foundations of faith.
             </p>
             <button
               onClick={() => { startPlan('faith-pathway'); }}
