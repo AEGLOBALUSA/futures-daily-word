@@ -5,7 +5,7 @@ import { DEVOTIONS } from '../data/devotions';
 import { CAMPUSES } from '../data/tokens';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight , Loader2, ChevronLeft } from 'lucide-react';
 
-/* ââ Plan catalogue ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Plan catalogue Ã¢ÂÂÃ¢ÂÂ */
 interface PlanDef {
   id: string;
   title: string;
@@ -88,7 +88,7 @@ const PLAN_CATALOGUE: PlanDef[] = [
   },
 ];
 
-/* ââ localStorage helpers ââ */
+/* Ã¢ÂÂÃ¢ÂÂ localStorage helpers Ã¢ÂÂÃ¢ÂÂ */
 interface PlanProgress {
   startedAt: string;
   completedDays: number[];
@@ -201,7 +201,7 @@ export function PlansScreen() {
   useEffect(() => {
     if (!activeBook) { setBookData(null); setBookChapter(null); return; }
     setBookLoading(true);
-    fetch(activeBook)
+    fetch(activeBook, { cache: 'reload' })
       .then(r => r.json())
       .then((d: BookData) => setBookData(d))
       .catch(() => {})
@@ -210,7 +210,7 @@ export function PlansScreen() {
 
     return (
       <div className="screen-container">
-      {/* ── In-app book reader ── */}
+      {/* ââ In-app book reader ââ */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Reader header */}
@@ -238,7 +238,7 @@ export function PlansScreen() {
             {bookLoading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 24 }}>
                 <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
+                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loadingâ¦</span>
               </div>
             )}
             {/* Chapter list */}
@@ -297,7 +297,7 @@ export function PlansScreen() {
                 {devotion.body}
               </p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                — {devotion.author}
+                â {devotion.author}
               </p>
             </Card>
           )}
@@ -397,7 +397,7 @@ export function PlansScreen() {
                     </p>
                     {book.jsonFile && (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
-                        Tap to view →
+                        Tap to view â
                       </p>
                     )}
                   </div>
@@ -427,7 +427,7 @@ export function PlansScreen() {
                     </p>
                     {book.jsonFile && (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
-                        Tap to view →
+                        Tap to view â
                       </p>
                     )}
                   </div>
@@ -478,7 +478,7 @@ export function PlansScreen() {
               minHeight: 44,
             }}
           >
-            ← Back
+            â Back
           </button>
         </div>
 
@@ -580,7 +580,7 @@ export function PlansScreen() {
                           {!isComplete && nextDay <= plan.totalDays && (
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
-                                Day {nextDay}: {plan.passages[nextDay - 1] || '—'}
+                                Day {nextDay}: {plan.passages[nextDay - 1] || 'â'}
                               </p>
                               <button
                                 onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
@@ -633,7 +633,7 @@ export function PlansScreen() {
                     {plan.description}
                   </p>
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, marginBottom: 10, fontFamily: 'var(--font-sans)' }}>
-                    {plan.totalDays} days · {plan.passages.length} passages
+                    {plan.totalDays} days Â· {plan.passages.length} passages
                   </p>
                   <button
                     onClick={() => { startPlan(plan.id); setPlanView('active'); }}
@@ -667,7 +667,7 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-              Perfect for new believers — a guided journey through the foundations of faith.
+              Perfect for new believers â a guided journey through the foundations of faith.
             </p>
             <button
               onClick={() => { startPlan('faith-pathway'); }}
