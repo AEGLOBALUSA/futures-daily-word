@@ -1,5 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
-import { Brain, Send, ChevronDown } from 'lucide-react'
+import { Send, ChevronDown } from 'lucide-react'
+
+/** Inline "BIBLE AI" wordmark used wherever Brain icon used to be */
+const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
+  const styles: Record<string, React.CSSProperties> = {
+    sm: { fontSize: 9, padding: '2px 6px', borderRadius: 5, letterSpacing: '0.08em' },
+    md: { fontSize: 11, padding: '3px 8px', borderRadius: 6, letterSpacing: '0.08em' },
+    lg: { fontSize: 14, padding: '5px 11px', borderRadius: 8, letterSpacing: '0.1em' },
+  };
+  return (
+    <span style={{
+      ...styles[size],
+      background: 'linear-gradient(135deg, #7B5EA7, #9B6FBF)',
+      color: '#fff',
+      fontWeight: 800,
+      fontFamily: 'var(--font-sans)',
+      display: 'inline-block',
+      lineHeight: 1.2,
+    }}>
+      BIBLE AI
+    </span>
+  );
+}
 
 interface Message {
   role: 'user' | 'assistant'
@@ -116,7 +138,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
         onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
         onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        <Brain size={22} color="#fff" />
+        <BibleAIBadge size="sm" />
       </button>
 
       {/* Panel backdrop */}
@@ -170,7 +192,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Brain size={16} color="#fff" />
+              <BibleAIBadge size="sm" />
             </div>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)' }}>
               Bible AI
@@ -188,7 +210,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
           {messages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <Brain size={32} style={{ color: 'var(--dw-accent, #4A6340)', marginBottom: 12 }} />
+              <BibleAIBadge size="lg" />
               <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--dw-text)', marginBottom: 4 }}>
                 {selectedText ? 'Go deeper on this passage' : 'Ask me about scripture'}
               </p>

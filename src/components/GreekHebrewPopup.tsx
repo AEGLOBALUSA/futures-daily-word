@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Brain } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 
 interface StrongsEntry {
@@ -129,7 +129,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
-              <Brain size={15} /> Study this word with AI
+              <span style={{ fontSize: 10, fontWeight: 800, background: 'rgba(255,255,255,0.25)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.06em' }}>BIBLE AI</span> Study this word
             </button>
           </>
         ) : null}
