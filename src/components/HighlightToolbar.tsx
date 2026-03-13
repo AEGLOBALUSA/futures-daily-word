@@ -19,9 +19,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
       await navigator.clipboard.writeText(selection.text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-    }
+    } catch { /* fallback */ }
   };
 
   const handleShare = () => {
@@ -31,7 +29,6 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
     if (navigator.share) {
       navigator.share({ text: shareText }).catch(() => {});
     } else {
-      // fallback: mailto
       window.open('mailto:?body=' + encodeURIComponent(shareText));
     }
   };
@@ -82,7 +79,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
         justifyContent: 'center', gap: 3, padding: '8px 14px',
         background: active ? 'var(--dw-accent)' : 'transparent',
         color: active ? '#fff' : 'var(--dw-text)',
-        border: 'none', cursor: 'pointer', minWidth: 56,
+        border: 'none', cursor: 'pointer', minWidth: 52,
         borderRight: '1px solid var(--dw-border)',
         transition: 'background 0.15s',
       }}
@@ -101,27 +98,80 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
         100% { background-position: 0% 50%; }
       }
       @keyframes aiBeam {
-        0%        { left: -30%; opacity: 0; }
-        4%        { opacity: 1; }
-        22%       { left: 130%; opacity: 0; }
-        100%      { left: 130%; opacity: 0; }
+        0%   { left: -40%; opacity: 0; }
+        5%   { opacity: 1; }
+        25%  { left: 140%; opacity: 0; }
+        100% { left: 140%; opacity: 0; }
       }
       @keyframes slideUp {
-        from { opacity: 0; transform: translateY(12px); }
+        from { opacity: 0; transform: translateY(16px); }
         to   { opacity: 1; transform: translateY(0); }
       }
+      @keyframes aiFloat {
+        0%, 100% { transform: translateY(0px); }
+        50%      { transform: translateY(-2px); }
+      }
     `}</style>
+
     <div style={{
-      position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)', left: 0, right: 0, zIndex: 95,
-      display: 'flex', justifyContent: 'center', padding: '0 12px',
-      pointerEvents: 'auto',
-      animation: 'slideUp 0.2s ease',
+      position: 'fixed',
+      bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)',
+      left: 0, right: 0, zIndex: 95,
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      gap: 8, padding: '0 12px',
+      pointerEvents: 'none',
+      animation: 'slideUp 0.22s ease',
     }}>
+
+      {/* ── Floating Ask AI pill — sits above the toolbar row ── */}
+      <button
+        onClick={onGoDeeper}
+        style={{
+          pointerEvents: 'auto',
+          position: 'relative', overflow: 'hidden',
+          display: 'flex', flexDirection: 'row',
+          alignItems: 'center', gap: 7,
+          padding: '10px 22px',
+          borderRadius: 999,
+          background: 'linear-gradient(110deg, #831843 0%, #9D174D 25%, #DB2777 55%, #BE185D 78%, #9D174D 100%)',
+          backgroundSize: '220% 100%',
+          animation: 'aiAurora 4s ease infinite, aiFloat 3.5s ease-in-out infinite',
+          color: '#fff',
+          border: '1.5px solid rgba(255,255,255,0.2)',
+          cursor: 'pointer',
+          boxShadow: '0 6px 24px rgba(190,24,93,0.45), 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+      >
+        {/* Beam sweep */}
+        <span style={{
+          position: 'absolute', top: 0, bottom: 0, width: '30%',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
+          animation: 'aiBeam 3.8s ease-in-out infinite',
+          pointerEvents: 'none',
+          borderRadius: 999,
+        }} />
+        <Sparkles size={14} strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
+        <span style={{
+          fontSize: 13, fontWeight: 700,
+          fontFamily: 'var(--font-sans)',
+          letterSpacing: '0.04em',
+          position: 'relative',
+        }}>
+          Ask AI
+        </span>
+      </button>
+
+      {/* ── Main toolbar row ── */}
       <div style={{
-        background: 'var(--dw-surface)', borderRadius: 16,
+        pointerEvents: 'auto',
+        background: 'var(--dw-surface)',
+        borderRadius: 16,
         boxShadow: '0 4px 24px rgba(0,0,0,0.22)',
         border: '1px solid var(--dw-border)',
-        display: 'flex', overflow: 'hidden',
+        display: 'flex',
+        overflow: 'hidden',
         maxWidth: '100%',
       }}>
         {btn(handleCopy,
@@ -137,33 +187,6 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           greekHebrewMode ? 'Hide' : 'Gk/Heb',
           greekHebrewMode
         )}
-
-        {/* ── AI / Ask AI button — deep indigo aurora ── */}
-        <button
-          onClick={onGoDeeper}
-          style={{
-            position: 'relative', overflow: 'hidden',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 3, padding: '8px 16px',
-            background: 'linear-gradient(135deg, #831843 0%, #9D174D 20%, #BE185D 45%, #DB2777 65%, #BE185D 85%, #9D174D 100%)',
-            backgroundSize: '250% 250%',
-            animation: 'aiAurora 5s ease infinite',
-            color: 'rgba(255,255,255,0.95)',
-            border: 'none', cursor: 'pointer', minWidth: 62,
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
-          }}
-        >
-          {/* Single fine light beam — infrequent, fast, subtle */}
-          <span style={{
-            position: 'absolute', top: 0, bottom: 0, width: '22%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.13) 50%, transparent 100%)',
-            animation: 'aiBeam 4.5s ease-in-out infinite',
-            pointerEvents: 'none',
-          }} />
-          <Sparkles size={15} strokeWidth={1.8} style={{ position: 'relative' }} />
-          <span style={{ fontSize: 9, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: 0.6, position: 'relative', opacity: 0.9 }}>Ask AI</span>
-        </button>
-
         <button
           onClick={handleDismiss}
           style={{
@@ -175,6 +198,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           <X size={14} />
         </button>
       </div>
+
     </div>
     </>
   );
