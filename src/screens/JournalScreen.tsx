@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, ChevronDown } from 'lucide-react';
+import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 
@@ -354,23 +355,31 @@ function getDailyJournalPrompt() {
 }
 
 /* ── Today's Study Panel ─────────────────────────────────────── */
+interface Devotional { title: string; author: string; body: string; }
+
 interface TodayPassage {
   ref: string;
   planTitle: string | null;
   dayNum: number | null;
+  devotional?: Devotional;
+}
+
+/** Strip :verse suffix so we always fetch the full chapter for context */
+function expandToChapter(ref: string): string {
+  // "2 Timothy 1:7" → "2 Timothy 1"   |   "John 3:16-21" → "John 3"
+  return ref.replace(/:\d+(-\d+)?$/, '').trim();
 }
 
 function getTodaysPassages(): TodayPassage[] {
   try {
-    const plan: Array<{ passage: string; planTitle: string; dayNum: number }> =
+    const plan: Array<{ passage: string; planTitle: string; dayNum: number; devotional?: Devotional }> =
       JSON.parse(localStorage.getItem('dw_todays_plan_passages') || '[]');
     const slots: Array<{ book: string; currentChapter: number }> =
       JSON.parse(localStorage.getItem('dw_reading_slots') || '[]');
     const out: TodayPassage[] = [
-      ...plan.map(p => ({ ref: p.passage, planTitle: p.planTitle, dayNum: p.dayNum })),
+      ...plan.map(p => ({ ref: p.passage, planTitle: p.planTitle, dayNum: p.dayNum, devotional: p.devotional })),
       ...slots.map(s => ({ ref: `${s.book} ${s.currentChapter}`, planTitle: null, dayNum: null })),
     ];
-    // Deduplicate by ref
     return out.filter((p, i, arr) => arr.findIndex(x => x.ref === p.ref) === i);
   } catch { return []; }
 }
@@ -380,6 +389,7 @@ function ScriptureModal({
   passage,
   planTitle,
   dayNum,
+  devotional,
   existingNote,
   onSave,
   onClose,
@@ -387,6 +397,7 @@ function ScriptureModal({
   passage: string;
   planTitle: string | null;
   dayNum: number | null;
+  devotional?: Devotional;
   existingNote: JournalEntry | undefined;
   onSave: (entry: JournalEntry) => void;
   onClose: () => void;
@@ -394,6 +405,10 @@ function ScriptureModal({
   const translation: TranslationCode =
     (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const { setSelection } = useScriptureSelection();
+
+  // Expand single-verse refs to whole chapter for study context
+  const chapterRef = expandToChapter(passage);
 
   const [scriptureText, setScriptureText] = useState('');
   const [loadingText, setLoadingText] = useState(true);
@@ -403,11 +418,11 @@ function ScriptureModal({
 
   useEffect(() => {
     setLoadingText(true);
-    fetchPassage(passage, translation)
+    fetchPassage(chapterRef, translation)
       .then(text => setScriptureText(text))
       .catch(() => setScriptureText(''))
       .finally(() => setLoadingText(false));
-  }, [passage, translation]);
+  }, [chapterRef, translation]);
 
   function handleSave() {
     if (!draftNote.trim()) return;
@@ -416,7 +431,7 @@ function ScriptureModal({
       : {
           id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
           date: today,
-          title: passage,
+          title: devotional?.title || passage,
           body: draftNote,
           tags: ['study'],
           type: 'journal',
@@ -427,162 +442,272 @@ function ScriptureModal({
     setTimeout(() => { setNoteSaved(false); onClose(); }, 1200);
   }
 
+  function handleAskAI() {
+    const context = devotional
+      ? `${devotional.title} — ${passage}\n\n${devotional.body.slice(0, 300)}…`
+      : `${passage}: ${scriptureText.slice(0, 300)}`;
+    setSelection({ text: context, verseRefs: [passage], source: 'range' });
+    onClose();
+  }
+
+  const authorColor = (author: string) =>
+    author === 'Ashley' ? '#9A6A08' : author === 'Jane' ? '#4A5568' : '#6B5C3E';
+
   return (
     <>
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.45)',
-          zIndex: 200,
-        }}
-      />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
 
-      {/* Modal panel */}
+      {/* Modal panel — full study sheet */}
       <div style={{
-        position: 'fixed',
-        bottom: 0, left: 0, right: 0,
-        height: '90vh',
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        height: '94vh',
         background: 'var(--dw-canvas, #FAFAF8)',
-        borderRadius: '20px 20px 0 0',
-        zIndex: 201,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        boxShadow: '0 -6px 40px rgba(0,0,0,0.22)',
+        borderRadius: '22px 22px 0 0',
+        zIndex: 201, display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', boxShadow: '0 -8px 48px rgba(0,0,0,0.28)',
       }}>
-        {/* Header */}
-        <div style={{
-          padding: '14px 18px 12px',
-          borderBottom: '1px solid var(--dw-border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
-          <div>
-            {planTitle && (
-              <p style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 2,
-              }}>
-                {planTitle}{dayNum ? ` — Day ${dayNum}` : ''}
-              </p>
-            )}
-            <p style={{
-              fontSize: 18, fontWeight: 600,
-              fontFamily: 'var(--font-serif)',
-              color: 'var(--dw-text-primary)',
-              margin: 0,
-            }}>
-              {passage}
-            </p>
-            <p style={{
-              fontSize: 11, color: 'var(--dw-text-muted)',
-              fontFamily: 'var(--font-sans)', marginTop: 2,
-            }}>{translation}</p>
+
+        {/* ── Drag handle + header ── */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 4 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--dw-border)' }} />
           </div>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--dw-text-muted)' }}
-          >
-            <ChevronDown size={22} />
-          </button>
+          <div style={{
+            padding: '8px 18px 14px',
+            borderBottom: '1px solid var(--dw-border)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+          }}>
+            <div>
+              {planTitle && (
+                <p style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 3,
+                }}>
+                  {planTitle}{dayNum ? ` · Day ${dayNum}` : ''}
+                </p>
+              )}
+              <p style={{
+                fontSize: 20, fontWeight: 500, fontFamily: 'var(--font-serif)',
+                color: 'var(--dw-text-primary)', margin: 0, letterSpacing: '-0.01em',
+              }}>
+                {chapterRef !== passage ? `${chapterRef}` : passage}
+              </p>
+              {chapterRef !== passage && (
+                <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
+                  Key verse: {passage} · showing full chapter · {translation}
+                </p>
+              )}
+              {chapterRef === passage && (
+                <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
+                  {translation}
+                </p>
+              )}
+            </div>
+            <button onClick={onClose}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 4px 8px', color: 'var(--dw-text-muted)', marginTop: 2 }}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
-        {/* Scrollable body: scripture + notes */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {/* ── Scrollable study content ── */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
 
-          {/* Scripture text */}
-          <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--dw-border)' }}>
-            {loadingText ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
-                <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
-                  Loading {passage}…
+          {/* SECTION 1: Devotional (if present) */}
+          {devotional && (
+            <div style={{
+              margin: '20px 18px 0',
+              borderRadius: 16,
+              background: 'var(--dw-card)',
+              border: '1px solid var(--dw-border)',
+              borderLeft: '4px solid',
+              borderLeftColor: authorColor(devotional.author),
+              overflow: 'hidden',
+            }}>
+              <div style={{ padding: '16px 18px 0' }}>
+                <p style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8,
+                }}>
+                  Today's Devotional
+                </p>
+                <p style={{
+                  fontSize: 19, fontWeight: 500, fontFamily: 'var(--font-serif)',
+                  color: 'var(--dw-text-primary)', lineHeight: 1.3, marginBottom: 10,
+                }}>
+                  {devotional.title}
+                </p>
+                <span style={{
+                  display: 'inline-block',
+                  background: authorColor(devotional.author) + '18',
+                  color: authorColor(devotional.author),
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                  padding: '3px 10px', borderRadius: 999,
+                  fontFamily: 'var(--font-sans)',
+                  marginBottom: 14,
+                }}>
+                  {devotional.author}
                 </span>
               </div>
-            ) : scriptureText ? (
-              <p style={{
-                fontSize: 16, lineHeight: 1.85,
-                fontFamily: 'var(--font-serif)',
-                color: 'var(--dw-text-primary)',
-                margin: 0,
-                whiteSpace: 'pre-wrap',
+              <div style={{ padding: '0 18px 18px' }}>
+                {devotional.body.split('\n\n').map((para, i) => (
+                  <p key={i} style={{
+                    fontSize: 15, lineHeight: 1.82, fontFamily: 'var(--font-serif)',
+                    color: 'var(--dw-text-secondary)', marginBottom: i < devotional.body.split('\n\n').length - 1 ? 14 : 0,
+                  }}>
+                    {para}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 2: Scripture passage */}
+          <div style={{ margin: '20px 18px 0' }}>
+            <div style={{
+              borderRadius: 16,
+              background: 'var(--dw-card)',
+              border: '1px solid var(--dw-border)',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '12px 18px 10px',
+                borderBottom: '1px solid var(--dw-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                {scriptureText}
-              </p>
-            ) : (
-              <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>
-                Could not load passage text.
-              </p>
-            )}
+                <p style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0,
+                }}>
+                  Scripture · {chapterRef} · {translation}
+                </p>
+              </div>
+              <div style={{ padding: '16px 18px 18px' }}>
+                {loadingText ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
+                    <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                      Loading {chapterRef}…
+                    </span>
+                  </div>
+                ) : scriptureText ? (
+                  <p style={{
+                    fontSize: 16, lineHeight: 1.9, fontFamily: 'var(--font-serif)',
+                    color: 'var(--dw-text-primary)', margin: 0, whiteSpace: 'pre-wrap',
+                  }}>
+                    {scriptureText}
+                  </p>
+                ) : (
+                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>
+                    Could not load passage. Check your connection.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Notes area */}
-          <div style={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <p style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-              color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 10,
+          {/* SECTION 3: My Notes */}
+          <div style={{ margin: '20px 18px 32px' }}>
+            <div style={{
+              borderRadius: 16,
+              background: 'var(--dw-card)',
+              border: '1px solid var(--dw-border)',
+              overflow: 'hidden',
             }}>
-              MY NOTES
-            </p>
-            <textarea
-              ref={textareaRef}
-              value={draftNote}
-              onChange={e => setDraftNote(e.target.value)}
-              placeholder={`What is God saying to you through ${passage}?`}
-              style={{
-                flex: 1, minHeight: 120,
-                resize: 'none',
-                border: '1px solid var(--dw-border)',
-                borderRadius: 12,
-                padding: '12px 14px',
-                fontSize: 14, lineHeight: 1.65,
-                color: 'var(--dw-text)',
-                fontFamily: 'var(--font-sans)',
-                background: 'var(--dw-card)',
-                outline: 'none',
-                boxSizing: 'border-box',
-                width: '100%',
-              }}
-            />
+              <div style={{ padding: '12px 18px 10px', borderBottom: '1px solid var(--dw-border)' }}>
+                <p style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0,
+                }}>
+                  My Notes
+                </p>
+              </div>
+              <div style={{ padding: '12px 18px 16px' }}>
+                <textarea
+                  ref={textareaRef}
+                  value={draftNote}
+                  onChange={e => setDraftNote(e.target.value)}
+                  placeholder={devotional
+                    ? `What is God saying to you through "${devotional.title}"?`
+                    : `What is God saying to you through ${passage}?`}
+                  style={{
+                    width: '100%', minHeight: 140, resize: 'none',
+                    border: 'none', outline: 'none',
+                    background: 'transparent',
+                    fontSize: 15, lineHeight: 1.7,
+                    color: 'var(--dw-text)',
+                    fontFamily: 'var(--font-serif)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
           </div>
+
         </div>
 
-        {/* Save bar */}
+        {/* ── Bottom tool bar ── */}
         <div style={{
-          padding: '12px 18px',
-          paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          padding: '10px 16px',
+          paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))',
           borderTop: '1px solid var(--dw-border)',
           background: 'var(--dw-canvas)',
           flexShrink: 0,
+          display: 'flex', gap: 10,
         }}>
+          {/* Bible AI button */}
+          <button
+            onClick={handleAskAI}
+            style={{
+              position: 'relative', overflow: 'hidden',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '0 18px', height: 48, borderRadius: 12, flexShrink: 0,
+              background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
+              backgroundSize: '200% 200%', animation: 'aiAurora 4s ease infinite',
+              border: '1px solid rgba(245,207,85,0.5)',
+              boxShadow: '0 2px 14px rgba(155,105,8,0.5), inset 0 1px 0 rgba(255,255,255,0.22)',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: '45%',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%)',
+              borderRadius: '12px 12px 0 0', pointerEvents: 'none',
+            }} />
+            <Sparkles size={14} color="#fff" strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
+            <span style={{
+              fontSize: 12, fontWeight: 800, color: '#fff',
+              fontFamily: 'var(--font-sans)', letterSpacing: '0.1em',
+              textTransform: 'uppercase', position: 'relative',
+              textShadow: '0 1px 3px rgba(60,30,0,0.5)',
+            }}>Bible AI</span>
+          </button>
+
+          {/* Save note button */}
           <button
             onClick={handleSave}
             disabled={!draftNote.trim() || noteSaved}
             style={{
-              width: '100%',
-              background: noteSaved ? '#4A8C40' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-border)',
-              border: 'none', borderRadius: 14,
-              padding: '15px 20px',
-              color: '#fff',
-              fontSize: 15, fontWeight: 700,
-              fontFamily: 'var(--font-sans)',
+              flex: 1, height: 48, borderRadius: 12,
+              background: noteSaved ? '#4A8C40' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-surface)',
+              border: `1px solid ${noteSaved ? '#4A8C40' : draftNote.trim() ? 'transparent' : 'var(--dw-border)'}`,
+              color: draftNote.trim() || noteSaved ? '#fff' : 'var(--dw-text-muted)',
+              fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
               cursor: draftNote.trim() && !noteSaved ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              transition: 'background 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              transition: 'background 0.2s, border 0.2s',
             }}
           >
-            {noteSaved ? (
-              <><CheckCircle2 size={17} /> Saved!</>
-            ) : (
-              <><Save size={15} /> Save Note</>
-            )}
+            {noteSaved ? <><CheckCircle2 size={16} /> Saved</> : <><Save size={15} /> Save Note</>}
           </button>
         </div>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes aiAurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+      `}</style>
     </>
   );
 }
@@ -623,39 +748,63 @@ function TodayPanel({ allEntries, onSave }: {
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {passages.map(({ ref, planTitle, dayNum }) => {
+        {passages.map(({ ref, planTitle, dayNum, devotional }) => {
           const existingNote = getExistingNote(ref);
           const wasSaved = saved.has(ref);
+          const authorColor = devotional?.author === 'Ashley' ? '#9A6A08' : devotional?.author === 'Jane' ? '#4A5568' : '#6B5C3E';
 
           return (
             <div
               key={ref}
-              onClick={() => setModalPassage({ ref, planTitle, dayNum })}
+              onClick={() => setModalPassage({ ref, planTitle, dayNum, devotional })}
               style={{
                 background: 'var(--dw-card)',
                 border: '1px solid var(--dw-border)',
                 borderRadius: 14,
                 overflow: 'hidden',
                 cursor: 'pointer',
-                transition: 'opacity 0.15s',
+                borderLeft: devotional ? `4px solid ${authorColor}` : '1px solid var(--dw-border)',
               }}
             >
-              {/* Passage header */}
               <div style={{ padding: '14px 16px 12px' }}>
                 {planTitle && (
                   <p style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                     color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4,
                   }}>
-                    {planTitle}{dayNum ? ` — Day ${dayNum}` : ''}
+                    {planTitle}{dayNum ? ` · Day ${dayNum}` : ''}
                   </p>
                 )}
-                <p style={{
-                  fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)',
-                  color: 'var(--dw-text-primary)', marginBottom: existingNote ? 8 : 0,
-                }}>
-                  {ref}
-                </p>
+                {/* Devotional title preview */}
+                {devotional ? (
+                  <>
+                    <p style={{
+                      fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-serif)',
+                      color: 'var(--dw-text-primary)', marginBottom: 4, lineHeight: 1.3,
+                    }}>
+                      {devotional.title}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: existingNote ? 8 : 0 }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+                        color: authorColor, fontFamily: 'var(--font-sans)',
+                        background: authorColor + '15', borderRadius: 999, padding: '2px 8px',
+                      }}>
+                        {devotional.author}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                        {ref}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <p style={{
+                    fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)',
+                    color: 'var(--dw-text-primary)', marginBottom: existingNote ? 8 : 0,
+                  }}>
+                    {ref}
+                  </p>
+                )}
                 {existingNote && (
                   <p style={{
                     fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
@@ -668,26 +817,23 @@ function TodayPanel({ allEntries, onSave }: {
                 )}
               </div>
 
-              {/* Footer */}
               <div style={{
-                borderTop: '1px solid var(--dw-border)',
-                padding: '8px 14px',
+                borderTop: '1px solid var(--dw-border)', padding: '8px 14px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <span style={{
                   fontSize: 12, fontWeight: 600,
                   color: wasSaved ? '#4A8C40' : 'var(--dw-accent)',
-                  fontFamily: 'var(--font-sans)',
-                  display: 'flex', alignItems: 'center', gap: 4,
+                  fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4,
                 }}>
                   {wasSaved ? (
                     <><CheckCircle2 size={13} /> Saved</>
                   ) : (
-                    <><PenLine size={13} />{existingNote ? 'Edit note' : 'Read & add note'}</>
+                    <><PenLine size={13} />{existingNote ? 'Edit note' : devotional ? 'Read devotional & notes' : 'Read & add note'}</>
                   )}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  Tap to open →
+                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  Tap to study →
                 </span>
               </div>
             </div>
@@ -701,6 +847,7 @@ function TodayPanel({ allEntries, onSave }: {
           passage={modalPassage.ref}
           planTitle={modalPassage.planTitle}
           dayNum={modalPassage.dayNum}
+          devotional={modalPassage.devotional}
           existingNote={getExistingNote(modalPassage.ref)}
           onSave={handleSaveFromModal}
           onClose={() => setModalPassage(null)}
