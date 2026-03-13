@@ -132,7 +132,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           display: 'flex', flexDirection: 'row',
           alignItems: 'center', gap: 7,
           padding: '10px 22px',
-          borderRadius: 999,
+          borderRadius: 10,
           background: 'linear-gradient(110deg, #831843 0%, #9D174D 25%, #DB2777 55%, #BE185D 78%, #9D174D 100%)',
           backgroundSize: '220% 100%',
           animation: 'aiAurora 4s ease infinite, aiFloat 3.5s ease-in-out infinite',
@@ -150,7 +150,6 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
           animation: 'aiBeam 3.8s ease-in-out infinite',
           pointerEvents: 'none',
-          borderRadius: 999,
         }} />
         <Sparkles size={14} strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
         <span style={{
