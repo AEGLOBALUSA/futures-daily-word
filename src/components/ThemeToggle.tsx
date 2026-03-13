@@ -9,22 +9,21 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       style={{
-        background: 'var(--dw-surface)',
-        border: '1px solid var(--dw-border)',
-        borderRadius: 10,
-        padding: '8px 12px',
-        color: 'var(--dw-text-secondary)',
+        background: 'none',
+        border: 'none',
+        padding: 4,
+        color: 'var(--dw-text-muted)',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        fontSize: 13,
-        fontFamily: 'var(--font-sans)',
-        transition: 'background var(--transition-fast)',
+        justifyContent: 'center',
+        borderRadius: 6,
+        transition: 'opacity 0.15s',
       }}
+      onPointerDown={e => (e.currentTarget.style.opacity = '0.5')}
+      onPointerUp={e => (e.currentTarget.style.opacity = '1')}
     >
-      {isDark ? <Sun size={16} /> : <Moon size={16} />}
-      {isDark ? 'Light' : 'Dark'}
+      {isDark ? <Sun size={18} strokeWidth={1.75} /> : <Moon size={18} strokeWidth={1.75} />}
     </button>
   );
 }
