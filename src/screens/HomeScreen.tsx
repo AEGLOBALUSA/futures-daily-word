@@ -366,9 +366,38 @@ export function HomeScreen() {
     setAudioCurrentPassage(null);
   };
 
+  const setupMediaSession = (passage: string, audio: HTMLAudioElement) => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: passage,
+      artist: 'Futures Daily Word',
+      album: `${translation} Bible`,
+      artwork: [
+        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    });
+    navigator.mediaSession.setActionHandler('play', () => {
+      audio.play();
+      setAudioPlaying(true);
+      navigator.mediaSession.playbackState = 'playing';
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audio.pause();
+      setAudioPlaying(false);
+      navigator.mediaSession.playbackState = 'paused';
+    });
+    navigator.mediaSession.setActionHandler('stop', () => {
+      stopAudio();
+      navigator.mediaSession.playbackState = 'none';
+    });
+    navigator.mediaSession.playbackState = 'playing';
+  };
+
   const handleAudio = async (passage: string) => {
     if (audioPlaying && audioCurrentPassage === passage) {
       stopAudio();
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
       return;
     }
     if (audioPlaying) stopAudio();
@@ -392,14 +421,23 @@ export function HomeScreen() {
           setAudioPlaying(false);
           setAudioUrl(null);
           setAudioCurrentPassage(null);
+          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
         };
         audio.onerror = () => {
           setAudioPlaying(false);
           setAudioUrl(null);
           setAudioCurrentPassage(null);
+          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+        };
+        audio.onpause = () => {
+          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+        };
+        audio.onplay = () => {
+          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
         };
         await audio.play();
         setAudioPlaying(true);
+        setupMediaSession(passage, audio);
       }
     } catch {
       setAudioCurrentPassage(null);
