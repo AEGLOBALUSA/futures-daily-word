@@ -1659,7 +1659,20 @@ export function HomeScreen() {
           )}
         </Card>
 
-        {/* Scripture Search — shows here (between devotion & quote) on type 1 days */}
+        {/* Quote shows AFTER devotion on days when devotion leads (type 1) */}
+        {homeLeadType === 1 && (
+        <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
+          <p
+            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+          >
+            &ldquo;{quote.text}&rdquo;
+          </p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>— {quote.author}</p>
+        </Card>
+        )}
+
+        {/* Scripture Search — shows here (after quote) on type 1 days */}
         {homeLeadType === 1 && (
         <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1681,19 +1694,6 @@ export function HomeScreen() {
               }}
             />
           </div>
-        </Card>
-        )}
-
-        {/* Quote shows AFTER devotion on days when devotion leads (type 1) */}
-        {homeLeadType === 1 && (
-        <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-          <p
-            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
-            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-          >
-            &ldquo;{quote.text}&rdquo;
-          </p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>— {quote.author}</p>
         </Card>
         )}
 
