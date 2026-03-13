@@ -819,6 +819,7 @@ export function HomeScreen() {
                             <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading {translation}...</span>
                           </div>
                         ) : text ? (
+              <>
               <div onClick={() => text && setSelection({ text, verseRefs: [passage], source: 'tap' })} style={{ cursor:'pointer', padding:'2px 0' }}>
                 <p className="text-scripture" style={{ fontSize:15, lineHeight:1.7, color:'var(--dw-text)', fontFamily:'var(--font-serif)', background: selection?.text===text ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius:4, transition:'background 0.2s' }}>
                   {text}
@@ -826,6 +827,7 @@ export function HomeScreen() {
               </div>
               {selection?.verseRefs?.includes(passage) && (
                 <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => {}} />
+              </>
               )}
                         ) : (
                           <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
