@@ -79,6 +79,10 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Reject oversized request bodies (max 100KB)
+    if (event.body && event.body.length > 100000) {
+      return { statusCode: 413, headers: corsHeaders, body: JSON.stringify({ error: 'Request too large' }) };
+    }
     const body = JSON.parse(event.body);
 
     // Validate messages array

@@ -32,10 +32,13 @@ export const handler = async (event) => {
   const num = (params.num || '').toUpperCase();
   const testament = (params.testament || 'NT').toUpperCase();
 
+  const ALLOWED_ORIGINS = ["https://futuresdailyword.com", "https://www.futuresdailyword.com", "http://localhost:5173", "http://localhost:4173"];
+  const origin = event.headers?.origin || event.headers?.Origin || "";
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'public, max-age=86400',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': corsOrigin,
   };
 
   // Check inline dataset first

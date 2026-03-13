@@ -57,6 +57,10 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Reject oversized request bodies (max 50KB)
+    if (event.body && event.body.length > 50000) {
+      return { statusCode: 413, headers: corsHeaders, body: JSON.stringify({ error: 'Request too large' }) };
+    }
     const { text, voiceId, modelId } = JSON.parse(event.body || '{}');
     if (!text) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing text' }) };

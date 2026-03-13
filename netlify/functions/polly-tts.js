@@ -48,9 +48,16 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Reject oversized request bodies (max 50KB)
+    if (event.body && event.body.length > 50000) {
+      return { statusCode: 413, headers: corsHeaders, body: JSON.stringify({ error: 'Request too large' }) };
+    }
     const { text, voiceId, engine } = JSON.parse(event.body || '{}');
     if (!text) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing text' }) };
+    }
+    if (text.length > 25000) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Text too long (max 25000 chars)' }) };
     }
 
     const voice = voiceId || 'Lucia'; // Lucia = Spain Spanish female (professional)

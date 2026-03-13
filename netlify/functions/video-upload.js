@@ -6,11 +6,11 @@ const PASTOR_SECRET = process.env.PASTOR_SECRET || "";
 const BUCKET = "campus-videos";
 const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS"
-};
+const ALLOWED_ORIGINS = ["https://futuresdailyword.com", "https://www.futuresdailyword.com", "http://localhost:5173", "http://localhost:4173"];
+function getCorsHeaders(origin) {
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return { "Access-Control-Allow-Origin": allowed, "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+}
 
 let supabase;
 function getSupabase() {
@@ -30,6 +30,8 @@ function validateCode(campusId, code) {
 }
 
 exports.handler = async (event) => {
+  const origin = event.headers.origin || event.headers.Origin || "";
+  const corsHeaders = getCorsHeaders(origin);
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: corsHeaders };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers: corsHeaders, body: "Method not allowed" };
 

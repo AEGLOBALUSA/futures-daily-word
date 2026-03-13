@@ -19,6 +19,10 @@ export function registerAudio(audio: HTMLAudioElement): void {
   activeAudios.add(audio);
   const cleanup = () => {
     activeAudios.delete(audio);
+    // Revoke blob URL to free memory
+    if (audio.src && audio.src.startsWith('blob:')) {
+      try { URL.revokeObjectURL(audio.src); } catch { /* ignore */ }
+    }
     notify();
   };
   audio.addEventListener('ended', cleanup, { once: true });
@@ -31,6 +35,10 @@ export function registerAudio(audio: HTMLAudioElement): void {
 export function stopAllAudio(): void {
   activeAudios.forEach(audio => {
     try {
+      // Revoke blob URL to free memory
+      if (audio.src && audio.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audio.src);
+      }
       audio.pause();
       audio.currentTime = 0;
     } catch { /* ignore */ }
