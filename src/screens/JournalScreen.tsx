@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw } from 'lucide-react';
 
 interface JournalEntry {
   id: string;
@@ -30,12 +30,295 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+/* ── Video Recorder Modal ── */
+function VideoRecorderModal({ onClose }: { onClose: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const [phase, setPhase] = useState<'preview' | 'recording' | 'playback'>('preview');
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Start camera preview
+  useEffect(() => {
+    let active = true;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+      .then(stream => {
+        if (!active) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      })
+      .catch(err => {
+        if (!active) return;
+        if (err.name === 'NotAllowedError') {
+          setError('Camera access denied. Please allow camera & mic permissions and try again.');
+        } else {
+          setError('Could not access camera: ' + err.message);
+        }
+      });
+    return () => {
+      active = false;
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const startRecording = () => {
+    if (!streamRef.current) return;
+    chunksRef.current = [];
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : MediaRecorder.isTypeSupported('video/webm')
+        ? 'video/webm'
+        : 'video/mp4';
+    const mr = new MediaRecorder(streamRef.current, { mimeType });
+    mediaRecorderRef.current = mr;
+    mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    mr.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      setRecordedBlob(blob);
+      setRecordedUrl(url);
+      setPhase('playback');
+      // Show recorded video in preview element
+      setTimeout(() => {
+        if (previewRef.current) {
+          previewRef.current.src = url;
+          previewRef.current.load();
+        }
+      }, 100);
+    };
+    mr.start(250);
+    setElapsed(0);
+    setPhase('recording');
+    timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+  };
+
+  const stopRecording = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    mediaRecorderRef.current?.stop();
+    streamRef.current?.getTracks().forEach(t => t.stop());
+  };
+
+  const retake = () => {
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+    setRecordedBlob(null);
+    setRecordedUrl(null);
+    setElapsed(0);
+    setPhase('preview');
+    // Restart camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true })
+      .then(stream => {
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      })
+      .catch(() => {});
+  };
+
+  const shareVideo = async () => {
+    if (!recordedBlob || !recordedUrl) return;
+    const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+    const file = new File([recordedBlob], `my-reflection.${ext}`, { type: recordedBlob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'My Reflection', text: 'Shared from Futures Daily Word' });
+      } catch { /* cancelled */ }
+    } else {
+      // Fallback: trigger download
+      const a = document.createElement('a');
+      a.href = recordedUrl;
+      a.download = `my-reflection.${ext}`;
+      a.click();
+    }
+  };
+
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 600,
+          background: 'rgba(0,0,0,0.7)',
+        }}
+      />
+      {/* Modal */}
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, top: 0,
+        zIndex: 601,
+        display: 'flex', flexDirection: 'column',
+        background: '#0a0a0a',
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 20px',
+          paddingTop: 'calc(16px + var(--safe-top, 0px))',
+        }}>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>
+            {phase === 'recording' ? `Recording ${fmtTime(elapsed)}` : phase === 'playback' ? 'Preview' : 'Record Yourself'}
+          </span>
+          <button
+            onClick={onClose}
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 999, padding: 8, color: '#fff', cursor: 'pointer' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Video area */}
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          {error ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 32 }}>
+              <p style={{ color: '#fff', textAlign: 'center', fontSize: 15, lineHeight: 1.6 }}>{error}</p>
+              <button
+                onClick={onClose}
+                style={{ marginTop: 20, background: 'var(--dw-accent)', border: 'none', borderRadius: 12, padding: '12px 28px', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Live preview (shown during preview + recording) */}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  width: '100%', height: '100%',
+                  objectFit: 'cover',
+                  display: phase === 'playback' ? 'none' : 'block',
+                  transform: 'scaleX(-1)', // mirror front camera
+                }}
+              />
+              {/* Playback video */}
+              <video
+                ref={previewRef}
+                controls
+                playsInline
+                style={{
+                  width: '100%', height: '100%',
+                  objectFit: 'contain',
+                  display: phase === 'playback' ? 'block' : 'none',
+                  background: '#000',
+                }}
+              />
+              {/* Recording indicator */}
+              {phase === 'recording' && (
+                <div style={{
+                  position: 'absolute', top: 16, left: 16,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(0,0,0,0.5)', borderRadius: 999, padding: '4px 12px',
+                }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff3b30', animation: 'recBlink 1s ease infinite' }} />
+                  <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{fmtTime(elapsed)}</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Controls */}
+        {!error && (
+          <div style={{
+            padding: '24px 20px 32px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24,
+          }}>
+            {phase === 'preview' && (
+              <button
+                onClick={startRecording}
+                style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  background: '#ff3b30',
+                  border: '4px solid rgba(255,255,255,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', boxShadow: '0 0 0 6px rgba(255,59,48,0.2)',
+                }}
+              >
+                <Circle size={28} fill="#fff" color="#fff" />
+              </button>
+            )}
+            {phase === 'recording' && (
+              <button
+                onClick={stopRecording}
+                style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  background: '#ff3b30',
+                  border: '4px solid rgba(255,255,255,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', boxShadow: '0 0 0 6px rgba(255,59,48,0.2)',
+                  animation: 'recPulse 1.5s ease infinite',
+                }}
+              >
+                <Square size={24} fill="#fff" color="#fff" />
+              </button>
+            )}
+            {phase === 'playback' && (
+              <>
+                <button
+                  onClick={retake}
+                  style={{
+                    background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 999,
+                    padding: '12px 20px', color: '#fff', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600,
+                  }}
+                >
+                  <RotateCcw size={18} /> Retake
+                </button>
+                <button
+                  onClick={shareVideo}
+                  style={{
+                    background: 'var(--dw-accent)', border: 'none', borderRadius: 999,
+                    padding: '12px 28px', color: '#fff', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700,
+                    boxShadow: '0 4px 16px rgba(154,123,46,0.4)',
+                  }}
+                >
+                  <Share2 size={18} /> Share
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        <style>{`
+          @keyframes recBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+          }
+          @keyframes recPulse {
+            0%, 100% { box-shadow: 0 0 0 6px rgba(255,59,48,0.2); }
+            50% { box-shadow: 0 0 0 12px rgba(255,59,48,0.1); }
+          }
+        `}</style>
+      </div>
+    </>
+  );
+}
+
 export function JournalScreen() {
   const { userProfile, requireEmail } = useUser();
   const [activeTab, setActiveTab] = useState<'journal' | 'sermon' | 'saved'>('journal');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [showRecorder, setShowRecorder] = useState(false);
 
   // Re-read entries every time the screen mounts so scripture notes from HomeScreen appear
   useEffect(() => {
@@ -249,17 +532,41 @@ export function JournalScreen() {
           }}>
             Journal
           </h1>
-          <button
-            onClick={openNewEntry}
-            style={{
-              background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
-              padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 500,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              minHeight: 44, fontFamily: 'var(--font-sans)',
-            }}
-          >
-            <Plus size={16} /> New Entry
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Record yourself button */}
+            <button
+              onClick={() => setShowRecorder(true)}
+              title="Record a video reflection"
+              style={{
+                background: 'rgba(255,59,48,0.12)',
+                border: '1px solid rgba(255,59,48,0.3)',
+                borderRadius: 10,
+                padding: '8px 14px',
+                color: '#ff3b30',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                minHeight: 44,
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              <Video size={15} /> Record
+            </button>
+            <button
+              onClick={openNewEntry}
+              style={{
+                background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
+                padding: '8px 16px', color: '#fff', fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                minHeight: 44, fontFamily: 'var(--font-sans)',
+              }}
+            >
+              <Plus size={16} /> New Entry
+            </button>
+          </div>
         </div>
 
         {/* Sub-tabs */}
@@ -364,6 +671,9 @@ export function JournalScreen() {
           </div>
         )}
       </div>
+
+      {/* Video recorder modal */}
+      {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} />}
     </div>
   );
 }

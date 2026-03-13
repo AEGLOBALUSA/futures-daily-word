@@ -153,6 +153,7 @@ export function HomeScreen() {
   const audioUrlCache = useRef<Map<string, string>>(new Map());
   const audioUnlocked = useRef(false);
   const [audioError, setAudioError] = useState(false);
+  const speechSynthRef = useRef(false); // true when Web Speech API is active
 
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
@@ -406,6 +407,10 @@ export function HomeScreen() {
       audioRef.current.pause();
       audioRef.current = null;
     }
+    if (speechSynthRef.current) {
+      window.speechSynthesis?.cancel();
+      speechSynthRef.current = false;
+    }
     setAudioPlaying(false);
     setAudioUrl(null);
     setAudioCurrentPassage(null);
@@ -499,7 +504,49 @@ export function HomeScreen() {
         setAudioPlaying(true);
         setupMediaSession(passage, audio);
       } else {
-        // fetchAudio returned null — API unavailable
+        // fetchAudio returned null — fall back to Web Speech API (no key needed)
+        if ('speechSynthesis' in window) {
+          const utter = new SpeechSynthesisUtterance(text.slice(0, 5000));
+          utter.lang = 'en-US';
+          utter.rate = 0.92;
+          utter.pitch = 1.0;
+          // Prefer a natural-sounding voice if available
+          const voices = window.speechSynthesis.getVoices();
+          const preferred = voices.find(v =>
+            /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')
+          ) || voices.find(v => v.lang.startsWith('en') && v.localService);
+          if (preferred) utter.voice = preferred;
+          utter.onstart = () => {
+            setAudioPlaying(true);
+            setAudioLoading(false);
+            speechSynthRef.current = true;
+          };
+          utter.onend = () => {
+            setAudioPlaying(false);
+            setAudioCurrentPassage(null);
+            speechSynthRef.current = false;
+          };
+          utter.onerror = () => {
+            setAudioPlaying(false);
+            setAudioCurrentPassage(null);
+            setAudioError(true);
+            speechSynthRef.current = false;
+          };
+          // Voices may not be loaded yet — wait if needed
+          if (voices.length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+              const v2 = window.speechSynthesis.getVoices();
+              const pref2 = v2.find(v =>
+                /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')
+              ) || v2.find(v => v.lang.startsWith('en') && v.localService);
+              if (pref2) utter.voice = pref2;
+              window.speechSynthesis.speak(utter);
+            };
+          } else {
+            window.speechSynthesis.speak(utter);
+          }
+          return; // don't fall through to setAudioError
+        }
         setAudioError(true);
         setAudioCurrentPassage(null);
       }
@@ -1041,13 +1088,19 @@ export function HomeScreen() {
 
         {/* 1. Daily Quote */}
         <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-          <p style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 15,
-            fontStyle: 'italic',
-            color: 'var(--dw-text-secondary)',
-            lineHeight: 1.6,
-          }}>
+          <p
+            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: 15,
+              fontStyle: 'italic',
+              color: 'var(--dw-text-secondary)',
+              lineHeight: 1.6,
+              cursor: 'pointer',
+              WebkitUserSelect: 'text',
+              userSelect: 'text',
+            }}
+          >
             &ldquo;{quote.text}&rdquo;
           </p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
@@ -1062,7 +1115,11 @@ export function HomeScreen() {
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
             {devotion.verse}
           </p>
-          <p className="text-devotion">{devotion.body}</p>
+          <p
+            className="text-devotion"
+            onClick={() => setSelection({ text: devotion.body, verseRefs: [devotion.verse || ''], source: 'tap' })}
+            style={{ cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+          >{devotion.body}</p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
             — {devotion.author}
           </p>
@@ -1254,9 +1311,6 @@ export function HomeScreen() {
                         {renderScripture(txt, passage)}
                       </p>
                     </div>
-                    {selection?.verseRefs?.includes(passage) && (
-                      <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} />
-                    )}
                   </>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1283,13 +1337,19 @@ export function HomeScreen() {
                     {devotional.title}
                   </p>
                   {/* Devotional body */}
-                  <div style={{
-                    fontSize: 15,
-                    lineHeight: 1.8,
-                    color: 'var(--dw-text-secondary)',
-                    fontFamily: 'var(--font-serif, Georgia, serif)',
-                    whiteSpace: 'pre-wrap',
-                  }}>
+                  <div
+                    onClick={() => setSelection({ text: devotional.body, verseRefs: [passage], source: 'tap' })}
+                    style={{
+                      fontSize: 15,
+                      lineHeight: 1.8,
+                      color: 'var(--dw-text-secondary)',
+                      fontFamily: 'var(--font-serif, Georgia, serif)',
+                      whiteSpace: 'pre-wrap',
+                      cursor: 'pointer',
+                      WebkitUserSelect: 'text',
+                      userSelect: 'text',
+                    }}
+                  >
                     {devotional.body}
                   </div>
                   {/* Author attribution */}
@@ -1433,9 +1493,6 @@ export function HomeScreen() {
                   {renderScripture(text, passage)}
                 </p>
               </div>
-              {selection?.verseRefs?.includes(passage) && (
-                <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} />
-              )}
               </>
                         ) : (
                           <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
@@ -1585,7 +1642,10 @@ export function HomeScreen() {
         {commentaryText && (
           <Card style={{ marginBottom: 16 }}>
             <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY — {commentarySource.toUpperCase()}</p>
-            <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>
+            <p
+              onClick={() => setSelection({ text: commentaryText, verseRefs: [primaryPassage], source: 'tap' })}
+              style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+            >
               {commentaryText}
             </p>
           </Card>
@@ -1736,6 +1796,8 @@ export function HomeScreen() {
         }
       `}</style>
       <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
+      {/* Global highlight toolbar — appears for ANY selected text (scripture, devotion, quote, commentary) */}
+      <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} />
       <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
       <BibleAI
         isOpen={showBibleAI}
