@@ -3,7 +3,7 @@ import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { DEVOTIONS } from '../data/devotions';
 import { CAMPUSES } from '../data/tokens';
-import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight , Loader2, ChevronLeft } from 'lucide-react';
 
 /* ââ Plan catalogue ââ */
 interface PlanDef {
@@ -15,22 +15,24 @@ interface PlanDef {
   passages: string[]; // one passage per day
 }
 
+interface BookChapter { title: string; paragraphs: string[]; }
+interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
 interface Book {
   id: string;
   title: string;
   description: string;
   author: string;
-  url?: string;
+  jsonFile?: string;
 }
 
 const BOOKS: Book[] = [
-  { id: 'from-scarcity', title: 'From Scarcity to Abundance', description: 'A guide to God\'s provision', author: 'Ps A', url: 'https://futuresstore.com.au/collections/books/products/from-scarcity-to-abundance' },
-  { id: 'church', title: 'The Church Awakening', description: 'Understanding our purpose in faith', author: 'Ps A', url: 'https://futuresstore.com.au/collections/books/products/the-church-awakening' },
-  { id: 'no-more-fear', title: 'No More Fear', description: 'Living boldly in faith', author: 'Ps A', url: 'https://futuresstore.com.au/collections/books/products/no-more-fear' },
+  { id: 'from-scarcity', title: 'From Scarcity to Abundance', description: 'A guide to God\'s provision', author: 'Ps A', jsonFile: '/books/scarcity.json' },
+  { id: 'church', title: 'The Church Awakening', description: 'Understanding our purpose in faith', author: 'Ps A', jsonFile: '/books/church.json' },
+  { id: 'no-more-fear', title: 'No More Fear', description: 'Living boldly in faith', author: 'Ps A', jsonFile: '/books/no_more_fear.json' },
 ];
 
 const JANE_BOOKS: Book[] = [
-  { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Ps Jane', url: 'https://futuresstore.com.au/collections/books' },
+  { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Ps Jane', jsonFile: undefined },
 ];
 
 const PLAN_CATALOGUE: PlanDef[] = [
@@ -193,6 +195,67 @@ export function PlansScreen() {
   if (!showPlanDetail) {
     return (
       <div className="screen-container">
+      {/* ── In-app book reader ── */}
+      {activeBook && (
+        <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Reader header */}
+          <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            <button
+              onClick={() => { if (bookChapter !== null) { setBookChapter(null); } else { setActiveBook(null); } }}
+              style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
+            >
+              <ChevronLeft size={18} />
+              {bookChapter !== null ? 'Contents' : 'Back'}
+            </button>
+            {bookData && bookChapter === null && (
+              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
+                {bookData.title}
+              </p>
+            )}
+            {bookData && bookChapter !== null && (
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)', margin: 0, flex: 1 }}>
+                {bookData.chapters[bookChapter]?.title}
+              </p>
+            )}
+          </div>
+          {/* Reader body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 40px' }}>
+            {bookLoading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 24 }}>
+                <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
+              </div>
+            )}
+            {/* Chapter list */}
+            {bookData && bookChapter === null && !bookLoading && (
+              <div style={{ padding: '16px 20px' }}>
+                {bookData.subtitle && (
+                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 20 }}>{bookData.subtitle}</p>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {bookData.chapters.map((ch, i) => (
+                    <Card key={i} style={{ cursor: 'pointer' }} onClick={() => setBookChapter(i)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)', minWidth: 22 }}>{i + 1}</span>
+                        <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)', margin: 0 }}>{ch.title}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Chapter content */}
+            {bookData && bookChapter !== null && !bookLoading && (
+              <div style={{ padding: '20px 20px' }}>
+                {bookData.chapters[bookChapter]?.paragraphs.map((p, i) => (
+                  <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif)', marginBottom: 20 }}>{p}</p>
+                ))}
+              </div>
+            )}
+          </div>
+          <style>{'.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }'}</style>
+        </div>
+      )}
         <div style={{ padding: '24px 24px 0' }}>
           {/* Header */}
           <h1 style={{
@@ -307,7 +370,7 @@ export function PlansScreen() {
                 <Card
                   key={book.id}
                   style={{ cursor: book.url ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
-                  onClick={() => book.url && window.open(book.url, '_blank', 'noopener,noreferrer')}
+                  onClick={() => book.jsonFile && setActiveBook(book.jsonFile)}
                 >
                   <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
@@ -380,6 +443,22 @@ export function PlansScreen() {
   }
 
   // Plans detail view
+  const [activeBook, setActiveBook] = useState<string | null>(null);
+  const [bookData, setBookData] = useState<BookData | null>(null);
+  const [bookChapter, setBookChapter] = useState<number | null>(null);
+  const [bookLoading, setBookLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activeBook) { setBookData(null); setBookChapter(null); return; }
+    setBookLoading(true);
+    fetch(activeBook)
+      .then(r => r.json())
+      .then((d: BookData) => setBookData(d))
+      .catch(() => {})
+      .finally(() => setBookLoading(false));
+  }, [activeBook]);
+
+
   return (
     <div className="screen-container">
       <div style={{ padding: '24px 24px 0' }}>
