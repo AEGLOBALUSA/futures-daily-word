@@ -5,6 +5,7 @@ import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
+import { LibraryScreen } from './LibraryScreen';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
@@ -39,6 +40,7 @@ export function MoreScreen() {
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [downloadingKJV, setDownloadingKJV] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -136,6 +138,10 @@ export function MoreScreen() {
       requireEmail();
     }
   };
+
+  if (showLibrary) {
+    return <LibraryScreen onBack={() => setShowLibrary(false)} />;
+  }
 
   return (
     <div className="screen-container">
@@ -424,7 +430,6 @@ export function MoreScreen() {
             MEDIA
           </p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            {/* Locked campus stream URL */}
             <div style={rowStyle}>
               <Link size={18} style={iconStyle} />
               <div style={{ flex: 1 }}>
@@ -436,7 +441,6 @@ export function MoreScreen() {
               <span style={{ ...valStyle, fontSize: 11, background: 'var(--dw-surface-hover)', padding: '4px 8px', borderRadius: 6 }}>Locked</span>
             </div>
             <div style={dividerStyle} />
-            {/* Personal media URL */}
             <div style={{ padding: '14px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <Music size={18} style={iconStyle} />
@@ -507,6 +511,18 @@ export function MoreScreen() {
               }}
             >
               {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : 'Turn On Push Notifications'}
+            </button>
+          </Card>
+        </div>
+
+        {/* ── LIBRARY ── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>LIBRARY</p>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <button onClick={() => setShowLibrary(true)} style={rowStyle}>
+              <BookOpen size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>Essays &amp; Bible Resources</span>
+              <span style={valStyle}>→</span>
             </button>
           </Card>
         </div>
