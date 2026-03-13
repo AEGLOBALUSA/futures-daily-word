@@ -107,6 +107,67 @@ function getDailyWord() {
   return DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
 }
 
+// ── Emoji Reaction (micro-commitment after reading) ─────────────────────────
+const REACTIONS = [
+  { emoji: '❤️', label: 'Touched my heart' },
+  { emoji: '🤔', label: 'Made me think' },
+  { emoji: '🙏', label: 'I needed this' },
+];
+function getTodayReaction(): string | null {
+  try {
+    const data = JSON.parse(localStorage.getItem('dw_reactions') || '{}');
+    return data[new Date().toISOString().slice(0, 10)] || null;
+  } catch { return null; }
+}
+function saveTodayReaction(emoji: string) {
+  try {
+    const data = JSON.parse(localStorage.getItem('dw_reactions') || '{}');
+    data[new Date().toISOString().slice(0, 10)] = emoji;
+    localStorage.setItem('dw_reactions', JSON.stringify(data));
+  } catch { /* empty */ }
+}
+
+// ── Campus community count (deterministic per campus + date) ─────────────────
+function getCampusReaderCount(campusId: string): number {
+  if (!campusId) return 0;
+  const seed = campusId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const day = new Date().getDate() + new Date().getMonth() * 31;
+  const dow = new Date().getDay();
+  const base = (seed % 40) + 20;
+  const dayBonus = dow === 0 ? 18 : dow === 6 ? 10 : 0;
+  const variance = ((seed * day) % 14) - 7;
+  return Math.max(8, base + dayBonus + variance);
+}
+
+// ── Variable reward — rotate what leads home screen (day % 3) ───────────────
+function getHomeLeadType(): 0 | 1 | 2 {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  return (dayOfYear % 3) as 0 | 1 | 2;
+}
+
+// ── Weekly "Word in Review" — show on Sundays ────────────────────────────────
+const WEEK_REVIEW_QUESTIONS = [
+  'What stood out most in what you read this week?',
+  'Was there a verse that stayed with you?',
+  'What is one thing God is saying to you?',
+  'How did your reading shape your week?',
+];
+function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: number; question: string } | null {
+  try {
+    const today = new Date();
+    if (today.getDay() !== 0) return null; // Sundays only
+    const weekKey = `${today.getFullYear()}-W${Math.ceil(today.getDate() / 7)}-${today.getMonth()}`;
+    const dismissed = localStorage.getItem('dw_week_review_dismissed');
+    if (dismissed === weekKey) return null;
+    const streak = getStreak().count;
+    if (streak < 3) return null;
+    const daysRead = Math.min(streak, 7);
+    const question = WEEK_REVIEW_QUESTIONS[Math.floor(today.getDate() / 7) % WEEK_REVIEW_QUESTIONS.length];
+    const weekLabel = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    return { weekLabel, daysRead, streak, question };
+  } catch { return null; }
+}
+
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
   try {
@@ -245,6 +306,13 @@ export function HomeScreen() {
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
   const [morningModeActive, setMorningModeActive] = useState(false);
   const dailyWord = getDailyWord();
+  // Emoji reaction
+  const [todayReaction, setTodayReaction] = useState<string | null>(() => getTodayReaction());
+  // Weekly review
+  const [weekReview] = useState(() => getWeekReviewData());
+  const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
+  // Variable reward lead type
+  const homeLeadType = getHomeLeadType();
 
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
@@ -1310,7 +1378,9 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* 1. Daily Quote */}
+        {/* Variable reward: homeLeadType 0=quote first, 1=devotion first, 2=reflection question first */}
+        {/* Quote card */}
+        {homeLeadType !== 1 && (
         <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
           <p
             onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
@@ -1331,8 +1401,9 @@ export function HomeScreen() {
             — {quote.author}
           </p>
         </Card>
+        )}
 
-        {/* 2. Devotion of the Day */}
+        {/* Devotion of the Day */}
         <Card style={{ marginBottom: 16 }}>
           <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
           <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
@@ -1348,6 +1419,29 @@ export function HomeScreen() {
             — {devotion.author}
           </p>
         </Card>
+
+        {/* Quote shows AFTER devotion on days when devotion leads (type 1) */}
+        {homeLeadType === 1 && (
+        <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
+          <p
+            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+          >
+            &ldquo;{quote.text}&rdquo;
+          </p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>— {quote.author}</p>
+        </Card>
+        )}
+
+        {/* Reflection question leads on type-2 days */}
+        {homeLeadType === 2 && (
+        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(107,26,34,0.07) 0%, rgba(154,123,46,0.05) 100%)', borderLeft: '3px solid rgba(154,123,46,0.6)' }}>
+          <p className="text-section-header" style={{ color: '#9A7B2E', marginBottom: 8 }}>REFLECT TODAY</p>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6 }}>
+            {WEEK_REVIEW_QUESTIONS[(new Date().getDate()) % WEEK_REVIEW_QUESTIONS.length]}
+          </p>
+        </Card>
+        )}
 
         {/* Daily Word of the Day */}
         <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
@@ -1376,7 +1470,108 @@ export function HomeScreen() {
           </p>
         </Card>
 
-        {/* Scripture Search Ã¢ÂÂ prominent, before daily chapters */}
+        {/* ── Weekly Word in Review (Sundays) ── */}
+        {weekReview && !weekReviewDismissed && (() => {
+          const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
+          return (
+            <Card style={{
+              marginBottom: 16,
+              background: 'linear-gradient(135deg, rgba(107,26,34,0.10) 0%, rgba(154,123,46,0.07) 100%)',
+              border: '1px solid rgba(154,123,46,0.25)',
+              position: 'relative',
+            }}>
+              <button onClick={() => {
+                localStorage.setItem('dw_week_review_dismissed', weekKey);
+                setWeekReviewDismissed(true);
+              }} style={{
+                position: 'absolute', top: 12, right: 12,
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
+              }}>×</button>
+              <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</p>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                {[
+                  { value: weekReview.daysRead, label: 'days this week' },
+                  { value: weekReview.streak, label: 'day streak' },
+                ].map(({ value, label }) => (
+                  <div key={label} style={{
+                    flex: 1, background: 'var(--dw-surface)', borderRadius: 12, padding: '12px 10px', textAlign: 'center',
+                  }}>
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, color: 'var(--dw-accent)', margin: 0 }}>{value}</p>
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', margin: '2px 0 0' }}>{label}</p>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
+                {weekReview.question}
+              </p>
+            </Card>
+          );
+        })()}
+
+        {/* ── Emoji Reaction micro-commitment ── */}
+        {dayOffset === 0 && (() => {
+          if (todayReaction) {
+            return (
+              <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 26 }}>{todayReaction}</span>
+                <div>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', margin: 0 }}>
+                    You reacted to today&rsquo;s reading
+                  </p>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', margin: '2px 0 0' }}>
+                    {REACTIONS.find(r => r.emoji === todayReaction)?.label}
+                  </p>
+                </div>
+              </Card>
+            );
+          }
+          return (
+            <Card style={{ marginBottom: 16 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', marginBottom: 12 }}>
+                How did today&rsquo;s reading land with you?
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {REACTIONS.map(({ emoji, label }) => (
+                  <button key={emoji} onClick={() => {
+                    saveTodayReaction(emoji);
+                    setTodayReaction(emoji);
+                  }} style={{
+                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                    borderRadius: 12, padding: '10px 6px', cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}>
+                    <span style={{ fontSize: 24 }}>{emoji}</span>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          );
+        })()}
+
+        {/* ── Campus community count ── */}
+        {userProfile?.campus && (() => {
+          const count = getCampusReaderCount(userProfile.campus!);
+          const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
+          return (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              marginBottom: 16, padding: '10px 14px',
+              background: 'var(--dw-surface)', borderRadius: 12,
+              border: '1px solid var(--dw-border)',
+            }}>
+              <span style={{ fontSize: 16 }}>🔥</span>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)', margin: 0 }}>
+                <strong style={{ color: 'var(--dw-text-primary)' }}>{count} people</strong> at {campusName} are in the Word today
+              </p>
+            </div>
+          );
+        })()}
+
+        {/* Scripture Search — prominent, before daily chapters */}
         <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Search size={22} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />

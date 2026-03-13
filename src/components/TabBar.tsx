@@ -10,7 +10,7 @@ interface TabBarProps {
 const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'journal', label: 'Journal', icon: BookOpen },
-  { id: 'messages', label: 'Messages', icon: MessageCircle },
+  { id: 'messages', label: 'Notes', icon: MessageCircle },
   { id: 'plans', label: 'Plans', icon: Calendar },
   { id: 'more', label: 'Settings', icon: Settings },
 ];
