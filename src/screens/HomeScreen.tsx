@@ -858,22 +858,22 @@ export function HomeScreen() {
                 width: 48,
                 height: 48,
                 borderRadius: 12,
-                background: 'linear-gradient(145deg, #1A0304 0%, #4A0A10 40%, #7A1520 75%, #3A0810 100%)',
+                background: 'linear-gradient(145deg, #7A5200 0%, #B8820A 30%, #D4A017 55%, #F5C842 75%, #B8820A 100%)',
                 backgroundSize: '200% 200%',
-                animation: 'aiAurora 5s ease infinite',
-                border: '1px solid rgba(255,80,60,0.25)',
-                boxShadow: '0 2px 12px rgba(100,10,15,0.45)',
+                animation: 'aiAurora 4s ease infinite',
+                border: '1px solid rgba(212,160,23,0.55)',
+                boxShadow: '0 2px 16px rgba(180,130,10,0.55)',
                 cursor: 'pointer',
                 flexShrink: 0,
               }}
               onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
               onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              {/* shimmer sweep */}
+              {/* gold shimmer sweep */}
               <span style={{
                 position: 'absolute', top: 0, bottom: 0, width: '60%',
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
-                animation: 'aiBeam 4s ease-in-out infinite',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)',
+                animation: 'aiBeam 3s ease-in-out infinite',
                 pointerEvents: 'none',
               }} />
               <Sparkles size={16} color="#fff" strokeWidth={2} style={{ position: 'relative' }} />

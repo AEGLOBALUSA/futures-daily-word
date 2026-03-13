@@ -229,7 +229,7 @@ export function PlansScreen() {
   }, [essaySection, essayTOC, activeEssay]);
 
   const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
-  const browsePlans = PLAN_CATALOGUE.filter(p => !activePlanIds.includes(p.id));
+  const browsePlans = PLAN_CATALOGUE;
   const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
   const devotion = DEVOTIONS[0]; // Today's devotion
 
@@ -723,49 +723,60 @@ export function PlansScreen() {
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {browsePlans.length === 0 ? (
-              <Card style={{ textAlign: 'center', padding: '24px 16px' }}>
-                <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-                  You've started all available plans!
+            <>
+              {/* Multi-select hint */}
+              <div style={{
+                background: 'var(--dw-accent-bg)',
+                border: '1px solid var(--dw-border)',
+                borderRadius: 10,
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <Circle size={16} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.4 }}>
+                  You can run <strong>multiple plans at once.</strong> Tap to select, then save.
                 </p>
-              </Card>
-            ) : (
-              <>
-                {/* Multi-select hint */}
-                <div style={{
-                  background: 'var(--dw-accent-bg)',
-                  border: '1px solid var(--dw-border)',
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                }}>
-                  <Circle size={16} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-                  <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.4 }}>
-                    You can run <strong>multiple plans at once.</strong> Tap any plan to select it, then save your choices.
-                  </p>
-                </div>
+              </div>
 
-                {browsePlans.map(plan => {
-                  const isSelected = selectedToStart.includes(plan.id);
-                  return (
-                    <div
-                      key={plan.id}
-                      onClick={() => setSelectedToStart(prev =>
+              {browsePlans.map(plan => {
+                const isActive = activePlanIds.includes(plan.id);
+                const isSelected = selectedToStart.includes(plan.id);
+                return (
+                  <div
+                    key={plan.id}
+                    onClick={() => {
+                      if (isActive) return;
+                      setSelectedToStart(prev =>
                         isSelected ? prev.filter(id => id !== plan.id) : [...prev, plan.id]
-                      )}
-                      style={{
-                        background: isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
-                        border: isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                        borderRadius: 14,
-                        padding: '14px 16px',
-                        cursor: 'pointer',
-                        transition: 'border 0.15s, background 0.15s',
-                        position: 'relative',
-                      }}
-                    >
-                      {/* Checkmark circle */}
+                      );
+                    }}
+                    style={{
+                      background: isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
+                      border: isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                      borderRadius: 14,
+                      padding: '14px 16px',
+                      cursor: isActive ? 'default' : 'pointer',
+                      transition: 'border 0.15s, background 0.15s',
+                      position: 'relative',
+                      opacity: isActive ? 0.75 : 1,
+                    }}
+                  >
+                    {/* Status indicator — active badge OR selectable checkmark */}
+                    {isActive ? (
+                      <div style={{
+                        position: 'absolute', top: 14, right: 14,
+                        background: '#4A8C40',
+                        borderRadius: 999,
+                        padding: '2px 9px',
+                        fontSize: 10, fontWeight: 700,
+                        color: '#fff', fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.04em', textTransform: 'uppercase',
+                      }}>
+                        Active
+                      </div>
+                    ) : (
                       <div style={{
                         position: 'absolute', top: 14, right: 14,
                         width: 22, height: 22, borderRadius: '50%',
@@ -780,62 +791,59 @@ export function PlansScreen() {
                           </svg>
                         )}
                       </div>
+                    )}
 
-                      <span style={{
-                        background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
-                        fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
-                        letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)',
-                      }}>
-                        {plan.category}
-                      </span>
-                      <p className="text-card-title" style={{ marginTop: 8, paddingRight: 28 }}>{plan.title}</p>
-                      <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
-                        {plan.description}
-                      </p>
-                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', margin: 0 }}>
-                        {plan.totalDays} days · {plan.passages.length} passages
-                      </p>
-                    </div>
-                  );
-                })}
-
-                {/* Save button — appears when plans selected */}
-                {selectedToStart.length > 0 && (
-                  <div style={{
-                    position: 'sticky', bottom: 80,
-                    zIndex: 10,
-                  }}>
-                    <button
-                      onClick={() => {
-                        selectedToStart.forEach(id => startPlan(id));
-                        setSelectedToStart([]);
-                        setPlanView('active');
-                      }}
-                      style={{
-                        width: '100%',
-                        background: 'var(--dw-accent)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 14,
-                        padding: '16px 20px',
-                        fontSize: 15,
-                        fontWeight: 700,
-                        fontFamily: 'var(--font-sans)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.20)',
-                      }}
-                    >
-                      <Play size={16} />
-                      Save {selectedToStart.length} Plan{selectedToStart.length > 1 ? 's' : ''}
-                    </button>
+                    <span style={{
+                      background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
+                      fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
+                      letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)',
+                    }}>
+                      {plan.category}
+                    </span>
+                    <p className="text-card-title" style={{ marginTop: 8, paddingRight: 68 }}>{plan.title}</p>
+                    <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
+                      {plan.description}
+                    </p>
+                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', margin: 0 }}>
+                      {plan.totalDays} days · {plan.passages.length} passages
+                    </p>
                   </div>
-                )}
-              </>
-            )}
+                );
+              })}
+
+              {/* Save button — appears when plans selected */}
+              {selectedToStart.length > 0 && (
+                <div style={{ position: 'sticky', bottom: 80, zIndex: 10 }}>
+                  <button
+                    onClick={() => {
+                      selectedToStart.forEach(id => startPlan(id));
+                      setSelectedToStart([]);
+                      setPlanView('active');
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'var(--dw-accent)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 14,
+                      padding: '16px 20px',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-sans)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.20)',
+                    }}
+                  >
+                    <Play size={16} />
+                    Save {selectedToStart.length} Plan{selectedToStart.length > 1 ? 's' : ''}
+                  </button>
+                </div>
+              )}
+            </>
           </div>
         )}
 

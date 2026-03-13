@@ -145,7 +145,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           greekHebrewMode
         )}
 
-        {/* ── Ask AI — deep red rectangle ── */}
+        {/* ── Ask AI — gold rectangle ── */}
         <button
           onClick={onGoDeeper}
           style={{
@@ -155,12 +155,12 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
             gap: 5,
             padding: '0 14px',
             alignSelf: 'stretch',
-            background: 'linear-gradient(110deg, #1A0304 0%, #4A0A10 35%, #7A1520 65%, #3A0810 100%)',
+            background: 'linear-gradient(110deg, #7A5200 0%, #B8820A 30%, #D4A017 60%, #F5C842 80%, #B8820A 100%)',
             backgroundSize: '220% 100%',
-            animation: 'aiAurora 5s ease infinite',
+            animation: 'aiAurora 4s ease infinite',
             color: '#fff',
             border: 'none',
-            borderLeft: '1px solid rgba(255,255,255,0.1)',
+            borderLeft: '1px solid rgba(212,160,23,0.4)',
             cursor: 'pointer',
             minWidth: 66,
             borderRadius: 0,
