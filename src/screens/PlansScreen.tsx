@@ -170,8 +170,8 @@ export function PlansScreen() {
     if (!sec) return;
     fetch(`/essays/${activeEssay}/${sec.file}`)
       .then(r => r.json())
-      .then((data: { content?: string; text?: string; body?: string }) => {
-        setSectionContent(data.content || data.text || data.body || '');
+      .then((data: { content?: string; text?: string; body?: string; paragraphs?: string[] }) => {
+        setSectionContent(data.content || data.text || data.body || (data.paragraphs ? data.paragraphs.join('\n\n') : ''));
       })
       .catch(() => setSectionContent('Could not load section.'))
       .finally(() => setEssayLoading(false));
