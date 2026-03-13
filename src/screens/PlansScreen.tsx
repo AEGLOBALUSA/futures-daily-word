@@ -1,3 +1,4 @@
+import { trackBehavior } from '../utils/behavior';
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
@@ -226,6 +227,7 @@ export function PlansScreen() {
       ...getActivePlans(),
       [planId]: { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 },
     };
+    trackBehavior('plan_started', planId);
     savePlans(updated);
     setActivePlans(updated);
     // If this is a book plan, also start the book reading plan
@@ -253,6 +255,7 @@ export function PlansScreen() {
 
   const resetPlan = useCallback((planId: string) => {
     const plans = getActivePlans();
+    trackBehavior('plan_dropped', planId);
     delete plans[planId];
     savePlans(plans);
     setActivePlans({ ...plans });

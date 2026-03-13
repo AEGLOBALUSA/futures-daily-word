@@ -17,6 +17,8 @@ import { BibleAI } from '../components/BibleAI';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
+import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
+import { personalize, signalLabel } from '../utils/personalization';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -310,6 +312,7 @@ export function HomeScreen() {
   // Weekly review
   const [weekReview] = useState(() => getWeekReviewData());
   const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
+  const [selectedCommentaryIdx, setSelectedCommentaryIdx] = useState(0);
   // Variable reward lead type
   const homeLeadType = getHomeLeadType();
 
@@ -402,18 +405,18 @@ export function HomeScreen() {
   const devotion = DEVOTIONS[devIndex];
   const quote = QUOTES[quoteIndex];
 
-  // Find commentary for today's primary passage
+  // Find commentary for today's primary passage — collect ALL sources
   const primaryPassage = passages[0]?.passage || '';
   const commentarySources = COMMENTARY as Record<string, Record<string, string>>;
-  let commentaryText = '';
-  let commentarySource = '';
+  const allCommentaries: { source: string; text: string }[] = [];
   for (const [source, entries] of Object.entries(commentarySources)) {
     if (entries[primaryPassage]) {
-      commentaryText = entries[primaryPassage];
-      commentarySource = source;
-      break;
+      allCommentaries.push({ source, text: entries[primaryPassage] });
     }
   }
+  // Keep single-source vars for backward compat
+  const commentaryText = allCommentaries[0]?.text || '';
+  const commentarySource = allCommentaries[0]?.source || '';
 
   // Fetch a single passage on demand (tap to read)
   const loadPassage = (passage: string) => {
@@ -461,6 +464,7 @@ export function HomeScreen() {
     if (audioPlaying) stopAudio();
     setExpandedPassages(new Set([passage]));
     loadPassage(passage);
+    trackBehavior('passage_read', passage);
   };
 
   const handleListen = (passage: string) => {
@@ -655,6 +659,7 @@ export function HomeScreen() {
     setAudioError(false);
     setAudioLoading(true);
     setAudioCurrentPassage(passage);
+    trackBehavior('audio_played', passage);
     try {
       await ensureAudioUnlocked();
       const cacheKey = `${passage}_${translation}`;
@@ -963,6 +968,7 @@ export function HomeScreen() {
           onClick={(e) => {
             e.stopPropagation();
             // Open BibleAI with word study context
+            trackBehavior('greek_hebrew', `${word} in ${passage}`);
             setBibleAIContext(`Please explain the original Greek or Hebrew meaning of the word "${word}" as it appears in ${passage}. Include the Strongs number if known, the original language word, its transliteration, definition, and how it enriches understanding of this verse.`);
             setShowBibleAI(true);
           }}
@@ -1596,10 +1602,14 @@ export function HomeScreen() {
         {/* Devotion of the Day — tapping anywhere on the card opens the toolbar (Note / Share / Ask AI) */}
         <Card
           style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-          onClick={() => ajDevotional
-            ? setSelection({ text: `${ajDevotional.title}\n\n${ajDevotional.body}`, verseRefs: [ashleyJanePassage?.passage || ''], source: 'tap' })
-            : setSelection({ text: `${devotion.title}\n\n${devotion.body}`, verseRefs: [devotion.verse || ''], source: 'tap' })
-          }
+          onClick={() => {
+            trackBehavior('devotion_tapped', ajDevotional ? 'ashley-jane' : devotion.title);
+            if (ajDevotional) {
+              setSelection({ text: `${ajDevotional.title}\n\n${ajDevotional.body}`, verseRefs: [ashleyJanePassage?.passage || ''], source: 'tap' });
+            } else {
+              setSelection({ text: `${devotion.title}\n\n${devotion.body}`, verseRefs: [devotion.verse || ''], source: 'tap' });
+            }
+          }}
         >
           <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
           {ajDevotional ? (
@@ -1741,6 +1751,7 @@ export function HomeScreen() {
                   <button key={emoji} onClick={() => {
                     saveTodayReaction(emoji);
                     setTodayReaction(emoji);
+                    trackBehavior('reaction', emoji);
                   }} style={{
                     flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                     background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
@@ -2288,16 +2299,53 @@ export function HomeScreen() {
 
 
 
-        {/* 5. Commentary (if available for today's passage) */}
-        {commentaryText && (
+        {/* 5. Commentary — all sources with tab selector */}
+        {allCommentaries.length > 0 && (
           <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY — {commentarySource.toUpperCase()}</p>
-            <p
-              onClick={() => setSelection({ text: commentaryText, verseRefs: [primaryPassage], source: 'tap' })}
-              style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-            >
-              {commentaryText}
-            </p>
+            <p className="text-section-header" style={{ marginBottom: 10 }}>COMMENTARY</p>
+            {/* Source tab strip */}
+            {allCommentaries.length > 1 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                {allCommentaries.map((c, i) => (
+                  <button
+                    key={c.source}
+                    onClick={() => setSelectedCommentaryIdx(i)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      border: '1px solid',
+                      borderColor: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'var(--dw-border, #E8E6E0)',
+                      background: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'transparent',
+                      color: i === selectedCommentaryIdx ? '#fff' : 'var(--dw-text-muted)',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      fontFamily: 'var(--font-sans)',
+                      cursor: 'pointer',
+                      letterSpacing: '0.02em',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {c.source}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Selected commentary text */}
+            {allCommentaries[selectedCommentaryIdx] && (
+              <>
+                {allCommentaries.length === 1 && (
+                  <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+                    {allCommentaries[0].source.toUpperCase()}
+                  </p>
+                )}
+                <p
+                  onClick={() => setSelection({ text: allCommentaries[selectedCommentaryIdx].text, verseRefs: [primaryPassage], source: 'tap' })}
+                  style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+                >
+                  {allCommentaries[selectedCommentaryIdx].text}
+                </p>
+              </>
+            )}
           </Card>
         )}
 
@@ -2463,7 +2511,74 @@ export function HomeScreen() {
           </div>
         )}
 
-        {/* ── Reading Plans Discovery ── */}
+        {/* ── For You — behavioral personalization ── */}
+        {(() => {
+          const behaviorProfile = getBehaviorProfile();
+          if (!hasEnoughBehavior()) return null;
+          const personaStr = setup?.persona || '';
+          const activePlanIds = homeActivePlans.map(a => a.plan.id);
+          const { suggestedPassages, insight, signal } = personalize(
+            behaviorProfile, personaStr, activePlanIds, PLAN_CATALOGUE
+          );
+          if (!suggestedPassages.length && !insight) return null;
+          return (
+            <Card style={{ marginBottom: 16, border: '1px solid rgba(37,99,235,0.18)', background: 'rgba(37,99,235,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <p className="text-section-header" style={{ margin: 0, color: '#2563EB' }}>FOR YOU</p>
+                {signal && signal !== 'mixed' && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, color: '#2563EB',
+                    background: 'rgba(37,99,235,0.12)', borderRadius: 20,
+                    padding: '2px 8px', fontFamily: 'var(--font-sans)',
+                  }}>
+                    {signal}
+                  </span>
+                )}
+              </div>
+              {insight && (
+                <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif)', lineHeight: 1.55, marginBottom: suggestedPassages.length ? 12 : 0, fontStyle: 'italic' }}>
+                  {insight}
+                </p>
+              )}
+              {suggestedPassages.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: '#2563EB', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
+                    SUGGESTED FOR TODAY
+                  </p>
+                  {suggestedPassages.map(passage => (
+                    <button
+                      key={passage}
+                      onClick={() => {
+                        trackBehavior('passage_read', passage);
+                        setExpandedPassages(prev => {
+                          const next = new Set(prev);
+                          next.add(passage);
+                          return next;
+                        });
+                        loadPassage(passage);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        background: 'rgba(37,99,235,0.06)',
+                        border: '1px solid rgba(37,99,235,0.14)',
+                        borderRadius: 10,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        width: '100%',
+                      }}
+                    >
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>{passage}</span>
+                      <span style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>Read →</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Card>
+          );
+        })()}
+
+                {/* ── Reading Plans Discovery ── */}
         {(() => {
           const activePlanIds = homeActivePlans.map(a => a.plan.id);
           const categories = Array.from(new Set(PLAN_CATALOGUE.map(p => p.category)));

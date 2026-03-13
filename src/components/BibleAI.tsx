@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { trackBehavior } from '../utils/behavior'
 import { Send, ChevronDown } from 'lucide-react'
 
 /** Inline "BIBLE AI" wordmark used wherever Brain icon used to be */
@@ -340,7 +341,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 {promptsToShow.map(p => (
                   <button
                     key={p}
-                    onClick={() => sendMessage(p)}
+                    onClick={() => { trackBehavior('ai_prompt', p); sendMessage(p); }}
                     style={{
                       background: '#F5F3EF',
                       border: '1px solid #E0DDD6',
