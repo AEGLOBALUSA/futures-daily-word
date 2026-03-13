@@ -777,6 +777,8 @@ export function HomeScreen() {
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
+        // Book plans (bookId set) are handled by the dw_book_plans system — skip here
+        if (plan.bookId) continue;
         const dn = calcPlanDay(prog.startedAt, plan.totalDays);
         const dp = plan.passages[dn - 1];
         const dev = plan.devotionals?.[dn - 1];

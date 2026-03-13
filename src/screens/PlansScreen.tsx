@@ -97,7 +97,9 @@ export function PlansScreen() {
   const [activePlans, setActivePlans] = useState<Record<string, PlanProgress>>(getActivePlans);
   const [streak, setStreak] = useState(getStreak);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+  const [expandedBrowsePlan, setExpandedBrowsePlan] = useState<string | null>(null);
   const [selectedToStart, setSelectedToStart] = useState<string[]>([]);
+  const [deactivateConfirm, setDeactivateConfirm] = useState<string | null>(null);
 
   // Book plan state
   const [bookPlans, setBookPlans] = useState<Record<string, BookPlan>>(getBookPlans);
@@ -216,13 +218,22 @@ export function PlansScreen() {
   };
 
   const activePlanIds = Object.keys(activePlans);
+
+  // Start a plan — also kicks off the book plan system if plan has a bookId
   const startPlan = useCallback((planId: string) => {
+    const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
     const updated = {
       ...getActivePlans(),
       [planId]: { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 },
     };
     savePlans(updated);
     setActivePlans(updated);
+    // If this is a book plan, also start the book reading plan
+    if (planDef?.bookId && planDef.bookJsonFile) {
+      const bookObj = [...BOOKS, ...JANE_BOOKS].find(b => b.id === planDef.bookId);
+      if (bookObj) startBookPlan(bookObj);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const completePlanDay = useCallback((planId: string, dayNum: number) => {
@@ -245,6 +256,17 @@ export function PlansScreen() {
     delete plans[planId];
     savePlans(plans);
     setActivePlans({ ...plans });
+    // Also remove book plan data if applicable
+    const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
+    if (planDef?.bookId) {
+      try {
+        const bookPlansData = JSON.parse(localStorage.getItem('dw_book_plans') || '{}');
+        delete bookPlansData[planDef.bookId];
+        localStorage.setItem('dw_book_plans', JSON.stringify(bookPlansData));
+        localStorage.removeItem(`dw_book_today_${planDef.bookId}`);
+        setBookPlans({ ...bookPlansData });
+      } catch {}
+    }
   }, []);
 
   // Auto-suggest faith-pathway for new believers
@@ -759,10 +781,19 @@ export function PlansScreen() {
                 {myPlans.map(plan => {
                   const progress = activePlans[plan.id];
                   if (!progress) return null;
-                  const completedCount = progress.completedDays.length;
-                  const pct = plan.totalDays > 0 ? (completedCount / plan.totalDays) * 100 : 0;
-                  const isComplete = completedCount >= plan.totalDays;
-                  const nextDay = progress.lastDay + 1;
+                  const isBookPlan = !!plan.bookId;
+                  const bookPlanData = isBookPlan && plan.bookId ? bookPlans[plan.bookId] : undefined;
+
+                  // Progress calculation differs for book vs Bible plans
+                  const completedCount = isBookPlan
+                    ? (bookPlanData ? bookPlanData.currentChapter + 1 : 0)
+                    : progress.completedDays.length;
+                  const totalItems = isBookPlan ? plan.totalDays : plan.totalDays;
+                  const pct = totalItems > 0 ? Math.min((completedCount / totalItems) * 100, 100) : 0;
+                  const isComplete = completedCount >= totalItems;
+                  const nextDay = isBookPlan
+                    ? (bookPlanData ? bookPlanData.currentChapter + 1 : 0)
+                    : progress.lastDay + 1;
                   const isExpanded = expandedPlan === plan.id;
 
                   return (
@@ -795,24 +826,37 @@ export function PlansScreen() {
                           }} />
                         </div>
                         <span style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontWeight: 500, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                          {completedCount}/{plan.totalDays}
+                          {isBookPlan ? `Ch ${completedCount}/${totalItems}` : `${completedCount}/${totalItems} days`}
                         </span>
                       </div>
 
                       {isExpanded && (
                         <div style={{ marginTop: 8 }}>
-                          {!isComplete && nextDay <= plan.totalDays && (
+                          {!isComplete && (
                             <div style={{ marginBottom: 12 }}>
-                              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
-                                Day {nextDay}: {plan.passages[nextDay - 1] || '—'}
+                              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-serif)', lineHeight: 1.4 }}>
+                                {isBookPlan
+                                  ? `Up next: ${plan.passages[nextDay] || plan.passages[plan.passages.length - 1] || '—'}`
+                                  : `Day ${nextDay}: ${plan.passages[nextDay - 1] || '—'}`}
                               </p>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
-                                className="dw-btn-primary"
-                                style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
-                              >
-                                <CheckCircle size={14} /> Mark Day {nextDay} Complete
-                              </button>
+                              {!isBookPlan && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
+                                  className="dw-btn-primary"
+                                  style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
+                                >
+                                  <CheckCircle size={14} /> Mark Day {nextDay} Complete
+                                </button>
+                              )}
+                              {isBookPlan && plan.bookId && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); advanceBookChapter(plan.bookId!); }}
+                                  className="dw-btn-primary"
+                                  style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
+                                >
+                                  <ArrowRight size={14} /> Next Chapter
+                                </button>
+                              )}
                             </div>
                           )}
                           {isComplete && (
@@ -826,6 +870,17 @@ export function PlansScreen() {
                               </button>
                             </div>
                           )}
+                          {/* Remove plan button */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); resetPlan(plan.id); }}
+                            style={{
+                              marginTop: 8, background: 'none', border: 'none', cursor: 'pointer',
+                              fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                              padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+                            }}
+                          >
+                            × Remove this plan
+                          </button>
                         </div>
                       )}
                     </Card>
@@ -853,76 +908,176 @@ export function PlansScreen() {
                 </p>
               </div>
 
-              {browsePlans.map(plan => {
-                const isActive = activePlanIds.includes(plan.id);
-                const isSelected = selectedToStart.includes(plan.id);
-                return (
-                  <div
-                    key={plan.id}
-                    onClick={() => {
-                      if (isActive) return;
-                      setSelectedToStart(prev =>
-                        isSelected ? prev.filter(id => id !== plan.id) : [...prev, plan.id]
-                      );
-                    }}
-                    style={{
-                      background: isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
-                      border: isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                      borderRadius: 14,
-                      padding: '14px 16px',
-                      cursor: isActive ? 'default' : 'pointer',
-                      transition: 'border 0.15s, background 0.15s',
-                      position: 'relative',
-                      opacity: isActive ? 0.75 : 1,
-                    }}
-                  >
-                    {/* Status indicator — active badge OR selectable checkmark */}
-                    {isActive ? (
-                      <div style={{
-                        position: 'absolute', top: 14, right: 14,
-                        background: '#4A8C40',
-                        borderRadius: 999,
-                        padding: '2px 9px',
-                        fontSize: 10, fontWeight: 700,
-                        color: '#fff', fontFamily: 'var(--font-sans)',
-                        letterSpacing: '0.04em', textTransform: 'uppercase',
-                      }}>
-                        Active
-                      </div>
-                    ) : (
-                      <div style={{
-                        position: 'absolute', top: 14, right: 14,
-                        width: 22, height: 22, borderRadius: '50%',
-                        background: isSelected ? 'var(--dw-accent)' : 'var(--dw-border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'background 0.15s',
-                        flexShrink: 0,
-                      }}>
-                        {isSelected && (
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
+              {(() => {
+                // Group plans by category
+                const categories = Array.from(new Set(browsePlans.map(p => p.category)));
+                return categories.map(cat => (
+                  <div key={cat}>
+                    <p style={{
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+                      textTransform: 'uppercase', color: 'var(--dw-text-muted)',
+                      fontFamily: 'var(--font-sans)', margin: '8px 0 8px',
+                    }}>{cat}</p>
+                    {browsePlans.filter(p => p.category === cat).map(plan => {
+                      const isActive = activePlanIds.includes(plan.id);
+                      const isSelected = selectedToStart.includes(plan.id);
+                      const isPreviewOpen = expandedBrowsePlan === plan.id;
+                      const isConfirmingDeactivate = deactivateConfirm === plan.id;
+                      const progress = activePlans[plan.id];
+                      const bookPlanData = plan.bookId ? bookPlans[plan.bookId] : undefined;
 
-                    <span style={{
-                      background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
-                      fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
-                      letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)',
-                    }}>
-                      {plan.category}
-                    </span>
-                    <p className="text-card-title" style={{ marginTop: 8, paddingRight: 68 }}>{plan.title}</p>
-                    <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
-                      {plan.description}
-                    </p>
-                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', margin: 0 }}>
-                      {plan.totalDays} days · {plan.passages.length} passages
-                    </p>
+                      return (
+                        <div
+                          key={plan.id}
+                          style={{
+                            background: isActive ? 'rgba(74,140,64,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
+                            border: isActive ? '2px solid rgba(74,140,64,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                            borderRadius: 14,
+                            padding: '14px 16px',
+                            cursor: 'pointer',
+                            transition: 'border 0.15s, background 0.15s',
+                            position: 'relative',
+                            marginBottom: 10,
+                          }}
+                          onClick={() => {
+                            if (isActive) {
+                              // First tap shows confirm; second tap deactivates
+                              if (isConfirmingDeactivate) {
+                                resetPlan(plan.id);
+                                setDeactivateConfirm(null);
+                              } else {
+                                setDeactivateConfirm(plan.id);
+                                setTimeout(() => setDeactivateConfirm(null), 3000);
+                              }
+                              return;
+                            }
+                            setSelectedToStart(prev =>
+                              isSelected ? prev.filter(id => id !== plan.id) : [...prev, plan.id]
+                            );
+                          }}
+                        >
+                          {/* Status badge top-right */}
+                          {isActive ? (
+                            <div style={{
+                              position: 'absolute', top: 14, right: 14,
+                              background: isConfirmingDeactivate ? '#c0392b' : '#4A8C40',
+                              borderRadius: 999, padding: '2px 9px',
+                              fontSize: 10, fontWeight: 700, color: '#fff',
+                              fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
+                              textTransform: 'uppercase', transition: 'background 0.2s',
+                            }}>
+                              {isConfirmingDeactivate ? 'Tap to remove' : '✓ Active'}
+                            </div>
+                          ) : (
+                            <div style={{
+                              position: 'absolute', top: 14, right: 14,
+                              width: 22, height: 22, borderRadius: '50%',
+                              background: isSelected ? 'var(--dw-accent)' : 'var(--dw-border)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'background 0.15s', flexShrink: 0,
+                            }}>
+                              {isSelected && (
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                  <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                            </div>
+                          )}
+
+                          <p className="text-card-title" style={{ marginTop: 0, paddingRight: 80, marginBottom: 6 }}>{plan.title}</p>
+                          <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
+                            {plan.description}
+                          </p>
+
+                          {/* Progress bar for active plans */}
+                          {isActive && progress && !plan.bookId && (
+                            <div style={{ marginBottom: 8 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                                  Day {progress.completedDays.length} of {plan.totalDays}
+                                </span>
+                                <span style={{ fontSize: 11, color: '#4A8C40', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                  {Math.round((progress.completedDays.length / plan.totalDays) * 100)}%
+                                </span>
+                              </div>
+                              <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: '#4A8C40', borderRadius: 2 }} />
+                              </div>
+                            </div>
+                          )}
+                          {isActive && bookPlanData && (
+                            <div style={{ marginBottom: 8 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                                  Chapter {bookPlanData.currentChapter + 1} of {bookPlanData.totalChapters}
+                                </span>
+                                <span style={{ fontSize: 11, color: '#4A8C40', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                  {Math.round(((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100)}%
+                                </span>
+                              </div>
+                              <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
+                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: '#4A8C40', borderRadius: 2 }} />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Meta row */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', margin: 0 }}>
+                              {plan.totalDays} {plan.bookId ? 'chapters' : 'days'}
+                            </p>
+                            {/* Day preview toggle */}
+                            <button
+                              onClick={e => { e.stopPropagation(); setExpandedBrowsePlan(isPreviewOpen ? null : plan.id); }}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                fontSize: 11, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                                fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
+                              }}
+                            >
+                              {isPreviewOpen ? 'Hide schedule ▲' : 'See schedule ▼'}
+                            </button>
+                          </div>
+
+                          {/* Day-by-day schedule preview */}
+                          {isPreviewOpen && (
+                            <div
+                              onClick={e => e.stopPropagation()}
+                              style={{
+                                marginTop: 12,
+                                borderTop: '1px solid var(--dw-border)',
+                                paddingTop: 12,
+                              }}
+                            >
+                              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, textTransform: 'uppercase' }}>
+                                {plan.bookId ? 'Reading Schedule' : 'Daily Schedule'}
+                              </p>
+                              {plan.passages.map((passage, i) => (
+                                <div key={i} style={{
+                                  display: 'flex', gap: 10, alignItems: 'flex-start',
+                                  padding: '5px 0',
+                                  borderBottom: i < plan.passages.length - 1 ? '1px solid var(--dw-border-subtle)' : 'none',
+                                }}>
+                                  <span style={{
+                                    minWidth: 42, fontSize: 10, fontWeight: 700,
+                                    color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                                    paddingTop: 1,
+                                  }}>
+                                    {plan.bookId ? `Ch ${i + 1}` : `Day ${i + 1}`}
+                                  </span>
+                                  <span style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: plan.bookId ? 'var(--font-serif)' : 'var(--font-sans)', lineHeight: 1.4 }}>
+                                    {passage}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                ));
+              })()}
 
               {/* Save button — appears when plans selected */}
               {selectedToStart.length > 0 && (

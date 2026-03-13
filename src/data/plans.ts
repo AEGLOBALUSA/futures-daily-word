@@ -7,6 +7,9 @@ export interface PlanDef {
   passages: string[];
   /** Optional per-day devotional content (index matches passages[]) */
   devotionals?: Array<{ title: string; author: string; body: string }>;
+  /** If set, this is a book reading plan — activating it also starts the book plan */
+  bookId?: string;
+  bookJsonFile?: string;
 }
 
 function genPassages(books: [string, number][], days: number): string[] {
@@ -51,6 +54,8 @@ const NT: [string, number][] = [
 import { ALL_ASHLEY_JANE_DEVOTIONALS, ALL_ASHLEY_JANE_PASSAGES } from './ashley-jane-plan';
 
 export const PLAN_CATALOGUE: PlanDef[] = [
+
+  // ── Featured ──────────────────────────────────────────────────────────────
   {
     id: 'ashley-jane-daily-word',
     title: 'Daily Word with Ashley & Jane',
@@ -60,12 +65,216 @@ export const PLAN_CATALOGUE: PlanDef[] = [
     passages: ALL_ASHLEY_JANE_PASSAGES,
     devotionals: ALL_ASHLEY_JANE_DEVOTIONALS,
   },
+
+  // ── Books by Ps A ─────────────────────────────────────────────────────────
+  {
+    id: 'book-no-more-fear',
+    title: 'No More Fear — 40 Days',
+    description: 'A 40-day devotional to defeat fear, walk in God\'s authority, and live the bold life you were created for. By Ps A.',
+    totalDays: 40,
+    category: 'Books',
+    bookId: 'no-more-fear',
+    bookJsonFile: '/books/no_more_fear.json',
+    passages: [
+      'Day 1: Fear is normal',
+      'Day 2: Fear invades, paralyzes, and holds you captive',
+      'Day 3: Fear distracts you from God\'s plan',
+      'Day 4: Fear is the source of your discontent and complaining',
+      'Day 5: Fear keeps you from connecting the dots',
+      'Day 6: Fear focuses your attention on others',
+      'Day 7: Fear inhibits your ability to do new things',
+      'Day 8: Fear values perfection over progress',
+      'Day 9: Fear confuses protecting values with preserving what is familiar',
+      'Day 10: Fear causes you to settle for less than what God wants for you',
+      'Day 11: Authority is the catalyst for victory over fear and intimidation',
+      'Day 12: Authority is the primary battleground of your life',
+      'Day 13: Authority is what the Enemy fears most about you',
+      'Day 14: Authority has been given to you through Christ',
+      'Day 15: Authority sets you apart to accomplish great things',
+      'Day 16: Authority grants you access to places others can\'t go',
+      'Day 17: Authority is greater than any force that may oppose you',
+      'Day 18: Authority gives you clarity, discernment, and confidence',
+      'Day 19: Authority allows you to exercise influence',
+      'Day 20: Authority gives you the ability to possess what is rightfully yours',
+      'Day 21: God has a blueprint for your life',
+      'Day 22: God created you to multiply, not maintain',
+      'Day 23: God is not limited by your circumstances',
+      'Day 24: God is a god of second chances',
+      'Day 25: God\'s presence brings an awareness of your deepest fears',
+      'Day 26: God wants more for you than what you have and are today',
+      'Day 27: God has given every believer a place of influence',
+      'Day 28: God designed you to be a force of change in the world',
+      'Day 29: God desires to use you to enlarge the Kingdom',
+      'Day 30: God will always be faithful and will always follow through',
+      'Day 31: Believe you were created to accomplish something of significance',
+      'Day 32: Decide to face what you fear the most with confidence',
+      'Day 33: Commit to achieving goals that force you to reach for the impossible',
+      'Day 34: Build a fortress around your mind to protect your thinking',
+      'Day 35: Meditate on Scripture',
+      'Day 36: Develop a self-talk routine',
+      'Day 37: Engage in a healthy alternative that demands your attention',
+      'Day 38: Don\'t listen to negative people',
+      'Day 39: Put yourself where fear and intimidation will reveal itself',
+      'Day 40: Persist until you experience breakthrough',
+    ],
+  },
+  {
+    id: 'book-scarcity',
+    title: 'From Scarcity to Abundance — 23 Days',
+    description: 'Twenty-three chapters on the grace revolution, God\'s overflow, and the life you were designed to live. By Ps A.',
+    totalDays: 23,
+    category: 'Books',
+    bookId: 'from-scarcity',
+    bookJsonFile: '/books/scarcity.json',
+    passages: [
+      'Chapter 1: The Grace and Favor Revolution',
+      'Chapter 2: The Original Design: Created for Supply, Not Stress',
+      'Chapter 3: Breaking Free From the Curse of Toil',
+      'Chapter 4: Righteousness: The Identity That Changes Everything',
+      'Chapter 5: The Power of the Cross',
+      'Chapter 6: No More Consciousness of Sin',
+      'Chapter 7: Grace Initiates, Faith Responds',
+      'Chapter 8: The Supply Chain of Grace',
+      'Chapter 9: From Fear to Faith',
+      'Chapter 10: The Overflow Life',
+      'Chapter 11: The Grace and Work Paradox',
+      'Chapter 12: Grace vs. Law',
+      'Chapter 13: The Reign of Rest',
+      'Chapter 14: The Battle Is the Lord\'s',
+      'Chapter 15: Worship with the Words of David',
+      'Chapter 16: The Reconnection Revolution',
+      'Chapter 17: Standing in Grace',
+      'Chapter 18: Living Under the Unforced Rhythms of Grace',
+      'Chapter 19: When the Enemy Attacks Your Rest',
+      'Chapter 20: Abundance in Every Season',
+      'Chapter 21: The Power of Right Believing',
+      'Chapter 22: Keep Your Eyes on Jesus',
+      'Chapter 23: Living the Overflow',
+    ],
+  },
+  {
+    id: 'book-church',
+    title: 'The Church Awakening — 19 Days',
+    description: 'Nineteen chapters on the true power of the Church, why it exists, and how it changes everything. By Ps A.',
+    totalDays: 19,
+    category: 'Books',
+    bookId: 'church',
+    bookJsonFile: '/books/church.json',
+    passages: [
+      'Introduction: The Download',
+      'Chapter 1: The Lie Everyone Believes',
+      'Chapter 2: The Half-Empty Tomb',
+      'Chapter 3: The Bride Jesus Is Coming Back For',
+      'Chapter 4: When The Head Leaves The Body',
+      'Chapter 5: The Secret God Kept For Centuries',
+      'Chapter 6: Why Your Couch Is Killing Your Faith',
+      'Chapter 7: The Last Organization Standing',
+      'Chapter 8: Jesus\' Favorite Thing',
+      'Chapter 9: God\'s Delivery Service',
+      'Chapter 10: Plan A (There Is No Plan B)',
+      'Chapter 11: The Day God Changed The Rules',
+      'Chapter 12: The Power Only We Have',
+      'Chapter 13: Fall In Love Or Fall Away',
+      'Chapter 14: Bridezilla (The Church Isn\'t Perfect)',
+      'Chapter 15: You\'re Not The Church (And That\'s The Point)',
+      'Chapter 16: The Revelation That Changes Everything',
+      'Chapter 17: Where To Find Jesus On Sunday Morning',
+      'Chapter 18: The Fullness You\'ve Been Missing',
+    ],
+  },
+
+  // ── Gospels & Acts ────────────────────────────────────────────────────────
+  {
+    id: 'gospel-john',
+    title: 'Gospel of John — 21 Days',
+    description: 'Walk through the Gospel of John chapter by chapter — the most intimate portrait of Jesus in scripture.',
+    totalDays: 21,
+    category: 'Gospels & Acts',
+    passages: Array.from({ length: 21 }, (_, i) => 'John ' + (i + 1)),
+  },
+  {
+    id: 'gospels-89',
+    title: 'The Four Gospels — 89 Days',
+    description: 'Matthew, Mark, Luke, and John — the life, ministry, death, and resurrection of Jesus, chapter by chapter.',
+    totalDays: 89,
+    category: 'Gospels & Acts',
+    passages: genPassages([['Matthew', 28], ['Mark', 16], ['Luke', 24], ['John', 21]], 89),
+  },
+  {
+    id: 'acts-28',
+    title: 'Acts of the Apostles — 28 Days',
+    description: 'One chapter a day through the explosive birth of the Church and the spread of the gospel across the world.',
+    totalDays: 28,
+    category: 'Gospels & Acts',
+    passages: Array.from({ length: 28 }, (_, i) => 'Acts ' + (i + 1)),
+  },
+  {
+    id: 'gospels-acts',
+    title: 'Gospels & Acts — 117 Days',
+    description: 'The complete story of Jesus and the early Church — all five books, one passage at a time.',
+    totalDays: 117,
+    category: 'Gospels & Acts',
+    passages: genPassages(
+      [['Matthew', 28], ['Mark', 16], ['Luke', 24], ['John', 21], ['Acts', 28]],
+      117
+    ),
+  },
+
+  // ── New Testament ─────────────────────────────────────────────────────────
+  {
+    id: 'nt-60',
+    title: 'New Testament in 60 Days',
+    description: 'Read all 27 books of the New Testament in two months — the fastest way to take in the whole NT.',
+    totalDays: 60,
+    category: 'New Testament',
+    passages: genPassages(NT, 60),
+  },
+  {
+    id: 'new-testament-90',
+    title: 'New Testament in 90 Days',
+    description: 'Read through all 27 books of the New Testament in three months, with time to breathe.',
+    totalDays: 90,
+    category: 'New Testament',
+    passages: genPassages(NT, 90),
+  },
+
+  // ── Wisdom & Psalms ───────────────────────────────────────────────────────
+  {
+    id: 'psalms-30',
+    title: 'Psalms in 30 Days',
+    description: 'Five psalms a day — read through all 150 psalms in one month of worship and prayer.',
+    totalDays: 30,
+    category: 'Wisdom',
+    passages: Array.from({ length: 30 }, (_, i) => {
+      const start = i * 5 + 1;
+      const end = (i + 1) * 5;
+      return `Psalm ${start}-${end}`;
+    }),
+  },
+  {
+    id: 'psalms-proverbs',
+    title: 'Psalms & Proverbs — 181 Days',
+    description: 'A chapter a day through worship, wisdom, and practical living.',
+    totalDays: 181,
+    category: 'Wisdom',
+    passages: genPassages([['Psalms', 150], ['Proverbs', 31]], 181),
+  },
+  {
+    id: 'wisdom-lit',
+    title: 'Psalms, Proverbs & Wisdom — 90 Days',
+    description: 'Psalms, Proverbs, Ecclesiastes, and Song of Solomon — the full sweep of Hebrew poetry and wisdom in 90 days.',
+    totalDays: 90,
+    category: 'Wisdom',
+    passages: genPassages([['Psalms', 150], ['Proverbs', 31], ['Ecclesiastes', 12], ['Song of Solomon', 8]], 90),
+  },
+
+  // ── Full Bible ────────────────────────────────────────────────────────────
   {
     id: 'ot-in-a-year',
     title: 'Old Testament in a Year',
     description: 'Journey through all 39 books of the Old Testament in one year.',
     totalDays: 365,
-    category: 'Bible Reading',
+    category: 'Full Bible',
     passages: genPassages(OT, 365),
   },
   {
@@ -73,40 +282,15 @@ export const PLAN_CATALOGUE: PlanDef[] = [
     title: 'Through the Bible in a Year',
     description: 'Read every chapter of the Bible from Genesis to Revelation in 365 days.',
     totalDays: 365,
-    category: 'Bible Reading',
+    category: 'Full Bible',
     passages: genPassages([...OT, ...NT], 365),
   },
-  {
-    id: 'gospels-acts',
-    title: 'Gospels & Acts',
-    description: 'Walk through the four Gospels and Acts in 117 days.',
-    totalDays: 117,
-    category: 'Bible Reading',
-    passages: genPassages(
-      [['Matthew', 28], ['Mark', 16], ['Luke', 24], ['John', 21], ['Acts', 28]],
-      117
-    ),
-  },
-  {
-    id: 'psalms-proverbs',
-    title: 'Psalms & Proverbs',
-    description: 'A chapter a day through wisdom, worship, and practical living.',
-    totalDays: 181,
-    category: 'Bible Reading',
-    passages: genPassages([['Psalms', 150], ['Proverbs', 31]], 181),
-  },
-  {
-    id: 'new-testament-90',
-    title: 'New Testament in 90 Days',
-    description: 'Read through all 27 books of the New Testament in three months.',
-    totalDays: 90,
-    category: 'Bible Reading',
-    passages: genPassages(NT, 90),
-  },
+
+  // ── Foundation & Spiritual Growth ─────────────────────────────────────────
   {
     id: 'faith-pathway',
     title: '30-Day Faith Pathway',
-    description: 'A guided journey through the foundations of faith for new believers.',
+    description: 'A guided journey through the foundations of faith — designed for new believers and anyone returning to Scripture.',
     totalDays: 30,
     category: 'Foundation',
     passages: [
@@ -118,19 +302,11 @@ export const PLAN_CATALOGUE: PlanDef[] = [
     ],
   },
   {
-    id: 'psalms-30',
-    title: 'Psalms in 30 Days',
-    description: 'Read through the entire book of Psalms with daily reflections.',
-    totalDays: 30,
-    category: 'Bible Reading',
-    passages: Array.from({ length: 30 }, (_, i) => 'Psalm ' + (i * 5 + 1) + '-' + ((i + 1) * 5)),
-  },
-  {
     id: 'prayer-life',
-    title: 'Building a Prayer Life',
-    description: 'Learn different prayer models and build a consistent prayer habit.',
+    title: 'Building a Prayer Life — 14 Days',
+    description: 'Learn different prayer models and build a consistent, powerful prayer habit.',
     totalDays: 14,
-    category: 'Spiritual Growth',
+    category: 'Foundation',
     passages: [
       'Matthew 6', 'Luke 11', '1 Thessalonians 5', 'Philippians 4', 'James 5',
       'Psalm 5', 'Psalm 63', 'Daniel 6', 'Nehemiah 1', 'Acts 4',
@@ -138,19 +314,11 @@ export const PLAN_CATALOGUE: PlanDef[] = [
     ],
   },
   {
-    id: 'gospel-john',
-    title: 'Gospel of John',
-    description: 'Walk through the Gospel of John chapter by chapter.',
-    totalDays: 21,
-    category: 'Bible Reading',
-    passages: Array.from({ length: 21 }, (_, i) => 'John ' + (i + 1)),
-  },
-  {
     id: 'armor-of-god',
-    title: 'The Armor of God',
-    description: 'Study each piece of spiritual armor described in Ephesians 6.',
+    title: 'The Armor of God — 7 Days',
+    description: 'Study each piece of spiritual armor described in Ephesians 6 and understand how to wear it daily.',
     totalDays: 7,
-    category: 'Spiritual Growth',
+    category: 'Foundation',
     passages: ['Ephesians 6', 'Isaiah 59', 'Romans 13', '1 Thessalonians 5', '2 Corinthians 10', 'Hebrews 4', 'Psalm 18'],
   },
 ];
