@@ -9,22 +9,45 @@ interface Props {
 
 const CHAPTER_OPTIONS = [1, 2, 3, 4, 5];
 
-const FEATURED_PLANS = [
-  'new-testament-90',
-  'through-bible-year',
-  'gospels-acts',
-  'psalms-proverbs',
+// Default featured plans (shown for all personas)
+const DEFAULT_FEATURED = [
+  'ashley-jane-daily-word',
   'faith-pathway',
+  'gospel-john',
+  'psalms-30',
   'prayer-life',
+  'acts-28',
 ];
+
+// Persona-specific plans surfaced at the top
+const PERSONA_PLANS: Record<string, string[]> = {
+  new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
+  pastor: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
+  deeper: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
+  difficult: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
+};
+
+// Persona-friendly label for plan step header
+const PERSONA_LABELS: Record<string, string> = {
+  new_returning: 'Plans for your faith journey',
+  pastor: 'Plans for ministry & leadership',
+  deeper: 'Plans for going deeper',
+  difficult: 'Plans for your current season',
+};
 
 export function SetupPromptModal({ onComplete, onDismiss }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [chapters, setChapters] = useState(2);
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
 
-  const featuredPlans = PLAN_CATALOGUE.filter(p => FEATURED_PLANS.includes(p.id));
-  const otherPlans = PLAN_CATALOGUE.filter(p => !FEATURED_PLANS.includes(p.id));
+  const persona = (() => {
+    try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; }
+  })();
+
+  const featuredIds = PERSONA_PLANS[persona] || DEFAULT_FEATURED;
+  const featuredPlans = featuredIds.map(id => PLAN_CATALOGUE.find(p => p.id === id)).filter(Boolean) as typeof PLAN_CATALOGUE;
+  const otherPlans = PLAN_CATALOGUE.filter(p => !featuredIds.includes(p.id));
+  const planStepLabel = PERSONA_LABELS[persona] || 'Pick a reading plan';
 
   const togglePlan = (id: string) => {
     setSelectedPlans(prev =>
@@ -89,7 +112,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
             fontFamily: 'var(--font-sans)', margin: '0 0 4px',
           }}>
             {step === 1 && 'How much do you want to read?'}
-            {step === 2 && 'Pick a reading plan'}
+            {step === 2 && planStepLabel}
             {step === 3 && 'You\'re ready to go!'}
           </h2>
           <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 20px' }}>
@@ -171,7 +194,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
             <div>
               {/* Featured */}
               <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--dw-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
-                Popular
+                {persona ? 'Recommended for you' : 'Popular'}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                 {featuredPlans.map(plan => {

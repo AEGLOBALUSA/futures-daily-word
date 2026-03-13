@@ -822,10 +822,30 @@ export function HomeScreen() {
   // Start a plan directly from home screen
   const startPlanFromHome = (planId: string) => {
     try {
-      const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      const existing: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
+        JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       if (existing[planId]) return; // already active
       existing[planId] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
       localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+
+      // If this is a book plan, also initialize dw_book_plans so progress tracking works
+      const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
+      if (planDef?.bookId && planDef.bookJsonFile) {
+        const bookPlans: Record<string, { jsonFile: string; title: string; author: string; currentChapter: number; totalChapters: number; startedAt: string }> =
+          (() => { try { return JSON.parse(localStorage.getItem('dw_book_plans') || '{}'); } catch { return {}; } })();
+        if (!bookPlans[planDef.bookId]) {
+          bookPlans[planDef.bookId] = {
+            jsonFile: planDef.bookJsonFile,
+            title: planDef.title,
+            author: 'Ps Ashley Evans',
+            currentChapter: 0,
+            totalChapters: planDef.totalDays,
+            startedAt: new Date().toISOString(),
+          };
+          localStorage.setItem('dw_book_plans', JSON.stringify(bookPlans));
+        }
+      }
+
       setPlanTick(t => t + 1); // trigger re-render
     } catch {}
   };
@@ -835,6 +855,17 @@ export function HomeScreen() {
       const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       delete existing[planId];
       localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+
+      // Also clean up book plan data if applicable
+      const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
+      if (planDef?.bookId) {
+        const bookPlans: Record<string, unknown> =
+          (() => { try { return JSON.parse(localStorage.getItem('dw_book_plans') || '{}'); } catch { return {}; } })();
+        delete bookPlans[planDef.bookId];
+        localStorage.setItem('dw_book_plans', JSON.stringify(bookPlans));
+        localStorage.removeItem(`dw_book_today_${planDef.bookId}`);
+      }
+
       setPlanTick(t => t + 1); // trigger re-render
     } catch {}
   };
@@ -2401,7 +2432,7 @@ export function HomeScreen() {
                 return (
                   <div key={plan.id} style={{
                     background: 'var(--dw-card)',
-                    border: '1px solid rgba(74,140,64,0.35)',
+                    border: '1px solid rgba(37,99,235,0.3)',
                     borderLeft: '3px solid #2563EB',
                     borderRadius: 10,
                     padding: '10px 14px',
@@ -2412,7 +2443,7 @@ export function HomeScreen() {
                       </span>
                       <span style={{
                         fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : '#2563EB',
-                        fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(106,200,149,0.12)' : 'rgba(74,140,64,0.1)',
+                        fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)',
                         padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
                       }}>
                         {isComplete ? '✓ Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${completedCount} / ${plan.totalDays}`}

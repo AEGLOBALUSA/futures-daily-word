@@ -315,7 +315,23 @@ export function PlansScreen() {
   }, [essaySection, essayTOC, activeEssay]);
 
   const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
-  const browsePlans = PLAN_CATALOGUE;
+
+  // Persona-based browse ordering — put persona-relevant plans first within each category
+  const PERSONA_PRIORITY: Record<string, string[]> = {
+    new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
+    pastor: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
+    deeper: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
+    difficult: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
+  };
+  const priorityIds = PERSONA_PRIORITY[persona] || [];
+  const browsePlans = [...PLAN_CATALOGUE].sort((a, b) => {
+    const ai = priorityIds.indexOf(a.id);
+    const bi = priorityIds.indexOf(b.id);
+    if (ai !== -1 && bi === -1) return -1;
+    if (ai === -1 && bi !== -1) return 1;
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    return 0;
+  });
   const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
   const devotion = DEVOTIONS[0]; // Today's devotion
 
@@ -930,8 +946,8 @@ export function PlansScreen() {
                         <div
                           key={plan.id}
                           style={{
-                            background: isActive ? 'rgba(74,140,64,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
-                            border: isActive ? '2px solid rgba(74,140,64,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                            background: isActive ? 'rgba(37,99,235,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
+                            border: isActive ? '2px solid rgba(37,99,235,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
                             borderRadius: 14,
                             padding: '14px 16px',
                             cursor: 'pointer',
