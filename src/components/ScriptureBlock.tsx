@@ -22,7 +22,7 @@ export function ScriptureBlock({
   verseKey, verseNumber, text, testament = 'NT',
   tokens, onRangeStart, onRangeExtend, inRange = false,
 }: ScriptureBlockProps) {
-  const { highlights, toggleHighlight, greekHebrewMode, setActivePopupWord, setSelection, selection } = useScriptureSelection();
+  const { highlights, toggleHighlight, greekHebrewMode, setActivePopupWord } = useScriptureSelection();
   const isHighlighted = !!highlights[verseKey];
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pressing, setPressing] = useState(false);
