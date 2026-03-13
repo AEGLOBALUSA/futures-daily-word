@@ -735,15 +735,20 @@ function ScriptureModal({
 
           {/* SECTION 1: Devotional (if present) */}
           {devotional && (
-            <div style={{
-              margin: '20px 18px 0',
-              borderRadius: 16,
-              background: 'var(--dw-card)',
-              border: '1px solid var(--dw-border)',
-              borderLeft: '4px solid',
-              borderLeftColor: authorColor(devotional.author),
-              overflow: 'hidden',
-            }}>
+            <div
+              onClick={() => handleAskAI(`${devotional.title}\n\n${devotional.body}`)}
+              style={{
+                margin: '20px 18px 0',
+                borderRadius: 16,
+                background: 'var(--dw-card)',
+                border: '1px solid var(--dw-border)',
+                borderLeft: '4px solid',
+                borderLeftColor: authorColor(devotional.author),
+                overflow: 'hidden',
+                cursor: 'pointer',
+                WebkitUserSelect: 'text',
+                userSelect: 'text',
+              }}>
               <div style={{ padding: '16px 18px 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <p style={{

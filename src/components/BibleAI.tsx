@@ -257,6 +257,63 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                   ? 'Context, meaning, language, application'
                   : 'Context, meaning, application, Greek/Hebrew, and more'}
               </p>
+
+              {/* How-to flow strip — only shown when no text is pre-selected */}
+              {!selectedText && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0,
+                  marginBottom: 22,
+                  flexWrap: 'wrap',
+                  rowGap: 8,
+                }}>
+                  {[
+                    { step: '1', label: 'Tap any passage\nor devotion' },
+                    { step: '2', label: 'Press Ask AI\nin the toolbar' },
+                    { step: '3', label: 'Choose a\nquick prompt' },
+                    { step: '4', label: 'Get your\nanswer instantly' },
+                  ].map(({ step, label }, i, arr) => (
+                    <>
+                      <div key={step} style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 5,
+                        minWidth: 64,
+                      }}>
+                        <div style={{
+                          width: 30, height: 30, borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #7A5200, #C8920E)',
+                          color: '#fff', fontSize: 12, fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontFamily: 'var(--font-sans)',
+                          boxShadow: '0 2px 8px rgba(140,95,5,0.35)',
+                        }}>{step}</div>
+                        <span style={{
+                          fontSize: 10.5, color: 'var(--dw-text-muted)',
+                          fontFamily: 'var(--font-sans)', lineHeight: 1.4,
+                          whiteSpace: 'pre-line', textAlign: 'center',
+                        }}>{label}</span>
+                      </div>
+                      {i < arr.length - 1 && (
+                        <span key={`arrow-${i}`} style={{
+                          fontSize: 14, color: 'rgba(154,123,46,0.5)',
+                          alignSelf: 'flex-start', marginTop: 8, padding: '0 2px',
+                        }}>›</span>
+                      )}
+                    </>
+                  ))}
+                </div>
+              )}
+
+              <p style={{
+                fontSize: 11, color: 'rgba(154,123,46,0.75)', fontFamily: 'var(--font-sans)',
+                marginBottom: 18, letterSpacing: '0.03em',
+              }}>
+                {selectedText ? '— or choose a question below —' : '— or type your own question below —'}
+              </p>
               {selectedText && (
                 <div style={{
                   background: 'rgba(154,123,46,0.10)',

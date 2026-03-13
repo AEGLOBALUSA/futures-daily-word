@@ -1519,17 +1519,19 @@ export function HomeScreen() {
         </Card>
         )}
 
-        {/* Devotion of the Day — shows A&J devotional when that plan is active, otherwise default */}
-        <Card style={{ marginBottom: 16 }}>
+        {/* Devotion of the Day — tapping anywhere on the card opens the toolbar (Note / Share / Ask AI) */}
+        <Card
+          style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+          onClick={() => ajDevotional
+            ? setSelection({ text: `${ajDevotional.title}\n\n${ajDevotional.body}`, verseRefs: [ashleyJanePassage?.passage || ''], source: 'tap' })
+            : setSelection({ text: `${devotion.title}\n\n${devotion.body}`, verseRefs: [devotion.verse || ''], source: 'tap' })
+          }
+        >
           <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
           {ajDevotional ? (
             <>
               <p className="text-card-title" style={{ marginBottom: 12 }}>{ajDevotional.title}</p>
-              <p
-                className="text-devotion"
-                onClick={() => setSelection({ text: ajDevotional.body, verseRefs: [ashleyJanePassage?.passage || ''], source: 'tap' })}
-                style={{ cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-              >{ajDevotional.body}</p>
+              <p className="text-devotion">{ajDevotional.body}</p>
               <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
                 — {ajDevotional.author}
               </p>
@@ -1540,11 +1542,7 @@ export function HomeScreen() {
               <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
                 {devotion.verse}
               </p>
-              <p
-                className="text-devotion"
-                onClick={() => setSelection({ text: devotion.body, verseRefs: [devotion.verse || ''], source: 'tap' })}
-                style={{ cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-              >{devotion.body}</p>
+              <p className="text-devotion">{devotion.body}</p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
                 — {devotion.author}
               </p>
