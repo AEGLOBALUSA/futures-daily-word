@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2 } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
+import { registerAudio } from '../utils/audioManager';
 
 interface HighlightToolbarProps {
   onOpenNotes: () => void;
@@ -49,6 +50,8 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
         listenAudioRef.current = audio;
         audio.onended = () => { setListening(false); listenAudioRef.current = null; };
         audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
+        audio.addEventListener('pause', () => { setListening(false); listenAudioRef.current = null; });
+        registerAudio(audio);
         await audio.play();
       } else {
         setListening(false);

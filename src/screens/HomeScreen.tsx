@@ -18,6 +18,8 @@ import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
 import { ListenButton } from '../components/ListenButton';
+import { StopAllAudio } from '../components/StopAllAudio';
+import { registerAudio } from '../utils/audioManager';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { personalize } from '../utils/personalization';
 
@@ -687,11 +689,13 @@ export function HomeScreen() {
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
         };
         audio.onpause = () => {
+          setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null);
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
         };
         audio.onplay = () => {
           if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
         };
+        registerAudio(audio);
         await audio.play();
         setAudioPlaying(true);
         setupMediaSession(passage, audio);
@@ -882,8 +886,9 @@ export function HomeScreen() {
         audioRef.current = audio;
         audio.onended = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); };
         audio.onerror = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); setAudioError(true); };
-        audio.onpause = () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; };
+        audio.onpause = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; };
         audio.onplay = () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; };
+        registerAudio(audio);
         await audio.play();
         setAudioPlaying(true);
         setupMediaSession(combinedRef, audio);
@@ -2902,6 +2907,7 @@ export function HomeScreen() {
         initialContext={bibleAIContext}
         selectedText={selection?.text}
       />
+      <StopAllAudio />
     </div>
   );
 }

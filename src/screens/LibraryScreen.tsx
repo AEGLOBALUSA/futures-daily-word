@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2, Headphones, Pause } from 'lucide-react';
+import { StopAllAudio } from '../components/StopAllAudio';
+import { registerAudio } from '../utils/audioManager';
 
 /* ── Essay TOC + section types ── */
 interface EssaySection { title: string; file: string; }
@@ -79,6 +81,8 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
         audioRef.current = audio;
         audio.onended = () => { setAudioActive(false); audioRef.current = null; };
         audio.onerror = () => { setAudioActive(false); audioRef.current = null; };
+        audio.addEventListener('pause', () => { setAudioActive(false); audioRef.current = null; });
+        registerAudio(audio);
         await audio.play();
       } else {
         setAudioActive(false);
@@ -306,6 +310,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
         <div style={{ height: 24 }} />
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <StopAllAudio />
     </div>
   );
 }

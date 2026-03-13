@@ -6,6 +6,8 @@ import { DEVOTIONS } from '../data/devotions';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Circle } from 'lucide-react';
+import { StopAllAudio } from '../components/StopAllAudio';
+import { registerAudio } from '../utils/audioManager';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -188,6 +190,8 @@ export function PlansScreen() {
         bookAudioRef.current = audio;
         audio.onended = () => { setBookAudioActive(false); bookAudioRef.current = null; };
         audio.onerror = () => { setBookAudioActive(false); bookAudioRef.current = null; };
+        audio.addEventListener('pause', () => { setBookAudioActive(false); bookAudioRef.current = null; });
+        registerAudio(audio);
         await audio.play();
       } else {
         setBookAudioActive(false);
@@ -212,6 +216,8 @@ export function PlansScreen() {
         essayAudioRef.current = audio;
         audio.onended = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
         audio.onerror = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
+        audio.addEventListener('pause', () => { setEssayAudioActive(false); essayAudioRef.current = null; });
+        registerAudio(audio);
         await audio.play();
       } else {
         setEssayAudioActive(false);
@@ -1168,6 +1174,7 @@ export function PlansScreen() {
           </Card>
         )}
       </div>
+      <StopAllAudio />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { ListenButton } from '../components/ListenButton';
+import { StopAllAudio } from '../components/StopAllAudio';
+import { registerAudio } from '../utils/audioManager';
 
 interface JournalEntry {
   id: string;
@@ -501,6 +503,8 @@ function ModalSelectionBar({
         listenAudioRef.current = audio;
         audio.onended = () => { setListening(false); listenAudioRef.current = null; };
         audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
+        audio.addEventListener('pause', () => { setListening(false); listenAudioRef.current = null; });
+        registerAudio(audio);
         await audio.play();
       } else {
         setListening(false);
@@ -1803,6 +1807,7 @@ export function JournalScreen() {
 
       {/* Video recorder modal */}
       {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} />}
+      <StopAllAudio />
     </div>
   );
 }

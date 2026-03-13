@@ -8,6 +8,7 @@
  */
 import { useState, useRef } from 'react';
 import { Volume2, Loader2, Square } from 'lucide-react';
+import { registerAudio } from '../utils/audioManager';
 
 interface Props {
   /** The text to read aloud */
@@ -49,6 +50,8 @@ export function ListenButton({ text, passageRef, size = 'sm', label, color }: Pr
         audioRef.current = audio;
         audio.onended = () => { setPlaying(false); audioRef.current = null; };
         audio.onerror = () => { setPlaying(false); audioRef.current = null; };
+        audio.addEventListener('pause', () => { setPlaying(false); audioRef.current = null; });
+        registerAudio(audio);
         await audio.play();
         setPlaying(true);
       }
