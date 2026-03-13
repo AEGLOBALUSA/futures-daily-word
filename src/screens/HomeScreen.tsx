@@ -575,6 +575,11 @@ export function HomeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passageTexts, translation]);
 
+  // ── Hero full-passage state (always ESV for real human audio) ──────────────
+  const [heroFullText, setHeroFullText] = useState('');
+  const [heroLoading, setHeroLoading] = useState(false);
+  const HERO_KEY = '__hero__';
+
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
     localStorage.setItem('dw_translation', t);
@@ -787,6 +792,84 @@ export function HomeScreen() {
     book.toLowerCase().includes(bookPickerSearch.toLowerCase())
   );
 
+  // ── Hero chapter refs — all today's passages expanded to full chapter level ──
+  const expandChapterRef = (ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim();
+  const heroChapterRefs = (() => {
+    const refs = [
+      ...todaysPlanPassages.map(p => expandChapterRef(p.passage)),
+      ...readingSlots
+        .slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length))
+        .map(s => `${s.book} ${s.currentChapter}`),
+    ];
+    return refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
+  })();
+  const heroKey = heroChapterRefs.join('|');
+
+  // Pre-load all today's chapters in ESV — real human audio via ESV.org
+  useEffect(() => {
+    if (!heroKey) return;
+    setHeroLoading(true);
+    Promise.all(heroChapterRefs.map(ref => fetchPassage(ref, 'ESV').catch(() => '')))
+      .then(texts => setHeroFullText(texts.filter(Boolean).join('\n\n')))
+      .finally(() => setHeroLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroKey]);
+
+  // Play all today's chapters combined in ESV (real human reader)
+  const handleHeroListen = async () => {
+    ensureAudioUnlocked();
+    setAudioError(false);
+    if (audioPlaying && audioCurrentPassage === HERO_KEY) { stopAudio(); return; }
+    if (audioPlaying) stopAudio();
+    if (!heroFullText) return;
+
+    setAudioLoading(true);
+    setAudioCurrentPassage(HERO_KEY);
+    try {
+      await ensureAudioUnlocked();
+      const combinedRef = heroChapterRefs.join('; ');
+      const cacheKey = HERO_KEY + heroKey;
+      const cachedUrl = audioUrlCache.current.get(cacheKey);
+      const url = cachedUrl || await fetchAudio(heroFullText.slice(0, 5000), 'ESV', combinedRef);
+      if (url) {
+        if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
+        setAudioUrl(url);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); };
+        audio.onerror = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); setAudioError(true); };
+        audio.onpause = () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; };
+        audio.onplay = () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; };
+        await audio.play();
+        setAudioPlaying(true);
+        setupMediaSession(combinedRef, audio);
+      } else if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(heroFullText.slice(0, 10000));
+        utter.lang = 'en-US'; utter.rate = 0.91; utter.pitch = 1.0;
+        const voices = window.speechSynthesis.getVoices();
+        const pref = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
+          || voices.find(v => v.lang.startsWith('en') && v.localService);
+        if (pref) utter.voice = pref;
+        utter.onstart = () => { setAudioPlaying(true); setAudioLoading(false); speechSynthRef.current = true; };
+        utter.onend = () => { setAudioPlaying(false); setAudioCurrentPassage(null); speechSynthRef.current = false; };
+        utter.onerror = () => { setAudioPlaying(false); setAudioCurrentPassage(null); setAudioError(true); speechSynthRef.current = false; };
+        if (voices.length === 0) {
+          window.speechSynthesis.onvoiceschanged = () => {
+            const v2 = window.speechSynthesis.getVoices();
+            const pref2 = v2.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
+              || v2.find(v => v.lang.startsWith('en') && v.localService);
+            if (pref2) utter.voice = pref2;
+            window.speechSynthesis.speak(utter);
+          };
+        } else { window.speechSynthesis.speak(utter); }
+        return;
+      } else {
+        setAudioError(true); setAudioCurrentPassage(null);
+      }
+    } catch { setAudioError(true); setAudioCurrentPassage(null); }
+    finally { setAudioLoading(false); }
+  };
+
   /** Render scripture text with tappable words when Gk/Heb mode is active */
   const renderScripture = (text: string, passage: string) => {
     if (!greekHebrewMode) return text;
@@ -966,25 +1049,19 @@ export function HomeScreen() {
           </div>
         </div>
 
-        {/* ── Hero Listen Button ── always shown; falls back to today's daily passage */}
+        {/* ── Hero Listen Button ── always shown; plays all today's passages in ESV */}
         {(() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
-          const heroPassage = firstPlan
-            ? firstPlan.passage
-            : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}`
-            : primaryPassage || null;
-          if (!heroPassage) return null;
+          const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot || primaryPassage;
+          if (!hasAnyPassage) return null;
 
-          const allLabels = [
-            ...todaysPlanPassages.map(p => p.passage),
-            ...readingSlots
-              .slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length))
-              .map(s => `${s.book} ${s.currentChapter}`),
-          ];
+          const allLabels = heroChapterRefs.length > 0
+            ? heroChapterRefs
+            : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
           const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
-          const isPlayingHero = audioPlaying && audioCurrentPassage === heroPassage;
-          const isLoadingHero = audioLoading && audioCurrentPassage === heroPassage;
+          const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
+          const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
 
           return (
             <div
@@ -1060,7 +1137,7 @@ export function HomeScreen() {
                   padding: '22px 20px 20px',
                 }}>
                   <button
-                    onClick={() => handleListen(heroPassage)}
+                    onClick={() => handleHeroListen()}
                     style={{
                       width: 78, height: 78, borderRadius: '50%',
                       background: isPlayingHero
@@ -1104,11 +1181,18 @@ export function HomeScreen() {
                   }}>
                     {allLabels.join(' · ')}
                   </p>
+                  <p style={{
+                    fontSize: 10, opacity: 0.4, margin: '5px 0 0',
+                    fontFamily: 'var(--font-sans)', textAlign: 'center',
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                  }}>
+                    ESV · Human Reader
+                  </p>
                 </div>
 
 
                 {/* Error message */}
-                {audioError && audioCurrentPassage === heroPassage && (
+                {audioError && audioCurrentPassage === HERO_KEY && (
                   <p style={{
                     fontSize: 11, color: 'rgba(255,180,180,0.9)', textAlign: 'center',
                     fontFamily: 'var(--font-sans)', margin: '0 20px 10px',
@@ -1127,19 +1211,19 @@ export function HomeScreen() {
                 }}>
                   {/* Read button */}
                   <button
-                    onClick={() => handleRead(heroPassage)}
+                    onClick={() => handleRead(heroChapterRefs[0] || '')}
                     style={{
                       flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       padding: '12px 8px',
                       background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: expandedPassages.has(heroPassage) ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
+                      color: expandedPassages.has(heroChapterRefs[0] || '') ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
                       fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
                       letterSpacing: '0.03em', transition: 'color 0.2s ease',
                       borderRight: '1px solid rgba(255,255,255,0.1)',
                     }}
                   >
                     <BookOpen size={13} />
-                    {expandedPassages.has(heroPassage) ? 'Close' : 'Read'}
+                    {expandedPassages.has(heroChapterRefs[0] || '') ? 'Close' : 'Read'}
                   </button>
 
                   {/* Translation picker — horizontal scrollable pills */}
