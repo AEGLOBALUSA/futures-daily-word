@@ -86,6 +86,11 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     const systemParts: string[] = [
       'You are a Bible study assistant for Futures Church Daily Word. You help people understand scripture, explore original languages, find application for daily life, and go deeper in their faith. Be warm, pastoral, and insightful. Keep responses clear and digestible — aim for 2-4 short paragraphs unless a longer answer is truly needed.',
     ]
+    // Include user's personal context if they've shared it
+    const userStory = typeof localStorage !== 'undefined' ? localStorage.getItem('dw_user_story') : null;
+    if (userStory?.trim()) {
+      systemParts.push(`About this person: ${userStory.trim()}\n\nLet this context inform how you apply scripture and give pastoral guidance — reference it naturally when it's genuinely relevant, without forcing it.`)
+    }
     if (selectedText) systemParts.push(`The user has highlighted this passage: "${selectedText.substring(0, 600)}"`)
     if (initialContext) systemParts.push(initialContext)
     const systemPrompt = systemParts.join('\n\n')

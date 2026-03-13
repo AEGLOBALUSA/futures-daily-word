@@ -56,6 +56,10 @@ export function MoreScreen() {
   const [personalMediaUrl, setPersonalMediaUrl] = useState<string>(() => {
     return localStorage.getItem('dw_personal_media_url') || '';
   });
+  const [userStory, setUserStory] = useState<string>(() => {
+    return localStorage.getItem('dw_user_story') || '';
+  });
+  const [storySaved, setStorySaved] = useState(false);
   const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
 
@@ -115,6 +119,13 @@ export function MoreScreen() {
   const handleLangSelect = (val: string) => {
     localStorage.setItem('dw_lang', val);
     window.location.reload();
+  };
+
+  const handleUserStorySave = (story: string) => {
+    localStorage.setItem('dw_user_story', story);
+    setUserStory(story);
+    setStorySaved(true);
+    setTimeout(() => setStorySaved(false), 2000);
   };
 
   const handlePersonaSelect = (personaId: string) => {
@@ -246,6 +257,61 @@ export function MoreScreen() {
                   <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
                 </button>
               ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* ─── MY STORY ─── */}
+        <div style={{ marginBottom: 24 }}>
+          <p className="text-section-header" style={{ marginBottom: 4, paddingLeft: 4 }}>
+            <User size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            MY SEASON &amp; CONTEXT
+          </p>
+          <p style={{
+            fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+            paddingLeft: 4, marginBottom: 10, lineHeight: 1.5,
+          }}>
+            Tell Bible AI about your life right now — season, what you're studying, what you need. This shapes every conversation.
+          </p>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <textarea
+              value={userStory}
+              onChange={e => setUserStory(e.target.value)}
+              placeholder={"E.g. I'm walking through grief after losing my father. I lead a small group studying Paul's letters. I'm preparing a sermon series on prayer. I'm new to Christianity and want to understand the Gospels…"}
+              style={{
+                width: '100%', minHeight: 120,
+                padding: '14px 16px',
+                background: 'transparent',
+                border: 'none', outline: 'none',
+                color: 'var(--dw-text)',
+                fontSize: 14, lineHeight: 1.7,
+                fontFamily: 'var(--font-serif)',
+                resize: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 14px 12px',
+              borderTop: '1px solid var(--dw-border)',
+            }}>
+              <span style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)' }}>
+                {userStory.length} / 600 characters
+              </span>
+              <button
+                onClick={() => handleUserStorySave(userStory.slice(0, 600))}
+                disabled={storySaved}
+                style={{
+                  background: storySaved ? '#2563EB' : 'var(--dw-accent)',
+                  border: 'none', borderRadius: 8,
+                  padding: '7px 16px', color: '#fff',
+                  fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  transition: 'background 0.2s',
+                }}
+              >
+                {storySaved ? '✓ Saved' : 'Save'}
+              </button>
             </div>
           </Card>
         </div>
