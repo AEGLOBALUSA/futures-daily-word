@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Sparkles, ExternalLink } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 
 interface StrongsEntry {
