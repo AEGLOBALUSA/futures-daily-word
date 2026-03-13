@@ -892,14 +892,15 @@ export function HomeScreen() {
         />
       )}
       <div style={{ padding: '0 24px 0' }}>
-        {/* ── Hero viewport ── fills visible screen, hero centered */}
+        {/* ── Hero viewport ── fills visible screen, hero centered, bottom peek invites scroll */}
         <div style={{
           minHeight: 'calc(100svh - 80px)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           paddingTop: 20,
-          paddingBottom: 28,
+          paddingBottom: 64,
+          position: 'relative',
         }}>
 
         {/* Header — compact, sits above the centered hero */}
@@ -1204,6 +1205,29 @@ export function HomeScreen() {
           );
         })()}
 
+          {/* Scroll invitation — not an arrow, just a breath */}
+          <div style={{
+            position: 'absolute', bottom: 12, left: 0, right: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+            pointerEvents: 'none',
+          }}>
+            <span style={{
+              fontSize: 10, fontWeight: 500, letterSpacing: '0.12em',
+              textTransform: 'uppercase', color: 'var(--dw-text-muted)',
+              fontFamily: 'var(--font-sans)', opacity: 0.6,
+            }}>
+              Today's reflection
+            </span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  width: 4, height: 4, borderRadius: '50%',
+                  background: 'var(--dw-text-muted)',
+                  opacity: 0.25 + i * 0.15,
+                }} />
+              ))}
+            </div>
+          </div>
         </div>{/* end hero viewport */}
 
         {/* Persona Greeting */}
@@ -2373,6 +2397,7 @@ export function HomeScreen() {
       <BibleAI
         isOpen={showBibleAI}
         onClose={() => setShowBibleAI(false)}
+        onOpen={() => setShowBibleAI(true)}
         initialContext={bibleAIContext}
         selectedText={selection?.text}
       />

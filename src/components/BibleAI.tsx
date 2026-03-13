@@ -48,11 +48,12 @@ const SELECTION_PROMPTS = (text: string) => [
 interface BibleAIProps {
   isOpen: boolean
   onClose: () => void
+  onOpen?: () => void
   initialContext?: string
   selectedText?: string
 }
 
-export function BibleAI({ isOpen, onClose, initialContext, selectedText }: BibleAIProps) {
+export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText }: BibleAIProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -116,7 +117,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
     <>
       {/* Floating trigger button */}
       <button
-        onClick={onClose}
+        onClick={onOpen ?? onClose}
         aria-label="Bible AI"
         style={{
           position: 'fixed',
@@ -242,12 +243,12 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
                     key={p}
                     onClick={() => sendMessage(p)}
                     style={{
-                      background: 'var(--dw-card, #F5F3EF)',
-                      border: '1px solid var(--dw-border, #E8E6E0)',
+                      background: '#F5F3EF',
+                      border: '1px solid #E0DDD6',
                       borderRadius: 10,
                       padding: '10px 16px',
                       fontSize: 13,
-                      color: 'var(--dw-text)',
+                      color: '#1A1714',
                       cursor: 'pointer',
                       fontFamily: 'var(--font-sans)',
                       textAlign: 'left',
