@@ -1,226 +1,347 @@
-/**
- * Bible AI chat — powered by /api/claude.
- * Rate limited: 15 req/min. Max 20 messages in history.
- */
-import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, X, Sparkles } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import { useState, useEffect, useRef } from 'react'
+import { X, Sparkles, Send, ChevronDown } from 'lucide-react'
 
 interface Message {
-  role: 'user' | 'assistant';
-  content: string;
+  role: 'user' | 'assistant'
+  content: string
 }
 
 const QUICK_PROMPTS = [
   'What does this passage mean?',
-  'How can I apply this to my life?',
-  'What is the historical context?',
-  'Explain a key word in Greek/Hebrew',
-  'Cross-reference related verses',
-  'Summarize the main theme',
-];
+  'Give me historical context',
+  'How does this apply to my life?',
+  'What do Greek/Hebrew words reveal here?',
+  'Connect this to the rest of Scripture',
+  'What is God saying to me through this?',
+]
+
+const SELECTION_PROMPTS = (text: string) => [
+  `Explain the meaning of: "${text.substring(0, 60)}${text.length > 60 ? '…' : ''}"`,
+  `What is the original Greek or Hebrew meaning here?`,
+  `How does this passage apply to daily life?`,
+  `What is the theological significance of this text?`,
+  `Connect this verse to the broader narrative of Scripture`,
+]
 
 interface BibleAIProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialContext?: string;
+  isOpen: boolean
+  onClose: () => void
+  initialContext?: string
+  selectedText?: string
 }
 
-export function BibleAI({ isOpen, onClose, initialContext }: BibleAIProps) {
-  const { userProfile } = useUser();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [requestCount, setRequestCount] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
+export function BibleAI({ isOpen, onClose, initialContext, selectedText }: BibleAIProps) {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Pre-populate input when selectedText changes and panel is open
+  useEffect(() => {
+    if (isOpen && selectedText && selectedText.trim()) {
+      setInput(`Tell me more about: "${selectedText.substring(0, 120)}${selectedText.length > 120 ? '…' : ''}"`)
+      setTimeout(() => inputRef.current?.focus(), 300)
+    }
+  }, [selectedText, isOpen])
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (isOpen) {
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     }
-  }, [messages]);
+  }, [messages, isOpen])
 
-  if (!isOpen) return null;
+  async function sendMessage(text?: string) {
+    const msg = text ?? input.trim()
+    if (!msg || loading) return
+    setInput('')
+    const userMsg: Message = { role: 'user', content: msg }
+    setMessages(prev => [...prev, userMsg])
+    setLoading(true)
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim() || loading) return;
-    if (requestCount >= 15) return; // Rate limit
-
-    const userMsg: Message = { role: 'user', content: text.trim() };
-    const newMessages = [...messages, userMsg].slice(-20); // Max 20 messages
-    setMessages(newMessages);
-    setInput('');
-    setLoading(true);
-    setRequestCount(c => c + 1);
+    const context = selectedText
+      ? `The user has highlighted this scripture: "${selectedText}"\n\n${initialContext ?? ''}`
+      : initialContext ?? ''
 
     try {
-      const res = await fetch('/api/claude', {
+      const res = await fetch('/.netlify/functions/bible-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-          context: initialContext || '',
-          campus: userProfile?.campus || '',
+          messages: [...messages, userMsg],
+          context,
         }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const assistantMsg: Message = {
-          role: 'assistant',
-          content: data.response || data.text || 'I apologize, I could not generate a response.',
-        };
-        setMessages(prev => [...prev, assistantMsg].slice(-20));
-      } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
-      }
+      })
+      const data = await res.json()
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply ?? 'Sorry, I couldn\'t process that.' }])
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please check your internet and try again.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const promptsToShow = selectedText ? SELECTION_PROMPTS(selectedText) : QUICK_PROMPTS
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 500,
-      background: 'var(--dw-canvas)',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 20px',
-        borderBottom: '1px solid var(--dw-border)',
-        paddingTop: 'calc(16px + var(--safe-top))',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Sparkles size={20} style={{ color: 'var(--dw-accent)' }} />
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--dw-text-primary)' }}>
-            Bible AI
-          </h2>
+    <>
+      {/* Floating trigger button */}
+      <button
+        onClick={onClose}
+        aria-label="Bible AI"
+        style={{
+          position: 'fixed',
+          bottom: 80,
+          right: 16,
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #7B5EA7, #9B6FBF)',
+          boxShadow: '0 4px 16px rgba(123,94,167,0.55)',
+          border: 'none',
+          display: isOpen ? 'none' : 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 90,
+          transition: 'transform 0.15s ease',
+        }}
+        onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+        onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+      >
+        <Sparkles size={22} color="#fff" />
+      </button>
+
+      {/* Panel backdrop */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.3)',
+            zIndex: 92,
+          }}
+        />
+      )}
+
+      {/* Slide-up panel */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '82vh',
+          background: 'var(--dw-canvas, #FAFAF8)',
+          borderRadius: '20px 20px 0 0',
+          zIndex: 93,
+          display: 'flex',
+          flexDirection: 'column',
+          transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.32s cubic-bezier(0.4,0,0.2,1)',
+          boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 18px 10px',
+          borderBottom: '1px solid var(--dw-border, #E8E6E0)',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #7B5EA7, #9B6FBF)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Sparkles size={16} color="#fff" />
+            </div>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)' }}>
+              Bible AI
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--dw-text-muted)' }}
+          >
+            <ChevronDown size={22} />
+          </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)' }}>
-            {15 - requestCount} left
-          </span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4 }}>
-            <X size={22} />
+
+        {/* Messages or empty state */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+          {messages.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <Sparkles size={32} style={{ color: 'var(--dw-accent, #4A6340)', marginBottom: 12 }} />
+              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--dw-text)', marginBottom: 4 }}>
+                {selectedText ? 'Go deeper on this passage' : 'Ask me about scripture'}
+              </p>
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20 }}>
+                {selectedText
+                  ? 'Context, meaning, language, application'
+                  : 'Context, meaning, application, Greek/Hebrew, and more'}
+              </p>
+              {selectedText && (
+                <div style={{
+                  background: 'rgba(154,123,46,0.10)',
+                  border: '1px solid rgba(154,123,46,0.25)',
+                  borderLeft: '3px solid #9A7B2E',
+                  borderRadius: 8,
+                  padding: '10px 14px',
+                  marginBottom: 16,
+                  textAlign: 'left',
+                  fontSize: 13,
+                  color: 'var(--dw-text)',
+                  fontStyle: 'italic',
+                  lineHeight: 1.5,
+                }}>
+                  {selectedText.substring(0, 200)}{selectedText.length > 200 ? '…' : ''}
+                </div>
+              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                {promptsToShow.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => sendMessage(p)}
+                    style={{
+                      background: 'var(--dw-card, #F5F3EF)',
+                      border: '1px solid var(--dw-border, #E8E6E0)',
+                      borderRadius: 20,
+                      padding: '7px 14px',
+                      fontSize: 13,
+                      color: 'var(--dw-text)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)',
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {messages.map((m, i) => (
+                <div
+                  key={i}
+                  style={{
+                    marginBottom: 14,
+                    display: 'flex',
+                    justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  <div
+                    style={{
+                      maxWidth: '82%',
+                      padding: '10px 14px',
+                      borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                      background: m.role === 'user'
+                        ? 'linear-gradient(135deg, #7B5EA7, #9B6FBF)'
+                        : 'var(--dw-card, #F5F3EF)',
+                      color: m.role === 'user' ? '#fff' : 'var(--dw-text)',
+                      fontSize: 14,
+                      lineHeight: 1.55,
+                      fontFamily: 'var(--font-sans)',
+                    }}
+                  >
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div style={{ display: 'flex', gap: 4, padding: '8px 0', alignItems: 'center' }}>
+                  {[0,1,2].map(i => (
+                    <div key={i} style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: 'var(--dw-text-muted)',
+                      animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                    }} />
+                  ))}
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
+
+        {/* Input bar */}
+        <div style={{
+          padding: '10px 12px',
+          borderTop: '1px solid var(--dw-border, #E8E6E0)',
+          display: 'flex',
+          gap: 8,
+          alignItems: 'flex-end',
+          flexShrink: 0,
+          background: 'var(--dw-canvas, #FAFAF8)',
+        }}>
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about this passage…"
+            rows={1}
+            style={{
+              flex: 1,
+              resize: 'none',
+              border: '1px solid var(--dw-border, #E8E6E0)',
+              borderRadius: 12,
+              padding: '10px 14px',
+              fontSize: 14,
+              fontFamily: 'var(--font-sans)',
+              background: 'var(--dw-card, #F5F3EF)',
+              color: 'var(--dw-text)',
+              outline: 'none',
+              maxHeight: 100,
+              overflowY: 'auto',
+            }}
+          />
+          <button
+            onClick={() => sendMessage()}
+            disabled={!input.trim() || loading}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: input.trim() && !loading
+                ? 'linear-gradient(135deg, #7B5EA7, #9B6FBF)'
+                : 'var(--dw-border, #E8E6E0)',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: input.trim() && !loading ? 'pointer' : 'default',
+              flexShrink: 0,
+              transition: 'background 0.2s',
+            }}
+          >
+            <Send size={17} color={input.trim() && !loading ? '#fff' : 'var(--dw-text-muted)'} />
           </button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {messages.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <Sparkles size={32} style={{ color: 'var(--dw-accent)', marginBottom: 12 }} />
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--dw-text-primary)', marginBottom: 8 }}>
-              Ask me about scripture
-            </p>
-            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 24 }}>
-              Context, meaning, application, Greek/Hebrew, and more
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-              {QUICK_PROMPTS.map(p => (
-                <button
-                  key={p}
-                  onClick={() => sendMessage(p)}
-                  style={{
-                    background: 'var(--dw-surface)',
-                    border: '1px solid var(--dw-border)',
-                    borderRadius: 999,
-                    padding: '8px 14px',
-                    color: 'var(--dw-text-secondary)',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    minHeight: 36,
-                  }}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messages.map((msg, i) => (
-          <div key={i} style={{
-            marginBottom: 16,
-            display: 'flex',
-            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-          }}>
-            <div style={{
-              maxWidth: '85%',
-              background: msg.role === 'user' ? 'var(--dw-accent)' : 'var(--dw-surface)',
-              color: msg.role === 'user' ? '#fff' : 'var(--dw-text-primary)',
-              borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-              padding: '12px 16px',
-              fontSize: 14,
-              lineHeight: 1.6,
-              fontFamily: 'var(--font-sans)',
-              whiteSpace: 'pre-wrap',
-            }}>
-              {msg.content}
-            </div>
-          </div>
-        ))}
-
-        {loading && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '8px 0' }}>
-            <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-            <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Thinking...</span>
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div style={{
-        padding: '12px 20px',
-        paddingBottom: 'calc(12px + var(--safe-bottom))',
-        borderTop: '1px solid var(--dw-border)',
-        display: 'flex', gap: 10,
-      }}>
-        <input
-          type="text"
-          placeholder="Ask about scripture..."
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') sendMessage(input); }}
-          style={{
-            flex: 1,
-            background: 'var(--dw-surface)',
-            border: '1px solid var(--dw-border)',
-            borderRadius: 12,
-            padding: '12px 16px',
-            color: 'var(--dw-text-primary)',
-            fontSize: 14,
-            fontFamily: 'var(--font-sans)',
-            outline: 'none',
-            minHeight: 44,
-          }}
-        />
-        <button
-          onClick={() => sendMessage(input)}
-          disabled={loading || !input.trim()}
-          style={{
-            background: 'var(--dw-accent)',
-            border: 'none',
-            borderRadius: 12,
-            padding: '0 16px',
-            color: '#fff',
-            cursor: loading || !input.trim() ? 'default' : 'pointer',
-            opacity: loading || !input.trim() ? 0.5 : 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            minHeight: 44, minWidth: 44,
-          }}
-        >
-          <Send size={18} />
-        </button>
-      </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
+      <style>{`
+        @keyframes pulse {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+          40% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </>
+  )
 }
