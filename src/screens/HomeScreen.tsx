@@ -825,63 +825,63 @@ export function HomeScreen() {
               </span>
             </div>
             <div style={{
-              background: 'var(--dw-card)',
+              background: 'var(--dw-surface)',
               borderRadius: 14,
-              padding: '16px 18px',
+              border: '1px solid var(--dw-border-subtle)',
+              overflow: 'hidden',
               marginBottom: 8,
             }}>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 10, color: 'var(--dw-text)' }}>
-                {passage}
-              </div>
-              {txt ? (
-                <div style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--dw-text)', whiteSpace: 'pre-wrap' }}>
-                  {txt}
+              {/* ── Listen button — TOP, full width ── */}
+              {(() => {
+                const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
+                const isLoadingThis = audioLoading && audioCurrentPassage === passage;
+                return (
+                  <button
+                    onClick={() => handleListen(passage)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      background: isPlayingThis ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
+                      border: 'none',
+                      borderRadius: 0,
+                      padding: '13px 18px',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      color: '#fff',
+                      fontFamily: 'var(--font-sans)',
+                      letterSpacing: '0.02em',
+                      transition: 'background 0.2s ease',
+                    }}
+                  >
+                    {isLoadingThis ? (
+                      <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading audio…</>
+                    ) : isPlayingThis ? (
+                      <><Pause size={16} /> Pause</>
+                    ) : (
+                      <><Headphones size={16} /> Listen</>
+                    )}
+                  </button>
+                );
+              })()}
+              {/* ── Scripture content ── */}
+              <div style={{ padding: '14px 18px 16px' }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+                  {passage}
                 </div>
-              ) : (
-                <div style={{ fontSize: 14, color: 'var(--dw-subtext)', fontStyle: 'italic' }}>
-                  Loading…
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                {(() => {
-                  const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
-                  const isLoadingThis = audioLoading && audioCurrentPassage === passage;
-                  const isCached = audioUrlCache.current.has(`${passage}_${translation}`);
-                  return (
-                    <button
-                      onClick={() => handleListen(passage)}
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        background: isPlayingThis
-                          ? 'linear-gradient(135deg, #7A4040, #9A5050)'
-                          : 'linear-gradient(135deg, #4A6340, #5A7A50)',
-                        boxShadow: '0 3px 12px rgba(74,99,64,0.4)',
-                        border: 'none',
-                        borderRadius: 10,
-                        padding: '11px 16px',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        color: '#fff',
-                        fontFamily: 'var(--font-sans)',
-                        minHeight: 44,
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      {isLoadingThis ? (
-                        <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading audio…</>
-                      ) : isPlayingThis ? (
-                        <><Pause size={16} /> Pause</>
-                      ) : (
-                        <><Headphones size={16} /> {isCached ? 'Listen (ready)' : 'Listen'}</>
-                      )}
-                    </button>
-                  );
-                })()}
+                {txt ? (
+                  <div style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif, Georgia, serif)' }}>
+                    {txt}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -962,10 +962,27 @@ export function HomeScreen() {
                       </button>
                       <button
                         onClick={() => handleListen(passage)}
-              style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(135deg, #4A6340, #5A7A50)', boxShadow:'0 3px 12px rgba(74,99,64,0.4)', border:'none', borderRadius:10, padding:'10px 16px', fontSize:13, fontWeight:600, cursor:'pointer', color:'#fff', fontFamily:'var(--font-sans)', minHeight:42 }}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          background: isPlayingThis ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
+                          border: 'none',
+                          borderRadius: 10,
+                          padding: '10px 16px',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          color: '#fff',
+                          fontFamily: 'var(--font-sans)',
+                          minHeight: 42,
+                          transition: 'background 0.2s ease',
+                        }}
                       >
                         {isLoadingThis ? (
-                          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...</>
+                          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
                         ) : isPlayingThis ? (
                           <><Pause size={16} /> Pause</>
                         ) : (
