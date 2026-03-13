@@ -918,69 +918,59 @@ export function HomeScreen() {
               Futures Church
             </p>
           </div>
-          {/* Streak display — infinite cycling ring */}
+          {/* Streak display — clean counter */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {streakCount > 0 && (() => {
-              const cycle = 7;
-              const fillRatio = streakCount % cycle === 0 ? 1 : (streakCount % cycle) / cycle;
-              const r = 17;
-              const circ = 2 * Math.PI * r;
-              const offset = circ * (1 - fillRatio);
+              const encouragement: [number, string][] = [
+                [1,   'Day one.'],
+                [2,   'Two in a row.'],
+                [3,   'Three days strong.'],
+                [5,   'Five days.'],
+                [7,   'One week.'],
+                [10,  'Ten days.'],
+                [14,  'Two weeks.'],
+                [21,  'Three weeks.'],
+                [30,  'One month.'],
+                [40,  'Forty days.'],
+                [60,  'Two months.'],
+                [90,  'Three months.'],
+                [100, 'One hundred days.'],
+                [180, 'Half a year.'],
+                [365, 'One full year.'],
+              ];
+              const label = [...encouragement].reverse().find(([n]) => streakCount >= n)?.[1] ?? null;
               const isMilestone = streakCount >= 7;
-              const ringColor = isMilestone ? '#FF8C00' : '#C49A3C';
-              const glowFilter = isMilestone ? 'drop-shadow(0 0 5px rgba(255,140,0,0.75))' : 'none';
               return (
                 <div
                   onClick={() => isMilestone && setShowMilestone(streakCount)}
                   style={{
-                    position: 'relative', width: 46, height: 46,
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
                     cursor: isMilestone ? 'pointer' : 'default',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                    animation: isMilestone ? 'streakGlow 2.4s ease-in-out infinite' : 'none',
-                    borderRadius: '50%',
+                    gap: 1,
                   }}
-                  onPointerDown={e => isMilestone && (e.currentTarget.style.transform = 'scale(0.9)')}
-                  onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                  onPointerDown={e => isMilestone && (e.currentTarget.style.opacity = '0.7')}
+                  onPointerUp={e => (e.currentTarget.style.opacity = '1')}
                 >
-                  {/* SVG ring */}
-                  <svg
-                    width={46} height={46}
-                    style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}
-                    viewBox="0 0 46 46"
-                  >
-                    {/* track */}
-                    <circle cx={23} cy={23} r={r} fill="none"
-                      stroke="rgba(180,140,40,0.18)" strokeWidth={3.5} />
-                    {/* fill arc */}
-                    <circle cx={23} cy={23} r={r} fill="none"
-                      stroke={ringColor}
-                      strokeWidth={3.5}
-                      strokeLinecap="round"
-                      strokeDasharray={circ}
-                      strokeDashoffset={offset}
-                      style={{
-                        transition: 'stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1)',
-                        filter: glowFilter,
-                      }}
-                    />
-                  </svg>
-                  {/* Center */}
-                  <div style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    justifyContent: 'center', lineHeight: 1, gap: 1,
-                    position: 'relative',
+                  <span style={{
+                    fontSize: 17, fontWeight: 800, lineHeight: 1,
+                    color: 'var(--dw-text)',
+                    fontFamily: 'var(--font-sans)',
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-0.03em',
                   }}>
-                    <span style={{ fontSize: 12, lineHeight: 1 }}>🔥</span>
+                    {streakCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>days</span>
+                  </span>
+                  {label && (
                     <span style={{
-                      fontSize: streakCount >= 100 ? 10 : streakCount >= 10 ? 11 : 13,
-                      fontWeight: 800, lineHeight: 1,
-                      color: isMilestone ? '#FF8C00' : 'var(--dw-accent)',
-                      fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em',
+                      fontSize: 10, fontWeight: 500, lineHeight: 1,
+                      color: 'var(--dw-text-muted)',
+                      fontFamily: 'var(--font-sans)',
+                      letterSpacing: '0.01em',
+                      animation: 'fadeIn 0.5s ease',
                     }}>
-                      {streakCount}
+                      {label}
                     </span>
-                  </div>
+                  )}
                 </div>
               );
             })()}
