@@ -794,7 +794,8 @@ export function HomeScreen() {
             </div>
           </div>
         );
-      }){readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length)).map(slot => {
+      })
+              }{readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length)).map(slot => {
                 const passage = `${slot.book} ${slot.currentChapter}`;
                 const maxChapter = BOOK_CHAPTERS[slot.book] || 1;
                 const textKey = `${passage}_${translation}`;
