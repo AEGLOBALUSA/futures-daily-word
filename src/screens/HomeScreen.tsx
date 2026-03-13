@@ -578,6 +578,7 @@ export function HomeScreen() {
   // ── Hero full-passage state (always ESV for real human audio) ──────────────
   const [heroFullText, setHeroFullText] = useState('');
   const [heroLoading, setHeroLoading] = useState(false);
+  const [planTick, setPlanTick] = useState(0); // increment to force plan list re-render
   const HERO_KEY = '__hero__';
 
   const handleTranslationChange = (t: TranslationCode) => {
@@ -799,7 +800,9 @@ export function HomeScreen() {
   const ajDevotional = ashleyJanePassage?.devotional;
 
   // All active plans with progress — used for home page plan strip
+  // planTick dependency ensures this recomputes after start/remove
   const homeActivePlans = (() => {
+    void planTick;
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
         JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
@@ -823,6 +826,7 @@ export function HomeScreen() {
       if (existing[planId]) return; // already active
       existing[planId] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
       localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+      setPlanTick(t => t + 1); // trigger re-render
     } catch {}
   };
 
@@ -831,6 +835,7 @@ export function HomeScreen() {
       const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       delete existing[planId];
       localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+      setPlanTick(t => t + 1); // trigger re-render
     } catch {}
   };
 
@@ -2455,8 +2460,8 @@ export function HomeScreen() {
                           }}
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            background: isActive ? 'rgba(74,140,64,0.07)' : 'var(--dw-card)',
-                            border: isActive ? '1px solid rgba(74,140,64,0.4)' : '1px solid var(--dw-border)',
+                            background: isActive ? 'rgba(37,99,235,0.07)' : 'var(--dw-card)',
+                            border: isActive ? '1px solid rgba(37,99,235,0.4)' : '1px solid var(--dw-border)',
                             borderRadius: 10, padding: '10px 12px', cursor: 'pointer',
                             transition: 'all 0.15s',
                           }}
