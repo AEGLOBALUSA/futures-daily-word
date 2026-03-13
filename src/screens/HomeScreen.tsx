@@ -12,6 +12,8 @@ import { CAMPUSES } from '../data/tokens';
 import { useUser } from '../contexts/UserContext';
 import { HighlightToolbar } from '../components/HighlightToolbar';
 import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
+import { GreekHebrewPopup } from '../components/GreekHebrewPopup';
+import { BibleAI } from '../components/BibleAI';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
@@ -144,6 +146,8 @@ export function HomeScreen() {
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioCurrentPassage, setAudioCurrentPassage] = useState<string | null>(null);
   const [showNoteDrawer, setShowNoteDrawer] = useState(false);
+  const [showBibleAI, setShowBibleAI] = useState(false);
+  const [bibleAIContext, setBibleAIContext] = useState<string>('');
   const { selection, setSelection } = useScriptureSelection();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlCache = useRef<Map<string, string>>(new Map());
@@ -930,7 +934,7 @@ export function HomeScreen() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p className="text-section-header">TODAY'S CHAPTERS</p>
-              <button onClick={() => { const t = readingSlots.map(s => passageTexts[s.id]||'').join(' '); setSelection({ text: t, verseRefs: readingSlots.map(s=>s.book), source: 'select-all' }); }} style={{ background:'rgba(154,123,46,0.12)', border:'1px solid rgba(154,123,46,0.3)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#9A7B2E', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
+              <button onClick={() => { const t = readingSlots.map(s => passageTexts[`${s.book} ${s.currentChapter}_${translation}`]||'').filter(Boolean).join('\n\n'); if (t) setSelection({ text: t, verseRefs: readingSlots.map(s=>`${s.book} ${s.currentChapter}`), source: 'select-all' }); }} style={{ background:'rgba(154,123,46,0.12)', border:'1px solid rgba(154,123,46,0.3)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#9A7B2E', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
             <button
               onClick={() => setShowReadingSetup(!showReadingSetup)}
               style={{
@@ -1021,9 +1025,19 @@ export function HomeScreen() {
                   {passage}
                 </div>
                 {txt ? (
-                  <div style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif, Georgia, serif)' }}>
-                    {txt}
-                  </div>
+                  <>
+                    <div
+                      onClick={() => txt && setSelection({ text: txt, verseRefs: [passage], source: 'tap' })}
+                      style={{ cursor: 'pointer', borderRadius: 4, transition: 'background 0.2s', background: selection?.verseRefs?.includes(passage) ? 'rgba(154,123,46,0.12)' : 'transparent' }}
+                    >
+                      <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif, Georgia, serif)', margin: 0 }}>
+                        {txt}
+                      </p>
+                    </div>
+                    {selection?.verseRefs?.includes(passage) && (
+                      <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} />
+                    )}
+                  </>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
@@ -1195,7 +1209,7 @@ export function HomeScreen() {
                 </p>
               </div>
               {selection?.verseRefs?.includes(passage) && (
-                <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => {}} />
+                <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} />
               )}
               </>
                         ) : (
@@ -1460,6 +1474,13 @@ export function HomeScreen() {
       {/* Spinner keyframe */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
+      <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
+      <BibleAI
+        isOpen={showBibleAI}
+        onClose={() => setShowBibleAI(false)}
+        initialContext={bibleAIContext}
+        selectedText={selection?.text}
+      />
     </div>
   );
 }

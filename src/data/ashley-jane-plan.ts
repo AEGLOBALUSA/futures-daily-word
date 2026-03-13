@@ -607,3 +607,954 @@ export const ASHLEY_JANE_PLAN_PASSAGES: string[] = [
   'Galatians 6:9',
   '1 John 4:18',
 ];
+
+// ─── Days 41–100 ─────────────────────────────────────────────────────────────
+
+const EXTRA_DEVOTIONALS: DailyDevotional[] = [
+  // ── SECTION 5: GRACE & THE OVERFLOW LIFE (Days 41–50) — Scarcity book ─────
+  {
+    title: "Righteousness Is Your Identity, Not Your Report Card",
+    author: "Ashley",
+    body: `Religion taught you to measure your standing with God by how well you behaved last week. If you read your Bible, prayed enough, and kept your temper — you felt close to Him. If you didn't — you felt like a disappointed employee on a performance review. That's not the Gospel. That's not even close.
+
+Romans 4:5 says God justifies the ungodly — not the nearly-good-enough, not the mostly-trying, but the ungodly — through faith. Not through effort. Through trust.
+
+Righteousness in the New Testament isn't a score. It's a status. It's who you are, not what you did. The moment you received Christ, God didn't give you a fresh start to earn your way. He gave you a brand-new identity. You became the righteousness of God in Christ.
+
+That changes everything about how you approach today. You don't pray hoping God will listen. You pray knowing He already loves you. You don't serve to earn points. You serve because you're already wealthy in His grace. You don't confess sin to get back into favour. You confess because you live in favour and sin disrupts your experience of it.
+
+Stop measuring. Start receiving. You are the righteousness of God — not because of anything you've done, but because of everything He did.`,
+  },
+  {
+    title: "One Sacrifice. Permanent Result.",
+    author: "Jane",
+    body: `The book of Hebrews is written to people who kept going back to the old system. They understood Jesus died — they just couldn't quite stop trying to add things to it. More sacrifice. More ritual. More religious effort to secure what had already been secured.
+
+Hebrews 10:14 is the corrective they needed — and the corrective most Christians still need today: for by one sacrifice He has made perfect forever those who are being made holy.
+
+Made perfect. Forever. Those words are not compatible with performance anxiety. You cannot be made perfect forever and also be one bad week away from losing God's approval. One is the finished work. The other is religion.
+
+The process of sanctification — being made holy — happens inside the security of permanent perfection. You're not being sanctified to eventually earn perfection. You already have perfection through Christ, and from that foundation, transformation unfolds.
+
+This is the difference between working toward acceptance and working from acceptance. One is exhausting and produces fear. The other is liberating and produces love. You can't love someone well when you're afraid of being rejected by them.
+
+You are made perfect forever. Let that settle somewhere deep today. And from that settled place, let transformation happen freely.`,
+  },
+  {
+    title: "No Condemnation — Zero",
+    author: "Ashley",
+    body: `There is therefore now no condemnation for those who are in Christ Jesus. Romans 8:1. No condemnation. Not a little condemnation. Not condemnation-lite for the really bad stuff. None. Zero. The word in Greek is katakrima — it's a legal verdict. There is no legal verdict of guilt against you.
+
+Most Christians live under a quiet, persistent hum of condemnation that they've learned to call conviction. But there's a critical difference between the two. Condemnation says: you are bad, you will never change, God is disappointed in you. Conviction says: this behaviour isn't consistent with who you are — come back to truth.
+
+One comes from the enemy. One comes from the Spirit.
+
+The enemy loves to dress his condemnation in religious language. He'll use scripture references, point to your past, and remind you of every time you've failed. He'll make you feel like the condemnation is actually a sign of spiritual sensitivity. It's not. It's a lie wearing a collar.
+
+The Holy Spirit never piles on. He points forward. He says: this isn't you. You're better than this. Come back to grace.
+
+Shake off the condemnation today. Not because your failures don't matter — but because they've already been dealt with. There is therefore now no condemnation.`,
+  },
+  {
+    title: "Grace Is the Supply — Not the Safety Net",
+    author: "Jane",
+    body: `We talk about grace like a fire extinguisher. Something you reach for when things have gone wrong. You sin, you pull the cord, grace puts out the fire, and you go back to trying to live right on your own until the next disaster.
+
+But that's not what 2 Corinthians 9:8 describes: and God is able to bless you abundantly, so that in all things at all times, having all that you need, you will abound in every good work. All things. All times. All that you need. Abound.
+
+Grace isn't the emergency response. Grace is the atmosphere. It's not something you draw from in crisis — it's the supply line you're always living from. It's not the net under the tightrope. It's the ground you walk on.
+
+Most Christians operate with a deficit mindset — believing that spiritual strength is something they generate through discipline and that grace patches the gaps. But the New Covenant flips this entirely. Grace is the foundation, and discipline, obedience, and godly living all flow out of it.
+
+When you know you're perpetually supplied, you live differently. You give generously. You serve freely. You take risks for God without fear of running out. The supply is not limited by your performance. It's linked to His abundance. And He never runs out.`,
+  },
+  {
+    title: "You Are Not Under Law",
+    author: "Ashley",
+    body: `Here's a question I ask when I'm speaking: how many of you feel guilty right now about something in your relationship with God? Almost every hand goes up. Every time. In a room full of born-again, blood-bought believers who have been justified before God — almost everyone is walking under a low-grade cloud of religious guilt.
+
+That's the law at work. Not the cross.
+
+Romans 6:14 says sin shall no longer be your master, because you are not under the law, but under grace. The law doesn't just fail to stop sin — it actually activates it. Paul explains this in Romans 7. The law says don't, and the flesh hears that and wants to. The law increases awareness of sin and creates a consciousness of failure.
+
+Grace does something completely different. Grace transforms desire. Grace gives you a new nature — one that genuinely wants to please God. Not because it has to. Because it wants to.
+
+This is why the Gospel isn't law with better consequences. It's a complete change of system. You went from slaves to sons. From performance to inheritance. From guilt to grace.
+
+Live under grace today. Not as a license to do whatever you want — but as the power to become who you already are. The law couldn't do that. Grace does it every time.`,
+  },
+  {
+    title: "Unforced Rhythms of Grace",
+    author: "Jane",
+    body: `The Message translation of Matthew 11:28-30 is one of the most beautiful passages in all of scripture: "Are you tired? Worn out? Burned out on religion? Come to me. Get away with me and you'll recover your life. I'll show you how to take a real rest. Walk with me and work with me — watch how I do it. Learn the unforced rhythms of grace."
+
+Unforced rhythms. That phrase stops me every time.
+
+Most of us are living in forced rhythms. Push harder. Do more. Wake up earlier. Try again. Rest is something you collapse into at the end of the week because your body demands it — not something you move into as a lifestyle because Jesus invited you.
+
+But Jesus isn't describing spiritual exhaustion as the normal Christian life. He's describing it as the religion-life. The life you live when the yoke you're carrying isn't His. His yoke is easy. His burden is light. Not because life is easy — but because He carries the heavy end.
+
+The invitation isn't to try harder. It's to come. To get away with Him. To recover your life. Real rest isn't the absence of activity. It's the presence of Jesus in the activity. Learn the unforced rhythms. They start with coming to Him, not adding more to your list.`,
+  },
+  {
+    title: "Worship Is Your Most Powerful Weapon",
+    author: "Ashley",
+    body: `Second Chronicles 20 is one of my favourite battle stories in the entire Bible. Jehoshaphat faces an army so large that military strategy is completely irrelevant. His response is remarkable: he calls the nation to fast and pray. Then God gives him an unusual battle plan — send the singers first.
+
+The worship team goes to the front. Before the soldiers. Before the weapons. The singers lead, and as they begin to praise, the enemy armies turn on each other and destroy themselves. By the time Judah arrives, there is nothing left to fight. Three days they collect the plunder.
+
+Second Chronicles 20:22 says: as they began to sing and praise, the Lord set ambushes against the men of Ammon and Moab. As they began. Not after the battle. As they began.
+
+Worship isn't something you do when you feel like it. It's something you do instead of fear. It's the declaration that God is bigger than what you're facing before the outcome is visible. It's the choice to praise before the breakthrough arrives.
+
+What are you facing today that worship should lead into? Before you strategize, before you analyse, before you spiral into anxiety — try singing first. The shift isn't always in your circumstances. Sometimes it's in the atmosphere around them.`,
+  },
+  {
+    title: "Be Still and Know",
+    author: "Jane",
+    body: `Psalm 46:10 is one of the most misused verses in the Bible. We quote it as a spiritual instruction to calm down. "Be still and know that I am God." Breathe. Relax. Take it easy.
+
+But in context, this verse is spoken into the middle of a national catastrophe. Mountains falling into the sea. Nations in uproar. Kingdoms falling. The earth itself giving way. And into all of that — be still.
+
+The word for still in Hebrew is raphah. It means to let go, to release your grip, to let your hands fall. It's not a passive quietness. It's an active surrender of control.
+
+And the reason? Know that I am God. Not hope He is. Know. The certainty of who God is should produce a calm that circumstances can't override.
+
+This is the overflow life in practice. When the world is in chaos — and the world frequently is — you have an anchor that holds not because life got easier, but because the One who holds life is unshakeable.
+
+Be still today. Not because nothing is wrong. Because Someone who is greater than what is wrong is fully in control. Let your hands release whatever you're white-knuckling. He has it. He always has had it. And He is God, regardless of what the news says.`,
+  },
+  {
+    title: "What You Believe Shapes Everything",
+    author: "Ashley",
+    body: `Proverbs 23:7 says as a person thinks in their heart, so they are. Not as they perform. Not as they appear to others. As they think in their heart. The interior shapes the exterior — always.
+
+This is why the Scarcity mindset is so dangerous. It's not just a financial posture. It's a belief system. When you believe that God's supply is limited, that favour runs out, that grace is conditional — you start living in a way that reinforces those beliefs. You hoard. You strive. You can't celebrate someone else's blessing because it feels like it reduces yours.
+
+And the overflow life isn't primarily about circumstances changing. It's about beliefs changing. Because changed beliefs produce changed expectations. Changed expectations produce different decisions. Different decisions produce different outcomes.
+
+The renewing of the mind that Romans 12:2 talks about is not a motivational exercise. It's surgery. It's the systematic replacement of scarcity-based believing with Kingdom-based believing. It requires time in the Word, not just time reading the Word — actually letting it reshape the thoughts you think all day long.
+
+What you believe about God's character, about your identity, about provision and favour — these are the things that set the ceiling on your life. And the beautiful thing is: in Christ, the ceiling has been removed. Start believing accordingly.`,
+  },
+  {
+    title: "Keep Your Eyes on Jesus",
+    author: "Jane",
+    body: `There are two kinds of people in Hebrews 12. People who look at the cloud of witnesses around them and take courage. And people who look at the obstacles in their path and get discouraged. The instruction is: fix your eyes on Jesus — the author and perfecter of faith.
+
+Not on the witnesses. Not on the obstacles. On Jesus.
+
+Hebrews 12:2 then does something unusual — it explains what Jesus did by fixing His own eyes. For the joy set before Him, He endured the cross, scorning its shame. He kept His eyes on the joy ahead, and that vision sustained Him through the worst the enemy could throw at Him.
+
+Joy set before. Future joy that sustained present pain.
+
+This is the posture of faith. It doesn't pretend the present isn't difficult. It anchors itself to a future that's certain — a future defined by resurrection, not by suffering. And from that anchor, it endures.
+
+Whatever you're enduring today — fix your eyes. Not on the diagnosis, not on the relationship, not on the financial pressure. Fix them on Jesus. Not because that makes the hard thing disappear. Because He is the author of your story, and authors who endured the cross for the joy ahead don't write stories without resurrection in them.`,
+  },
+
+  // ── SECTION 6: THE CHURCH & COMMUNITY (Days 51–60) ─────────────────────────
+  {
+    title: "You Cannot Have Jesus Without His Church",
+    author: "Ashley",
+    body: `First Corinthians 12:12 says: just as a body, though one, has many parts, but all its many parts form one body, so it is with Christ. Paul doesn't say "so it is with the church." He says so it is with Christ. The church IS the body of Christ. Not a useful organisation He endorsed, not a helpful community He recommends — His actual body.
+
+So when you say "I love Jesus but not the church" — you are saying you love Jesus but not the physical expression of Jesus in the world. You love the head but you've cut off the body. That's not theology. That's amputation.
+
+I know what you're thinking — you've been hurt by the church. I've been there. Leaders have disappointed me. Communities have been messy. Churches have got things badly wrong. But hurting people leave the church to heal from the church, and they never quite recover — because the thing they're healing from is also the thing they need for healing.
+
+The church isn't the building. It's not the institution. It's the people — broken, redeemed, in-process people — who are being formed together into something the world can't explain and the enemy can't stop. You're part of that. You were never meant to do this alone.`,
+  },
+  {
+    title: "The Body That Fills Everything",
+    author: "Jane",
+    body: `Ephesians 1:22-23 describes the church in a way that should completely reshape how you think about Sunday morning: God placed all things under His feet and appointed Him to be head over everything for the church, which is His body, the fullness of Him who fills everything in every way.
+
+His fullness. The fullness of Him who fills everything in every way. That's the church.
+
+Not a cultural institution. Not a social club with good values. The literal fullness of Christ in the earth.
+
+This means that when the church shows up in a community — really shows up, carrying His presence, doing His works, loving His people — it's not just one more charitable organisation. It's the fullness of Christ filling that space. When the church is absent, something of His fullness is absent with it.
+
+This is why the church matters. Not because it's perfect. Not because it always gets it right. But because Jesus chose it as the vehicle for His presence in the world. He could have chosen anything. He chose His people, together, gathered in His name.
+
+When you walk into a church gathering this week, you're not just going to a service. You're entering the fullness of Christ in the earth. Let that reframe how you show up.`,
+  },
+  {
+    title: "The Groom Is Getting Ready",
+    author: "Ashley",
+    body: `There's a wedding coming. The greatest event in all of human history — the moment the Groom who has been preparing since before time returns for His bride. And the bride He's returning for is not a perfect institution. She's a redeemed people. Washed, prepared, made radiant — not by her own effort, but by His love.
+
+Revelation 19:7-8 describes it: let us rejoice and be glad and give Him glory! For the wedding of the Lamb has come, and His bride has made herself ready. Fine linen, bright and clean, was given her to wear — fine linen stands for the righteous acts of God's holy people.
+
+Notice: given her to wear. Not earned. Given.
+
+The righteousness of the bride is a gift. Her readiness is not her achievement — it's His grace working through her obedience, her sacrifice, her love.
+
+This is the trajectory of history. Every messy Sunday service, every fumbling church community, every small act of love and faithfulness — it's all part of making the bride ready. You are part of that story. Your faithfulness to the local church, your love for the people in it, your willingness to stay when it's hard — all of it matters to the preparation.
+
+The Groom is coming. The wedding is real. Show up for your part in it.`,
+  },
+  {
+    title: "What Happens When the Head Leaves the Body",
+    author: "Jane",
+    body: `We live in an age of Christian celebrities and digital discipleship. You can get better preaching through a podcast than at most local churches. You can have the best worship teams, the most gifted teachers, the most polished content — all delivered to you through a screen, without community, without commitment, without the inconvenience of actual relationship.
+
+And yet something keeps going wrong. People are more connected to content than ever and more isolated than ever. They know more doctrine and have less community. They've subscribed to fifty channels and belong to nothing.
+
+Colossians 1:18 says Christ is the head of the body, the church. The head and the body are one. Separate the head from the body and neither works. You cannot receive from the head without being connected to the body. You cannot receive what Jesus wants to give you through your screen alone. Some of it only comes through people — through the specific, imperfect, sometimes-frustrating people in a local church who share life with you.
+
+Isolation is not spiritual independence. It's a disconnected limb. And disconnected limbs don't stay alive.
+
+Find your body. Find your people. Be present, be committed, be inconvenienced. That's where the life of Christ flows.`,
+  },
+  {
+    title: "The Secret God Kept for Centuries",
+    author: "Ashley",
+    body: `Picture the throne room of hell. A war council. Satan and his generals gathered, strategising, trying to anticipate God's next move. For thousands of years they thought they knew the plan. They knew where to attack. They knew where to sow division. They had the whole thing mapped out.
+
+And then something happened that they didn't see coming. The cross. But not just the cross — what came out of the cross. The church.
+
+Ephesians 3:9-10 says God kept His plan hidden for ages and generations: through the church the manifold wisdom of God should be made known to the rulers and authorities in the heavenly realms. The church was the secret. The thing the enemy never anticipated.
+
+Not angels. Not armies. Not supernatural displays of power. The church — ordinary people, blood-bought and Spirit-filled, living in community — would be the display of God's wisdom to the powers of darkness.
+
+The enemy has been trying to destroy the church since the moment he realised what it was. Every persecution, every division, every scandal, every season of decline — all of it aimed at taking down the one thing he didn't see coming.
+
+But Jesus said the gates of hell will not prevail against it. The secret weapon is still operational. And you are part of it.`,
+  },
+  {
+    title: "This Is What Church Actually Looks Like",
+    author: "Jane",
+    body: `Acts 2:42-47 is the blueprint that churches spend their entire existence trying to get back to. They devoted themselves to the apostles' teaching and to fellowship, to the breaking of bread and to prayer. Every day they continued to meet together. They sold property and possessions to give to anyone who had need. They ate together with glad and sincere hearts. And the Lord added to their number daily those who were being saved.
+
+Daily. Together. Gladly. Sincerely. Generously. Miraculously.
+
+That's the original church. And before you say "that was just the early church, that's not possible now" — ask yourself: is it not possible, or have we just stopped expecting it?
+
+The same Spirit who gathered those 120 in an upper room is available today. The same generosity. The same power. The same daily growth. The conditions weren't primarily cultural — they were spiritual. A community surrendered to the Spirit, devoted to each other, expectant of God's activity.
+
+What would your church look like if every person in it showed up with Acts 2 expectations? What would change in your community if the church down the road started living this way?
+
+It doesn't require a perfect institution. It requires surrendered people. Could that start with you?`,
+  },
+  {
+    title: "The Gates of Hell Will Not Prevail",
+    author: "Ashley",
+    body: `I've been in ministry for more than thirty years. I've watched churches decline, split, and close. I've seen movements that looked invincible stumble. I've sat in meetings where people seriously questioned whether the church had a future. And in every one of those moments, I come back to the same anchor: Matthew 16:18.
+
+Jesus said: I will build my church, and the gates of hell will not overcome it.
+
+Three things I notice. He said I will build it — not you will maintain it. The building is His project. Your role is faithfulness, not preservation. He said His church — not any particular denomination or institution, but the people He has redeemed and called together. And He said the gates of hell will not prevail — gates are defensive, not offensive. The church is on the advance. Hell is defending.
+
+The church is not an institution in decline waiting to be replaced by something better. It is the most unstoppable movement in the history of the world — surviving every empire, every persecution, every cultural shift since the first century. And Jesus is still building it.
+
+Be encouraged today. The church will outlast every prediction of its demise. It always has. It always will. Jesus guaranteed it.`,
+  },
+  {
+    title: "Love Is How They Will Know",
+    author: "Jane",
+    body: `The early church didn't grow because it had the best speakers. It didn't grow because of its marketing. It grew because of something the surrounding culture couldn't explain: they loved each other.
+
+John 13:34-35: a new command I give you: love one another. As I have loved you, so you must love one another. By this everyone will know that you are my disciples, if you love one another.
+
+Not by your theology. Not by your worship style. Not by your buildings or your programs. By your love.
+
+This is both the simplest and the hardest command in the New Testament. Love one another. Not love the easy people. Not love people who love you back. Love one another — across difference, across hurt, across disappointment, across the things that divide.
+
+The church is meant to be the most diverse, most unified community on earth. People who would never choose each other, choosing each other because of Jesus. That's the supernatural thing the world is watching for.
+
+Your love for the person in your church who gets on your nerves — who has different politics, different worship preferences, different personality — that love is the proof of the Gospel. Not your statement of faith. Your actual love for actual people.
+
+It starts today. In your church. With the person who's hardest to love.`,
+  },
+  {
+    title: "Grace Needs a Delivery System",
+    author: "Ashley",
+    body: `Here's the picture that keeps coming back to me: you're in a plane losing cabin pressure. Oxygen is needed. The oxygen exists — tanks full, pumping through the system. But at your seat, the mask is missing. The oxygen is real. The need is real. But without the delivery system, the person in that seat suffocates anyway.
+
+That's the tragedy of a disconnected life. Grace exists. God's love, forgiveness, healing, hope, peace, joy — it's all available, all real, all powerful. But without a delivery system, it never reaches the person who needs it most.
+
+Romans 10:14 asks the question: how can they hear without someone preaching to them? How can they call on the one they have not believed in? And how can they believe in the one of whom they have not heard?
+
+The answer to every how is: the church. People. You. Not an algorithm. Not a building. You, in relationship with another human being, carrying the presence of Christ into their story.
+
+The church isn't the chaplain of society. It's the delivery mechanism for the most powerful force in the universe. And you are part of it. Your conversations, your friendship, your presence in someone's hard season — you are the mask bringing oxygen to someone who can't breathe.
+
+Show up. The grace needs delivering.`,
+  },
+  {
+    title: "You Are the Plan",
+    author: "Jane",
+    body: `Acts 1:8 is the last thing Jesus said before He ascended. His final words before He left. The last instruction from the last briefing: you will receive power when the Holy Spirit comes on you; and you will be my witnesses in Jerusalem, and in all Judea and Samaria, and to the ends of the earth.
+
+You will be my witnesses. Not: you can be if you want. Not: ideally some of you will be. You will.
+
+The disciples stood there looking at Him, and then He was gone. And all they had was each other, the promise of the Spirit, and this final commission. No backup plan. No institution. No podcast. Just a group of people — most of them uneducated, all of them scared — and a promise that power was coming.
+
+That same commission still stands. You are still the plan. Not plan B. Not the contingency while something better gets organised. You.
+
+Your neighbourhood is your Jerusalem. Your workplace is part of Judea. The hard relationship, the broken friendship, the person you've been praying for — those are your Samaria. And the ends of the earth get reached when faithful people start with what's in front of them.
+
+You have been given the Spirit. You carry the message. Start where you are.`,
+  },
+
+  // ── SECTION 7: CONFLICT, BOLDNESS & BREAKTHROUGH (Days 61–70) ────────────
+  {
+    title: "The Two Commands That Contain Everything",
+    author: "Ashley",
+    body: `Jesus was asked which commandment was the greatest. He could have chosen any one of 613 laws. He answered: love God with everything you have. Heart, soul, mind, strength. And then He added a second: love your neighbour as yourself. And then He said this — all the Law and the Prophets hang on these two commands.
+
+All of it. Every law, every instruction, every principle of how to live — it hangs on love.
+
+This means every conflict you're in is ultimately a love problem. Every broken relationship, every workplace tension, every family rupture — somewhere in it is a failure of love. Either love for God — which produces humility, forgiveness, and self-sacrifice — or love for neighbour — which means choosing the other person's flourishing ahead of your own preferences.
+
+Matthew 22:37-39. It sounds simple. It is not easy. It requires the death of the ego. It requires choosing someone who has hurt you. It requires forgiving someone who doesn't deserve it. It requires staying in a hard relationship when leaving would be easier.
+
+But here's the thing about the commands: Jesus didn't give them as aspirational targets. He gave them as a description of what love from the Spirit actually looks like. The Holy Spirit in you is capable of producing this love — even when you are not. Ask Him today. He will answer.`,
+  },
+  {
+    title: "Treasure in Jars of Clay",
+    author: "Jane",
+    body: `Second Corinthians 4:7 is one of the most honest and beautiful verses in Paul's writings: but we have this treasure in jars of clay to show that this all-surpassing power is from God and not from us.
+
+Jars of clay. In Paul's world, clay jars were the most ordinary, breakable containers you could imagine. They weren't valuable. They weren't impressive. They were just vessels. And Paul says: that's us.
+
+We are ordinary. We are breakable. We struggle. We get it wrong. We carry wounds. We're not the polished version of ourselves that we present on our best days. We are jars of clay — fragile, common, unremarkable.
+
+And God said: that's exactly what I want to use.
+
+Because when something extraordinary comes out of something ordinary, the glory goes to the right place. When your broken self says something that changes someone's life, they don't credit your eloquence. They feel God. When your small act of generosity produces something disproportionate, nobody credits your resources. They encounter grace.
+
+The treasure isn't diminished by the ordinary container. It's more visible in it. Your weakness is not the obstacle to your calling. It's the frame that makes His power obvious.
+
+You are a jar of clay. He is the treasure. That's exactly how He planned it.`,
+  },
+  {
+    title: "Don't Stop Meeting Together",
+    author: "Ashley",
+    body: `Hebrews 10:25 was not written to people who were skipping church because they couldn't find a good one. It was written to people who were staying home because the church was getting them killed. First-century believers were facing public persecution — losing property, losing status, losing their lives. The temptation to stop meeting together wasn't comfort or convenience. It was survival.
+
+And into that — not in spite of it, but because of it — the writer says: do not give up meeting together, as some are in the habit of doing, but encouraging one another — and all the more as you see the Day approaching.
+
+All the more. Not less, as things get harder. More.
+
+Because community is where courage is forged. You cannot produce in isolation what you build together. The faith of the person next to you shores up your faith on the days yours is thin. The worship of the room carries you when you can't carry yourself. The prayers of the community reach places your private prayers don't.
+
+This isn't about filling a seat. It's about being in the room. Being in the conversation. Being present for someone who needs the proof that God is still real and still good.
+
+Show up. All the more. The Day is approaching, and we need each other.`,
+  },
+  {
+    title: "The Revelation That Builds the Church",
+    author: "Jane",
+    body: `When Jesus asked His disciples "who do you say I am?" — Peter got it. But what Jesus said next is extraordinary. He said: flesh and blood has not revealed this to you, but my Father in heaven. And on this rock — this revealed truth — I will build my church.
+
+The church is built on revelation. Not on institution, not on tradition, not on charisma or clever programming. On the revealed reality of who Jesus is.
+
+Matthew 16:16-18. When Peter said "You are the Messiah, the Son of the living God" — he wasn't concluding from evidence. God had opened his eyes. The Spirit had planted a certainty in him that went beyond rational argument.
+
+That same revelation is still the foundation of everything. The church grows where people genuinely encounter Jesus — not just information about Him, but a real encounter with His risen person. And that encounter changes them in ways that no program can replicate.
+
+This is why the most important thing the church does is create space for encounter. Not entertainment. Not education alone. Encounter. When people come into genuine contact with Jesus — their lives reorganise around Him. They become His witnesses without being told to. They give generously without being pressured. They serve willingly without needing recognition.
+
+Everything flows from revelation. Ask God to make it real to you again today.`,
+  },
+  {
+    title: "He Holds Your Right Hand",
+    author: "Ashley",
+    body: `There's a specific tenderness in Isaiah 41:13 that I've never quite got over: for I am the Lord your God who takes hold of your right hand and says to you, do not fear; I will help you.
+
+Takes hold of your right hand. Not from a distance. Not with a statement. With His hand. The God of the universe, taking your specific hand, saying specifically to you: do not fear. I will help you.
+
+This is personal. Not a general announcement. Not a broadcast. A one-on-one interaction with a God who knows which hand is dominant, who knows what you're facing, who has positioned Himself next to you before you even called out.
+
+The path to breakthrough in No More Fear isn't some grand spiritual heroic act. It often begins with this: letting God take your hand. Letting Him lead where you couldn't see. Trusting before the fear disappears. Walking forward while He holds on.
+
+You don't need to be fearless. You need to be held. And He has already reached out His hand.
+
+Whatever you're facing today — He is not standing far off, watching to see if you'll manage. He has taken hold of your hand. You are not walking into anything alone. Fear doesn't have a right hand that can compete with His grip.`,
+  },
+  {
+    title: "Press Toward the Thing You Haven't Reached Yet",
+    author: "Jane",
+    body: `Philippians 3:13-14 is Paul at his most relentless: brothers and sisters, I do not consider myself yet to have taken hold of it. But one thing I do: forgetting what is behind and straining toward what is ahead, I press on toward the goal to win the prize for which God has called me heavenward in Christ Jesus.
+
+One thing I do. Not ten things. Not a diversified spiritual portfolio. One thing: press on.
+
+The word Paul uses for press on is dioko — it means to pursue urgently, to chase aggressively, to run after as if your life depends on it. This isn't a gentle spiritual saunter. This is someone who has decided that the prize is worth everything and is running accordingly.
+
+What makes this possible is the forgetting. Forgetting what is behind. Not your identity. Not your lessons. The weight of past failure, past shame, past missed opportunity. You cannot run well carrying all of that. The breakthrough ahead requires releasing the burden behind.
+
+What are you still carrying from your past that is slowing down your future? Fear that didn't come to pass. Shame from something already forgiven. Regret over a season that can't be recovered.
+
+Put it down. Turn forward. Press on. The prize isn't behind you. It's ahead. And God is calling you toward it.`,
+  },
+  {
+    title: "Take Every Thought Captive",
+    author: "Ashley",
+    body: `Second Corinthians 10:5 describes the primary battleground of the Christian life: we take captive every thought to make it obedient to Christ. The battle isn't first in your circumstances. It's in your mind. The enemy knows this. The mind is where fear establishes its base camp.
+
+Burnout doesn't start with too many activities. It starts with thoughts that convince you rest is irresponsible. Anxiety doesn't start with problems. It starts with thoughts that interpret uncertainty as evidence of disaster. Discouragement doesn't start with hard circumstances. It starts with thoughts that tell you the hard won't end.
+
+The spiritual discipline of thought-capture is not positive thinking. It's warfare. It's the active, intentional refusal to let a thought run unchallenged just because it showed up. Every thought that is contrary to who God is, what God says, and who you are in Him — capture it. Challenge it. Bring it before Christ and ask: is this true?
+
+Most fearful thoughts don't survive that question. Because most of them are predictions dressed as facts. What if? Probably. Surely by now. These aren't truth. They're projections.
+
+Build a fortress around your mind. Not by avoiding hard realities, but by refusing to let unchecked thoughts build their structures inside you. You have the authority. Use it.`,
+  },
+  {
+    title: "The Word in Your Mouth All Day",
+    author: "Jane",
+    body: `Joshua 1:8 gives one of the most specific instructions in all of scripture about how to experience consistent success: keep this Book of the Law always on your lips; meditate on it day and night, so that you may be careful to do everything written in it. Then you will be prosperous and successful.
+
+Always on your lips. Day and night. Not just in the morning devotional. Not just Sunday. All day.
+
+This isn't about volume of scripture consumption — it's about integration. The Word becoming so familiar to your thought life that it naturally surfaces when you're anxious, when you're tempted, when you're in a decision, when you're afraid.
+
+Meditation in this context isn't a mindfulness technique. The Hebrew word hagah means to mutter, to growl, to speak under your breath. It's the picture of a person walking around all day quietly rehearsing what God said. Not performing for an audience. Just living in the Word.
+
+When fear comes knocking — the Word comes to mind. When doubt rises — the Word comes to mouth. When the enemy suggests you're not enough — the Word answers back.
+
+This is how you fortify the mind that Ashley spoke about yesterday. The Word becomes the material of your inner world. And when your inner world is built on truth, the outer world can shake without demolishing you.`,
+  },
+  {
+    title: "Don't Be Afraid — Just Believe",
+    author: "Ashley",
+    body: `One of the most important moments in Jesus' ministry is in Mark 5. Jairus, a synagogue leader, comes to Jesus in desperation — his daughter is dying. Jesus agrees to come. But on the way, messengers arrive with the worst possible news: she's dead. Don't bother the teacher any further.
+
+And in that moment — with the worst news in the air, with grieving already starting, with all reasonable hope gone — Jesus says something extraordinary: don't be afraid; just believe.
+
+Don't be afraid. Just believe. Not both — not "don't be afraid AND believe" as though they're compatible companions. Just believe. As though belief and fear cannot occupy the same space at the same level, and Jesus is calling Jairus to choose.
+
+He goes to the house. He puts out the mourners. He takes the girl's hand. And she gets up.
+
+The word Jesus used — don't be afraid — is the same word used throughout the New Testament for the spirit of fear, the kind that produces timidity and paralysis. And He's saying: put that down. Just believe.
+
+Your situation may have received the worst report. The deadline passed. The door closed. The news arrived. But Jesus is still saying the same thing He said to Jairus: don't be afraid. Just believe. He has not left the building.`,
+  },
+  {
+    title: "Lord, Make Us Bold",
+    author: "Jane",
+    body: `Acts 4:29 is one of the most raw and beautiful prayers in the New Testament. The apostles had just been threatened by the same authorities that crucified Jesus. They were told to stop speaking in His name. And they went back to their community and prayed — not for protection, not for comfort, not for the threats to stop. They prayed: now, Lord, consider their threats and enable your servants to speak your word with great boldness.
+
+Enable us to be bold. That was the prayer.
+
+Not safety. Not victory over the opponents. Not a change in circumstances. Lord, make us bold enough to keep going in the circumstances.
+
+The result? Acts 4:31 — after they prayed, the place where they were meeting was shaken. And they were all filled with the Holy Spirit and spoke the word of God boldly.
+
+The shaking wasn't God moving against the enemies. It was God confirming the prayer. The place shook. The filling came. And the boldness followed.
+
+What threatens you into silence today? A relationship. A workplace. A social environment where your faith would be unwelcome. The same God who shook the upper room can shake yours. The same Spirit who filled those early disciples is available to fill you.
+
+Pray the same prayer. Not for the threat to disappear. For the boldness to keep going.`,
+  },
+
+  // ── SECTION 8: LOVE, REST & PEACE (Days 71–80) ──────────────────────────────
+  {
+    title: "Guard the Gate of Your Heart",
+    author: "Ashley",
+    body: `Proverbs 4:23 says above all else, guard your heart, for everything you do flows from it. Above all else. More important than guarding your reputation, your finances, your schedule — guard your heart.
+
+Because whatever gets into your heart eventually gets into your life. Fear that you entertain becomes anxiety you live with. Bitterness you nurse becomes a lens that distorts everything you see. Doubt you welcome becomes the ceiling on your expectations. The heart is the source — and what flows from a polluted source pollutes everything downstream.
+
+This is not paranoid isolation from the world. It's discernment about what you meditate on, what you agree with, what you rehearse in the quiet of your own mind. The heart doesn't protect itself. You have to guard it.
+
+Practically: what are you letting in? What voices are you giving unfiltered access? What content are you consuming that shapes your emotional landscape before you've even prayed? The algorithm, the news feed, the conversation with the person who always leaves you discouraged — all of it is competing for residency in your heart.
+
+You don't have to be cruel about it. But you do have to be intentional. The overflow of your heart shapes your words, your relationships, your decisions. Guard what goes in. Because what goes in always comes out.`,
+  },
+  {
+    title: "The Secret of Contentment",
+    author: "Jane",
+    body: `Philippians 4:12-13 is Paul writing from prison. Not from a conference stage, not from a comfortable study — from a cell. And he writes: I have learned the secret of being content in any and every situation, whether well fed or hungry, whether living in plenty or in want. I can do all this through Him who gives me strength.
+
+Contentment is a secret. A learned secret. It's not a personality type. It's not something some people are born with and others aren't. It's something you learn — through enough seasons of both plenty and want to discover that the peace underneath doesn't change with the circumstances.
+
+I can do all this through Him who gives me strength. That verse is not about achieving anything. It's about enduring everything — with contentment, with peace, without losing yourself in either the feast or the famine.
+
+The overflow life is not a permanent state of material abundance. It's a permanent state of inward fullness that seasons of material scarcity cannot take from you. It's knowing the Source doesn't fluctuate. His supply doesn't decrease when your account does.
+
+Learn contentment. Not passivity. Not indifference to growth and change. But the settled peace of a person who has found that Jesus is enough — in every situation, at every income, in every season.`,
+  },
+  {
+    title: "Abide — And You Will Bear Fruit You Didn't Manufacture",
+    author: "Ashley",
+    body: `John 15:4-5 is one of the most countercultural passages in the entire New Testament for a productivity-obsessed culture: abide in Me, as I also abide in you. No branch can bear fruit by itself; it must abide in the vine. Neither can you bear fruit unless you abide in Me. I am the vine; you are the branches. If you remain in Me and I in you, you will bear much fruit; apart from Me you can do nothing.
+
+The word abide means to remain, to dwell, to make your home in. It's not a visit. It's a residency.
+
+Notice what the branch doesn't do. It doesn't manufacture fruit. It doesn't strain and produce. It simply stays connected to the source, and fruit is the natural consequence of that connection. The branch's job is not production. It's connection.
+
+Everything we've built our achievement culture around is upended here. You don't bear fruit by trying harder. You bear fruit by staying closer. The doing flows from the being. The output flows from the abiding.
+
+This changes what your primary spiritual discipline looks like. Not another program. Not a better method. Simply staying. Remaining. Dwelling in His presence long enough that His life naturally flows through you into the people and situations around you.
+
+Abide today. Let the fruit take care of itself.`,
+  },
+  {
+    title: "Learn from Me",
+    author: "Jane",
+    body: `Matthew 11:29 contains one of the most intimate invitations Jesus ever extended: take my yoke upon you and learn from me, for I am gentle and humble in heart, and you will find rest for your souls.
+
+Learn from me. Not from the productivity gurus. Not from the performance metrics. From Me.
+
+What does Jesus teach by example? Gentleness. Humility. These are not passive traits. Jesus was the most powerful person in any room He ever entered — and He was consistently the most gentle and humble. Power expressed through gentleness. Authority expressed through humility.
+
+This is what He's offering to form in you. Not just a technique for rest — a character that naturally produces rest. Because the burden most people carry isn't primarily circumstantial. It's relational. It's the weight of needing to be right. Of needing to be seen. Of needing to be more than you are. Of performing for approval.
+
+A gentle and humble heart doesn't carry that weight. It's already free from the need to prove itself. It doesn't need to win every argument. Doesn't need the recognition. Doesn't need to be in control.
+
+That kind of soul is light. That's the rest Jesus is promising. Learn it from Him. He's the only teacher who embodies it completely.`,
+  },
+  {
+    title: "Resist — Standing on What You Know",
+    author: "Ashley",
+    body: `First Peter 5:8-9 gives a both/and approach to the enemy that I think most Christians miss. Be sober-minded; be watchful. Your adversary the devil prowls around like a roaring lion, seeking someone to devour. Resist him, firm in your faith.
+
+Two things. Watch. Resist. Not just one — both.
+
+Watchfulness without resistance becomes anxiety. You see everything coming but you don't have the posture to stand against it. You're aware but paralysed. Resistance without watchfulness becomes recklessness. You're standing firm but you didn't see what was coming from the other direction.
+
+Be watchful. Be sober. Don't be naive about the nature of spiritual opposition. The enemy is real. His tactics are real. His goal is destruction. Don't pretend otherwise.
+
+And then resist. Firm in your faith. Not firm in your willpower. Not firm in your spiritual track record. Firm in your faith — in the finished work of Jesus, in the authority you carry, in the truth that greater is He who is in you.
+
+The lion's roar is loud. But roaring isn't the same as winning. The roar is designed to make you freeze, to make you run, to make you surrender before the battle begins. Resist it. Firm in what you know to be true. The lion has already been defeated — he just hasn't stopped roaring yet.`,
+  },
+  {
+    title: "He Leads You to Still Waters",
+    author: "Jane",
+    body: `Psalm 23 is perhaps the most loved passage in all of scripture, and for good reason. David wasn't writing from a place of comfort — he'd known famine, exile, warfare, betrayal. And from that life, he wrote: The Lord is my shepherd; I shall not want. He makes me lie down in green pastures. He leads me beside still waters. He restores my soul.
+
+Makes me lie down. He doesn't suggest. He doesn't recommend. He makes the sheep lie down. Because the sheep — left to itself — would keep grazing until it collapsed. The sheep doesn't know when to stop.
+
+That sounds uncomfortably familiar.
+
+The still waters aren't a reward for the sheep that worked hardest. They're a gift for every sheep that follows the shepherd. Rest isn't what you earn at the end of the productive season. Rest is what the Good Shepherd leads you to in the middle of it — because He knows that a restless, depleted sheep is a sheep that has wandered.
+
+He wants to restore your soul. Not just fix your circumstances. Restore your soul — that interior place where peace lives or doesn't. Where joy flows or dries up. Where faith is strengthened or eroded.
+
+Follow Him to still waters today. Let Him restore what the week has taken.`,
+  },
+  {
+    title: "We Stand in Grace",
+    author: "Ashley",
+    body: `Romans 5:2 says through Jesus we have gained access by faith into this grace in which we now stand. Not in which we visit. Not in which we perform. In which we stand.
+
+Standing is a position. It's stable. It's not moving. When you stand in something, it becomes your base — not a destination you're working toward but the ground beneath your feet.
+
+Most Christians live as visitors to grace. They come when they've failed, receive forgiveness, feel better, and then go back to trying to earn their place through performance. Grace is the emergency room, not the home.
+
+But Paul says we stand in it. We live in it. We breathe it. It's not what we reach for in crisis — it's what we're already standing on. The fall and the rise both happen inside grace. The success and the failure both happen inside grace. There is no moment of your day that you have stepped outside of it.
+
+This changes how you face the morning. You don't wake up and check in with grace to see if you've still got it. You wake up standing in it. Secure. Positioned. Already loved, already forgiven, already accepted — and nothing you do today will change that.
+
+Stand there. Stay there. Everything else gets built on that foundation.`,
+  },
+  {
+    title: "The Voice That Comes After the Storm",
+    author: "Jane",
+    body: `First Kings 19 is one of the most humanising passages in scripture. Elijah has just had the greatest victory of his prophetic career — called down fire from heaven, defeated 450 false prophets, ended a three-year drought. And immediately afterward, he runs in terror from a single threat and collapses under a tree, asking God to let him die. I have had enough, Lord.
+
+Sound familiar?
+
+After great victories come great exhaustion. After public courage comes private fear. This is not spiritual failure. This is human reality — and the God who sent an angel to feed Elijah, who let him sleep, who nourished him for the journey, knows exactly what you need after you've given everything.
+
+And then God speaks. Not in the earthquake. Not in the fire. Not in the wind. In a still, small voice. A gentle whisper. After all the noise of battle and triumph and collapse — a whisper.
+
+What is He whispering to you today? Not in the loudest voice in your head — that's usually performance anxiety or fear. In the still, small voice that requires you to get quiet enough to hear.
+
+Stop. Get still. The word He has for you is not in the storm. It's in the whisper that comes after.`,
+  },
+  {
+    title: "Where Two or Three Gather",
+    author: "Ashley",
+    body: `Matthew 18:20 is one of the most practical and profound promises Jesus ever made: for where two or three gather in my name, there am I with them. Two or three. Not two thousand. Not a mega-church. Two or three people gathered in His name is enough to access His presence.
+
+This means your small group matters. The Tuesday morning prayer call matters. The two people who meet over coffee to pray for their neighbourhood — that matters. The family that prays together before dinner — that matters. The group of friends who check in on each other and pray — that matters enormously.
+
+We have a tendency in Christianity to scale things. To think that if something is small, it's less significant. But Jesus staked His presence on the smallest gathering — two or three — and promised to be fully present.
+
+This is why the local church can't be replaced by watching a broadcast with thousands of simultaneous viewers. There's something about gathered, present, in-His-name community that carries a distinct promise. His presence is there in a way that's different — not in quality, but in kind.
+
+Be part of a two or three. Don't outsource your community life to screens. Gather. In His name. And expect Him to be there — because He promised He would be.`,
+  },
+  {
+    title: "Love That Surpasses Knowledge",
+    author: "Jane",
+    body: `Ephesians 3:19 ends with a prayer that shouldn't be possible: to know this love that surpasses knowledge — that you may be filled to the measure of all the fullness of God.
+
+Know the love that surpasses knowledge. Understand what exceeds understanding. Be filled with the fullness of God.
+
+Paul is praying for something that logic cannot contain. The love of Christ isn't primarily intellectual content. It's an encounter. An experience. A being gripped by something so large and so personal at the same time that words break down trying to describe it.
+
+And Paul's prayer is that you would be so full of this love that there's no room left for anything else — no room for fear, for shame, for insecurity, for scarcity. Filled to the measure of the fullness of God.
+
+This is the answer to the fear we've been walking through for 79 days. Not strategy. Not willpower. Not technique. Love. Being so full of His love that fear has no room to set up house. Because perfect love casts out fear — and you cannot be filled with perfect love and simultaneously consumed with fear.
+
+Ask for this today. Literally ask: fill me with the knowledge of Your love. Past what I can intellectually contain. Past what makes logical sense. Fill me. And watch what that fullness does to everything else.`,
+  },
+
+  // ── SECTION 9: PURPOSE, CALLING & KINGDOM (Days 81–90) ─────────────────────
+  {
+    title: "Known Before You Were Born",
+    author: "Ashley",
+    body: `Jeremiah 1:5 is one of the most identity-settling verses in all of scripture: before I formed you in the womb I knew you, before you were born I set you apart; I appointed you as a prophet to the nations.
+
+Before you were formed. Before the first cell. Before your parents made their choice. God knew you. Had a plan for you. Set you apart. Appointed you.
+
+The implications of this are enormous. You are not a product of circumstances. You are not a lucky accident. You are not defined by the conditions of your birth, the failures of your past, or the limitations others have placed on you. You were known, and then formed. The knowing preceded the forming.
+
+This is why the enemy works so hard to destabilise your sense of identity. If he can get you to believe you're here by accident, that your life has no inherent meaning, that purpose is something you manufacture rather than receive — then you're running the wrong race toward the wrong destination.
+
+But if you know that you were known before you were born, that a purpose preceded your existence, that an appointment was made before you drew your first breath — everything changes. You stop asking "why am I here" as a desperate question. You start asking it as a discernment question. The answer is already yes. You are here on purpose, for a purpose. Live accordingly.`,
+  },
+  {
+    title: "The Lord Holds Your Hand When You Stumble",
+    author: "Jane",
+    body: `David's life is extraordinary and deeply human. He was a man after God's own heart who committed adultery and murder. He was a brilliant leader who was a terrible father to his own children. He was the greatest king Israel ever had and he spent years hiding in caves running from his own son.
+
+And Psalm 37:23-24 speaks to exactly that kind of life: the Lord makes firm the steps of the one who delights in him; though he may stumble, he will not fall, for the Lord upholds him with his hand.
+
+Though he may stumble. Not if. Though. Stumbling is assumed. What's promised is not a stumble-free path. What's promised is that the stumble will not become a fall — because Someone is upholding you.
+
+The Lord upholds him with His hand. We're back to the hand again. The God who takes your right hand in Isaiah 41. The God who upholds you in Psalm 37. He is not a distant spectator who grades your stumbles. He is a present sustainer who catches you in them.
+
+Your stumbles are not the end of your story. David's stumbles weren't the end of his. The hand that holds you is stronger than the thing that tripped you. Delight in Him. Walk forward. And trust the hand that upholds.`,
+  },
+  {
+    title: "The Name That Changes Battles",
+    author: "Ashley",
+    body: `When David walked toward Goliath, the giant saw a boy. A shepherd kid with a stick and some stones. He laughed. He cursed David by his gods. He promised to feed him to the birds.
+
+And David answered with one of the most powerful speeches in the Old Testament: you come against me with sword and spear and javelin, but I come against you in the name of the Lord Almighty, the God of the armies of Israel, whom you have defied.
+
+I come against you in the name of the Lord.
+
+Not in confidence in my own ability. Not because I've trained for this moment. Because of whose name I carry. The battle that day was not between David and Goliath. It was between Goliath and the God of Israel. And that battle was over before it began.
+
+First Samuel 17:45. The name changes everything about the confrontation. It changes the odds. It changes the authority. It changes the outcome.
+
+What giant is you facing today? Not literally — but what looms large, what mocks you, what has been telling you that you're outnumbered and outmatched?
+
+You don't come against it in your own name. You come in His. The name that has authority over every other name. The name before which every knee will bow. You come in that name. And the battle is already decided.`,
+  },
+  {
+    title: "The Mustard Seed Is the Strategy",
+    author: "Jane",
+    body: `Jesus compares the Kingdom of Heaven to a mustard seed — the smallest of all seeds. Not because the Kingdom is small. Because the Kingdom strategy is small. It starts tiny, underground, invisible. And then it becomes the largest of garden plants. A tree so large that birds come and nest in its branches.
+
+Matthew 13:31-32. God's preferred method of growth is not the spectacular launch. It's the quiet seed. It's the thing that starts so small you're embarrassed to call it anything. The prayer group of three people. The conversation that didn't seem significant. The act of generosity nobody saw. The word you spoke into someone who never told you it changed their life.
+
+The enemy loves to make you feel like small things don't matter. That if it's not impressive, it's not impactful. But that's the opposite of how the Kingdom actually works.
+
+Every large tree in your community started as a mustard seed. Every significant movement started as two or three people who believed God for more than they could see. Every revival started with someone who prayed faithfully in private before they ever saw the public fruit.
+
+Don't despise the small beginning. Tend the seed. Water what's been planted. Trust the process that God designed. The tree that shelters nations started smaller than everything around it.`,
+  },
+  {
+    title: "The City on a Hill Can't Stay Hidden",
+    author: "Ashley",
+    body: `Jesus said: you are the light of the world. A town built on a hill cannot be hidden. Neither do people light a lamp and put it under a bowl. Instead they put it on its stand, and it gives light to everyone in the house. In the same way, let your light shine before others, that they may see your good deeds and glorify your Father in heaven.
+
+You are the light. Present tense. Not potentially. Not if you get it together. Not after a bit more growth. You are, right now, the light of the world.
+
+And the thing about light is — it doesn't need to try. It just needs to be present. Light in a dark room doesn't announce itself. It doesn't compete with the darkness or argue with it. It just shows up, and darkness has no response. The darkness cannot make the light less bright. Light always wins.
+
+Your presence in a dark environment is not a burden. It's a privilege. Your workplace, your neighbourhood, your family situation — you were placed there as light. And your light is not limited to grand spiritual moments. Matthew 5:16 says it's your good deeds — your ordinary acts of love, patience, generosity, faithfulness — that people see and attribute to God.
+
+Don't hide. Don't dim. Let it shine.`,
+  },
+  {
+    title: "How Good When We Dwell Together",
+    author: "Jane",
+    body: `Psalm 133 is three verses long and yet it contains one of the most profound truths about community in scripture: how good and pleasant it is when God's people live together in unity! It is like precious oil poured on the head... it is like the dew of Hermon falling on Mount Zion. For there the Lord bestows His blessing, even life forevermore.
+
+There. Where unity is. Where God's people live together in genuine community, authentic relationship, the kind of togetherness that costs something — there the Lord bestows His blessing.
+
+The blessing has an address. It's not distributed evenly across all spiritual activities. There is a specific blessing that is associated with the specific reality of God's people living together in unity.
+
+This is why the enemy spends so much energy attacking church unity. He knows where the blessing lives. Every division he can sow, every misunderstanding he can inflame, every offence he can nurture to breaking point — he knows that if he can get people to stop dwelling together, he moves the blessing out of reach.
+
+Pursue unity. Not uniformity — that's not what this is about. Unity amid difference, amid disagreement, amid the friction of people with different histories and opinions choosing to remain together in love. That's where the blessing is. That's where the life forevermore dwells.`,
+  },
+  {
+    title: "The Commission Has Not Been Recalled",
+    author: "Ashley",
+    body: `Matthew 28:19-20 is the last recorded command of Jesus before He ascended: go and make disciples of all nations, baptising them in the name of the Father and of the Son and of the Holy Spirit, and teaching them to obey everything I have commanded you. And surely I am with you always, to the very end of the age.
+
+I am with you always. To the very end of the age.
+
+Not until the first generation fulfilled it. Not until the church grew large enough to need a management structure. To the very end of the age. The commission and the presence go together — and both are still active.
+
+This command was not for apostles only. The word for go here is as you go — it's woven into the movement of ordinary life. As you go to work. As you go to the school pickup. As you go to the grocery store, the gym, the neighbourhood event. As you go — make disciples.
+
+Not everyone is called to preach to thousands. Everyone is called to multiply in the spheres they inhabit. Your faithfulness to one person changes their life, changes their family, changes their city over generations. That's how the Great Commission has worked for two thousand years.
+
+You are still the plan. He is still with you. Go.`,
+  },
+  {
+    title: "My God Will Meet All Your Needs",
+    author: "Jane",
+    body: `Philippians 4:19 is a promise built on a testimony. Paul had just written about the Philippian church's extraordinary generosity — they had given sacrificially to support his ministry when no other church did. And from that context, he makes one of the most sweeping promises in his letters: my God will meet all your needs according to the riches of His glory in Christ Jesus.
+
+All your needs. Not some. All. According to His riches — not according to the economy, not according to your current income, not according to what seems possible from where you stand. According to His riches in glory.
+
+That's a different supply line. His riches in glory are not affected by inflation. They don't fluctuate with interest rates. They don't run out when the season gets hard.
+
+The principle in Philippians 4 is: generosity unlocks the promise. The Philippians gave. And Paul anchors the promise to a God who saw what they gave and responded from a supply that dwarfs anything they could sacrifice.
+
+Scarcity says: I can't give because I might not have enough. The Kingdom says: give from what you have, trusting the God whose supply is not limited by your current state. My God will meet all your needs. Not might. Will.
+
+Live from that promise today.`,
+  },
+  {
+    title: "Come to the Water",
+    author: "Ashley",
+    body: `Isaiah 55:1-2 is one of the most generous invitations in all of prophecy: come, all you who are thirsty, come to the waters; and you who have no money, come, buy and eat! Come, buy wine and milk without money and without cost. Why spend money on what is not bread, and your labour on what does not satisfy?
+
+Without money. Without cost. This is the economy of grace, laid out in the Old Testament before the cross made it fully available. Come not because you can afford it. Come not because you earned it. Come because you're thirsty. Come because you're hungry. Come.
+
+And the question that cuts deepest: why spend your labour on what does not satisfy? Why pour your energy into things that leave you empty? Why chase the world's version of abundance — which always costs you more than you have and delivers less than you need?
+
+There's bread here that actually satisfies. There's water that actually quenches. There's a life available that doesn't require you to have the money first or earn the access first. You just have to come.
+
+What are you spending your labour on that isn't satisfying? What are you chasing that keeps leaving you a little emptier every time? Stop. Come to the water. He's been waiting with it already paid for.`,
+  },
+  {
+    title: "By the Grace of God I Am What I Am",
+    author: "Jane",
+    body: `First Corinthians 15:10 is Paul at his most honest: but by the grace of God I am what I am, and His grace to me was not without effect. No, I worked harder than all of them — yet not I, but the grace of God that was with me.
+
+By the grace of God I am what I am. Not by my effort. Not by my talent. Not by my family background or my education or my spiritual disciplines. By the grace of God.
+
+And then immediately: His grace was not without effect. I worked harder than all of them. But the working was the grace working through him — not him working to earn more grace.
+
+This is the grace and work paradox from Ashley's book. Grace doesn't produce passivity. It produces the most productive version of you that's possible — because it's no longer you working from your own limited supply, but God working through you from His unlimited supply.
+
+Paul worked harder because grace was in him. Because when you know you're not working to prove something, when you know you're not working to earn approval, when you know the outcome isn't dependent on your performance alone — you work with a freedom and a capacity that performance-based effort can never match.
+
+By the grace of God — I am. And because I am, I give everything I have. Not to become. Because I already am.`,
+  },
+
+  // ── SECTION 10: BREAKTHROUGH & COMPLETION (Days 91–100) ─────────────────
+  {
+    title: "Arise and Shine",
+    author: "Ashley",
+    body: `Isaiah 60:1 is a command that has always felt like a sunrise to me: arise, shine, for your light has come, and the glory of the Lord rises upon you. See, darkness covers the earth and thick darkness is over the peoples, but the Lord rises upon you and His glory appears over you.
+
+Two realities exist simultaneously in this passage: thick darkness over the earth — and the Lord rising upon His people. The darkness is real. The world is dark. That's not spiritual pessimism, it's honest observation. Confusion, injustice, fear, suffering — thick darkness.
+
+And into that darkness: arise. Shine. Because the glory has come.
+
+You don't have to wait for the darkness to clear before you shine. You don't have to wait until the culture gets better, until the circumstances improve, until things are easier. Arise. The light isn't waiting for permission from the darkness. The darkness has no vote on when you get up.
+
+This is the call to every generation of God's people. Not to retreat until conditions improve. But to rise — into the darkness, with the light — and let the glory of God that rests on His people become visible to a world that desperately needs it.
+
+You have the light. The glory has come upon you. What are you waiting for? Arise. Shine.`,
+  },
+  {
+    title: "Stand Your Ground — That Is the Victory",
+    author: "Jane",
+    body: `Ephesians 6:13 says: put on the full armour of God, so that when the day of evil comes, you may be able to stand your ground, and after you have done everything, to stand.
+
+After you have done everything, to stand.
+
+The victory described in Ephesians 6 is not conquest. It's not advancing territory. It's standing. After you've done everything you know to do — stood in prayer, declared truth, resisted the enemy, walked in faithfulness — the measure of victory is that you're still standing.
+
+Sometimes breakthrough looks like a dramatic transformation. More often it looks like the same person in the same situation, still believing, still standing, still walking forward with their integrity intact.
+
+The enemy's goal is not always to destroy you directly. Often it's to wear you down. To get you to question whether it's worth it. To make the cost of standing seem greater than the value of what you're standing for. If he can get you to sit down, lie down, give up — he doesn't need to defeat you. You defeat yourself.
+
+Don't sit down. Don't lie down. Don't give up. After you have done everything — stand. That's the instruction. That's also the victory. The enemy has no answer for a person who simply refuses to fall.`,
+  },
+  {
+    title: "God Is Our Refuge — Not Our Last Resort",
+    author: "Ashley",
+    body: `Psalm 46:1-2 was written during national catastrophe: God is our refuge and strength, an ever-present help in trouble. Therefore we will not fear, though the earth give way and the mountains fall into the heart of the sea, though its waters roar and foam and the mountains quake with their surging.
+
+Therefore we will not fear. The therefore is the hinge. Because God is our refuge — therefore fear has no ground.
+
+But notice what kind of refuge He is: ever-present. Not a refuge you travel to, not a fortified city you have to find — always present, always available, already where you are. You don't need to find God in a crisis. He's already in it with you.
+
+Most people treat God as the final option. When everything else has failed, when the human solutions are exhausted, when there's nowhere left to turn — they come to God. And He's gracious enough to meet them there. But He was available at the beginning of the trouble too.
+
+Make Him the first resort. Not because you'll handle everything better — but because you'll handle everything from the right position. From the position of a person who has run immediately to their refuge instead of exhausting themselves first.
+
+The earth can give way. The mountains can fall. And you will not fear — not because nothing went wrong, but because your refuge never moves.`,
+  },
+  {
+    title: "The Living Sacrifice",
+    author: "Jane",
+    body: `Romans 12:1 uses a phrase that I find both challenging and beautiful: offer your bodies as a living sacrifice, holy and pleasing to God — this is your true and proper worship.
+
+Living sacrifice. In the Old Testament, the sacrifice died on the altar. In the New Testament, Paul flips it: you're alive, and you stay alive, but the altar is still your position. You give yourself — not once in a dramatic moment, but daily, continuously, as a lifestyle.
+
+This is the answer to the question: what does complete surrender actually look like? It looks like showing up to your ordinary day as an act of worship. Getting up for the difficult conversation. Staying when leaving would be easier. Serving without being recognised. Forgiving without an apology. These are the daily expressions of a living sacrifice.
+
+And then verse 2: do not conform to the pattern of this world, but be transformed by the renewing of your mind.
+
+The altar changes your mind. When you live surrendered, when your whole self is an offering, your mind starts to be renewed. Not by a program. By the act of continuous surrender. You stop thinking like someone who needs to protect themselves, accumulate, perform, compete — and start thinking like someone who belongs to God.
+
+This is your proper worship. It doesn't look spectacular. It looks like a surrendered life, daily given.`,
+  },
+  {
+    title: "More Than Conquerors",
+    author: "Ashley",
+    body: `Romans 8:37 says in all these things we are more than conquerors through Him who loved us. In all these things. Paul has just listed exactly what those things are: trouble, hardship, persecution, famine, nakedness, danger, sword. Not in the good seasons. In all these things.
+
+More than conquerors. The Greek is hypernikao — hyper-conquering. Beyond conquering. Overwhelmingly victorious. It's not just that you win. It's that you win decisively, abundantly, beyond what was required.
+
+And then the phrase that anchors it: through Him who loved us. Not through our strategy. Not through our resilience. Through love. The love of Christ that came down, took the cross, rose from the dead, and seated us in heavenly places — that love is the source of our hyper-victory.
+
+You cannot read Romans 8:38-39 and conclude that anything has final authority over your life except God's love. Not death. Not life. Not angels or demons or the present or the future. Not height nor depth nor anything else in all creation.
+
+You are not trying to become a conqueror. You already are one, in Christ. Today's opposition is not evidence to the contrary. It's the occasion to demonstrate what hyper-conquest looks like when ordinary people carry extraordinary love. Go be more than a conqueror. You already have everything you need.`,
+  },
+  {
+    title: "Joy Is Your Strength — Not Your Reward",
+    author: "Jane",
+    body: `Nehemiah 8:10 is spoken in one of the most unlikely moments. Israel has just heard the Law read to them for the first time in a generation. They're weeping — because they've heard how far they fell short. And Nehemiah, Ezra, and the Levites respond with an instruction that cuts against the grain of their grief: do not grieve, for the joy of the Lord is your strength.
+
+Your strength. Not your mood. Not an emotional bonus. Your actual strength. The structural support that holds you up.
+
+This means joy is not a reward for things going well. It's the fuel for staying strong when they're not. You don't earn joy by surviving hardship. You weaponise joy to get through it.
+
+The enemy knows this. His most effective long-term strategy against you is not to destroy you — it's to steal your joy. Because a joyless person stops expecting God to be good. Stops worshipping from the heart. Stops carrying the presence that changes rooms. Stops being dangerous to the enemy's agenda.
+
+Don't let him have it. Choose joy. Not as a denial of pain — but as the determination that God is still good and the story is still going somewhere worth celebrating. Joy is your strength. Nehemiah said so. And you're going to need it.`,
+  },
+  {
+    title: "Give — and Watch What Comes Back",
+    author: "Ashley",
+    body: `Luke 6:38 is one of the most counterintuitive financial statements in scripture: give, and it will be given to you. A good measure, pressed down, shaken together and running over, will be poured into your lap. For with the measure you use, it will be measured to you.
+
+The measure you use. If you measure generously, you receive generously. If you measure tightly — out of fear, out of scarcity, protecting what you have — the return reflects that measurement.
+
+This is not a prosperity formula. It's a Kingdom principle. The scarcity life hoards because it's afraid of running out. The overflow life gives because it's connected to a supply that doesn't run out.
+
+Running over. Poured into your lap. God's return on generosity is not efficient or calculated. It's extravagant. The measure is good, pressed down, shaken together — every possible ounce of space filled — and still it runs over.
+
+This principle applies beyond money. Give generously with your time — and find your sense of time expanded. Give generously with your forgiveness — and find your relationships deepened. Give generously with your encouragement — and find your own spirit lifted. The Kingdom economy runs in the opposite direction from the world's economy.
+
+Give from what you have. Trust the Source. Watch the measure come back running over.`,
+  },
+  {
+    title: "Don't Be Afraid — The First and the Last Is Here",
+    author: "Jane",
+    body: `Revelation 1:17-18. John sees a vision of the risen Jesus — eyes like blazing fire, face like the sun, voice like rushing waters, feet like bronze glowing in a furnace. The most overwhelming vision of Christ in all of scripture. And John falls at His feet as though dead.
+
+And Jesus does something unexpected. He places His right hand on John and says: do not be afraid. I am the First and the Last. I am the Living One; I was dead, and now look, I am alive for ever and ever! And I hold the keys of death and Hades.
+
+Do not be afraid.
+
+Not to a person managing well. Not to someone who had it together. To a man face down, overwhelmed by a vision he couldn't contain. Jesus placed His hand on him — and said the same thing He's been saying throughout this whole plan: do not be afraid.
+
+The First and the Last holds you. The Living One who was dead and is alive forever — He holds the keys. Not death. Not the grave. Not the enemy. Jesus. The risen, glorious, overwhelming Christ has the keys.
+
+This is where one hundred days of facing fear ends: with Him, alive, holding your right hand, saying one more time — do not be afraid. He has the last word. And His last word is not fear. It is life, forever and ever.`,
+  },
+  {
+    title: "The Harvest Is Still Coming",
+    author: "Ashley",
+    body: `Galatians 6:9: let us not become weary in doing good, for at the proper time we will reap a harvest if we do not give up. We come back to this verse on Day 99 because it's the verse that has carried more faithful people through more long seasons than almost any other in scripture.
+
+The harvest is coming. At the proper time. Not your time. Not the time you planned for. The proper time — the time that God, who sees the whole picture, has determined is best.
+
+Two conditions. Don't grow weary. Don't give up. That's it. The harvest isn't conditional on your brilliance or your strategy. It's conditional on your endurance.
+
+There are people reading this who have been sowing faithfully for a long time. You've prayed for a family member for years. You've served in a ministry that's shown no visible results. You've invested in a relationship that hasn't turned yet. You've believed for a promise that hasn't arrived.
+
+Don't give up. Don't grow weary. The harvest is still coming.
+
+The enemy's most strategic move isn't to destroy your effort. It's to exhaust it. To make you stop sowing before the season turns. But you're one day closer to the harvest today than you were yesterday. The seed is in the ground. The conditions are building. Keep going.`,
+  },
+  {
+    title: "Living the Life You Were Made For",
+    author: "Jane",
+    body: `Third John 1:2 is a short prayer that contains everything: dear friend, I pray that you may enjoy good health and that all may go well with you, even as your soul is getting along well.
+
+One hundred days. Forty days of facing fear and understanding authority. Thirty days of discovering God's love and the overflow of grace. Thirty days of community, boldness, purpose, and breakthrough. And we end here — with a prayer that you would flourish. Body, circumstances, soul — all of it.
+
+Even as your soul is getting along well. The soul is the foundation. Everything else rises or falls from the interior. When your soul is well — rooted in His presence, free from fear, overflowing with grace, anchored in the community of His people — the rest of life takes its proper shape.
+
+This is what we were made for. Not survival. Not management. Not white-knuckling through difficulty hoping to arrive at something better. Full life. Abundant life. Overflow life. The life Jesus came to bring — excessive, superabundant, running over into everyone around you.
+
+You've spent 100 days building the interior. Now go live it. Not perfectly. Not fearlessly. But faithfully — one day at a time, in His presence, with His people, carrying His name, speaking His love. This is the life. Go live it.`,
+  },
+];
+
+// Combine original 40 + extra 60
+export const ALL_ASHLEY_JANE_DEVOTIONALS = [...ASHLEY_JANE_DEVOTIONALS, ...EXTRA_DEVOTIONALS];
+
+export const ALL_ASHLEY_JANE_PASSAGES: string[] = [
+  ...ASHLEY_JANE_PLAN_PASSAGES,
+  // Days 41–50
+  'Romans 4:5',
+  'Hebrews 10:14',
+  'Romans 8:1',
+  '2 Corinthians 9:8',
+  'Romans 6:14',
+  'Matthew 11:28-30',
+  '2 Chronicles 20:22',
+  'Psalm 46:10',
+  'Proverbs 23:7',
+  'Hebrews 12:2',
+  // Days 51–60
+  '1 Corinthians 12:12-13',
+  'Ephesians 1:22-23',
+  'Revelation 19:7-8',
+  'Colossians 1:18',
+  'Ephesians 3:9-10',
+  'Acts 2:42-47',
+  'Matthew 16:18',
+  'John 13:34-35',
+  'Romans 10:14',
+  'Acts 1:8',
+  // Days 61–70
+  'Matthew 22:37-39',
+  '2 Corinthians 4:7',
+  'Hebrews 10:24-25',
+  'Matthew 16:16-18',
+  'Isaiah 41:13',
+  'Philippians 3:13-14',
+  '2 Corinthians 10:5',
+  'Joshua 1:8',
+  'Mark 5:35-36',
+  'Acts 4:29',
+  // Days 71–80
+  'Proverbs 4:23',
+  'Philippians 4:12-13',
+  'John 15:4-5',
+  'Matthew 11:29-30',
+  '1 Peter 5:8-9',
+  'Psalm 23:2-3',
+  'Romans 5:2',
+  '1 Kings 19:11-13',
+  'Matthew 18:20',
+  'Ephesians 3:19',
+  // Days 81–90
+  'Jeremiah 1:5',
+  'Psalm 37:23-24',
+  '1 Samuel 17:45-47',
+  'Matthew 13:31-32',
+  'Matthew 5:14-16',
+  'Psalm 133:1-3',
+  'Matthew 28:19-20',
+  'Philippians 4:19',
+  'Isaiah 55:1-2',
+  '1 Corinthians 15:10',
+  // Days 91–100
+  'Isaiah 60:1-2',
+  'Ephesians 6:13-14',
+  'Psalm 46:1-2',
+  'Romans 12:1-2',
+  'Romans 8:35-37',
+  'Nehemiah 8:10',
+  'Luke 6:38',
+  'Revelation 1:17-18',
+  'Galatians 6:9',
+  '3 John 1:2',
+];

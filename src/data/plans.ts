@@ -48,17 +48,17 @@ const NT: [string, number][] = [
   ['1 John', 5], ['2 John', 1], ['3 John', 1], ['Jude', 1], ['Revelation', 22],
 ];
 
-import { ASHLEY_JANE_DEVOTIONALS, ASHLEY_JANE_PLAN_PASSAGES } from './ashley-jane-plan';
+import { ALL_ASHLEY_JANE_DEVOTIONALS, ALL_ASHLEY_JANE_PASSAGES } from './ashley-jane-plan';
 
 export const PLAN_CATALOGUE: PlanDef[] = [
   {
     id: 'ashley-jane-daily-word',
     title: 'Daily Word with Ashley & Jane',
-    description: 'A 40-day journey through fear, faith, grace and the love of God — drawn from Ashley & Jane\'s books No More Fear, The Church, and From Scarcity to Supernatural.',
-    totalDays: 40,
+    description: 'A 100-day journey through fear, faith, grace, community, and purpose — drawn from Ashley & Jane\'s books No More Fear, The Church, and From Scarcity to Supernatural.',
+    totalDays: 100,
     category: 'Featured',
-    passages: ASHLEY_JANE_PLAN_PASSAGES,
-    devotionals: ASHLEY_JANE_DEVOTIONALS,
+    passages: ALL_ASHLEY_JANE_PASSAGES,
+    devotionals: ALL_ASHLEY_JANE_DEVOTIONALS,
   },
   {
     id: 'ot-in-a-year',
