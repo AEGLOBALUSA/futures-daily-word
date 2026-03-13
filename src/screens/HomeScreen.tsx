@@ -513,16 +513,17 @@ export function HomeScreen() {
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
         JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-      const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number }> = [];
+      const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }> = [];
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
         const dn = calcPlanDay(prog.startedAt, plan.totalDays);
         const dp = plan.passages[dn - 1];
-        if (dp) dp.split(', ').forEach(p => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn }));
+        const dev = plan.devotionals?.[dn - 1];
+        if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
       }
       return out;
-    } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number }>; }
+    } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }>; }
   })()
 
   const filteredBooks = BIBLE_BOOKS.filter(book =>
@@ -961,7 +962,7 @@ export function HomeScreen() {
             </Card>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {todaysPlanPassages.map(({ planId, planTitle, passage, dayNum }) => {
+              {todaysPlanPassages.map(({ planId, planTitle, passage, dayNum, devotional }) => {
         const tKey = passage + '_' + translation;
         const txt = passageTexts[tKey];
         return (
@@ -1030,6 +1031,46 @@ export function HomeScreen() {
                   </div>
                 )}
               </div>
+              {/* ── Daily Devotional — shown after scripture when plan has one ── */}
+              {devotional && (
+                <div style={{
+                  borderTop: '1px solid var(--dw-border-subtle)',
+                  padding: '18px 18px 20px',
+                }}>
+                  {/* Devotional title */}
+                  <p style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-serif)',
+                    color: 'var(--dw-text-primary)',
+                    marginBottom: 12,
+                    lineHeight: 1.4,
+                  }}>
+                    {devotional.title}
+                  </p>
+                  {/* Devotional body */}
+                  <div style={{
+                    fontSize: 15,
+                    lineHeight: 1.8,
+                    color: 'var(--dw-text-secondary)',
+                    fontFamily: 'var(--font-serif, Georgia, serif)',
+                    whiteSpace: 'pre-wrap',
+                  }}>
+                    {devotional.body}
+                  </div>
+                  {/* Author attribution */}
+                  <p style={{
+                    marginTop: 16,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--dw-accent)',
+                    fontFamily: 'var(--font-sans)',
+                    letterSpacing: '0.04em',
+                  }}>
+                    — {devotional.author}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         );
