@@ -1599,6 +1599,29 @@ export function HomeScreen() {
         </Card>
         )}
 
+        {/* Scripture Search */}
+        <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Search size={22} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search scripture or topic..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--dw-text-primary)',
+                fontSize: 17,
+                fontFamily: 'var(--font-sans)',
+                padding: '4px 0',
+              }}
+            />
+          </div>
+        </Card>
+
         {/* Devotion of the Day — tapping anywhere on the card opens the toolbar (Note / Share / Ask AI) */}
         <Card
           style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
@@ -1785,29 +1808,6 @@ export function HomeScreen() {
             </div>
           );
         })()}
-
-        {/* Scripture Search — prominent, before daily chapters */}
-        <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Search size={22} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search scripture or topic..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--dw-text-primary)',
-                fontSize: 17,
-                fontFamily: 'var(--font-sans)',
-                padding: '4px 0',
-              }}
-            />
-          </div>
-        </Card>
 
         {/* Translation Selector — always visible */}
         <div style={{
