@@ -14,6 +14,7 @@ import { HighlightToolbar } from '../components/HighlightToolbar';
 import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
+import { SetupPromptModal } from '../components/SetupPromptModal';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -106,11 +107,12 @@ export function HomeScreen() {
   });
   const [showReadingSetup, setShowReadingSetup] = useState(false);
   const [showBookPicker, setShowBookPicker] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
   const [bookPickerSearch, setBookPickerSearch] = useState('');
   const [loadedFirstSlotPassage, setLoadedFirstSlotPassage] = useState(false);
 
   // Chapters per day (from Settings)
-  const [chaptersPerDay] = useState<number>(() => {
+  const [chaptersPerDay, setChaptersPerDay] = useState<number>(() => {
     return parseInt(localStorage.getItem('dw_chapters_per_day') || '3', 10);
   });
 
@@ -292,6 +294,7 @@ export function HomeScreen() {
     // Close all other expanded passages — only one open at a time
     // Stop anything already playing before switching
     if (audioPlaying) stopAudio();
+    setShowSetupModal(false); // dismiss setup prompt if user taps listen
     setExpandedPassages(new Set([passage]));
     if (passageTexts[key]) {
       // Text already loaded, play immediately
@@ -314,6 +317,20 @@ export function HomeScreen() {
       }
       if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
+  }, []);
+
+  // Setup prompt: show after 5s if user has no reading slots & no active plans
+  useEffect(() => {
+    const alreadyDismissed = localStorage.getItem('dw_setup_dismissed');
+    if (alreadyDismissed) return;
+    const hasSlots = readingSlots.length > 0;
+    const hasPlans = Object.keys(
+      (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })()
+    ).length > 0;
+    if (hasSlots || hasPlans) return; // already set up, don't bother them
+    const timer = setTimeout(() => setShowSetupModal(true), 5000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reset expanded passages when day or translation changes
@@ -451,6 +468,33 @@ export function HomeScreen() {
     }
   };
 
+  const handleSetupComplete = (newChapters: number, planIds: string[]) => {
+    // Save chapters per day
+    setChaptersPerDay(newChapters);
+    localStorage.setItem('dw_chapters_per_day', String(newChapters));
+    // Start selected plans
+    if (planIds.length > 0) {
+      const existing: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
+        (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
+      const updated = { ...existing };
+      for (const id of planIds) {
+        if (!updated[id]) {
+          updated[id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
+        }
+      }
+      localStorage.setItem('dw_activeplans', JSON.stringify(updated));
+    }
+    localStorage.setItem('dw_setup_dismissed', '1');
+    setShowSetupModal(false);
+    // Force re-render of plan passages
+    window.location.reload();
+  };
+
+  const handleSetupDismiss = () => {
+    localStorage.setItem('dw_setup_dismissed', '1');
+    setShowSetupModal(false);
+  };
+
   const todaysPlanPassages = (() => {
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
@@ -473,6 +517,12 @@ export function HomeScreen() {
 
   return (
     <div className="screen-container">
+      {showSetupModal && (
+        <SetupPromptModal
+          onComplete={handleSetupComplete}
+          onDismiss={handleSetupDismiss}
+        />
+      )}
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
