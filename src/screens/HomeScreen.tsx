@@ -827,8 +827,8 @@ export function HomeScreen() {
               </div>
               {selection?.verseRefs?.includes(passage) && (
                 <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => {}} />
-              </>
               )}
+              </>
                         ) : (
                           <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
                             Loading...
