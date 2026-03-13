@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { BookOpen, Scroll, MapPin, Clock, Sparkles, ChevronLeft, Loader2 } from 'lucide-react';
+import { BookOpen, Scroll, MapPin, Clock, Brain, ChevronLeft, Loader2 } from 'lucide-react';
 
 /* ── Essay TOC + section types ── */
 interface EssaySection { title: string; file: string; }
@@ -18,7 +18,7 @@ interface LibraryItem {
 
 const LIBRARY_ITEMS: LibraryItem[] = [
   { id: 'knocking-on-the-door', title: 'Knocking on the Door', description: 'A guide on conflict personas and biblical guard rails', icon: BookOpen, type: 'essay' },
-  { id: 'characters', title: 'Bible Characters', description: 'Key figures from the Old and New Testament', icon: Sparkles, type: 'characters' },
+  { id: 'characters', title: 'Bible Characters', description: 'Key figures from the Old and New Testament', icon: Brain, type: 'characters' },
   { id: 'locations', title: 'Bible Locations', description: 'Significant places in scripture', icon: MapPin, type: 'locations' },
   { id: 'timeline', title: 'Bible Timeline', description: 'A chronological journey through biblical history', icon: Clock, type: 'timeline' },
   { id: 'words', title: 'Word Studies', description: 'Deep dives into important biblical words', icon: Scroll, type: 'words' },

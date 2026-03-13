@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Sparkles, Send, ChevronDown } from 'lucide-react'
+import { Brain, Send, ChevronDown } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -116,7 +116,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
         onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
         onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        <Sparkles size={22} color="#fff" />
+        <Brain size={22} color="#fff" />
       </button>
 
       {/* Panel backdrop */}
@@ -170,7 +170,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Sparkles size={16} color="#fff" />
+              <Brain size={16} color="#fff" />
             </div>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)' }}>
               Bible AI
@@ -188,7 +188,7 @@ export function BibleAI({ isOpen, onClose, initialContext, selectedText }: Bible
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
           {messages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <Sparkles size={32} style={{ color: 'var(--dw-accent, #4A6340)', marginBottom: 12 }} />
+              <Brain size={32} style={{ color: 'var(--dw-accent, #4A6340)', marginBottom: 12 }} />
               <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--dw-text)', marginBottom: 4 }}>
                 {selectedText ? 'Go deeper on this passage' : 'Ask me about scripture'}
               </p>

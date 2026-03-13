@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check } from 'lucide-react';
+import { Copy, Share2, BookOpen, Languages, Brain, X, Check } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 
 interface HighlightToolbarProps {
@@ -84,7 +84,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           greekHebrewMode ? 'Hide' : 'Gk/Heb',
           greekHebrewMode
         )}
-        {btn(onGoDeeper, <Sparkles size={16} />, 'Deeper', false, true)}
+        {btn(onGoDeeper, <Brain size={16} />, 'Deeper', false, true)}
         <button
           onClick={handleDismiss}
           style={{
