@@ -312,6 +312,45 @@ function VideoRecorderModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Daily reflection prompts (30, rotate by day of year) ────────
+const JOURNAL_PROMPTS = [
+  'What is one thing God is saying to you through today\'s passage?',
+  'Where do you need God\'s peace the most right now?',
+  'What promise from today\'s reading can you hold onto this week?',
+  'Is there someone you need to forgive? Write it out honestly.',
+  'What does today\'s scripture reveal about God\'s character?',
+  'Where have you seen God at work in your life this week?',
+  'What is one thing you are deeply grateful for today?',
+  'What fear or worry can you give to God right now?',
+  'How does today\'s passage speak to something you\'re currently facing?',
+  'Write a short prayer in your own words for someone who needs it.',
+  'What is one way you can act on what you read today?',
+  'Where do you feel far from God right now? Be honest.',
+  'What does "loving your neighbour" look like for you this week?',
+  'Is there an area of your life you\'ve been holding back from God?',
+  'What would change if you truly believed today\'s verse?',
+  'Write about a time you experienced God\'s faithfulness.',
+  'What habit or pattern do you feel God is inviting you to break?',
+  'Who has God placed in your life right now who needs encouragement?',
+  'What does rest look like for you — and are you taking it?',
+  'Write one thing you want to remember from this week\'s reading.',
+  'How would you describe your faith right now — honest, not polished?',
+  'What question do you want to ask God today?',
+  'What does surrender look like in the area you\'re struggling with?',
+  'Write about a door God has opened (or closed) in your life recently.',
+  'What does today\'s reading reveal about who you are in Christ?',
+  'Is there something you need to confess? This is a safe place.',
+  'What would you tell someone who just started following Jesus?',
+  'Where is God asking you to trust Him without seeing the outcome?',
+  'Write a sentence about what hope means to you today.',
+  'What is one thing you want to carry with you from today\'s Word?',
+];
+
+function getDailyJournalPrompt() {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  return JOURNAL_PROMPTS[dayOfYear % JOURNAL_PROMPTS.length];
+}
+
 export function JournalScreen() {
   const { userProfile, requireEmail } = useUser();
   const [activeTab, setActiveTab] = useState<'journal' | 'sermon' | 'saved'>('journal');
@@ -319,6 +358,7 @@ export function JournalScreen() {
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
+  const dailyPrompt = getDailyJournalPrompt();
 
   // Re-read entries every time the screen mounts so scripture notes from HomeScreen appear
   useEffect(() => {
@@ -465,6 +505,28 @@ export function JournalScreen() {
               fontFamily: 'var(--font-serif)', fontWeight: 400, marginBottom: 16,
             }}
           />
+          {/* Daily reflection prompt — shown for journal entries without existing body */}
+          {editingEntry.type === 'journal' && !editingEntry.body && !editingEntry.highlightedText && (
+            <div
+              onClick={() => setEditingEntry({ ...editingEntry, body: `${dailyPrompt}\n\n` })}
+              style={{
+                marginBottom: 16, padding: '12px 16px',
+                background: 'rgba(154,123,46,0.08)',
+                border: '1px dashed rgba(154,123,46,0.3)',
+                borderRadius: 12, cursor: 'pointer',
+              }}
+            >
+              <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
+                Today's Prompt
+              </p>
+              <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-serif)', fontStyle: 'italic', margin: 0 }}>
+                {dailyPrompt}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', marginTop: 8, fontFamily: 'var(--font-sans)' }}>
+                Tap to start with this prompt ↓
+              </p>
+            </div>
+          )}
           <textarea
             placeholder={editingEntry.type === 'sermon' ? 'Write your sermon notes...' : 'Write your thoughts...'}
             value={editingEntry.body}

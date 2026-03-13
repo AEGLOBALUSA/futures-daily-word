@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Share2, BookOpen, Languages, Binoculars, X, Check } from 'lucide-react';
+import { Copy, Share2, BookOpen, Languages, Binoculars, X, Check, Volume2 } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 
 interface HighlightToolbarProps {
@@ -10,6 +10,7 @@ interface HighlightToolbarProps {
 export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarProps) {
   const { selection, setSelection, clearHighlights, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const [copied, setCopied] = useState(false);
+  const [listening, setListening] = useState(false);
 
   if (!selection) return null;
 
@@ -35,7 +36,40 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
     }
   };
 
+  const handleListen = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (listening) {
+      window.speechSynthesis.cancel();
+      setListening(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(selection.text.slice(0, 5000));
+    utter.lang = 'en-US';
+    utter.rate = 0.92;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
+      || voices.find(v => v.lang.startsWith('en') && v.localService);
+    if (preferred) utter.voice = preferred;
+    utter.onend = () => setListening(false);
+    utter.onerror = () => setListening(false);
+    setListening(true);
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        const v2 = window.speechSynthesis.getVoices();
+        const p2 = v2.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')) || v2.find(v => v.lang.startsWith('en') && v.localService);
+        if (p2) utter.voice = p2;
+        window.speechSynthesis.speak(utter);
+      };
+    } else {
+      window.speechSynthesis.speak(utter);
+    }
+  };
+
   const handleDismiss = () => {
+    window.speechSynthesis?.cancel();
+    setListening(false);
     setSelection(null);
     clearHighlights();
   };
@@ -76,6 +110,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           copied ? <Check size={16} color="#4A6340" /> : <Copy size={16} />,
           copied ? 'Copied!' : 'Copy'
         )}
+        {btn(handleListen, <Volume2 size={16} />, listening ? 'Stop' : 'Listen', listening)}
         {btn(handleShare, <Share2 size={16} />, 'Share')}
         {btn(onOpenNotes, <BookOpen size={16} />, 'Note')}
         {btn(

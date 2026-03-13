@@ -4,7 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import { DEVOTIONS } from '../data/devotions';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight , Loader2, ChevronLeft } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight , Loader2, ChevronLeft, Headphones, Pause } from 'lucide-react';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -85,6 +85,7 @@ export function PlansScreen() {
   const [bookData, setBookData] = useState<BookData | null>(null);
   const [bookChapter, setBookChapter] = useState<number | null>(null);
   const [bookLoading, setBookLoading] = useState(false);
+  const [bookAudioActive, setBookAudioActive] = useState(false);
 
   // Essay reader state
   const [activeEssay, setActiveEssay] = useState<string | null>(null);
@@ -92,6 +93,7 @@ export function PlansScreen() {
   const [essaySection, setEssaySection] = useState<number | null>(null);
   const [sectionContent, setSectionContent] = useState<string>('');
   const [essayLoading, setEssayLoading] = useState(false);
+  const [essayAudioActive, setEssayAudioActive] = useState(false);
 
   // Persona-based plan suggestions
   const persona = (() => {
@@ -99,6 +101,54 @@ export function PlansScreen() {
       return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || '';
     } catch { return ''; }
   })();
+
+  const readChapter = (paragraphs: string[]) => {
+    if (!('speechSynthesis' in window)) return;
+    if (bookAudioActive) {
+      window.speechSynthesis.cancel();
+      setBookAudioActive(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const text = paragraphs.join(' ');
+    const utter = new SpeechSynthesisUtterance(text.slice(0, 10000));
+    utter.lang = 'en-US'; utter.rate = 0.91;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
+      || voices.find(v => v.lang.startsWith('en') && v.localService);
+    if (preferred) utter.voice = preferred;
+    utter.onend = () => setBookAudioActive(false);
+    utter.onerror = () => setBookAudioActive(false);
+    setBookAudioActive(true);
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        window.speechSynthesis.speak(utter);
+      };
+    } else { window.speechSynthesis.speak(utter); }
+  };
+
+  const readSection = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    if (essayAudioActive) {
+      window.speechSynthesis.cancel();
+      setEssayAudioActive(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text.slice(0, 10000));
+    utter.lang = 'en-US'; utter.rate = 0.91;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
+      || voices.find(v => v.lang.startsWith('en') && v.localService);
+    if (preferred) utter.voice = preferred;
+    utter.onend = () => setEssayAudioActive(false);
+    utter.onerror = () => setEssayAudioActive(false);
+    setEssayAudioActive(true);
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; window.speechSynthesis.speak(utter); };
+    } else { window.speechSynthesis.speak(utter); }
+  };
 
   const activePlanIds = Object.keys(activePlans);
   const startPlan = useCallback((planId: string) => {
@@ -192,7 +242,7 @@ export function PlansScreen() {
           {/* Reader header */}
           <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <button
-              onClick={() => { if (bookChapter !== null) { setBookChapter(null); } else { setActiveBook(null); } }}
+              onClick={() => { if (bookChapter !== null) { window.speechSynthesis?.cancel(); setBookAudioActive(false); setBookChapter(null); } else { window.speechSynthesis?.cancel(); setBookAudioActive(false); setActiveBook(null); } }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >
               <ChevronLeft size={18} />
@@ -204,9 +254,23 @@ export function PlansScreen() {
               </p>
             )}
             {bookData && bookChapter !== null && (
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)', margin: 0, flex: 1 }}>
-                {bookData.chapters[bookChapter!]?.title}
-              </p>
+              <>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)', margin: 0, flex: 1 }}>
+                  {bookData.chapters[bookChapter]?.title}
+                </p>
+                <button
+                  onClick={() => readChapter(bookData.chapters[bookChapter]?.paragraphs || [])}
+                  style={{
+                    background: bookAudioActive ? 'var(--dw-accent)' : 'var(--dw-accent-bg)',
+                    border: `1px solid var(--dw-accent)`,
+                    borderRadius: 999, padding: '6px 14px', color: bookAudioActive ? '#fff' : 'var(--dw-accent)',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                    display: 'flex', alignItems: 'center', gap: 5, minHeight: 36,
+                  }}
+                >
+                  {bookAudioActive ? <><Pause size={13} /> Stop</> : <><Headphones size={13} /> Listen</>}
+                </button>
+              </>
             )}
           </div>
           {/* Reader body */}
@@ -254,8 +318,8 @@ export function PlansScreen() {
           <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <button
               onClick={() => {
-                if (essaySection !== null) { setEssaySection(null); setSectionContent(''); }
-                else { setActiveEssay(null); }
+                if (essaySection !== null) { window.speechSynthesis?.cancel(); setEssayAudioActive(false); setEssaySection(null); setSectionContent(''); }
+                else { window.speechSynthesis?.cancel(); setEssayAudioActive(false); setActiveEssay(null); }
               }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >
@@ -265,6 +329,20 @@ export function PlansScreen() {
             <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
               {essaySection !== null && essayTOC ? essayTOC.sections[essaySection]?.title : (essayTOC?.title || 'Essay')}
             </p>
+            {essaySection !== null && sectionContent && (
+              <button
+                onClick={() => readSection(sectionContent)}
+                style={{
+                  background: essayAudioActive ? 'var(--dw-accent)' : 'var(--dw-accent-bg)',
+                  border: '1px solid var(--dw-accent)', borderRadius: 999,
+                  padding: '6px 14px', color: essayAudioActive ? '#fff' : 'var(--dw-accent)',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  display: 'flex', alignItems: 'center', gap: 5, minHeight: 36,
+                }}
+              >
+                {essayAudioActive ? <><Pause size={13} /> Stop</> : <><Headphones size={13} /> Listen</>}
+              </button>
+            )}
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 40px' }}>
             {essayLoading && (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2 } from 'lucide-react';
+import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2, Headphones, Pause } from 'lucide-react';
 
 /* ── Essay TOC + section types ── */
 interface EssaySection { title: string; file: string; }
@@ -34,6 +34,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
   const [essaySection, setEssaySection] = useState<number | null>(null);
   const [sectionContent, setSectionContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [audioActive, setAudioActive] = useState(false);
 
   // Fetch essay TOC when selected
   useEffect(() => {
@@ -62,14 +63,36 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
       .finally(() => setLoading(false));
   }, [essaySection]);
 
+  const readText = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    if (audioActive) { window.speechSynthesis.cancel(); setAudioActive(false); return; }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text.slice(0, 10000));
+    utter.lang = 'en-US'; utter.rate = 0.91;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en')) || voices.find(v => v.lang.startsWith('en') && v.localService);
+    if (preferred) utter.voice = preferred;
+    utter.onend = () => setAudioActive(false);
+    utter.onerror = () => setAudioActive(false);
+    setAudioActive(true);
+    if (voices.length === 0) { window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; window.speechSynthesis.speak(utter); }; }
+    else { window.speechSynthesis.speak(utter); }
+  };
+
   const handleBack = () => {
     if (essaySection !== null) {
+      window.speechSynthesis?.cancel();
+      setAudioActive(false);
       setEssaySection(null);
       setSectionContent('');
     } else if (activeItem) {
+      window.speechSynthesis?.cancel();
+      setAudioActive(false);
       setActiveItem(null);
       setEssayTOC(null);
     } else if (onBack) {
+      window.speechSynthesis?.cancel();
+      setAudioActive(false);
       onBack();
     }
   };
@@ -192,9 +215,25 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
         {/* Essay section reader */}
         {activeItem === 'knocking-on-the-door' && essaySection !== null && (
           <div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--dw-text-primary)', marginBottom: 16 }}>
-              {essayTOC?.sections[essaySection]?.title || 'Section'}
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0 }}>
+                {essayTOC?.sections[essaySection]?.title || 'Section'}
+              </h2>
+              {sectionContent && (
+                <button
+                  onClick={() => readText(sectionContent)}
+                  style={{
+                    background: audioActive ? 'var(--dw-accent)' : 'var(--dw-accent-bg)',
+                    border: '1px solid var(--dw-accent)', borderRadius: 999,
+                    padding: '6px 14px', color: audioActive ? '#fff' : 'var(--dw-accent)',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                    display: 'flex', alignItems: 'center', gap: 5, minHeight: 36, flexShrink: 0,
+                  }}
+                >
+                  {audioActive ? <><Pause size={13} /> Stop</> : <><Headphones size={13} /> Listen</>}
+                </button>
+              )}
+            </div>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '20px 0' }}>
                 <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />

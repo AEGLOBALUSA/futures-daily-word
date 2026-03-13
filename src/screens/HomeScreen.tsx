@@ -20,6 +20,93 @@ import { SetupPromptModal } from '../components/SetupPromptModal';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
+// ── Streak helpers ──────────────────────────────────────────────
+function getStreak(): { count: number; freezesAvailable: number } {
+  try {
+    return JSON.parse(localStorage.getItem('dw_streak_v2') || '{"count":0,"lastDate":"","freezesAvailable":1,"lastFreezeWeek":""}');
+  } catch { return { count: 0, freezesAvailable: 1 }; }
+}
+
+function recordStreakToday(): { count: number; isNew: boolean; isMilestone: boolean } {
+  const today = new Date().toISOString().slice(0, 10);
+  const thisWeek = (() => { const d = new Date(); return `${d.getFullYear()}-W${Math.ceil(d.getDate()/7)}`; })();
+  try {
+    const raw = JSON.parse(localStorage.getItem('dw_streak_v2') || '{"count":0,"lastDate":"","freezesAvailable":1,"lastFreezeWeek":""}');
+    if (raw.lastDate === today) return { count: raw.count, isNew: false, isMilestone: false };
+
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toISOString().slice(0, 10);
+    const dayBefore = new Date(); dayBefore.setDate(dayBefore.getDate() - 2);
+    const dbStr = dayBefore.toISOString().slice(0, 10);
+
+    // Replenish freeze weekly
+    const freezesAvailable = raw.lastFreezeWeek !== thisWeek ? 1 : (raw.freezesAvailable ?? 1);
+
+    let newCount: number;
+    if (raw.lastDate === yStr) {
+      // Consecutive day
+      newCount = (raw.count || 0) + 1;
+    } else if (raw.lastDate === dbStr && freezesAvailable > 0) {
+      // Missed one day — auto-apply freeze grace
+      newCount = (raw.count || 0) + 1;
+      const saved = { count: newCount, lastDate: today, freezesAvailable: freezesAvailable - 1, lastFreezeWeek: thisWeek };
+      localStorage.setItem('dw_streak_v2', JSON.stringify(saved));
+      const milestones = [7, 14, 30, 60, 100, 365];
+      return { count: newCount, isNew: true, isMilestone: milestones.includes(newCount) };
+    } else {
+      // Streak broken
+      newCount = 1;
+    }
+
+    const saved = { count: newCount, lastDate: today, freezesAvailable, lastFreezeWeek: raw.lastFreezeWeek || '' };
+    localStorage.setItem('dw_streak_v2', JSON.stringify(saved));
+    const milestones = [7, 14, 30, 60, 100, 365];
+    return { count: newCount, isNew: true, isMilestone: milestones.includes(newCount) };
+  } catch {
+    localStorage.setItem('dw_streak_v2', JSON.stringify({ count: 1, lastDate: today, freezesAvailable: 1, lastFreezeWeek: thisWeek }));
+    return { count: 1, isNew: true, isMilestone: false };
+  }
+}
+
+// ── Daily Word of the Day ────────────────────────────────────────
+const DAILY_WORDS = [
+  { word: 'Agape', lang: 'Greek', pronunciation: 'ah-GAH-pay', meaning: 'Unconditional, self-giving love — the highest form of love in the New Testament', verse: 'John 3:16', original: 'ἀγάπη' },
+  { word: 'Shalom', lang: 'Hebrew', pronunciation: 'sha-LOME', meaning: 'Peace, wholeness, and completeness — far deeper than the absence of conflict', verse: 'Numbers 6:26', original: 'שָׁלוֹם' },
+  { word: 'Charis', lang: 'Greek', pronunciation: 'KAH-ris', meaning: 'Grace — unmerited divine favor freely given', verse: 'Ephesians 2:8', original: 'χάρις' },
+  { word: 'Hesed', lang: 'Hebrew', pronunciation: 'HEH-sed', meaning: 'Lovingkindness, steadfast covenant love and loyalty', verse: 'Psalm 136:1', original: 'חֶסֶד' },
+  { word: 'Logos', lang: 'Greek', pronunciation: 'LOH-gos', meaning: 'The Word — divine reason, wisdom, and the spoken expression of God', verse: 'John 1:1', original: 'λόγος' },
+  { word: 'Emunah', lang: 'Hebrew', pronunciation: 'eh-moo-NAH', meaning: 'Faith — steadfastness, firmness, trust that holds steady over time', verse: 'Habakkuk 2:4', original: 'אֱמוּנָה' },
+  { word: 'Kairos', lang: 'Greek', pronunciation: 'KAI-ros', meaning: 'The appointed time — a divinely orchestrated, perfect moment', verse: 'Ecclesiastes 3:1', original: 'καιρός' },
+  { word: 'Tsedaqah', lang: 'Hebrew', pronunciation: 'tseh-dah-KAH', meaning: 'Righteousness — living rightly in relationship with God and others', verse: 'Genesis 15:6', original: 'צְדָקָה' },
+  { word: 'Pneuma', lang: 'Greek', pronunciation: 'PNYOO-mah', meaning: 'Spirit, breath, wind — the animating presence of God', verse: 'John 4:24', original: 'πνεῦμα' },
+  { word: 'Racham', lang: 'Hebrew', pronunciation: 'rah-KHAM', meaning: 'Compassion — deep mercy from the womb; God\'s tender, motherly love', verse: 'Psalm 103:13', original: 'רַחַם' },
+  { word: 'Soteria', lang: 'Greek', pronunciation: 'so-tay-REE-ah', meaning: 'Salvation — deliverance, rescue, and restoration to wholeness', verse: 'Romans 1:16', original: 'σωτηρία' },
+  { word: 'Emet', lang: 'Hebrew', pronunciation: 'EH-met', meaning: 'Truth — reliable, dependable reality; what can be counted on absolutely', verse: 'John 14:6', original: 'אֱמֶת' },
+  { word: 'Ekklesia', lang: 'Greek', pronunciation: 'ek-klay-SEE-ah', meaning: 'Church — the called-out assembly, God\'s gathered community', verse: 'Matthew 16:18', original: 'ἐκκλησία' },
+  { word: 'Kabod', lang: 'Hebrew', pronunciation: 'kah-VODE', meaning: 'Glory — the weightiness and radiance of God\'s presence', verse: 'Exodus 33:18', original: 'כָּבוֹד' },
+  { word: 'Pistis', lang: 'Greek', pronunciation: 'PIS-tis', meaning: 'Faith, trust, confidence — active reliance on what God has promised', verse: 'Hebrews 11:1', original: 'πίστις' },
+  { word: 'Qadosh', lang: 'Hebrew', pronunciation: 'kah-DOSH', meaning: 'Holy — set apart, distinct, wholly other than anything created', verse: 'Isaiah 6:3', original: 'קָדוֹשׁ' },
+  { word: 'Parakletos', lang: 'Greek', pronunciation: 'pah-RAH-klay-tos', meaning: 'Comforter, Advocate, Helper — one called alongside to assist', verse: 'John 14:16', original: 'παράκλητος' },
+  { word: 'Ruach', lang: 'Hebrew', pronunciation: 'ROO-akh', meaning: 'Spirit, wind, breath — the living, moving presence of God', verse: 'Genesis 1:2', original: 'רוּחַ' },
+  { word: 'Zoe', lang: 'Greek', pronunciation: 'ZOH-ay', meaning: 'Life — the full, vibrant, eternal life that God alone gives', verse: 'John 10:10', original: 'ζωή' },
+  { word: 'Nephesh', lang: 'Hebrew', pronunciation: 'NEH-fesh', meaning: 'Soul, living being — the whole self; every part of who you are', verse: 'Psalm 23:3', original: 'נֶפֶשׁ' },
+  { word: 'Doxa', lang: 'Greek', pronunciation: 'DOH-ksa', meaning: 'Glory, honour, splendour — the revealed magnificence of God', verse: 'Romans 3:23', original: 'δόξα' },
+  { word: 'Berith', lang: 'Hebrew', pronunciation: 'beh-REET', meaning: 'Covenant — a binding, unbreakable promise; the foundation of God\'s relationship with his people', verse: 'Genesis 9:16', original: 'בְּרִית' },
+  { word: 'Telos', lang: 'Greek', pronunciation: 'TEL-os', meaning: 'End, purpose, completion — the goal toward which everything moves', verse: 'Romans 10:4', original: 'τέλος' },
+  { word: 'Dabar', lang: 'Hebrew', pronunciation: 'dah-VAR', meaning: 'Word, matter, thing — in Hebrew thought, a word is an event that accomplishes what it says', verse: 'Isaiah 55:11', original: 'דָּבָר' },
+  { word: 'Metanoia', lang: 'Greek', pronunciation: 'meh-tah-NOY-ah', meaning: 'Repentance — a profound change of mind, heart, and direction', verse: 'Matthew 3:2', original: 'μετάνοια' },
+  { word: 'Anavah', lang: 'Hebrew', pronunciation: 'ah-nah-VAH', meaning: 'Humility — lowliness before God; the posture of one who knows they depend entirely on Him', verse: 'Micah 6:8', original: 'עֲנָוָה' },
+  { word: 'Parousia', lang: 'Greek', pronunciation: 'pah-roo-SEE-ah', meaning: 'Presence, coming — the glorious return of Christ', verse: '1 Thessalonians 4:15', original: 'παρουσία' },
+  { word: 'Yeshuah', lang: 'Hebrew', pronunciation: 'yeh-SHOO-ah', meaning: 'Salvation, deliverance — the very name of Jesus means "God saves"', verse: 'Psalm 62:2', original: 'יְשׁוּעָה' },
+  { word: 'Dikaiosyne', lang: 'Greek', pronunciation: 'di-kai-oh-SOO-nay', meaning: 'Righteousness, justice — being right before God and living it out toward others', verse: 'Matthew 5:6', original: 'δικαιοσύνη' },
+  { word: 'Ahavah', lang: 'Hebrew', pronunciation: 'ah-hah-VAH', meaning: 'Love — deep, active, choosing love; not just feeling but commitment and action', verse: 'Deuteronomy 6:5', original: 'אַהֲבָה' },
+];
+
+function getDailyWord() {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  return DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
+}
+
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
   try {
@@ -154,6 +241,10 @@ export function HomeScreen() {
   const audioUnlocked = useRef(false);
   const [audioError, setAudioError] = useState(false);
   const speechSynthRef = useRef(false); // true when Web Speech API is active
+  const [streakCount, setStreakCount] = useState(() => getStreak().count);
+  const [showMilestone, setShowMilestone] = useState<number | null>(null);
+  const [morningModeActive, setMorningModeActive] = useState(false);
+  const dailyWord = getDailyWord();
 
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
@@ -343,15 +434,35 @@ export function HomeScreen() {
     };
   }, []);
 
-  // Setup prompt: show after 5s if user has no reading slots & no active plans
+  // Record today as a reading day + handle streak freeze + milestone
+  useEffect(() => {
+    const result = recordStreakToday();
+    if (result.isNew) {
+      setStreakCount(result.count);
+      if (result.isMilestone) {
+        setTimeout(() => setShowMilestone(result.count), 600);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Setup prompt: show on day 2+ if user has no reading slots & no active plans
   useEffect(() => {
     const alreadyDismissed = localStorage.getItem('dw_setup_dismissed');
     if (alreadyDismissed) return;
+    // Check if this is truly a return visit (not first open)
+    const firstOpen = localStorage.getItem('dw_first_open');
+    const today = new Date().toISOString().slice(0, 10);
+    if (!firstOpen) {
+      localStorage.setItem('dw_first_open', today);
+      return; // Don't show on very first open
+    }
+    if (firstOpen === today) return; // Same day as first open — skip
     const hasSlots = readingSlots.length > 0;
     const hasPlans = Object.keys(
       (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })()
     ).length > 0;
-    if (hasSlots || hasPlans) return; // already set up, don't bother them
+    if (hasSlots || hasPlans) return;
     const timer = setTimeout(() => setShowSetupModal(true), 5000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -585,6 +696,70 @@ export function HomeScreen() {
     setShowSetupModal(false);
   };
 
+  /** Morning Mode: speak quote → devotion body → all loaded passages → commentary in sequence */
+  const handleMorningMode = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (morningModeActive) {
+      window.speechSynthesis.cancel();
+      setMorningModeActive(false);
+      speechSynthRef.current = false;
+      setAudioPlaying(false);
+      setAudioCurrentPassage(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+
+    // Build text queue
+    const segments: string[] = [];
+    if (quote?.text) segments.push(`Today's quote. "${quote.text}" — ${quote.author}.`);
+    if (devotion?.body) segments.push(`Devotion of the day. ${devotion.title}. ${devotion.body}`);
+
+    // All loaded passages
+    const allPassageIds = [
+      ...todaysPlanPassages.map(p => p.passage),
+      ...readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length)).map(s => `${s.book} ${s.currentChapter}`),
+    ];
+    for (const pid of allPassageIds) {
+      const txt = passageTexts[`${pid}_${translation}`];
+      if (txt) segments.push(`${pid}. ${txt.slice(0, 3000)}`);
+    }
+    if (commentaryText) segments.push(`Commentary. ${commentaryText.slice(0, 1500)}`);
+
+    if (segments.length === 0) return;
+
+    setMorningModeActive(true);
+    speechSynthRef.current = true;
+    setAudioPlaying(true);
+
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /samantha|karen|daniel|moira|siri|enhanced/i.test(v.name) && v.lang.startsWith('en'))
+      || voices.find(v => v.lang.startsWith('en') && v.localService);
+
+    let idx = 0;
+    const speakNext = () => {
+      if (idx >= segments.length) {
+        setMorningModeActive(false);
+        speechSynthRef.current = false;
+        setAudioPlaying(false);
+        setAudioCurrentPassage(null);
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance(segments[idx]);
+      utter.lang = 'en-US';
+      utter.rate = 0.91;
+      if (preferred) utter.voice = preferred;
+      utter.onend = () => { idx++; speakNext(); };
+      utter.onerror = () => { idx++; speakNext(); };
+      window.speechSynthesis.speak(utter);
+    };
+
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.onvoiceschanged = null; speakNext(); };
+    } else {
+      speakNext();
+    }
+  };
+
   const todaysPlanPassages = (() => {
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
@@ -675,16 +850,41 @@ export function HomeScreen() {
               Futures Church
             </p>
           </div>
-          <ThemeToggle />
+          {/* Streak display */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {streakCount > 0 && (
+              <div
+                onClick={() => streakCount >= 7 && setShowMilestone(streakCount)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: streakCount >= 7 ? 'rgba(255,149,0,0.15)' : 'rgba(154,123,46,0.12)',
+                  border: `1px solid ${streakCount >= 7 ? 'rgba(255,149,0,0.35)' : 'rgba(154,123,46,0.3)'}`,
+                  borderRadius: 999, padding: '5px 12px',
+                  cursor: streakCount >= 7 ? 'pointer' : 'default',
+                }}
+              >
+                <span style={{ fontSize: 16 }}>🔥</span>
+                <span style={{
+                  fontSize: 13, fontWeight: 700,
+                  color: streakCount >= 7 ? '#FF9500' : 'var(--dw-accent)',
+                  fontFamily: 'var(--font-sans)',
+                }}>
+                  {streakCount}
+                </span>
+              </div>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
 
-        {/* ── Hero Listen Button ── */}
-        {(todaysPlanPassages.length > 0 || readingSlots.length > 0) && (() => {
+        {/* ── Hero Listen Button ── always shown; falls back to today's daily passage */}
+        {(() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
           const heroPassage = firstPlan
             ? firstPlan.passage
-            : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : null;
+            : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}`
+            : primaryPassage || null;
           if (!heroPassage) return null;
 
           const allLabels = [
@@ -809,6 +1009,23 @@ export function HomeScreen() {
                     {allLabels.join(' · ')}
                   </p>
                 </div>
+
+                {/* Morning Mode button */}
+                <button
+                  onClick={handleMorningMode}
+                  style={{
+                    marginTop: 10,
+                    background: morningModeActive ? 'rgba(255,149,0,0.2)' : 'rgba(255,255,255,0.1)',
+                    border: `1px solid ${morningModeActive ? 'rgba(255,149,0,0.5)' : 'rgba(255,255,255,0.25)'}`,
+                    borderRadius: 999, padding: '7px 18px',
+                    color: morningModeActive ? '#FF9500' : 'rgba(255,255,255,0.85)',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)', letterSpacing: '0.05em',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  {morningModeActive ? '⏹ Stop Morning Mode' : '☀ Morning Mode'}
+                </button>
 
                 {/* Error message */}
                 {audioError && audioCurrentPassage === heroPassage && (
@@ -1122,6 +1339,33 @@ export function HomeScreen() {
           >{devotion.body}</p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
             — {devotion.author}
+          </p>
+        </Card>
+
+        {/* Daily Word of the Day */}
+        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <p className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</p>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
+              {dailyWord.lang}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)', margin: 0 }}>
+              {dailyWord.word}
+            </p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#9A7B2E', margin: 0 }}>
+              {dailyWord.original}
+            </p>
+          </div>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', marginBottom: 8, letterSpacing: '0.03em' }}>
+            /{dailyWord.pronunciation}/
+          </p>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 14, lineHeight: 1.6, color: 'var(--dw-text-secondary)', marginBottom: 8 }}>
+            {dailyWord.meaning}
+          </p>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
+            {dailyWord.verse}
           </p>
         </Card>
 
@@ -1651,6 +1895,39 @@ export function HomeScreen() {
           </Card>
         )}
 
+        {/* Featured Plan Invite */}
+        {(() => {
+          const activePlanIds = Object.keys((() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })());
+          const featured = PLAN_CATALOGUE.find(p => !activePlanIds.includes(p.id) && (p as { featured?: boolean }).featured !== false);
+          if (!featured) return null;
+          return (
+            <Card style={{ marginBottom: 16, border: '1px solid rgba(154,123,46,0.25)', background: 'rgba(154,123,46,0.05)' }}>
+              <p className="text-section-header" style={{ marginBottom: 8, color: 'var(--dw-accent)' }}>READING PLAN</p>
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
+                {featured.title}
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+                {featured.totalDays} days · {featured.description?.slice(0, 80) || 'Build a consistent reading habit'}
+              </p>
+              <button
+                onClick={() => {
+                  const existing: Record<string, unknown> = (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
+                  existing[featured.id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
+                  localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+                  window.location.reload();
+                }}
+                style={{
+                  background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
+                  padding: '9px 20px', color: '#fff', fontSize: 13, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 40,
+                }}
+              >
+                Start This Plan →
+              </button>
+            </Card>
+          );
+        })()}
+
         {/* 6. Campus Section */}
         <Card style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: showCampusPicker ? 14 : 0 }}>
@@ -1759,6 +2036,8 @@ export function HomeScreen() {
       {/* Animations */}
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         /* Hero card: slow colour wave rolling through gradient stops */
         @keyframes heroColorWave {
@@ -1795,6 +2074,53 @@ export function HomeScreen() {
           50% { box-shadow: 0 0 0 16px rgba(255,255,255,0.1), 0 0 0 30px rgba(255,255,255,0.04), 0 10px 32px rgba(0,0,0,0.4); }
         }
       `}</style>
+      {/* Milestone celebration overlay */}
+      {showMilestone !== null && (
+        <div
+          onClick={() => setShowMilestone(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 700,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.8)',
+            animation: 'fadeIn 0.3s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--dw-surface)', borderRadius: 24, padding: '40px 32px',
+              textAlign: 'center', maxWidth: 320, width: '90%',
+              border: '1px solid rgba(255,149,0,0.3)',
+              boxShadow: '0 0 60px rgba(255,149,0,0.2)',
+              animation: 'scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+          >
+            <div style={{ fontSize: 56, marginBottom: 12 }}>🔥</div>
+            <p style={{
+              fontSize: 32, fontWeight: 700, color: '#FF9500',
+              fontFamily: 'var(--font-sans)', marginBottom: 4,
+            }}>
+              {showMilestone} Day{showMilestone !== 1 ? 's' : ''}!
+            </p>
+            <p style={{ fontSize: 17, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)', marginBottom: 8 }}>
+              {showMilestone >= 100 ? 'Extraordinary dedication.' : showMilestone >= 30 ? 'A full month in the Word.' : showMilestone >= 14 ? 'Two solid weeks.' : 'One week strong.'}
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 24 }}>
+              {showMilestone >= 30 ? '"His mercies are new every morning." — Lam. 3:23' : showMilestone >= 7 ? '"Blessed is the one who reads." — Rev. 1:3' : '"Draw near to God and he will draw near to you." — James 4:8'}
+            </p>
+            <button
+              onClick={() => setShowMilestone(null)}
+              style={{
+                background: '#FF9500', border: 'none', borderRadius: 12,
+                padding: '12px 32px', color: '#fff', fontSize: 15, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              Keep Going 🙌
+            </button>
+          </div>
+        </div>
+      )}
       <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
       {/* Global highlight toolbar — appears for ANY selected text (scripture, devotion, quote, commentary) */}
       <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} />
