@@ -74,14 +74,14 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
     clearHighlights();
   };
 
-  const btn = (onClick: () => void, icon: React.ReactNode, label: string, active = false, accent = false) => (
+  const btn = (onClick: () => void, icon: React.ReactNode, label: string, active = false) => (
     <button
       onClick={onClick}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', gap: 3, padding: '8px 14px',
-        background: active ? 'var(--dw-accent)' : accent ? '#7B5EA7' : 'transparent',
-        color: active || accent ? '#fff' : 'var(--dw-text)',
+        background: active ? 'var(--dw-accent)' : 'transparent',
+        color: active ? '#fff' : 'var(--dw-text)',
         border: 'none', cursor: 'pointer', minWidth: 56,
         borderRight: '1px solid var(--dw-border)',
         transition: 'background 0.15s',
@@ -93,6 +93,29 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
   );
 
   return (
+    <>
+    <style>{`
+      @keyframes aiGlow {
+        0%, 100% {
+          box-shadow: 0 0 8px 2px rgba(255,179,0,0.45), inset 0 0 12px rgba(255,210,80,0.15);
+          background: linear-gradient(135deg, #C8860A 0%, #E8A820 40%, #F5C842 60%, #E8A820 100%);
+        }
+        50% {
+          box-shadow: 0 0 18px 6px rgba(255,179,0,0.7), inset 0 0 20px rgba(255,220,100,0.25);
+          background: linear-gradient(135deg, #E8A820 0%, #F5C842 35%, #FFD966 55%, #F5C842 75%, #E8A820 100%);
+        }
+      }
+      @keyframes aiShimmer {
+        0%   { left: -80%; opacity: 0; }
+        10%  { opacity: 1; }
+        80%  { opacity: 1; }
+        100% { left: 160%; opacity: 0; }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    `}</style>
     <div style={{
       position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)', left: 0, right: 0, zIndex: 95,
       display: 'flex', justifyContent: 'center', padding: '0 12px',
@@ -119,7 +142,32 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
           greekHebrewMode ? 'Hide' : 'Gk/Heb',
           greekHebrewMode
         )}
-        {btn(onGoDeeper, <Binoculars size={16} />, 'Deeper', false, true)}
+
+        {/* ── AI / Go Deeper button — glowing amber shimmer ── */}
+        <button
+          onClick={onGoDeeper}
+          style={{
+            position: 'relative', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', gap: 3, padding: '8px 16px',
+            background: 'linear-gradient(135deg, #C8860A 0%, #E8A820 40%, #F5C842 60%, #E8A820 100%)',
+            color: '#fff',
+            border: 'none', cursor: 'pointer', minWidth: 62,
+            animation: 'aiGlow 2.8s ease-in-out infinite',
+            textShadow: '0 1px 3px rgba(0,0,0,0.35)',
+          }}
+        >
+          {/* Shimmer sweep */}
+          <span style={{
+            position: 'absolute', top: '-50%', bottom: '-50%', width: '45%',
+            background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.32) 50%, rgba(255,255,255,0.18) 55%, transparent 100%)',
+            animation: 'aiShimmer 2.2s ease-in-out infinite',
+            pointerEvents: 'none',
+          }} />
+          <Binoculars size={16} />
+          <span style={{ fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: 0.5, position: 'relative' }}>AI</span>
+        </button>
+
         <button
           onClick={handleDismiss}
           style={{
@@ -132,5 +180,6 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
         </button>
       </div>
     </div>
+    </>
   );
 }
