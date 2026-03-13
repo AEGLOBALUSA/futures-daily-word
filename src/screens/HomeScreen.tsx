@@ -254,7 +254,7 @@ export function HomeScreen() {
       });
   };
 
-  // Pending audio ÃÂ¢ÃÂÃÂ when user taps Listen before text is loaded
+  // Pending audio — when user taps Listen before text is loaded
   const pendingAudioRef = useRef<string | null>(null);
 
   // Watch for text to arrive so we can auto-play audio
@@ -632,7 +632,7 @@ export function HomeScreen() {
             &ldquo;{quote.text}&rdquo;
           </p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 8, fontFamily: 'var(--font-sans)' }}>
-            ÃÂ¢ÃÂÃÂ {quote.author}
+            — {quote.author}
           </p>
         </Card>
 
@@ -645,7 +645,7 @@ export function HomeScreen() {
           </p>
           <p className="text-devotion">{devotion.body}</p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            ÃÂ¢ÃÂÃÂ {devotion.author}
+            — {devotion.author}
           </p>
         </Card>
 
@@ -672,7 +672,7 @@ export function HomeScreen() {
           </div>
         </Card>
 
-        {/* Translation Selector ÃÂ¢ÃÂÃÂ always visible */}
+        {/* Translation Selector — always visible */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -872,7 +872,7 @@ export function HomeScreen() {
                       </button>
                     </div>
 
-                    {/* Scripture text ÃÂ¢ÃÂÃÂ only shown when expanded */}
+                    {/* Scripture text — only shown when expanded */}
                     {isExpanded && (
                       <div style={{ marginBottom: 14 }}>
                         {isLoading ? (
@@ -1038,7 +1038,7 @@ export function HomeScreen() {
         {/* 5. Commentary (if available for today's passage) */}
         {commentaryText && (
           <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY ÃÂ¢ÃÂÃÂ {commentarySource.toUpperCase()}</p>
+            <p className="text-section-header" style={{ marginBottom: 8 }}>COMMENTARY — {commentarySource.toUpperCase()}</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>
               {commentaryText}
             </p>
