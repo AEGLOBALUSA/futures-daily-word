@@ -236,7 +236,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
               <BibleAIBadge size="sm" />
             </div>
             <div>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)', display: 'block', lineHeight: 1.2 }}>
+              <span style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)', display: 'block', lineHeight: 1.2 }}>
                 Bible AI
               </span>
               <span style={{

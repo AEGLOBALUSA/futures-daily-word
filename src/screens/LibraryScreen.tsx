@@ -241,7 +241,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
               </div>
             ) : (
               <Card>
-                <p style={{ color: 'var(--dw-text-secondary)', fontSize: 15, lineHeight: 1.7, fontFamily: 'var(--font-serif)', whiteSpace: 'pre-wrap' }}>
+                <p style={{ color: 'var(--dw-text-secondary)', fontSize: 15, lineHeight: 1.7, fontFamily: 'var(--font-serif-text)', whiteSpace: 'pre-wrap' }}>
                   {sectionContent}
                 </p>
               </Card>

@@ -355,7 +355,7 @@ export function PlansScreen() {
               {bookChapter !== null ? 'Contents' : 'Back'}
             </button>
             {bookData && bookChapter === null && (
-              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
+              <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
                 {bookData.title}
               </p>
             )}
@@ -409,7 +409,7 @@ export function PlansScreen() {
             {bookData && bookChapter !== null && !bookLoading && (
               <div style={{ padding: '20px 20px' }}>
                 {bookData.chapters[bookChapter!]?.paragraphs.map((p: string, i: number) => (
-                  <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif)', marginBottom: 20 }}>{p}</p>
+                  <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif-text)', marginBottom: 20 }}>{p}</p>
                 ))}
               </div>
             )}
@@ -432,7 +432,7 @@ export function PlansScreen() {
               <ChevronLeft size={18} />
               {essaySection !== null ? 'Contents' : 'Back'}
             </button>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
+            <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
               {essaySection !== null && essayTOC ? essayTOC.sections[essaySection]?.title : (essayTOC?.title || 'Essay')}
             </p>
             {essaySection !== null && sectionContent && (
@@ -479,7 +479,7 @@ export function PlansScreen() {
             {essaySection !== null && sectionContent && !essayLoading && (
               <div style={{ padding: '20px 20px' }}>
                 {sectionContent.split('\n\n').map((para, i) => (
-                  <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif)', marginBottom: 20 }}>{para}</p>
+                  <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif-text)', marginBottom: 20 }}>{para}</p>
                 ))}
               </div>
             )}
@@ -509,7 +509,7 @@ export function PlansScreen() {
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
                 {devotion.verse}
               </p>
-              <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.6, marginBottom: 12, fontFamily: 'var(--font-serif)' }}>
+              <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.6, marginBottom: 12, fontFamily: 'var(--font-serif-text)' }}>
                 {devotion.body}
               </p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
@@ -853,7 +853,7 @@ export function PlansScreen() {
                         <div style={{ marginTop: 8 }}>
                           {!isComplete && (
                             <div style={{ marginBottom: 12 }}>
-                              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-serif)', lineHeight: 1.4 }}>
+                              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-serif-text)', lineHeight: 1.4 }}>
                                 {isBookPlan
                                   ? `Up next: ${plan.passages[nextDay] || plan.passages[plan.passages.length - 1] || '—'}`
                                   : `Day ${nextDay}: ${plan.passages[nextDay - 1] || '—'}`}
@@ -1084,7 +1084,7 @@ export function PlansScreen() {
                                   }}>
                                     {plan.bookId ? `Ch ${i + 1}` : `Day ${i + 1}`}
                                   </span>
-                                  <span style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: plan.bookId ? 'var(--font-serif)' : 'var(--font-sans)', lineHeight: 1.4 }}>
+                                  <span style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: plan.bookId ? 'var(--font-serif-text)' : 'var(--font-sans)', lineHeight: 1.4 }}>
                                     {passage}
                                   </span>
                                 </div>

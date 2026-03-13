@@ -11,19 +11,20 @@
   --dw-surface: #1A1A1A;
   --dw-surface-hover: #222222;
   --dw-surface-active: #2A2A2A;
-  --dw-accent: #A8323B;
-  --dw-accent-hover: #8C2830;
-  --dw-accent-active: #711F27;
-  --dw-accent-bg: rgba(168, 50, 59, 0.12);
+  --dw-accent: #DC535D;
+  --dw-accent-hover: #C94048;
+  --dw-accent-active: #B5363E;
+  --dw-accent-bg: rgba(220, 83, 93, 0.12);
   --dw-text-primary: #FFFFFF;
   --dw-text-secondary: #D4CEC6;
   --dw-text-muted: #9A948E;
-  --dw-text-faint: #5A554F;
-  --dw-text-christ: #A8323B;
+  --dw-text-faint: #6E6862;
+  --dw-text-christ: #DC535D;
   --dw-border: #333333;
   --dw-border-subtle: #252525;
 
   --font-serif: 'DM Serif Display', 'Georgia', serif;
+  --font-serif-text: 'DM Serif Text', 'Georgia', serif;
   --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
@@ -116,9 +117,9 @@ body {
 }
 
 .text-devotion {
-  font-family: var(--font-serif);
+  font-family: var(--font-serif-text);
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.7;
   color: var(--dw-text-primary);
 }

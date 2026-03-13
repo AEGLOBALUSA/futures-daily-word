@@ -1581,7 +1581,7 @@ export function HomeScreen() {
           <p
             onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
             style={{
-              fontFamily: 'var(--font-serif)',
+              fontFamily: 'var(--font-serif-text)',
               fontSize: 15,
               fontStyle: 'italic',
               color: 'var(--dw-text-secondary)',
@@ -1664,7 +1664,7 @@ export function HomeScreen() {
         <Card style={{ marginBottom: 16, borderLeft: '3px solid var(--dw-accent)' }}>
           <p
             onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
-            style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+            style={{ fontFamily: 'var(--font-serif-text)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
           >
             &ldquo;{quote.text}&rdquo;
           </p>
@@ -1701,7 +1701,7 @@ export function HomeScreen() {
         {homeLeadType === 2 && (
         <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(107,26,34,0.07) 0%, rgba(154,123,46,0.05) 100%)', borderLeft: '3px solid rgba(154,123,46,0.6)' }}>
           <p className="text-section-header" style={{ color: '#9A7B2E', marginBottom: 8 }}>REFLECT TODAY</p>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6 }}>
+          <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6 }}>
             {WEEK_REVIEW_QUESTIONS[(new Date().getDate()) % WEEK_REVIEW_QUESTIONS.length]}
           </p>
         </Card>
@@ -1726,7 +1726,7 @@ export function HomeScreen() {
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', marginBottom: 8, letterSpacing: '0.03em' }}>
             /{dailyWord.pronunciation}/
           </p>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 14, lineHeight: 1.6, color: 'var(--dw-text-secondary)', marginBottom: 8 }}>
+          <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, lineHeight: 1.6, color: 'var(--dw-text-secondary)', marginBottom: 8 }}>
             {dailyWord.meaning}
           </p>
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
@@ -1767,7 +1767,7 @@ export function HomeScreen() {
                   </div>
                 ))}
               </div>
-              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
+              <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
                 {weekReview.question}
               </p>
             </Card>
@@ -1995,7 +1995,7 @@ export function HomeScreen() {
                           Tap any word to explore its meaning
                         </p>
                       )}
-                      <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif, Georgia, serif)', margin: 0 }}>
+                      <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
                         {renderScripture(txt, passage)}
                       </p>
                     </div>
@@ -2177,7 +2177,7 @@ export function HomeScreen() {
                     Tap any word to explore its meaning
                   </p>
                 )}
-                <p className="text-scripture" style={{ fontSize:15, lineHeight:1.7, color:'var(--dw-text)', fontFamily:'var(--font-serif)', background: !greekHebrewMode && selection?.text===text ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius:4, transition:'background 0.2s' }}>
+                <p className="text-scripture" style={{ fontSize:15, lineHeight:1.7, color:'var(--dw-text)', fontFamily:'var(--font-serif-text)', background: !greekHebrewMode && selection?.text===text ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius:4, transition:'background 0.2s' }}>
                   {renderScripture(text, passage)}
                 </p>
               </div>
@@ -2367,7 +2367,7 @@ export function HomeScreen() {
                 )}
                 <p
                   onClick={() => setSelection({ text: allCommentaries[selectedCommentaryIdx].text, verseRefs: [primaryPassage], source: 'tap' })}
-                  style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+                  style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif-text)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
                 >
                   {allCommentaries[selectedCommentaryIdx].text}
                 </p>
@@ -2563,7 +2563,7 @@ export function HomeScreen() {
                 )}
               </div>
               {insight && (
-                <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif)', lineHeight: 1.55, marginBottom: suggestedPassages.length ? 12 : 0, fontStyle: 'italic' }}>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', lineHeight: 1.55, marginBottom: suggestedPassages.length ? 12 : 0, fontStyle: 'italic' }}>
                   {insight}
                 </p>
               )}
@@ -2781,7 +2781,7 @@ export function HomeScreen() {
             }}>
               {showMilestone} Day{showMilestone !== 1 ? 's' : ''}!
             </p>
-            <p style={{ fontSize: 17, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)', marginBottom: 8 }}>
+            <p style={{ fontSize: 17, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', marginBottom: 8 }}>
               {showMilestone >= 100 ? 'Extraordinary dedication.' : showMilestone >= 30 ? 'A full month in the Word.' : showMilestone >= 14 ? 'Two solid weeks.' : 'One week strong.'}
             </p>
             <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 24 }}>

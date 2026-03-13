@@ -798,7 +798,7 @@ function ScriptureModal({
               <div style={{ padding: '0 18px 18px' }}>
                 {devotional.body.split('\n\n').map((para, i) => (
                   <p key={i} style={{
-                    fontSize: 15, lineHeight: 1.82, fontFamily: 'var(--font-serif)',
+                    fontSize: 15, lineHeight: 1.82, fontFamily: 'var(--font-serif-text)',
                     color: 'var(--dw-text-secondary)', marginBottom: i < devotional.body.split('\n\n').length - 1 ? 14 : 0,
                   }}>
                     {para}
@@ -860,7 +860,7 @@ function ScriptureModal({
                         <div style={{ flex: 1 }}>
                           <p style={{
                             fontSize: 14, lineHeight: 1.6,
-                            fontFamily: 'var(--font-serif)',
+                            fontFamily: 'var(--font-serif-text)',
                             color: 'var(--dw-text-primary)',
                             margin: '0 0 5px', fontWeight: 400,
                           }}>
@@ -913,7 +913,7 @@ function ScriptureModal({
                   </div>
                 ) : scriptureText ? (
                   <p style={{
-                    fontSize: 16, lineHeight: 1.9, fontFamily: 'var(--font-serif)',
+                    fontSize: 16, lineHeight: 1.9, fontFamily: 'var(--font-serif-text)',
                     color: 'var(--dw-text-primary)', margin: 0, whiteSpace: 'pre-wrap',
                   }}>
                     {scriptureText}
@@ -957,7 +957,7 @@ function ScriptureModal({
                     background: 'transparent',
                     fontSize: 15, lineHeight: 1.7,
                     color: 'var(--dw-text)',
-                    fontFamily: 'var(--font-serif)',
+                    fontFamily: 'var(--font-serif-text)',
                     boxSizing: 'border-box',
                   }}
                 />
@@ -1099,7 +1099,7 @@ function TodayPanel({ allEntries, onSave }: {
                 {devotional ? (
                   <>
                     <p style={{
-                      fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-serif)',
+                      fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-serif-text)',
                       color: 'var(--dw-text-primary)', marginBottom: 4, lineHeight: 1.3,
                     }}>
                       {devotional.title}
@@ -1126,7 +1126,7 @@ function TodayPanel({ allEntries, onSave }: {
                   </>
                 ) : (
                   <p style={{
-                    fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif)',
+                    fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-serif-text)',
                     color: 'var(--dw-text-primary)', marginBottom: existingNote ? 8 : 0,
                   }}>
                     {ref}
@@ -1332,7 +1332,7 @@ export function JournalScreen() {
               <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--dw-accent)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 {editingEntry.verseRef}
               </p>
-              <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'var(--font-serif)' }}>
+              <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'var(--font-serif-text)' }}>
                 "{editingEntry.highlightedText}"
               </p>
             </div>
@@ -1363,7 +1363,7 @@ export function JournalScreen() {
               <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
                 Today's Prompt
               </p>
-              <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-serif)', fontStyle: 'italic', margin: 0 }}>
+              <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-serif-text)', fontStyle: 'italic', margin: 0 }}>
                 {dailyPrompt}
               </p>
               <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', marginTop: 8, fontFamily: 'var(--font-sans)' }}>
@@ -1547,7 +1547,7 @@ export function JournalScreen() {
                   }}>
                     <p style={{
                       fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.5,
-                      fontStyle: 'italic', fontFamily: 'var(--font-serif)',
+                      fontStyle: 'italic', fontFamily: 'var(--font-serif-text)',
                       overflow: 'hidden', textOverflow: 'ellipsis',
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                     }}>
