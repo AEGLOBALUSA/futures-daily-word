@@ -271,23 +271,28 @@ export function HomeScreen() {
 
   // Read: expand + load. Listen: expand + load + play audio when ready.
   const handleRead = (passage: string) => {
-    if (!expandedPassages.has(passage)) {
-      setExpandedPassages(prev => new Set(prev).add(passage));
-      loadPassage(passage);
+    // If already open, close it (toggle)
+    if (expandedPassages.has(passage)) {
+      setExpandedPassages(new Set());
+      return;
     }
+    // Close everything else, stop any playing audio, open this one
+    if (audioPlaying) stopAudio();
+    setExpandedPassages(new Set([passage]));
+    loadPassage(passage);
   };
 
   const handleListen = (passage: string) => {
     const key = `${passage}_${translation}`;
-    // If already playing this passage, stop
+    // If already playing this passage, pause/stop (toggle)
     if (audioPlaying && audioCurrentPassage === passage) {
       stopAudio();
       return;
     }
-    // Expand and load if needed
-    if (!expandedPassages.has(passage)) {
-      setExpandedPassages(prev => new Set(prev).add(passage));
-    }
+    // Close all other expanded passages — only one open at a time
+    // Stop anything already playing before switching
+    if (audioPlaying) stopAudio();
+    setExpandedPassages(new Set([passage]));
     if (passageTexts[key]) {
       // Text already loaded, play immediately
       handleAudio(passage);
