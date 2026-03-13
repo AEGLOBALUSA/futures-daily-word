@@ -193,6 +193,21 @@ export function PlansScreen() {
 
   // Hub view (V1 structure) - the main Plans & More page
   if (!showPlanDetail) {
+  const [activeBook, setActiveBook] = useState<string | null>(null);
+  const [bookData, setBookData] = useState<BookData | null>(null);
+  const [bookChapter, setBookChapter] = useState<number | null>(null);
+  const [bookLoading, setBookLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activeBook) { setBookData(null); setBookChapter(null); return; }
+    setBookLoading(true);
+    fetch(activeBook)
+      .then(r => r.json())
+      .then((d: BookData) => setBookData(d))
+      .catch(() => {})
+      .finally(() => setBookLoading(false));
+  }, [activeBook]);
+
     return (
       <div className="screen-container">
       {/* ── In-app book reader ── */}
@@ -214,7 +229,7 @@ export function PlansScreen() {
             )}
             {bookData && bookChapter !== null && (
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)', margin: 0, flex: 1 }}>
-                {bookData.chapters[bookChapter]?.title}
+                {bookData.chapters[bookChapter!]?.title}
               </p>
             )}
           </div>
@@ -247,7 +262,7 @@ export function PlansScreen() {
             {/* Chapter content */}
             {bookData && bookChapter !== null && !bookLoading && (
               <div style={{ padding: '20px 20px' }}>
-                {bookData.chapters[bookChapter]?.paragraphs.map((p, i) => (
+                {bookData.chapters[bookChapter!]?.paragraphs.map((p: string, i: number) => (
                   <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif)', marginBottom: 20 }}>{p}</p>
                 ))}
               </div>
@@ -369,7 +384,7 @@ export function PlansScreen() {
               {BOOKS.map(book => (
                 <Card
                   key={book.id}
-                  style={{ cursor: book.url ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
+                  style={{ cursor: book.jsonFile ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
                   onClick={() => book.jsonFile && setActiveBook(book.jsonFile)}
                 >
                   <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -380,13 +395,13 @@ export function PlansScreen() {
                     <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
                       {book.description}
                     </p>
-                    {book.url && (
+                    {book.jsonFile && (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
                         Tap to view →
                       </p>
                     )}
                   </div>
-                  <ChevronRight size={18} style={{ color: book.url ? 'var(--dw-accent)' : 'var(--dw-text-muted)', flexShrink: 0 }} />
+                  <ChevronRight size={18} style={{ color: book.jsonFile ? 'var(--dw-accent)' : 'var(--dw-text-muted)', flexShrink: 0 }} />
                 </Card>
               ))}
             </div>
@@ -399,8 +414,8 @@ export function PlansScreen() {
               {JANE_BOOKS.map(book => (
                 <Card
                   key={book.id}
-                  style={{ cursor: book.url ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
-                  onClick={() => book.url && window.open(book.url, '_blank', 'noopener,noreferrer')}
+                  style={{ cursor: book.jsonFile ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14, padding: '16px' }}
+                  onClick={() => book.jsonFile && window.open(book.jsonFile, '_blank', 'noopener,noreferrer')}
                 >
                   <div style={{ width: 48, height: 48, background: 'var(--dw-accent-bg)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <BookOpen size={24} style={{ color: 'var(--dw-accent)' }} />
@@ -410,13 +425,13 @@ export function PlansScreen() {
                     <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
                       {book.description}
                     </p>
-                    {book.url && (
+                    {book.jsonFile && (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
                         Tap to view →
                       </p>
                     )}
                   </div>
-                  <ChevronRight size={18} style={{ color: book.url ? 'var(--dw-accent)' : 'var(--dw-text-muted)', flexShrink: 0 }} />
+                  <ChevronRight size={18} style={{ color: book.jsonFile ? 'var(--dw-accent)' : 'var(--dw-text-muted)', flexShrink: 0 }} />
                 </Card>
               ))}
             </div>
@@ -443,20 +458,6 @@ export function PlansScreen() {
   }
 
   // Plans detail view
-  const [activeBook, setActiveBook] = useState<string | null>(null);
-  const [bookData, setBookData] = useState<BookData | null>(null);
-  const [bookChapter, setBookChapter] = useState<number | null>(null);
-  const [bookLoading, setBookLoading] = useState(false);
-
-  useEffect(() => {
-    if (!activeBook) { setBookData(null); setBookChapter(null); return; }
-    setBookLoading(true);
-    fetch(activeBook)
-      .then(r => r.json())
-      .then((d: BookData) => setBookData(d))
-      .catch(() => {})
-      .finally(() => setBookLoading(false));
-  }, [activeBook]);
 
 
   return (
