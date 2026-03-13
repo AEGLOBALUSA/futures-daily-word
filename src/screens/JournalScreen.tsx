@@ -7,6 +7,7 @@ import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Squa
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
+import { ListenButton } from '../components/ListenButton';
 
 interface JournalEntry {
   id: string;
@@ -754,6 +755,19 @@ function ScriptureModal({
         {/* ── Scrollable study content ── */}
         <div ref={scrollBodyRef} style={{ flex: 1, overflowY: 'auto' }}>
 
+          {/* Listen to all content */}
+          <div style={{ margin: '16px 18px 0' }}>
+            <ListenButton
+              text={[
+                devotional ? `${devotional.title}. ${devotional.body}` : '',
+                scriptureText || '',
+              ].filter(Boolean).join('\n\n')}
+              passageRef={!isBookChapter ? chapterRef : undefined}
+              size="lg"
+              label="Listen to all"
+            />
+          </div>
+
           {/* SECTION 1: Devotional (if present) */}
           {devotional && (
             <div
@@ -823,6 +837,9 @@ function ScriptureModal({
                     {para}
                   </p>
                 ))}
+                <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+                  <ListenButton text={`${devotional.title}. ${devotional.body}`} size="md" label="Listen" />
+                </div>
               </div>
             </div>
           )}
@@ -931,12 +948,17 @@ function ScriptureModal({
                     </span>
                   </div>
                 ) : scriptureText ? (
-                  <p style={{
-                    fontSize: 16, lineHeight: 1.9, fontFamily: 'var(--font-serif-text)',
-                    color: 'var(--dw-text-primary)', margin: 0, whiteSpace: 'pre-wrap',
-                  }}>
-                    {scriptureText}
-                  </p>
+                  <>
+                    <p style={{
+                      fontSize: 16, lineHeight: 1.9, fontFamily: 'var(--font-serif-text)',
+                      color: 'var(--dw-text-primary)', margin: 0, whiteSpace: 'pre-wrap',
+                    }}>
+                      {scriptureText}
+                    </p>
+                    <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+                      <ListenButton text={scriptureText} passageRef={chapterRef} size="md" label="Listen" />
+                    </div>
+                  </>
                 ) : (
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>
                     Could not load passage. Check your connection.

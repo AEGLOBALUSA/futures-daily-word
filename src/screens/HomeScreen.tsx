@@ -17,6 +17,7 @@ import { BibleAI } from '../components/BibleAI';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
+import { ListenButton } from '../components/ListenButton';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { personalize } from '../utils/personalization';
 
@@ -1621,6 +1622,17 @@ export function HomeScreen() {
           </button>
         </div>
 
+        {/* Listen to all — full-width bar */}
+        <ListenButton
+          text={[
+            `"${quote.text}" — ${quote.author}`,
+            ajDevotional ? `${ajDevotional.title}. ${ajDevotional.body}` : `${devotion.title}. ${devotion.body}`,
+            `${dailyWord.word}. ${dailyWord.meaning}`,
+          ].join('\n\n')}
+          size="lg"
+          label="Listen to today's reading"
+        />
+
         {/* Variable reward: homeLeadType 0=quote first, 1=devotion first, 2=reflection question first */}
         {/* Quote card */}
         {homeLeadType !== 1 && (
@@ -1656,6 +1668,7 @@ export function HomeScreen() {
           }}>
             — {quote.author}
           </p>
+          <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
         </div>
         )}
 
@@ -1702,6 +1715,9 @@ export function HomeScreen() {
               <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
                 — {ajDevotional.author}
               </p>
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                <ListenButton text={`${ajDevotional.title}. ${ajDevotional.body}`} size="md" label="Listen" />
+              </div>
             </>
           ) : (
             <>
@@ -1713,6 +1729,9 @@ export function HomeScreen() {
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
                 — {devotion.author}
               </p>
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                <ListenButton text={`${devotion.title}. ${devotion.body}`} size="md" label="Listen" />
+              </div>
             </>
           )}
         </Card>
@@ -1751,6 +1770,7 @@ export function HomeScreen() {
           }}>
             — {quote.author}
           </p>
+          <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
         </div>
         )}
 
@@ -1763,6 +1783,9 @@ export function HomeScreen() {
           <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6 }}>
             {WEEK_REVIEW_QUESTIONS[(new Date().getDate()) % WEEK_REVIEW_QUESTIONS.length]}
           </p>
+          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+            <ListenButton text={WEEK_REVIEW_QUESTIONS[(new Date().getDate()) % WEEK_REVIEW_QUESTIONS.length]} size="sm" />
+          </div>
         </Card>
         )}
 
@@ -1791,6 +1814,9 @@ export function HomeScreen() {
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
             {dailyWord.verse}
           </p>
+          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+            <ListenButton text={`${dailyWord.word}. ${dailyWord.meaning}. ${dailyWord.verse}`} size="sm" />
+          </div>
         </Card>
 
         {/* ── Weekly Word in Review (Sundays) ── */}
@@ -1829,6 +1855,9 @@ export function HomeScreen() {
               <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
                 {weekReview.question}
               </p>
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                <ListenButton text={weekReview.question} size="sm" />
+              </div>
             </Card>
           );
         })()}
@@ -2110,6 +2139,9 @@ export function HomeScreen() {
                   }}>
                     — {devotional.author}
                   </p>
+                  <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                    <ListenButton text={`${devotional.title}. ${devotional.body}`} size="md" label="Listen" />
+                  </div>
                 </div>
               )}
             </div>
