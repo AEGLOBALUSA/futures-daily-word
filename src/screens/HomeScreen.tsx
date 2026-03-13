@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, BookOpen, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, Play, BookOpen, Plus, X } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -582,61 +582,121 @@ export function HomeScreen() {
           const isLoadingHero = audioLoading && audioCurrentPassage === heroPassage;
 
           return (
-            <button
+            <div
               key="hero-listen"
-              onClick={() => handleListen(heroPassage)}
               style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                background: isPlayingHero ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
-                border: 'none',
-                borderRadius: 14,
-                padding: '16px 18px',
-                cursor: 'pointer',
-                color: '#fff',
-                fontFamily: 'var(--font-sans)',
-                textAlign: 'left',
-                marginBottom: 16,
-                transition: 'background 0.2s ease',
+                position: 'relative',
+                borderRadius: 24,
+                overflow: 'hidden',
+                marginBottom: 20,
+                boxShadow: '0 24px 64px rgba(168,50,59,0.22), 0 6px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
+                border: '1px solid rgba(255,255,255,0.13)',
               }}
             >
+              {/* ── Layer 1: rich crimson-to-dark gradient ── */}
               <div style={{
-                width: 46, height: 46, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.18)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                {isLoadingHero
-                  ? <Loader2 size={22} style={{ animation: 'spin 1s linear infinite' }} />
-                  : isPlayingHero
-                  ? <Pause size={22} />
-                  : <Headphones size={22} />
-                }
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {planLabel && (
-                  <p style={{
-                    fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                    textTransform: 'uppercase', opacity: 0.75,
-                    margin: '0 0 3px', fontFamily: 'var(--font-sans)',
-                  }}>
-                    {planLabel}
-                  </p>
-                )}
-                <p style={{ fontSize: 15, fontWeight: 700, margin: 0, fontFamily: 'var(--font-sans)' }}>
-                  {isLoadingHero ? 'Loading audio…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
-                </p>
-                <p style={{
-                  fontSize: 13, opacity: 0.82, margin: '3px 0 0',
-                  fontFamily: 'var(--font-sans)',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(150deg, #C03840 0%, #6B1A22 42%, #1C0508 100%)',
+              }} />
+
+              {/* ── Layer 2: glass sheen ── */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.12) 100%)',
+              }} />
+
+              {/* ── Content ── */}
+              <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
+
+                {/* Top meta bar */}
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '16px 20px 0',
                 }}>
-                  {allLabels.join(' · ')}
-                </p>
+                  <p style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                    textTransform: 'uppercase', opacity: 0.55,
+                    fontFamily: 'var(--font-sans)', margin: 0,
+                  }}>
+                    {planLabel || "Today's Reading"}
+                  </p>
+                  <p style={{
+                    fontSize: 10, fontWeight: 500, opacity: 0.45,
+                    fontFamily: 'var(--font-sans)', margin: 0, letterSpacing: '0.04em',
+                  }}>
+                    {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+
+                {/* Big play button — centered */}
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  padding: '22px 20px 20px',
+                }}>
+                  <button
+                    onClick={() => handleListen(heroPassage)}
+                    style={{
+                      width: 78, height: 78, borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.16)',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      boxShadow: isPlayingHero
+                        ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
+                        : '0 10px 32px rgba(0,0,0,0.35)',
+                      animation: isPlayingHero ? 'heroRingPulse 2.2s ease-in-out infinite' : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', color: '#fff',
+                      transition: 'box-shadow 0.4s ease, background 0.2s ease',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      marginBottom: 16,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isLoadingHero
+                      ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                      : isPlayingHero
+                      ? <Pause size={32} />
+                      : <Play size={32} style={{ marginLeft: 4 }} />
+                    }
+                  </button>
+
+                  <p style={{
+                    fontSize: 15, fontWeight: 700, margin: '0 0 6px',
+                    fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
+                  }}>
+                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
+                  </p>
+
+                  <p style={{
+                    fontSize: 13, opacity: 0.68, margin: 0,
+                    fontFamily: 'var(--font-sans)', textAlign: 'center',
+                    maxWidth: '88%', lineHeight: 1.4,
+                  }}>
+                    {allLabels.join(' · ')}
+                  </p>
+                </div>
+
+                {/* Hairline divider */}
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '0 20px' }} />
+
+                {/* Read link footer */}
+                <button
+                  onClick={() => handleRead(heroPassage)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: 7,
+                    padding: '13px 20px',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    color: expandedPassages.has(heroPassage) ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.62)',
+                    fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+                    letterSpacing: '0.03em', transition: 'color 0.2s ease',
+                  }}
+                >
+                  <BookOpen size={14} />
+                  {expandedPassages.has(heroPassage) ? 'Close Reading' : 'Read'}
+                </button>
               </div>
-            </button>
+            </div>
           );
         })()}
 
@@ -1472,7 +1532,13 @@ export function HomeScreen() {
       </div>
 
       {/* Spinner keyframe */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes heroRingPulse {
+          0%, 100% { box-shadow: 0 0 0 10px rgba(255,255,255,0.07), 0 0 0 22px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4); }
+          50% { box-shadow: 0 0 0 16px rgba(255,255,255,0.1), 0 0 0 30px rgba(255,255,255,0.04), 0 10px 32px rgba(0,0,0,0.4); }
+        }
+      `}</style>
       <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
       <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
       <BibleAI
