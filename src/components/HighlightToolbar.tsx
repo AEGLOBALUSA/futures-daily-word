@@ -60,7 +60,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
 
   return (
     <div style={{
-      position: 'fixed', bottom: 68, left: 0, right: 0, zIndex: 95,
+      position: 'fixed', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)', left: 0, right: 0, zIndex: 95,
       display: 'flex', justifyContent: 'center', padding: '0 12px',
       pointerEvents: 'auto',
       animation: 'slideUp 0.2s ease',
