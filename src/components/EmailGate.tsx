@@ -11,7 +11,7 @@ const PERSONAS = [
   { id: 'new_to_faith', label: "I'm New to This", desc: 'Starting or reigniting my faith journey' },
   { id: 'congregation', label: 'Church Member', desc: 'Growing in my daily walk with God' },
   { id: 'deeper_study', label: 'Deep Bible Study', desc: 'Original languages, commentary, depth' },
-  { id: 'pastor_leader', label: 'Leader / Pastor', desc: 'Teaching tools & congregation insights' },
+  { id: 'pastor_leader', label: 'Leader / Pastor', desc: 'For leaders who serve and shepherd others' },
   { id: 'comfort', label: 'I Need Comfort Right Now', desc: 'Encouragement for a difficult season' },
 ];
 

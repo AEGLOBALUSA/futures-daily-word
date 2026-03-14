@@ -268,7 +268,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   pastor_leader: {
     persona: 'pastor_leader',
     label: 'Leader / Pastor',
-    description: 'Teaching tools & congregation insights',
+    description: 'For leaders who serve and shepherd others',
     icon: 'Shield',
     sectionOrder: [
       'greeting',
