@@ -1,8 +1,0 @@
-{
-  "name": "poll",
-  "version": "1.0.0",
-  "main": "poll.js",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.47.12"
-  }
-}

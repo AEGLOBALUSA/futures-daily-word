@@ -1,5 +1,5 @@
-const { createClient } = require("@supabase/supabase-js");
-const crypto = require("crypto");
+import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 // ── Config ──
 const ALLOWED_ORIGINS = [
@@ -24,7 +24,6 @@ function getSupabase() {
   return supabase;
 }
 
-// Simple admin auth — reuse PASTOR_SECRET as the admin key
 function isAdmin(event) {
   const code = (event.headers["x-pastor-code"] || "").toUpperCase();
   const secret = process.env.PASTOR_SECRET || "";
@@ -33,7 +32,7 @@ function isAdmin(event) {
   return code === expected;
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const origin = event.headers.origin || "";
   const cors = getCorsHeaders(origin);
 
@@ -43,7 +42,6 @@ exports.handler = async (event) => {
 
   const db = getSupabase();
 
-  // ── POST: Submit a poll response ──
   if (event.httpMethod === "POST") {
     try {
       const body = JSON.parse(event.body || "{}");
@@ -80,7 +78,6 @@ exports.handler = async (event) => {
     }
   }
 
-  // ── GET: Fetch poll results (admin only) ──
   if (event.httpMethod === "GET") {
     if (!isAdmin(event)) {
       return { statusCode: 401, headers: cors, body: JSON.stringify({ error: "Unauthorized" }) };
