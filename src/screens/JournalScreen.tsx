@@ -1077,13 +1077,13 @@ function ScriptureModal({
   );
 }
 
-function TodayPanel({ allEntries, onSave }: {
+function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   allEntries: JournalEntry[];
   onSave: (entry: JournalEntry) => void;
+  onOpenPassage: (p: TodayPassage) => void;
 }) {
   const passages = getTodaysPassages();
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const [modalPassage, setModalPassage] = useState<TodayPassage | null>(null);
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
   function getExistingNote(ref: string): JournalEntry | undefined {
@@ -1121,7 +1121,7 @@ function TodayPanel({ allEntries, onSave }: {
           return (
             <div
               key={ref}
-              onClick={() => setModalPassage({ ref, planTitle, dayNum, devotional, isBookChapter })}
+              onClick={() => onOpenPassage({ ref, planTitle, dayNum, devotional, isBookChapter })}
               style={{
                 background: 'var(--dw-card)',
                 border: '1px solid var(--dw-border)',
@@ -1213,19 +1213,6 @@ function TodayPanel({ allEntries, onSave }: {
         })}
       </div>
 
-      {/* Scripture study modal */}
-      {modalPassage && (
-        <ScriptureModal
-          passage={modalPassage.ref}
-          planTitle={modalPassage.planTitle}
-          dayNum={modalPassage.dayNum}
-          devotional={modalPassage.devotional}
-          isBookChapter={modalPassage.isBookChapter}
-          existingNote={getExistingNote(modalPassage.ref)}
-          onSave={handleSaveFromModal}
-          onClose={() => setModalPassage(null)}
-        />
-      )}
     </>
   );
 }
@@ -1247,6 +1234,13 @@ export function JournalScreen() {
     catch { return {}; }
   };
   const [activePlansData, setActivePlansData] = useState(getActivePlansData);
+  const [modalPassage, setModalPassage] = useState<TodayPassage | null>(null);
+
+  // Helper to get existing note for a passage ref
+  const getExistingNoteForModal = useCallback((ref: string): JournalEntry | undefined => {
+    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return entries.find(e => e.verseRef === ref && e.date === today);
+  }, [entries]);
 
   // Re-read entries every time the screen mounts so scripture notes from HomeScreen appear
   useEffect(() => {
@@ -1665,7 +1659,19 @@ export function JournalScreen() {
                   </div>
                 )}
                 <button
-                  onClick={() => setPlanPopup(null)}
+                  onClick={() => {
+                    if (nextPassage) {
+                      const nextDev = plan.devotionals?.[nextDay - 1];
+                      setModalPassage({
+                        ref: nextPassage.split(', ')[0].trim(),
+                        planTitle: plan.title,
+                        dayNum: nextDay,
+                        devotional: nextDev,
+                        isBookChapter: !!plan.bookId,
+                      });
+                    }
+                    setPlanPopup(null);
+                  }}
                   style={{
                     width: '100%', background: 'var(--dw-accent)', color: '#fff',
                     border: 'none', borderRadius: 12, padding: '14px 20px',
@@ -1682,7 +1688,7 @@ export function JournalScreen() {
 
         {/* Today's passages — inline note-taking */}
         {activeTab === 'today' && (
-          <TodayPanel allEntries={entries} onSave={handleTodaySave} />
+          <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
 
         {/* Entries */}
@@ -1807,6 +1813,21 @@ export function JournalScreen() {
 
       {/* Video recorder modal */}
       {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} />}
+
+      {/* Scripture study modal — lifted from TodayPanel so plan popup can also open it */}
+      {modalPassage && (
+        <ScriptureModal
+          passage={modalPassage.ref}
+          planTitle={modalPassage.planTitle}
+          dayNum={modalPassage.dayNum}
+          devotional={modalPassage.devotional}
+          isBookChapter={modalPassage.isBookChapter}
+          existingNote={getExistingNoteForModal(modalPassage.ref)}
+          onSave={handleTodaySave}
+          onClose={() => setModalPassage(null)}
+        />
+      )}
+
       <StopAllAudio />
     </div>
   );
