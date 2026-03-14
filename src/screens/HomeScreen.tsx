@@ -1603,6 +1603,9 @@ export function HomeScreen() {
           justifyContent: 'center',
           gap: 16,
           margin: '20px 0',
+          background: 'var(--dw-charcoal-deep)',
+          borderRadius: 14,
+          padding: '14px 8px',
         }}>
           <button
             onClick={() => setDayOffset(d => d - 1)}
@@ -1943,8 +1946,8 @@ export function HomeScreen() {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
               marginBottom: 16, padding: '10px 14px',
-              background: 'var(--dw-surface)', borderRadius: 12,
-              border: '1px solid var(--dw-border)',
+              background: 'var(--dw-charcoal)', borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.06)',
             }}>
               <span style={{ fontSize: 16 }}>🔥</span>
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)', margin: 0 }}>
@@ -1962,6 +1965,9 @@ export function HomeScreen() {
           gap: 6,
           marginBottom: 20,
           flexWrap: 'wrap',
+          background: 'var(--dw-charcoal-deep)',
+          borderRadius: 12,
+          padding: '10px 12px',
         }}>
           {TRANSLATIONS.map(t => (
             <button
@@ -1989,7 +1995,7 @@ export function HomeScreen() {
 
         {/* 3. TODAY'S CHAPTERS */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
             <p className="text-section-header">TODAY'S CHAPTERS</p>
               <button onClick={() => {
                 // All visible passages = plan passages + reading slot passages

@@ -707,13 +707,13 @@ function ScriptureModal({
       }}>
 
         {/* ── Drag handle + header ── */}
-        <div style={{ flexShrink: 0 }}>
+        <div style={{ flexShrink: 0, background: 'var(--dw-charcoal-deep)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 4 }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--dw-border)' }} />
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
           </div>
           <div style={{
             padding: '8px 18px 14px',
-            borderBottom: '1px solid var(--dw-border)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
             display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
           }}>
             <div>
