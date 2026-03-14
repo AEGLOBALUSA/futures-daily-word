@@ -19,6 +19,7 @@ import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
 import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
+import { FeedbackPoll } from '../components/FeedbackPoll';
 import { registerAudio } from '../utils/audioManager';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { personalize } from '../utils/personalization';
@@ -2938,6 +2939,7 @@ export function HomeScreen() {
         initialContext={bibleAIContext}
         selectedText={selection?.text}
       />
+      <FeedbackPoll userCampus={userProfile?.campus} />
       <StopAllAudio />
     </div>
   );

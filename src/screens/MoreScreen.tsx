@@ -10,8 +10,9 @@ import { LibraryScreen } from './LibraryScreen';
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
   Download, Languages, MapPin, Heart, ChevronDown,
-  BookOpen, Link, Music
+  BookOpen, Link, Music, BarChart3
 } from 'lucide-react';
+import { PollDashboard } from '../components/PollDashboard';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -41,6 +42,8 @@ export function MoreScreen() {
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [downloadingKJV, setDownloadingKJV] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showPollDashboard, setShowPollDashboard] = useState(false);
+  const [pollAdminCode, setPollAdminCode] = useState('');
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -152,6 +155,10 @@ export function MoreScreen() {
 
   if (showLibrary) {
     return <LibraryScreen onBack={() => setShowLibrary(false)} />;
+  }
+
+  if (showPollDashboard) {
+    return <PollDashboard pastorCode={pollAdminCode} onClose={() => setShowPollDashboard(false)} />;
   }
 
   return (
@@ -623,6 +630,32 @@ export function MoreScreen() {
             </div>
           </Card>
         </div>
+
+        {/* Admin — Poll Results */}
+        {userProfile?.persona === 'pastor' && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{
+              fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
+            }}>ADMIN</p>
+            <Card>
+              <div
+                style={rowStyle}
+                onClick={() => {
+                  const code = prompt('Enter admin code:');
+                  if (code) {
+                    setPollAdminCode(code.trim().toUpperCase());
+                    setShowPollDashboard(true);
+                  }
+                }}
+              >
+                <BarChart3 size={18} style={iconStyle} />
+                <span style={{ flex: 1 }}>Poll Results</span>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Version */}
         <p style={{
