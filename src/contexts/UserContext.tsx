@@ -124,10 +124,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, [userProfile?.email, setup]);
 
-  // Show email gate for first-time users
+  // Show email gate for first-time users (only once — respect skip)
   useEffect(() => {
     if (!setup) return;
-    if (userProfile?.email) return; // Skip for returning users
+    if (userProfile?.email) return; // Already have email
+    if (localStorage.getItem('dw_email_gate_skipped')) return; // User chose to skip
     setShowEmailGate(true);
   }, [setup]);
 

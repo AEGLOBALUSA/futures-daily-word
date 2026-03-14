@@ -128,6 +128,7 @@ export function EmailGate() {
     if (persona) {
       saveSetup({ persona, source: 'onboarding' });
     }
+    localStorage.setItem('dw_email_gate_skipped', 'true');
     setShowEmailGate(false);
   };
 
