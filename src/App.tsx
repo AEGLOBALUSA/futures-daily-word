@@ -6,7 +6,9 @@ import { ScriptureSelectionProvider, useScriptureSelection } from './contexts/Sc
 import { TabBar } from './components/TabBar';
 import { EmailGate } from './components/EmailGate';
 import { BibleAI } from './components/BibleAI';
+import { PathwayPicker } from './components/PathwayPicker';
 import type { TabId } from './components/TabBar';
+import type { Persona } from './utils/persona-config';
 import { HomeScreen } from './screens/HomeScreen';
 import { JournalScreen } from './screens/JournalScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
@@ -17,8 +19,15 @@ import { hideSplash, registerNativePush, isNative } from './utils/native';
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [showBibleAI, setShowBibleAI] = useState(false);
-  const { userProfile } = useUser();
+  const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
+
+  // Show PathwayPicker if no persona set
+  const needsPathway = !setup?.persona;
+
+  function handlePathwaySelect(persona: Persona) {
+    saveSetup({ persona, source: setup?.source || '' });
+  }
 
   useEffect(() => {
     hideSplash();
@@ -51,6 +60,11 @@ function AppContent() {
     plans: <PlansScreen />,
     more: <MoreScreen />,
   };
+
+  // Full-screen pathway picker — renders INSTEAD of app when no persona
+  if (needsPathway) {
+    return <PathwayPicker onSelect={handlePathwaySelect} />;
+  }
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>

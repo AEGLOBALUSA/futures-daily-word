@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { trackBehavior } from '../utils/behavior'
+import { getPersonaConfig } from '../utils/persona-config'
 import { Send, ChevronDown } from 'lucide-react'
 
 /** Inline "BIBLE AI" wordmark used wherever Brain icon used to be */
@@ -83,8 +84,13 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     setMessages(prev => [...prev, userMsg])
     setLoading(true)
 
+    // Persona-aware system prompt
+    const personaSetup = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}'); } catch { return {}; } })();
+    const personaConfig = getPersonaConfig(personaSetup.persona);
+
     const systemParts: string[] = [
       'You are a Bible study assistant for Futures Church Daily Word. You help people understand scripture, explore original languages, find application for daily life, and go deeper in their faith. Be warm, pastoral, and insightful. Keep responses clear and digestible — aim for 2-4 short paragraphs unless a longer answer is truly needed.',
+      personaConfig.ai.systemPromptAddition,
     ]
     // Include user's personal context if they've shared it
     const userStory = typeof localStorage !== 'undefined' ? localStorage.getItem('dw_user_story') : null;

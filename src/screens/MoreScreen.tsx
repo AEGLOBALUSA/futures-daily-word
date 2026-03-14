@@ -17,10 +17,11 @@ import { PollDashboard } from '../components/PollDashboard';
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
 const PERSONAS = [
-  { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
-  { id: 'pastor', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
-  { id: 'deeper', label: 'Going Deeper', desc: 'Deeper study and theology' },
-  { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
+  { id: 'new_to_faith', label: "I'm New to This", desc: 'Starting or reigniting my faith journey' },
+  { id: 'congregation', label: 'Church Member', desc: 'Growing in my daily walk with God' },
+  { id: 'deeper_study', label: 'Deep Bible Study', desc: 'Original languages, commentary, depth' },
+  { id: 'pastor_leader', label: 'Leader / Pastor', desc: 'Teaching tools & congregation insights' },
+  { id: 'comfort', label: 'I Need Comfort Right Now', desc: 'Encouragement for a difficult season' },
 ];
 
 const FONT_SIZES = [
@@ -632,7 +633,7 @@ export function MoreScreen() {
         </div>
 
         {/* Admin — Poll Results */}
-        {setup?.persona === 'pastor' && (
+        {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor') && (
           <div style={{ marginBottom: 20 }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,

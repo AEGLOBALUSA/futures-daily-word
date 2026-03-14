@@ -22,6 +22,8 @@ import { FeedbackPoll } from '../components/FeedbackPoll';
 import { registerAudio } from '../utils/audioManager';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { personalize } from '../utils/personalization';
+import { getPersonaConfig } from '../utils/persona-config';
+import { ComfortCard } from '../components/ComfortCard';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -246,6 +248,10 @@ interface ReadingSlot {
 
 export function HomeScreen() {
   const { userProfile, setup, saveProfile, requireEmail, showEmailGate } = useUser();
+
+  // ── Persona-aware feature gating ──
+  const personaConfig = getPersonaConfig(setup?.persona);
+  const pf = personaConfig.features; // shorthand
   const [dayOffset, setDayOffset] = useState(0);
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
@@ -1265,8 +1271,11 @@ export function HomeScreen() {
           );
         })()}
 
-        {/* Poll banner — right under the hero audio card */}
-        <FeedbackPoll userCampus={userProfile?.campus} />
+        {/* Poll banner — right under the hero audio card (persona-gated) */}
+        {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
+
+        {/* Comfort Card — comfort persona only */}
+        {pf.comfortCard && <ComfortCard />}
 
         {/* ── Start Your Journey — inline plan picker for users with no plans ── */}
         {(() => {
@@ -1605,8 +1614,8 @@ export function HomeScreen() {
           </div>
         </Card>
 
-        {/* ── Campus community count — compact, right after devotion ── */}
-        {userProfile?.campus && (() => {
+        {/* ── Campus community count — persona-gated ── */}
+        {pf.campusCount !== 'hidden' && userProfile?.campus && (() => {
           const count = getCampusReaderCount(userProfile.campus!);
           const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
           return (
@@ -2075,7 +2084,8 @@ export function HomeScreen() {
           <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
         </div>
 
-        {/* ── Daily Word of the Day — below scripture ── */}
+        {/* ── Daily Word of the Day — persona-gated ── */}
+        {pf.wordOfDay !== 'hidden' && (
         <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
             <p className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</p>
@@ -2104,9 +2114,10 @@ export function HomeScreen() {
             <ListenButton text={`${dailyWord.word}. ${dailyWord.meaning}. ${dailyWord.verse}`} size="sm" />
           </div>
         </Card>
+        )}
 
-        {/* ── Weekly Word in Review (Sundays) ── */}
-        {weekReview && !weekReviewDismissed && (() => {
+        {/* ── Weekly Word in Review (Sundays) — persona-gated ── */}
+        {pf.weeklyReview && weekReview && !weekReviewDismissed && (() => {
           const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
           return (
             <Card style={{
@@ -2148,8 +2159,8 @@ export function HomeScreen() {
           );
         })()}
 
-        {/* 5. Commentary — all sources with tab selector */}
-        {allCommentaries.length > 0 && (
+        {/* 5. Commentary — persona-gated: hidden / collapsed / expanded */}
+        {pf.commentary !== 'hidden' && allCommentaries.length > 0 && (
           <Card style={{ marginBottom: 16 }}>
             <p className="text-section-header" style={{ marginBottom: 10 }}>COMMENTARY</p>
             {/* Source tab strip */}

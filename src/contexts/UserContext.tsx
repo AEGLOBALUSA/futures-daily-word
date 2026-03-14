@@ -4,6 +4,7 @@
  */
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { PERSONA_MIGRATION } from '../utils/persona-config';
 
 export interface UserProfile {
   email: string;
@@ -69,6 +70,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const emailGateCallback = useRef<(() => void) | null>(null);
 
   const isAuthenticated = !!(userProfile?.email);
+
+  // ── V7 persona migration: map old persona values to new ones ──
+  useEffect(() => {
+    if (!setup?.persona) return;
+    const migrated = PERSONA_MIGRATION[setup.persona];
+    if (migrated && migrated !== setup.persona) {
+      const updated = { ...setup, persona: migrated };
+      localStorage.setItem('dw_setup', JSON.stringify(updated));
+      setSetup(updated);
+    }
+  }, []); // Run once on mount
 
   // Heartbeat + server sync on startup
   useEffect(() => {
