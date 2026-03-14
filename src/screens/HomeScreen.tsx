@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, Play, BookOpen, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -145,11 +145,6 @@ function getCampusReaderCount(campusId: string): number {
 }
 
 // ── Variable reward — rotate what leads home screen (day % 3) ───────────────
-function getHomeLeadType(): 0 | 1 | 2 {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  return (dayOfYear % 3) as 0 | 1 | 2;
-}
-
 // ── Weekly "Word in Review" — show on Sundays ────────────────────────────────
 const WEEK_REVIEW_QUESTIONS = [
   'What stood out most in what you read this week?',
@@ -187,12 +182,6 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
   }
 }
 
-const PERSONAS = [
-  { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
-  { id: 'pastor', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
-  { id: 'deeper', label: 'Going Deeper', desc: 'Deeper study and theology' },
-  { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
-];
 
 /* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Bible Books and Chapters ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 const BIBLE_BOOKS = [
@@ -256,7 +245,7 @@ interface ReadingSlot {
 }
 
 export function HomeScreen() {
-  const { userProfile, setup, profilePic, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
+  const { userProfile, setup, saveProfile, requireEmail, showEmailGate } = useUser();
   const [dayOffset, setDayOffset] = useState(0);
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
@@ -264,9 +253,7 @@ export function HomeScreen() {
   const [passageTexts, setPassageTexts] = useState<Record<string, string>>({});
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassages, setExpandedPassages] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
   const [showCampusPicker, setShowCampusPicker] = useState(false);
-  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
 
   // Reading Slots state
   const [readingSlots, setReadingSlots] = useState<ReadingSlot[]>(() => {
@@ -315,12 +302,7 @@ export function HomeScreen() {
   const [weekReview] = useState(() => getWeekReviewData());
   const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
   const [selectedCommentaryIdx, setSelectedCommentaryIdx] = useState(0);
-  // Variable reward lead type
-  const homeLeadType = getHomeLeadType();
-
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
-  const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
-  const displayName = userProfile?.firstName || 'Friend';
   const lang = localStorage.getItem('dw_lang') || 'en';
 
   // Load Faith Pathway for new_returning persona
@@ -404,11 +386,6 @@ export function HomeScreen() {
       requireEmail(() => {});
     }
     setShowCampusPicker(false);
-  };
-
-  const handlePersonaSelect = (personaId: string) => {
-    saveSetup({ persona: personaId, source: setup?.source || '' });
-    setShowPersonaPicker(false);
   };
 
   const passages = getDailyPassages(dayOffset);
@@ -1422,82 +1399,7 @@ export function HomeScreen() {
           </div>
         </div>{/* end hero viewport */}
 
-        {/* Persona Greeting */}
-        <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-          {profilePic ? (
-            <img
-              src={profilePic}
-              alt="Profile"
-              style={{
-                width: 44, height: 44, borderRadius: '50%',
-                objectFit: 'cover', flexShrink: 0,
-                border: '2px solid var(--dw-accent)',
-              }}
-            />
-          ) : (
-            <div style={{
-              width: 44, height: 44, borderRadius: '50%',
-              background: 'var(--dw-accent-bg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, border: '2px solid var(--dw-accent)',
-            }}>
-              <User size={20} style={{ color: 'var(--dw-accent)' }} />
-            </div>
-          )}
-          <div style={{ flex: 1 }}>
-            <p style={{
-              color: 'var(--dw-text-primary)',
-              fontSize: 15,
-              fontWeight: 500,
-              fontFamily: 'var(--font-sans)',
-            }}>
-              Welcome, {displayName}
-            </p>
-            <button
-              onClick={() => setShowPersonaPicker(!showPersonaPicker)}
-              style={{
-                background: 'none', border: 'none', padding: 0,
-                color: 'var(--dw-accent)', fontSize: 12,
-                fontFamily: 'var(--font-sans)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4, marginTop: 2,
-              }}
-            >
-              {currentPersona ? currentPersona.label : 'Set your journey type'}
-              <ChevronDown size={12} />
-            </button>
-          </div>
-        </Card>
-
-        {/* Persona Picker Dropdown */}
-        {showPersonaPicker && (
-          <Card style={{ marginBottom: 16, padding: 12 }}>
-            <p className="text-section-header" style={{ marginBottom: 10 }}>YOUR JOURNEY</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {PERSONAS.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => handlePersonaSelect(p.id)}
-                  style={{
-                    background: setup?.persona === p.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: setup?.persona === p.id ? '#fff' : 'var(--dw-text-primary)',
-                    border: 'none',
-                    borderRadius: 10,
-                    padding: '12px 16px',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    minHeight: 44,
-                    textAlign: 'left',
-                  }}
-                >
-                  <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
-                </button>
-              ))}
-            </div>
-          </Card>
-        )}
+        {/* Persona greeting + picker moved to Settings */}
 
         {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FAITH PATHWAY CARD ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ for new_returning persona */}
         {pathwayProgress.enrolled && pathwayData && setup?.persona === 'new_returning' && (() => {
@@ -1650,85 +1552,13 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* Listen to all — full-width bar */}
-        <ListenButton
-          text={[
-            `"${quote.text}" — ${quote.author}`,
-            `${todaysDevotion.title}. ${todaysDevotion.body}`,
-            `${dailyWord.word}. ${dailyWord.meaning}`,
-          ].join('\n\n')}
-          size="lg"
-          label="Listen to today's reading"
-        />
+        {/* Listen bar removed — hero card handles audio. Scripture search moved to Study tab. */}
 
-
-        {/* Variable reward: homeLeadType 0=quote first, 1=devotion first, 2=reflection question first */}
-        {/* Quote card */}
-        {homeLeadType !== 1 && (
-        <div style={{
-          marginBottom: 20,
-          padding: '8px 0',
-          textAlign: 'center',
-        }}>
-          <p
-            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 19,
-              fontStyle: 'italic',
-              color: 'var(--dw-text-primary)',
-              lineHeight: 1.8,
-              cursor: 'pointer',
-              WebkitUserSelect: 'text',
-              userSelect: 'text',
-              letterSpacing: '0.01em',
-            }}
-          >
-            &ldquo;{quote.text}&rdquo;
-          </p>
-          <p style={{
-            color: 'var(--dw-text-muted)',
-            fontSize: 13,
-            fontWeight: 500,
-            marginTop: 10,
-            fontFamily: 'var(--font-sans)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-          }}>
-            — {quote.author}
-          </p>
-          <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
-        </div>
-        )}
-
-        {/* Scripture Search — always shown under quote, before devotion */}
-        <Card style={{ marginBottom: 16, border: '2px solid var(--dw-accent)', background: 'var(--dw-surface)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Search size={22} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search scripture or topic..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--dw-text-primary)',
-                fontSize: 17,
-                fontFamily: 'var(--font-sans)',
-                padding: '4px 0',
-              }}
-            />
-          </div>
-        </Card>
-
-        {/* Devotion of the Day — single source from getTodaysDevotion() */}
+        {/* Devotion of the Day — A&J devotionals, single source, with emoji reactions merged in */}
         <Card
           style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
           onClick={() => {
-            trackBehavior('devotion_tapped', todaysDevotion.source === 'ashley-jane' ? 'ashley-jane' : todaysDevotion.title);
+            trackBehavior('devotion_tapped', 'ashley-jane');
             setSelection({ text: `${todaysDevotion.title}\n\n${todaysDevotion.body}`, verseRefs: [todaysDevotion.verse || ''], source: 'tap' });
           }}
         >
@@ -1738,184 +1568,44 @@ export function HomeScreen() {
             {todaysDevotion.verse}
           </p>
           <p className="text-devotion">{todaysDevotion.body}</p>
-          <p style={{ color: todaysDevotion.source === 'ashley-jane' ? 'var(--dw-accent)' : 'var(--dw-text-muted)', fontSize: todaysDevotion.source === 'ashley-jane' ? 13 : 12, fontWeight: todaysDevotion.source === 'ashley-jane' ? 600 : 400, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
+          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
             — {todaysDevotion.author}
           </p>
-          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Emoji reactions — inline on devotion */}
+            {dayOffset === 0 && (
+              todayReaction ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 20 }}>{todayReaction}</span>
+                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)' }}>
+                    {REACTIONS.find(r => r.emoji === todayReaction)?.label}
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {REACTIONS.map(({ emoji }) => (
+                    <button key={emoji} onClick={(e) => {
+                      e.stopPropagation();
+                      saveTodayReaction(emoji);
+                      setTodayReaction(emoji);
+                      trackBehavior('reaction', emoji);
+                    }} style={{
+                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                      borderRadius: 10, padding: '6px 10px', cursor: 'pointer', fontSize: 18,
+                      transition: 'all 0.15s ease',
+                    }}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+            {!dayOffset && <div />}
             <ListenButton text={`${todaysDevotion.title}. ${todaysDevotion.body}`} size="md" label="Listen" />
           </div>
         </Card>
 
-        {/* Quote shows AFTER devotion on days when devotion leads (type 1) */}
-        {homeLeadType === 1 && (
-        <div style={{
-          marginBottom: 20,
-          padding: '8px 0',
-          textAlign: 'center',
-        }}>
-          <p
-            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 19,
-              fontStyle: 'italic',
-              color: 'var(--dw-text-primary)',
-              lineHeight: 1.8,
-              cursor: 'pointer',
-              WebkitUserSelect: 'text',
-              userSelect: 'text',
-              letterSpacing: '0.01em',
-            }}
-          >
-            &ldquo;{quote.text}&rdquo;
-          </p>
-          <p style={{
-            color: 'var(--dw-text-muted)',
-            fontSize: 13,
-            fontWeight: 500,
-            marginTop: 10,
-            fontFamily: 'var(--font-sans)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-          }}>
-            — {quote.author}
-          </p>
-          <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
-        </div>
-        )}
-
-        {/* (Scripture Search moved below devotion) */}
-
-        {/* Reflection question leads on type-2 days */}
-        {homeLeadType === 2 && (
-        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(107,26,34,0.07) 0%, rgba(154,123,46,0.05) 100%)', borderLeft: '3px solid rgba(154,123,46,0.6)' }}>
-          <p className="text-section-header" style={{ color: '#9A7B2E', marginBottom: 8 }}>REFLECT TODAY</p>
-          <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.6 }}>
-            {WEEK_REVIEW_QUESTIONS[(new Date().getDate()) % WEEK_REVIEW_QUESTIONS.length]}
-          </p>
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-            <ListenButton text={WEEK_REVIEW_QUESTIONS[(new Date().getDate()) % WEEK_REVIEW_QUESTIONS.length]} size="sm" />
-          </div>
-        </Card>
-        )}
-
-        {/* Daily Word of the Day */}
-        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-            <p className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</p>
-            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
-              {dailyWord.lang}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)', margin: 0 }}>
-              {dailyWord.word}
-            </p>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#9A7B2E', margin: 0 }}>
-              {dailyWord.original}
-            </p>
-          </div>
-          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', marginBottom: 8, letterSpacing: '0.03em' }}>
-            /{dailyWord.pronunciation}/
-          </p>
-          <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, lineHeight: 1.6, color: 'var(--dw-text-secondary)', marginBottom: 8 }}>
-            {dailyWord.meaning}
-          </p>
-          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
-            {dailyWord.verse}
-          </p>
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-            <ListenButton text={`${dailyWord.word}. ${dailyWord.meaning}. ${dailyWord.verse}`} size="sm" />
-          </div>
-        </Card>
-
-        {/* ── Weekly Word in Review (Sundays) ── */}
-        {weekReview && !weekReviewDismissed && (() => {
-          const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
-          return (
-            <Card style={{
-              marginBottom: 16,
-              background: 'linear-gradient(135deg, rgba(107,26,34,0.10) 0%, rgba(154,123,46,0.07) 100%)',
-              border: '1px solid rgba(154,123,46,0.25)',
-              position: 'relative',
-            }}>
-              <button onClick={() => {
-                localStorage.setItem('dw_week_review_dismissed', weekKey);
-                setWeekReviewDismissed(true);
-              }} style={{
-                position: 'absolute', top: 12, right: 12,
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
-              }}>×</button>
-              <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</p>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
-              <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-                {[
-                  { value: weekReview.daysRead, label: 'days this week' },
-                  { value: weekReview.streak, label: 'day streak' },
-                ].map(({ value, label }) => (
-                  <div key={label} style={{
-                    flex: 1, background: 'var(--dw-surface)', borderRadius: 12, padding: '12px 10px', textAlign: 'center',
-                  }}>
-                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, color: 'var(--dw-accent)', margin: 0 }}>{value}</p>
-                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', margin: '2px 0 0' }}>{label}</p>
-                  </div>
-                ))}
-              </div>
-              <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
-                {weekReview.question}
-              </p>
-              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-                <ListenButton text={weekReview.question} size="sm" />
-              </div>
-            </Card>
-          );
-        })()}
-
-        {/* ── Emoji Reaction micro-commitment ── */}
-        {dayOffset === 0 && (() => {
-          if (todayReaction) {
-            return (
-              <Card style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 26 }}>{todayReaction}</span>
-                <div>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', margin: 0 }}>
-                    You reacted to today&rsquo;s reading
-                  </p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', margin: '2px 0 0' }}>
-                    {REACTIONS.find(r => r.emoji === todayReaction)?.label}
-                  </p>
-                </div>
-              </Card>
-            );
-          }
-          return (
-            <Card style={{ marginBottom: 16 }}>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', marginBottom: 12 }}>
-                How did today&rsquo;s reading land with you?
-              </p>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {REACTIONS.map(({ emoji, label }) => (
-                  <button key={emoji} onClick={() => {
-                    saveTodayReaction(emoji);
-                    setTodayReaction(emoji);
-                    trackBehavior('reaction', emoji);
-                  }} style={{
-                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                    background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                    borderRadius: 12, padding: '10px 6px', cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}>
-                    <span style={{ fontSize: 24 }}>{emoji}</span>
-                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
-                  </button>
-                ))}
-              </div>
-            </Card>
-          );
-        })()}
-
-        {/* ── Campus community count ── */}
+        {/* ── Campus community count — compact, right after devotion ── */}
         {userProfile?.campus && (() => {
           const count = getCampusReaderCount(userProfile.campus!);
           const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
@@ -1934,40 +1624,7 @@ export function HomeScreen() {
           );
         })()}
 
-        {/* Translation Selector — always visible */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          marginBottom: 20,
-          flexWrap: 'wrap',
-          background: 'var(--dw-charcoal-deep)',
-          borderRadius: 12,
-          padding: '10px 12px',
-        }}>
-          {TRANSLATIONS.map(t => (
-            <button
-              key={t}
-              onClick={() => handleTranslationChange(t)}
-              style={{
-                background: t === translation ? 'var(--dw-accent)' : 'rgba(255,255,255,0.06)',
-                color: '#fff',
-                border: t === translation ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'var(--font-sans)',
-                minHeight: 32,
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+        {/* Translation selector removed — hero card has translation picker */}
 
 
         {/* 3. TODAY'S CHAPTERS */}
@@ -2381,6 +2038,115 @@ export function HomeScreen() {
         </div>
 
 
+
+        {/* ── Daily Quote — below the fold ── */}
+        <div style={{
+          marginBottom: 20,
+          padding: '8px 0',
+          textAlign: 'center',
+        }}>
+          <p
+            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: 19,
+              fontStyle: 'italic',
+              color: 'var(--dw-text-primary)',
+              lineHeight: 1.8,
+              cursor: 'pointer',
+              WebkitUserSelect: 'text',
+              userSelect: 'text',
+              letterSpacing: '0.01em',
+            }}
+          >
+            &ldquo;{quote.text}&rdquo;
+          </p>
+          <p style={{
+            color: 'var(--dw-text-muted)',
+            fontSize: 13,
+            fontWeight: 500,
+            marginTop: 10,
+            fontFamily: 'var(--font-sans)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}>
+            — {quote.author}
+          </p>
+          <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
+        </div>
+
+        {/* ── Daily Word of the Day — below scripture ── */}
+        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <p className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</p>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
+              {dailyWord.lang}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)', margin: 0 }}>
+              {dailyWord.word}
+            </p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#9A7B2E', margin: 0 }}>
+              {dailyWord.original}
+            </p>
+          </div>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', marginBottom: 8, letterSpacing: '0.03em' }}>
+            /{dailyWord.pronunciation}/
+          </p>
+          <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, lineHeight: 1.6, color: 'var(--dw-text-secondary)', marginBottom: 8 }}>
+            {dailyWord.meaning}
+          </p>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
+            {dailyWord.verse}
+          </p>
+          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+            <ListenButton text={`${dailyWord.word}. ${dailyWord.meaning}. ${dailyWord.verse}`} size="sm" />
+          </div>
+        </Card>
+
+        {/* ── Weekly Word in Review (Sundays) ── */}
+        {weekReview && !weekReviewDismissed && (() => {
+          const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
+          return (
+            <Card style={{
+              marginBottom: 16,
+              background: 'linear-gradient(135deg, rgba(107,26,34,0.10) 0%, rgba(154,123,46,0.07) 100%)',
+              border: '1px solid rgba(154,123,46,0.25)',
+              position: 'relative',
+            }}>
+              <button onClick={() => {
+                localStorage.setItem('dw_week_review_dismissed', weekKey);
+                setWeekReviewDismissed(true);
+              }} style={{
+                position: 'absolute', top: 12, right: 12,
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
+              }}>×</button>
+              <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</p>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                {[
+                  { value: weekReview.daysRead, label: 'days this week' },
+                  { value: weekReview.streak, label: 'day streak' },
+                ].map(({ value, label }) => (
+                  <div key={label} style={{
+                    flex: 1, background: 'var(--dw-surface)', borderRadius: 12, padding: '12px 10px', textAlign: 'center',
+                  }}>
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, color: 'var(--dw-accent)', margin: 0 }}>{value}</p>
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', margin: '2px 0 0' }}>{label}</p>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
+                {weekReview.question}
+              </p>
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                <ListenButton text={weekReview.question} size="sm" />
+              </div>
+            </Card>
+          );
+        })()}
 
         {/* 5. Commentary — all sources with tab selector */}
         {allCommentaries.length > 0 && (
