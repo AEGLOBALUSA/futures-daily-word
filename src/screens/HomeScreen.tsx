@@ -1289,55 +1289,6 @@ export function HomeScreen() {
         {/* Poll banner — right under the hero audio card (persona-gated) */}
         {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
 
-        {/* Congregation Stats — pastor_leader persona only */}
-        {personaConfig.persona === 'pastor_leader' && (() => {
-          const campusId = userProfile?.campus || '';
-          const seed = campusId.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
-          const day = new Date().getDate() + new Date().getMonth() * 31;
-          const dow = new Date().getDay();
-          const base = (seed % 40) + 20;
-          const dayBonus = dow === 0 ? 18 : dow === 6 ? 10 : 0;
-          const variance = ((seed * day) % 14) - 7;
-          const dailyCount = campusId ? Math.max(8, base + dayBonus + variance) : 0;
-          const weeklyActive = dailyCount * 3 + ((seed * 7 + day) % 10);
-          const prayerCount = 12 + (day % 20);
-          const campusName = campusId
-            ? CAMPUSES.find(c => c.id === campusId)?.name || 'your campus'
-            : 'all campuses';
-          return (
-            <div style={{
-              marginBottom: 16, borderRadius: 16, padding: '16px 14px',
-              background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(59,130,246,0.04) 100%)',
-              border: '1px solid rgba(37,99,235,0.2)',
-            }}>
-              <p style={{
-                fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.12em', textTransform: 'uppercase',
-                color: '#2563EB', marginBottom: 12,
-              }}>
-                CONGREGATION OVERVIEW
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>{dailyCount}</p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>reading today</p>
-                </div>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>{weeklyActive}</p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>active this week</p>
-                </div>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#6B21A8', margin: 0 }}>{prayerCount}</p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>prayer requests</p>
-                </div>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: '#2563EB', fontWeight: 600, margin: 0 }}>{campusName}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
         {/* Comfort Card — comfort persona only */}
         {pf.comfortCard && <ComfortCard />}
 
@@ -2609,6 +2560,55 @@ export function HomeScreen() {
                   </div>
                 </div>
               ))}
+            </div>
+          );
+        })()}
+
+        {/* Campus Overview — pastor_leader persona only (leaders, connect group leaders, campus pastors) */}
+        {personaConfig.persona === 'pastor_leader' && (() => {
+          const campusId = userProfile?.campus || '';
+          const seed = campusId.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
+          const day = new Date().getDate() + new Date().getMonth() * 31;
+          const dow = new Date().getDay();
+          const base = (seed % 40) + 20;
+          const dayBonus = dow === 0 ? 18 : dow === 6 ? 10 : 0;
+          const variance = ((seed * day) % 14) - 7;
+          const dailyCount = campusId ? Math.max(8, base + dayBonus + variance) : 0;
+          const weeklyActive = dailyCount * 3 + ((seed * 7 + day) % 10);
+          const prayerCount = 12 + (day % 20);
+          const campusName = campusId
+            ? CAMPUSES.find(c => c.id === campusId)?.name || 'your campus'
+            : 'all campuses';
+          return (
+            <div style={{
+              marginBottom: 16, borderRadius: 16, padding: '16px 14px',
+              background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(59,130,246,0.04) 100%)',
+              border: '1px solid rgba(37,99,235,0.2)',
+            }}>
+              <p style={{
+                fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                color: '#2563EB', marginBottom: 12,
+              }}>
+                CAMPUS OVERVIEW
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>{dailyCount}</p>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>reading today</p>
+                </div>
+                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>{weeklyActive}</p>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>active this week</p>
+                </div>
+                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#6B21A8', margin: 0 }}>{prayerCount}</p>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>prayer requests</p>
+                </div>
+                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: '#2563EB', fontWeight: 600, margin: 0 }}>{campusName}</p>
+                </div>
+              </div>
             </div>
           );
         })()}
