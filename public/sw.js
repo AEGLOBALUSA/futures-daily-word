@@ -4,8 +4,8 @@
  * Stale-while-revalidate for fonts and images.
  */
 
-const CACHE_NAME = 'fdw-v3';
-const STATIC_CACHE = 'fdw-static-v3';
+const CACHE_NAME = 'fdw-v4';
+const STATIC_CACHE = 'fdw-static-v4';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
