@@ -1662,6 +1662,9 @@ export function HomeScreen() {
           label="Listen to today's reading"
         />
 
+        {/* Poll banner — inline, right under listen bar */}
+        <FeedbackPoll userCampus={userProfile?.campus} />
+
         {/* Variable reward: homeLeadType 0=quote first, 1=devotion first, 2=reflection question first */}
         {/* Quote card */}
         {homeLeadType !== 1 && (
@@ -2939,7 +2942,6 @@ export function HomeScreen() {
         initialContext={bibleAIContext}
         selectedText={selection?.text}
       />
-      <FeedbackPoll userCampus={userProfile?.campus} />
       <StopAllAudio />
     </div>
   );

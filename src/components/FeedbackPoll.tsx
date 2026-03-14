@@ -100,34 +100,34 @@ export function FeedbackPoll({ userCampus }: Props) {
     }, 2000);
   };
 
-  // ── Floating button ──
+  // ── Inline banner card ──
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
         style={{
-          position: 'fixed',
-          bottom: 90,
-          left: 16,
-          zIndex: 998,
+          width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: '10px 16px',
+          gap: 10,
+          padding: '12px 16px',
+          marginTop: 12,
+          marginBottom: 4,
           background: 'var(--dw-charcoal)',
           color: '#fff',
           border: 'none',
-          borderRadius: 999,
+          borderRadius: 12,
           fontSize: 13,
-          fontWeight: 600,
+          fontWeight: 500,
           fontFamily: 'var(--font-sans)',
           cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          textAlign: 'left',
           animation: 'fadeIn 0.4s ease',
         }}
       >
-        <MessageCircle size={16} />
-        Help Us Improve
+        <MessageCircle size={16} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>Help us improve — quick 2-question survey</span>
+        <span style={{ fontSize: 11, opacity: 0.6, flexShrink: 0 }}>Tap</span>
       </button>
     );
   }
