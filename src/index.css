@@ -225,13 +225,13 @@ body {
   cursor: pointer;
   border: none;
   background: none;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.75);
   transition: color var(--transition-fast);
 }
 
 .tab-bar-item.active { color: #fff; }
 
-[data-theme="light"] .tab-bar-item { color: rgba(255,255,255,0.5); }
+[data-theme="light"] .tab-bar-item { color: rgba(255,255,255,0.75); }
 [data-theme="light"] .tab-bar-item.active { color: #fff; }
 .tab-bar-item span {
   font-family: var(--font-sans);
