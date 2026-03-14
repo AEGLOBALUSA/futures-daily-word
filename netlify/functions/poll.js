@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
+const { createClient } = require("@supabase/supabase-js");
+const crypto = require("crypto");
 
 // ── Config ──
 const ALLOWED_ORIGINS = [
@@ -33,7 +33,7 @@ function isAdmin(event) {
   return code === expected;
 }
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const origin = event.headers.origin || "";
   const cors = getCorsHeaders(origin);
 
