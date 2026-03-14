@@ -2,9 +2,7 @@ import { trackBehavior } from '../utils/behavior';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { DEVOTIONS } from '../data/devotions';
-import { getDailyDevotionIndex } from '../utils/daily-passages';
-import { ASHLEY_JANE_DEVOTIONALS, ASHLEY_JANE_PLAN_PASSAGES } from '../data/ashley-jane-plan';
+import { getTodaysDevotion } from '../utils/daily-passages';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Circle } from 'lucide-react';
@@ -347,25 +345,8 @@ export function PlansScreen() {
     return 0;
   });
   const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
-  // Match HomeScreen logic: if Ashley & Jane plan is active, show that devotional; otherwise cycle through DEVOTIONS
-  const devotion = (() => {
-    try {
-      const ap: Record<string, { startedAt: string }> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-      if (ap['ashley-jane-daily-word']) {
-        const start = new Date(ap['ashley-jane-daily-word'].startedAt);
-        start.setHours(0, 0, 0, 0);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const elapsed = Math.floor((today.getTime() - start.getTime()) / 86400000);
-        const dn = Math.max(1, Math.min(elapsed + 1, ASHLEY_JANE_PLAN_PASSAGES.length));
-        const ajDev = ASHLEY_JANE_DEVOTIONALS[dn - 1];
-        if (ajDev) {
-          return { title: ajDev.title, verse: ASHLEY_JANE_PLAN_PASSAGES[dn - 1] || '', body: ajDev.body, author: ajDev.author };
-        }
-      }
-    } catch { /* fall through */ }
-    return DEVOTIONS[getDailyDevotionIndex()];
-  })();
+  // Single devotion for the whole site — same source as HomeScreen
+  const devotion = getTodaysDevotion();
 
   // Hub view (V1 structure) - the main Plans & More page
   if (!showPlanDetail) {

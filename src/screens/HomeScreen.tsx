@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, User, ChevronDown, Headphones, Pause, Play, BookOpen, Plus, X } from 'lucide-react';
-import { getDailyPassages, getDateString, getDailyDevotionIndex, getDailyQuoteIndex } from '../utils/daily-passages';
+import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion } from '../utils/daily-passages';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
-import { DEVOTIONS } from '../data/devotions';
 import { QUOTES } from '../data/quotes';
 import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
@@ -414,9 +413,8 @@ export function HomeScreen() {
 
   const passages = getDailyPassages(dayOffset);
   const dateStr = getDateString(dayOffset);
-  const devIndex = getDailyDevotionIndex(dayOffset);
   const quoteIndex = getDailyQuoteIndex(dayOffset, QUOTES.length);
-  const devotion = DEVOTIONS[devIndex];
+  const todaysDevotion = getTodaysDevotion(dayOffset);
   const quote = QUOTES[quoteIndex];
 
   // Find commentary for today's primary passage — collect ALL sources
@@ -766,9 +764,7 @@ export function HomeScreen() {
     book.toLowerCase().includes(bookPickerSearch.toLowerCase())
   );
 
-  // Ashley & Jane plan devotional — replaces default Devotion of the Day when active
-  const ashleyJanePassage = todaysPlanPassages.find(p => p.planId === 'ashley-jane-daily-word');
-  const ajDevotional = ashleyJanePassage?.devotional;
+  // (A&J devotional now handled by getTodaysDevotion() — single source for entire site)
 
   // All active plans with progress — used for home page plan strip
   // planTick dependency ensures this recomputes after start/remove
@@ -1658,7 +1654,7 @@ export function HomeScreen() {
         <ListenButton
           text={[
             `"${quote.text}" — ${quote.author}`,
-            ajDevotional ? `${ajDevotional.title}. ${ajDevotional.body}` : `${devotion.title}. ${devotion.body}`,
+            `${todaysDevotion.title}. ${todaysDevotion.body}`,
             `${dailyWord.word}. ${dailyWord.meaning}`,
           ].join('\n\n')}
           size="lg"
@@ -1728,50 +1724,26 @@ export function HomeScreen() {
           </div>
         </Card>
 
-        {/* Devotion of the Day — tapping anywhere on the card opens the toolbar (Note / Share / Ask AI) */}
+        {/* Devotion of the Day — single source from getTodaysDevotion() */}
         <Card
           style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
           onClick={() => {
-            trackBehavior('devotion_tapped', ajDevotional ? 'ashley-jane' : devotion.title);
-            if (ajDevotional) {
-              setSelection({ text: `${ajDevotional.title}\n\n${ajDevotional.body}`, verseRefs: [ashleyJanePassage?.passage || ''], source: 'tap' });
-            } else {
-              setSelection({ text: `${devotion.title}\n\n${devotion.body}`, verseRefs: [devotion.verse || ''], source: 'tap' });
-            }
+            trackBehavior('devotion_tapped', todaysDevotion.source === 'ashley-jane' ? 'ashley-jane' : todaysDevotion.title);
+            setSelection({ text: `${todaysDevotion.title}\n\n${todaysDevotion.body}`, verseRefs: [todaysDevotion.verse || ''], source: 'tap' });
           }}
         >
           <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
-          {ajDevotional ? (
-            <>
-              <p className="text-card-title" style={{ marginBottom: 6 }}>{ajDevotional.title}</p>
-              {ashleyJanePassage?.passage && (
-                <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                  {ashleyJanePassage.passage}
-                </p>
-              )}
-              <p className="text-devotion">{ajDevotional.body}</p>
-              <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-                — {ajDevotional.author}
-              </p>
-              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                <ListenButton text={`${ajDevotional.title}. ${ajDevotional.body}`} size="md" label="Listen" />
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-card-title" style={{ marginBottom: 6 }}>{devotion.title}</p>
-              <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                {devotion.verse}
-              </p>
-              <p className="text-devotion">{devotion.body}</p>
-              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-                — {devotion.author}
-              </p>
-              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                <ListenButton text={`${devotion.title}. ${devotion.body}`} size="md" label="Listen" />
-              </div>
-            </>
-          )}
+          <p className="text-card-title" style={{ marginBottom: 6 }}>{todaysDevotion.title}</p>
+          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+            {todaysDevotion.verse}
+          </p>
+          <p className="text-devotion">{todaysDevotion.body}</p>
+          <p style={{ color: todaysDevotion.source === 'ashley-jane' ? 'var(--dw-accent)' : 'var(--dw-text-muted)', fontSize: todaysDevotion.source === 'ashley-jane' ? 13 : 12, fontWeight: todaysDevotion.source === 'ashley-jane' ? 600 : 400, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
+            — {todaysDevotion.author}
+          </p>
+          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+            <ListenButton text={`${todaysDevotion.title}. ${todaysDevotion.body}`} size="md" label="Listen" />
+          </div>
         </Card>
 
         {/* Quote shows AFTER devotion on days when devotion leads (type 1) */}
@@ -2055,7 +2027,7 @@ export function HomeScreen() {
             </Card>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {todaysPlanPassages.map(({ planId, planTitle, passage, dayNum, devotional }) => {
+              {todaysPlanPassages.map(({ planId, planTitle, passage, dayNum }) => {
         const tKey = passage + '_' + translation;
         const txt = passageTexts[tKey];
         return (
@@ -2136,55 +2108,7 @@ export function HomeScreen() {
                   </div>
                 )}
               </div>
-              {/* ── Daily Devotional — shown after scripture when plan has one (suppressed for A&J since it shows as main devotion) ── */}
-              {devotional && planId !== 'ashley-jane-daily-word' && (
-                <div style={{
-                  borderTop: '1px solid var(--dw-border-subtle)',
-                  padding: '18px 18px 20px',
-                }}>
-                  {/* Devotional title */}
-                  <p style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-serif)',
-                    color: 'var(--dw-text-primary)',
-                    marginBottom: 12,
-                    lineHeight: 1.4,
-                  }}>
-                    {devotional.title}
-                  </p>
-                  {/* Devotional body */}
-                  <div
-                    onClick={() => setSelection({ text: devotional.body, verseRefs: [passage], source: 'tap' })}
-                    style={{
-                      fontSize: 15,
-                      lineHeight: 1.8,
-                      color: 'var(--dw-text-secondary)',
-                      fontFamily: 'var(--font-serif, Georgia, serif)',
-                      whiteSpace: 'pre-wrap',
-                      cursor: 'pointer',
-                      WebkitUserSelect: 'text',
-                      userSelect: 'text',
-                    }}
-                  >
-                    {devotional.body}
-                  </div>
-                  {/* Author attribution */}
-                  <p style={{
-                    marginTop: 16,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--dw-accent)',
-                    fontFamily: 'var(--font-sans)',
-                    letterSpacing: '0.04em',
-                  }}>
-                    — {devotional.author}
-                  </p>
-                  <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                    <ListenButton text={`${devotional.title}. ${devotional.body}`} size="md" label="Listen" />
-                  </div>
-                </div>
-              )}
+              {/* Plan-level devotionals suppressed — single devotion shown in main card above */}
             </div>
           </div>
         );

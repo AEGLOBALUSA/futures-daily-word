@@ -4,6 +4,8 @@
  * rotating through each section's passages based on the day number.
  */
 import { BIBLE_SECTIONS } from '../data/bible-sections';
+import { ASHLEY_JANE_DEVOTIONALS, ASHLEY_JANE_PLAN_PASSAGES } from '../data/ashley-jane-plan';
+import { DEVOTIONS } from '../data/devotions';
 
 export interface DailyPassage {
   sectionKey: string;
@@ -85,4 +87,47 @@ export function getDailyDevotionIndex(dayOffset = 0): number {
 export function getDailyQuoteIndex(dayOffset = 0, totalQuotes: number): number {
   const dayNum = getDayNumber(dayOffset);
   return dayNum % totalQuotes;
+}
+
+/**
+ * Get THE single daily devotion for the entire site.
+ * If the Ashley & Jane plan is active, use its devotional.
+ * Otherwise fall back to the rotating DEVOTIONS pool.
+ * Every screen must use this — never derive devotion independently.
+ */
+export function getTodaysDevotion(dayOffset = 0): {
+  title: string;
+  verse: string;
+  body: string;
+  author: string;
+  source: 'ashley-jane' | 'pool';
+} {
+  try {
+    const ap: Record<string, { startedAt: string }> =
+      JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+
+    if (ap['ashley-jane-daily-word']) {
+      const start = new Date(ap['ashley-jane-daily-word'].startedAt);
+      start.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setDate(today.getDate() + dayOffset);
+      today.setHours(0, 0, 0, 0);
+      const elapsed = Math.floor((today.getTime() - start.getTime()) / 86400000);
+      const dn = Math.max(1, Math.min(elapsed + 1, ASHLEY_JANE_PLAN_PASSAGES.length));
+      const ajDev = ASHLEY_JANE_DEVOTIONALS[dn - 1];
+      if (ajDev) {
+        return {
+          title: ajDev.title,
+          verse: ASHLEY_JANE_PLAN_PASSAGES[dn - 1] || '',
+          body: ajDev.body,
+          author: ajDev.author,
+          source: 'ashley-jane',
+        };
+      }
+    }
+  } catch { /* fall through */ }
+
+  const idx = getDailyDevotionIndex(dayOffset);
+  const d = DEVOTIONS[idx];
+  return { title: d.title, verse: d.verse, body: d.body, author: d.author, source: 'pool' };
 }
