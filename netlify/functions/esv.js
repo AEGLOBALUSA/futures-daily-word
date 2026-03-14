@@ -78,10 +78,18 @@ exports.handler = async (event) => {
       }
     });
 
+    if (!response.ok) {
+      return {
+        statusCode: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'ESV API error', status: response.status })
+      };
+    }
+
     const data = await response.json();
 
     return {
-      statusCode: response.status,
+      statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     };

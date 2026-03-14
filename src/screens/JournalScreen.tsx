@@ -1086,13 +1086,13 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
-  function handleSaveFromModal(entry: JournalEntry) {
+  // Available for future modal-save integration
+  const _handleSaveFromModal = (entry: JournalEntry) => {
     onSave(entry);
     setSaved(prev => new Set([...prev, entry.verseRef || entry.title]));
     setTimeout(() => setSaved(prev => { const s = new Set(prev); s.delete(entry.verseRef || entry.title); return s; }), 3000);
-  }
-  // Keep handleSaveFromModal available for future use
-  void handleSaveFromModal;
+  };
+  void _handleSaveFromModal;
 
   function getExistingNote(ref: string): JournalEntry | undefined {
     return allEntries.find(e => e.verseRef === ref && e.date === today);

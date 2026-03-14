@@ -128,20 +128,20 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     <>
       {/* Floating trigger button — burnished gold rectangle */}
       <button
-        onClick={onOpen ?? onClose}
+        onClick={onOpen ?? (() => {})}
         aria-label="Bible AI"
         style={{
           position: 'fixed',
-          bottom: 84,
+          bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
           right: 16,
-          height: 26,
-          padding: '0 10px',
-          borderRadius: 6,
+          height: 36,
+          padding: '0 14px',
+          borderRadius: 8,
           background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
           backgroundSize: '200% 200%',
           animation: 'aiAurora 4s ease infinite',
           border: '1px solid rgba(245,207,85,0.55)',
-          boxShadow: '0 3px 18px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.22)',
+          boxShadow: '0 4px 22px rgba(160,110,8,0.7), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.22)',
           display: isOpen ? 'none' : 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -166,7 +166,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           animation: 'aiBeam 3s ease-in-out infinite', pointerEvents: 'none',
         }} />
         <span style={{
-          fontSize: 9, fontWeight: 900, color: '#fff',
+          fontSize: 11, fontWeight: 900, color: '#fff',
           fontFamily: 'var(--font-sans)', letterSpacing: '0.14em',
           textTransform: 'uppercase', position: 'relative',
           textShadow: '0 1px 2px rgba(80,40,0,0.6)',

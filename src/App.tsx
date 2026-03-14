@@ -59,7 +59,7 @@ function AppContent() {
       <EmailGate />
       <BibleAI
         isOpen={showBibleAI}
-        onClose={() => setShowBibleAI(prev => !prev)}
+        onClose={() => setShowBibleAI(false)}
         selectedText={selection?.text}
       />
     </div>
