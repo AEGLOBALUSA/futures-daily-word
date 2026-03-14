@@ -39,10 +39,10 @@ interface Props {
 export function FeedbackPoll({ userCampus }: Props) {
   const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 'done'>(() => {
+  const [step, setStep] = useState<'q1' | 'q2' | 'done'>(() => {
     // If already submitted, don't show
     if (localStorage.getItem(LS_KEY)) return 'done';
-    return 1;
+    return 'q1';
   });
   const [q1, setQ1] = useState<string | null>(null);
   const [q2, setQ2] = useState<Set<string>>(new Set());
@@ -58,8 +58,8 @@ export function FeedbackPoll({ userCampus }: Props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Already submitted or poll expired — render nothing
-  if (step === 'done' || !visible) return null;
+  // Poll expired or not yet visible — render nothing
+  if (!visible) return null;
 
   const toggleQ2 = (id: string) => {
     setQ2(prev => {
@@ -198,7 +198,7 @@ export function FeedbackPoll({ userCampus }: Props) {
                 Your feedback helps us build something better for our church family.
               </p>
             </div>
-          ) : step === 1 ? (
+          ) : step === 'q1' ? (
             <>
               {/* Step indicator */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
@@ -239,7 +239,7 @@ export function FeedbackPoll({ userCampus }: Props) {
               </div>
 
               <button
-                onClick={() => q1 && setStep(2)}
+                onClick={() => q1 && setStep('q2')}
                 disabled={!q1}
                 style={{
                   width: '100%', marginTop: 20,
@@ -308,7 +308,7 @@ export function FeedbackPoll({ userCampus }: Props) {
 
               <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep('q1')}
                   style={{
                     flex: 1, padding: '14px 20px',
                     background: 'var(--dw-surface)',

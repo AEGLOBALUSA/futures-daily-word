@@ -632,7 +632,7 @@ export function MoreScreen() {
         </div>
 
         {/* Admin — Poll Results */}
-        {userProfile?.persona === 'pastor' && (
+        {setup?.persona === 'pastor' && (
           <div style={{ marginBottom: 20 }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
