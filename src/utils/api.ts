@@ -124,6 +124,9 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
  * Priority: ESV.org native audio → ElevenLabs AI voice → AWS Polly neural voice
  */
 export async function fetchAudio(text: string, translation: TranslationCode, passageRef?: string): Promise<string | null> {
+  // Strip verse number markers like [14] [15] so TTS doesn't read them aloud
+  const cleanText = text.replace(/\[\d+\]\s*/g, '');
+
   // ── 1. ESV native human-read audio ──
   try {
     if (translation === 'ESV' && passageRef) {
@@ -144,14 +147,14 @@ export async function fetchAudio(text: string, translation: TranslationCode, pas
     }
   } catch { /* continue to TTS */ }
 
-  if (!text) return null;
+  if (!cleanText) return null;
 
   // ── 2. ElevenLabs AI voice (primary TTS) ──
   try {
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.slice(0, 20000) }),
+      body: JSON.stringify({ text: cleanText.slice(0, 20000) }),
     });
     if (res.ok) {
       const blob = await res.blob();
@@ -166,7 +169,7 @@ export async function fetchAudio(text: string, translation: TranslationCode, pas
     const res = await fetch('/api/polly-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.slice(0, 20000), voiceId, engine: 'neural' }),
+      body: JSON.stringify({ text: cleanText.slice(0, 20000), voiceId, engine: 'neural' }),
     });
     if (res.ok) {
       const blob = await res.blob();

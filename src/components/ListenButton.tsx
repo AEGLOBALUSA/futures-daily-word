@@ -13,8 +13,10 @@ import { registerAudio } from '../utils/audioManager';
 interface Props {
   /** The text to read aloud */
   text: string;
-  /** Optional ESV passage ref for native ESV audio */
+  /** Optional passage ref for native ESV audio */
   passageRef?: string;
+  /** Translation code — defaults to reading from localStorage */
+  translation?: string;
   /** Button size: sm = icon only (inline), md = icon + label, lg = full-width bar */
   size?: 'sm' | 'md' | 'lg';
   /** Custom label (only shown for md/lg) */
@@ -23,7 +25,7 @@ interface Props {
   color?: string;
 }
 
-export function ListenButton({ text, passageRef, size = 'sm', label, color }: Props) {
+export function ListenButton({ text, passageRef, translation, size = 'sm', label, color }: Props) {
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -44,7 +46,8 @@ export function ListenButton({ text, passageRef, size = 'sm', label, color }: Pr
     setLoading(true);
     try {
       const { fetchAudio } = await import('../utils/api');
-      const url = await fetchAudio(text.slice(0, 20000), 'ESV', passageRef);
+      const activeTranslation = (translation || localStorage.getItem('dw_translation') || 'ESV') as import('../utils/api').TranslationCode;
+      const url = await fetchAudio(text.slice(0, 20000), activeTranslation, passageRef);
       if (url) {
         const audio = new Audio(url);
         audioRef.current = audio;
