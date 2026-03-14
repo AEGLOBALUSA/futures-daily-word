@@ -18,7 +18,7 @@ interface JournalEntry {
   title: string;
   body: string;
   tags: string[];
-  type: 'journal' | 'sermon' | 'saved';
+  type: 'journal' | 'sermon' | 'saved' | 'teaching-notes';
   /** Set when this entry was created from a scripture note */
   verseRef?: string;
   highlightedText?: string;
@@ -1461,7 +1461,7 @@ export function JournalScreen() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {['reflection', 'prayer', 'gratitude', 'confession', 'sermon', 'study', 'psalms', 'gospel'].map(tag => (
+              {pfj.tags.map(tag => (
                 !editingEntry.tags.includes(tag) && (
                   <button
                     key={tag}
