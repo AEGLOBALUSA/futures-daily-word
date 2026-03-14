@@ -1609,18 +1609,18 @@ export function HomeScreen() {
         }}>
           <button
             onClick={() => setDayOffset(d => d - 1)}
-            style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Previous day"
           >
             <ChevronLeft size={20} />
           </button>
           <div style={{ textAlign: 'center' }}>
-            <p className="text-section-header" style={{ marginBottom: 4 }}>TODAY'S READING</p>
-            <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>TODAY'S READING</p>
+            <p style={{ color: '#fff', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
               {dateStr}
             </p>
             {todaysPlanPassages.length > 0 && (
-              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
                 {(() => {
                   // Deduplicate by planId so each plan shows once
                   const seen = new Set<string>();
@@ -1643,7 +1643,7 @@ export function HomeScreen() {
           <button
             onClick={() => setDayOffset(d => d + 1)}
             disabled={dayOffset >= 30}
-            style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'var(--dw-text-faint)' : 'var(--dw-text-muted)', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Next day"
           >
             <ChevronRight size={20} />
@@ -1950,8 +1950,8 @@ export function HomeScreen() {
               border: '1px solid rgba(255,255,255,0.06)',
             }}>
               <span style={{ fontSize: 16 }}>🔥</span>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)', margin: 0 }}>
-                <strong style={{ color: 'var(--dw-text-primary)' }}>{count} people</strong> at {campusName} are in the Word today
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                <strong style={{ color: '#fff' }}>{count} people</strong> at {campusName} are in the Word today
               </p>
             </div>
           );
@@ -1974,9 +1974,9 @@ export function HomeScreen() {
               key={t}
               onClick={() => handleTranslationChange(t)}
               style={{
-                background: t === translation ? 'var(--dw-accent)' : 'transparent',
-                color: t === translation ? '#fff' : 'var(--dw-text-muted)',
-                border: t === translation ? 'none' : '1px solid var(--dw-border-subtle)',
+                background: t === translation ? 'var(--dw-accent)' : 'rgba(255,255,255,0.06)',
+                color: t === translation ? '#fff' : 'rgba(255,255,255,0.55)',
+                border: t === translation ? 'none' : '1px solid rgba(255,255,255,0.1)',
                 borderRadius: 8,
                 padding: '6px 12px',
                 fontSize: 12,
@@ -1996,7 +1996,7 @@ export function HomeScreen() {
         {/* 3. TODAY'S CHAPTERS */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
-            <p className="text-section-header">TODAY'S CHAPTERS</p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'rgba(255,255,255,0.7)', margin: 0 }}>TODAY'S CHAPTERS</p>
               <button onClick={() => {
                 // All visible passages = plan passages + reading slot passages
                 const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
@@ -2018,15 +2018,15 @@ export function HomeScreen() {
                     source: 'select-all',
                   });
                 }
-              }} style={{ background:'rgba(154,123,46,0.12)', border:'1px solid rgba(154,123,46,0.3)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#9A7B2E', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
+              }} style={{ background:'rgba(154,123,46,0.15)', border:'1px solid rgba(154,123,46,0.4)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#C8A94E', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
             <button
               onClick={() => setShowReadingSetup(!showReadingSetup)}
               style={{
-                background: 'var(--dw-accent-bg)',
-                border: '1px solid var(--dw-accent)',
+                background: 'rgba(220,83,93,0.15)',
+                border: '1px solid rgba(220,83,93,0.5)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: 'var(--dw-accent)',
+                color: '#DC535D',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',

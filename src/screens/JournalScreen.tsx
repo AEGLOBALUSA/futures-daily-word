@@ -727,23 +727,23 @@ function ScriptureModal({
               )}
               <p style={{
                 fontSize: 20, fontWeight: 500, fontFamily: 'var(--font-serif)',
-                color: 'var(--dw-text-primary)', margin: 0, letterSpacing: '-0.01em',
+                color: '#fff', margin: 0, letterSpacing: '-0.01em',
               }}>
                 {isBookChapter ? (devotional?.title || planTitle || 'Reading') : (chapterRef !== passage ? `${chapterRef}` : passage)}
               </p>
               {!isBookChapter && chapterRef !== passage && (
-                <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
                   Key verse: {passage} · showing full chapter · {translation}
                 </p>
               )}
               {!isBookChapter && chapterRef === passage && (
-                <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
                   {translation}
                 </p>
               )}
             </div>
             <button onClick={onClose}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 4px 8px', color: 'var(--dw-text-muted)', marginTop: 2 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 4px 8px', color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
               <X size={20} />
             </button>
           </div>
