@@ -73,10 +73,10 @@ export function personalize(
 
   // Override from persona if no behavior yet
   if (profile.totalEvents < 5) {
-    signal = persona === 'difficult' ? 'comfort'
-           : persona === 'deeper'    ? 'depth'
-           : persona === 'pastor'    ? 'teach'
-           : persona === 'new_returning' ? 'new'
+    signal = persona === 'comfort' || persona === 'difficult' ? 'comfort'
+           : persona === 'deeper_study' || persona === 'deeper' ? 'depth'
+           : persona === 'pastor_leader' || persona === 'pastor' ? 'teach'
+           : persona === 'new_to_faith' || persona === 'new_returning' ? 'new'
            : null
   } else {
     // Derive from behavior

@@ -1159,8 +1159,8 @@ export function PlansScreen() {
           </p>
         </Card>
 
-        {/* Suggested faith pathway for new believers */}
-        {persona === 'new_returning' && !activePlans['faith-pathway'] && (
+        {/* Suggested faith pathway for new believers — persona-gated */}
+        {personaConfig.features.faithPathway && !activePlans['faith-pathway'] && (
           <Card style={{ marginTop: 16, borderLeft: '3px solid var(--dw-accent)' }}>
             <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>

@@ -280,7 +280,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
         {activeItem && activeItem !== 'knocking-on-the-door' && (
           <div>
             <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, color: 'var(--dw-text-primary)', marginBottom: 16 }}>
-              {LIBRARY_ITEMS.find(i => i.id === activeItem)?.title || activeItem}
+              {visibleItems.find(i => i.id === activeItem)?.title || activeItem}
             </h2>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '20px 0' }}>

@@ -313,9 +313,9 @@ export function HomeScreen() {
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const lang = localStorage.getItem('dw_lang') || 'en';
 
-  // Load Faith Pathway for new_to_faith persona (or migrated new_returning)
+  // Load Faith Pathway — persona-gated via config
   useEffect(() => {
-    if (pf.faithPathway || setup?.persona === 'new_returning' || setup?.persona === 'new_to_faith') {
+    if (pf.faithPathway) {
       if (!pathwayProgress.enrolled) {
         const updated = { ...pathwayProgress, enrolled: true, completedDays: pathwayProgress.completedDays || [], currentDay: pathwayProgress.currentDay || 1 };
         setPathwayProgress(updated);

@@ -8,10 +8,11 @@ import { X, Loader2, CheckCircle } from 'lucide-react';
 import { CAMPUSES } from '../data/tokens';
 
 const PERSONAS = [
-  { id: 'new_returning', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
-  { id: 'pastor', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
-  { id: 'deeper', label: 'Going Deeper', desc: 'Deeper study and theology' },
-  { id: 'difficult', label: 'Difficult Season', desc: 'Comfort and encouragement' },
+  { id: 'new_to_faith', label: 'New to Faith / Returning to Faith', desc: 'Starting or reigniting your faith journey' },
+  { id: 'congregation', label: 'Church Member', desc: 'Daily reading and community' },
+  { id: 'deeper_study', label: 'Going Deeper', desc: 'Deeper study and theology' },
+  { id: 'pastor_leader', label: 'Pastor / Leader', desc: 'Ministry and leadership' },
+  { id: 'comfort', label: 'Difficult Season', desc: 'Comfort and encouragement' },
 ];
 
 export function EmailGate() {
