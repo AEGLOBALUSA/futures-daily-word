@@ -1,7 +1,8 @@
 /**
- * Futures Daily Word — Service Worker v2
+ * Futures Daily Word — Service Worker v8
  * Strategy: Network-first for API, Cache-first for static assets,
  * Stale-while-revalidate for fonts and images.
+ * V8: Full persona pathway system + audit fixes
  */
 
 const CACHE_NAME = 'fdw-v8';

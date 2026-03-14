@@ -9,15 +9,18 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Register service worker
+// Register service worker — version query forces cache bust on deploy
+const SW_VERSION = 'v8';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
+      .register(`/sw.js?v=${SW_VERSION}`, { scope: '/' })
       .then((reg) => {
         console.log('SW registered:', reg.scope);
-        // Check for updates every 60 minutes
-        setInterval(() => reg.update(), 60 * 60 * 1000);
+        // Force immediate update check on load
+        reg.update();
+        // Then check for updates every 30 minutes
+        setInterval(() => reg.update(), 30 * 60 * 1000);
       })
       .catch((err) => console.warn('SW registration failed:', err));
   });
