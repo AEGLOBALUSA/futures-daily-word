@@ -19,8 +19,13 @@ const DEFAULT_FEATURED = [
   'acts-28',
 ];
 
-// Persona-specific plans surfaced at the top
+// Persona-specific plans surfaced at the top (V7 + legacy)
 const PERSONA_PLANS: Record<string, string[]> = {
+  new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
+  congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30', 'prayer-life', 'acts-28'],
+  deeper_study: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
+  pastor_leader: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
+  comfort: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
   new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
   pastor: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
   deeper: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
@@ -29,6 +34,11 @@ const PERSONA_PLANS: Record<string, string[]> = {
 
 // Persona-friendly label for plan step header
 const PERSONA_LABELS: Record<string, string> = {
+  new_to_faith: 'Plans for your faith journey',
+  congregation: 'Plans for your daily walk',
+  deeper_study: 'Plans for going deeper',
+  pastor_leader: 'Plans for ministry & leadership',
+  comfort: 'Plans for your current season',
   new_returning: 'Plans for your faith journey',
   pastor: 'Plans for ministry & leadership',
   deeper: 'Plans for going deeper',

@@ -2745,7 +2745,9 @@ export function HomeScreen() {
       {pf.highlighting !== 'none' && (
         <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />
       )}
-      <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
+      {pf.greekHebrew !== 'hidden' && (
+        <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
+      )}
       <BibleAI
         isOpen={showBibleAI}
         onClose={() => setShowBibleAI(false)}

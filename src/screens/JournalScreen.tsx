@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { trackBehavior } from '../utils/behavior';
-import { getPersonaConfig } from '../utils/persona-config';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
@@ -11,6 +10,7 @@ import { PLAN_CATALOGUE } from '../data/plans';
 import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
 import { registerAudio } from '../utils/audioManager';
+import { getPersonaConfig } from '../utils/persona-config';
 
 interface JournalEntry {
   id: string;
@@ -18,7 +18,7 @@ interface JournalEntry {
   title: string;
   body: string;
   tags: string[];
-  type: 'journal' | 'sermon' | 'saved' | 'teaching-notes';
+  type: 'journal' | 'sermon' | 'saved';
   /** Set when this entry was created from a scripture note */
   verseRef?: string;
   highlightedText?: string;
@@ -1222,11 +1222,8 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
 }
 
 export function JournalScreen() {
-  const { userProfile, requireEmail } = useUser();
+  const { userProfile, setup, requireEmail } = useUser();
   const { setSelection } = useScriptureSelection();
-  const persona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; } })();
-  const personaConfig = getPersonaConfig(persona);
-  const pfj = personaConfig.journal;
   const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -1255,14 +1252,16 @@ export function JournalScreen() {
     setActivePlansData(getActivePlansData());
   }, []);
 
+  // Persona-filtered tabs
+  const personaConfig = getPersonaConfig(setup?.persona);
+  const allowedEntryTypes = personaConfig.journal.entryTypes;
   const allTabs = [
-    { id: 'today' as const, label: 'Today', icon: BookOpen },
-    { id: 'journal' as const, label: 'Journal', icon: PenLine },
-    { id: 'sermon' as const, label: 'Sermons', icon: PenLine },
-    { id: 'saved' as const, label: 'Saved', icon: Bookmark },
+    { id: 'today' as const, label: 'Today', icon: BookOpen, entryType: 'journal' },
+    { id: 'journal' as const, label: 'Journal', icon: PenLine, entryType: 'journal' },
+    { id: 'sermon' as const, label: 'Sermons', icon: PenLine, entryType: 'sermon' },
+    { id: 'saved' as const, label: 'Saved', icon: Bookmark, entryType: 'saved' },
   ];
-  // Filter tabs based on persona entry types (always show 'today' and types in config)
-  const tabs = allTabs.filter(t => t.id === 'today' || pfj.entryTypes.includes(t.id));
+  const tabs = allTabs.filter(t => t.id === 'today' || allowedEntryTypes.includes(t.entryType));
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => e.type === activeTab) : [];
 
@@ -1461,7 +1460,7 @@ export function JournalScreen() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {pfj.tags.map(tag => (
+              {['reflection', 'prayer', 'gratitude', 'confession', 'sermon', 'study', 'psalms', 'gospel'].map(tag => (
                 !editingEntry.tags.includes(tag) && (
                   <button
                     key={tag}
@@ -1497,8 +1496,7 @@ export function JournalScreen() {
             Study Notes
           </h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {/* Record yourself button — persona-gated */}
-            {personaConfig.features.videoRecording && (
+            {/* Record yourself button */}
             <button
               onClick={() => setShowRecorder(true)}
               title="Record a video reflection"
@@ -1520,7 +1518,6 @@ export function JournalScreen() {
             >
               <Video size={15} /> Record
             </button>
-            )}
             <button
               onClick={openNewEntry}
               style={{
