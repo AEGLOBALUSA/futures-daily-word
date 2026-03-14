@@ -1292,6 +1292,9 @@ export function HomeScreen() {
           );
         })()}
 
+        {/* Poll banner — right under the hero audio card */}
+        <FeedbackPoll userCampus={userProfile?.campus} />
+
         {/* ── Start Your Journey — inline plan picker for users with no plans ── */}
         {(() => {
           const activePlans: Record<string, unknown> = (() => {
@@ -1662,8 +1665,6 @@ export function HomeScreen() {
           label="Listen to today's reading"
         />
 
-        {/* Poll banner — inline, right under listen bar */}
-        <FeedbackPoll userCampus={userProfile?.campus} />
 
         {/* Variable reward: homeLeadType 0=quote first, 1=devotion first, 2=reflection question first */}
         {/* Quote card */}
