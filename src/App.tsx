@@ -22,11 +22,13 @@ function AppContent() {
   const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
 
-  // Show PathwayPicker if no persona set
-  const needsPathway = !setup?.persona;
+  // Show PathwayPicker if no persona set OR if user hasn't completed V7 pathway selection
+  const v7Done = localStorage.getItem('dw_v7_pathway_done');
+  const needsPathway = !setup?.persona || !v7Done;
 
   function handlePathwaySelect(persona: Persona) {
     saveSetup({ persona, source: setup?.source || '' });
+    localStorage.setItem('dw_v7_pathway_done', 'true');
   }
 
   useEffect(() => {
