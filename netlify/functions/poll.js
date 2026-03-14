@@ -1,5 +1,5 @@
-const { createClient } = require("@supabase/supabase-js");
-const crypto = require("crypto");
+import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 // ── Config ──
 const ALLOWED_ORIGINS = [
@@ -29,12 +29,11 @@ function isAdmin(event) {
   const code = (event.headers["x-pastor-code"] || "").toUpperCase();
   const secret = process.env.PASTOR_SECRET || "";
   if (!secret || !code) return false;
-  // Admin code = first 8 chars of SHA-256("admin:" + secret)
   const expected = crypto.createHash("sha256").update("admin:" + secret).digest("hex").slice(0, 8).toUpperCase();
   return code === expected;
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const origin = event.headers.origin || "";
   const cors = getCorsHeaders(origin);
 
@@ -54,13 +53,11 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "Missing required fields" }) };
       }
 
-      // Validate home_clutter
       const validClutter = ["clean", "busy", "lost", "redesign"];
       if (!validClutter.includes(home_clutter)) {
         return { statusCode: 400, headers: cors, body: JSON.stringify({ error: "Invalid home_clutter value" }) };
       }
 
-      // Validate home_priority (max 3)
       const validPriority = ["devotion", "campus", "events", "giving", "sermon", "prayer", "plan", "community"];
       const filtered = home_priority.filter(p => validPriority.includes(p)).slice(0, 3);
 
@@ -92,7 +89,6 @@ exports.handler = async (event) => {
     try {
       const version = event.queryStringParameters?.version || "v1";
 
-      // Fetch all responses for this version
       const { data: responses, error } = await db
         .from("poll_responses")
         .select("*")
@@ -104,18 +100,15 @@ exports.handler = async (event) => {
         return { statusCode: 500, headers: cors, body: JSON.stringify({ error: "Failed to fetch results" }) };
       }
 
-      // Compute summaries server-side
       const total = responses.length;
       const today = new Date().toISOString().slice(0, 10);
       const todayCount = responses.filter(r => r.submitted_at?.slice(0, 10) === today).length;
 
-      // Q1 summary
       const clutterCounts = {};
       responses.forEach(r => {
         clutterCounts[r.home_clutter] = (clutterCounts[r.home_clutter] || 0) + 1;
       });
 
-      // Q2 summary
       const priorityCounts = {};
       responses.forEach(r => {
         (r.home_priority || []).forEach(p => {
@@ -123,14 +116,12 @@ exports.handler = async (event) => {
         });
       });
 
-      // Campus summary
       const campusCounts = {};
       responses.forEach(r => {
         const c = r.campus || "Unknown";
         campusCounts[c] = (campusCounts[c] || 0) + 1;
       });
 
-      // Top priority
       const topPriority = Object.entries(priorityCounts).sort((a, b) => b[1] - a[1])[0];
 
       return {
