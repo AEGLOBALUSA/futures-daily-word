@@ -8,7 +8,7 @@ import { X, CheckCircle, MessageCircle } from 'lucide-react';
 
 // ── Poll configuration ──
 const POLL_VERSION = 'v1';
-const POLL_START = new Date('2026-03-15T00:00:00Z'); // poll goes live
+const POLL_START = new Date('2026-03-14T00:00:00Z'); // poll goes live
 const POLL_DAYS = 7; // auto-expires after 7 days
 const POLL_END = new Date(POLL_START.getTime() + POLL_DAYS * 86400000);
 const LS_KEY = `dw_poll_submitted_${POLL_VERSION}`;
