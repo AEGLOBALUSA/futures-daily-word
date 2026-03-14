@@ -1,4 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
+const crypto = require("crypto");
 
 // ── Config ──
 const ALLOWED_ORIGINS = [
@@ -29,7 +30,6 @@ function isAdmin(event) {
   const secret = process.env.PASTOR_SECRET || "";
   if (!secret || !code) return false;
   // Admin code = first 8 chars of SHA-256("admin:" + secret)
-  const crypto = require("crypto");
   const expected = crypto.createHash("sha256").update("admin:" + secret).digest("hex").slice(0, 8).toUpperCase();
   return code === expected;
 }
