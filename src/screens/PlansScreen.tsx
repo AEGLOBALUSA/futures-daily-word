@@ -1,4 +1,5 @@
 import { trackBehavior } from '../utils/behavior';
+import { getPersonaConfig } from '../utils/persona-config';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
@@ -173,6 +174,7 @@ export function PlansScreen() {
       return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || '';
     } catch { return ''; }
   })();
+  const personaConfig = getPersonaConfig(persona);
 
   const readChapter = async (paragraphs: string[]) => {
     if (bookAudioActive) {
@@ -281,13 +283,6 @@ export function PlansScreen() {
     }
   }, []);
 
-  // Auto-suggest faith-pathway for new believers
-  useEffect(() => {
-    if (persona === 'new_returning' && !activePlans['faith-pathway']) {
-      // Don't auto-start, just show browse view
-    }
-  }, [persona]);
-
   // Book fetch effect — top level (Rules of Hooks)
   useEffect(() => {
     if (!activeBook) { setBookData(null); setBookChapter(null); return; }
@@ -328,22 +323,29 @@ export function PlansScreen() {
 
   const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
 
-  // Persona-based browse ordering — put persona-relevant plans first within each category
-  const PERSONA_PRIORITY: Record<string, string[]> = {
-    new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
-    pastor: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
-    deeper: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
-    difficult: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
-  };
-  const priorityIds = PERSONA_PRIORITY[persona] || [];
-  const browsePlans = [...PLAN_CATALOGUE].sort((a, b) => {
-    const ai = priorityIds.indexOf(a.id);
-    const bi = priorityIds.indexOf(b.id);
-    if (ai !== -1 && bi === -1) return -1;
-    if (ai === -1 && bi !== -1) return 1;
-    if (ai !== -1 && bi !== -1) return ai - bi;
-    return 0;
-  });
+  // Persona-based browse filtering & ordering via config
+  const featuredCats = personaConfig.plans.featuredCategories;
+  const browsePlans = personaConfig.plans.showFullCatalog
+    ? [...PLAN_CATALOGUE].sort((a, b) => {
+        // Put featured categories first
+        const aFeatured = featuredCats.includes(a.category) ? 0 : 1;
+        const bFeatured = featuredCats.includes(b.category) ? 0 : 1;
+        return aFeatured - bFeatured;
+      })
+    : PLAN_CATALOGUE.filter(p => featuredCats.includes(p.category));
+
+  // Auto-suggest: if persona has an autoSuggest plan and user has no active plans, highlight it
+  const autoSuggestId = personaConfig.plans.autoSuggest;
+  const hasNoActivePlans = activePlanIds.length === 0;
+
+  // Auto-suggest plan for persona if they have no active plans
+  useEffect(() => {
+    if (autoSuggestId && hasNoActivePlans) {
+      setPlanView('browse');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSuggestId, hasNoActivePlans]);
+
   const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
   // Single devotion for the whole site — same source as HomeScreen
   const devotion = getTodaysDevotion();

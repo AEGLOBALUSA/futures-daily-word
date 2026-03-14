@@ -4,7 +4,7 @@
  * Listen button, and Pray button.
  */
 import { useState, useEffect } from 'react';
-import { Heart, Headphones } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { ListenButton } from './ListenButton';
 
 const COMFORT_SCRIPTURES = [

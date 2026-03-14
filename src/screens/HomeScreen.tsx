@@ -22,8 +22,9 @@ import { FeedbackPoll } from '../components/FeedbackPoll';
 import { registerAudio } from '../utils/audioManager';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { personalize } from '../utils/personalization';
-import { getPersonaConfig } from '../utils/persona-config';
+import { getPersonaConfig, getGreeting } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
+import { UpgradePromptCard } from '../components/UpgradePromptCard';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -247,11 +248,12 @@ interface ReadingSlot {
 }
 
 export function HomeScreen() {
-  const { userProfile, setup, saveProfile, requireEmail, showEmailGate } = useUser();
+  const { userProfile, setup, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
 
   // ── Persona-aware feature gating ──
   const personaConfig = getPersonaConfig(setup?.persona);
   const pf = personaConfig.features; // shorthand
+  const greetingText = getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count);
   const [dayOffset, setDayOffset] = useState(0);
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
@@ -311,9 +313,9 @@ export function HomeScreen() {
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const lang = localStorage.getItem('dw_lang') || 'en';
 
-  // Load Faith Pathway for new_returning persona
+  // Load Faith Pathway for new_to_faith persona (or migrated new_returning)
   useEffect(() => {
-    if (setup?.persona === 'new_returning') {
+    if (pf.faithPathway || setup?.persona === 'new_returning' || setup?.persona === 'new_to_faith') {
       if (!pathwayProgress.enrolled) {
         const updated = { ...pathwayProgress, enrolled: true, completedDays: pathwayProgress.completedDays || [], currentDay: pathwayProgress.currentDay || 1 };
         setPathwayProgress(updated);
@@ -1060,6 +1062,19 @@ export function HomeScreen() {
           </div>
         </div>
 
+        {/* ── Persona Greeting ── */}
+        <p style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: 17,
+          color: 'var(--dw-text-secondary)',
+          textAlign: 'center',
+          marginBottom: 16,
+          lineHeight: 1.5,
+          letterSpacing: '0.01em',
+        }}>
+          {greetingText}
+        </p>
+
         {/* ── Hero Listen Button ── always shown; plays all today's passages in ESV */}
         {(() => {
           const firstPlan = todaysPlanPassages[0];
@@ -1277,6 +1292,52 @@ export function HomeScreen() {
         {/* Comfort Card — comfort persona only */}
         {pf.comfortCard && <ComfortCard />}
 
+        {/* Book Cards — comfort persona surfaces recommended books */}
+        {pf.bookCards.length > 0 && (
+          <div style={{ marginBottom: 20, overflowX: 'auto', display: 'flex', gap: 12, scrollbarWidth: 'none' }}>
+            {pf.bookCards.map((bookId: string) => {
+              const bookInfo: Record<string, { title: string; description: string; color: string }> = {
+                'grace-and-truth': { title: 'Grace & Truth', description: 'Biblical foundations for living', color: '#6B4C8A' },
+                'no-more-fear': { title: 'No More Fear', description: 'Living boldly in faith', color: '#2E6B5A' },
+              };
+              const info = bookInfo[bookId] || { title: bookId, description: '', color: '#6B1A22' };
+              return (
+                <div
+                  key={bookId}
+                  style={{
+                    minWidth: 180,
+                    background: `linear-gradient(135deg, ${info.color}, ${info.color}CC)`,
+                    borderRadius: 16,
+                    padding: '20px 16px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
+                    RECOMMENDED
+                  </p>
+                  <p style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-serif)', marginBottom: 4 }}>
+                    {info.title}
+                  </p>
+                  <p style={{ fontSize: 12, opacity: 0.8, fontFamily: 'var(--font-sans)' }}>
+                    {info.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Upgrade Prompt — "Ready for More?" ── */}
+        <UpgradePromptCard
+          persona={setup?.persona || 'congregation'}
+          onUpgrade={(newPersona) => {
+            saveSetup({ persona: newPersona, source: setup?.source || '' });
+            window.location.reload();
+          }}
+        />
+
         {/* ── Start Your Journey — inline plan picker for users with no plans ── */}
         {(() => {
           const activePlans: Record<string, unknown> = (() => {
@@ -1285,15 +1346,12 @@ export function HomeScreen() {
           const hasPlans = Object.keys(activePlans).length > 0;
           if (hasPlans) return null;
 
-          const persona = setup?.persona || '';
-          const PERSONA_PLANS: Record<string, string[]> = {
-            new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30'],
-            pastor: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60'],
-            deeper: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89'],
-            difficult: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god'],
-          };
-          const recommendedIds = PERSONA_PLANS[persona] || ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30'];
-          const recommendedPlans = recommendedIds.map(id => PLAN_CATALOGUE.find(p => p.id === id)).filter(Boolean) as typeof PLAN_CATALOGUE;
+          // Use persona config to filter plans
+          const featuredCats = personaConfig.plans.featuredCategories;
+          const recommendedPlans = personaConfig.plans.showFullCatalog
+            ? PLAN_CATALOGUE.slice(0, 4)
+            : PLAN_CATALOGUE.filter(p => featuredCats.includes(p.category)).slice(0, 4);
+          if (recommendedPlans.length === 0) return null;
 
           return (
             <div style={{
@@ -1411,7 +1469,7 @@ export function HomeScreen() {
         {/* Persona greeting + picker moved to Settings */}
 
         {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FAITH PATHWAY CARD ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ for new_returning persona */}
-        {pathwayProgress.enrolled && pathwayData && setup?.persona === 'new_returning' && (() => {
+        {pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
           const completed = pathwayProgress.completedDays?.length || 0;
           const currentDay = pathwayProgress.currentDay || 1;
           const today = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
@@ -2242,8 +2300,8 @@ export function HomeScreen() {
           );
         })()}
 
-        {/* 6. Campus Section */}
-        <Card style={{ marginBottom: 16 }}>
+        {/* 6. Campus Section — persona-gated */}
+        {pf.campusCount !== 'hidden' && <Card style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: showCampusPicker ? 14 : 0 }}>
             <MapPin size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
@@ -2327,7 +2385,7 @@ export function HomeScreen() {
               })}
             </div>
           )}
-        </Card>
+        </Card>}
 
         {/* ── Active Plans Strip ── */}
         {homeActivePlans.length > 0 && (
@@ -2371,8 +2429,8 @@ export function HomeScreen() {
           </div>
         )}
 
-        {/* ── For You — behavioral personalization ── */}
-        {(() => {
+        {/* ── For You — behavioral personalization (hidden for new_to_faith, comfort) ── */}
+        {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && (() => {
           const behaviorProfile = getBehaviorProfile();
           if (!hasEnoughBehavior()) return null;
           const personaStr = setup?.persona || '';
@@ -2634,8 +2692,10 @@ export function HomeScreen() {
         </div>
       )}
       <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
-      {/* Global highlight toolbar — appears for ANY selected text (scripture, devotion, quote, commentary) */}
-      <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} />
+      {/* Global highlight toolbar — appears for ANY selected text (persona-gated) */}
+      {pf.highlighting !== 'none' && (
+        <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />
+      )}
       <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
       <BibleAI
         isOpen={showBibleAI}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { getPersonaConfig } from '../utils/persona-config';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2, Headphones, Pause } from 'lucide-react';
@@ -30,7 +31,20 @@ interface LibraryScreenProps {
   onBack?: () => void;
 }
 
+// Map persona config section names to LIBRARY_ITEMS ids
+const SECTION_TO_ID: Record<string, string> = {
+  essays: 'knocking-on-the-door',
+  characters: 'characters',
+  locations: 'locations',
+  timeline: 'timeline',
+  'word-studies': 'words',
+};
+
 export function LibraryScreen({ onBack }: LibraryScreenProps) {
+  const persona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; } })();
+  const personaConfig = getPersonaConfig(persona);
+  const allowedIds = personaConfig.library.sections.map(s => SECTION_TO_ID[s] || s);
+  const visibleItems = LIBRARY_ITEMS.filter(item => allowedIds.includes(item.id) || allowedIds.includes(item.type));
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [essayTOC, setEssayTOC] = useState<EssayTOC | null>(null);
   const [essaySection, setEssaySection] = useState<number | null>(null);
@@ -175,7 +189,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
         {/* Browse view */}
         {!activeItem && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {LIBRARY_ITEMS.map(item => (
+            {visibleItems.map(item => (
               <Card key={item.id} style={{ cursor: 'pointer' }} onClick={() => setActiveItem(item.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{

@@ -6,6 +6,7 @@ import { registerAudio } from '../utils/audioManager';
 interface HighlightToolbarProps {
   onOpenNotes: () => void;
   onGoDeeper: () => void;
+  basicMode?: boolean;
 }
 
 export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarProps) {

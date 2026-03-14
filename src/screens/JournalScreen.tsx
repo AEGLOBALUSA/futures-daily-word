@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { trackBehavior } from '../utils/behavior';
+import { getPersonaConfig } from '../utils/persona-config';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
@@ -1223,6 +1224,9 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
 export function JournalScreen() {
   const { userProfile, requireEmail } = useUser();
   const { setSelection } = useScriptureSelection();
+  const persona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; } })();
+  const personaConfig = getPersonaConfig(persona);
+  const pfj = personaConfig.journal;
   const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -1251,12 +1255,14 @@ export function JournalScreen() {
     setActivePlansData(getActivePlansData());
   }, []);
 
-  const tabs = [
+  const allTabs = [
     { id: 'today' as const, label: 'Today', icon: BookOpen },
     { id: 'journal' as const, label: 'Journal', icon: PenLine },
     { id: 'sermon' as const, label: 'Sermons', icon: PenLine },
     { id: 'saved' as const, label: 'Saved', icon: Bookmark },
   ];
+  // Filter tabs based on persona entry types (always show 'today' and types in config)
+  const tabs = allTabs.filter(t => t.id === 'today' || pfj.entryTypes.includes(t.id));
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => e.type === activeTab) : [];
 
@@ -1491,7 +1497,8 @@ export function JournalScreen() {
             Study Notes
           </h1>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {/* Record yourself button */}
+            {/* Record yourself button — persona-gated */}
+            {personaConfig.features.videoRecording && (
             <button
               onClick={() => setShowRecorder(true)}
               title="Record a video reflection"
@@ -1513,6 +1520,7 @@ export function JournalScreen() {
             >
               <Video size={15} /> Record
             </button>
+            )}
             <button
               onClick={openNewEntry}
               style={{
