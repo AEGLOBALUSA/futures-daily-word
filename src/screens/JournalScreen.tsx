@@ -12,6 +12,7 @@ import { StopAllAudio } from '../components/StopAllAudio';
 import { registerAudio } from '../utils/audioManager';
 import { getPersonaConfig } from '../utils/persona-config';
 import { PRELOADED_SERMONS } from '../data/sermons';
+import { BibleAI } from '../components/BibleAI';
 
 interface JournalEntry {
   id: string;
@@ -1224,13 +1225,15 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
 
 export function JournalScreen() {
   const { userProfile, setup, requireEmail } = useUser();
-  const { setSelection } = useScriptureSelection();
+  const { selection } = useScriptureSelection();
   const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved' | 'prayer' | 'teaching'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
   const [planPopup, setPlanPopup] = useState<string | null>(null);
+  const [showBibleAI, setShowBibleAI] = useState(false);
+  const [bibleAIContext, setBibleAIContext] = useState('');
   const dailyPrompt = getDailyJournalPrompt();
 
   // Read active plans from localStorage
@@ -1809,47 +1812,14 @@ export function JournalScreen() {
         )}
       </div>
 
-      {/* Floating Bible AI button — bottom right corner */}
-      <button
-        onClick={() => setSelection({ text: '', verseRefs: [], source: 'tap' })}
-        style={{
-          position: 'fixed',
-          bottom: 84,
-          right: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          height: 44,
-          padding: '0 16px',
-          borderRadius: 22,
-          background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
-          backgroundSize: '200% 200%',
-          animation: 'aiAurora 4s ease infinite',
-          border: '1px solid rgba(245,207,85,0.55)',
-          boxShadow: '0 3px 18px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.28)',
-          cursor: 'pointer',
-          zIndex: 90,
-          overflow: 'hidden',
-        }}
-      >
-        <span style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '46%',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
-          borderRadius: '22px 22px 0 0', pointerEvents: 'none',
-        }} />
-        <Sparkles size={14} color="#fff" strokeWidth={2} style={{ position: 'relative', flexShrink: 0 }} />
-        <span style={{
-          fontSize: 11, fontWeight: 900, color: '#fff',
-          fontFamily: 'var(--font-sans)', letterSpacing: '0.12em',
-          textTransform: 'uppercase', position: 'relative',
-          textShadow: '0 1px 2px rgba(80,40,0,0.6)',
-        }}>Bible AI</span>
-      </button>
-
-      <style>{`
-        @keyframes aiAurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-      `}</style>
+      {/* Bible AI — floating button + slide-up panel */}
+      <BibleAI
+        isOpen={showBibleAI}
+        onClose={() => setShowBibleAI(false)}
+        onOpen={() => { setBibleAIContext(''); setShowBibleAI(true); }}
+        initialContext={bibleAIContext}
+        selectedText={selection?.text}
+      />
 
       {/* Video recorder modal */}
       {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} />}
