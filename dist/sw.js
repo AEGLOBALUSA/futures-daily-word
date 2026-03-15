@@ -31,7 +31,12 @@ self.addEventListener('activate', (event) => {
           .filter((key) => key !== CACHE_NAME && key !== STATIC_CACHE && key !== BIBLE_CACHE && key !== FONT_CACHE)
           .map((key) => caches.delete(key))
       )
-    )
+    ).then(() => {
+      // Force all open tabs to reload with fresh content
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => client.navigate(client.url));
+      });
+    })
   );
   self.clients.claim();
 });
@@ -137,6 +142,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
+});
+
+// Listen for skip-waiting message from main thread
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Push notifications
