@@ -392,6 +392,33 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
           </div>
         ))}
       </div>
+
+      {/* ── Bottom Save to Journal + Share ── */}
+      <div style={{
+        padding: '32px 24px 24px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center',
+      }}>
+        <button onClick={handleSaveToJournal} disabled={saved} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          width: '100%', maxWidth: 360, padding: '14px 24px',
+          background: saved ? 'rgba(154,123,46,0.15)' : 'var(--dw-accent)',
+          border: 'none', borderRadius: 12, cursor: saved ? 'default' : 'pointer',
+          color: saved ? 'var(--dw-accent)' : '#fff',
+          fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)',
+          transition: 'all 0.2s ease',
+        }}>
+          {saved ? <CheckCircle size={18} /> : <Save size={18} />}
+          {saved ? 'Saved to Journal!' : 'Save to Journal'}
+        </button>
+        <button onClick={handleShare} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          width: '100%', maxWidth: 360, padding: '12px 24px',
+          background: 'none', border: '1px solid var(--dw-border)',
+          borderRadius: 12, cursor: 'pointer', color: 'var(--dw-text-muted)',
+          fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
+        }}>
+          <Share2 size={15} /> Share Notes
+        </button>
+      </div>
     </div>
   );
 }
