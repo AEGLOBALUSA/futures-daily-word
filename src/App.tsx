@@ -95,6 +95,7 @@ function AppContent() {
       <BibleAI
         isOpen={showBibleAI}
         onClose={() => setShowBibleAI(false)}
+        onOpen={() => setShowBibleAI(true)}
         selectedText={selection?.text}
       />
     </div>
