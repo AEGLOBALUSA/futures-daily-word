@@ -252,6 +252,8 @@ export function PlansScreen() {
     const plans = getActivePlans();
     const plan = plans[planId];
     if (!plan) return;
+    const catalogPlan = PLAN_CATALOGUE.find(p => p.id === planId);
+    if (dayNum <= 0 || (catalogPlan && dayNum > catalogPlan.totalDays)) return;
     if (!plan.completedDays.includes(dayNum)) {
       plan.completedDays.push(dayNum);
       plan.lastDay = Math.max(plan.lastDay, dayNum);

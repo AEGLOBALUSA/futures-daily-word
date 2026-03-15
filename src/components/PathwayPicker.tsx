@@ -26,9 +26,11 @@ const ACCENT_COLORS: Record<Persona, string> = {
 
 interface Props {
   onSelect: (persona: Persona) => void;
+  currentPersona?: string;
 }
 
-export function PathwayPicker({ onSelect }: Props) {
+export function PathwayPicker({ onSelect, currentPersona }: Props) {
+  const isRevisit = !!currentPersona;
   const [selected, setSelected] = useState<Persona | null>(null);
   const [animatingOut, setAnimatingOut] = useState(false);
 
@@ -63,7 +65,7 @@ export function PathwayPicker({ onSelect }: Props) {
           margin: '0 0 8px',
           lineHeight: 1.2,
         }}>
-          Welcome to Daily Word
+          {isRevisit ? 'Still the right fit?' : 'Welcome to Daily Word'}
         </h1>
         <p style={{
           fontSize: 15,
@@ -72,7 +74,10 @@ export function PathwayPicker({ onSelect }: Props) {
           margin: 0,
           lineHeight: 1.5,
         }}>
-          Everyone's journey is different.<br />Where are you?
+          {isRevisit
+            ? <>Your journey may have changed.<br />Tap to update, or keep going.</>
+            : <>Everyone's journey is different.<br />Where are you?</>
+          }
         </p>
       </div>
 
@@ -89,6 +94,7 @@ export function PathwayPicker({ onSelect }: Props) {
           const Icon = ICONS[config.icon] || BookOpen;
           const accent = ACCENT_COLORS[persona];
           const isSelected = selected === persona;
+          const isCurrent = currentPersona === persona;
 
           return (
             <button
@@ -100,7 +106,7 @@ export function PathwayPicker({ onSelect }: Props) {
                 gap: 14,
                 padding: '16px 18px',
                 background: isSelected ? accent : 'var(--dw-surface, #fff)',
-                border: isSelected ? 'none' : '1px solid var(--dw-border, #E8E6E0)',
+                border: isSelected ? 'none' : isCurrent ? `2px solid ${accent}` : '1px solid var(--dw-border, #E8E6E0)',
                 borderRadius: 14,
                 cursor: 'pointer',
                 textAlign: 'left',
@@ -147,22 +153,41 @@ export function PathwayPicker({ onSelect }: Props) {
         })}
       </div>
 
-      {/* Default fallback */}
-      <button
-        onClick={() => handleSelect('congregation')}
-        style={{
-          marginTop: 16,
-          background: 'none',
-          border: 'none',
-          fontSize: 13,
-          color: 'var(--dw-text-muted, #999)',
-          cursor: 'pointer',
-          fontFamily: 'var(--font-sans, system-ui)',
-          padding: '8px 16px',
-        }}
-      >
-        Not sure? Start with Church Member
-      </button>
+      {/* Bottom actions */}
+      {isRevisit ? (
+        <button
+          onClick={() => { setAnimatingOut(true); setTimeout(() => onSelect(currentPersona as Persona), 400); }}
+          style={{
+            marginTop: 16,
+            background: 'none',
+            border: 'none',
+            fontSize: 14,
+            fontWeight: 600,
+            color: 'var(--dw-accent, #C8920E)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-sans, system-ui)',
+            padding: '10px 20px',
+          }}
+        >
+          Keep my current path →
+        </button>
+      ) : (
+        <button
+          onClick={() => handleSelect('congregation')}
+          style={{
+            marginTop: 16,
+            background: 'none',
+            border: 'none',
+            fontSize: 13,
+            color: 'var(--dw-text-muted, #999)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-sans, system-ui)',
+            padding: '8px 16px',
+          }}
+        >
+          Not sure? Start with Church Member
+        </button>
+      )}
     </div>
   );
 }

@@ -22,13 +22,20 @@ function AppContent() {
   const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
 
-  // Show PathwayPicker if no persona set OR if user hasn't completed V7 pathway selection
-  const v7Done = localStorage.getItem('dw_v7_pathway_done');
-  const needsPathway = !setup?.persona || !v7Done;
+  // Show PathwayPicker if no persona set, first run, or every 10th open
+  const [showPathway, setShowPathway] = useState(() => {
+    const v7Done = localStorage.getItem('dw_v7_pathway_done');
+    if (!setup?.persona || !v7Done) return true;
+    // Increment open counter and show every 10th open
+    const count = parseInt(localStorage.getItem('dw_open_count') || '0', 10) + 1;
+    localStorage.setItem('dw_open_count', String(count));
+    return count % 10 === 0;
+  });
 
   function handlePathwaySelect(persona: Persona) {
     saveSetup({ persona, source: setup?.source || '' });
     localStorage.setItem('dw_v7_pathway_done', 'true');
+    setShowPathway(false);
   }
 
   useEffect(() => {
@@ -63,9 +70,9 @@ function AppContent() {
     more: <MoreScreen />,
   };
 
-  // Full-screen pathway picker — renders INSTEAD of app when no persona
-  if (needsPathway) {
-    return <PathwayPicker onSelect={handlePathwaySelect} />;
+  // Full-screen pathway picker — renders INSTEAD of app when needed
+  if (showPathway) {
+    return <PathwayPicker onSelect={handlePathwaySelect} currentPersona={setup?.persona} />;
   }
 
   return (

@@ -18,7 +18,7 @@ interface JournalEntry {
   title: string;
   body: string;
   tags: string[];
-  type: 'journal' | 'sermon' | 'saved';
+  type: 'journal' | 'sermon' | 'saved' | 'prayer' | 'teaching-notes';
   /** Set when this entry was created from a scripture note */
   verseRef?: string;
   highlightedText?: string;
@@ -1224,7 +1224,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
 export function JournalScreen() {
   const { userProfile, setup, requireEmail } = useUser();
   const { setSelection } = useScriptureSelection();
-  const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved' | 'prayer' | 'teaching'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -1267,6 +1267,7 @@ export function JournalScreen() {
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
     if (activeTab === 'teaching') return e.type === 'teaching-notes';
+    if (activeTab === 'prayer') return e.type === 'prayer';
     return e.type === activeTab;
   }) : [];
 
@@ -1286,7 +1287,7 @@ export function JournalScreen() {
       title: '',
       body: '',
       tags: [],
-      type: (activeTab === 'saved' || activeTab === 'today') ? 'journal' : (activeTab === 'teaching' ? 'teaching-notes' : activeTab),
+      type: (activeTab === 'saved' || activeTab === 'today') ? 'journal' : activeTab === 'teaching' ? 'teaching-notes' : activeTab === 'prayer' ? 'prayer' : activeTab as JournalEntry['type'],
     });
     setShowEditor(true);
   }, [activeTab, userProfile, requireEmail]);
@@ -1434,7 +1435,7 @@ export function JournalScreen() {
             </div>
           )}
           <textarea
-            placeholder={editingEntry.type === 'sermon' ? 'Write your sermon notes...' : 'Write your thoughts...'}
+            placeholder={editingEntry.type === 'sermon' ? 'Write your sermon notes...' : editingEntry.type === 'prayer' ? "What's on your heart? Write a prayer..." : editingEntry.type === 'teaching-notes' ? 'Sermon prep, teaching notes...' : 'Write your thoughts...'}
             value={editingEntry.body}
             onChange={e => setEditingEntry({ ...editingEntry, body: e.target.value })}
             style={{
@@ -1709,7 +1710,7 @@ export function JournalScreen() {
           <Card style={{ textAlign: 'center', padding: '40px 16px' }}>
             <PenLine size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-              {activeTab === 'journal' ? 'No journal entries yet' : activeTab === 'sermon' ? 'No sermon notes yet' : 'No saved items yet'}
+              {activeTab === 'journal' ? 'No journal entries yet' : activeTab === 'sermon' ? 'No sermon notes yet' : activeTab === 'prayer' ? 'No prayers yet' : activeTab === 'teaching' ? 'No teaching notes yet' : 'No saved items yet'}
             </p>
             <button className="dw-btn-primary" style={{ fontSize: 13 }} onClick={openNewEntry}>
               Create Your First Entry
