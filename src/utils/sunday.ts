@@ -12,8 +12,8 @@ export function isSundayWindow(): boolean {
 
   // Saturday 11:40 PM onward
   if (day === 6 && hour === 23 && minutes >= 40) return true;
-  // All of Sunday until 4:00 PM
-  if (day === 0 && hour < 16) return true;
+  // All of Sunday until 2:26 PM
+  if (day === 0 && (hour < 14 || (hour === 14 && minutes < 26))) return true;
 
   return false;
 }
