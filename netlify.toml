@@ -6,13 +6,13 @@
   publish = "dist"
   functions = "netlify/functions"
 
-# API function redirects â MUST come before SPA fallback
+# API function redirects - MUST come before SPA fallback
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
-# SPA fallback â last redirect
+# SPA fallback - last redirect
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -29,43 +29,49 @@
     X-XSS-Protection = "1; mode=block"
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https://audio.esv.org https://*.amazonaws.com; connect-src 'self' https://*.supabase.co https://audio.esv.org https://api.esv.org https://*.amazonaws.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
 
-# Hashed assets â immutable cache (1 year)
+# HTML - never cache (so iPhone picks up new JS bundles immediately)
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Hashed assets - immutable cache (1 year)
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Service worker â no cache
+# Service worker - no cache
 [[headers]]
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
-# Manifest â short cache
+# Manifest - short cache
 [[headers]]
   for = "/manifest.json"
   [headers.values]
     Cache-Control = "public, max-age=3600"
 
-# Icons â long cache
+# Icons - long cache
 [[headers]]
   for = "/icons/*"
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# Bible data â long cache (offline KJV)
+# Bible data - long cache (offline KJV)
 [[headers]]
   for = "/bible/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Book data â long cache
+# Book data - long cache
 [[headers]]
   for = "/books/*"
   [headers.values]
     Cache-Control = "public, max-age=86400, must-revalidate"
 
-# Data files â moderate cache
+# Data files - moderate cache
 [[headers]]
   for = "/data/*"
   [headers.values]
