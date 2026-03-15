@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2, Save, CheckCircle } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
@@ -148,6 +148,51 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
     el.style.height = Math.max(el.scrollHeight, 100) + 'px';
   };
 
+  const [saved, setSaved] = useState(false);
+
+  const handleSaveToJournal = () => {
+    // Build full content: sermon + user notes
+    let body = `${sermon.speaker} · ${new Date(sermon.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n`;
+    if (sermon.keyVerseText) body += `Key Verse: ${sermon.keyVerseText}\n\n`;
+
+    sermon.sections.forEach((section, i) => {
+      if (section.heading) body += `── ${section.heading} ──\n`;
+      if (section.body) body += `${section.body}\n`;
+      if (section.points) {
+        section.points.forEach((point, k) => {
+          body += `  • ${point}\n`;
+          const pointNoteKey = i * 100 + k;
+          if (inlineNotes[pointNoteKey]) body += `  [My notes] ${inlineNotes[pointNoteKey]}\n`;
+        });
+      }
+      if (section.scripture) {
+        if (section.scriptureRef) body += `\n${section.scriptureRef}\n`;
+        body += `${section.scripture}\n`;
+      }
+      if (inlineNotes[i]) body += `\n[My notes] ${inlineNotes[i]}\n`;
+      body += '\n';
+    });
+
+    // Read existing journal, add entry, save
+    let entries = [];
+    try { entries = JSON.parse(localStorage.getItem('dw_journal') || '[]'); } catch { entries = []; }
+
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      date: new Date().toISOString(),
+      title: sermon.title,
+      body: body.trim(),
+      tags: ['sermon'],
+      type: 'sermon' as const,
+    };
+
+    entries.unshift(entry);
+    localStorage.setItem('dw_journal', JSON.stringify(entries));
+
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
   const handleShare = () => {
     // Build share text including user notes
     let shareText = `${sermon.title}\n${sermon.speaker}\n\n${sermon.keyVerseText}\n`;
@@ -176,14 +221,28 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
         }}>
           <ChevronLeft size={16} /> Back
         </button>
-        <button onClick={handleShare} style={{
-          display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
-          background: 'none', border: '1px solid var(--dw-border)',
-          borderRadius: 8, cursor: 'pointer', color: 'var(--dw-text-muted)',
-          fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
-        }}>
-          <Share2 size={13} /> Share
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleSaveToJournal} disabled={saved} style={{
+            display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
+            background: saved ? 'rgba(154,123,46,0.15)' : 'none',
+            border: `1px solid ${saved ? 'var(--dw-accent)' : 'var(--dw-border)'}`,
+            borderRadius: 8, cursor: saved ? 'default' : 'pointer',
+            color: saved ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+            fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
+            transition: 'all 0.2s ease',
+          }}>
+            {saved ? <CheckCircle size={13} /> : <Save size={13} />}
+            {saved ? 'Saved!' : 'Save to Journal'}
+          </button>
+          <button onClick={handleShare} style={{
+            display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
+            background: 'none', border: '1px solid var(--dw-border)',
+            borderRadius: 8, cursor: 'pointer', color: 'var(--dw-text-muted)',
+            fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
+          }}>
+            <Share2 size={13} /> Share
+          </button>
+        </div>
       </div>
 
       {/* ── Title block ── */}
