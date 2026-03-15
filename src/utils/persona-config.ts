@@ -84,9 +84,13 @@ export function getGreeting(persona: Persona, name: string, streak: number): str
         ? `Good ${timeOfDay()}, ${first}. Day ${streak}.`
         : `Good ${timeOfDay()}, ${first}.`;
     case 'pastor_leader':
-      return streak > 1
-        ? `Good ${timeOfDay()}, ${first}. Day ${streak}.`
-        : `Good ${timeOfDay()}, Pastor ${first}.`;
+      return streak > 30
+        ? `Good ${timeOfDay()}, ${first}. ${streak} days. You're leading from a full cup.`
+        : streak > 7
+        ? `Good ${timeOfDay()}, ${first}. Day ${streak}. This time matters.`
+        : streak > 1
+        ? `Good ${timeOfDay()}, ${first}. Day ${streak}. Glad you're here.`
+        : `Good ${timeOfDay()}, ${first}. This is your time — not ministry, just you and God.`;
     case 'comfort': {
       const comfortGreetings = [
         `God is with you today, ${first}.`,
@@ -269,16 +273,14 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     sectionOrder: [
       'greeting',
       'hero_audio',
-      'poll_banner',
       'devotion',
-      'ai_prompt',
-      'scripture',
+      'plan_scripture',
+      'pastoral_prompt',
       'commentary',
       'word_of_day',
-      'daily_quote',
-      'weekly_review',
-      'plans_preview',
+      'ai_prompt',
       'congregation_stats',
+      'daily_quote',
     ],
     features: {
       commentary: 'expanded',
@@ -287,8 +289,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       verseSelection: true,
       wordOfDay: 'full',
       campusCount: 'detailed',
-      weeklyReview: true,
-      pollBanner: true,
+      weeklyReview: false,
+      pollBanner: false,
       searchEnabled: true,
       videoRecording: true,
       sermonNotes: true,
@@ -305,14 +307,25 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     journal: {
       entryTypes: ['journal', 'sermon', 'saved', 'teaching-notes'],
       tags: ['reflection', 'prayer', 'gratitude', 'sermon', 'study', 'exegesis', 'word-study', 'cross-reference', 'teaching'],
-      prompts: [],
+      prompts: [
+        'What big issue are you seeking God for confirmation on right now?',
+        'Who on your staff or in your family is weighing on you today?',
+        'What are you believing for this coming Sunday?',
+        'As you listened today, what passage grabbed your attention — and why?',
+        'Is there a hard conversation you know you need to have this week?',
+        'What burden are you carrying that you haven\'t given to God yet?',
+        'What is the one thing you need to hear from God right now?',
+        'Who in your congregation needs you to reach out today?',
+        'What decision are you sitting with that needs clarity?',
+        'When was the last time you truly rested — and what would that look like this week?',
+      ],
     },
     library: {
       sections: ['essays', 'characters', 'locations', 'timeline', 'word-studies'],
     },
     ai: {
       systemPromptAddition:
-        'This person is a church leader or pastor. When they ask about passages, also suggest teaching angles, sermon illustration ideas, and practical application points for a congregation. Think like a pastoral study companion.',
+        'This person is a pastor or church leader. Their devotional time is PERSONAL — not sermon prep. Protect that distinction. When they share what\'s on their heart, listen first. When they ask about passages, offer teaching angles and sermon illustrations, but also speak to their own spiritual health. Over time, notice patterns in what they share — the burdens they carry, the decisions they face, the people they pray for — and ask follow-up questions that show you remember. Be the companion who sees them as a person, not just a pastor. When relevant, gently check in on rest, boundaries, and their own relationship with God apart from ministry.',
     },
   },
 

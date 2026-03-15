@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
-import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion } from '../utils/daily-passages';
+import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -2414,6 +2414,68 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 );
               })}
             </div>
+          );
+        })()}
+
+        {/* ── Pastoral Reflection Prompt (pastor_leader) ── */}
+        {personaConfig.sectionOrder.includes('pastoral_prompt') && (() => {
+          const prompts = personaConfig.journal.prompts;
+          if (!prompts || prompts.length === 0) return null;
+          const promptIdx = getDayNumber(dayOffset) % prompts.length;
+          const todayPrompt = prompts[promptIdx];
+
+          return (
+            <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, var(--dw-charcoal), var(--dw-charcoal-deep))' }}>
+              <p style={{
+                fontSize: 11, fontWeight: 700, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
+              }}>
+                Between You & God
+              </p>
+              <p style={{
+                fontSize: 16, lineHeight: 1.5, color: 'var(--dw-text-primary)',
+                fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'italic', margin: 0,
+              }}>
+                {todayPrompt}
+              </p>
+              <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                <button
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('dw_journal_prefill', JSON.stringify({
+                        prompt: todayPrompt,
+                        date: new Date().toISOString().slice(0, 10),
+                        type: 'pastoral-reflection',
+                      }));
+                    } catch {}
+                    const tabBar = document.querySelector('[data-tab="journal"]') as HTMLElement;
+                    if (tabBar) tabBar.click();
+                  }}
+                  style={{
+                    padding: '8px 16px', borderRadius: 10,
+                    background: 'var(--dw-accent)', border: 'none',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    color: '#fff', fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  Journal This
+                </button>
+                <button
+                  onClick={() => {
+                    setBibleAIContext(`I'm a pastor reflecting on my day. The prompt was: "${todayPrompt}" — I'd like to talk through what's on my heart.`);
+                    setShowBibleAI(true);
+                  }}
+                  style={{
+                    padding: '8px 16px', borderRadius: 10,
+                    background: 'transparent', border: '1px solid var(--dw-border)',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  Talk It Through
+                </button>
+              </div>
+            </Card>
           );
         })()}
 
