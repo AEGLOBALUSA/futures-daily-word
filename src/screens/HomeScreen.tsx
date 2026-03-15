@@ -26,6 +26,7 @@ import { getPersonaConfig, getGreeting } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { PRELOADED_SERMONS } from '../data/sermons';
+import type { SermonData } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
@@ -268,6 +269,24 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
   const personaConfig = getPersonaConfig(setup?.persona);
   const pf = personaConfig.features; // shorthand
   const greetingText = getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count);
+
+  // ── Sunday sermon tab — takes over the home screen during the window ──
+  const sundaySermon = getSundaySermon();
+  const [homeTab, setHomeTab] = useState<'word' | 'sermon'>(() => sundaySermon ? 'sermon' : 'word');
+  const [inlineNotes, setInlineNotes] = useState<Record<number, string>>(() => {
+    if (!sundaySermon) return {};
+    try { return JSON.parse(localStorage.getItem(`dw_sermon_inline_${sundaySermon.id}`) || '{}'); } catch { return {}; }
+  });
+  const [activeNoteIdx, setActiveNoteIdx] = useState<number | null>(null);
+
+  const updateInlineNote = (idx: number, text: string) => {
+    if (!sundaySermon) return;
+    const next = { ...inlineNotes, [idx]: text };
+    if (!text.trim()) delete next[idx];
+    setInlineNotes(next);
+    localStorage.setItem(`dw_sermon_inline_${sundaySermon.id}`, JSON.stringify(next));
+  };
+
   const [dayOffset, setDayOffset] = useState(0);
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
@@ -1076,6 +1095,202 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
             <ThemeToggle />
           </div>
         </div>
+
+        </div>{/* end hero viewport — header only when sermon tab active */}
+
+        {/* ── Sunday Sermon Tab Bar ── */}
+        {sundaySermon && (
+          <div style={{
+            display: 'flex', gap: 0, marginBottom: 20,
+            background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
+            border: '1px solid var(--dw-border)',
+          }}>
+            {([['sermon', 'Sermon Notes'], ['word', 'Daily Word']] as const).map(([key, label]) => (
+              <button key={key} onClick={() => setHomeTab(key)} style={{
+                flex: 1, padding: '11px 0',
+                background: homeTab === key ? 'var(--dw-accent)' : 'transparent',
+                color: homeTab === key ? '#fff' : 'var(--dw-text-muted)',
+                border: 'none', borderRadius: 9, cursor: 'pointer',
+                fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                transition: 'all 0.2s ease',
+              }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Sunday Sermon View (full inline when tab active) ── */}
+        {sundaySermon && homeTab === 'sermon' && (() => {
+          const sermon = sundaySermon;
+          return (
+            <div style={{ paddingBottom: 120 }}>
+              {/* Key verse banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(154,123,46,0.10) 0%, rgba(107,26,34,0.06) 100%)',
+                border: '1px solid rgba(154,123,46,0.25)',
+                borderRadius: 14, padding: '20px 18px', marginBottom: 28,
+              }}>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'var(--dw-accent)', marginBottom: 8, textTransform: 'uppercase' as const }}>
+                  {sermon.series ? `${sermon.series} Series` : 'This Week'}
+                </p>
+                <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 600, color: 'var(--dw-text)', lineHeight: 1.3, marginBottom: 8 }}>
+                  {sermon.title}
+                </p>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-muted)', marginBottom: 12 }}>
+                  {sermon.speaker}
+                </p>
+                <p style={{ fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.7 }}>
+                  {sermon.keyVerseText}
+                </p>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, marginTop: 6 }}>
+                  {sermon.keyVerse}
+                </p>
+                <div style={{ marginTop: 12 }}>
+                  <ListenButton text={sermon.plainText} size="sm" />
+                </div>
+              </div>
+
+              {/* Sermon sections */}
+              {sermon.sections.map((section, idx) => (
+                <div key={idx} style={{ marginBottom: 36 }}>
+                  {section.heading && (
+                    <h2 style={{
+                      fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 600,
+                      color: 'var(--dw-text)', marginBottom: 12, lineHeight: 1.3,
+                    }}>
+                      {section.heading}
+                    </h2>
+                  )}
+
+                  {section.body && (
+                    <p style={{
+                      fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 16,
+                      color: 'var(--dw-text-secondary)', lineHeight: 1.85, marginBottom: 14,
+                      whiteSpace: 'pre-line',
+                    }}>
+                      {section.body}
+                    </p>
+                  )}
+
+                  {section.points && section.points.length > 0 && (
+                    <div style={{ marginBottom: 14 }}>
+                      {section.points.map((point, pi) => (
+                        <div key={pi} style={{
+                          display: 'flex', gap: 12, marginBottom: 10,
+                          paddingLeft: 4, borderLeft: '3px solid var(--dw-accent)',
+                          paddingTop: 2, paddingBottom: 2,
+                        }}>
+                          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, color: 'var(--dw-accent)', minWidth: 18 }}>
+                            {pi + 1}.
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.7 }}>
+                            {point}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {section.scripture && (
+                    <div style={{
+                      borderLeft: '3px solid var(--dw-accent)',
+                      background: 'rgba(154,123,46,0.04)',
+                      padding: '14px 16px', borderRadius: '0 10px 10px 0',
+                      marginBottom: 14,
+                    }}>
+                      <p style={{
+                        fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 15,
+                        fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.75,
+                        whiteSpace: 'pre-line',
+                      }}>
+                        {section.scripture}
+                      </p>
+                      {section.scriptureRef && (
+                        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, marginTop: 8 }}>
+                          {section.scriptureRef}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Inline note area ── */}
+                  {activeNoteIdx === idx ? (
+                    <div style={{
+                      border: '1.5px dashed var(--dw-accent)',
+                      borderRadius: 10, padding: 12, marginTop: 10,
+                      background: 'rgba(154,123,46,0.03)',
+                    }}>
+                      <textarea
+                        autoFocus
+                        placeholder="Write your notes for this section..."
+                        value={inlineNotes[idx] || ''}
+                        onChange={e => updateInlineNote(idx, e.target.value)}
+                        onBlur={() => setActiveNoteIdx(null)}
+                        style={{
+                          width: '100%', minHeight: 80, background: 'transparent',
+                          border: 'none', outline: 'none', resize: 'vertical',
+                          fontFamily: 'var(--font-sans)', fontSize: 14,
+                          color: 'var(--dw-text)', lineHeight: 1.6,
+                        }}
+                      />
+                    </div>
+                  ) : inlineNotes[idx] ? (
+                    <div
+                      onClick={() => setActiveNoteIdx(idx)}
+                      style={{
+                        border: '1.5px dashed var(--dw-accent)',
+                        borderRadius: 10, padding: '10px 14px', marginTop: 10,
+                        background: 'rgba(154,123,46,0.03)', cursor: 'pointer',
+                      }}
+                    >
+                      <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'var(--dw-accent)', marginBottom: 4 }}>MY NOTE</p>
+                      <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                        {inlineNotes[idx]}
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setActiveNoteIdx(idx)}
+                      style={{
+                        display: 'block', width: '100%', marginTop: 10,
+                        padding: '10px 14px', background: 'transparent',
+                        border: '1.5px dashed var(--dw-border)',
+                        borderRadius: 10, cursor: 'pointer',
+                        fontFamily: 'var(--font-sans)', fontSize: 13,
+                        color: 'var(--dw-text-muted)', textAlign: 'left',
+                        transition: 'border-color 0.2s',
+                      }}
+                      onPointerEnter={e => (e.currentTarget.style.borderColor = 'var(--dw-accent)')}
+                      onPointerLeave={e => (e.currentTarget.style.borderColor = 'var(--dw-border)')}
+                    >
+                      + Add your notes here...
+                    </button>
+                  )}
+
+                  {/* Section divider */}
+                  {idx < sermon.sections.length - 1 && (
+                    <div style={{ borderBottom: '1px solid var(--dw-border)', marginTop: 32, opacity: 0.5 }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* ── Regular Daily Word content (hidden when sermon tab active) ── */}
+        {(!sundaySermon || homeTab === 'word') && (<>
+
+        {/* Re-open hero viewport for Daily Word content */}
+        <div style={{
+          minHeight: 'calc(100svh - 80px)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          paddingTop: 20,
+          paddingBottom: 64,
+          position: 'relative',
+        }}>
 
         {/* ── Persona Greeting ── */}
         <p style={{
@@ -2189,40 +2404,6 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
         </Card>
         )}
 
-        {/* ── Sunday Sermon Shortcut ── */}
-        {(() => {
-          const sermon = getSundaySermon();
-          if (!sermon) return null;
-          return (
-            <Card
-              onClick={() => {
-                localStorage.setItem('dw_open_sermon_id', sermon.id);
-                onNavigate?.('messages');
-              }}
-              style={{
-                marginBottom: 16,
-                background: 'linear-gradient(135deg, rgba(154,123,46,0.12) 0%, rgba(107,26,34,0.08) 100%)',
-                border: '1px solid rgba(154,123,46,0.3)',
-                cursor: 'pointer',
-              }}
-            >
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'var(--dw-accent)', marginBottom: 6, textTransform: 'uppercase' as const }}>
-                Today's Sermon Notes
-              </p>
-              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 600, color: 'var(--dw-text)', lineHeight: 1.3, marginBottom: 6 }}>
-                {sermon.title}
-              </p>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-muted)', marginBottom: 0 }}>
-                {sermon.speaker}{sermon.series ? ` · ${sermon.series} Series` : ''}
-              </p>
-              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <BookOpen size={14} style={{ color: 'var(--dw-accent)' }} />
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--dw-accent)' }}>Open &amp; Follow Along →</span>
-              </div>
-            </Card>
-          );
-        })()}
-
         {/* ── Weekly Word in Review (Sundays) — persona-gated ── */}
         {pf.weeklyReview && weekReview && !weekReviewDismissed && (() => {
           const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
@@ -2690,6 +2871,9 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
 
         {/* Bottom spacing */}
         <div style={{ height: 24 }} />
+
+        </>)}
+        {/* ── End conditional Daily Word content ── */}
       </div>
 
       {/* Animations */}

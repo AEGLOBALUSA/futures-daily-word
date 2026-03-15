@@ -23,10 +23,15 @@ function AppContent() {
   const { selection } = useScriptureSelection();
 
   // Show PathwayPicker if no persona set, first run, or every 10th open
+  // BUT skip entirely during Sunday window (Sat 6pm – end of Sunday)
   const [showPathway, setShowPathway] = useState(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    const isSundayWindow = day === 0 || (day === 6 && hour >= 18);
+    if (isSundayWindow) return false; // people heading to church — no gate
     const v7Done = localStorage.getItem('dw_v7_pathway_done');
     if (!setup?.persona || !v7Done) return true;
-    // Increment open counter and show every 10th open
     const count = parseInt(localStorage.getItem('dw_open_count') || '0', 10) + 1;
     localStorage.setItem('dw_open_count', String(count));
     return count % 10 === 0;
