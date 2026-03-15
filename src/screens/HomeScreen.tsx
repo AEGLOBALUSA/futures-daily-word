@@ -1190,8 +1190,6 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
           );
         })()}
 
-        </div>{/* end hero viewport */}
-
         {/* ── Sunday Service Banner — prominent link to interactive sermon notes ── */}
         {sundaySermon && (
           <button
@@ -1369,17 +1367,6 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
 
         {/* ── Regular Daily Word content (hidden when sermon tab active) ── */}
         {(!sundaySermon || homeTab === 'word') && (<>
-
-        {/* Re-open hero viewport for Daily Word content */}
-        <div style={{
-          minHeight: 'calc(100svh - 80px)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          paddingTop: 20,
-          paddingBottom: 64,
-          position: 'relative',
-        }}>
 
         {/* ── Persona Greeting ── */}
         <p style={{
@@ -1783,8 +1770,6 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
               ))}
             </div>
           </div>
-        </div>{/* end hero viewport */}
-
         {/* Persona greeting + picker moved to Settings */}
 
         {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FAITH PATHWAY CARD ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ for new_returning persona */}
@@ -2963,6 +2948,8 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
 
         </>)}
         {/* ── End conditional Daily Word content ── */}
+
+        </div>{/* end hero viewport */}
       </div>
 
       {/* Animations */}
