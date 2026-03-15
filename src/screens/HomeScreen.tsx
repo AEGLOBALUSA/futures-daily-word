@@ -1095,6 +1095,31 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
 
         </div>{/* end hero viewport — header only when sermon tab active */}
 
+        {/* ── Sunday Service Banner — prominent link to interactive sermon notes ── */}
+        {sundaySermon && (
+          <button
+            onClick={() => onNavigate?.('messages')}
+            style={{
+              width: '100%', minHeight: 64, marginBottom: 20,
+              background: 'linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%)',
+              border: 'none', borderRadius: 16, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+              padding: '16px 20px',
+              boxShadow: '0 4px 16px rgba(123,31,162,0.3)',
+            }}
+          >
+            <BookOpen size={22} color="#fff" />
+            <div style={{ textAlign: 'left' }}>
+              <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.2 }}>
+                Sunday Service — Open Sermon Notes
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
+                Tap to take notes during today's message
+              </p>
+            </div>
+          </button>
+        )}
+
         {/* ── Sunday Sermon Tab Bar ── */}
         {sundaySermon && (
           <div style={{
@@ -1211,59 +1236,29 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
                     </div>
                   )}
 
-                  {/* ── Inline note area ── */}
-                  {activeNoteIdx === idx ? (
-                    <div style={{
-                      border: '1.5px dashed var(--dw-accent)',
-                      borderRadius: 10, padding: 12, marginTop: 10,
-                      background: 'rgba(154,123,46,0.03)',
-                    }}>
-                      <textarea
-                        autoFocus
-                        placeholder="Write your notes for this section..."
-                        value={inlineNotes[idx] || ''}
-                        onChange={e => updateInlineNote(idx, e.target.value)}
-                        onBlur={() => setActiveNoteIdx(null)}
-                        style={{
-                          width: '100%', minHeight: 80, background: 'transparent',
-                          border: 'none', outline: 'none', resize: 'vertical',
-                          fontFamily: 'var(--font-sans)', fontSize: 14,
-                          color: 'var(--dw-text)', lineHeight: 1.6,
-                        }}
-                      />
-                    </div>
-                  ) : inlineNotes[idx] ? (
-                    <div
-                      onClick={() => setActiveNoteIdx(idx)}
-                      style={{
-                        border: '1.5px dashed var(--dw-accent)',
-                        borderRadius: 10, padding: '10px 14px', marginTop: 10,
-                        background: 'rgba(154,123,46,0.03)', cursor: 'pointer',
-                      }}
-                    >
-                      <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'var(--dw-accent)', marginBottom: 4 }}>MY NOTE</p>
-                      <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                        {inlineNotes[idx]}
-                      </p>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setActiveNoteIdx(idx)}
-                      style={{
-                        display: 'block', width: '100%', marginTop: 10,
-                        padding: '10px 14px', background: 'transparent',
-                        border: '1.5px dashed var(--dw-border)',
-                        borderRadius: 10, cursor: 'pointer',
-                        fontFamily: 'var(--font-sans)', fontSize: 13,
-                        color: 'var(--dw-text-muted)', textAlign: 'left',
-                        transition: 'border-color 0.2s',
-                      }}
-                      onPointerEnter={e => (e.currentTarget.style.borderColor = 'var(--dw-accent)')}
-                      onPointerLeave={e => (e.currentTarget.style.borderColor = 'var(--dw-border)')}
-                    >
-                      + Add your notes here...
-                    </button>
-                  )}
+                  {/* ── Always-open note area under every section ── */}
+                  <textarea
+                    placeholder="Your notes..."
+                    value={inlineNotes[idx] || ''}
+                    onChange={e => {
+                      updateInlineNote(idx, e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.max(e.target.scrollHeight, 100) + 'px';
+                    }}
+                    onFocus={e => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.max(e.target.scrollHeight, 100) + 'px';
+                    }}
+                    style={{
+                      width: '100%', minHeight: 100, marginTop: 14,
+                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                      borderRadius: 12, padding: '14px 16px',
+                      color: 'var(--dw-text-primary)', fontSize: 15,
+                      fontFamily: 'var(--font-sans)', outline: 'none',
+                      resize: 'none', boxSizing: 'border-box',
+                      lineHeight: 1.7,
+                    }}
+                  />
 
                   {/* Section divider */}
                   {idx < sermon.sections.length - 1 && (
