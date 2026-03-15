@@ -75,7 +75,7 @@ function AppContent() {
   }, [selection?.text]);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={setActiveTab} />,
+    home: <HomeScreen onNavigate={setActiveTab} onOpenAI={() => setShowBibleAI(true)} />,
     journal: <JournalScreen />,
     messages: <MessagesScreen />,
     plans: <PlansScreen />,

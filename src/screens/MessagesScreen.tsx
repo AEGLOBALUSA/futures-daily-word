@@ -651,6 +651,7 @@ function PrayerWallPanel({
   const [showForm, setShowForm] = useState(false);
   const [prayerText, setPrayerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [prayedFor, setPrayedFor] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dw_prayed_for') || '[]')); } catch { return new Set(); }
   });
@@ -673,13 +674,14 @@ function PrayerWallPanel({
     setSubmitting(true);
     const ok = await postPrayer(
       prayerText.trim(),
-      userProfile.name || 'Anonymous',
+      isAnonymous ? 'Anonymous' : (userProfile.name || 'Anonymous'),
       campus,
       userProfile.email,
     );
     setSubmitting(false);
     if (ok) {
       setPrayerText('');
+      setIsAnonymous(false);
       setShowForm(false);
       await load();
     }
@@ -744,8 +746,19 @@ function PrayerWallPanel({
               outline: 'none', resize: 'none', marginBottom: 10, boxSizing: 'border-box',
             }}
           />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={e => setIsAnonymous(e.target.checked)}
+              style={{ cursor: 'pointer', width: 18, height: 18 }}
+            />
+            <label style={{ fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-primary)', cursor: 'pointer' }}>
+              Post anonymously
+            </label>
+          </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button onClick={() => { setShowForm(false); setPrayerText(''); }}
+            <button onClick={() => { setShowForm(false); setPrayerText(''); setIsAnonymous(false); }}
               className="dw-btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }}>Cancel</button>
             <button onClick={handleSubmit} disabled={!prayerText.trim() || submitting}
               className="dw-btn-primary"

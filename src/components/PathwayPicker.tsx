@@ -37,6 +37,21 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
   function handleSelect(persona: Persona) {
     setSelected(persona);
     setAnimatingOut(true);
+
+    // Auto-suggest translation for persona (only if user hasn't manually chosen)
+    const hasManualTranslation = localStorage.getItem('dw_translation_manual');
+    if (!hasManualTranslation) {
+      const translationMap: Record<string, string> = {
+        new_to_faith: 'NLT',
+        congregation: 'ESV',
+        deeper_study: 'ESV',
+        pastor_leader: 'ESV',
+        comfort: 'NLT',
+      };
+      const suggested = translationMap[persona];
+      if (suggested) localStorage.setItem('dw_translation', suggested);
+    }
+
     setTimeout(() => onSelect(persona), 400);
   }
 

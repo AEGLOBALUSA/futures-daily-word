@@ -3,11 +3,11 @@ import { ListenButton } from '../components/ListenButton';
 import { useHome } from './HomeContext';
 
 const DAILY_WORDS = [
-  { word: 'Agape', lang: 'Greek', pronunciation: 'ah-GAH-pay', meaning: 'Unconditional, self-giving love — the highest form of love in the New Testament', verse: 'John 3:16', original: '\u03B1\u03B3\u03AC\u03C0\u03B7' },
-  { word: 'Shalom', lang: 'Hebrew', pronunciation: 'sha-LOME', meaning: 'Peace, wholeness, and completeness — far deeper than the absence of conflict', verse: 'Numbers 6:26', original: '\u05E9\u05C8\u05DC\u05D5\u05B9\u05DD' },
-  { word: 'Charis', lang: 'Greek', pronunciation: 'KAH-ris', meaning: 'Grace — unmerited divine favor freely given', verse: 'Ephesians 2:8', original: '\u03C7\u03AC\u03C1\u03B9\u03C2' },
-  { word: 'Hesed', lang: 'Hebrew', pronunciation: 'HEH-sed', meaning: 'Lovingkindness, steadfast covenant love and loyalty', verse: 'Psalm 136:1', original: '\u05D7\u05B6\u05E1\u05B6\u05D3' },
-  { word: 'Logos', lang: 'Greek', pronunciation: 'LOH-gos', meaning: 'The Word — divine reason, wisdom, and the spoken expression of God', verse: 'John 1:1', original: '\u03BB\u03CC\u03B3\u03BF\u03C2' },
+  { word: 'Agape', lang: 'Greek', pronunciation: 'ah-GAH-pay', meaning: 'Unconditional, self-giving love — the highest form of love in the New Testament', verse: 'John 3:16', original: '\u03B1\u03B3\u03AC\u03C0\u03B7', ntCount: 143, otCount: 0, family: 'Love/Charity' },
+  { word: 'Shalom', lang: 'Hebrew', pronunciation: 'sha-LOME', meaning: 'Peace, wholeness, and completeness — far deeper than the absence of conflict', verse: 'Numbers 6:26', original: '\u05E9\u05C8\u05DC\u05D5\u05B9\u05DD', ntCount: 0, otCount: 237, family: 'Peace/Wholeness' },
+  { word: 'Charis', lang: 'Greek', pronunciation: 'KAH-ris', meaning: 'Grace — unmerited divine favor freely given', verse: 'Ephesians 2:8', original: '\u03C7\u03AC\u03C1\u03B9\u03C2', ntCount: 156, otCount: 0, family: 'Grace/Gift' },
+  { word: 'Hesed', lang: 'Hebrew', pronunciation: 'HEH-sed', meaning: 'Lovingkindness, steadfast covenant love and loyalty', verse: 'Psalm 136:1', original: '\u05D7\u05B6\u05E1\u05B6\u05D3', ntCount: 0, otCount: 248, family: 'Covenant Love/Mercy' },
+  { word: 'Logos', lang: 'Greek', pronunciation: 'LOH-gos', meaning: 'The Word — divine reason, wisdom, and the spoken expression of God', verse: 'John 1:1', original: '\u03BB\u03CC\u03B3\u03BF\u03C2', ntCount: 330, otCount: 0, family: 'Word/Reason/Wisdom' },
 ];
 
 function getDailyWord() {
@@ -46,6 +46,45 @@ export function WordOfDaySection() {
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
         {dailyWord.verse}
       </p>
+
+      {/* Expanded info for deeper_study and pastor_leader personas */}
+      {personaConfig.features.wordOfDay === 'full' && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(154,123,46,0.15)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            {dailyWord.ntCount > 0 && (
+              <div>
+                <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 2px', fontWeight: 500 }}>
+                  NT Appearances
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#9A7B2E', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                  {dailyWord.ntCount}x
+                </p>
+              </div>
+            )}
+            {dailyWord.otCount > 0 && (
+              <div>
+                <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 2px', fontWeight: 500 }}>
+                  OT Appearances
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#9A7B2E', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                  {dailyWord.otCount}x
+                </p>
+              </div>
+            )}
+          </div>
+          {dailyWord.family && (
+            <div>
+              <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 4px', fontWeight: 500 }}>
+                Word Family
+              </p>
+              <p style={{ fontSize: 12, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'italic' }}>
+                {dailyWord.family}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
         <ListenButton text={`${dailyWord.word}. ${dailyWord.meaning}. ${dailyWord.verse}`} size="sm" />
       </div>

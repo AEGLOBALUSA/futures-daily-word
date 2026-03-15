@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { trackBehavior } from '../utils/behavior'
 import { getPersonaConfig } from '../utils/persona-config'
-import { Send, ChevronDown } from 'lucide-react'
+import { Send, ChevronDown, Copy, BookmarkPlus } from 'lucide-react'
 
 /** Inline "BIBLE AI" wordmark used wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -59,8 +59,13 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [seasonTipDismissed, setSeasonTipDismissed] = useState<boolean>(() => {
+    return localStorage.getItem('dw_ai_season_tip_dismissed') === 'true'
+  })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const prefillProcessedRef = useRef(false)
 
   // Pre-populate input when selectedText changes and panel is open
   useEffect(() => {
@@ -75,6 +80,27 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     }
   }, [messages, isOpen])
+
+  // Check for prefill from Bible Search
+  useEffect(() => {
+    if (isOpen && !prefillProcessedRef.current) {
+      const prefill = localStorage.getItem('dw_ai_prefill');
+      if (prefill) {
+        prefillProcessedRef.current = true;
+        localStorage.removeItem('dw_ai_prefill');
+        setTimeout(() => sendMessage(prefill), 300);
+      }
+    } else if (!isOpen) {
+      prefillProcessedRef.current = false;
+    }
+  }, [isOpen])
+
+  // Mark AI as opened on first open
+  useEffect(() => {
+    if (isOpen && localStorage.getItem('dw_ai_opened_before') !== 'true') {
+      localStorage.setItem('dw_ai_opened_before', 'true');
+    }
+  }, [isOpen])
 
   async function sendMessage(text?: string) {
     const msg = text ?? input.trim()
@@ -125,6 +151,37 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
+    }
+  }
+
+  function showToast(msg: string) {
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(null), 1500)
+  }
+
+  async function copyToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      showToast('Copied!')
+    } catch {
+      showToast('Failed to copy')
+    }
+  }
+
+  function saveToJournal(content: string) {
+    try {
+      const entry = {
+        type: 'saved',
+        tag: 'bible-ai',
+        content,
+        timestamp: new Date().toISOString(),
+      }
+      const journal = JSON.parse(localStorage.getItem('dw_journal') || '[]')
+      journal.push(entry)
+      localStorage.setItem('dw_journal', JSON.stringify(journal))
+      showToast('Saved!')
+    } catch {
+      showToast('Failed to save')
     }
   }
 
@@ -265,6 +322,53 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
           {messages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px 8px 16px' }}>
+              {/* Season & Context tip banner */}
+              {!seasonTipDismissed && !localStorage.getItem('dw_user_story') && (() => {
+                const aiOpenedBefore = localStorage.getItem('dw_ai_opened_before') === 'true';
+                return aiOpenedBefore ? null : (
+                  <div style={{
+                    background: 'rgba(154,123,46,0.10)',
+                    border: '1px solid rgba(154,123,46,0.25)',
+                    borderLeft: '3px solid #9A7B2E',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    marginBottom: 16,
+                    textAlign: 'left',
+                    fontSize: 12,
+                    color: 'var(--dw-text)',
+                    fontFamily: 'var(--font-sans)',
+                    lineHeight: 1.5,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                  }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>💡</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ marginBottom: 6 }}>
+                        <strong>Tip:</strong> Tell Bible AI about your life season in Settings → My Season & Context. This makes every conversation more personal.
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSeasonTipDismissed(true);
+                          localStorage.setItem('dw_ai_season_tip_dismissed', 'true');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#9A7B2E',
+                          cursor: 'pointer',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: 0,
+                          fontFamily: 'var(--font-sans)',
+                        }}
+                      >
+                        Got it
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ── TOP: Prominent input box — first thing the user sees ── */}
               <div style={{
@@ -383,30 +487,86 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           ) : (
             <>
               {messages.map((m, i) => (
-                <div
-                  key={i}
-                  style={{
-                    marginBottom: 14,
-                    display: 'flex',
-                    justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
-                  }}
-                >
+                <div key={i}>
                   <div
                     style={{
-                      maxWidth: '82%',
-                      padding: '10px 14px',
-                      borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                      background: m.role === 'user'
-                        ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
-                        : 'var(--dw-card, #F5F3EF)',
-                      color: m.role === 'user' ? '#fff' : 'var(--dw-text)',
-                      fontSize: 14,
-                      lineHeight: 1.55,
-                      fontFamily: 'var(--font-sans)',
+                      marginBottom: 14,
+                      display: 'flex',
+                      justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
                     }}
                   >
-                    {m.content}
+                    <div
+                      role={m.role === 'assistant' ? 'assistant' : undefined}
+                      style={{
+                        maxWidth: '82%',
+                        padding: '10px 14px',
+                        borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                        background: m.role === 'user'
+                          ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
+                          : 'var(--dw-card, #F5F3EF)',
+                        color: m.role === 'user' ? '#fff' : 'var(--dw-text)',
+                        fontSize: 14,
+                        lineHeight: 1.55,
+                        fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      {m.content}
+                    </div>
                   </div>
+                  {m.role === 'assistant' && (
+                    <div style={{
+                      display: 'flex',
+                      gap: 8,
+                      marginBottom: 14,
+                      justifyContent: 'flex-start',
+                      paddingLeft: 0,
+                    }}>
+                      <button
+                        onClick={() => copyToClipboard(m.content)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          fontSize: 12,
+                          color: 'var(--dw-text-muted)',
+                          fontFamily: 'var(--font-sans)',
+                          padding: '4px 8px',
+                          borderRadius: 6,
+                          transition: 'color 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--dw-text-secondary)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--dw-text-muted)')}
+                      >
+                        <Copy size={12} />
+                        <span>Copy</span>
+                      </button>
+                      <button
+                        onClick={() => saveToJournal(m.content)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          fontSize: 12,
+                          color: 'var(--dw-text-muted)',
+                          fontFamily: 'var(--font-sans)',
+                          padding: '4px 8px',
+                          borderRadius: 6,
+                          transition: 'color 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--dw-text-secondary)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--dw-text-muted)')}
+                      >
+                        <BookmarkPlus size={12} />
+                        <span>Save</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
               {loading && (
@@ -481,10 +641,36 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         </div>
       </div>
 
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(26, 23, 20, 0.9)',
+          color: '#fff',
+          padding: '8px 14px',
+          borderRadius: 8,
+          fontSize: 12,
+          fontFamily: 'var(--font-sans)',
+          animation: 'fadeInOut 1.5s ease-in-out',
+          zIndex: 95,
+          pointerEvents: 'none',
+        }}>
+          {toastMessage}
+        </div>
+      )}
+
       <style>{`
         @keyframes pulse {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
           40% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeInOut {
+          0% { opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { opacity: 0; }
         }
       `}</style>
     </>

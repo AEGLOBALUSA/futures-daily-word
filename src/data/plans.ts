@@ -321,4 +321,53 @@ export const PLAN_CATALOGUE: PlanDef[] = [
     category: 'Foundation',
     passages: ['Ephesians 6', 'Isaiah 59', 'Romans 13', '1 Thessalonians 5', '2 Corinthians 10', 'Hebrews 4', 'Psalm 18'],
   },
+
+  // ── Comfort ───────────────────────────────────────────────────────
+  {
+    id: 'psalms-brokenhearted',
+    title: 'Psalms for the Brokenhearted — 14 Days',
+    description: 'Fourteen days of Psalms focused on grief, lament, and hope — finding strength in sorrow.',
+    totalDays: 14,
+    category: 'comfort',
+    passages: ['Psalm 6', 'Psalm 10', 'Psalm 13', 'Psalm 22', 'Psalm 31', 'Psalm 34', 'Psalm 42', 'Psalm 46', 'Psalm 55', 'Psalm 61', 'Psalm 69', 'Psalm 86', 'Psalm 130', 'Psalm 147'],
+  },
+  {
+    id: 'promises-hurting',
+    title: "God's Promises When You're Hurting — 21 Days",
+    description: 'Twenty-one days of comfort passages from both Old and New Testament — promises of healing and hope.',
+    totalDays: 21,
+    category: 'comfort',
+    passages: ['Isaiah 41', 'Isaiah 43', 'Isaiah 49', 'Isaiah 54', 'Isaiah 61', 'Psalm 23', 'Psalm 27', 'Psalm 91', 'Psalm 103', 'Psalm 121', 'Psalm 139', 'Lamentations 3', 'Matthew 11', 'John 14', 'John 16', 'Romans 8', '2 Corinthians 1', '2 Corinthians 4', 'Philippians 4', '1 Peter 5', 'Revelation 21'],
+  },
+  {
+    id: 'hope-darkness',
+    title: 'Finding Hope in the Darkness — 30 Days',
+    description: 'Thirty days through hope-themed passages from Scripture — walking toward light, one day at a time.',
+    totalDays: 30,
+    category: 'comfort',
+    passages: genPassages(
+      [
+        ['Psalm', 150], // Used for hope-themed passages: 23, 27, 30, 34, 40, 42, 46, 56, 62, 71, 73, 77, 84, 91, 116, 121 (16 total)
+        ['Isaiah', 66],
+        ['Romans', 16],
+        ['2 Corinthians', 13],
+        ['Hebrews', 13],
+        ['Revelation', 22],
+      ],
+      30
+    ).map((passage, idx) => {
+      // Override with specific hope-themed passages
+      const hopePassages = [
+        'Psalm 23', 'Psalm 27', 'Psalm 30', 'Psalm 34', 'Psalm 40', 'Psalm 42',
+        'Psalm 46', 'Psalm 56', 'Psalm 62', 'Psalm 71', 'Psalm 73', 'Psalm 77',
+        'Psalm 84', 'Psalm 91', 'Psalm 116', 'Psalm 121',
+        'Isaiah 25', 'Isaiah 40', 'Isaiah 43', 'Isaiah 61',
+        'Romans 5', 'Romans 8', 'Romans 15',
+        '2 Corinthians 4', '2 Corinthians 12',
+        'Hebrews 4', 'Hebrews 12',
+        'Revelation 21',
+      ];
+      return hopePassages[idx] || passage;
+    }),
+  },
 ];

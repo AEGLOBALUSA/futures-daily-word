@@ -1,4 +1,4 @@
-import { Home, BookOpen, MessageCircle, Calendar, Settings } from 'lucide-react';
+import { Home, PenLine, MessageCircle, Calendar, Settings } from 'lucide-react';
 
 export type TabId = 'home' | 'journal' | 'messages' | 'plans' | 'more';
 
@@ -9,7 +9,7 @@ interface TabBarProps {
 
 const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'journal', label: 'Study', icon: BookOpen },
+  { id: 'journal', label: 'Journal', icon: PenLine },
   { id: 'messages', label: 'Notes', icon: MessageCircle },
   { id: 'plans', label: 'Plans', icon: Calendar },
   { id: 'more', label: 'Settings', icon: Settings },

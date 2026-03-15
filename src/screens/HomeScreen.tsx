@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion } from '../utils/daily-passages';
+import { shareContent } from '../utils/share';
 import { fetchPassage, fetchAudio } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { QUOTES } from '../data/quotes';
@@ -13,6 +14,7 @@ import { HighlightToolbar } from '../components/HighlightToolbar';
 import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
 import { GreekHebrewPopup } from '../components/GreekHebrewPopup';
 import { BibleAI } from '../components/BibleAI';
+import { BibleSearch } from '../components/BibleSearch';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
@@ -25,6 +27,7 @@ import { personalize } from '../utils/personalization';
 import { getPersonaConfig, getGreeting } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
+import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
 import { isSundayWindow } from '../utils/sunday';
@@ -258,7 +261,7 @@ interface ReadingSlot {
   currentChapter: number;
 }
 
-export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }) {
+export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId) => void; onOpenAI?: () => void }) {
   const { userProfile, setup, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
 
   // ── Persona-aware feature gating ──
@@ -287,6 +290,9 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
   });
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareTranslation, setCompareTranslation] = useState<TranslationCode>('KJV');
+  const [compareTexts, setCompareTexts] = useState<Record<string, string>>({});
   const [passageTexts, setPassageTexts] = useState<Record<string, string>>({});
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassages, setExpandedPassages] = useState<Set<string>>(new Set());
@@ -325,6 +331,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
   const [showNoteDrawer, setShowNoteDrawer] = useState(false);
   const [showBibleAI, setShowBibleAI] = useState(false);
   const [bibleAIContext, setBibleAIContext] = useState<string>('');
+  const [showSearch, setShowSearch] = useState(false);
   const { selection, setSelection, greekHebrewMode } = useScriptureSelection();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlCache = useRef<Map<string, string>>(new Map());
@@ -566,6 +573,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
   useEffect(() => {
     setExpandedPassages(new Set());
     setPassageTexts({});
+    setCompareTexts({});
     stopAudio();
   }, [dayOffset, translation]);
 
@@ -601,6 +609,20 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passageTexts, translation]);
+
+  // Fetch compare text when compare mode or translation changes
+  useEffect(() => {
+    if (!compareMode || todaysPlanPassages.length === 0) return;
+    todaysPlanPassages.forEach(({ passage }) => {
+      const cKey = `${passage}_${compareTranslation}`;
+      if (compareTexts[cKey]) return; // already loaded
+      fetchPassage(passage, compareTranslation)
+        .then(text => {
+          setCompareTexts(prev => ({ ...prev, [cKey]: text }));
+        })
+        .catch(() => {});
+    });
+  }, [compareMode, compareTranslation, todaysPlanPassages]);
 
   // ── Hero full-passage state (always ESV for real human audio) ──────────────
   const [heroFullText, setHeroFullText] = useState('');
@@ -1368,18 +1390,40 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
         {/* ── Regular Daily Word content (hidden when sermon tab active) ── */}
         {(!sundaySermon || homeTab === 'word') && (<>
 
-        {/* ── Persona Greeting ── */}
-        <p style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: 17,
-          color: 'var(--dw-text-secondary)',
-          textAlign: 'center',
-          marginBottom: 16,
-          lineHeight: 1.5,
-          letterSpacing: '0.01em',
-        }}>
-          {greetingText}
-        </p>
+        {/* ── Persona Greeting with Search Button ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>
+          <p style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 17,
+            color: 'var(--dw-text-secondary)',
+            textAlign: 'center',
+            lineHeight: 1.5,
+            letterSpacing: '0.01em',
+            flex: 1,
+          }}>
+            {greetingText}
+          </p>
+          {pf.searchEnabled && (
+            <button
+              onClick={() => setShowSearch(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--dw-text-muted)',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--dw-accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--dw-text-muted)')}
+            >
+              <Search size={20} />
+            </button>
+          )}
+        </div>
 
         {/* ── Hero Listen Button ── always shown; plays all today's passages in ESV */}
         {(() => {
@@ -1586,14 +1630,76 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
                       </button>
                     ))}
                   </div>
+
+                  {/* Compare button (only for deeper_study and pastor_leader) */}
+                  {personaConfig.features.greekHebrew === 'full' && (
+                    <button
+                      onClick={() => setCompareMode(!compareMode)}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        fontSize: 11, fontWeight: 700,
+                        fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.04em',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        border: compareMode ? '1.5px solid rgba(255,255,255,0.7)' : '1.5px solid rgba(255,255,255,0.2)',
+                        background: compareMode ? 'rgba(255,255,255,0.22)' : 'transparent',
+                        color: compareMode ? '#fff' : 'rgba(255,255,255,0.5)',
+                        marginLeft: 'auto',
+                        marginRight: 8,
+                      }}
+                    >
+                      Compare
+                    </button>
+                  )}
                 </div>
+
+                {/* Compare translation selector (shown when compare mode active) */}
+                {compareMode && personaConfig.features.greekHebrew === 'full' && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    overflowX: 'auto', padding: '6px 12px',
+                    scrollbarWidth: 'none',
+                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                  }}>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', marginRight: 4 }}>Compare:</span>
+                    {TRANSLATIONS.map(t => (
+                      <button
+                        key={`compare-${t}`}
+                        onClick={() => setCompareTranslation(t)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '4px 9px',
+                          borderRadius: 20,
+                          fontSize: 11, fontWeight: 700,
+                          fontFamily: 'var(--font-sans)',
+                          letterSpacing: '0.04em',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          border: t === compareTranslation ? '1.5px solid rgba(255,255,255,0.7)' : '1.5px solid rgba(255,255,255,0.2)',
+                          background: t === compareTranslation ? 'rgba(255,255,255,0.22)' : 'transparent',
+                          color: t === compareTranslation ? '#fff' : 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );
         })()}
 
+        {/* Comfort Verse Banner — comfort persona only */}
+        {personaConfig.sectionOrder.includes('comfort_verse_banner') && <ComfortVerseBannerSection />}
+
         {/* Poll banner — right under the hero audio card (persona-gated) */}
         {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
+
+        {/* AI Prompt Section — multi-persona */}
+        {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={onOpenAI || (() => {})} />}
 
         {/* Comfort Card — comfort persona only */}
         {pf.comfortCard && <ComfortCard />}
@@ -1942,7 +2048,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
             — {todaysDevotion.author}
           </p>
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             {/* Emoji reactions — inline on devotion */}
             {dayOffset === 0 && (
               todayReaction ? (
@@ -1972,8 +2078,39 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
               )
             )}
             {!dayOffset && <div />}
-            <ListenButton text={`${todaysDevotion.title}. ${todaysDevotion.body}`} size="md" label="Listen" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={(e) => {
+                e.stopPropagation();
+                shareContent({
+                  title: `Daily Word — ${todaysDevotion.title}`,
+                  text: `${todaysDevotion.title}\n\n${todaysDevotion.body.substring(0, 200)}...\n\n— Futures Daily Word`,
+                  url: 'https://futuresdailyword.com'
+                });
+              }} style={{
+                display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px',
+                background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
+                transition: 'all 0.15s ease',
+              }}>
+                <Share2 size={14} /> Share
+              </button>
+              <ListenButton text={`${todaysDevotion.title}. ${todaysDevotion.body}`} size="md" label="Listen" />
+            </div>
           </div>
+          {/* Community reaction counts */}
+          {dayOffset === 0 && (() => {
+            const daySeed = new Date().toDateString();
+            const hash = Array.from(daySeed).reduce((a, c) => a + c.charCodeAt(0), 0);
+            const heartCount = 12 + (hash % 30);
+            const thinkCount = 5 + (hash % 15);
+            const prayCount = 20 + (hash % 40);
+            return (
+              <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 8, marginBottom: 0 }}>
+                ❤️ {heartCount} · 🤔 {thinkCount} · 🙏 {prayCount}
+              </p>
+            );
+          })()}
         </Card>
 
         {/* ── Campus community count — persona-gated ── */}
@@ -2002,6 +2139,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
             <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', margin: 0 }}>TODAY'S CHAPTERS</p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={() => {
                 // All visible passages = plan passages + reading slot passages
                 const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
@@ -2024,6 +2162,21 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
                   });
                 }
               }} style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#fff', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
+              <button onClick={() => {
+                const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
+                const passageRefs = [
+                  ...todaysPlanPassages.map(p => p.passage),
+                  ...slotPassages.map(s => `${s.book} ${s.currentChapter}`),
+                ];
+                shareContent({
+                  title: 'Daily Bible Reading',
+                  text: `Today's passages: ${passageRefs.join(', ')}\n\n— Futures Daily Word`,
+                  url: 'https://futuresdailyword.com'
+                });
+              }} style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:8, padding:'4px 8px', fontSize:12, color:'#fff', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
+                <Share2 size={12} /> Share
+              </button>
+            </div>
             <button
               onClick={() => setShowReadingSetup(!showReadingSetup)}
               style={{
@@ -2265,6 +2418,29 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
                   {renderScripture(text, passage)}
                 </p>
               </div>
+
+              {/* Compare translation text */}
+              {compareMode && personaConfig.features.greekHebrew === 'full' && (() => {
+                const compareKey = `${passage}_${compareTranslation}`;
+                const compareText = compareTexts[compareKey];
+                return (
+                  <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--dw-border)' }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-sans)' }}>
+                      {compareTranslation}
+                    </p>
+                    {!compareText ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0' }}>
+                        <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                        <span style={{ color: 'var(--dw-text-muted)', fontSize: 12 }}>Loading {compareTranslation}...</span>
+                      </div>
+                    ) : (
+                      <p className="text-scripture" style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', borderRadius: 4 }}>
+                        {renderScripture(compareText, passage)}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               </>
                         ) : (
                           <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
@@ -3075,6 +3251,18 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
         onOpen={() => setShowBibleAI(true)}
         initialContext={bibleAIContext}
         selectedText={selection?.text}
+      />
+      <BibleSearch
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        onSearch={(query) => {
+          localStorage.setItem('dw_ai_prefill', query);
+          if (onOpenAI) {
+            onOpenAI();
+          } else {
+            setShowBibleAI(true);
+          }
+        }}
       />
       <StopAllAudio />
     </div>

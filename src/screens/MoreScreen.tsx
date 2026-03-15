@@ -110,6 +110,7 @@ export function MoreScreen() {
 
   const handleTranslationSelect = (t: TranslationCode) => {
     localStorage.setItem('dw_translation', t);
+    localStorage.setItem('dw_translation_manual', 'true');
     window.location.reload();
   };
 
@@ -613,6 +614,66 @@ export function MoreScreen() {
             </button>
           </Card>
         </div>
+
+        {/* ── PASTORAL CARE (Comfort Persona Only) ── */}
+        {setup?.persona === 'comfort' && (
+          <div style={{ marginBottom: 24 }}>
+            <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PASTORAL CARE</p>
+            <Card style={{ padding: 16 }}>
+              <div style={{ marginBottom: 14 }}>
+                <p style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: 'var(--dw-text)',
+                  margin: '0 0 6px',
+                  fontFamily: 'var(--font-sans)',
+                }}>
+                  Need to talk to someone?
+                </p>
+                <p style={{
+                  fontSize: 13,
+                  color: 'var(--dw-text-secondary)',
+                  margin: '0 0 12px',
+                  lineHeight: 1.5,
+                  fontFamily: 'var(--font-sans)',
+                }}>
+                  Our pastoral care team is here for you. You don't have to walk through this alone.
+                </p>
+              </div>
+              <a
+                href="mailto:care@futures.church"
+                style={{
+                  display: 'inline-block',
+                  background: 'rgba(92,107,192,0.15)',
+                  color: 'var(--dw-accent)',
+                  border: '1px solid rgba(92,107,192,0.25)',
+                  borderRadius: 10,
+                  padding: '10px 16px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-sans)',
+                  textDecoration: 'none',
+                  marginBottom: 12,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(92,107,192,0.25)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(92,107,192,0.15)')}
+              >
+                Reach Out
+              </a>
+              <p style={{
+                fontSize: 12,
+                color: 'var(--dw-text-muted)',
+                margin: 0,
+                fontFamily: 'var(--font-sans)',
+                lineHeight: 1.5,
+              }}>
+                Crisis support: 988 Suicide & Crisis Lifeline (call or text 988)
+              </p>
+            </Card>
+          </div>
+        )}
 
         {/* ── ABOUT ── */}
         <div style={{ marginBottom: 24 }}>
