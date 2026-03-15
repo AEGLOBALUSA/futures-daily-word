@@ -127,14 +127,13 @@ export function MessagesScreen() {
   );
 }
 
-// ── Sermon Detail View (redesigned — generous spacing, inline notes, italic scripture) ──
+// ── Sermon Detail View (generous spacing, always-open note areas under every section) ──
 function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () => void }) {
   // Inline notes per section — keyed by section index, persisted
   const storageKey = `dw_sermon_inline_${sermon.id}`;
   const [inlineNotes, setInlineNotes] = useState<Record<number, string>>(() => {
     try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { return {}; }
   });
-  const [activeNoteIdx, setActiveNoteIdx] = useState<number | null>(null);
 
   const updateNote = (idx: number, text: string) => {
     const next = { ...inlineNotes, [idx]: text };
@@ -143,8 +142,21 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
     localStorage.setItem(storageKey, JSON.stringify(next));
   };
 
+  // Auto-resize textareas
+  const autoResize = (el: HTMLTextAreaElement) => {
+    el.style.height = 'auto';
+    el.style.height = Math.max(el.scrollHeight, 100) + 'px';
+  };
+
   const handleShare = () => {
-    const shareText = `${sermon.title}\n${sermon.speaker}\n\n${sermon.keyVerseText}`;
+    // Build share text including user notes
+    let shareText = `${sermon.title}\n${sermon.speaker}\n\n${sermon.keyVerseText}\n`;
+    sermon.sections.forEach((section, i) => {
+      if (section.heading) shareText += `\n${section.heading}\n`;
+      if (section.body) shareText += `${section.body}\n`;
+      if (section.scripture) shareText += `\n${section.scripture}\n`;
+      if (inlineNotes[i]) shareText += `\nMy notes: ${inlineNotes[i]}\n`;
+    });
     if (navigator.share) {
       navigator.share({ text: shareText }).catch(() => {});
     } else {
@@ -201,10 +213,10 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
         <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" />
       </div>
 
-      {/* ── Sections ── */}
+      {/* ── Sections with generous note areas ── */}
       <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>
         {sermon.sections.map((section, i) => (
-          <div key={i} style={{ marginBottom: 36 }}>
+          <div key={i} style={{ marginBottom: 12 }}>
 
             {/* Section heading — large serif */}
             {section.heading && (
@@ -218,7 +230,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
             )}
 
             {/* Body paragraphs */}
-            {section.body.split('\n').map((line, j) => {
+            {section.body ? section.body.split('\n').map((line, j) => {
               if (!line.trim()) return <div key={j} style={{ height: 14 }} />;
               return (
                 <p key={j} style={{
@@ -228,25 +240,45 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                   {line}
                 </p>
               );
-            })}
+            }) : null}
 
-            {/* Numbered points */}
+            {/* Numbered points — each with its own note area */}
             {section.points && (
-              <div style={{ margin: '16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ margin: '8px 0', display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {section.points.map((point, k) => {
-                  const dashIdx = point.indexOf(' — ');
+                  const dashIdx = point.indexOf(' \u2014 ');
                   const label = dashIdx > -1 ? point.slice(0, dashIdx) : point;
                   const desc = dashIdx > -1 ? point.slice(dashIdx + 3) : '';
+                  const pointNoteKey = i * 100 + k; // unique key per point
                   return (
-                    <div key={k} style={{ paddingLeft: 20, borderLeft: '2px solid var(--dw-accent)', paddingTop: 4, paddingBottom: 4 }}>
-                      <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: '0 0 4px' }}>
-                        {label}
-                      </p>
-                      {desc && (
-                        <p style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-serif-text)', margin: 0, lineHeight: 1.7 }}>
-                          {desc}
+                    <div key={k} style={{ marginBottom: 8 }}>
+                      <div style={{ paddingLeft: 20, borderLeft: '2px solid var(--dw-accent)', paddingTop: 4, paddingBottom: 4 }}>
+                        <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: '0 0 4px' }}>
+                          {label}
                         </p>
-                      )}
+                        {desc && (
+                          <p style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-serif-text)', margin: 0, lineHeight: 1.7 }}>
+                            {desc}
+                          </p>
+                        )}
+                      </div>
+                      {/* Note area under each point */}
+                      <textarea
+                        value={inlineNotes[pointNoteKey] || ''}
+                        onChange={e => { updateNote(pointNoteKey, e.target.value); autoResize(e.target); }}
+                        onFocus={e => autoResize(e.target)}
+                        placeholder="Your notes..."
+                        style={{
+                          width: '100%', minHeight: 100, marginTop: 10,
+                          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                          borderRadius: 12, padding: '14px 16px',
+                          color: 'var(--dw-text-primary)', fontSize: 15,
+                          fontFamily: 'var(--font-sans)', outline: 'none',
+                          resize: 'none', boxSizing: 'border-box',
+                          lineHeight: 1.7, transition: 'border-color 0.2s',
+                        }}
+                        onBlur={e => e.target.style.borderColor = 'var(--dw-border)'}
+                      />
                     </div>
                   );
                 })}
@@ -273,53 +305,27 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
               </div>
             )}
 
-            {/* ── Inline note area ── */}
-            {activeNoteIdx === i ? (
-              <div style={{ marginTop: 16 }}>
-                <textarea
-                  autoFocus
-                  value={inlineNotes[i] || ''}
-                  onChange={e => updateNote(i, e.target.value)}
-                  onBlur={() => { if (!inlineNotes[i]?.trim()) setActiveNoteIdx(null); }}
-                  placeholder="Write your thoughts here..."
-                  style={{
-                    width: '100%', minHeight: 80, background: 'var(--dw-surface)',
-                    border: '1px solid var(--dw-border)', borderRadius: 12, padding: '14px 16px',
-                    color: 'var(--dw-text-primary)', fontSize: 15, fontFamily: 'var(--font-sans)',
-                    outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-                    lineHeight: 1.6,
-                  }}
-                />
-              </div>
-            ) : inlineNotes[i] ? (
-              <div
-                onClick={() => setActiveNoteIdx(i)}
-                style={{
-                  marginTop: 16, padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
-                  background: 'rgba(154,123,46,0.06)', border: '1px dashed rgba(154,123,46,0.3)',
-                }}>
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>MY NOTE</p>
-                <p style={{ fontSize: 14, lineHeight: 1.6, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', margin: 0 }}>
-                  {inlineNotes[i]}
-                </p>
-              </div>
-            ) : (
-              <button
-                onClick={() => setActiveNoteIdx(i)}
-                style={{
-                  marginTop: 12, padding: '10px 16px',
-                  background: 'none', border: '1px dashed var(--dw-border)',
-                  borderRadius: 10, cursor: 'pointer', width: '100%',
-                  color: 'var(--dw-text-faint)', fontSize: 13, fontFamily: 'var(--font-sans)',
-                  textAlign: 'left', transition: 'border-color 0.2s',
-                }}>
-                + Add your notes here...
-              </button>
-            )}
+            {/* ── Always-visible note area under every section ── */}
+            <textarea
+              value={inlineNotes[i] || ''}
+              onChange={e => { updateNote(i, e.target.value); autoResize(e.target); }}
+              onFocus={e => autoResize(e.target)}
+              placeholder="Your notes..."
+              style={{
+                width: '100%', minHeight: 100, marginTop: 16,
+                background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                borderRadius: 12, padding: '14px 16px',
+                color: 'var(--dw-text-primary)', fontSize: 15,
+                fontFamily: 'var(--font-sans)', outline: 'none',
+                resize: 'none', boxSizing: 'border-box',
+                lineHeight: 1.7, transition: 'border-color 0.2s',
+              }}
+              onBlur={e => e.target.style.borderColor = 'var(--dw-border)'}
+            />
 
             {/* Section divider */}
-            {i < sermon.sections.length - 1 && section.heading && (
-              <div style={{ marginTop: 32, borderBottom: '1px solid var(--dw-border)' }} />
+            {i < sermon.sections.length - 1 && (
+              <div style={{ marginTop: 24, marginBottom: 24, borderBottom: '1px solid var(--dw-border)' }} />
             )}
           </div>
         ))}
