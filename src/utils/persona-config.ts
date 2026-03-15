@@ -74,9 +74,11 @@ export function getGreeting(persona: Persona, name: string, streak: number): str
     case 'new_to_faith':
       return `Welcome, ${first}. We're glad you're here.`;
     case 'congregation':
-      return streak > 1
-        ? `Good ${timeOfDay()}, ${first}. Day ${streak} streak!`
-        : `Good ${timeOfDay()}, ${first}.`;
+      return streak > 7
+        ? `Good ${timeOfDay()}, ${first}. ${streak} days strong!`
+        : streak > 1
+        ? `Good ${timeOfDay()}, ${first}. Day ${streak} — keep going.`
+        : `Good ${timeOfDay()}, ${first}. Glad you're here.`;
     case 'deeper_study':
       return streak > 1
         ? `Good ${timeOfDay()}, ${first}. Day ${streak}.`
@@ -165,23 +167,19 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'hero_audio',
       'poll_banner',
       'devotion',
+      'devotion_scripture',
       'ai_prompt',
       'campus_count',
-      'scripture',
-      'word_of_day',
       'daily_quote',
-      'weekly_review',
-      'plans_preview',
-      'commentary',
     ],
     features: {
       commentary: 'collapsed',
-      greekHebrew: 'simplified',
+      greekHebrew: 'hidden',
       highlighting: 'basic',
       verseSelection: true,
-      wordOfDay: 'simplified',
+      wordOfDay: 'hidden',
       campusCount: 'simple',
-      weeklyReview: true,
+      weeklyReview: false,
       pollBanner: true,
       searchEnabled: true,
       videoRecording: true,

@@ -34,6 +34,7 @@ import { isSundayWindow } from '../utils/sunday';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
+const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
 
 // ── Streak helpers ──────────────────────────────────────────────
 function getStreak(): { count: number; freezesAvailable: number } {
@@ -614,6 +615,15 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathwayData, pathwayProgress, translation]);
 
+  // Auto-load devotion-connected scripture for congregation persona
+  useEffect(() => {
+    if (!personaConfig.sectionOrder.includes('devotion_scripture')) return;
+    const devVerse = todaysDevotion.verse; // e.g. "2 Timothy 1"
+    if (!devVerse) return;
+    loadPassage(devVerse);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todaysDevotion.verse, translation]);
+
   const todaysPlanPassages = (() => {
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
@@ -1079,21 +1089,21 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && (() => {
               const encouragement: [number, string][] = [
-                [1,   'Day one.'],
+                [1,   'Welcome back.'],
                 [2,   'Two in a row.'],
-                [3,   'Three days strong.'],
-                [5,   'Five days.'],
-                [7,   'One week.'],
+                [3,   'Building a habit.'],
+                [5,   'Five days strong.'],
+                [7,   'One week!'],
                 [10,  'Ten days.'],
-                [14,  'Two weeks.'],
+                [14,  'Two weeks!'],
                 [21,  'Three weeks.'],
-                [30,  'One month.'],
+                [30,  'One month!'],
                 [40,  'Forty days.'],
-                [60,  'Two months.'],
+                [60,  'Two months!'],
                 [90,  'Three months.'],
-                [100, 'One hundred days.'],
-                [180, 'Half a year.'],
-                [365, 'One full year.'],
+                [100, 'One hundred days!'],
+                [180, 'Half a year!'],
+                [365, 'One full year!'],
               ];
               const label = [...encouragement].reverse().find(([n]) => streakCount >= n)?.[1] ?? null;
               const isMilestone = streakCount >= 7;
@@ -1629,7 +1639,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     overflowX: 'auto', padding: '10px 12px',
                     scrollbarWidth: 'none',
                   }}>
-                    {(pf.faithPathway && !personaConfig.sectionOrder.includes('devotion') ? NEW_FAITH_TRANSLATIONS : TRANSLATIONS).map(t => (
+                    {(personaConfig.persona === 'new_to_faith' ? NEW_FAITH_TRANSLATIONS
+                      : personaConfig.persona === 'congregation' ? CONGREGATION_TRANSLATIONS
+                      : TRANSLATIONS).map(t => (
                       <button
                         key={t}
                         onClick={() => handleTranslationChange(t)}
@@ -2135,6 +2147,120 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           })()}
         </Card>}
+
+        {/* ── Devotion-Connected Scripture Reading (congregation) ── */}
+        {personaConfig.sectionOrder.includes('devotion_scripture') && todaysDevotion.verse && (() => {
+          const devPassage = todaysDevotion.verse; // e.g. "2 Timothy 1"
+          const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
+          const tKey = `${devPassage}_${translation}`;
+          const passageText = passageTexts[tKey];
+          const isLoading = loadingPassages.has(devPassage);
+          const isPlayingThis = audioPlaying && audioCurrentPassage === devPassage;
+          const isLoadingAudio = audioLoading && audioCurrentPassage === devPassage;
+
+          return (
+            <Card style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <p className="text-section-header" style={{ margin: 0 }}>TODAY'S READING</p>
+                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  From today's devotion
+                </span>
+              </div>
+
+              {/* Translation picker */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                {CONGREGATION_TRANSLATIONS.map(t => (
+                  <button
+                    key={t}
+                    onClick={() => handleTranslationChange(t)}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: 20,
+                      fontSize: 12, fontWeight: 700,
+                      fontFamily: 'var(--font-sans)',
+                      letterSpacing: '0.04em',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      border: t === translation ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
+                      background: t === translation ? 'var(--dw-accent)' : 'transparent',
+                      color: t === translation ? '#fff' : 'var(--dw-text-muted)',
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Chapter heading + listen */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                  {devPassage}
+                </p>
+                <button
+                  onClick={() => handleListen(devPassage)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: isPlayingThis ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
+                    border: 'none', borderRadius: 10, padding: '8px 14px',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    color: '#fff', fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {isLoadingAudio ? (
+                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                  ) : isPlayingThis ? (
+                    <><Pause size={14} /> Pause</>
+                  ) : (
+                    <><Headphones size={14} /> Listen</>
+                  )}
+                </button>
+              </div>
+
+              {/* Scripture text */}
+              {isLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                  <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                </div>
+              ) : passageText ? (
+                <div
+                  onClick={() => setSelection({ text: passageText, verseRefs: [devPassage], source: 'tap' })}
+                  style={{ cursor: 'pointer', borderRadius: 4, transition: 'background 0.2s' }}
+                >
+                  <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
+                    {renderScripture(passageText, devPassage)}
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={() => loadPassage(devPassage)}
+                  style={{
+                    background: 'var(--dw-accent-bg)', border: '1px solid var(--dw-accent)',
+                    borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  <BookOpen size={16} /> Read {devPassage}
+                </button>
+              )}
+
+              {/* Reflection prompt */}
+              <div style={{
+                marginTop: 16, padding: '12px 14px',
+                background: 'var(--dw-charcoal)', borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Reflect
+                </p>
+                <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0, fontStyle: 'italic' }}>
+                  What stood out to you in today's reading?
+                </p>
+              </div>
+            </Card>
+          );
+        })()}
 
         {/* ── Plan-based lesson card for new_to_faith (replaces devotion) ── */}
         {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
