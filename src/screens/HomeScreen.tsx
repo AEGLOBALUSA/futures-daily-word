@@ -1693,13 +1693,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         })()}
 
         {/* Comfort Verse Banner — comfort persona only */}
-        {personaConfig.sectionOrder.includes('comfort_verse_banner') && <ComfortVerseBannerSection />}
+        {personaConfig.sectionOrder.includes('comfort_verse_banner') && <ComfortVerseBannerSection persona={personaConfig.persona} />}
 
         {/* Poll banner — right under the hero audio card (persona-gated) */}
         {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
 
         {/* AI Prompt Section — multi-persona */}
-        {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={onOpenAI || (() => {})} />}
+        {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={onOpenAI || (() => {})} persona={personaConfig.persona} />}
 
         {/* Comfort Card — comfort persona only */}
         {pf.comfortCard && <ComfortCard />}

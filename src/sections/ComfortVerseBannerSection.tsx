@@ -1,5 +1,3 @@
-import { useHome } from './HomeContext';
-
 const COMFORT_VERSES = [
   { ref: 'Psalm 34:18', text: 'The LORD is close to the brokenhearted and saves those who are crushed in spirit.' },
   { ref: 'Matthew 11:28', text: 'Come to me, all you who are weary and burdened, and I will give you rest.' },
@@ -17,10 +15,8 @@ const COMFORT_VERSES = [
   { ref: 'Psalm 121:1-2', text: 'I lift up my eyes to the mountains — where does my help come from? My help comes from the LORD.' },
 ];
 
-export function ComfortVerseBannerSection() {
-  const { personaConfig } = useHome();
-
-  if (personaConfig.persona !== 'comfort') return null;
+export function ComfortVerseBannerSection({ persona }: { persona: string }) {
+  if (persona !== 'comfort') return null;
 
   const dayIndex = Math.floor(Date.now() / 86400000) % COMFORT_VERSES.length;
   const verse = COMFORT_VERSES[dayIndex];

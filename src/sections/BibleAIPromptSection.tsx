@@ -1,8 +1,4 @@
-import { useHome } from './HomeContext';
-
-export function BibleAIPromptSection({ onOpenAI }: { onOpenAI: () => void }) {
-  const { personaConfig } = useHome();
-
+export function BibleAIPromptSection({ onOpenAI, persona }: { onOpenAI: () => void; persona: string }) {
   // Check if user has ever used AI
   const hasUsedAI = (() => {
     try {
@@ -47,7 +43,7 @@ export function BibleAIPromptSection({ onOpenAI }: { onOpenAI: () => void }) {
     },
   };
 
-  const msg = messages[personaConfig.persona] || messages.congregation;
+  const msg = messages[persona] || messages.congregation;
 
   return (
     <button
