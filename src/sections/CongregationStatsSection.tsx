@@ -53,11 +53,13 @@ export function CongregationStatsSection() {
   return (
     <Card style={{
       marginBottom: 16,
-      background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(59,130,246,0.04) 100%)',
-      border: '1px solid rgba(37,99,235,0.2)',
+      marginTop: 8,
+      background: 'var(--dw-surface, #fff)',
+      border: '1px solid var(--dw-border, #E8E6E0)',
+      opacity: 0.85,
     }}>
-      <p className="text-section-header" style={{ color: '#2563EB', marginBottom: 12 }}>
-        CONGREGATION OVERVIEW
+      <p className="text-section-header" style={{ color: 'var(--dw-text-muted, #777)', marginBottom: 12, fontSize: 10 }}>
+        QUICK GLANCE
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         <div style={{

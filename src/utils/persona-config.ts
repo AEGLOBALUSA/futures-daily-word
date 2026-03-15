@@ -274,7 +274,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'greeting',
       'hero_audio',
       'poll_banner',
-      'congregation_stats',
       'devotion',
       'scripture',
       'commentary',
@@ -282,6 +281,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'daily_quote',
       'weekly_review',
       'plans_preview',
+      'congregation_stats',
     ],
     features: {
       commentary: 'expanded',
