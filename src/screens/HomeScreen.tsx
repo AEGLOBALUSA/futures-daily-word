@@ -1092,9 +1092,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
           </div>
         </div>
 
-        </div>{/* end hero viewport — header only when sermon tab active */}
-
-        {/* ── Hero Listen Button — the hero, sits above everything during Sunday ── */}
+        {/* ── Hero Listen Button — the hero, sits directly under Daily Word header ── */}
         {sundaySermon && homeTab === 'sermon' && (() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
@@ -1115,6 +1113,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
                 position: 'relative',
                 borderRadius: 24,
                 overflow: 'hidden',
+                marginTop: 16,
                 marginBottom: 20,
                 boxShadow: '0 24px 64px rgba(168,50,59,0.22), 0 6px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
                 border: '1px solid rgba(255,255,255,0.13)',
@@ -1190,6 +1189,8 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
             </div>
           );
         })()}
+
+        </div>{/* end hero viewport */}
 
         {/* ── Sunday Service Banner — prominent link to interactive sermon notes ── */}
         {sundaySermon && (
