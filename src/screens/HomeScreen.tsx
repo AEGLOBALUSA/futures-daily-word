@@ -2135,8 +2135,8 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* Translation selector removed — hero card has translation picker */}
 
 
-        {/* 3. TODAY'S CHAPTERS */}
-        <div style={{ marginBottom: 16 }}>
+        {/* 3. TODAY'S CHAPTERS — gated by sectionOrder */}
+        {personaConfig.sectionOrder.includes('scripture') && <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
             <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', margin: 0 }}>TODAY'S CHAPTERS</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -2582,7 +2582,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               </button>
             </Card>
           )}
-        </div>
+        </div>}
 
 
 

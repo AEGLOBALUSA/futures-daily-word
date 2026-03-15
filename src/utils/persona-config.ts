@@ -116,7 +116,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'devotion',
       'ai_prompt',
       'faith_pathway',
-      'scripture',
       'daily_quote',
     ],
     features: {
@@ -128,7 +127,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       campusCount: 'hidden',
       weeklyReview: false,
       pollBanner: false,
-      searchEnabled: false,
+      searchEnabled: true,
       videoRecording: false,
       sermonNotes: false,
       wordStudies: false,
