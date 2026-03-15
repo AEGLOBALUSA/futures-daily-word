@@ -1226,7 +1226,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
             {([['sermon', 'Sermon Notes'], ['word', 'Daily Word']] as const).map(([key, label]) => (
               <button key={key} onClick={() => setHomeTab(key)} style={{
                 flex: 1, padding: '11px 0',
-                background: homeTab === key ? 'rgba(255,255,255,0.08)' : 'transparent',
+                background: 'transparent',
                 color: homeTab === key ? '#fff' : 'var(--dw-text-muted)',
                 border: 'none', borderRadius: 9, cursor: 'pointer',
                 fontSize: 14, fontWeight: homeTab === key ? 700 : 500, fontFamily: 'var(--font-sans)',
