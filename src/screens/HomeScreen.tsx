@@ -1141,6 +1141,103 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
           </div>
         )}
 
+        {/* ── Hero Listen Button — shown on sermon tab too for the aesthetic ── */}
+        {sundaySermon && homeTab === 'sermon' && (() => {
+          const firstPlan = todaysPlanPassages[0];
+          const firstSlot = readingSlots[0];
+          const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot || primaryPassage;
+          if (!hasAnyPassage) return null;
+
+          const allLabels = heroChapterRefs.length > 0
+            ? heroChapterRefs
+            : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
+          const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
+          const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
+          const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
+
+          return (
+            <div
+              key="hero-listen-sermon-tab"
+              style={{
+                position: 'relative',
+                borderRadius: 24,
+                overflow: 'hidden',
+                marginBottom: 20,
+                boxShadow: '0 24px 64px rgba(168,50,59,0.22), 0 6px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
+                border: '1px solid rgba(255,255,255,0.13)',
+              }}
+            >
+              {/* Animated wave gradient */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(145deg, #FF3B52 0%, #D42F44 12%, #8B1A26 28%, #3A0810 48%, #6B1A22 62%, #B83040 78%, #E84858 92%, #D42F44 100%)',
+                backgroundSize: '350% 350%',
+                animation: 'heroColorWave 5s ease infinite',
+              }} />
+              {/* Glass highlight */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)',
+              }} />
+              {/* Shimmer sweep */}
+              <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 24 }}>
+                <div style={{
+                  position: 'absolute', top: '-60%', bottom: '-60%', width: '55%',
+                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.18) 48%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.18) 52%, rgba(255,255,255,0.04) 70%, transparent 100%)',
+                  animation: 'heroShimmerSweep 3.5s ease-in-out infinite',
+                  animationDelay: '0.8s',
+                }} />
+              </div>
+              {/* Content */}
+              <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 0' }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.55, fontFamily: 'var(--font-sans)', margin: 0 }}>
+                    {planLabel || "Today's Reading"}
+                  </p>
+                  <p style={{ fontSize: 10, fontWeight: 500, opacity: 0.45, fontFamily: 'var(--font-sans)', margin: 0, letterSpacing: '0.04em' }}>
+                    {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '22px 20px 20px' }}>
+                  <button
+                    onClick={() => handleHeroListen()}
+                    style={{
+                      width: 78, height: 78, borderRadius: '50%',
+                      background: isPlayingHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)',
+                      border: '2px solid rgba(255,255,255,0.35)',
+                      boxShadow: isPlayingHero
+                        ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
+                        : '0 10px 32px rgba(0,0,0,0.35)',
+                      animation: isPlayingHero ? 'heroRingPulse 2.2s ease-in-out infinite' : 'heroIdlePulse 3.5s ease-in-out infinite',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', color: '#fff',
+                      transition: 'box-shadow 0.4s ease, background 0.2s ease',
+                      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                      marginBottom: 16, flexShrink: 0,
+                    }}
+                  >
+                    {isLoadingHero
+                      ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                      : isPlayingHero
+                      ? <Pause size={32} />
+                      : <Play size={32} style={{ marginLeft: 4 }} />
+                    }
+                  </button>
+                  <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
+                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
+                  </p>
+                  <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
+                    {allLabels.join(' · ')}
+                  </p>
+                  <p style={{ fontSize: 10, opacity: 0.4, margin: '5px 0 0', fontFamily: 'var(--font-sans)', textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    ESV · Human Reader
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── Sunday Sermon View (full inline when tab active) ── */}
         {sundaySermon && homeTab === 'sermon' && (() => {
           const sermon = sundaySermon;
