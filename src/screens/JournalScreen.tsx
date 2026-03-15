@@ -3,7 +3,7 @@ import { trackBehavior } from '../utils/behavior';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, GraduationCap } from 'lucide-react';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -1258,12 +1258,17 @@ export function JournalScreen() {
   const allTabs = [
     { id: 'today' as const, label: 'Today', icon: BookOpen, entryType: 'journal' },
     { id: 'journal' as const, label: 'Journal', icon: PenLine, entryType: 'journal' },
+    { id: 'prayer' as const, label: 'Prayer', icon: Heart, entryType: 'prayer' },
     { id: 'sermon' as const, label: 'Sermons', icon: PenLine, entryType: 'sermon' },
+    { id: 'teaching' as const, label: 'Teaching Notes', icon: GraduationCap, entryType: 'teaching-notes' },
     { id: 'saved' as const, label: 'Saved', icon: Bookmark, entryType: 'saved' },
   ];
   const tabs = allTabs.filter(t => t.id === 'today' || allowedEntryTypes.includes(t.entryType));
 
-  const filteredEntries = activeTab !== 'today' ? entries.filter(e => e.type === activeTab) : [];
+  const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
+    if (activeTab === 'teaching') return e.type === 'teaching-notes';
+    return e.type === activeTab;
+  }) : [];
 
   const handleTodaySave = useCallback((entry: JournalEntry) => {
     const all = getEntries();
@@ -1281,7 +1286,7 @@ export function JournalScreen() {
       title: '',
       body: '',
       tags: [],
-      type: (activeTab === 'saved' || activeTab === 'today') ? 'journal' : activeTab,
+      type: (activeTab === 'saved' || activeTab === 'today') ? 'journal' : (activeTab === 'teaching' ? 'teaching-notes' : activeTab),
     });
     setShowEditor(true);
   }, [activeTab, userProfile, requireEmail]);

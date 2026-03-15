@@ -363,7 +363,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       prompts: ["What's on your heart today?", 'Write a prayer to God about what you\'re feeling.'],
     },
     library: {
-      sections: ['essays'],
+      sections: ['essays', 'characters', 'timeline'],
     },
     ai: {
       systemPromptAddition:

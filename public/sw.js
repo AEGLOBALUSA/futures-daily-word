@@ -1,12 +1,12 @@
 /**
- * Futures Daily Word — Service Worker v11
+ * Futures Daily Word — Service Worker v12
  * Strategy: Network-first for API, Cache-first for static assets,
  * Stale-while-revalidate for fonts and images.
- * V10: Campus overview moved to bottom, renamed
+ * V12: Persona audit fixes — plans filtering, journal tabs, commentary collapse, streak gating
  */
 
-const CACHE_NAME = 'fdw-v11';
-const STATIC_CACHE = 'fdw-static-v11';
+const CACHE_NAME = 'fdw-v12';
+const STATIC_CACHE = 'fdw-static-v12';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 

@@ -9,7 +9,7 @@ interface HighlightToolbarProps {
   basicMode?: boolean;
 }
 
-export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarProps) {
+export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }: HighlightToolbarProps) {
   const { selection, setSelection, clearHighlights, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const [copied, setCopied] = useState(false);
   const [listening, setListening] = useState(false);
@@ -136,7 +136,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper }: HighlightToolbarPr
         {btn(handleListen, <Volume2 size={16} />, listening ? 'Stop' : 'Listen', listening)}
         {btn(handleShare, <Share2 size={16} />, 'Share')}
         {btn(onOpenNotes, <BookOpen size={16} />, 'Note')}
-        {btn(
+        {!basicMode && btn(
           () => setGreekHebrewMode(!greekHebrewMode),
           <Languages size={16} />,
           greekHebrewMode ? 'Hide' : 'Gk/Heb',

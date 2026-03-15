@@ -310,6 +310,7 @@ export function HomeScreen() {
   const [weekReview] = useState(() => getWeekReviewData());
   const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
   const [selectedCommentaryIdx, setSelectedCommentaryIdx] = useState(0);
+  const [commentaryExpanded, setCommentaryExpanded] = useState(pf.commentary === 'expanded');
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const lang = localStorage.getItem('dw_lang') || 'en';
 
@@ -1002,9 +1003,9 @@ export function HomeScreen() {
               </p>
             </div>
           </div>
-          {/* Streak display — clean counter */}
+          {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {streakCount > 0 && (() => {
+            {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && (() => {
               const encouragement: [number, string][] = [
                 [1,   'Day one.'],
                 [2,   'Two in a row.'],
@@ -2220,48 +2221,60 @@ export function HomeScreen() {
         {/* 5. Commentary — persona-gated: hidden / collapsed / expanded */}
         {pf.commentary !== 'hidden' && allCommentaries.length > 0 && (
           <Card style={{ marginBottom: 16 }}>
-            <p className="text-section-header" style={{ marginBottom: 10 }}>COMMENTARY</p>
-            {/* Source tab strip */}
-            {allCommentaries.length > 1 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                {allCommentaries.map((c, i) => (
-                  <button
-                    key={c.source}
-                    onClick={() => setSelectedCommentaryIdx(i)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 20,
-                      border: '1px solid',
-                      borderColor: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'var(--dw-border, #E8E6E0)',
-                      background: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'transparent',
-                      color: i === selectedCommentaryIdx ? '#fff' : 'var(--dw-text-muted)',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      fontFamily: 'var(--font-sans)',
-                      cursor: 'pointer',
-                      letterSpacing: '0.02em',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {c.source}
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* Selected commentary text */}
-            {allCommentaries[selectedCommentaryIdx] && (
+            <div
+              onClick={() => !commentaryExpanded && setCommentaryExpanded(true)}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: commentaryExpanded ? 'default' : 'pointer', marginBottom: commentaryExpanded ? 10 : 0 }}
+            >
+              <p className="text-section-header" style={{ margin: 0 }}>COMMENTARY</p>
+              {!commentaryExpanded && (
+                <span style={{ fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>Tap to read ›</span>
+              )}
+            </div>
+            {commentaryExpanded && (
               <>
-                {allCommentaries.length === 1 && (
-                  <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
-                    {allCommentaries[0].source.toUpperCase()}
-                  </p>
+                {/* Source tab strip */}
+                {allCommentaries.length > 1 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                    {allCommentaries.map((c, i) => (
+                      <button
+                        key={c.source}
+                        onClick={() => setSelectedCommentaryIdx(i)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 20,
+                          border: '1px solid',
+                          borderColor: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'var(--dw-border, #E8E6E0)',
+                          background: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'transparent',
+                          color: i === selectedCommentaryIdx ? '#fff' : 'var(--dw-text-muted)',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-sans)',
+                          cursor: 'pointer',
+                          letterSpacing: '0.02em',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {c.source}
+                      </button>
+                    ))}
+                  </div>
                 )}
-                <p
-                  onClick={() => setSelection({ text: allCommentaries[selectedCommentaryIdx].text, verseRefs: [primaryPassage], source: 'tap' })}
-                  style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif-text)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-                >
-                  {allCommentaries[selectedCommentaryIdx].text}
-                </p>
+                {/* Selected commentary text */}
+                {allCommentaries[selectedCommentaryIdx] && (
+                  <>
+                    {allCommentaries.length === 1 && (
+                      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+                        {allCommentaries[0].source.toUpperCase()}
+                      </p>
+                    )}
+                    <p
+                      onClick={() => setSelection({ text: allCommentaries[selectedCommentaryIdx].text, verseRefs: [primaryPassage], source: 'tap' })}
+                      style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif-text)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+                    >
+                      {allCommentaries[selectedCommentaryIdx].text}
+                    </p>
+                  </>
+                )}
               </>
             )}
           </Card>
