@@ -339,7 +339,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [showBibleAI, setShowBibleAI] = useState(false);
   const [bibleAIContext, setBibleAIContext] = useState<string>('');
   const [showSearch, setShowSearch] = useState(false);
-  const { selection, setSelection, greekHebrewMode } = useScriptureSelection();
+  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlCache = useRef<Map<string, string>>(new Map());
   const audioUnlocked = useRef(false);
@@ -2259,6 +2259,161 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 </p>
               </div>
             </Card>
+          );
+        })()}
+
+        {/* ── Plan-Driven Scripture (deeper_study) — full depth tools ── */}
+        {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
+          if (todaysPlanPassages.length === 0) {
+            return (
+              <Card style={{ marginBottom: 16, textAlign: 'center', padding: '24px 16px' }}>
+                <p className="text-section-header" style={{ marginBottom: 8 }}>TODAY'S STUDY</p>
+                <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+                  No active reading plan. Choose a plan to start your daily study.
+                </p>
+                <button
+                  onClick={() => {
+                    // Navigate to Plans tab
+                    const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement;
+                    if (tabBar) tabBar.click();
+                  }}
+                  style={{
+                    background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
+                    padding: '10px 20px', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  Browse Plans
+                </button>
+              </Card>
+            );
+          }
+
+          return (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <p className="text-section-header" style={{ margin: 0 }}>TODAY'S STUDY</p>
+                {/* Greek/Hebrew mode toggle */}
+                {pf.greekHebrew === 'full' && (
+                  <button
+                    onClick={() => setGreekHebrewMode(!greekHebrewMode)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 16, fontSize: 11, fontWeight: 700,
+                      fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', cursor: 'pointer',
+                      border: greekHebrewMode ? '1.5px solid #9A7B2E' : '1.5px solid var(--dw-border)',
+                      background: greekHebrewMode ? 'rgba(154,123,46,0.2)' : 'transparent',
+                      color: greekHebrewMode ? '#9A7B2E' : 'var(--dw-text-muted)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {greekHebrewMode ? 'Greek/Hebrew ON' : 'Tap for Greek/Hebrew'}
+                  </button>
+                )}
+              </div>
+
+              {todaysPlanPassages.map(({ planId, planTitle, passage, dayNum }) => {
+                const tKey = `${passage}_${translation}`;
+                const txt = passageTexts[tKey];
+                const isLoading = loadingPassages.has(passage);
+                const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
+                const isLoadingAudio = audioLoading && audioCurrentPassage === passage;
+
+                return (
+                  <Card key={planId + '_' + passage} style={{ marginBottom: 12 }}>
+                    {/* Plan + Day header */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {planTitle} — Day {dayNum}
+                      </span>
+                    </div>
+
+                    {/* Chapter heading + listen */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                        {passage}
+                      </p>
+                      <button
+                        onClick={() => handleListen(passage)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          background: isPlayingThis ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
+                          border: 'none', borderRadius: 10, padding: '8px 14px',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                          color: '#fff', fontFamily: 'var(--font-sans)',
+                        }}
+                      >
+                        {isLoadingAudio ? (
+                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                        ) : isPlayingThis ? (
+                          <><Pause size={14} /> Pause</>
+                        ) : (
+                          <><Headphones size={14} /> Listen</>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Scripture text — with word-tap for Greek/Hebrew */}
+                    {isLoading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                        <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                      </div>
+                    ) : txt ? (
+                      <>
+                        <div
+                          onClick={() => !greekHebrewMode && setSelection({ text: txt, verseRefs: [passage], source: 'tap' })}
+                          style={{ cursor: greekHebrewMode ? 'default' : 'pointer', borderRadius: 4, transition: 'background 0.2s', background: selection?.verseRefs?.includes(passage) ? 'rgba(154,123,46,0.12)' : 'transparent' }}
+                        >
+                          {greekHebrewMode && (
+                            <p style={{ fontSize: 10, fontWeight: 700, color: '#9A7B2E', marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+                              Tap any word to explore its original meaning
+                            </p>
+                          )}
+                          <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
+                            {renderScripture(txt, passage)}
+                          </p>
+                        </div>
+
+                        {/* Compare translation (when active) */}
+                        {compareMode && pf.greekHebrew === 'full' && (() => {
+                          const cKey = `${passage}_${compareTranslation}`;
+                          const cText = compareTexts[cKey];
+                          return (
+                            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--dw-border)' }}>
+                              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-sans)' }}>
+                                {compareTranslation}
+                              </p>
+                              {cText ? (
+                                <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
+                                  {cText}
+                                </p>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0' }}>
+                                  <Loader2 size={12} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                                  <span style={{ fontSize: 13, color: 'var(--dw-text-muted)' }}>Loading {compareTranslation}…</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => loadPassage(passage)}
+                        style={{
+                          background: 'var(--dw-accent-bg)', border: '1px solid var(--dw-accent)',
+                          borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                          cursor: 'pointer', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                        }}
+                      >
+                        <BookOpen size={16} /> Read {passage}
+                      </button>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
           );
         })()}
 
