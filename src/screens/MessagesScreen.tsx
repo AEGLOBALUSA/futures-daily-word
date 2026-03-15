@@ -127,8 +127,22 @@ export function MessagesScreen() {
   );
 }
 
-// ── Sermon Detail View ────────────────────────────────────────────────────────
+// ── Sermon Detail View (redesigned — generous spacing, inline notes, italic scripture) ──
 function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () => void }) {
+  // Inline notes per section — keyed by section index, persisted
+  const storageKey = `dw_sermon_inline_${sermon.id}`;
+  const [inlineNotes, setInlineNotes] = useState<Record<number, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { return {}; }
+  });
+  const [activeNoteIdx, setActiveNoteIdx] = useState<number | null>(null);
+
+  const updateNote = (idx: number, text: string) => {
+    const next = { ...inlineNotes, [idx]: text };
+    if (!text.trim()) delete next[idx];
+    setInlineNotes(next);
+    localStorage.setItem(storageKey, JSON.stringify(next));
+  };
+
   const handleShare = () => {
     const shareText = `${sermon.title}\n${sermon.speaker}\n\n${sermon.keyVerseText}`;
     if (navigator.share) {
@@ -139,106 +153,173 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
   };
 
   return (
-    <div style={{ padding: '0 0 120px' }}>
-      {/* Back button */}
-      <div style={{ padding: '0 24px 12px' }}>
+    <div style={{ padding: '0 0 140px' }}>
+      {/* Back + Share row */}
+      <div style={{ padding: '0 24px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={onBack} style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600,
           fontFamily: 'var(--font-sans)', padding: '4px 0',
         }}>
-          <ChevronLeft size={16} /> Back to Notes
+          <ChevronLeft size={16} /> Back
+        </button>
+        <button onClick={handleShare} style={{
+          display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
+          background: 'none', border: '1px solid var(--dw-border)',
+          borderRadius: 8, cursor: 'pointer', color: 'var(--dw-text-muted)',
+          fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
+        }}>
+          <Share2 size={13} /> Share
         </button>
       </div>
 
-      {/* Header card */}
-      <div style={{ margin: '0 24px 16px', padding: '20px 18px', borderRadius: 16, background: 'var(--dw-charcoal-deep, #1A1A1A)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
-          {sermon.series ? `${sermon.series} Series` : 'Sermon'}
-        </p>
-        <h2 style={{ fontSize: 22, fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#fff', margin: '0 0 8px', lineHeight: 1.25 }}>
+      {/* ── Title block ── */}
+      <div style={{ padding: '0 24px', marginBottom: 32 }}>
+        {sermon.series && (
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+            {sermon.series}
+          </p>
+        )}
+        <h1 style={{ fontSize: 28, fontWeight: 400, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)', margin: '0 0 10px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
           {sermon.title}
-        </h2>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-sans)', margin: '0 0 4px' }}>
-          {sermon.speaker} · {sermon.campus === 'us-alpharetta' ? 'Futures Alpharetta' : sermon.campus}
-        </p>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-          {new Date(sermon.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </h1>
+        <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+          {sermon.speaker} · {CAMPUS_LABELS[sermon.campus] || sermon.campus} · {new Date(sermon.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </p>
       </div>
 
-      {/* Key verse */}
-      <div style={{ margin: '0 24px 16px', padding: '16px 18px', borderRadius: 14, background: 'var(--dw-card)', border: '1px solid var(--dw-border)', borderLeft: '4px solid var(--dw-accent)' }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>KEY VERSE</p>
-        <p style={{ fontSize: 15, lineHeight: 1.7, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
+      {/* ── Key Verse ── */}
+      <div style={{ margin: '0 24px 36px', padding: '24px 20px', borderRadius: 16, background: 'var(--dw-card)', borderLeft: '4px solid var(--dw-accent)' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
           {sermon.keyVerseText}
         </p>
       </div>
 
-      {/* Listen + Share row */}
-      <div style={{ margin: '0 24px 20px', display: 'flex', gap: 10 }}>
+      {/* Listen */}
+      <div style={{ margin: '0 24px 36px' }}>
         <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" />
-        <button onClick={handleShare} style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px',
-          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-          borderRadius: 10, cursor: 'pointer', color: 'var(--dw-text-muted)',
-          fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
-        }}>
-          <Share2 size={14} /> Share
-        </button>
       </div>
 
-      {/* Sections */}
-      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* ── Sections ── */}
+      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>
         {sermon.sections.map((section, i) => (
-          <div key={i}>
+          <div key={i} style={{ marginBottom: 36 }}>
+
+            {/* Section heading — large serif */}
             {section.heading && (
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+              <h2 style={{
+                fontSize: 22, fontWeight: 400, fontFamily: 'var(--font-serif)',
+                color: 'var(--dw-text-primary)', margin: '0 0 16px', lineHeight: 1.25,
+                letterSpacing: '-0.01em',
+              }}>
                 {section.heading}
-              </p>
+              </h2>
             )}
 
-            {section.body.split('\n\n').map((para, j) => (
-              <p key={j} style={{ fontSize: 15, lineHeight: 1.75, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-secondary)', marginBottom: 10 }}>
-                {para}
-              </p>
-            ))}
+            {/* Body paragraphs */}
+            {section.body.split('\n').map((line, j) => {
+              if (!line.trim()) return <div key={j} style={{ height: 14 }} />;
+              return (
+                <p key={j} style={{
+                  fontSize: 16, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
+                  color: 'var(--dw-text-secondary)', marginBottom: 14,
+                }}>
+                  {line}
+                </p>
+              );
+            })}
 
+            {/* Numbered points */}
             {section.points && (
-              <div style={{ margin: '8px 0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ margin: '16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {section.points.map((point, k) => {
-                  const [label, ...rest] = point.split(' — ');
+                  const dashIdx = point.indexOf(' — ');
+                  const label = dashIdx > -1 ? point.slice(0, dashIdx) : point;
+                  const desc = dashIdx > -1 ? point.slice(dashIdx + 3) : '';
                   return (
-                    <div key={k} style={{ display: 'flex', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--dw-card)', border: '1px solid var(--dw-border)' }}>
-                      <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'var(--dw-accent-bg, rgba(200,146,14,0.12))', color: 'var(--dw-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, fontFamily: 'var(--font-sans)' }}>
-                        {k + 1}
-                      </span>
-                      <div>
-                        <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: '0 0 2px' }}>{label}</p>
-                        {rest.length > 0 && (
-                          <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.5 }}>{rest.join(' — ')}</p>
-                        )}
-                      </div>
+                    <div key={k} style={{ paddingLeft: 20, borderLeft: '2px solid var(--dw-accent)', paddingTop: 4, paddingBottom: 4 }}>
+                      <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: '0 0 4px' }}>
+                        {label}
+                      </p>
+                      {desc && (
+                        <p style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-serif-text)', margin: 0, lineHeight: 1.7 }}>
+                          {desc}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
               </div>
             )}
 
+            {/* Scripture — italic, indented, gold border */}
             {section.scripture && (
-              <div style={{ margin: '10px 0 4px', padding: '14px 16px', borderRadius: 12, background: 'var(--dw-card)', border: '1px solid var(--dw-border)', borderLeft: '3px solid var(--dw-accent)' }}>
+              <div style={{ margin: '20px 0 8px', padding: '20px 22px', borderLeft: '3px solid var(--dw-accent)', background: 'rgba(154,123,46,0.04)', borderRadius: '0 12px 12px 0' }}>
                 {section.scriptureRef && (
-                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
                     {section.scriptureRef}
                   </p>
                 )}
                 {section.scripture.split('\n\n').map((verse, v) => (
-                  <p key={v} style={{ fontSize: 14, lineHeight: 1.7, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', marginBottom: v < section.scripture!.split('\n\n').length - 1 ? 10 : 0 }}>
+                  <p key={v} style={{
+                    fontSize: 16, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
+                    color: 'var(--dw-text-primary)', fontStyle: 'italic',
+                    marginBottom: v < section.scripture!.split('\n\n').length - 1 ? 14 : 0,
+                  }}>
                     {verse}
                   </p>
                 ))}
               </div>
+            )}
+
+            {/* ── Inline note area ── */}
+            {activeNoteIdx === i ? (
+              <div style={{ marginTop: 16 }}>
+                <textarea
+                  autoFocus
+                  value={inlineNotes[i] || ''}
+                  onChange={e => updateNote(i, e.target.value)}
+                  onBlur={() => { if (!inlineNotes[i]?.trim()) setActiveNoteIdx(null); }}
+                  placeholder="Write your thoughts here..."
+                  style={{
+                    width: '100%', minHeight: 80, background: 'var(--dw-surface)',
+                    border: '1px solid var(--dw-border)', borderRadius: 12, padding: '14px 16px',
+                    color: 'var(--dw-text-primary)', fontSize: 15, fontFamily: 'var(--font-sans)',
+                    outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                    lineHeight: 1.6,
+                  }}
+                />
+              </div>
+            ) : inlineNotes[i] ? (
+              <div
+                onClick={() => setActiveNoteIdx(i)}
+                style={{
+                  marginTop: 16, padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
+                  background: 'rgba(154,123,46,0.06)', border: '1px dashed rgba(154,123,46,0.3)',
+                }}>
+                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>MY NOTE</p>
+                <p style={{ fontSize: 14, lineHeight: 1.6, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', margin: 0 }}>
+                  {inlineNotes[i]}
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={() => setActiveNoteIdx(i)}
+                style={{
+                  marginTop: 12, padding: '10px 16px',
+                  background: 'none', border: '1px dashed var(--dw-border)',
+                  borderRadius: 10, cursor: 'pointer', width: '100%',
+                  color: 'var(--dw-text-faint)', fontSize: 13, fontFamily: 'var(--font-sans)',
+                  textAlign: 'left', transition: 'border-color 0.2s',
+                }}>
+                + Add your notes here...
+              </button>
+            )}
+
+            {/* Section divider */}
+            {i < sermon.sections.length - 1 && section.heading && (
+              <div style={{ marginTop: 32, borderBottom: '1px solid var(--dw-border)' }} />
             )}
           </div>
         ))}
@@ -272,6 +353,16 @@ function SermonNotesPanel({
   }, []);
 
   useEffect(() => { loadNotes(); }, [loadNotes]);
+
+  // Auto-open sermon from HomeScreen shortcut
+  useEffect(() => {
+    const pendingId = localStorage.getItem('dw_open_sermon_id');
+    if (pendingId) {
+      localStorage.removeItem('dw_open_sermon_id');
+      const found = PRELOADED_SERMONS.find(s => s.id === pendingId);
+      if (found) setViewingSermon(found);
+    }
+  }, []);
 
   const saveNote = async () => {
     if (!formData.title.trim() || !formData.content.trim()) return;

@@ -25,6 +25,8 @@ import { personalize } from '../utils/personalization';
 import { getPersonaConfig, getGreeting } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
+import { PRELOADED_SERMONS } from '../data/sermons';
+import type { TabId } from '../components/TabBar';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -171,6 +173,18 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
   } catch { return null; }
 }
 
+/** Sunday sermon shortcut — show Sat evening (6pm+) through end of Sunday */
+function getSundaySermon() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun, 6=Sat
+  const hour = now.getHours();
+  const isSundayWindow = day === 0 || (day === 6 && hour >= 18);
+  if (!isSundayWindow) return null;
+  // Find the most recent preloaded sermon
+  const sorted = [...PRELOADED_SERMONS].sort((a, b) => b.date.localeCompare(a.date));
+  return sorted[0] || null;
+}
+
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
   try {
@@ -247,7 +261,7 @@ interface ReadingSlot {
   currentChapter: number;
 }
 
-export function HomeScreen() {
+export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }) {
   const { userProfile, setup, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
 
   // ── Persona-aware feature gating ──
@@ -2174,6 +2188,40 @@ export function HomeScreen() {
           </div>
         </Card>
         )}
+
+        {/* ── Sunday Sermon Shortcut ── */}
+        {(() => {
+          const sermon = getSundaySermon();
+          if (!sermon) return null;
+          return (
+            <Card
+              onClick={() => {
+                localStorage.setItem('dw_open_sermon_id', sermon.id);
+                onNavigate?.('messages');
+              }}
+              style={{
+                marginBottom: 16,
+                background: 'linear-gradient(135deg, rgba(154,123,46,0.12) 0%, rgba(107,26,34,0.08) 100%)',
+                border: '1px solid rgba(154,123,46,0.3)',
+                cursor: 'pointer',
+              }}
+            >
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'var(--dw-accent)', marginBottom: 6, textTransform: 'uppercase' as const }}>
+                Today's Sermon Notes
+              </p>
+              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 600, color: 'var(--dw-text)', lineHeight: 1.3, marginBottom: 6 }}>
+                {sermon.title}
+              </p>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-muted)', marginBottom: 0 }}>
+                {sermon.speaker}{sermon.series ? ` · ${sermon.series} Series` : ''}
+              </p>
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BookOpen size={14} style={{ color: 'var(--dw-accent)' }} />
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--dw-accent)' }}>Open &amp; Follow Along →</span>
+              </div>
+            </Card>
+          );
+        })()}
 
         {/* ── Weekly Word in Review (Sundays) — persona-gated ── */}
         {pf.weeklyReview && weekReview && !weekReviewDismissed && (() => {

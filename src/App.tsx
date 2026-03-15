@@ -63,7 +63,7 @@ function AppContent() {
   }, [selection?.text]);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen />,
+    home: <HomeScreen onNavigate={setActiveTab} />,
     journal: <JournalScreen />,
     messages: <MessagesScreen />,
     plans: <PlansScreen />,
