@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2 } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
+import { PRELOADED_SERMONS } from '../data/sermons';
+import type { SermonData } from '../data/sermons';
+import { ListenButton } from '../components/ListenButton';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SermonNote {
@@ -124,6 +127,126 @@ export function MessagesScreen() {
   );
 }
 
+// ── Sermon Detail View ────────────────────────────────────────────────────────
+function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () => void }) {
+  const handleShare = () => {
+    const shareText = `${sermon.title}\n${sermon.speaker}\n\n${sermon.keyVerseText}`;
+    if (navigator.share) {
+      navigator.share({ text: shareText }).catch(() => {});
+    } else {
+      window.open('mailto:?subject=' + encodeURIComponent(sermon.title) + '&body=' + encodeURIComponent(shareText));
+    }
+  };
+
+  return (
+    <div style={{ padding: '0 0 120px' }}>
+      {/* Back button */}
+      <div style={{ padding: '0 24px 12px' }}>
+        <button onClick={onBack} style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600,
+          fontFamily: 'var(--font-sans)', padding: '4px 0',
+        }}>
+          <ChevronLeft size={16} /> Back to Notes
+        </button>
+      </div>
+
+      {/* Header card */}
+      <div style={{ margin: '0 24px 16px', padding: '20px 18px', borderRadius: 16, background: 'var(--dw-charcoal-deep, #1A1A1A)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+          {sermon.series ? `${sermon.series} Series` : 'Sermon'}
+        </p>
+        <h2 style={{ fontSize: 22, fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#fff', margin: '0 0 8px', lineHeight: 1.25 }}>
+          {sermon.title}
+        </h2>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-sans)', margin: '0 0 4px' }}>
+          {sermon.speaker} · {sermon.campus === 'us-alpharetta' ? 'Futures Alpharetta' : sermon.campus}
+        </p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+          {new Date(sermon.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </p>
+      </div>
+
+      {/* Key verse */}
+      <div style={{ margin: '0 24px 16px', padding: '16px 18px', borderRadius: 14, background: 'var(--dw-card)', border: '1px solid var(--dw-border)', borderLeft: '4px solid var(--dw-accent)' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>KEY VERSE</p>
+        <p style={{ fontSize: 15, lineHeight: 1.7, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
+          {sermon.keyVerseText}
+        </p>
+      </div>
+
+      {/* Listen + Share row */}
+      <div style={{ margin: '0 24px 20px', display: 'flex', gap: 10 }}>
+        <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" />
+        <button onClick={handleShare} style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px',
+          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+          borderRadius: 10, cursor: 'pointer', color: 'var(--dw-text-muted)',
+          fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+        }}>
+          <Share2 size={14} /> Share
+        </button>
+      </div>
+
+      {/* Sections */}
+      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {sermon.sections.map((section, i) => (
+          <div key={i}>
+            {section.heading && (
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+                {section.heading}
+              </p>
+            )}
+
+            {section.body.split('\n\n').map((para, j) => (
+              <p key={j} style={{ fontSize: 15, lineHeight: 1.75, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-secondary)', marginBottom: 10 }}>
+                {para}
+              </p>
+            ))}
+
+            {section.points && (
+              <div style={{ margin: '8px 0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {section.points.map((point, k) => {
+                  const [label, ...rest] = point.split(' — ');
+                  return (
+                    <div key={k} style={{ display: 'flex', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--dw-card)', border: '1px solid var(--dw-border)' }}>
+                      <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: 'var(--dw-accent-bg, rgba(200,146,14,0.12))', color: 'var(--dw-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, fontFamily: 'var(--font-sans)' }}>
+                        {k + 1}
+                      </span>
+                      <div>
+                        <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: '0 0 2px' }}>{label}</p>
+                        {rest.length > 0 && (
+                          <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.5 }}>{rest.join(' — ')}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {section.scripture && (
+              <div style={{ margin: '10px 0 4px', padding: '14px 16px', borderRadius: 12, background: 'var(--dw-card)', border: '1px solid var(--dw-border)', borderLeft: '3px solid var(--dw-accent)' }}>
+                {section.scriptureRef && (
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                    {section.scriptureRef}
+                  </p>
+                )}
+                {section.scripture.split('\n\n').map((verse, v) => (
+                  <p key={v} style={{ fontSize: 14, lineHeight: 1.7, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', marginBottom: v < section.scripture!.split('\n\n').length - 1 ? 10 : 0 }}>
+                    {verse}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Sermon Notes Panel ─────────────────────────────────────────────────────────
 function SermonNotesPanel({
   userProfile,
@@ -137,6 +260,7 @@ function SermonNotesPanel({
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ title: '', sermon: '', content: '' });
+  const [viewingSermon, setViewingSermon] = useState<SermonData | null>(null);
 
   const loadNotes = useCallback(async () => {
     setLoading(true);
@@ -176,6 +300,11 @@ function SermonNotesPanel({
     setEditingId(note.id);
     setShowForm(true);
   };
+
+  // If viewing a full sermon detail
+  if (viewingSermon) {
+    return <SermonDetailView sermon={viewingSermon} onBack={() => setViewingSermon(null)} />;
+  }
 
   return (
     <div style={{ padding: '0 24px' }}>
@@ -237,6 +366,39 @@ function SermonNotesPanel({
         </Card>
       )}
 
+      {/* ── Pre-loaded Sermons from Leadership ── */}
+      {PRELOADED_SERMONS.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <p className="text-section-header" style={{ marginBottom: 10 }}>FROM YOUR PASTORS</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {PRELOADED_SERMONS.map(sermon => (
+              <Card key={sermon.id} onClick={() => setViewingSermon(sermon)}
+                style={{ cursor: 'pointer', borderLeft: '3px solid var(--dw-accent)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                    background: 'var(--dw-accent-bg, rgba(200,146,14,0.12))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <BookOpen size={18} color="var(--dw-accent)" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.3 }}>
+                      {sermon.title}
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>
+                      {sermon.speaker} · {new Date(sermon.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <ChevronLeft size={16} style={{ transform: 'rotate(180deg)', color: 'var(--dw-text-faint)', flexShrink: 0 }} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── User's own notes ── */}
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0', gap: 8 }}>
           <Loader2 size={18} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
@@ -246,41 +408,44 @@ function SermonNotesPanel({
         <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
           <Pencil size={24} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-            No sermon notes yet. Create your first one!
+            No personal sermon notes yet. Create your first one!
           </p>
         </Card>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {notes.map(note => (
-            <Card key={note.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <p className="text-card-title">{note.title}</p>
-                  {note.sermon && (
-                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>{note.sermon}</p>
-                  )}
-                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', marginTop: 4 }}>{formatDate(note.date)}</p>
+        <>
+          <p className="text-section-header" style={{ marginBottom: 10 }}>MY NOTES</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {notes.map(note => (
+              <Card key={note.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <p className="text-card-title">{note.title}</p>
+                    {note.sermon && (
+                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>{note.sermon}</p>
+                    )}
+                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', marginTop: 4 }}>{formatDate(note.date)}</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
+                    {[
+                      { fn: () => editNote(note), icon: <Pencil size={14} />, bg: 'var(--dw-accent-bg)', color: 'var(--dw-accent)' },
+                      { fn: () => deleteNote(note.id), icon: <Trash2 size={14} />, bg: 'var(--dw-border)', color: 'var(--dw-text-muted)' },
+                    ].map(({ fn, icon, bg, color }, i) => (
+                      <button key={i} onClick={fn} style={{
+                        background: bg, border: 'none', borderRadius: 8, padding: '8px 12px',
+                        color, cursor: 'pointer', display: 'flex', alignItems: 'center', minHeight: 36,
+                      }}>{icon}</button>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
-                  {[
-                    { fn: () => editNote(note), icon: <Pencil size={14} />, bg: 'var(--dw-accent-bg)', color: 'var(--dw-accent)' },
-                    { fn: () => deleteNote(note.id), icon: <Trash2 size={14} />, bg: 'var(--dw-border)', color: 'var(--dw-text-muted)' },
-                  ].map(({ fn, icon, bg, color }, i) => (
-                    <button key={i} onClick={fn} style={{
-                      background: bg, border: 'none', borderRadius: 8, padding: '8px 12px',
-                      color, cursor: 'pointer', display: 'flex', alignItems: 'center', minHeight: 36,
-                    }}>{icon}</button>
-                  ))}
-                </div>
-              </div>
-              {note.content && (
-                <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>
-                  {note.content.slice(0, 150)}{note.content.length > 150 ? '...' : ''}
-                </p>
-              )}
-            </Card>
-          ))}
-        </div>
+                {note.content && (
+                  <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>
+                    {note.content.slice(0, 150)}{note.content.length > 150 ? '...' : ''}
+                  </p>
+                )}
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

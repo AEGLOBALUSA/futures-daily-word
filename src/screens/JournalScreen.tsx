@@ -11,6 +11,7 @@ import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
 import { registerAudio } from '../utils/audioManager';
 import { getPersonaConfig } from '../utils/persona-config';
+import { PRELOADED_SERMONS } from '../data/sermons';
 
 interface JournalEntry {
   id: string;
@@ -1705,8 +1706,33 @@ export function JournalScreen() {
           <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
 
+        {/* Pre-loaded Sermons (shown in sermon tab) */}
+        {activeTab === 'sermon' && PRELOADED_SERMONS.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p className="text-section-header" style={{ marginBottom: 10 }}>FROM YOUR PASTORS</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {PRELOADED_SERMONS.map(sermon => (
+                <Card key={sermon.id} style={{ borderLeft: '3px solid var(--dw-accent)' }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                    {sermon.series ? `${sermon.series} Series` : 'Sermon'}
+                  </p>
+                  <p style={{ fontWeight: 600, fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: '0 0 4px', lineHeight: 1.3 }}>
+                    {sermon.title}
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>
+                    {sermon.speaker} · {new Date(sermon.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </p>
+                  <p style={{ fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-secondary)', fontStyle: 'italic', margin: 0 }}>
+                    {sermon.keyVerseText.slice(0, 120)}...
+                  </p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Entries */}
-        {activeTab !== 'today' && filteredEntries.length === 0 ? (
+        {activeTab !== 'today' && filteredEntries.length === 0 && !(activeTab === 'sermon' && PRELOADED_SERMONS.length > 0) ? (
           <Card style={{ textAlign: 'center', padding: '40px 16px' }}>
             <PenLine size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
