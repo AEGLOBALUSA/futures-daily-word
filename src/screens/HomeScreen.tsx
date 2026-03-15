@@ -593,6 +593,27 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translation]);
 
+  const todaysPlanPassages = (() => {
+    try {
+      const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
+        JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }> = [];
+      for (const [pid, prog] of Object.entries(ap)) {
+        const plan = PLAN_CATALOGUE.find(p => p.id === pid);
+        if (!plan) continue;
+        // Book plans (bookId set) are handled by the dw_book_plans system — skip here
+        if (plan.bookId) continue;
+        const dn = calcPlanDay(prog.startedAt, plan.totalDays);
+        const dp = plan.passages[dn - 1];
+        const dev = plan.devotionals?.[dn - 1];
+        if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
+      }
+      // Persist today's plan passages so Study Notes tab can read them
+      try { localStorage.setItem('dw_todays_plan_passages', JSON.stringify(out)); } catch {}
+      return out;
+    } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }>; }
+  })();
+
   // Preload audio for plan passages in the background once text is available
   useEffect(() => {
     if (todaysPlanPassages.length === 0) return;
@@ -775,27 +796,6 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     setShowSetupModal(false);
   };
 
-
-  const todaysPlanPassages = (() => {
-    try {
-      const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
-        JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-      const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }> = [];
-      for (const [pid, prog] of Object.entries(ap)) {
-        const plan = PLAN_CATALOGUE.find(p => p.id === pid);
-        if (!plan) continue;
-        // Book plans (bookId set) are handled by the dw_book_plans system — skip here
-        if (plan.bookId) continue;
-        const dn = calcPlanDay(prog.startedAt, plan.totalDays);
-        const dp = plan.passages[dn - 1];
-        const dev = plan.devotionals?.[dn - 1];
-        if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
-      }
-      // Persist today's plan passages so Study Notes tab can read them
-      try { localStorage.setItem('dw_todays_plan_passages', JSON.stringify(out)); } catch {}
-      return out;
-    } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }>; }
-  })()
 
   const filteredBooks = BIBLE_BOOKS.filter(book =>
     book.toLowerCase().includes(bookPickerSearch.toLowerCase())
