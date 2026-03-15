@@ -269,7 +269,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
 
       {/* Listen */}
       <div style={{ margin: '0 24px 36px' }}>
-        <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" color="#d94f4f" />
+        <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" />
       </div>
 
       {/* ── Sections with generous note areas ── */}
