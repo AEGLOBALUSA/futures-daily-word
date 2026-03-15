@@ -33,6 +33,7 @@ import type { TabId } from '../components/TabBar';
 import { isSundayWindow } from '../utils/sunday';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
+const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
 
 // ── Streak helpers ──────────────────────────────────────────────
 function getStreak(): { count: number; freezesAvailable: number } {
@@ -597,6 +598,21 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translation]);
+
+  // Auto-load faith pathway scripture reading for new_to_faith persona
+  useEffect(() => {
+    if (!pf.faithPathway || !pathwayData || !pathwayProgress.enrolled) return;
+    if (personaConfig.sectionOrder.includes('devotion')) return; // only for plan-based personas
+    const currentDay = pathwayProgress.currentDay || 1;
+    const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
+    if (!dayData) return;
+    const reading = (dayData as any).reading;
+    if (!reading) return;
+    // Use full chapter as the reading (e.g., "Ephesians 2" instead of "Ephesians 2:8-9")
+    const fullChapter = `${reading.book} ${reading.chapter}`;
+    loadPassage(fullChapter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathwayData, pathwayProgress, translation]);
 
   const todaysPlanPassages = (() => {
     try {
@@ -1613,7 +1629,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     overflowX: 'auto', padding: '10px 12px',
                     scrollbarWidth: 'none',
                   }}>
-                    {TRANSLATIONS.map(t => (
+                    {(pf.faithPathway && !personaConfig.sectionOrder.includes('devotion') ? NEW_FAITH_TRANSLATIONS : TRANSLATIONS).map(t => (
                       <button
                         key={t}
                         onClick={() => handleTranslationChange(t)}
@@ -2224,6 +2240,100 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   {dayLesson && <ListenButton text={`Day ${currentDay}. ${dayTitle}. ${dayLesson}`} size="md" label="Listen" />}
                 </div>
               </div>
+
+              {/* ── Scripture Reading for this day ── */}
+              {dayReading && (() => {
+                const fullChapter = `${dayReading.book} ${dayReading.chapter}`;
+                const tKey = `${fullChapter}_${translation}`;
+                const passageText = passageTexts[tKey];
+                const isLoading = loadingPassages.has(fullChapter);
+                const isPlayingThis = audioPlaying && audioCurrentPassage === fullChapter;
+                const isLoadingAudio = audioLoading && audioCurrentPassage === fullChapter;
+
+                return (
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--dw-border)' }}>
+                    <p className="text-section-header" style={{ marginBottom: 10 }}>TODAY'S READING</p>
+
+                    {/* Translation picker — ESV, NIV, NLT only */}
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                      {NEW_FAITH_TRANSLATIONS.map(t => (
+                        <button
+                          key={t}
+                          onClick={() => handleTranslationChange(t)}
+                          style={{
+                            padding: '5px 12px',
+                            borderRadius: 20,
+                            fontSize: 12, fontWeight: 700,
+                            fontFamily: 'var(--font-sans)',
+                            letterSpacing: '0.04em',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            border: t === translation ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
+                            background: t === translation ? 'var(--dw-accent)' : 'transparent',
+                            color: t === translation ? '#fff' : 'var(--dw-text-muted)',
+                          }}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Chapter heading + listen */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                        {fullChapter}
+                      </p>
+                      <button
+                        onClick={() => handleListen(fullChapter)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          background: isPlayingThis ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
+                          border: 'none', borderRadius: 10, padding: '8px 14px',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                          color: '#fff', fontFamily: 'var(--font-sans)',
+                        }}
+                      >
+                        {isLoadingAudio ? (
+                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                        ) : isPlayingThis ? (
+                          <><Pause size={14} /> Pause</>
+                        ) : (
+                          <><Headphones size={14} /> Listen</>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Scripture text */}
+                    {isLoading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                        <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                      </div>
+                    ) : passageText ? (
+                      <div
+                        onClick={() => setSelection({ text: passageText, verseRefs: [fullChapter], source: 'tap' })}
+                        style={{ cursor: 'pointer', borderRadius: 4, transition: 'background 0.2s' }}
+                      >
+                        <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
+                          {renderScripture(passageText, fullChapter)}
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => loadPassage(fullChapter)}
+                        style={{
+                          background: 'var(--dw-accent-bg)', border: '1px solid var(--dw-accent)',
+                          borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                          cursor: 'pointer', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                        }}
+                      >
+                        <BookOpen size={16} /> Read {fullChapter}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </Card>
           );
         })()}
