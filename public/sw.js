@@ -1,12 +1,12 @@
 /**
- * Futures Daily Word — Service Worker v19
+ * Futures Daily Word — Service Worker v20
  * Strategy: Network-first for API, Cache-first for static assets,
  * Stale-while-revalidate for fonts and images.
- * V19: Sunday banner + forced cache bust
+ * V20: Bigger fonts, new sermon notes, no red buttons
  */
 
-const CACHE_NAME = 'fdw-v19';
-const STATIC_CACHE = 'fdw-static-v19';
+const CACHE_NAME = 'fdw-v20';
+const STATIC_CACHE = 'fdw-static-v20';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 

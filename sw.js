@@ -1,11 +1,12 @@
 /**
- * Futures Daily Word — Service Worker v2
+ * Futures Daily Word — Service Worker v20
  * Strategy: Network-first for API, Cache-first for static assets,
  * Stale-while-revalidate for fonts and images.
+ * V20: Bigger fonts, new sermon notes, no red buttons
  */
 
-const CACHE_NAME = 'fdw-v2-1';
-const STATIC_CACHE = 'fdw-static-v2-1';
+const CACHE_NAME = 'fdw-v20';
+const STATIC_CACHE = 'fdw-static-v20';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
@@ -30,7 +31,12 @@ self.addEventListener('activate', (event) => {
           .filter((key) => key !== CACHE_NAME && key !== STATIC_CACHE && key !== BIBLE_CACHE && key !== FONT_CACHE)
           .map((key) => caches.delete(key))
       )
-    )
+    ).then(() => {
+      // Force all open tabs to reload with fresh content
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => client.navigate(client.url));
+      });
+    })
   );
   self.clients.claim();
 });
@@ -136,6 +142,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
+});
+
+// Listen for skip-waiting message from main thread
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Push notifications
