@@ -615,6 +615,7 @@ function ScriptureModal({
   existingNote,
   onSave,
   onClose,
+  onOpenBibleAI,
 }: {
   passage: string;
   planTitle: string | null;
@@ -624,6 +625,7 @@ function ScriptureModal({
   existingNote: JournalEntry | undefined;
   onSave: (entry: JournalEntry) => void;
   onClose: () => void;
+  onOpenBibleAI?: (context: string) => void;
 }) {
   const translation: TranslationCode =
     (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
@@ -654,7 +656,7 @@ function ScriptureModal({
     const entry: JournalEntry = existingNote
       ? { ...existingNote, body: draftNote }
       : {
-          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+          id: generateId(),
           date: today,
           title: devotional?.title || passage,
           body: draftNote,
@@ -676,6 +678,8 @@ function ScriptureModal({
         : `${passage}: ${scriptureText.slice(0, 300)}`;
     setSelection({ text: context, verseRefs: [passage], source: 'range' });
     onClose();
+    // Open Bible AI on the parent screen with the context
+    if (onOpenBibleAI) onOpenBibleAI(context);
   }
 
   function handleNoteSelected(text: string) {
@@ -1234,6 +1238,7 @@ export function JournalScreen() {
   const [planPopup, setPlanPopup] = useState<string | null>(null);
   const [showBibleAI, setShowBibleAI] = useState(false);
   const [bibleAIContext, setBibleAIContext] = useState('');
+  const [expandedSermon, setExpandedSermon] = useState<string | null>(null);
   const dailyPrompt = getDailyJournalPrompt();
 
   // Read active plans from localStorage
@@ -1715,7 +1720,8 @@ export function JournalScreen() {
             <p className="text-section-header" style={{ marginBottom: 10 }}>FROM YOUR PASTORS</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {PRELOADED_SERMONS.map(sermon => (
-                <Card key={sermon.id} style={{ borderLeft: '3px solid var(--dw-accent)' }}>
+                <Card key={sermon.id} onClick={() => setExpandedSermon(expandedSermon === sermon.id ? null : sermon.id)}
+                  style={{ cursor: 'pointer', borderLeft: '3px solid var(--dw-accent)' }}>
                   <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
                     {sermon.series ? `${sermon.series} Series` : 'Sermon'}
                   </p>
@@ -1725,9 +1731,51 @@ export function JournalScreen() {
                   <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>
                     {sermon.speaker} · {new Date(sermon.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                   </p>
-                  <p style={{ fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-secondary)', fontStyle: 'italic', margin: 0 }}>
-                    {sermon.keyVerseText.slice(0, 120)}...
-                  </p>
+                  {expandedSermon === sermon.id ? (
+                    <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
+                      {/* Key verse */}
+                      <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', borderLeft: '3px solid var(--dw-accent)', marginBottom: 12 }}>
+                        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>KEY VERSE</p>
+                        <p style={{ fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
+                          {sermon.keyVerseText}
+                        </p>
+                      </div>
+                      {/* Sections */}
+                      {sermon.sections.map((section, si) => (
+                        <div key={si} style={{ marginBottom: 12 }}>
+                          {section.heading && (
+                            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                              {section.heading}
+                            </p>
+                          )}
+                          {section.body.split('\n\n').map((para, pi) => (
+                            <p key={pi} style={{ fontSize: 14, lineHeight: 1.7, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-secondary)', marginBottom: 8 }}>
+                              {para}
+                            </p>
+                          ))}
+                          {section.points && section.points.map((pt, pk) => (
+                            <p key={pk} style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', padding: '4px 0 4px 12px', borderLeft: '2px solid var(--dw-border)', marginBottom: 6 }}>
+                              {pt}
+                            </p>
+                          ))}
+                          {section.scripture && (
+                            <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--dw-surface)', borderLeft: '2px solid var(--dw-accent)', marginTop: 6 }}>
+                              {section.scripture.split('\n\n').map((v, vi) => (
+                                <p key={vi} style={{ fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', marginBottom: vi < section.scripture!.split('\n\n').length - 1 ? 8 : 0 }}>{v}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      <p style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', textAlign: 'center', marginTop: 8 }}>
+                        Tap header to collapse
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-secondary)', fontStyle: 'italic', margin: 0 }}>
+                      {sermon.keyVerseText.slice(0, 120)}...
+                    </p>
+                  )}
                 </Card>
               ))}
             </div>
@@ -1835,6 +1883,7 @@ export function JournalScreen() {
           existingNote={getExistingNoteForModal(modalPassage.ref)}
           onSave={handleTodaySave}
           onClose={() => setModalPassage(null)}
+          onOpenBibleAI={(ctx) => { setBibleAIContext(ctx); setShowBibleAI(true); }}
         />
       )}
 

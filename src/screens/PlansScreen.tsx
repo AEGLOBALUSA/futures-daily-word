@@ -714,9 +714,13 @@ export function PlansScreen() {
                     <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, fontFamily: 'var(--font-sans)' }}>
                       {book.description}
                     </p>
-                    {book.jsonFile && (
+                    {book.jsonFile ? (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
                         Tap to view →
+                      </p>
+                    ) : (
+                      <p style={{ color: 'var(--dw-text-faint)', fontSize: 11, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 600, letterSpacing: '0.05em' }}>
+                        Coming Soon
                       </p>
                     )}
                   </div>

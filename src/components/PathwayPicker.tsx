@@ -156,7 +156,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
       {/* Bottom actions */}
       {isRevisit ? (
         <button
-          onClick={() => { setAnimatingOut(true); setTimeout(() => onSelect(currentPersona as Persona), 400); }}
+          onClick={() => { if (!currentPersona) return; setAnimatingOut(true); setTimeout(() => onSelect(currentPersona as Persona), 400); }}
           style={{
             marginTop: 16,
             background: 'none',

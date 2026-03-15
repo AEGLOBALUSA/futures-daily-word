@@ -78,7 +78,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
       })
       .catch(() => setSectionContent('Could not load section.'))
       .finally(() => setLoading(false));
-  }, [essaySection]);
+  }, [essaySection, essayTOC]);
 
   const readText = async (text: string) => {
     if (audioActive) {
