@@ -248,21 +248,21 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
       {/* ── Title block ── */}
       <div style={{ padding: '0 24px', marginBottom: 32 }}>
         {sermon.series && (
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
             {sermon.series}
           </p>
         )}
-        <h1 style={{ fontSize: 28, fontWeight: 400, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)', margin: '0 0 10px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 32, fontWeight: 400, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)', margin: '0 0 10px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
           {sermon.title}
         </h1>
-        <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+        <p style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
           {sermon.speaker} · {CAMPUS_LABELS[sermon.campus] || sermon.campus} · {new Date(sermon.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </p>
       </div>
 
       {/* ── Key Verse ── */}
       <div style={{ margin: '0 24px 36px', padding: '24px 20px', borderRadius: 16, background: 'var(--dw-card)', borderLeft: '4px solid var(--dw-accent)' }}>
-        <p style={{ fontSize: 17, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
+        <p style={{ fontSize: 19, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
           {sermon.keyVerseText}
         </p>
       </div>
@@ -280,7 +280,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
             {/* Section heading — large serif */}
             {section.heading && (
               <h2 style={{
-                fontSize: 22, fontWeight: 400, fontFamily: 'var(--font-serif)',
+                fontSize: 26, fontWeight: 400, fontFamily: 'var(--font-serif)',
                 color: 'var(--dw-text-primary)', margin: '0 0 16px', lineHeight: 1.25,
                 letterSpacing: '-0.01em',
               }}>
@@ -293,8 +293,8 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
               if (!line.trim()) return <div key={j} style={{ height: 14 }} />;
               return (
                 <p key={j} style={{
-                  fontSize: 16, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
-                  color: 'var(--dw-text-secondary)', marginBottom: 14,
+                  fontSize: 18, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
+                  color: 'var(--dw-text-primary)', marginBottom: 14,
                 }}>
                   {line}
                 </p>
@@ -312,11 +312,11 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                   return (
                     <div key={k} style={{ marginBottom: 8 }}>
                       <div style={{ paddingLeft: 20, borderLeft: '2px solid var(--dw-accent)', paddingTop: 4, paddingBottom: 4 }}>
-                        <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: '0 0 4px' }}>
+                        <p style={{ fontWeight: 700, fontSize: 18, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: '0 0 4px' }}>
                           {label}
                         </p>
                         {desc && (
-                          <p style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-serif-text)', margin: 0, lineHeight: 1.7 }}>
+                          <p style={{ fontSize: 17, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', margin: 0, lineHeight: 1.7 }}>
                             {desc}
                           </p>
                         )}
@@ -331,7 +331,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                           width: '100%', minHeight: 100, marginTop: 10,
                           background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
                           borderRadius: 12, padding: '14px 16px',
-                          color: 'var(--dw-text-primary)', fontSize: 15,
+                          color: 'var(--dw-text-primary)', fontSize: 17,
                           fontFamily: 'var(--font-sans)', outline: 'none',
                           resize: 'none', boxSizing: 'border-box',
                           lineHeight: 1.7, transition: 'border-color 0.2s',
@@ -348,7 +348,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
             {section.scripture && (
               <div style={{ margin: '20px 0 8px', padding: '20px 22px', borderLeft: '3px solid var(--dw-accent)', background: 'rgba(154,123,46,0.04)', borderRadius: '0 12px 12px 0' }}>
                 {section.scriptureRef && (
-                  <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
                     {section.scriptureRef}
                   </p>
                 )}
@@ -356,7 +356,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                   const verses = section.scripture!.split('\n\n');
                   return verses.map((verse, v) => (
                     <p key={v} style={{
-                      fontSize: 16, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
+                      fontSize: 18, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
                       color: 'var(--dw-text-primary)', fontStyle: 'italic',
                       marginBottom: v < verses.length - 1 ? 14 : 0,
                     }}>
@@ -377,7 +377,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                 width: '100%', minHeight: 100, marginTop: 16,
                 background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
                 borderRadius: 12, padding: '14px 16px',
-                color: 'var(--dw-text-primary)', fontSize: 15,
+                color: 'var(--dw-text-primary)', fontSize: 17,
                 fontFamily: 'var(--font-sans)', outline: 'none',
                 resize: 'none', boxSizing: 'border-box',
                 lineHeight: 1.7, transition: 'border-color 0.2s',
