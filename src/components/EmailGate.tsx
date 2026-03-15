@@ -6,14 +6,13 @@ import { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { X, Loader2, CheckCircle } from 'lucide-react';
 import { CAMPUSES } from '../data/tokens';
+import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 
-const PERSONAS = [
-  { id: 'new_to_faith', label: "I'm New to This", desc: 'Starting or reigniting my faith journey' },
-  { id: 'congregation', label: 'Church Member', desc: 'Growing in my daily walk with God' },
-  { id: 'deeper_study', label: 'Deep Bible Study', desc: 'Original languages, commentary, depth' },
-  { id: 'pastor_leader', label: 'Leader / Pastor', desc: 'For leaders who serve and shepherd others' },
-  { id: 'comfort', label: 'I Need Comfort Right Now', desc: 'Encouragement for a difficult season' },
-];
+const PERSONAS = ALL_PERSONAS.map(id => ({
+  id,
+  label: PERSONA_CONFIGS[id].label,
+  desc: PERSONA_CONFIGS[id].description,
+}));
 
 export function EmailGate() {
   const { showEmailGate, setShowEmailGate, saveProfile, saveSetup, emailGateCallback } = useUser();

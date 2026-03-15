@@ -13,16 +13,15 @@ import {
   BookOpen, Link, Music, BarChart3
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
+import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
-const PERSONAS = [
-  { id: 'new_to_faith', label: "I'm New to This", desc: 'Starting or reigniting my faith journey' },
-  { id: 'congregation', label: 'Church Member', desc: 'Growing in my daily walk with God' },
-  { id: 'deeper_study', label: 'Deep Bible Study', desc: 'Original languages, commentary, depth' },
-  { id: 'pastor_leader', label: 'Leader / Pastor', desc: 'For leaders who serve and shepherd others' },
-  { id: 'comfort', label: 'I Need Comfort Right Now', desc: 'Encouragement for a difficult season' },
-];
+const PERSONAS = ALL_PERSONAS.map(id => ({
+  id,
+  label: PERSONA_CONFIGS[id].label,
+  desc: PERSONA_CONFIGS[id].description,
+}));
 
 const FONT_SIZES = [
   { value: 0.85, label: 'Small' },

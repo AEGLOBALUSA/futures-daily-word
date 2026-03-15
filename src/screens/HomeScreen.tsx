@@ -28,6 +28,7 @@ import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
+import { isSundayWindow } from '../utils/sunday';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -174,13 +175,9 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
   } catch { return null; }
 }
 
-/** Sunday sermon shortcut — show Sat evening (6pm+) through end of Sunday */
+/** Sunday sermon shortcut — show during Sunday service window (Sat 11:40 PM → Sun 4 PM) */
 function getSundaySermon() {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sun, 6=Sat
-  const hour = now.getHours();
-  const isSundayWindow = day === 0 || (day === 6 && hour >= 18);
-  if (!isSundayWindow) return null;
+  if (!isSundayWindow()) return null;
   // Find the most recent preloaded sermon
   const sorted = [...PRELOADED_SERMONS].sort((a, b) => b.date.localeCompare(a.date));
   return sorted[0] || null;

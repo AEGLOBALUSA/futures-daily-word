@@ -293,15 +293,18 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                     {section.scriptureRef}
                   </p>
                 )}
-                {section.scripture.split('\n\n').map((verse, v) => (
-                  <p key={v} style={{
-                    fontSize: 16, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
-                    color: 'var(--dw-text-primary)', fontStyle: 'italic',
-                    marginBottom: v < section.scripture!.split('\n\n').length - 1 ? 14 : 0,
-                  }}>
-                    {verse}
-                  </p>
-                ))}
+                {(() => {
+                  const verses = section.scripture!.split('\n\n');
+                  return verses.map((verse, v) => (
+                    <p key={v} style={{
+                      fontSize: 16, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
+                      color: 'var(--dw-text-primary)', fontStyle: 'italic',
+                      marginBottom: v < verses.length - 1 ? 14 : 0,
+                    }}>
+                      {verse}
+                    </p>
+                  ));
+                })()}
               </div>
             )}
 

@@ -9,6 +9,7 @@ import { BibleAI } from './components/BibleAI';
 import { PathwayPicker } from './components/PathwayPicker';
 import type { TabId } from './components/TabBar';
 import type { Persona } from './utils/persona-config';
+import { isSundayWindow, isSundayDeepLink, activateSundayGuest, isSundayGuest } from './utils/sunday';
 import { HomeScreen } from './screens/HomeScreen';
 import { JournalScreen } from './screens/JournalScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
@@ -22,15 +23,20 @@ function AppContent() {
   const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
 
+  // Sunday QR deep link — bypass onboarding and go straight to sermon notes
+  useEffect(() => {
+    if (isSundayDeepLink()) {
+      activateSundayGuest();
+      setTimeout(() => setActiveTab('messages'), 100);
+    }
+  }, []);
+
+  const sundayGuest = isSundayGuest();
+
   // Show PathwayPicker if no persona set, first run, or every 10th open
-  // BUT skip entirely during Sunday window (Sat 6pm – end of Sunday)
+  // BUT skip entirely during Sunday window and for Sunday guests
   const [showPathway, setShowPathway] = useState(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const minutes = now.getMinutes();
-    const isSundayWindow = (day === 6 && hour === 23 && minutes >= 40) || (day === 0 && hour < 16);
-    if (isSundayWindow) return false; // people heading to church — no gate
+    if (sundayGuest || isSundayWindow()) return false; // no gate during service
     const v7Done = localStorage.getItem('dw_v7_pathway_done');
     if (!setup?.persona || !v7Done) return true;
     const count = parseInt(localStorage.getItem('dw_open_count') || '0', 10) + 1;
@@ -85,7 +91,7 @@ function AppContent() {
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>
       {screens[activeTab]}
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-      <EmailGate />
+      {!sundayGuest && <EmailGate />}
       <BibleAI
         isOpen={showBibleAI}
         onClose={() => setShowBibleAI(false)}
