@@ -26,7 +26,6 @@ import { getPersonaConfig, getGreeting } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { PRELOADED_SERMONS } from '../data/sermons';
-import type { SermonData } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
 import { isSundayWindow } from '../utils/sunday';
 
@@ -274,7 +273,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
     if (!sundaySermon) return {};
     try { return JSON.parse(localStorage.getItem(`dw_sermon_inline_${sundaySermon.id}`) || '{}'); } catch { return {}; }
   });
-  const [activeNoteIdx, setActiveNoteIdx] = useState<number | null>(null);
+
 
   const updateInlineNote = (idx: number, text: string) => {
     if (!sundaySermon) return;
