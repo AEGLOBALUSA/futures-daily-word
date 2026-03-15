@@ -113,7 +113,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     sectionOrder: [
       'greeting',
       'hero_audio',
-      'devotion',
       'ai_prompt',
       'faith_pathway',
       'daily_quote',

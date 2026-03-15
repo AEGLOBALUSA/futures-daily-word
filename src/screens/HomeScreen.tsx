@@ -239,6 +239,11 @@ interface PathwayDay {
   themeId?: string;
   passages?: string[];
   reflection?: string;
+  lesson?: string;
+  lessonEs?: string;
+  lessonPt?: string;
+  lessonId?: string;
+  reading?: { book: string; chapter: number; verses: string; ref: string };
 }
 
 interface PathwayData {
@@ -1879,7 +1884,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* Persona greeting + picker moved to Settings */}
 
         {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FAITH PATHWAY CARD ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ for new_returning persona */}
-        {pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
+        {pf.faithPathway && personaConfig.sectionOrder.includes('devotion') && pathwayProgress.enrolled && pathwayData && (() => {
+          /* Only show this compact pathway card for personas that ALSO have the devotion section.
+             new_to_faith gets the full plan-based lesson card above instead. */
           const completed = pathwayProgress.completedDays?.length || 0;
           const currentDay = pathwayProgress.currentDay || 1;
           const today = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
@@ -2032,7 +2039,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* Listen bar removed — hero card handles audio. Scripture search moved to Study tab. */}
 
         {/* Devotion of the Day — A&J devotionals, single source, with emoji reactions merged in */}
-        <Card
+        {personaConfig.sectionOrder.includes('devotion') && <Card
           style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
           onClick={() => {
             trackBehavior('devotion_tapped', 'ashley-jane');
@@ -2111,7 +2118,115 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               </p>
             );
           })()}
-        </Card>
+        </Card>}
+
+        {/* ── Plan-based lesson card for new_to_faith (replaces devotion) ── */}
+        {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
+          const currentDay = pathwayProgress.currentDay || 1;
+          const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
+          if (!dayData) return null;
+          const completed = pathwayProgress.completedDays?.length || 0;
+          const totalDays = pathwayData.days?.length || 40;
+          const dayTitle = lang === 'es' ? (dayData.titleEs || dayData.title)
+            : lang === 'pt' ? (dayData.titlePt || dayData.title)
+            : lang === 'id' ? (dayData.titleId || dayData.title)
+            : dayData.title;
+          const dayTheme = lang === 'es' ? (dayData.themeEs || dayData.theme)
+            : lang === 'pt' ? (dayData.themePt || dayData.theme)
+            : lang === 'id' ? (dayData.themeId || dayData.theme)
+            : dayData.theme;
+          const dayLesson = lang === 'es' ? ((dayData as any).lessonEs || (dayData as any).lesson)
+            : lang === 'pt' ? ((dayData as any).lessonPt || (dayData as any).lesson)
+            : lang === 'id' ? ((dayData as any).lessonId || (dayData as any).lesson)
+            : (dayData as any).lesson;
+          const dayReading = (dayData as any).reading;
+          const pathTitle = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
+            : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
+            : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
+            : pathwayData.title;
+          const isCompleted = pathwayProgress.completedDays.includes(currentDay);
+
+          return (
+            <Card style={{ marginBottom: 16 }}>
+              {/* Header: plan name + progress */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <p className="text-section-header" style={{ margin: 0 }}>
+                  DAY {currentDay} OF {totalDays}
+                </p>
+                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  {pathTitle}
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{
+                  width: `${(completed / totalDays) * 100}%`,
+                  height: '100%',
+                  background: 'var(--dw-accent)',
+                  borderRadius: 2,
+                  transition: 'width 0.3s',
+                }} />
+              </div>
+              {/* Lesson title & theme */}
+              <p className="text-card-title" style={{ marginBottom: 4 }}>{dayTitle}</p>
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                {dayTheme}
+              </p>
+              {/* Scripture reference */}
+              {dayReading?.ref && (
+                <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+                  📖 {dayReading.ref}
+                </p>
+              )}
+              {/* Full lesson text */}
+              {dayLesson && (
+                <p className="text-devotion" style={{ whiteSpace: 'pre-line' }}>{dayLesson}</p>
+              )}
+              {/* Actions row */}
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <button
+                  onClick={() => {
+                    if (!isCompleted) {
+                      const newCompleted = [...pathwayProgress.completedDays, currentDay];
+                      const nextDay = Math.min(totalDays, currentDay + 1);
+                      savePathwayProgress({ ...pathwayProgress, completedDays: newCompleted, currentDay: nextDay });
+                    }
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: isCompleted ? 'var(--dw-surface)' : 'var(--dw-accent)',
+                    color: isCompleted ? 'var(--dw-text-muted)' : '#fff',
+                    border: isCompleted ? '1px solid var(--dw-border)' : 'none',
+                    borderRadius: 10,
+                    cursor: isCompleted ? 'default' : 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {isCompleted ? '✓ Completed' : 'Mark Complete →'}
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button onClick={() => {
+                    shareContent({
+                      title: `Day ${currentDay}: ${dayTitle}`,
+                      text: `${dayTitle}\n\n${(dayLesson || '').substring(0, 200)}...\n\n— Futures Daily Word`,
+                      url: 'https://futuresdailyword.com'
+                    });
+                  }} style={{
+                    display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px',
+                    background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                    borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                    color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
+                  }}>
+                    <Share2 size={14} /> Share
+                  </button>
+                  {dayLesson && <ListenButton text={`Day ${currentDay}. ${dayTitle}. ${dayLesson}`} size="md" label="Listen" />}
+                </div>
+              </div>
+            </Card>
+          );
+        })()}
 
         {/* ── Campus community count — persona-gated ── */}
         {pf.campusCount !== 'hidden' && userProfile?.campus && (() => {
