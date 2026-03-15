@@ -28,7 +28,8 @@ function AppContent() {
     const now = new Date();
     const day = now.getDay();
     const hour = now.getHours();
-    const isSundayWindow = day === 0 && hour < 16;
+    const minutes = now.getMinutes();
+    const isSundayWindow = (day === 6 && hour === 23 && minutes >= 40) || (day === 0 && hour < 16);
     if (isSundayWindow) return false; // people heading to church — no gate
     const v7Done = localStorage.getItem('dw_v7_pathway_done');
     if (!setup?.persona || !v7Done) return true;

@@ -1,6 +1,6 @@
 /**
  * Sunday Service Window helpers
- * Active from Saturday midnight (12:00 AM) → Sunday 4:00 PM local time
+ * Active from Saturday 11:40 PM → Sunday 4:00 PM local time
  */
 
 /** Returns true if the current time falls inside the Sunday service window */
@@ -8,9 +8,11 @@ export function isSundayWindow(): boolean {
   const now = new Date();
   const day = now.getDay(); // 0 = Sunday, 6 = Saturday
   const hour = now.getHours();
+  const minutes = now.getMinutes();
 
-  // Saturday midnight onward (technically Sunday 12:00 AM is day === 0)
-  // Saturday night after midnight = Sunday early morning = day 0, hour < 16
+  // Saturday 11:40 PM onward
+  if (day === 6 && hour === 23 && minutes >= 40) return true;
+  // All of Sunday until 4:00 PM
   if (day === 0 && hour < 16) return true;
 
   return false;
