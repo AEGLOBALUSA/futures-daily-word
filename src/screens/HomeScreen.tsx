@@ -1094,54 +1094,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
 
         </div>{/* end hero viewport — header only when sermon tab active */}
 
-        {/* ── Sunday Service Banner — prominent link to interactive sermon notes ── */}
-        {sundaySermon && (
-          <button
-            onClick={() => onNavigate?.('messages')}
-            style={{
-              width: '100%', minHeight: 64, marginBottom: 20,
-              background: 'linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%)',
-              border: 'none', borderRadius: 16, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-              padding: '16px 20px',
-              boxShadow: '0 4px 16px rgba(123,31,162,0.3)',
-            }}
-          >
-            <BookOpen size={22} color="#fff" />
-            <div style={{ textAlign: 'left' }}>
-              <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.2 }}>
-                Sunday Service — Open Sermon Notes
-              </p>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
-                Tap to take notes during today's message
-              </p>
-            </div>
-          </button>
-        )}
-
-        {/* ── Sunday Sermon Tab Bar ── */}
-        {sundaySermon && (
-          <div style={{
-            display: 'flex', gap: 0, marginBottom: 20,
-            background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
-            border: '1px solid var(--dw-border)',
-          }}>
-            {([['sermon', 'Sermon Notes'], ['word', 'Daily Word']] as const).map(([key, label]) => (
-              <button key={key} onClick={() => setHomeTab(key)} style={{
-                flex: 1, padding: '11px 0',
-                background: homeTab === key ? 'var(--dw-accent)' : 'transparent',
-                color: homeTab === key ? '#fff' : 'var(--dw-text-muted)',
-                border: 'none', borderRadius: 9, cursor: 'pointer',
-                fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
-                transition: 'all 0.2s ease',
-              }}>
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ── Hero Listen Button — shown on sermon tab too for the aesthetic ── */}
+        {/* ── Hero Listen Button — the hero, sits above everything during Sunday ── */}
         {sundaySermon && homeTab === 'sermon' && (() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
@@ -1237,6 +1190,53 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
             </div>
           );
         })()}
+
+        {/* ── Sunday Service Banner — prominent link to interactive sermon notes ── */}
+        {sundaySermon && (
+          <button
+            onClick={() => onNavigate?.('messages')}
+            style={{
+              width: '100%', minHeight: 64, marginBottom: 20,
+              background: 'linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%)',
+              border: 'none', borderRadius: 16, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+              padding: '16px 20px',
+              boxShadow: '0 4px 16px rgba(123,31,162,0.3)',
+            }}
+          >
+            <BookOpen size={22} color="#fff" />
+            <div style={{ textAlign: 'left' }}>
+              <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.2 }}>
+                Sunday Service — Open Sermon Notes
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
+                Tap to take notes during today's message
+              </p>
+            </div>
+          </button>
+        )}
+
+        {/* ── Sunday Sermon Tab Bar ── */}
+        {sundaySermon && (
+          <div style={{
+            display: 'flex', gap: 0, marginBottom: 20,
+            background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
+            border: '1px solid var(--dw-border)',
+          }}>
+            {([['sermon', 'Sermon Notes'], ['word', 'Daily Word']] as const).map(([key, label]) => (
+              <button key={key} onClick={() => setHomeTab(key)} style={{
+                flex: 1, padding: '11px 0',
+                background: homeTab === key ? 'var(--dw-accent)' : 'transparent',
+                color: homeTab === key ? '#fff' : 'var(--dw-text-muted)',
+                border: 'none', borderRadius: 9, cursor: 'pointer',
+                fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                transition: 'all 0.2s ease',
+              }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ── Sunday Sermon View (full inline when tab active) ── */}
         {sundaySermon && homeTab === 'sermon' && (() => {
