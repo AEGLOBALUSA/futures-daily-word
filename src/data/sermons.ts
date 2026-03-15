@@ -35,7 +35,7 @@ export const PRELOADED_SERMONS: SermonData[] = [
     speaker: 'Pastor Ashley Evans',
     campus: 'us-alpharetta',
     date: '2026-03-15',
-    series: 'Ephesians',
+    series: 'What Power Are You Carrying Into the Room?',
     keyVerse: 'Ephesians 3:20',
     keyVerseText: '\u201CNow to Him who is able to do exceedingly abundantly above all that we ask or think, according to the power that works in us, to Him be glory in the church by Christ Jesus to all generations, forever and ever. Amen.\u201D \u2014 Ephesians 3:20\u201321 NKJV',
     sections: [

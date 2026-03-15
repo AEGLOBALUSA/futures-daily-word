@@ -956,14 +956,14 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
         />
       )}
       <div style={{ padding: '0 24px 0' }}>
-        {/* ── Hero viewport ── fills visible screen, hero centered, bottom peek invites scroll */}
+        {/* ── Hero viewport ── fills visible screen (compact when sermon tab active) */}
         <div style={{
-          minHeight: 'calc(100svh - 80px)',
+          minHeight: (sundaySermon && homeTab === 'sermon') ? 'auto' : 'calc(100svh - 80px)',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          justifyContent: (sundaySermon && homeTab === 'sermon') ? 'flex-start' : 'center',
           paddingTop: 20,
-          paddingBottom: 64,
+          paddingBottom: (sundaySermon && homeTab === 'sermon') ? 16 : 64,
           position: 'relative',
         }}>
 
@@ -1250,7 +1250,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
                 borderRadius: 14, padding: '20px 18px', marginBottom: 28,
               }}>
                 <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'var(--dw-accent)', marginBottom: 8, textTransform: 'uppercase' as const }}>
-                  {sermon.series ? `${sermon.series} Series` : 'This Week'}
+                  {sermon.series || 'This Week'}
                 </p>
                 <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 600, color: 'var(--dw-text)', lineHeight: 1.3, marginBottom: 8 }}>
                   {sermon.title}
