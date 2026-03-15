@@ -1168,7 +1168,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
                   {sermon.keyVerse}
                 </p>
                 <div style={{ marginTop: 12 }}>
-                  <ListenButton text={sermon.plainText} size="sm" />
+                  <ListenButton text={sermon.plainText} size="lg" label="Listen to Sermon" color="#d94f4f" />
                 </div>
               </div>
 

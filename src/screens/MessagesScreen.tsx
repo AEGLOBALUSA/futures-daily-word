@@ -179,7 +179,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
 
     const entry = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      date: new Date().toISOString(),
+      date: new Date().toISOString().slice(0, 10),
       title: sermon.title,
       body: body.trim(),
       tags: ['sermon'],
@@ -269,7 +269,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
 
       {/* Listen */}
       <div style={{ margin: '0 24px 36px' }}>
-        <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" />
+        <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" color="#d94f4f" />
       </div>
 
       {/* ── Sections with generous note areas ── */}
