@@ -1269,9 +1269,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   {showHeaderPersona && (
                     <div style={{
                       position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                      background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
                       borderRadius: 10, padding: 4, zIndex: 100,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
                       minWidth: 200,
                     }}>
                       {ALL_PERSONAS.map(p => {
@@ -1330,9 +1331,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   {showHeaderCampus && (
                     <div style={{
                       position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                      background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
                       borderRadius: 10, padding: 4, zIndex: 100,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
                       minWidth: 220, maxHeight: 320, overflowY: 'auto',
                     }}>
                       {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
