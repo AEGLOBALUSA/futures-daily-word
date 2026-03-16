@@ -1,21 +1,25 @@
 import { useState, useEffect } from 'react';
 import { VolumeX } from 'lucide-react';
-import { stopAllAudio, onAudioCountChange } from '../utils/audioManager';
+import * as AP from '../utils/audioPlayer';
 
 /**
  * Floating "Stop All Audio" button.
- * Only visible when ≥1 audio is playing. Kills everything on tap.
+ * Only visible when audio is playing. Kills everything on tap.
  */
 export function StopAllAudio() {
-  const [count, setCount] = useState(0);
+  const [visible, setVisible] = useState(false);
 
-  useEffect(() => onAudioCountChange(setCount), []);
+  useEffect(() => {
+    return AP.onStateChange((st) => {
+      setVisible(st === 'playing');
+    });
+  }, []);
 
-  if (count === 0) return null;
+  if (!visible) return null;
 
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); stopAllAudio(); }}
+      onClick={(e) => { e.stopPropagation(); AP.stop(); }}
       style={{
         position: 'fixed',
         bottom: 80,

@@ -4,8 +4,9 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
-import { fetchPassage, fetchAudio } from '../utils/api';
+import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
+import * as AP from '../utils/audioPlayer';
 import { QUOTES } from '../data/quotes';
 import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
@@ -21,7 +22,7 @@ import { SetupPromptModal } from '../components/SetupPromptModal';
 import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
 import { FeedbackPoll } from '../components/FeedbackPoll';
-import { registerAudio } from '../utils/audioManager';
+// audioManager replaced by audioPlayer (AP) imported above
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { personalize } from '../utils/personalization';
 import { getPersonaConfig, getGreeting, ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
@@ -495,8 +496,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch { return { completedDays: [], currentDay: 1, enrolled: false }; }
   });
 
-  // Audio state
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  // Audio state — powered by global AudioPlayer (single element, iOS-safe)
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioCurrentPassage, setAudioCurrentPassage] = useState<string | null>(null);
@@ -505,10 +505,17 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [bibleAIContext, setBibleAIContext] = useState<string>('');
   const [showSearch, setShowSearch] = useState(false);
   const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlCache = useRef<Map<string, string>>(new Map());
-  const audioUnlocked = useRef(false);
+  const audioSrcCache = useRef<Map<string, string>>(new Map());
   const [audioError, setAudioError] = useState(false);
+
+  // Subscribe to global AudioPlayer state changes
+  useEffect(() => {
+    return AP.onStateChange((st, passage) => {
+      setAudioPlaying(st === 'playing');
+      setAudioLoading(st === 'loading');
+      setAudioCurrentPassage(passage ?? null);
+    });
+  }, []);
   const [streakCount, setStreakCount] = useState(() => getStreak().count);
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
   const dailyWord = getDailyWord();
@@ -670,41 +677,29 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   };
 
   const handleListen = (passage: string) => {
-    // Unlock iOS audio immediately on user gesture tap — must happen synchronously
-    ensureAudioUnlocked();
+    // Unlock iOS audio synchronously on user gesture tap
+    AP.unlock();
     setAudioError(false);
     const key = `${passage}_${translation}`;
-    // If already playing this passage, pause/stop (toggle)
-    if (audioPlaying && audioCurrentPassage === passage) {
-      stopAudio();
+    // Toggle off
+    if (AP.isPlaying(passage)) {
+      AP.stop();
       return;
     }
-    // Close all other expanded passages — only one open at a time
-    // Stop anything already playing before switching
-    if (audioPlaying) stopAudio();
-    setShowSetupModal(false); // dismiss setup prompt if user taps listen
+    if (audioPlaying) AP.stop();
+    setShowSetupModal(false);
     setExpandedPassages(new Set([passage]));
     if (passageTexts[key]) {
-      // Text already loaded, play immediately
       handleAudio(passage);
     } else {
-      // Load text first, audio will auto-play via the useEffect above
       loadPassage(passage);
       pendingAudioRef.current = passage;
-      setAudioLoading(true);
-      setAudioCurrentPassage(passage);
     }
   };
 
   // Clean up audio on unmount
   useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-    };
+    return () => { AP.stop(); };
   }, []);
 
   // Record today as a reading day + handle streak freeze + milestone
@@ -830,10 +825,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       const text = passageTexts[tKey];
       if (!text) return;
       const cacheKey = tKey;
-      if (audioUrlCache.current.has(cacheKey)) return; // already cached
+      if (audioSrcCache.current.has(cacheKey)) return; // already cached
       // Silently preload — don't auto-play, just warm the cache
-      fetchAudio(text.slice(0, 5000), translation, passage).then(url => {
-        if (url) audioUrlCache.current.set(cacheKey, url);
+      AP.fetchAudioSrc(text.slice(0, 5000), translation, passage).then(src => {
+        if (src) audioSrcCache.current.set(cacheKey, src);
       }).catch(() => {});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -865,126 +860,39 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   };
 
   const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    setAudioPlaying(false);
-    setAudioUrl(null);
-    setAudioCurrentPassage(null);
+    AP.stop();
   };
 
-  const setupMediaSession = (passage: string, audio: HTMLAudioElement) => {
-    if (!('mediaSession' in navigator)) return;
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: passage,
-      artist: 'Futures Daily Word',
-      album: `${translation} Bible`,
-      artwork: [
-        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-      ],
-    });
-    navigator.mediaSession.setActionHandler('play', () => {
-      audio.play();
-      setAudioPlaying(true);
-      navigator.mediaSession.playbackState = 'playing';
-    });
-    navigator.mediaSession.setActionHandler('pause', () => {
-      audio.pause();
-      setAudioPlaying(false);
-      navigator.mediaSession.playbackState = 'paused';
-    });
-    navigator.mediaSession.setActionHandler('stop', () => {
-      stopAudio();
-      navigator.mediaSession.playbackState = 'none';
-    });
-    navigator.mediaSession.playbackState = 'playing';
-  };
-
-  /** Unlock iOS audio context on first user gesture so deferred plays work */
-  // iOS requires audio.play() in the SAME synchronous call stack as the user tap.
-  // We create a silent Audio, play it immediately on tap to "unlock" the element,
-  // then swap in the real src once the TTS fetch resolves.
-  const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-
-  const ensureAudioUnlocked = async () => {
-    if (audioUnlocked.current) return;
-    try {
-      const silence = new Audio(SILENCE_DATA);
-      await silence.play();
-      silence.pause();
-      audioUnlocked.current = true;
-    } catch { /* ignore */ }
-  };
-
+  /** Play audio for a passage using the global AudioPlayer */
   const handleAudio = async (passage: string) => {
-    if (audioPlaying && audioCurrentPassage === passage) {
-      stopAudio();
-      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+    // Toggle off if already playing this passage
+    if (AP.isPlaying(passage)) {
+      AP.stop();
       return;
     }
-    if (audioPlaying) stopAudio();
+    if (audioPlaying) AP.stop();
 
     const textKey = `${passage}_${translation}`;
     const text = passageTexts[textKey];
     if (!text) return;
 
     setAudioError(false);
-    setAudioLoading(true);
-    setAudioCurrentPassage(passage);
     trackBehavior('audio_played', passage);
 
-    // ── iOS FIX: create & play Audio element NOW (in user gesture) with silence ──
-    const audio = new Audio(SILENCE_DATA);
-    audio.onended = () => {
-      setAudioPlaying(false);
-      setAudioUrl(null);
-      setAudioCurrentPassage(null);
-      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
-    };
-    audio.onerror = () => {
-      setAudioPlaying(false);
-      setAudioUrl(null);
-      setAudioCurrentPassage(null);
-      setAudioError(true);
-      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
-    };
-    audio.onpause = () => {
-      setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null);
-      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-    };
-    audio.onplay = () => {
-      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-    };
-    audioRef.current = audio;
-    registerAudio(audio);
-    try { await audio.play(); } catch { /* silence may fail on some browsers, ok */ }
-
-    // ── Now fetch real audio (gesture context preserved via playing element) ──
     try {
       const cacheKey = `${passage}_${translation}`;
-      const cachedUrl = audioUrlCache.current.get(cacheKey);
-      const url = cachedUrl || await fetchAudio(text.slice(0, 20000), translation, passage);
-      if (url && audioRef.current === audio) {
-        if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
-        setAudioUrl(url);
-        audio.src = url;
-        await audio.play();
-        setAudioPlaying(true);
-        audioUnlocked.current = true;
-        setupMediaSession(passage, audio);
+      let src = audioSrcCache.current.get(cacheKey);
+      if (!src) {
+        src = await AP.fetchAudioSrc(text.slice(0, 20000), translation, passage) ?? undefined;
+        if (src) audioSrcCache.current.set(cacheKey, src);
+      }
+      if (src) {
+        await AP.play(passage, src);
       } else {
-        audio.pause();
-        // No audio available — show error, never fall back to browser robot voice
         setAudioError(true);
-        setAudioCurrentPassage(null);
       }
     } catch {
       setAudioError(true);
-      setAudioCurrentPassage(null);
-    } finally {
-      setAudioLoading(false);
     }
   };
 
@@ -1118,44 +1026,26 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
   // Play all today's chapters combined in ESV (real human reader)
   const handleHeroListen = async () => {
+    AP.unlock(); // must be synchronous in tap handler
     setAudioError(false);
-    if (audioPlaying && audioCurrentPassage === HERO_KEY) { stopAudio(); return; }
-    if (audioPlaying) stopAudio();
+    if (AP.isPlaying(HERO_KEY)) { AP.stop(); return; }
+    if (audioPlaying) AP.stop();
     if (!heroFullText) return;
-
-    setAudioLoading(true);
-    setAudioCurrentPassage(HERO_KEY);
-
-    // ── iOS FIX: create & play Audio NOW in user gesture ──
-    const audio = new Audio(SILENCE_DATA);
-    audio.onended = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); };
-    audio.onerror = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); setAudioError(true); };
-    audio.onpause = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; };
-    audio.onplay = () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; };
-    audioRef.current = audio;
-    registerAudio(audio);
-    try { await audio.play(); } catch { /* ok */ }
 
     try {
       const combinedRef = heroChapterRefs.join('; ');
       const cacheKey = HERO_KEY + heroKey;
-      const cachedUrl = audioUrlCache.current.get(cacheKey);
-      const url = cachedUrl || await fetchAudio(heroFullText.slice(0, 20000), 'ESV', combinedRef);
-      if (url && audioRef.current === audio) {
-        if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
-        setAudioUrl(url);
-        audio.src = url;
-        await audio.play();
-        setAudioPlaying(true);
-        audioUnlocked.current = true;
-        setupMediaSession(combinedRef, audio);
-      } else {
-        audio.pause();
-        // No audio available — show error, never fall back to browser robot voice
-        setAudioError(true); setAudioCurrentPassage(null);
+      let src = audioSrcCache.current.get(cacheKey);
+      if (!src) {
+        src = await AP.fetchAudioSrc(heroFullText.slice(0, 20000), 'ESV', combinedRef) ?? undefined;
+        if (src) audioSrcCache.current.set(cacheKey, src);
       }
-    } catch { setAudioError(true); setAudioCurrentPassage(null); }
-    finally { setAudioLoading(false); }
+      if (src) {
+        await AP.play(HERO_KEY, src);
+      } else {
+        setAudioError(true);
+      }
+    } catch { setAudioError(true); }
   };
 
   /** Render scripture text with tappable words when Gk/Heb mode is active */

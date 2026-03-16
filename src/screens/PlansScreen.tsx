@@ -8,7 +8,7 @@ import { PLAN_CATALOGUE } from '../data/plans';
 import { getPersonaConfig } from '../utils/persona-config';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Circle } from 'lucide-react';
 import { StopAllAudio } from '../components/StopAllAudio';
-import { registerAudio } from '../utils/audioManager';
+import * as AP from '../utils/audioPlayer';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -176,65 +176,34 @@ export function PlansScreen() {
   })();
 
   const readChapter = async (paragraphs: string[]) => {
-    if (bookAudioActive) {
-      if (bookAudioRef.current) { bookAudioRef.current.pause(); bookAudioRef.current = null; }
-      setBookAudioActive(false);
-      return;
-    }
+    AP.unlock();
+    if (bookAudioActive) { AP.stop(); setBookAudioActive(false); return; }
     setBookAudioActive(true);
-    const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-    const audio = new Audio(SILENCE_DATA);
-    audio.onended = () => { setBookAudioActive(false); bookAudioRef.current = null; };
-    audio.onerror = () => { setBookAudioActive(false); bookAudioRef.current = null; };
-    audio.addEventListener('pause', () => { setBookAudioActive(false); bookAudioRef.current = null; });
-    bookAudioRef.current = audio;
-    registerAudio(audio);
-    try { await audio.play(); } catch { /* ok */ }
     try {
-      const { fetchAudio } = await import('../utils/api');
       const text = paragraphs.join(' ');
-      const url = await fetchAudio(text.slice(0, 20000), 'ESV');
-      if (url && bookAudioRef.current === audio) {
-        audio.src = url;
-        await audio.play();
-      } else {
-        audio.pause();
-        setBookAudioActive(false);
-      }
-    } catch {
-      audio.pause();
-      setBookAudioActive(false);
-    }
+      const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
+      if (src) { await AP.play('book-chapter', src); }
+      else { setBookAudioActive(false); }
+    } catch { setBookAudioActive(false); }
   };
 
+  // Track book audio state from global player
+  useEffect(() => {
+    return AP.onStateChange((st, key) => {
+      if (key === 'book-chapter') setBookAudioActive(st === 'playing');
+      if (key === 'essay-section') setEssayAudioActive(st === 'playing');
+    });
+  }, []);
+
   const readSection = async (text: string) => {
-    if (essayAudioActive) {
-      if (essayAudioRef.current) { essayAudioRef.current.pause(); essayAudioRef.current = null; }
-      setEssayAudioActive(false);
-      return;
-    }
+    AP.unlock();
+    if (essayAudioActive) { AP.stop(); setEssayAudioActive(false); return; }
     setEssayAudioActive(true);
-    const SILENCE2 = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-    const audio2 = new Audio(SILENCE2);
-    audio2.onended = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
-    audio2.onerror = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
-    audio2.addEventListener('pause', () => { setEssayAudioActive(false); essayAudioRef.current = null; });
-    essayAudioRef.current = audio2;
-    registerAudio(audio2);
-    try { await audio2.play(); } catch { /* ok */ }
     try {
-      const { fetchAudio } = await import('../utils/api');
-      const url = await fetchAudio(text.slice(0, 20000), 'ESV');
-      if (url && essayAudioRef.current === audio2) {
-        audio2.src = url;
-        await audio2.play();
-      } else {
-        audio2.pause();
-        setEssayAudioActive(false);
-      }
-    } catch {
-      setEssayAudioActive(false);
-    }
+      const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
+      if (src) { await AP.play('essay-section', src); }
+      else { setEssayAudioActive(false); }
+    } catch { setEssayAudioActive(false); }
   };
 
   const activePlanIds = Object.keys(activePlans);

@@ -4,7 +4,7 @@ import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2, Headphones, Pause } from 'lucide-react';
 import { StopAllAudio } from '../components/StopAllAudio';
-import { registerAudio } from '../utils/audioManager';
+import * as AP from '../utils/audioPlayer';
 
 /* ── Essay TOC + section types ── */
 interface EssaySection { title: string; file: string; }
@@ -81,34 +81,14 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
   }, [essaySection, essayTOC]);
 
   const readText = async (text: string) => {
-    if (audioActive) {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-      setAudioActive(false);
-      return;
-    }
+    AP.unlock();
+    if (audioActive) { AP.stop(); setAudioActive(false); return; }
     setAudioActive(true);
-    const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-    const audio = new Audio(SILENCE_DATA);
-    audio.onended = () => { setAudioActive(false); audioRef.current = null; };
-    audio.onerror = () => { setAudioActive(false); audioRef.current = null; };
-    audio.addEventListener('pause', () => { setAudioActive(false); audioRef.current = null; });
-    audioRef.current = audio;
-    registerAudio(audio);
-    try { await audio.play(); } catch { /* ok */ }
     try {
-      const { fetchAudio } = await import('../utils/api');
-      const url = await fetchAudio(text.slice(0, 20000), 'ESV');
-      if (url && audioRef.current === audio) {
-        audio.src = url;
-        await audio.play();
-      } else {
-        audio.pause();
-        setAudioActive(false);
-      }
-    } catch {
-      audio.pause();
-      setAudioActive(false);
-    }
+      const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
+      if (src) { await AP.play('library-read', src); }
+      else { setAudioActive(false); }
+    } catch { setAudioActive(false); }
   };
 
   const handleBack = () => {

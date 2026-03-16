@@ -1,14 +1,14 @@
 /**
  * Reusable listen button — drop next to any text block to add audio playback.
- * Uses ElevenLabs → Polly → silence (never browser TTS).
+ * Uses the global AudioPlayer (single Audio element, iOS-safe).
  *
  * Usage:
  *   <ListenButton text="The Lord is my shepherd..." />
  *   <ListenButton text={longText} size="lg" label="Listen to all" />
  */
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Volume2, Loader2, Square } from 'lucide-react';
-import { registerAudio } from '../utils/audioManager';
+import * as AP from '../utils/audioPlayer';
 
 interface Props {
   /** The text to read aloud */
@@ -26,52 +26,44 @@ interface Props {
 }
 
 export function ListenButton({ text, passageRef, translation, size = 'sm', label, color }: Props) {
+  const keyRef = useRef(Math.random().toString(36).slice(2));
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // iOS requires Audio.play() in the same synchronous gesture context.
-  // We create + play silence immediately, then swap src when TTS resolves.
-  const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  // Subscribe to global player state
+  useEffect(() => {
+    return AP.onStateChange((st, passage) => {
+      const mine = passage === keyRef.current;
+      setPlaying(st === 'playing' && mine);
+      setLoading(st === 'loading' && mine);
+    });
+  }, []);
 
   const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
+    // Unlock iOS audio synchronously on tap
+    AP.unlock();
+
     // Toggle off
-    if (playing) {
-      audioRef.current?.pause();
-      audioRef.current = null;
-      setPlaying(false);
+    if (AP.isPlaying(keyRef.current)) {
+      AP.stop();
       return;
     }
 
     if (!text.trim()) return;
 
     setLoading(true);
-
-    // ── iOS FIX: create & play Audio NOW in user gesture ──
-    const audio = new Audio(SILENCE_DATA);
-    audio.onended = () => { setPlaying(false); audioRef.current = null; };
-    audio.onerror = () => { setPlaying(false); audioRef.current = null; };
-    audio.addEventListener('pause', () => { setPlaying(false); audioRef.current = null; });
-    audioRef.current = audio;
-    registerAudio(audio);
-    try { await audio.play(); } catch { /* ok */ }
-
     try {
-      const { fetchAudio } = await import('../utils/api');
-      const activeTranslation = (translation || localStorage.getItem('dw_translation') || 'ESV') as import('../utils/api').TranslationCode;
-      const url = await fetchAudio(text.slice(0, 20000), activeTranslation, passageRef);
-      if (url && audioRef.current === audio) {
-        audio.src = url;
-        await audio.play();
-        setPlaying(true);
+      const activeTranslation = translation || localStorage.getItem('dw_translation') || 'ESV';
+      const src = await AP.fetchAudioSrc(text.slice(0, 20000), activeTranslation, passageRef);
+      if (src) {
+        await AP.play(keyRef.current, src);
       } else {
-        audio.pause();
+        setLoading(false);
       }
     } catch {
-      audio.pause();
-    } finally {
+      AP.stop();
       setLoading(false);
     }
   };

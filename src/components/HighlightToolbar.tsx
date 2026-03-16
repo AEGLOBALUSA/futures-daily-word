@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2 } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { registerAudio } from '../utils/audioManager';
+import * as AP from '../utils/audioPlayer';
 
 interface HighlightToolbarProps {
   onOpenNotes: () => void;
@@ -37,34 +37,15 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
   };
 
   const handleListen = async () => {
-    if (listening) {
-      if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; }
-      setListening(false);
-      return;
-    }
+    AP.unlock();
+    if (listening) { AP.stop(); setListening(false); return; }
     setListening(true);
-    // ── iOS FIX: create & play Audio NOW in user gesture ──
-    const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-    const audio = new Audio(SILENCE_DATA);
-    audio.onended = () => { setListening(false); listenAudioRef.current = null; };
-    audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
-    audio.addEventListener('pause', () => { setListening(false); listenAudioRef.current = null; });
-    listenAudioRef.current = audio;
-    registerAudio(audio);
-    try { await audio.play(); } catch { /* ok */ }
     try {
-      const { fetchAudio } = await import('../utils/api');
-      const url = await fetchAudio(selection.text.slice(0, 20000), 'ESV');
-      if (url && listenAudioRef.current === audio) {
-        audio.src = url;
-        await audio.play();
-      } else {
-        audio.pause();
-        setListening(false);
-      }
-    } catch {
-      setListening(false);
-    }
+      const src = await AP.fetchAudioSrc(selection.text.slice(0, 20000), 'ESV');
+      if (src) {
+        await AP.play('highlight-listen', src);
+      } else { setListening(false); }
+    } catch { setListening(false); }
   };
 
   const handleDismiss = () => {

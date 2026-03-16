@@ -9,7 +9,7 @@ import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
-import { registerAudio } from '../utils/audioManager';
+import * as AP from '../utils/audioPlayer';
 import { getPersonaConfig } from '../utils/persona-config';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import { BibleAI } from '../components/BibleAI';
@@ -489,40 +489,18 @@ function ModalSelectionBar({
     }
   };
 
-  const listenAudioRef = useRef<HTMLAudioElement | null>(null);
-
   const handleListen = async () => {
-    if (listening) {
-      if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; }
-      setListening(false);
-      return;
-    }
+    AP.unlock();
+    if (listening) { AP.stop(); setListening(false); return; }
     setListening(true);
-    const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-    const audio = new Audio(SILENCE_DATA);
-    audio.onended = () => { setListening(false); listenAudioRef.current = null; };
-    audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
-    audio.addEventListener('pause', () => { setListening(false); listenAudioRef.current = null; });
-    listenAudioRef.current = audio;
-    registerAudio(audio);
-    try { await audio.play(); } catch { /* ok */ }
     try {
-      const { fetchAudio } = await import('../utils/api');
-      const url = await fetchAudio(selectedText.slice(0, 20000), 'ESV');
-      if (url && listenAudioRef.current === audio) {
-        audio.src = url;
-        await audio.play();
-      } else {
-        audio.pause();
-        setListening(false);
-      }
-    } catch {
-      audio.pause();
-      setListening(false);
-    }
+      const src = await AP.fetchAudioSrc(selectedText.slice(0, 20000), 'ESV');
+      if (src) { await AP.play('journal-listen', src); }
+      else { setListening(false); }
+    } catch { setListening(false); }
   };
 
-  const dismiss = () => { window.getSelection()?.removeAllRanges(); setSelectedText(''); if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; } setListening(false); };
+  const dismiss = () => { window.getSelection()?.removeAllRanges(); setSelectedText(''); AP.stop(); setListening(false); };
 
   const tbBtn = (onClick: () => void, icon: React.ReactNode, label: string, active = false) => (
     <button onClick={onClick} style={{
