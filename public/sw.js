@@ -5,8 +5,8 @@
  * V21: Updated sermon notes, bigger fonts, clean buttons, Sunday window intact
  */
 
-const CACHE_NAME = 'fdw-v32';
-const STATIC_CACHE = 'fdw-static-v32';
+const CACHE_NAME = 'fdw-v33';
+const STATIC_CACHE = 'fdw-static-v33';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 

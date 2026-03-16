@@ -1,119 +1,132 @@
 /**
- * Global Audio Player — bulletproof iOS + Android + Desktop playback.
+ * Global Audio Player — single-element, iOS-safe.
  *
- * Key design decisions:
- *   1. SINGLE reusable Audio element — iOS limits concurrent Audio instances.
- *   2. Audio element is created and .play()ed on first user tap to permanently
- *      unlock it (iOS requires play() in a user gesture).
- *   3. For GET audio (ESV), we point src directly at the URL — no blob.
- *   4. For POST audio (ElevenLabs / Polly), we convert to data URI — avoids
- *      blob: URL issues on iOS PWA/standalone mode.
- *   5. We call .load() after changing src and wait for 'canplaythrough' before
- *      calling .play() — iOS needs the data ready.
+ * Architecture:
+ *   - ONE Audio element, reused for all playback.
+ *   - Unlocked on first user tap via a 0.1s generated silence (PCM, no external fetch).
+ *   - Audio data stored as blob: URLs (NOT data URIs — data URIs choke on large files).
+ *   - play() waits for 'canplaythrough' before calling audio.play().
+ *   - No audioManager; no concurrent Audio elements; no revocation races.
+ *
+ * Usage from a click handler:
+ *   AP.unlock();                          // synchronous — MUST be first
+ *   const src = await AP.fetchAudioSrc(text, 'ESV', ref);
+ *   if (src) await AP.play('passage-key', src);
  */
 
+// ── Types ──
 type PlaybackState = 'idle' | 'loading' | 'playing';
 type StateListener = (state: PlaybackState, passage?: string) => void;
 
+// ── Module state ──
 let audioEl: HTMLAudioElement | null = null;
 let unlocked = false;
+let unlockVersion = 0; // increments on each unlock call to detect stale callbacks
 let currentPassage: string | null = null;
 let state: PlaybackState = 'idle';
 const listeners = new Set<StateListener>();
 
-function notify() {
-  listeners.forEach(fn => {
-    try { fn(state, currentPassage ?? undefined); } catch { /* */ }
-  });
+function setState(s: PlaybackState, passage?: string | null) {
+  state = s;
+  currentPassage = passage ?? null;
+  listeners.forEach(fn => { try { fn(state, currentPassage ?? undefined); } catch {} });
 }
 
-/** Subscribe to state changes. Returns unsubscribe function. */
+// ── Public API: subscriptions ──
+
 export function onStateChange(fn: StateListener): () => void {
   listeners.add(fn);
   fn(state, currentPassage ?? undefined);
   return () => listeners.delete(fn);
 }
 
-/** Get or create the singleton Audio element */
-function getAudio(): HTMLAudioElement {
-  if (!audioEl) {
-    audioEl = new Audio();
-    audioEl.preload = 'auto';
-  }
-  return audioEl;
-}
-
-/**
- * MUST be called synchronously inside a click/tap handler.
- * Creates the Audio element and plays a tiny silent WAV to permanently
- * unlock audio on iOS Safari.
- */
-export function unlock(): void {
-  if (unlocked) return;
-  const audio = getAudio();
-  // Minimal valid WAV: 44-byte header, 0 bytes of data = silence
-  audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-  const p = audio.play();
-  if (p && p.then) {
-    p.then(() => {
-      unlocked = true;
-      audio.pause();
-    }).catch(() => {
-      // Could not auto-unlock; will retry on next tap
-    });
-  }
-}
-
-/** Stop whatever is currently playing */
-export function stop(): void {
-  const audio = getAudio();
-  try {
-    audio.pause();
-    audio.removeAttribute('src');
-    audio.load(); // reset
-  } catch { /* */ }
-  currentPassage = null;
-  state = 'idle';
-  notify();
-  if ('mediaSession' in navigator) {
-    (navigator as any).mediaSession.playbackState = 'none';
-  }
-}
-
-/** Is the given passage currently playing? */
 export function isPlaying(passage?: string): boolean {
   if (!passage) return state === 'playing';
   return state === 'playing' && currentPassage === passage;
 }
 
-/** Is audio currently loading? */
-export function isLoading(): boolean {
-  return state === 'loading';
+export function isLoading(): boolean { return state === 'loading'; }
+export function getCurrentPassage(): string | null { return currentPassage; }
+
+// ── Singleton element ──
+
+function getAudio(): HTMLAudioElement {
+  if (!audioEl) {
+    audioEl = new Audio();
+    audioEl.preload = 'auto';
+    // Persist ended/pause handlers across src changes
+    audioEl.addEventListener('ended', () => {
+      if (state === 'playing') setState('idle');
+    });
+  }
+  return audioEl;
 }
 
-/** Get the current passage key */
-export function getCurrentPassage(): string | null {
-  return currentPassage;
+// ── Generate a tiny valid WAV in memory (no base64, no fetch) ──
+
+function generateSilenceBlob(): Blob {
+  // 44-byte WAV header + 882 bytes of silence (0.01s at 44100 Hz, 16-bit mono)
+  const numSamples = 441; // ~10ms
+  const byteRate = 88200;
+  const dataSize = numSamples * 2;
+  const fileSize = 36 + dataSize;
+  const buf = new ArrayBuffer(44 + dataSize);
+  const v = new DataView(buf);
+  // RIFF header
+  v.setUint32(0, 0x52494646, false); // "RIFF"
+  v.setUint32(4, fileSize, true);
+  v.setUint32(8, 0x57415645, false); // "WAVE"
+  // fmt chunk
+  v.setUint32(12, 0x666d7420, false); // "fmt "
+  v.setUint32(16, 16, true); // chunk size
+  v.setUint16(20, 1, true); // PCM
+  v.setUint16(22, 1, true); // mono
+  v.setUint32(24, 44100, true); // sample rate
+  v.setUint32(28, byteRate, true);
+  v.setUint16(32, 2, true); // block align
+  v.setUint16(34, 16, true); // bits per sample
+  // data chunk
+  v.setUint32(36, 0x64617461, false); // "data"
+  v.setUint32(40, dataSize, true);
+  // samples are all zeros = silence
+  return new Blob([buf], { type: 'audio/wav' });
 }
 
-/**
- * Convert a POST-fetched blob to a data URI.
- * Data URIs work reliably on iOS PWA; blob: URLs don't always.
- */
-async function blobToDataURI(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+// ── Unlock — MUST be called synchronously in a tap/click handler ──
+
+export function unlock(): void {
+  if (unlocked) return;
+  const v = ++unlockVersion;
+  const audio = getAudio();
+  const silenceUrl = URL.createObjectURL(generateSilenceBlob());
+  audio.src = silenceUrl;
+  const p = audio.play();
+  if (p && p.then) {
+    p.then(() => {
+      unlocked = true;
+      // Only pause if no real playback has started since this unlock
+      if (unlockVersion === v && state !== 'loading' && state !== 'playing') {
+        audio.pause();
+      }
+      URL.revokeObjectURL(silenceUrl);
+    }).catch(() => {
+      URL.revokeObjectURL(silenceUrl);
+    });
+  }
 }
 
-/**
- * Fetch audio and return a URL that works as audio.src.
- * - ESV human audio: returns the GET URL directly (no blob needed).
- * - ElevenLabs / Polly: converts response to data URI.
- */
+// ── Stop ──
+
+export function stop(): void {
+  const audio = getAudio();
+  try { audio.pause(); } catch {}
+  // Don't removeAttribute('src') or load() — that fires error events.
+  // Just pause is enough; play() will overwrite src.
+  setState('idle');
+}
+
+// ── Fetch audio src as blob URL ──
+
 export async function fetchAudioSrc(
   text: string,
   translation: string,
@@ -121,36 +134,30 @@ export async function fetchAudioSrc(
 ): Promise<string | null> {
   const cleanText = text.replace(/\[\d+\]\s*/g, '');
 
-  // ── 1. ESV native human-read audio (GET — use URL directly) ──
+  // ── 1. ESV native human-read audio ──
   if (translation === 'ESV' && passageRef) {
     try {
-      // Test if the endpoint returns valid audio
       const url = `/api/esv-audio?q=${encodeURIComponent(passageRef)}`;
       const res = await fetch(url);
       if (res.ok) {
         const blob = await res.blob();
-        if (blob.size > 1000) {
-          return await blobToDataURI(blob);
-        }
+        if (blob.size > 1000) return URL.createObjectURL(blob);
       }
-      // Try first ref alone if combined failed
+      // Try first individual ref if combined ref failed
       const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
       if (refs.length > 1) {
-        const url2 = `/api/esv-audio?q=${encodeURIComponent(refs[0])}`;
-        const res2 = await fetch(url2);
+        const res2 = await fetch(`/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
         if (res2.ok) {
           const blob2 = await res2.blob();
-          if (blob2.size > 1000) {
-            return await blobToDataURI(blob2);
-          }
+          if (blob2.size > 1000) return URL.createObjectURL(blob2);
         }
       }
-    } catch { /* continue */ }
+    } catch { /* fall through */ }
   }
 
   if (!cleanText) return null;
 
-  // ── 2. ElevenLabs (POST → data URI) ──
+  // ── 2. ElevenLabs ──
   try {
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
@@ -159,13 +166,11 @@ export async function fetchAudioSrc(
     });
     if (res.ok) {
       const blob = await res.blob();
-      if (blob.size > 500) {
-        return await blobToDataURI(blob);
-      }
+      if (blob.size > 500) return URL.createObjectURL(blob);
     }
-  } catch { /* continue */ }
+  } catch { /* fall through */ }
 
-  // ── 3. AWS Polly (POST → data URI) ──
+  // ── 3. AWS Polly ──
   try {
     const lang = localStorage.getItem('dw_lang') || 'en';
     const voiceId = lang === 'es' ? 'Lucia' : lang === 'pt' ? 'Camila' : lang === 'id' ? 'Andika' : 'Matthew';
@@ -176,102 +181,53 @@ export async function fetchAudioSrc(
     });
     if (res.ok) {
       const blob = await res.blob();
-      if (blob.size > 500) {
-        return await blobToDataURI(blob);
-      }
+      if (blob.size > 500) return URL.createObjectURL(blob);
     }
   } catch { /* */ }
 
   return null;
 }
 
-/**
- * Play audio for a passage. Call unlock() first in the same tap handler.
- *
- * @param key      - Unique key for this passage (used for toggle detection)
- * @param audioSrc - The audio src URL/data URI (from fetchAudioSrc)
- */
-export async function play(key: string, audioSrc: string): Promise<void> {
+// ── Play ──
+
+export async function play(key: string, blobUrl: string): Promise<void> {
   const audio = getAudio();
 
-  // Toggle off if same passage
-  if (state === 'playing' && currentPassage === key) {
-    stop();
-    return;
+  // Toggle off
+  if (state === 'playing' && currentPassage === key) { stop(); return; }
+  // Stop anything else
+  if (state !== 'idle') stop();
+
+  setState('loading', key);
+
+  // Set src and load
+  audio.src = blobUrl;
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const onReady = () => { cleanup(); resolve(); };
+      const onError = () => { cleanup(); reject(new Error('load failed')); };
+      const cleanup = () => {
+        audio.removeEventListener('canplaythrough', onReady);
+        audio.removeEventListener('error', onError);
+        clearTimeout(timer);
+      };
+      audio.addEventListener('canplaythrough', onReady, { once: true });
+      audio.addEventListener('error', onError, { once: true });
+      audio.load();
+      // Safety: if canplaythrough never fires, try after 3s
+      const timer = setTimeout(onReady, 3000);
+    });
+
+    // Only play if we're still the active request
+    if (currentPassage !== key) return;
+
+    await audio.play();
+    unlocked = true;
+    setState('playing', key);
+
+  } catch (err) {
+    console.error('[AudioPlayer]', err);
+    setState('idle');
   }
-
-  // Stop any current playback
-  if (state === 'playing' || state === 'loading') {
-    stop();
-  }
-
-  currentPassage = key;
-  state = 'loading';
-  notify();
-
-  audio.src = audioSrc;
-  audio.load();
-
-  return new Promise<void>((resolve) => {
-    const onReady = async () => {
-      cleanup();
-      try {
-        await audio.play();
-        state = 'playing';
-        unlocked = true;
-        notify();
-        if ('mediaSession' in navigator) {
-          (navigator as any).mediaSession.playbackState = 'playing';
-        }
-      } catch (err) {
-        console.error('[AudioPlayer] play() rejected:', err);
-        state = 'idle';
-        currentPassage = null;
-        notify();
-      }
-      resolve();
-    };
-
-    const onError = () => {
-      cleanup();
-      console.error('[AudioPlayer] load error');
-      state = 'idle';
-      currentPassage = null;
-      notify();
-      resolve();
-    };
-
-    const cleanup = () => {
-      audio.removeEventListener('canplaythrough', onReady);
-      audio.removeEventListener('error', onError);
-    };
-
-    audio.addEventListener('canplaythrough', onReady, { once: true });
-    audio.addEventListener('error', onError, { once: true });
-
-    // Ended / pause handlers
-    audio.onended = () => {
-      state = 'idle';
-      currentPassage = null;
-      notify();
-      if ('mediaSession' in navigator) {
-        (navigator as any).mediaSession.playbackState = 'none';
-      }
-    };
-    audio.onpause = () => {
-      // Only go idle if we didn't trigger it ourselves (e.g. src swap)
-      if (state === 'playing') {
-        state = 'idle';
-        currentPassage = null;
-        notify();
-      }
-    };
-
-    // Safety timeout — if canplaythrough never fires (iOS quirk), try playing after 5s
-    setTimeout(() => {
-      if (state === 'loading' && currentPassage === key) {
-        onReady();
-      }
-    }, 5000);
-  });
 }
