@@ -1010,7 +1010,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         .slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length))
         .map(s => `${s.book} ${s.currentChapter}`),
     ];
-    return refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
+    const unique = refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
+    // Fallback: if no plan/slot refs, use today's daily passages so Listen always works
+    if (unique.length === 0 && passages.length > 0) {
+      return passages.map(p => p.passage).filter(Boolean);
+    }
+    return unique;
   })();
   const heroKey = heroChapterRefs.join('|');
 
@@ -4637,7 +4642,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       />
       <StopAllAudio />
       {/* Temp version tag — remove after audio confirmed working */}
-      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v46</p>
+      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v47</p>
     </div>
   );
 }
