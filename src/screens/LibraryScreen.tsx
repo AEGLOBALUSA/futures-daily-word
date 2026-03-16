@@ -87,21 +87,26 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
       return;
     }
     setAudioActive(true);
+    const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    const audio = new Audio(SILENCE_DATA);
+    audio.onended = () => { setAudioActive(false); audioRef.current = null; };
+    audio.onerror = () => { setAudioActive(false); audioRef.current = null; };
+    audio.addEventListener('pause', () => { setAudioActive(false); audioRef.current = null; });
+    audioRef.current = audio;
+    registerAudio(audio);
+    try { await audio.play(); } catch { /* ok */ }
     try {
       const { fetchAudio } = await import('../utils/api');
       const url = await fetchAudio(text.slice(0, 20000), 'ESV');
-      if (url) {
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => { setAudioActive(false); audioRef.current = null; };
-        audio.onerror = () => { setAudioActive(false); audioRef.current = null; };
-        audio.addEventListener('pause', () => { setAudioActive(false); audioRef.current = null; });
-        registerAudio(audio);
+      if (url && audioRef.current === audio) {
+        audio.src = url;
         await audio.play();
       } else {
+        audio.pause();
         setAudioActive(false);
       }
     } catch {
+      audio.pause();
       setAudioActive(false);
     }
   };

@@ -30,6 +30,10 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
   const [loading, setLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // iOS requires Audio.play() in the same synchronous gesture context.
+  // We create + play silence immediately, then swap src when TTS resolves.
+  const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+
   const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -44,22 +48,29 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
     if (!text.trim()) return;
 
     setLoading(true);
+
+    // ── iOS FIX: create & play Audio NOW in user gesture ──
+    const audio = new Audio(SILENCE_DATA);
+    audio.onended = () => { setPlaying(false); audioRef.current = null; };
+    audio.onerror = () => { setPlaying(false); audioRef.current = null; };
+    audio.addEventListener('pause', () => { setPlaying(false); audioRef.current = null; });
+    audioRef.current = audio;
+    registerAudio(audio);
+    try { await audio.play(); } catch { /* ok */ }
+
     try {
       const { fetchAudio } = await import('../utils/api');
       const activeTranslation = (translation || localStorage.getItem('dw_translation') || 'ESV') as import('../utils/api').TranslationCode;
       const url = await fetchAudio(text.slice(0, 20000), activeTranslation, passageRef);
-      if (url) {
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => { setPlaying(false); audioRef.current = null; };
-        audio.onerror = () => { setPlaying(false); audioRef.current = null; };
-        audio.addEventListener('pause', () => { setPlaying(false); audioRef.current = null; });
-        registerAudio(audio);
+      if (url && audioRef.current === audio) {
+        audio.src = url;
         await audio.play();
         setPlaying(true);
+      } else {
+        audio.pause();
       }
     } catch {
-      // silent fail
+      audio.pause();
     } finally {
       setLoading(false);
     }

@@ -182,22 +182,27 @@ export function PlansScreen() {
       return;
     }
     setBookAudioActive(true);
+    const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    const audio = new Audio(SILENCE_DATA);
+    audio.onended = () => { setBookAudioActive(false); bookAudioRef.current = null; };
+    audio.onerror = () => { setBookAudioActive(false); bookAudioRef.current = null; };
+    audio.addEventListener('pause', () => { setBookAudioActive(false); bookAudioRef.current = null; });
+    bookAudioRef.current = audio;
+    registerAudio(audio);
+    try { await audio.play(); } catch { /* ok */ }
     try {
       const { fetchAudio } = await import('../utils/api');
       const text = paragraphs.join(' ');
       const url = await fetchAudio(text.slice(0, 20000), 'ESV');
-      if (url) {
-        const audio = new Audio(url);
-        bookAudioRef.current = audio;
-        audio.onended = () => { setBookAudioActive(false); bookAudioRef.current = null; };
-        audio.onerror = () => { setBookAudioActive(false); bookAudioRef.current = null; };
-        audio.addEventListener('pause', () => { setBookAudioActive(false); bookAudioRef.current = null; });
-        registerAudio(audio);
+      if (url && bookAudioRef.current === audio) {
+        audio.src = url;
         await audio.play();
       } else {
+        audio.pause();
         setBookAudioActive(false);
       }
     } catch {
+      audio.pause();
       setBookAudioActive(false);
     }
   };
@@ -209,18 +214,22 @@ export function PlansScreen() {
       return;
     }
     setEssayAudioActive(true);
+    const SILENCE2 = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    const audio2 = new Audio(SILENCE2);
+    audio2.onended = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
+    audio2.onerror = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
+    audio2.addEventListener('pause', () => { setEssayAudioActive(false); essayAudioRef.current = null; });
+    essayAudioRef.current = audio2;
+    registerAudio(audio2);
+    try { await audio2.play(); } catch { /* ok */ }
     try {
       const { fetchAudio } = await import('../utils/api');
       const url = await fetchAudio(text.slice(0, 20000), 'ESV');
-      if (url) {
-        const audio = new Audio(url);
-        essayAudioRef.current = audio;
-        audio.onended = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
-        audio.onerror = () => { setEssayAudioActive(false); essayAudioRef.current = null; };
-        audio.addEventListener('pause', () => { setEssayAudioActive(false); essayAudioRef.current = null; });
-        registerAudio(audio);
-        await audio.play();
+      if (url && essayAudioRef.current === audio2) {
+        audio2.src = url;
+        await audio2.play();
       } else {
+        audio2.pause();
         setEssayAudioActive(false);
       }
     } catch {

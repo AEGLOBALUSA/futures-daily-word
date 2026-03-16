@@ -903,11 +903,15 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   };
 
   /** Unlock iOS audio context on first user gesture so deferred plays work */
+  // iOS requires audio.play() in the SAME synchronous call stack as the user tap.
+  // We create a silent Audio, play it immediately on tap to "unlock" the element,
+  // then swap in the real src once the TTS fetch resolves.
+  const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+
   const ensureAudioUnlocked = async () => {
     if (audioUnlocked.current) return;
     try {
-      const silence = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAA' +
-        'EAAQARAAAAIgAAABAAEAZGF0YQAAAAA=');
+      const silence = new Audio(SILENCE_DATA);
       await silence.play();
       silence.pause();
       audioUnlocked.current = true;
@@ -930,41 +934,48 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     setAudioLoading(true);
     setAudioCurrentPassage(passage);
     trackBehavior('audio_played', passage);
+
+    // ── iOS FIX: create & play Audio element NOW (in user gesture) with silence ──
+    const audio = new Audio(SILENCE_DATA);
+    audio.onended = () => {
+      setAudioPlaying(false);
+      setAudioUrl(null);
+      setAudioCurrentPassage(null);
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+    };
+    audio.onerror = () => {
+      setAudioPlaying(false);
+      setAudioUrl(null);
+      setAudioCurrentPassage(null);
+      setAudioError(true);
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+    };
+    audio.onpause = () => {
+      setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null);
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+    };
+    audio.onplay = () => {
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+    };
+    audioRef.current = audio;
+    registerAudio(audio);
+    try { await audio.play(); } catch { /* silence may fail on some browsers, ok */ }
+
+    // ── Now fetch real audio (gesture context preserved via playing element) ──
     try {
-      await ensureAudioUnlocked();
       const cacheKey = `${passage}_${translation}`;
       const cachedUrl = audioUrlCache.current.get(cacheKey);
       const url = cachedUrl || await fetchAudio(text.slice(0, 20000), translation, passage);
-      if (url) {
+      if (url && audioRef.current === audio) {
         if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => {
-          setAudioPlaying(false);
-          setAudioUrl(null);
-          setAudioCurrentPassage(null);
-          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
-        };
-        audio.onerror = () => {
-          setAudioPlaying(false);
-          setAudioUrl(null);
-          setAudioCurrentPassage(null);
-          setAudioError(true);
-          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
-        };
-        audio.onpause = () => {
-          setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null);
-          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-        };
-        audio.onplay = () => {
-          if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-        };
-        registerAudio(audio);
+        audio.src = url;
         await audio.play();
         setAudioPlaying(true);
+        audioUnlocked.current = true;
         setupMediaSession(passage, audio);
       } else {
+        audio.pause();
         // No audio available — show error, never fall back to browser robot voice
         setAudioError(true);
         setAudioCurrentPassage(null);
@@ -1107,7 +1118,6 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
   // Play all today's chapters combined in ESV (real human reader)
   const handleHeroListen = async () => {
-    ensureAudioUnlocked();
     setAudioError(false);
     if (audioPlaying && audioCurrentPassage === HERO_KEY) { stopAudio(); return; }
     if (audioPlaying) stopAudio();
@@ -1115,26 +1125,32 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
     setAudioLoading(true);
     setAudioCurrentPassage(HERO_KEY);
+
+    // ── iOS FIX: create & play Audio NOW in user gesture ──
+    const audio = new Audio(SILENCE_DATA);
+    audio.onended = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); };
+    audio.onerror = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); setAudioError(true); };
+    audio.onpause = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; };
+    audio.onplay = () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; };
+    audioRef.current = audio;
+    registerAudio(audio);
+    try { await audio.play(); } catch { /* ok */ }
+
     try {
-      await ensureAudioUnlocked();
       const combinedRef = heroChapterRefs.join('; ');
       const cacheKey = HERO_KEY + heroKey;
       const cachedUrl = audioUrlCache.current.get(cacheKey);
       const url = cachedUrl || await fetchAudio(heroFullText.slice(0, 20000), 'ESV', combinedRef);
-      if (url) {
+      if (url && audioRef.current === audio) {
         if (!cachedUrl) audioUrlCache.current.set(cacheKey, url);
         setAudioUrl(url);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); };
-        audio.onerror = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); setAudioError(true); };
-        audio.onpause = () => { setAudioPlaying(false); setAudioUrl(null); setAudioCurrentPassage(null); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; };
-        audio.onplay = () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; };
-        registerAudio(audio);
+        audio.src = url;
         await audio.play();
         setAudioPlaying(true);
+        audioUnlocked.current = true;
         setupMediaSession(combinedRef, audio);
       } else {
+        audio.pause();
         // No audio available — show error, never fall back to browser robot voice
         setAudioError(true); setAudioCurrentPassage(null);
       }

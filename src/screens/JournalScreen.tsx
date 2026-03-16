@@ -498,21 +498,26 @@ function ModalSelectionBar({
       return;
     }
     setListening(true);
+    const SILENCE_DATA = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    const audio = new Audio(SILENCE_DATA);
+    audio.onended = () => { setListening(false); listenAudioRef.current = null; };
+    audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
+    audio.addEventListener('pause', () => { setListening(false); listenAudioRef.current = null; });
+    listenAudioRef.current = audio;
+    registerAudio(audio);
+    try { await audio.play(); } catch { /* ok */ }
     try {
       const { fetchAudio } = await import('../utils/api');
       const url = await fetchAudio(selectedText.slice(0, 20000), 'ESV');
-      if (url) {
-        const audio = new Audio(url);
-        listenAudioRef.current = audio;
-        audio.onended = () => { setListening(false); listenAudioRef.current = null; };
-        audio.onerror = () => { setListening(false); listenAudioRef.current = null; };
-        audio.addEventListener('pause', () => { setListening(false); listenAudioRef.current = null; });
-        registerAudio(audio);
+      if (url && listenAudioRef.current === audio) {
+        audio.src = url;
         await audio.play();
       } else {
+        audio.pause();
         setListening(false);
       }
     } catch {
+      audio.pause();
       setListening(false);
     }
   };
