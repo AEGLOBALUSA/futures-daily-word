@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage, fetchAudio } from '../utils/api';
@@ -24,7 +24,7 @@ import { FeedbackPoll } from '../components/FeedbackPoll';
 import { registerAudio } from '../utils/audioManager';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { personalize } from '../utils/personalization';
-import { getPersonaConfig, getGreeting } from '../utils/persona-config';
+import { getPersonaConfig, getGreeting, ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
@@ -440,6 +440,8 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassages, setExpandedPassages] = useState<Set<string>>(new Set());
   const [showCampusPicker, setShowCampusPicker] = useState(false);
+  const [showHeaderCampus, setShowHeaderCampus] = useState(false);
+  const [showHeaderPersona, setShowHeaderPersona] = useState(false);
 
   // Reading Slots state
   const [readingSlots, setReadingSlots] = useState<ReadingSlot[]>(() => {
@@ -1169,6 +1171,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           onDismiss={handleSetupDismiss}
         />
       )}
+      {/* Click-away overlay for header dropdowns */}
+      {(showHeaderPersona || showHeaderCampus) && (
+        <div
+          onClick={() => { setShowHeaderPersona(false); setShowHeaderCampus(false); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+        />
+      )}
       <div style={{ padding: '0 24px 0' }}>
         {/* ── Hero viewport ── fills visible screen (compact when sermon tab active) */}
         <div style={{
@@ -1241,9 +1250,134 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               }}>
                 Daily Word
               </h1>
-              <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginTop: 1 }}>
-                Futures Church
-              </p>
+              {/* Persona + Campus dropdowns — compact row under title */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+                {/* Persona dropdown trigger */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => { setShowHeaderPersona(!showHeaderPersona); setShowHeaderCampus(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      background: 'none', border: 'none', padding: 0,
+                      cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                      color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                    }}
+                  >
+                    {PERSONA_CONFIGS[personaConfig.persona]?.label || 'Select Path'}
+                    <ChevronDown size={10} style={{ opacity: 0.6 }} />
+                  </button>
+                  {showHeaderPersona && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                      background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+                      borderRadius: 10, padding: 4, zIndex: 100,
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                      minWidth: 200,
+                    }}>
+                      {ALL_PERSONAS.map(p => {
+                        const cfg = PERSONA_CONFIGS[p];
+                        const isActive = personaConfig.persona === p;
+                        return (
+                          <button
+                            key={p}
+                            onClick={() => {
+                              if (!isActive) {
+                                saveSetup({ persona: p, source: setup?.source || 'header' });
+                              }
+                              setShowHeaderPersona(false);
+                            }}
+                            style={{
+                              display: 'block', width: '100%', textAlign: 'left',
+                              padding: '8px 12px', borderRadius: 8,
+                              background: isActive ? 'var(--dw-accent)' : 'transparent',
+                              color: isActive ? '#fff' : 'var(--dw-text-primary)',
+                              border: 'none', cursor: 'pointer',
+                              fontSize: 13, fontWeight: isActive ? 600 : 400,
+                              fontFamily: 'var(--font-sans)',
+                              transition: 'background 0.15s',
+                            }}
+                          >
+                            <span style={{ fontWeight: 600 }}>{cfg.label}</span>
+                            <span style={{
+                              display: 'block', fontSize: 11, marginTop: 1,
+                              color: isActive ? 'rgba(255,255,255,0.7)' : 'var(--dw-text-muted)',
+                            }}>
+                              {cfg.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>·</span>
+
+                {/* Campus dropdown trigger */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => { setShowHeaderCampus(!showHeaderCampus); setShowHeaderPersona(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 3,
+                      background: 'none', border: 'none', padding: 0,
+                      cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                      color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                    }}
+                  >
+                    {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
+                    <ChevronDown size={10} style={{ opacity: 0.6 }} />
+                  </button>
+                  {showHeaderCampus && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                      background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+                      borderRadius: 10, padding: 4, zIndex: 100,
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                      minWidth: 220, maxHeight: 320, overflowY: 'auto',
+                    }}>
+                      {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
+                        const regionCampuses = CAMPUSES.filter(c => c.region === region);
+                        if (regionCampuses.length === 0) return null;
+                        return (
+                          <div key={region}>
+                            <p style={{
+                              fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                              textTransform: 'uppercase', color: 'var(--dw-text-muted)',
+                              padding: '6px 12px 2px', margin: 0,
+                              fontFamily: 'var(--font-sans)',
+                            }}>
+                              {region}
+                            </p>
+                            {regionCampuses.map(c => {
+                              const isActive = userProfile?.campus === c.id;
+                              return (
+                                <button
+                                  key={c.id}
+                                  onClick={() => {
+                                    handleCampusSelect(c.id);
+                                    setShowHeaderCampus(false);
+                                  }}
+                                  style={{
+                                    display: 'block', width: '100%', textAlign: 'left',
+                                    padding: '7px 12px', borderRadius: 8,
+                                    background: isActive ? 'var(--dw-accent)' : 'transparent',
+                                    color: isActive ? '#fff' : 'var(--dw-text-primary)',
+                                    border: 'none', cursor: 'pointer',
+                                    fontSize: 13, fontWeight: isActive ? 600 : 400,
+                                    fontFamily: 'var(--font-sans)',
+                                  }}
+                                >
+                                  {c.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
