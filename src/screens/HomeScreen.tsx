@@ -312,6 +312,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch { return []; }
   });
   const [showReadingSetup, setShowReadingSetup] = useState(false);
+  const [pastorOnboardStep, setPastorOnboardStep] = useState<number>(() => {
+    try { return localStorage.getItem('dw_pastor_onboard_dismissed') ? -1 : 0; } catch { return 0; }
+  });
   const [showBookPicker, setShowBookPicker] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [bookPickerSearch, setBookPickerSearch] = useState('');
@@ -2265,28 +2268,144 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* ── Plan-Driven Scripture (deeper_study) — full depth tools ── */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
           if (todaysPlanPassages.length === 0) {
-            return (
-              <Card style={{ marginBottom: 16, textAlign: 'center', padding: '24px 16px' }}>
-                <p className="text-section-header" style={{ marginBottom: 8 }}>TODAY'S STUDY</p>
-                <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                  No active reading plan. Choose a plan to start your daily study.
-                </p>
-                <button
-                  onClick={() => {
-                    // Navigate to Plans tab
-                    const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement;
-                    if (tabBar) tabBar.click();
-                  }}
-                  style={{
-                    background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
-                    padding: '10px 20px', fontSize: 14, fontWeight: 600,
-                    cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)',
-                  }}
-                >
-                  Browse Plans
-                </button>
-              </Card>
-            );
+            // Dismissed state — gentle, no pressure
+            if (pastorOnboardStep === -1) {
+              return (
+                <Card style={{ marginBottom: 16, textAlign: 'center', padding: '24px 16px' }}>
+                  <p style={{ fontWeight: 600, fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+                    Whenever you're ready to set up your reading, we're here.
+                  </p>
+                  <button
+                    onClick={() => setPastorOnboardStep(0)}
+                    style={{ background: 'var(--dw-accent)', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)' }}
+                  >
+                    Let's Go
+                  </button>
+                </Card>
+              );
+            }
+
+            // Step 0: Two pastor modes — know what they want, or want to be led
+            if (pastorOnboardStep === 0) {
+              return (
+                <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                      This is your time.
+                    </p>
+                    <button onClick={() => { setPastorOnboardStep(-1); try { localStorage.setItem('dw_pastor_onboard_dismissed', '1'); } catch {} }} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Later</button>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 16px', lineHeight: 1.5 }}>
+                    Not ministry. Just you and the Word. Let's get you where you need to be.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button onClick={() => {
+                      // Pastor knows what they want — go straight to plans
+                      const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement;
+                      if (tabBar) tabBar.click();
+                    }} style={{
+                      padding: '14px 16px', borderRadius: 12, background: 'var(--dw-accent)', border: 'none',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <p style={{ fontWeight: 600, fontSize: 15, color: '#fff', fontFamily: 'var(--font-sans)', margin: 0 }}>I already know what I want to read</p>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Go straight to the plans</p>
+                    </button>
+                    <button onClick={() => setPastorOnboardStep(1)} style={{
+                      padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <p style={{ fontWeight: 600, fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>Help me get started</p>
+                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Two quick questions — we'll find the right fit</p>
+                    </button>
+                  </div>
+                </Card>
+              );
+            }
+
+            // Step 1: Guided path — warm, confident, like a trusted friend
+            if (pastorOnboardStep === 1) {
+              return (
+                <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                      How do you like to read?
+                    </p>
+                    <button onClick={() => setPastorOnboardStep(0)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                    A lot of pastors like to listen to 2–3 chapters from different parts of the Bible each day. Others prefer going deep in one book. Which sounds more like you?
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button onClick={() => {
+                      startPlanFromHome('ashley-jane-daily-word');
+                      setPastorOnboardStep(-1);
+                      try { localStorage.removeItem('dw_pastor_onboard_dismissed'); } catch {}
+                      window.location.reload();
+                    }} style={{
+                      padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>Multiple chapters across the Bible</p>
+                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Daily Word — 2–3 chapters a day, 100 days with devotional</p>
+                    </button>
+                    <button onClick={() => setPastorOnboardStep(2)} style={{
+                      padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>Deep in one book or topic</p>
+                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Gospels, Psalms, New Testament, or full Bible</p>
+                    </button>
+                  </div>
+                </Card>
+              );
+            }
+
+            // Step 2: Curated plan selection — confident recommendation
+            if (pastorOnboardStep === 2) {
+              const recommendedPlans = PLAN_CATALOGUE.filter(p =>
+                !p.bookId && ['Gospels & Acts', 'New Testament', 'Full Bible', 'Wisdom'].includes(p.category)
+              ).slice(0, 6);
+              return (
+                <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                      Here are a few we'd recommend.
+                    </p>
+                    <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                    Pick one and you're in. You can always switch later.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {recommendedPlans.map(plan => (
+                      <button key={plan.id} onClick={() => {
+                        startPlanFromHome(plan.id);
+                        setPastorOnboardStep(-1);
+                        try { localStorage.removeItem('dw_pastor_onboard_dismissed'); } catch {}
+                        window.location.reload();
+                      }} style={{
+                        padding: '12px 14px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                        cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s ease',
+                      }}>
+                        <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{plan.title}</p>
+                        <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>{plan.description.slice(0, 80)}…</p>
+                      </button>
+                    ))}
+                    <button onClick={() => {
+                      const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement;
+                      if (tabBar) tabBar.click();
+                    }} style={{
+                      padding: '12px 14px', borderRadius: 12, background: 'transparent', border: '1px dashed var(--dw-border)',
+                      cursor: 'pointer', textAlign: 'center',
+                    }}>
+                      <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>Browse all plans →</p>
+                    </button>
+                  </div>
+                </Card>
+              );
+            }
+
+            return null;
           }
 
           return (
