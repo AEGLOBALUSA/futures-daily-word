@@ -802,9 +802,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         const dev = plan.devotionals?.[dn - 1];
         if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
       }
+      // Filter out A&J plan for personas that shouldn't see it
+      const AJ_ONLY_PERSONAS = ['congregation', 'new_to_faith', 'new_returning'];
+      const currentPersona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; } })();
+      const filtered = AJ_ONLY_PERSONAS.includes(currentPersona) ? out : out.filter(p => p.planId !== 'ashley-jane-daily-word');
       // Persist today's plan passages so Study Notes tab can read them
-      try { localStorage.setItem('dw_todays_plan_passages', JSON.stringify(out)); } catch {}
-      return out;
+      try { localStorage.setItem('dw_todays_plan_passages', JSON.stringify(filtered)); } catch {}
+      return filtered;
     } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }>; }
   })();
 

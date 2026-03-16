@@ -336,14 +336,14 @@ export function PlansScreen() {
   const PERSONA_PRIORITY: Record<string, string[]> = {
     new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
     congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30', 'prayer-life', 'acts-28'],
-    deeper_study: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
-    pastor_leader: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
-    comfort: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
+    deeper_study: ['nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
+    pastor_leader: ['book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
+    comfort: ['psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
     // Legacy
     new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
-    pastor: ['ashley-jane-daily-word', 'book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
-    deeper: ['ashley-jane-daily-word', 'nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
-    difficult: ['ashley-jane-daily-word', 'psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
+    pastor: ['book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
+    deeper: ['nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
+    difficult: ['psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
   };
   const priorityIds = PERSONA_PRIORITY[persona] || [];
   // For personas with showFullCatalog: false, ONLY show their priority plans
