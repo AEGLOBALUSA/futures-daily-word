@@ -525,8 +525,8 @@ export function PlansScreen() {
             Your reading plans, devotion, and community
           </p>
 
-          {/* Devotion of the Day */}
-          {devotion && (
+          {/* Devotion of the Day — congregation only */}
+          {devotion && persona === 'congregation' && (
             <Card style={{ marginBottom: 24, borderLeft: '3px solid var(--dw-accent)' }}>
               <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
               <p className="text-card-title" style={{ marginBottom: 8 }}>{devotion.title}</p>
