@@ -35,6 +35,142 @@ import { isSundayWindow } from '../utils/sunday';
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
 const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
+const COMFORT_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
+
+// ── Comfort reading rotation — curated chapters for difficult seasons ──
+const COMFORT_CHAPTERS = [
+  'Psalm 23', 'Psalm 46', 'Psalm 91', 'Isaiah 40', 'John 14',
+  'Romans 8', 'Psalm 34', 'Isaiah 43', 'Matthew 11', 'Psalm 121',
+  '2 Corinthians 1', 'Philippians 4', 'Psalm 27', 'Psalm 62',
+  'Psalm 139', 'Isaiah 41', 'Lamentations 3', 'Psalm 42',
+  'Psalm 103', 'Psalm 16', 'Psalm 86', 'Isaiah 54', 'Psalm 30',
+  'Psalm 77', 'Psalm 116', 'Psalm 73', 'Psalm 40', 'John 16',
+  'Psalm 145', 'Revelation 21',
+];
+
+// ── Short comfort devotions keyed to each chapter ──
+const COMFORT_DEVOTIONS: Record<string, { title: string; body: string }> = {
+  'Psalm 23': {
+    title: 'He Is With You Right Now',
+    body: 'David didn\'t write this psalm from a comfortable place. He wrote it as a man who had been hunted, betrayed, and brought low. And yet — "I will fear no evil, for You are with me." Notice he didn\'t say the valley disappeared. He said God was in it with him. Whatever you\'re walking through today, you\'re not walking alone. The Shepherd is right beside you. He\'s not watching from a distance. He\'s close.',
+  },
+  'Psalm 46': {
+    title: 'Be Still and Know',
+    body: 'When everything around you feels like it\'s shaking — relationships, health, finances, the future — God says something simple: "Be still, and know that I am God." That\'s not a command to do nothing. It\'s an invitation to stop striving and trust that He is still in control. The mountains may fall into the sea. But He is your refuge. Right now, in this moment, you can exhale. He\'s got this.',
+  },
+  'Psalm 91': {
+    title: 'Under His Wings',
+    body: 'There\'s a picture in this psalm that\'s easy to miss: "He will cover you with his feathers, and under his wings you will find refuge." Think about a mother bird pulling her young close during a storm. That\'s what God is doing with you. The storm may not stop. But you are sheltered. You are covered. He is your protection — not from every hard thing, but through every hard thing.',
+  },
+  'Isaiah 40': {
+    title: 'New Strength Is Coming',
+    body: 'You\'re tired. Maybe not just physically — tired in your soul. Isaiah knew that feeling, and he wrote these words to people who felt forgotten by God: "Those who hope in the Lord will renew their strength." Not those who figure it out. Not those who push harder. Those who hope. That\'s all God is asking of you today. Keep hoping. Strength is on its way.',
+  },
+  'John 14': {
+    title: 'Let Not Your Heart Be Troubled',
+    body: 'Jesus said these words on the hardest night of His life — the night before the cross. He looked at His friends and said, "Do not let your hearts be troubled. Trust in God; trust also in Me." He wasn\'t in denial about what was coming. He was anchored in something deeper. And He\'s offering you that same anchor today. Your circumstances may be heavy, but His peace is heavier.',
+  },
+  'Romans 8': {
+    title: 'Nothing Can Separate You',
+    body: 'This chapter builds to one of the most powerful promises in all of Scripture: nothing — not trouble, not hardship, not danger, not the past, not the future — can separate you from the love of God. Read that again. Nothing. Whatever you\'re facing right now, it does not have the power to cut you off from His love. You are held. Completely.',
+  },
+  'Psalm 34': {
+    title: 'He Is Close to You',
+    body: '"The Lord is close to the brokenhearted." That\'s not a metaphor. It\'s a promise. When your heart is shattered, God doesn\'t stand at a distance and wait for you to pull yourself together. He draws near. He moves toward the pain. If you\'re in a season where everything feels broken, know this: God is closer to you right now than He\'s ever been.',
+  },
+  'Isaiah 43': {
+    title: 'You Will Not Be Overcome',
+    body: '"When you pass through the waters, I will be with you." God didn\'t say if — He said when. He knows the hard seasons come. But He promises that they will not overcome you. The fire will not burn you. The water will not sweep you away. He calls you by name and says, "You are mine." Today, let that truth settle into the deepest part of your heart.',
+  },
+  'Matthew 11': {
+    title: 'Come and Rest',
+    body: 'Jesus looked at exhausted, burdened people and said: "Come to me." Not "figure it out." Not "try harder." Just — come. Bring the weight. Bring the weariness. Bring the questions you don\'t have answers for. He promises rest. Not a vacation from your problems, but a deep, soul-level rest that comes from being with the One who carries the world.',
+  },
+  'Psalm 121': {
+    title: 'Your Help Comes From God',
+    body: '"Where does my help come from? My help comes from the Lord." Sometimes the most powerful thing you can do is look up. Not at the mountain of problems in front of you — but at the God who made the mountains. He watches over you. He doesn\'t sleep. He doesn\'t get distracted. Right now, in your hardest moment, He is paying attention to you.',
+  },
+  '2 Corinthians 1': {
+    title: 'Comforted to Comfort Others',
+    body: 'Paul calls God "the Father of compassion and the God of all comfort." All comfort. Not some. Not comfort for the easy stuff. All of it — the grief, the confusion, the fear. And here\'s the beautiful part: the comfort God gives you in this season will become the comfort you give to someone else later. Your pain is not wasted. God will use it.',
+  },
+  'Philippians 4': {
+    title: 'His Peace Guards You',
+    body: '"The peace of God, which transcends all understanding, will guard your hearts and minds." This peace doesn\'t make sense. It shows up when the circumstances say you should be falling apart. It guards you — like a soldier standing watch over your heart. You don\'t have to manufacture it. Just bring your requests to God, with thanksgiving, and let His peace do what only it can do.',
+  },
+  'Psalm 27': {
+    title: 'Wait for the Lord',
+    body: 'David ends this psalm with raw honesty and hard-won faith: "Wait for the Lord; be strong and take heart and wait for the Lord." Waiting is not passive. It\'s an act of trust. It says, "I believe God is working even when I can\'t see it." If you\'re in a waiting season, take heart. God has not forgotten you. He is working.',
+  },
+  'Psalm 62': {
+    title: 'Rest in God Alone',
+    body: '"Truly my soul finds rest in God; my salvation comes from Him." Not from the resolution of your circumstances. Not from other people coming through. From God alone. Today, let your soul settle. Stop reaching for the next solution and just rest in the One who already has the answer.',
+  },
+  'Psalm 139': {
+    title: 'He Knows You Completely',
+    body: 'God knows when you sit down and when you rise. He knows your thoughts before you think them. He\'s familiar with all your ways. And knowing all of that — every fear, every doubt, every moment of weakness — He still says, "How precious are my thoughts about you." You are fully known and fully loved. There\'s nothing you can show Him that will make Him turn away.',
+  },
+  'Isaiah 41': {
+    title: 'Do Not Fear',
+    body: '"Do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you." This isn\'t God minimizing what you\'re going through. It\'s God stepping into it with you. He\'s not saying "don\'t feel afraid." He\'s saying "I\'m here, so you don\'t have to stay there." Let Him strengthen you today.',
+  },
+  'Lamentations 3': {
+    title: 'New Mercies Every Morning',
+    body: 'Jeremiah wrote Lamentations in the middle of devastation — his city destroyed, his people scattered. And yet, right in the center of the darkest book in the Bible: "His mercies are new every morning; great is His faithfulness." Even in your darkest chapter, mercy shows up fresh. Tomorrow morning, it\'ll be there again. That\'s who God is.',
+  },
+  'Psalm 42': {
+    title: 'Hope in God',
+    body: '"Why, my soul, are you downcast? Why so disturbed within me? Put your hope in God." The psalmist is talking to himself — preaching truth to his own discouraged heart. Sometimes that\'s exactly what you need to do. When your soul is low, remind it of what\'s true: God is still good. He is still faithful. And you will praise Him again.',
+  },
+  'Psalm 103': {
+    title: 'He Remembers You',
+    body: '"As a father has compassion on his children, so the Lord has compassion on those who fear Him. For He knows how we are formed; He remembers that we are dust." God doesn\'t expect you to be invincible. He knows you\'re human. He knows you\'re fragile. And He meets you there — with compassion, not criticism. Let yourself be held.',
+  },
+  'Psalm 16': {
+    title: 'Fullness of Joy',
+    body: '"You make known to me the path of life; You will fill me with joy in Your presence." Even when joy feels distant, it\'s still there — in His presence. You don\'t have to chase it or force it. Just come close to Him. Sit with Him in this chapter. Joy will find its way back to you in time.',
+  },
+  'Psalm 86': {
+    title: 'You Are a God of Compassion',
+    body: '"You, Lord, are a compassionate and gracious God, slow to anger, abounding in love and faithfulness." David didn\'t just know about God — he knew God. And this is who God is: compassionate when you\'re struggling, gracious when you fall short, faithful when everything feels uncertain. That\'s the God who\'s with you today.',
+  },
+  'Isaiah 54': {
+    title: 'His Kindness Will Not Depart',
+    body: '"Though the mountains be shaken and the hills be removed, yet my unfailing love for you will not be shaken, nor my covenant of peace be removed." Everything around you can change. But His love won\'t. His peace won\'t. It\'s a covenant — a promise sealed by God Himself. Hold onto that today.',
+  },
+  'Psalm 30': {
+    title: 'Joy Comes in the Morning',
+    body: '"Weeping may stay for the night, but rejoicing comes in the morning." If you\'re in a nighttime season — the hard, dark, uncertain kind — hear this: morning is coming. This isn\'t forever. God has a morning planned for you. Weep if you need to. He catches every tear. But don\'t give up, because joy is on its way.',
+  },
+  'Psalm 77': {
+    title: 'Remember What God Has Done',
+    body: 'The psalmist was in crisis — sleepless, overwhelmed, wondering if God had forgotten him. And then he did one thing that changed everything: "I will remember the deeds of the Lord." When today feels impossible, look back. God has carried you before. He will carry you again.',
+  },
+  'Psalm 116': {
+    title: 'He Heard Your Cry',
+    body: '"I love the Lord, for He heard my voice; He heard my cry for mercy." God hears you. Not just the polished prayers — the desperate ones, the ones you pray through tears, the ones that are barely words at all. He hears every one of them. And He bends down to listen.',
+  },
+  'Psalm 73': {
+    title: 'God Is Your Strength',
+    body: '"My flesh and my heart may fail, but God is the strength of my heart and my portion forever." You don\'t have to be strong right now. You\'re allowed to feel weak. Because God is your strength — not a backup plan, but the main one. When your heart fails, His doesn\'t.',
+  },
+  'Psalm 40': {
+    title: 'He Lifted You Out',
+    body: '"He lifted me out of the slimy pit, out of the mud and mire; He set my feet on a rock and gave me a firm place to stand." If you feel stuck right now — in grief, in confusion, in hopelessness — know that God is a lifter. He reaches down into the pit. He doesn\'t wait for you to climb out on your own. He pulls you up.',
+  },
+  'John 16': {
+    title: 'He Has Overcome',
+    body: '"In this world you will have trouble. But take heart! I have overcome the world." Jesus didn\'t promise a trouble-free life. He promised something better: His victory over every bit of it. Whatever you\'re facing has already been defeated. Take heart today. The one who overcame the world is fighting for you.',
+  },
+  'Psalm 145': {
+    title: 'He Upholds You',
+    body: '"The Lord upholds all who fall and lifts up all who are bowed down." If you\'re bowed down today — by grief, by worry, by the weight of it all — God is not standing over you asking why you fell. He\'s kneeling beside you, lifting you up. That\'s who He is. That\'s what He does.',
+  },
+  'Revelation 21': {
+    title: 'Every Tear Will Be Wiped Away',
+    body: '"He will wipe every tear from their eyes. There will be no more death or mourning or crying or pain." This is where it\'s all heading. The story doesn\'t end in suffering — it ends in complete restoration. Every tear. Every loss. Every broken thing. God will make it new. Hold on to that hope. The best is still to come.',
+  },
+};
 
 // ── Streak helpers ──────────────────────────────────────────────
 function getStreak(): { count: number; freezesAvailable: number } {
@@ -314,6 +450,20 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [showReadingSetup, setShowReadingSetup] = useState(false);
   const [pastorOnboardStep, setPastorOnboardStep] = useState<number>(() => {
     try { return localStorage.getItem('dw_pastor_onboard_dismissed') ? -1 : 0; } catch { return 0; }
+  });
+
+  // ── Comfort reading state ──
+  // comfortChapterIndex: which chapter in the rotation they're on today
+  // comfortChaptersServed: how many they've read so far in this session
+  // comfortPostRead: null = reading, 'ask_more' = finished chapter, 'ask_lock' = finished 2+, 'done' = done for today
+  // comfortDailyAmount: locked-in daily chapter count (persisted)
+  const [comfortChapterIndex, setComfortChapterIndex] = useState<number>(() => {
+    return Math.floor(Date.now() / 86400000) % COMFORT_CHAPTERS.length;
+  });
+  const [comfortChaptersServed, setComfortChaptersServed] = useState(0);
+  const [comfortPostRead, setComfortPostRead] = useState<null | 'devotion' | 'ask_more' | 'ask_lock' | 'done'>(null);
+  const [comfortDailyAmount, setComfortDailyAmount] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem('dw_comfort_daily') || '0', 10) || 0; } catch { return 0; }
   });
   const [showBookPicker, setShowBookPicker] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
@@ -626,6 +776,14 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     loadPassage(devVerse);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaysDevotion.verse, translation]);
+
+  // Auto-load comfort scripture chapter
+  useEffect(() => {
+    if (!personaConfig.sectionOrder.includes('comfort_scripture')) return;
+    const passage = COMFORT_CHAPTERS[comfortChapterIndex % COMFORT_CHAPTERS.length];
+    if (passage) loadPassage(passage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comfortChapterIndex, translation]);
 
   const todaysPlanPassages = (() => {
     try {
@@ -2151,10 +2309,296 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           })()}
         </Card>}
 
+        {/* ── Comfort Scripture — auto-served, no decisions required ── */}
+        {personaConfig.sectionOrder.includes('comfort_scripture') && (() => {
+          const comfortPassage = COMFORT_CHAPTERS[comfortChapterIndex % COMFORT_CHAPTERS.length];
+          const comfortTKey = `${comfortPassage}_${translation}`;
+          const comfortText = passageTexts[comfortTKey];
+          const comfortIsLoading = loadingPassages.has(comfortPassage);
+          const comfortIsPlaying = audioPlaying && audioCurrentPassage === comfortPassage;
+          const comfortIsLoadingAudio = audioLoading && audioCurrentPassage === comfortPassage;
+
+          return (
+            <div style={{ marginBottom: 16 }}>
+              {/* Current comfort chapter — auto-loaded */}
+              <Card style={{ marginBottom: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <p className="text-section-header" style={{ margin: 0 }}>A WORD FOR YOU TODAY</p>
+                  <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                    Take your time
+                  </span>
+                </div>
+
+                {/* Translation picker — simple, 3 options */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {COMFORT_TRANSLATIONS.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => handleTranslationChange(t)}
+                      style={{
+                        padding: '5px 12px', borderRadius: 20,
+                        fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.04em', cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        border: t === translation ? '1.5px solid #5C6BC0' : '1.5px solid var(--dw-border)',
+                        background: t === translation ? '#5C6BC0' : 'transparent',
+                        color: t === translation ? '#fff' : 'var(--dw-text-muted)',
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Chapter heading + listen */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                    {comfortPassage}
+                  </p>
+                  <button
+                    onClick={() => handleListen(comfortPassage)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: comfortIsPlaying ? '#4A5AB0' : '#5C6BC0',
+                      border: 'none', borderRadius: 10, padding: '8px 14px',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      color: '#fff', fontFamily: 'var(--font-sans)',
+                    }}
+                  >
+                    {comfortIsLoadingAudio ? (
+                      <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                    ) : comfortIsPlaying ? (
+                      <><Pause size={14} /> Pause</>
+                    ) : (
+                      <><Headphones size={14} /> Listen</>
+                    )}
+                  </button>
+                </div>
+
+                {/* Scripture text — auto-loaded */}
+                {comfortIsLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
+                    <Loader2 size={14} style={{ color: '#5C6BC0', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading…</span>
+                  </div>
+                ) : comfortText ? (
+                  <div style={{ cursor: 'pointer', borderRadius: 4 }}>
+                    <p style={{ fontSize: 15, lineHeight: 1.85, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
+                      {renderScripture(comfortText, comfortPassage)}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => loadPassage(comfortPassage)}
+                    style={{
+                      background: 'rgba(92,107,192,0.1)', border: '1px solid #5C6BC0',
+                      borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', color: '#5C6BC0', fontFamily: 'var(--font-sans)',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <BookOpen size={16} /> Read {comfortPassage}
+                  </button>
+                )}
+
+                {/* Sit with this — gentle reflection */}
+                {comfortText && comfortPostRead === null && (
+                  <div style={{
+                    marginTop: 16, padding: '14px 16px',
+                    background: 'linear-gradient(135deg, rgba(92,107,192,0.08) 0%, rgba(92,107,192,0.03) 100%)',
+                    borderRadius: 10,
+                    border: '1px solid rgba(92,107,192,0.12)',
+                    textAlign: 'center',
+                  }}>
+                    <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: '0 0 14px', fontStyle: 'italic' }}>
+                      Which words brought you the most peace?
+                    </p>
+                    <button
+                      onClick={() => {
+                        setComfortChaptersServed(prev => prev + 1);
+                        setComfortPostRead('devotion');
+                      }}
+                      style={{
+                        background: '#5C6BC0', border: 'none', borderRadius: 10,
+                        padding: '10px 20px', fontSize: 14, fontWeight: 600,
+                        cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      I've finished reading
+                    </button>
+                  </div>
+                )}
+              </Card>
+
+              {/* Post-read devotion — encouraging reflection from the chapter */}
+              {comfortPostRead === 'devotion' && (() => {
+                const devotion = COMFORT_DEVOTIONS[comfortPassage];
+                if (!devotion) {
+                  // No devotion for this chapter, skip to ask_more
+                  setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more');
+                  return null;
+                }
+                return (
+                  <Card style={{
+                    marginTop: 12,
+                    padding: '20px 18px',
+                    background: 'linear-gradient(135deg, rgba(92,107,192,0.06) 0%, rgba(92,107,192,0.02) 100%)',
+                    border: '1px solid rgba(92,107,192,0.12)',
+                  }}>
+                    <p style={{
+                      fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                      textTransform: 'uppercase', color: '#5C6BC0',
+                      fontFamily: 'var(--font-sans)', marginBottom: 10,
+                    }}>
+                      A THOUGHT FROM THIS CHAPTER
+                    </p>
+                    <p style={{
+                      fontSize: 17, fontWeight: 700, color: 'var(--dw-text-primary)',
+                      fontFamily: 'var(--font-serif)', marginBottom: 10, lineHeight: 1.4,
+                    }}>
+                      {devotion.title}
+                    </p>
+                    <p style={{
+                      fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)',
+                      fontFamily: 'var(--font-serif-text, Georgia, serif)',
+                      margin: '0 0 16px',
+                    }}>
+                      {devotion.body}
+                    </p>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
+                      <ListenButton text={`${devotion.title}. ${devotion.body}`} size="md" label="Listen" />
+                    </div>
+                    <button
+                      onClick={() => setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more')}
+                      style={{
+                        width: '100%', padding: '12px 16px', borderRadius: 10,
+                        background: '#5C6BC0', border: 'none',
+                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                        color: '#fff', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      Continue
+                    </button>
+                  </Card>
+                );
+              })()}
+
+              {/* Post-read flow — gentle multiple choice */}
+              {comfortPostRead === 'ask_more' && (
+                <Card style={{ marginTop: 12, textAlign: 'center', padding: '20px 16px' }}>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 14 }}>
+                    Would you like to read another passage from God's Word?
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <button
+                      onClick={() => {
+                        setComfortChapterIndex(prev => (prev + 1) % COMFORT_CHAPTERS.length);
+                        setComfortPostRead(null);
+                      }}
+                      style={{
+                        padding: '10px 20px', borderRadius: 10,
+                        background: '#5C6BC0', border: 'none',
+                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                        color: '#fff', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      Yes, keep going
+                    </button>
+                    <button
+                      onClick={() => setComfortPostRead('done')}
+                      style={{
+                        padding: '10px 20px', borderRadius: 10,
+                        background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                        color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      That's enough for today
+                    </button>
+                  </div>
+                </Card>
+              )}
+
+              {comfortPostRead === 'ask_lock' && (
+                <Card style={{ marginTop: 12, textAlign: 'center', padding: '20px 16px' }}>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                    You're doing great.
+                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 16, lineHeight: 1.5 }}>
+                    Would you like to set a daily reading amount so we can have something ready for you each day?
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 260, margin: '0 auto' }}>
+                    {[
+                      { n: 1, label: '1 chapter a day', sub: 'A gentle pace' },
+                      { n: 2, label: '2 chapters a day', sub: 'A steady rhythm' },
+                      { n: 3, label: '3 chapters a day', sub: 'Deeper immersion' },
+                    ].map(opt => (
+                      <button
+                        key={opt.n}
+                        onClick={() => {
+                          setComfortDailyAmount(opt.n);
+                          try { localStorage.setItem('dw_comfort_daily', String(opt.n)); } catch {}
+                          setComfortPostRead('done');
+                        }}
+                        style={{
+                          padding: '12px 16px', borderRadius: 10,
+                          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                          cursor: 'pointer', textAlign: 'left',
+                        }}
+                      >
+                        <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{opt.label}</p>
+                        <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>{opt.sub}</p>
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        setComfortChapterIndex(prev => (prev + 1) % COMFORT_CHAPTERS.length);
+                        setComfortPostRead(null);
+                      }}
+                      style={{
+                        padding: '10px 16px', borderRadius: 10,
+                        background: '#5C6BC0', border: 'none',
+                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                        color: '#fff', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      Just give me one more for now
+                    </button>
+                    <button
+                      onClick={() => setComfortPostRead('done')}
+                      style={{
+                        padding: '8px 16px', borderRadius: 10,
+                        background: 'transparent', border: 'none',
+                        fontSize: 13, cursor: 'pointer',
+                        color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      I'm good for today
+                    </button>
+                  </div>
+                </Card>
+              )}
+
+              {comfortPostRead === 'done' && (
+                <Card style={{ marginTop: 12, textAlign: 'center', padding: '16px' }}>
+                  <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'italic' }}>
+                    {comfortDailyAmount > 0
+                      ? `You're set for ${comfortDailyAmount} chapter${comfortDailyAmount > 1 ? 's' : ''} a day. We'll have something ready for you tomorrow.`
+                      : 'God is with you. Come back whenever you need Him.'}
+                  </p>
+                </Card>
+              )}
+            </div>
+          );
+        })()}
+
         {/* ── Devotion-Connected Scripture Reading (congregation) ── */}
         {personaConfig.sectionOrder.includes('devotion_scripture') && todaysDevotion.verse && (() => {
           const devPassage = todaysDevotion.verse; // e.g. "2 Timothy 1"
-          const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
+          const isComfort = personaConfig.persona === 'comfort';
+          const devScriptureTranslations: TranslationCode[] = isComfort
+            ? ['ESV', 'NIV', 'NLT']
+            : ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
           const tKey = `${devPassage}_${translation}`;
           const passageText = passageTexts[tKey];
           const isLoading = loadingPassages.has(devPassage);
@@ -2164,15 +2608,17 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           return (
             <Card style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <p className="text-section-header" style={{ margin: 0 }}>TODAY'S READING</p>
+                <p className="text-section-header" style={{ margin: 0 }}>
+                  {isComfort ? "TODAY'S SCRIPTURE" : "TODAY'S READING"}
+                </p>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  From today's devotion
+                  {isComfort ? 'Read at your own pace' : 'From today\'s devotion'}
                 </span>
               </div>
 
               {/* Translation picker */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                {CONGREGATION_TRANSLATIONS.map(t => (
+                {devScriptureTranslations.map(t => (
                   <button
                     key={t}
                     onClick={() => handleTranslationChange(t)}
@@ -2251,14 +2697,17 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               {/* Reflection prompt */}
               <div style={{
                 marginTop: 16, padding: '12px 14px',
-                background: 'var(--dw-charcoal)', borderRadius: 10,
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: isComfort ? 'linear-gradient(135deg, rgba(92,107,192,0.08) 0%, rgba(92,107,192,0.03) 100%)' : 'var(--dw-charcoal)',
+                borderRadius: 10,
+                border: isComfort ? '1px solid rgba(92,107,192,0.15)' : '1px solid rgba(255,255,255,0.06)',
               }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Reflect
+                  {isComfort ? 'Sit with this' : 'Reflect'}
                 </p>
                 <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0, fontStyle: 'italic' }}>
-                  What stood out to you in today's reading?
+                  {isComfort
+                    ? 'Which words brought you the most peace today?'
+                    : 'What stood out to you in today\'s reading?'}
                 </p>
               </div>
             </Card>
