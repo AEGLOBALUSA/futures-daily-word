@@ -27,5 +27,24 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Force nuke stale service workers + caches (one-time, keyed by version)
+      (function(){
+        var V='v46';
+        if(localStorage.getItem('fdw_nuked')===V) return;
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistrations().then(function(regs){
+            regs.forEach(function(r){r.unregister();});
+          });
+        }
+        if('caches' in window){
+          caches.keys().then(function(keys){
+            keys.forEach(function(k){caches.delete(k);});
+          });
+        }
+        localStorage.setItem('fdw_nuked',V);
+        setTimeout(function(){location.reload(true);},500);
+      })();
+    </script>
   </body>
 </html>
