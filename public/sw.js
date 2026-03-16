@@ -5,8 +5,8 @@
  * V21: Updated sermon notes, bigger fonts, clean buttons, Sunday window intact
  */
 
-const CACHE_NAME = 'fdw-v28';
-const STATIC_CACHE = 'fdw-static-v28';
+const CACHE_NAME = 'fdw-v29';
+const STATIC_CACHE = 'fdw-static-v29';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
@@ -44,10 +44,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET
-  if (event.request.method !== 'GET') return;
-
-  // API calls: network-first with no cache
+  // API calls: always pass through to network (GET + POST for TTS etc.)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() =>
@@ -59,6 +56,9 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+
+  // Skip non-GET for everything else
+  if (event.request.method !== 'GET') return;
 
   // Bible data (KJV offline): cache-first, long-lived
   if (url.pathname.startsWith('/bible/') || url.pathname.startsWith('/books/')) {
