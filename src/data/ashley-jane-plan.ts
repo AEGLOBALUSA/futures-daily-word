@@ -597,7 +597,7 @@ export const ASHLEY_JANE_PLAN_PASSAGES: string[] = [
   'Philippians 1',
   'Romans 8',
   'Romans 5',
-  'Genesis 2',
+  'John 10',
   'John 19',
   'Ephesians 2',
   'John 7',
