@@ -2091,7 +2091,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         })()}
 
         {/* ── Pastor/Study Onboarding — RIGHT after the hero, before everything else ── */}
-        {personaConfig.sectionOrder.includes('plan_scripture') && todaysPlanPassages.length === 0 && (() => {
+        {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
           const isPastor = personaConfig.persona === 'pastor_leader';
 
           // Dismissed state
