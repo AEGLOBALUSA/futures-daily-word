@@ -10,7 +10,7 @@ createRoot(document.getElementById('root')!).render(
 )
 
 // Register service worker — version query forces cache bust on deploy
-const SW_VERSION = 'v30';
+const SW_VERSION = 'v31';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
