@@ -1509,7 +1509,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       {section.points.map((point, pi) => (
                         <div key={pi} style={{
                           display: 'flex', gap: 12, marginBottom: 10,
-                          paddingLeft: 4, borderLeft: '3px solid var(--dw-accent)',
+                          paddingLeft: 4, borderLeft: '3px solid #9A7B2E',
                           paddingTop: 2, paddingBottom: 2,
                         }}>
                           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, color: 'var(--dw-accent)', minWidth: 18 }}>
@@ -1525,7 +1525,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
                   {section.scripture && (
                     <div style={{
-                      borderLeft: '3px solid var(--dw-accent)',
+                      borderLeft: '3px solid #9A7B2E',
                       background: 'rgba(154,123,46,0.04)',
                       padding: '14px 16px', borderRadius: '0 10px 10px 0',
                       marginBottom: 14,

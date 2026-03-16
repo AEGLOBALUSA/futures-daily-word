@@ -63,6 +63,8 @@ export function MoreScreen() {
     return localStorage.getItem('dw_user_story') || '';
   });
   const [storySaved, setStorySaved] = useState(false);
+  const [pendingPersona, setPendingPersona] = useState<string | null>(null);
+  const [personaSaved, setPersonaSaved] = useState(false);
   const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
 
@@ -133,7 +135,18 @@ export function MoreScreen() {
   };
 
   const handlePersonaSelect = (personaId: string) => {
-    saveSetup({ persona: personaId, source: setup?.source || 'settings' });
+    // If they tap the already-active persona, do nothing
+    if (personaId === setup?.persona && !pendingPersona) return;
+    setPendingPersona(personaId);
+    setPersonaSaved(false);
+  };
+
+  const handlePersonaSave = () => {
+    if (!pendingPersona) return;
+    saveSetup({ persona: pendingPersona, source: setup?.source || 'settings' });
+    setPersonaSaved(true);
+    setPendingPersona(null);
+    setTimeout(() => setPersonaSaved(false), 2500);
   };
 
   const handleChaptersPerDaySelect = (val: number) => {
@@ -243,29 +256,60 @@ export function MoreScreen() {
           </p>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {PERSONAS.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => handlePersonaSelect(p.id)}
-                  style={{
-                    background: setup?.persona === p.id ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: setup?.persona === p.id ? '#fff' : 'var(--dw-text-primary)',
-                    border: 'none',
-                    borderRadius: 10,
-                    padding: '12px 16px',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    minHeight: 44,
-                    textAlign: 'left',
-                  }}
-                >
-                  <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
-                </button>
-              ))}
+              {PERSONAS.map(p => {
+                const isActive = setup?.persona === p.id && !pendingPersona;
+                const isPending = pendingPersona === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => handlePersonaSelect(p.id)}
+                    style={{
+                      background: isActive ? 'var(--dw-accent)' : isPending ? '#9A7B2E' : 'var(--dw-surface-hover)',
+                      color: isActive || isPending ? '#fff' : 'var(--dw-text-primary)',
+                      border: isPending ? '2px solid #9A7B2E' : 'none',
+                      borderRadius: 10,
+                      padding: '12px 16px',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)',
+                      minHeight: 44,
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
+                  </button>
+                );
+              })}
             </div>
+            {/* Save button — appears when a new persona is selected */}
+            {pendingPersona && pendingPersona !== setup?.persona && (
+              <button
+                onClick={handlePersonaSave}
+                style={{
+                  marginTop: 10, width: '100%',
+                  padding: '12px 16px', borderRadius: 10,
+                  background: '#9A7B2E', border: 'none',
+                  fontSize: 15, fontWeight: 700,
+                  cursor: 'pointer', color: '#fff',
+                  fontFamily: 'var(--font-sans)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Save & Apply
+              </button>
+            )}
+            {personaSaved && (
+              <p style={{
+                marginTop: 8, textAlign: 'center',
+                fontSize: 13, fontWeight: 600,
+                color: '#4CAF50', fontFamily: 'var(--font-sans)',
+              }}>
+                Saved! Your experience has been updated.
+              </p>
+            )}
           </Card>
         </div>
 

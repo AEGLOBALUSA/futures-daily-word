@@ -78,7 +78,7 @@ export function ScriptureBlock({
       onClick={handleTap}
     >
       <span style={{
-        color: 'var(--dw-accent)', fontSize: 10, fontWeight: 700,
+        color: '#9A7B2E', fontSize: 10, fontWeight: 700,
         marginRight: 5, verticalAlign: 'super', lineHeight: 1,
       }}>
         {verseNumber}
