@@ -14,6 +14,7 @@ import { useUser } from '../contexts/UserContext';
 import { HighlightToolbar } from '../components/HighlightToolbar';
 import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
 import { GreekHebrewPopup } from '../components/GreekHebrewPopup';
+import { ScripturePassage } from '../components/ScripturePassage';
 import { BibleAI } from '../components/BibleAI';
 import { BibleSearch } from '../components/BibleSearch';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
@@ -2758,11 +2759,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading…</span>
                   </div>
                 ) : comfortText ? (
-                  <div style={{ cursor: 'pointer', borderRadius: 4 }}>
-                    <p style={{ fontSize: 15, lineHeight: 1.85, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
-                      {renderScripture(comfortText, comfortPassage)}
-                    </p>
-                  </div>
+                  <ScripturePassage
+                    text={comfortText}
+                    passageRef={comfortPassage}
+                    renderScripture={renderScripture}
+                    greekHebrewMode={greekHebrewMode}
+                  />
                 ) : (
                   <button
                     onClick={() => loadPassage(comfortPassage)}
@@ -3048,14 +3050,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
                 </div>
               ) : passageText ? (
-                <div
-                  onClick={() => setSelection({ text: passageText, verseRefs: [devPassage], source: 'tap' })}
-                  style={{ cursor: 'pointer', borderRadius: 4, transition: 'background 0.2s' }}
-                >
-                  <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
-                    {renderScripture(passageText, devPassage)}
-                  </p>
-                </div>
+                <ScripturePassage
+                  text={passageText}
+                  passageRef={devPassage}
+                  renderScripture={renderScripture}
+                  greekHebrewMode={greekHebrewMode}
+                />
               ) : (
                 <button
                   onClick={() => loadPassage(devPassage)}
@@ -3168,19 +3168,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       </div>
                     ) : txt ? (
                       <>
-                        <div
-                          onClick={() => !greekHebrewMode && setSelection({ text: txt, verseRefs: [passage], source: 'tap' })}
-                          style={{ cursor: greekHebrewMode ? 'default' : 'pointer', borderRadius: 4, transition: 'background 0.2s', background: selection?.verseRefs?.includes(passage) ? 'rgba(154,123,46,0.12)' : 'transparent' }}
-                        >
-                          {greekHebrewMode && (
-                            <p style={{ fontSize: 10, fontWeight: 700, color: '#9A7B2E', marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
-                              Tap any word to explore its original meaning
-                            </p>
-                          )}
-                          <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
-                            {renderScripture(txt, passage)}
-                          </p>
-                        </div>
+                        <ScripturePassage
+                          text={txt}
+                          passageRef={passage}
+                          renderScripture={renderScripture}
+                          greekHebrewMode={greekHebrewMode}
+                        />
 
                         {/* Compare translation (when active) */}
                         {compareMode && pf.greekHebrew === 'full' && (() => {
@@ -3461,14 +3454,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
                       </div>
                     ) : passageText ? (
-                      <div
-                        onClick={() => setSelection({ text: passageText, verseRefs: [fullChapter], source: 'tap' })}
-                        style={{ cursor: 'pointer', borderRadius: 4, transition: 'background 0.2s' }}
-                      >
-                        <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
-                          {renderScripture(passageText, fullChapter)}
-                        </p>
-                      </div>
+                      <ScripturePassage
+                        text={passageText}
+                        passageRef={fullChapter}
+                        renderScripture={renderScripture}
+                        greekHebrewMode={greekHebrewMode}
+                      />
                     ) : (
                       <button
                         onClick={() => loadPassage(fullChapter)}
@@ -3643,21 +3634,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   {passage}
                 </div>
                 {txt ? (
-                  <>
-                    <div
-                      onClick={() => !greekHebrewMode && txt && setSelection({ text: txt, verseRefs: [passage], source: 'tap' })}
-                      style={{ cursor: greekHebrewMode ? 'default' : 'pointer', borderRadius: 4, transition: 'background 0.2s', background: selection?.verseRefs?.includes(passage) ? 'rgba(154,123,46,0.12)' : 'transparent' }}
-                    >
-                      {greekHebrewMode && (
-                        <p style={{ fontSize: 10, fontWeight: 700, color: '#9A7B2E', marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
-                          Tap any word to explore its meaning
-                        </p>
-                      )}
-                      <p style={{ fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0 }}>
-                        {renderScripture(txt, passage)}
-                      </p>
-                    </div>
-                  </>
+                  <ScripturePassage
+                    text={txt}
+                    passageRef={passage}
+                    renderScripture={renderScripture}
+                    greekHebrewMode={greekHebrewMode}
+                  />
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
@@ -3784,16 +3766,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                           </div>
                         ) : text ? (
               <>
-              <div onClick={() => !greekHebrewMode && text && setSelection({ text, verseRefs: [passage], source: 'tap' })} style={{ cursor: greekHebrewMode ? 'default' : 'pointer', padding:'2px 0' }}>
-                {greekHebrewMode && (
-                  <p style={{ fontSize: 10, fontWeight: 700, color: '#9A7B2E', marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
-                    Tap any word to explore its meaning
-                  </p>
-                )}
-                <p className="text-scripture" style={{ fontSize:15, lineHeight:1.7, color:'var(--dw-text)', fontFamily:'var(--font-serif-text)', background: !greekHebrewMode && selection?.text===text ? 'rgba(154,123,46,0.18)' : 'transparent', borderRadius:4, transition:'background 0.2s' }}>
-                  {renderScripture(text, passage)}
-                </p>
-              </div>
+              <ScripturePassage
+                text={text}
+                passageRef={passage}
+                renderScripture={renderScripture}
+                greekHebrewMode={greekHebrewMode}
+              />
 
               {/* Compare translation text */}
               {compareMode && personaConfig.features.greekHebrew === 'full' && (() => {
@@ -4642,7 +4620,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       />
       <StopAllAudio />
       {/* Temp version tag — remove after audio confirmed working */}
-      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v47</p>
+      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v48</p>
     </div>
   );
 }
