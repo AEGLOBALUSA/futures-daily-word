@@ -1,5 +1,5 @@
 /**
- * Persona Pathway Configuration — V7
+ * Persona Pathway Configuration â V7
  * Drives all feature gating, section ordering, and AI personalization.
  */
 
@@ -11,7 +11,7 @@ export interface PersonaConfig {
   description: string;
   icon: string;
 
-  /** Ordered list of home screen section IDs — only listed sections render */
+  /** Ordered list of home screen section IDs â only listed sections render */
   sectionOrder: string[];
 
   /** Feature visibility */
@@ -59,7 +59,7 @@ export interface PersonaConfig {
   };
 }
 
-// ─── Greeting helpers ──────────────────────────────────────────────
+// âââ Greeting helpers ââââââââââââââââââââââââââââââââââââââââââââââ
 
 function timeOfDay(): string {
   const h = new Date().getHours();
@@ -68,8 +68,13 @@ function timeOfDay(): string {
   return 'evening';
 }
 
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export function getGreeting(persona: Persona, name: string, streak: number): string {
-  const first = name || 'friend';
+  const first = capitalize(name) || 'friend';
   switch (persona) {
     case 'new_to_faith':
       return `Welcome, ${first}. We're glad you're here.`;
@@ -77,7 +82,7 @@ export function getGreeting(persona: Persona, name: string, streak: number): str
       return streak > 7
         ? `Good ${timeOfDay()}, ${first}. ${streak} days strong!`
         : streak > 1
-        ? `Good ${timeOfDay()}, ${first}. Day ${streak} — keep going.`
+        ? `Good ${timeOfDay()}, ${first}. Day ${streak} â keep going.`
         : `Good ${timeOfDay()}, ${first}. Glad you're here.`;
     case 'deeper_study':
       return streak > 1
@@ -90,7 +95,7 @@ export function getGreeting(persona: Persona, name: string, streak: number): str
         ? `Good ${timeOfDay()}, ${first}. Day ${streak}. This time matters.`
         : streak > 1
         ? `Good ${timeOfDay()}, ${first}. Day ${streak}. Glad you're here.`
-        : `Good ${timeOfDay()}, ${first}. This is your time — not ministry, just you and God.`;
+        : `Good ${timeOfDay()}, ${first}. This is your time â not ministry, just you and God.`;
     case 'comfort': {
       const comfortGreetings = [
         `God is with you today, ${first}.`,
@@ -106,11 +111,11 @@ export function getGreeting(persona: Persona, name: string, streak: number): str
   }
 }
 
-// ─── Persona Configs ───────────────────────────────────────────────
+// âââ Persona Configs âââââââââââââââââââââââââââââââââââââââââââââââ
 
 export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
 
-  // ── 1. NEW TO FAITH ─────────────────────────────────────────────
+  // ââ 1. NEW TO FAITH âââââââââââââââââââââââââââââââââââââââââââââ
   new_to_faith: {
     persona: 'new_to_faith',
     label: "I'm New to This",
@@ -160,7 +165,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     },
   },
 
-  // ── 2. CONGREGATION MEMBER ──────────────────────────────────────
+  // ââ 2. CONGREGATION MEMBER ââââââââââââââââââââââââââââââââââââââ
   congregation: {
     persona: 'congregation',
     label: 'Church Member',
@@ -212,7 +217,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     },
   },
 
-  // ── 3. DEEPER BIBLE STUDY ───────────────────────────────────────
+  // ââ 3. DEEPER BIBLE STUDY âââââââââââââââââââââââââââââââââââââââ
   deeper_study: {
     persona: 'deeper_study',
     label: 'Deep Bible Study',
@@ -259,11 +264,11 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     },
     ai: {
       systemPromptAddition:
-        'The user wants deep Bible study. Include Greek/Hebrew context when relevant. Provide cross-references. Reference scholarly perspectives. Give depth — they can handle it and they want it.',
+        'The user wants deep Bible study. Include Greek/Hebrew context when relevant. Provide cross-references. Reference scholarly perspectives. Give depth â they can handle it and they want it.',
     },
   },
 
-  // ── 4. LEADER / PASTOR ──────────────────────────────────────────
+  // ââ 4. LEADER / PASTOR ââââââââââââââââââââââââââââââââââââââââââ
   pastor_leader: {
     persona: 'pastor_leader',
     label: 'Leader / Pastor',
@@ -321,12 +326,12 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
         'You know what God is building through your church. What\'s the next step you need to take?',
         'Who has God already put on your heart to reach out to this week?',
         'What\'s the one thing you\'ve been asking God to move on in your church?',
-        'Something stood out to you in today\'s reading. What was it — and how does it connect to what you\'re leading right now?',
+        'Something stood out to you in today\'s reading. What was it â and how does it connect to what you\'re leading right now?',
         'You already know the area of ministry that needs fresh direction. What is it?',
         'Who on your staff have you already been thinking about developing? What\'s the first move?',
         'What has God been saying to you about the vision for your church? Write it down.',
         'If God moved in one thing this week, you already know what it would be. Name it.',
-        'You\'re either making disciple-makers or running programs. Which one is it right now — and what needs to shift?',
+        'You\'re either making disciple-makers or running programs. Which one is it right now â and what needs to shift?',
         'There\'s a conversation you\'ve been putting off. Who is it with and what\'s it about?',
         'Think back to what God originally called you to. How does today connect to that?',
         'Name one person on your staff team. What are you praying over them this week?',
@@ -337,11 +342,11 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     },
     ai: {
       systemPromptAddition:
-        'This person is a pastor or church leader. Think like a sharp, experienced ministry partner — not a counselor. When they ask about passages, offer teaching angles, sermon illustrations, and application points for their congregation. When they share what\'s on their mind, engage with vision, strategy, and direction — not feelings. Ask about their church, their team, their next steps. Over time, notice patterns in the decisions they\'re making, the people they\'re praying for, and the vision they\'re pursuing — and ask follow-up questions that show you\'re tracking with them. Help them connect their Bible reading to the actual work of ministry. Be the companion who thinks with them about what God is building through their church.',
+        'This person is a pastor or church leader. Think like a sharp, experienced ministry partner â not a counselor. When they ask about passages, offer teaching angles, sermon illustrations, and application points for their congregation. When they share what\'s on their mind, engage with vision, strategy, and direction â not feelings. Ask about their church, their team, their next steps. Over time, notice patterns in the decisions they\'re making, the people they\'re praying for, and the vision they\'re pursuing â and ask follow-up questions that show you\'re tracking with them. Help them connect their Bible reading to the actual work of ministry. Be the companion who thinks with them about what God is building through their church.',
     },
   },
 
-  // ── 5. COMFORT / DIFFICULT SEASON ──────────────────────────────
+  // ââ 5. COMFORT / DIFFICULT SEASON ââââââââââââââââââââââââââââââ
   comfort: {
     persona: 'comfort',
     label: 'I Need Comfort Right Now',
@@ -395,7 +400,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   },
 };
 
-// ─── Migration map from old persona values ─────────────────────────
+// âââ Migration map from old persona values âââââââââââââââââââââââââ
 
 export const PERSONA_MIGRATION: Record<string, Persona> = {
   new_returning: 'new_to_faith',
@@ -410,7 +415,7 @@ export const PERSONA_MIGRATION: Record<string, Persona> = {
   comfort: 'comfort',
 };
 
-// ─── Helper ────────────────────────────────────────────────────────
+// âââ Helper ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function getPersonaConfig(persona?: string | null): PersonaConfig {
   if (!persona) return PERSONA_CONFIGS.congregation;
