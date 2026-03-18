@@ -25,7 +25,29 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Cache invalidation is handled by the service worker's activate handler in sw.js -->
+    <script>
+      // One-time cache reset — keyed by version. Clears stale app caches only,
+      // preserves offline Bible (fdw-bible-v1) and font cache (fdw-fonts-v1).
+      (function(){
+        var V='v52';
+        if(localStorage.getItem('fdw_nuked')===V) return;
+        var KEEP=['fdw-bible-v1','fdw-fonts-v1'];
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistrations().then(function(regs){
+            regs.forEach(function(r){r.unregister();});
+          });
+        }
+        if('caches' in window){
+          caches.keys().then(function(keys){
+            keys.forEach(function(k){
+              if(KEEP.indexOf(k)===-1) caches.delete(k);
+            });
+          });
+        }
+        localStorage.setItem('fdw_nuked',V);
+        setTimeout(function(){location.reload(true);},500);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
