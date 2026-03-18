@@ -41,16 +41,21 @@ export function ScripturePassage({
     [passageRef, setSelection, greekHebrewMode],
   );
 
-  const handleSelectAll = useCallback(() => {
-    // Combine all verse texts (without the [N] markers — they're already stripped)
-    const fullText = verses.map(v => v.text).join(' ');
-    setSelection({ text: fullText, verseRefs: [passageRef], source: 'select-all' });
-  }, [verses, passageRef, setSelection]);
-
   // Determine if a specific verse is currently selected
   const selectedRef = selection?.verseRefs?.[0] || '';
   const isAllSelected =
     selection?.source === 'select-all' && selectedRef === passageRef;
+
+  const handleSelectAll = useCallback(() => {
+    if (isAllSelected) {
+      // Deselect — clear the selection
+      setSelection(null);
+      return;
+    }
+    // Combine all verse texts (without the [N] markers — they're already stripped)
+    const fullText = verses.map(v => v.text).join(' ');
+    setSelection({ text: fullText, verseRefs: [passageRef], source: 'select-all' });
+  }, [verses, passageRef, setSelection, isAllSelected]);
 
   return (
     <div>
@@ -76,7 +81,7 @@ export function ScripturePassage({
               transition: 'all 0.15s ease',
             }}
           >
-            Select All
+            {isAllSelected ? 'Deselect All' : 'Select All'}
           </button>
         </div>
       )}
