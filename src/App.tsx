@@ -97,10 +97,10 @@ function AppContent() {
 
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen onNavigate={setActiveTab} onOpenAI={() => setShowBibleAI(true)} />,
-    journal: <JournalScreen />,
-    messages: <MessagesScreen />,
-    plans: <PlansScreen />,
-    more: <MoreScreen />,
+    journal: <JournalScreen onBack={() => setActiveTab('home')} />,
+    messages: <MessagesScreen onBack={() => setActiveTab('home')} />,
+    plans: <PlansScreen onBack={() => setActiveTab('home')} />,
+    more: <MoreScreen onBack={() => setActiveTab('home')} />,
   };
 
   // Full-screen pathway picker — renders INSTEAD of app when needed

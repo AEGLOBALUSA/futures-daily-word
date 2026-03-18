@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { trackBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, GraduationCap } from 'lucide-react';
@@ -1212,7 +1213,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   );
 }
 
-export function JournalScreen() {
+export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, setup, requireEmail } = useUser();
   const { selection } = useScriptureSelection();
   const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved' | 'prayer' | 'teaching'>('today');
@@ -1485,6 +1486,7 @@ export function JournalScreen() {
 
   return (
     <div className="screen-container">
+      <ScreenHeader title="Journal" onBack={onBack} />
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
@@ -39,7 +40,7 @@ const LANGUAGES = [
   { value: 'id', label: 'Bahasa Indonesia' },
 ];
 
-export function MoreScreen() {
+export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
@@ -182,6 +183,7 @@ export function MoreScreen() {
 
   return (
     <div className="screen-container">
+      <ScreenHeader title="Settings" onBack={onBack} />
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

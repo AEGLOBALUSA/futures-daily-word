@@ -2,6 +2,7 @@ import { trackBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '../components/Card';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { getTodaysDevotion } from '../utils/daily-passages';
 import { CAMPUSES } from '../data/tokens';
@@ -95,7 +96,7 @@ function recordStreak() {
 interface EssaySection { title: string; file: string; }
 interface EssayTOC { title: string; author: string; sections: EssaySection[]; }
 
-export function PlansScreen() {
+export function PlansScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
   const [plansView, setPlanView] = useState<'active' | 'browse'>('active');
@@ -346,6 +347,7 @@ export function PlansScreen() {
   if (!showPlanDetail) {
     return (
       <div className="screen-container">
+      <ScreenHeader title="Plans" onBack={onBack} />
       {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
