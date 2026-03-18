@@ -63,7 +63,6 @@ exports.handler = async (event) => {
   }
 
   // Reject requests not from our app (prevents external abuse)
-  const origin = event.headers.origin || event.headers.referer || "";
   if (!ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
   }
