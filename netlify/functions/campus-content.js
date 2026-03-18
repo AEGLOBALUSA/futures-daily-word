@@ -1,4 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
+const crypto = require("crypto");
+
+const PASTOR_SECRET = process.env.PASTOR_SECRET || "";
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -10,6 +13,15 @@ const ALLOWED_ORIGINS = [
 function sanitize(str, maxLen = 2000) {
   if (typeof str !== "string") return "";
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, maxLen);
+}
+
+// Validate campus pastor code: SHA-256(campusId:secret) first 8 chars uppercase
+function validateCampusCode(campusId, code) {
+  if (!PASTOR_SECRET || !code || !campusId) return false;
+  const expected = crypto.createHash("sha256")
+    .update(campusId + ":" + PASTOR_SECRET)
+    .digest("hex").slice(0, 8).toUpperCase();
+  return code.toUpperCase() === expected;
 }
 
 let supabase;
@@ -60,13 +72,18 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ items }) };
     }
 
-    // POST - add content (for pastors/admins - will need auth later)
+    // POST - add content (requires valid pastor code for the campus)
     if (event.httpMethod === "POST") {
       const body = JSON.parse(event.body);
-      const { campus, type, title, content, author } = body;
+      const { campus, type, title, content, author, code } = body;
 
       if (!campus || !title || !content) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing required fields" }) };
+      }
+
+      // Require valid pastor code for the campus
+      if (!validateCampusCode(campus, code)) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: "Invalid or missing pastor code" }) };
       }
 
       const { error } = await db.from("campus_content").insert({

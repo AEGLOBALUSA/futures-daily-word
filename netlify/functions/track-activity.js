@@ -16,6 +16,22 @@ function getSupabase() {
   return supabase;
 }
 
+// Rate limit per IP
+const ipHits = {};
+function checkRate(ip, max = 60) {
+  const now = Date.now();
+  if (!ipHits[ip]) ipHits[ip] = [];
+  ipHits[ip] = ipHits[ip].filter(t => now - t < 60000);
+  if (ipHits[ip].length >= max) return true;
+  ipHits[ip].push(now);
+  if (Object.keys(ipHits).length > 500) {
+    for (const k of Object.keys(ipHits)) {
+      if (ipHits[k].every(t => now - t >= 60000)) delete ipHits[k];
+    }
+  }
+  return false;
+}
+
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.referer || "";
   const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -33,6 +49,17 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
+  // Rate limit
+  const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  if (checkRate(clientIP)) {
+    return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
+  }
+
+  // Reject requests not from our app
+  if (!ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
+  }
+
   try {
     const body = JSON.parse(event.body);
     const { email, events } = body;
@@ -40,6 +67,8 @@ exports.handler = async (event) => {
     if (!email || !events || !Array.isArray(events) || events.length === 0) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Email and events array required" }) };
     }
+    // Cap at 50 events per request to prevent abuse
+    if (events.length > 50) events.length = 50;
 
     const db = getSupabase();
     const cleanEmail = email.toLowerCase().trim();

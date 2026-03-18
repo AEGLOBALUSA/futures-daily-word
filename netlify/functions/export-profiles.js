@@ -9,16 +9,18 @@ function getSupabase() {
 }
 
 exports.handler = async (event) => {
-  // Auth check — accept token in query param OR Authorization header
-  const queryToken = event.queryStringParameters && event.queryStringParameters.token;
+  // Auth check — ONLY accept token via Authorization header (never query string — leaks in logs)
   const authHeader = event.headers.authorization || event.headers.Authorization || "";
   const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  const token = queryToken || bearerToken;
 
   const secret = process.env.EXPORT_SECRET;
-  if (!secret || token !== secret) {
+  if (!secret || bearerToken !== secret) {
     return { statusCode: 403, body: "Forbidden" };
   }
+
+  // Audit log
+  const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  console.log(`[AUDIT] Profile export by IP ${clientIP} at ${new Date().toISOString()}`);
 
   try {
     const db = getSupabase();
@@ -106,7 +108,9 @@ exports.handler = async (event) => {
     const csvHeader = csvFields.join(",");
     const csvRows = enriched.map(p =>
       csvFields.map(f => {
-        const val = p[f] !== undefined ? String(p[f]) : "";
+        let val = p[f] !== undefined ? String(p[f]) : "";
+        // Prevent CSV formula injection — prefix dangerous chars
+        if (/^[=+\-@\t\r]/.test(val)) val = "'" + val;
         return val.includes(",") || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
       }).join(",")
     );

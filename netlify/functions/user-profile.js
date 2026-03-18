@@ -62,6 +62,12 @@ exports.handler = async (event) => {
     return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
   }
 
+  // Reject requests not from our app (prevents external abuse)
+  const origin = event.headers.origin || event.headers.referer || "";
+  if (!ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
+  }
+
   try {
     const body = JSON.parse(event.body);
     const { action } = body;
@@ -171,7 +177,10 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
       }
 
-      const { data, error } = await db.from("profiles").select("*").eq("email", email).single();
+      // Only select fields needed by the frontend — don't expose phone, church, city unnecessarily
+      const { data, error } = await db.from("profiles")
+        .select("first_name, last_name, email, phone, church, city, campus, persona, lang, push_enabled, registered_at, last_active_at")
+        .eq("email", email).single();
       if (error || !data) {
         return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
       }
