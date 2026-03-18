@@ -4301,32 +4301,88 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 const pct = Math.min((completedCount / plan.totalDays) * 100, 100);
                 const isComplete = completedCount >= plan.totalDays;
                 return (
-                  <div key={plan.id} style={{
-                    background: 'var(--dw-card)',
-                    border: '1px solid rgba(37,99,235,0.3)',
-                    borderLeft: '3px solid #2563EB',
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', flex: 1, paddingRight: 8 }}>
-                        {plan.title}
-                      </span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : '#2563EB',
-                        fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)',
-                        padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
-                      }}>
-                        {isComplete ? '✓ Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${completedCount} / ${plan.totalDays}`}
-                      </span>
+                  <div key={plan.id}>
+                    <div style={{
+                      background: 'var(--dw-card)',
+                      border: '1px solid rgba(37,99,235,0.3)',
+                      borderLeft: '3px solid #2563EB',
+                      borderRadius: 10,
+                      padding: '10px 14px',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', flex: 1, paddingRight: 8 }}>
+                          {plan.title}
+                        </span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : '#2563EB',
+                          fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)',
+                          padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
+                        }}>
+                          {isComplete ? '✓ Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${completedCount} / ${plan.totalDays}`}
+                        </span>
+                      </div>
+                      <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${pct}%`, height: '100%',
+                          background: isComplete ? '#93C5FD' : 'linear-gradient(90deg, #2563EB, #60A5FA)',
+                          borderRadius: 2, transition: 'width 400ms ease',
+                        }} />
+                      </div>
                     </div>
-                    <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
+
+                    {/* ── Plan completed: prompt to pick the next one ── */}
+                    {isComplete && (
                       <div style={{
-                        width: `${pct}%`, height: '100%',
-                        background: isComplete ? '#93C5FD' : 'linear-gradient(90deg, #2563EB, #60A5FA)',
-                        borderRadius: 2, transition: 'width 400ms ease',
-                      }} />
-                    </div>
+                        marginTop: 8,
+                        background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(96,165,250,0.06))',
+                        border: '1px solid rgba(37,99,235,0.2)',
+                        borderRadius: 12,
+                        padding: '16px',
+                      }}>
+                        <p style={{
+                          fontSize: 15, fontWeight: 700, color: 'var(--dw-text-primary)',
+                          fontFamily: 'var(--font-serif)', margin: '0 0 4px',
+                        }}>
+                          You finished {plan.title}!
+                        </p>
+                        <p style={{
+                          fontSize: 13, color: 'var(--dw-text-secondary)',
+                          fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5,
+                        }}>
+                          Keep the momentum going — pick your next plan.
+                        </p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            onClick={() => onNavigate?.('plans')}
+                            style={{
+                              flex: 1, background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
+                              padding: '12px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                              color: '#fff', fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            Browse Plans
+                          </button>
+                          <button
+                            onClick={() => {
+                              // Remove the completed plan from active plans
+                              try {
+                                const ap = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+                                delete ap[plan.id];
+                                localStorage.setItem('dw_activeplans', JSON.stringify(ap));
+                                setPlanTick(t => t + 1);
+                              } catch {}
+                            }}
+                            style={{
+                              background: 'var(--dw-surface-hover)', border: '1px solid var(--dw-border)',
+                              borderRadius: 10, padding: '12px 14px', fontSize: 13, fontWeight: 600,
+                              cursor: 'pointer', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
