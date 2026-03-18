@@ -28,7 +28,7 @@
     <script>
       // Force nuke stale service workers + caches (one-time, keyed by version)
       (function(){
-        var V='v48';
+        var V='v49';
         if(localStorage.getItem('fdw_nuked')===V) return;
         if('serviceWorker' in navigator){
           navigator.serviceWorker.getRegistrations().then(function(regs){

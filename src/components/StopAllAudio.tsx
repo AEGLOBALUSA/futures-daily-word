@@ -22,7 +22,7 @@ export function StopAllAudio() {
       onClick={(e) => { e.stopPropagation(); AP.stop(); }}
       style={{
         position: 'fixed',
-        bottom: 80,
+        bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
         right: 16,
         zIndex: 999,
         display: 'flex',

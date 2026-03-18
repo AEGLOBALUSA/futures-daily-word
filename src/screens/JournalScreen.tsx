@@ -519,7 +519,7 @@ function ModalSelectionBar({
 
   return (
     <div style={{
-      position: 'fixed', bottom: 80, left: 0, right: 0, zIndex: 210,
+      position: 'fixed', bottom: 'calc(68px + env(safe-area-inset-bottom, 0px) + 8px)', left: 0, right: 0, zIndex: 210,
       display: 'flex', justifyContent: 'center', padding: '0 12px',
       animation: 'slideInBar 0.2s ease',
     }}>

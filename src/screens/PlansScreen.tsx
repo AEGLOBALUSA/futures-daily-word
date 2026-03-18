@@ -1106,7 +1106,7 @@ export function PlansScreen() {
 
               {/* Save button — appears when plans selected */}
               {selectedToStart.length > 0 && (
-                <div style={{ position: 'sticky', bottom: 80, zIndex: 10 }}>
+                <div style={{ position: 'sticky', bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', zIndex: 10 }}>
                   <button
                     onClick={() => {
                       selectedToStart.forEach(id => startPlan(id));

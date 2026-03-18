@@ -60,10 +60,10 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
       onClick={onClick}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', gap: 3, padding: '8px 14px',
+        justifyContent: 'center', gap: 2, padding: '8px 10px',
         background: active ? 'var(--dw-accent)' : 'transparent',
         color: active ? '#fff' : 'var(--dw-text)',
-        border: 'none', cursor: 'pointer', minWidth: 52,
+        border: 'none', cursor: 'pointer', minWidth: 44,
         borderRight: '1px solid var(--dw-border)',
         transition: 'background 0.15s',
       }}
@@ -100,11 +100,12 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
 
     <div style={{
       position: 'fixed',
-      bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 8px)',
+      bottom: 'calc(68px + env(safe-area-inset-bottom, 0px) + 8px)',
       left: 0, right: 0, zIndex: 95,
       display: 'flex', justifyContent: 'center',
-      padding: '0 12px',
+      padding: '0 8px',
       animation: 'slideUp 0.22s ease',
+      pointerEvents: 'none',
     }}>
       <div style={{
         background: 'var(--dw-surface)',
@@ -114,6 +115,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
         display: 'flex',
         overflow: 'hidden',
         maxWidth: '100%',
+        pointerEvents: 'auto',
       }}>
         {btn(handleCopy,
           copied ? <Check size={16} color="#2563EB" /> : <Copy size={16} />,
@@ -136,8 +138,8 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
             position: 'relative', overflow: 'hidden',
             display: 'flex', flexDirection: 'row',
             alignItems: 'center', justifyContent: 'center',
-            gap: 5,
-            padding: '0 14px',
+            gap: 4,
+            padding: '0 10px',
             alignSelf: 'stretch',
             background: 'linear-gradient(110deg, #7A5200 0%, #B8820A 30%, #D4A017 60%, #F5C842 80%, #B8820A 100%)',
             backgroundSize: '220% 100%',
@@ -146,7 +148,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
             border: 'none',
             borderLeft: '1px solid rgba(212,160,23,0.4)',
             cursor: 'pointer',
-            minWidth: 66,
+            minWidth: 58,
             borderRadius: 0,
           }}
         >
