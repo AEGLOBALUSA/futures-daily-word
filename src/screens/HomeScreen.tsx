@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, Minus, X, Share2 } from 'lucide-react';
+import { FontSizeControls } from '../components/FontSizeControls';
+import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
@@ -409,10 +410,13 @@ interface ReadingSlot {
 export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId) => void; onOpenAI?: () => void }) {
   const { userProfile, setup, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
 
-  // ── Persona-aware feature gating ──
-  const personaConfig = getPersonaConfig(setup?.persona);
+  // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
+  const personaConfig = useMemo(() => getPersonaConfig(setup?.persona), [setup?.persona]);
   const pf = personaConfig.features; // shorthand
-  const greetingText = getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count);
+  const greetingText = useMemo(
+    () => getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count),
+    [personaConfig.persona, userProfile?.firstName],
+  );
 
   // ── Sunday sermon tab — takes over the home screen during the window ──
   const sundaySermon = getSundaySermon();
@@ -443,13 +447,15 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     const saved = localStorage.getItem('dw_font_size');
     return saved ? Math.min(FONT_MAX, Math.max(FONT_MIN, parseInt(saved, 10))) : 15;
   });
-  const adjustFontSize = (delta: number) => {
+  const adjustFontSize = useCallback((delta: number) => {
     setScriptureFontSize(prev => {
       const next = Math.min(FONT_MAX, Math.max(FONT_MIN, prev + delta));
       localStorage.setItem('dw_font_size', String(next));
       return next;
     });
-  };
+  }, []);
+  const handleFontIncrease = useCallback(() => adjustFontSize(FONT_STEP), [adjustFontSize]);
+  const handleFontDecrease = useCallback(() => adjustFontSize(-FONT_STEP), [adjustFontSize]);
 
   const [compareMode, setCompareMode] = useState(false);
   const [compareTranslation, setCompareTranslation] = useState<TranslationCode>('KJV');
@@ -645,7 +651,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     }
   }
   // Fetch a single passage on demand (tap to read)
-  const loadPassage = (passage: string) => {
+  const loadPassage = useCallback((passage: string) => {
     const key = `${passage}_${translation}`;
     if (passageTexts[key]) return; // already loaded
     if (loadingPassages.has(passage)) return; // already loading
@@ -663,7 +669,8 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           return next;
         });
       });
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [translation]);
 
   // Pending audio — when user taps Listen before text is loaded
   const pendingAudioRef = useRef<string | null>(null);
@@ -1018,9 +1025,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch {}
   };
 
-  // ── Hero chapter refs — all today's passages expanded to full chapter level ──
-  const expandChapterRef = (ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim();
-  const heroChapterRefs = (() => {
+  // ── Hero chapter refs — all today's passages expanded to full chapter level (memoized) ──
+  const expandChapterRef = useCallback((ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim(), []);
+  const heroChapterRefs = useMemo(() => {
     const refs = [
       ...todaysPlanPassages.map(p => expandChapterRef(p.passage)),
       ...readingSlots
@@ -1033,7 +1040,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       return passages.map(p => p.passage).filter(Boolean);
     }
     return unique;
-  })();
+  }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef]);
   const heroKey = heroChapterRefs.join('|');
 
   // Pre-load all today's chapters in ESV — real human audio via ESV.org
@@ -1750,52 +1757,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         </div>
 
         {/* ── Font Size Controls ── */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          marginBottom: 14,
-        }}>
-          <button
-            onClick={() => adjustFontSize(-FONT_STEP)}
-            disabled={scriptureFontSize <= FONT_MIN}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 32, height: 32, borderRadius: '50%',
-              background: scriptureFontSize <= FONT_MIN ? 'var(--dw-surface)' : 'var(--dw-surface-raised, rgba(0,0,0,0.04))',
-              border: '1px solid var(--dw-border)',
-              cursor: scriptureFontSize <= FONT_MIN ? 'default' : 'pointer',
-              color: scriptureFontSize <= FONT_MIN ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
-              opacity: scriptureFontSize <= FONT_MIN ? 0.4 : 1,
-              transition: 'all 0.15s ease',
-            }}
-            aria-label="Decrease font size"
-          >
-            <Minus size={14} />
-          </button>
-          <span style={{
-            fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)',
-            fontFamily: 'var(--font-sans)', letterSpacing: '0.03em',
-            minWidth: 24, textAlign: 'center',
-          }}>
-            {scriptureFontSize}
-          </span>
-          <button
-            onClick={() => adjustFontSize(FONT_STEP)}
-            disabled={scriptureFontSize >= FONT_MAX}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 42, height: 42, borderRadius: '50%',
-              background: scriptureFontSize >= FONT_MAX ? 'var(--dw-surface)' : 'var(--dw-surface-raised, rgba(0,0,0,0.04))',
-              border: '1.5px solid var(--dw-border)',
-              cursor: scriptureFontSize >= FONT_MAX ? 'default' : 'pointer',
-              color: scriptureFontSize >= FONT_MAX ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
-              opacity: scriptureFontSize >= FONT_MAX ? 0.4 : 1,
-              transition: 'all 0.15s ease',
-            }}
-            aria-label="Increase font size"
-          >
-            <Plus size={20} />
-          </button>
-        </div>
+        <FontSizeControls
+          fontSize={scriptureFontSize}
+          min={FONT_MIN}
+          max={FONT_MAX}
+          onIncrease={handleFontIncrease}
+          onDecrease={handleFontDecrease}
+        />
 
         {/* ── Hero Listen Button ── always shown; plays all today's passages in ESV */}
         {(() => {
@@ -4690,7 +4658,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       />
       <StopAllAudio />
       {/* Temp version tag — remove after audio confirmed working */}
-      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v50</p>
+      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v51</p>
     </div>
   );
 }

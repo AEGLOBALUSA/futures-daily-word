@@ -10,7 +10,7 @@ createRoot(document.getElementById('root')!).render(
 )
 
 // Register service worker — version query forces cache bust on deploy
-const SW_VERSION = 'v50';
+const SW_VERSION = 'v51';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
@@ -32,13 +32,20 @@ if ('serviceWorker' in navigator) {
             });
           }
         });
-        // Force immediate update check on load
+        // Check for updates on load, then every 30 minutes (gentle, not aggressive)
         reg.update();
-        // Then check for updates every 5 minutes (more aggressive)
-        setInterval(() => reg.update(), 5 * 60 * 1000);
+        setInterval(() => reg.update(), 30 * 60 * 1000);
       })
       .catch((err) => console.warn('SW registration failed:', err));
   });
+
+  // Listen for gentle SW_UPDATED message — reload only on next natural navigation
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'SW_UPDATED') {
+      console.log('New version available — will apply on next page load');
+    }
+  });
+
   // When the new SW takes control, reload the page
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();

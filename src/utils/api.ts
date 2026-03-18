@@ -8,10 +8,14 @@
 // Verse cache: keyed by passageName_TRANSLATION
 const verseCache = new Map<string, string>();
 
+// In-flight request deduplication: prevents duplicate network calls for the same passage
+const inFlight = new Map<string, Promise<string>>();
+
 export type TranslationCode = 'KJV' | 'NKJV' | 'NIV' | 'ESV' | 'NLT' | 'AMP' | 'NASB' | 'WEB' | 'RVR' | 'ARA' | 'NVI';
 
 /**
  * Fetch passage text from the appropriate API endpoint.
+ * Deduplicates concurrent requests for the same passage+translation.
  */
 export async function fetchPassage(passage: string, translation: TranslationCode): Promise<string> {
   const cacheKey = `${passage}_${translation}`;
@@ -21,6 +25,23 @@ export async function fetchPassage(passage: string, translation: TranslationCode
     return verseCache.get(cacheKey)!;
   }
 
+  // If this exact request is already in flight, piggyback on it
+  if (inFlight.has(cacheKey)) {
+    return inFlight.get(cacheKey)!;
+  }
+
+  // Create the request and register it as in-flight
+  const request = _doFetch(passage, translation, cacheKey);
+  inFlight.set(cacheKey, request);
+
+  try {
+    return await request;
+  } finally {
+    inFlight.delete(cacheKey);
+  }
+}
+
+async function _doFetch(passage: string, translation: TranslationCode, cacheKey: string): Promise<string> {
   try {
     let text: string;
 

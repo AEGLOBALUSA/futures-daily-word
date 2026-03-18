@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
@@ -7,15 +7,31 @@ import { TabBar } from './components/TabBar';
 import { EmailGate } from './components/EmailGate';
 import { BibleAI } from './components/BibleAI';
 import { PathwayPicker } from './components/PathwayPicker';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import type { TabId } from './components/TabBar';
 import type { Persona } from './utils/persona-config';
 import { isSundayWindow, isSundayDeepLink, activateSundayGuest, isSundayGuest } from './utils/sunday';
-import { HomeScreen } from './screens/HomeScreen';
-import { JournalScreen } from './screens/JournalScreen';
-import { MessagesScreen } from './screens/MessagesScreen';
-import { PlansScreen } from './screens/PlansScreen';
-import { MoreScreen } from './screens/MoreScreen';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
+
+// ── Lazy-loaded screens — only downloaded when the user navigates to them ──
+const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
+const JournalScreen = lazy(() => import('./screens/JournalScreen').then(m => ({ default: m.JournalScreen })));
+const MessagesScreen = lazy(() => import('./screens/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
+const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ default: m.PlansScreen })));
+const MoreScreen = lazy(() => import('./screens/MoreScreen').then(m => ({ default: m.MoreScreen })));
+
+/** Minimal loading spinner shown while a screen chunk downloads */
+function ScreenLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '60vh', fontFamily: 'var(--font-sans)', color: 'var(--dw-text-muted)',
+      fontSize: 14,
+    }}>
+      Loading…
+    </div>
+  );
+}
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -89,7 +105,11 @@ function AppContent() {
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>
-      {screens[activeTab]}
+      <ErrorBoundary label={activeTab}>
+        <Suspense fallback={<ScreenLoader />}>
+          {screens[activeTab]}
+        </Suspense>
+      </ErrorBoundary>
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
       {!sundayGuest && <EmailGate />}
       <BibleAI
@@ -104,12 +124,14 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <UserProvider>
-        <ScriptureSelectionProvider>
-          <AppContent />
-        </ScriptureSelectionProvider>
-      </UserProvider>
-    </ThemeProvider>
+    <ErrorBoundary label="App">
+      <ThemeProvider>
+        <UserProvider>
+          <ScriptureSelectionProvider>
+            <AppContent />
+          </ScriptureSelectionProvider>
+        </UserProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
