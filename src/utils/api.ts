@@ -140,37 +140,72 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
   return getWEBBuiltIn(passage);
 }
 
+// ── Audio cache: keyed by passageRef_translation → blob URL ──
+const audioCache = new Map<string, string>();
+const audioInFlight = new Map<string, Promise<string | null>>();
+
+// Translations that have native human-read audio via Bible Brain / API.Bible
+const NATIVE_AUDIO_TRANSLATIONS = new Set(['KJV', 'NKJV', 'NLT', 'NIV', 'AMP', 'NASB', 'ESV', 'WEB']);
+
 /**
  * Fetch audio for a passage.
- * Priority: ESV.org native audio → ElevenLabs AI voice → AWS Polly neural voice
+ * Priority:
+ *   1. ESV.org native audio (ESV only)
+ *   2. Bible Brain — human-read audio (KJV, NKJV, NLT, NIV, AMP, NASB)
+ *   3. API.Bible — human-read audio (KJV, WEB fallback)
+ *   4. ElevenLabs AI voice (any translation — $$$)
+ *   5. AWS Polly neural voice (cheapest fallback)
+ *
+ * Audio responses are cached in-memory so replaying doesn't re-fetch.
  */
 export async function fetchAudio(text: string, translation: TranslationCode, passageRef?: string): Promise<string | null> {
+  const cacheKey = `${passageRef || text.slice(0, 60)}_${translation}`;
+
+  // Return cached audio URL if we already have it
+  if (audioCache.has(cacheKey)) return audioCache.get(cacheKey)!;
+
+  // Deduplicate concurrent audio requests
+  if (audioInFlight.has(cacheKey)) return audioInFlight.get(cacheKey)!;
+
+  const request = _doFetchAudio(text, translation, passageRef, cacheKey);
+  audioInFlight.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    audioInFlight.delete(cacheKey);
+  }
+}
+
+async function _doFetchAudio(
+  text: string,
+  translation: TranslationCode,
+  passageRef: string | undefined,
+  cacheKey: string
+): Promise<string | null> {
   // Strip verse number markers like [14] [15] so TTS doesn't read them aloud
   const cleanText = text.replace(/\[\d+\]\s*/g, '');
 
-  // ── 1. ESV native human-read audio ──
-  try {
-    if (translation === 'ESV' && passageRef) {
-      const res = await fetch(`/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
-      if (res.ok) {
-        const blob = await res.blob();
-        if (blob.size > 1000) return URL.createObjectURL(blob);
-      }
-      // Try first individual ref if combined failed
-      const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
-      if (refs.length > 1) {
-        const singleRes = await fetch(`/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
-        if (singleRes.ok) {
-          const blob = await singleRes.blob();
-          if (blob.size > 1000) return URL.createObjectURL(blob);
-        }
-      }
-    }
-  } catch { /* continue to TTS */ }
+  // ── 1. ESV native human-read audio (esv.org) ──
+  if (translation === 'ESV' && passageRef) {
+    const url = await _tryESVAudio(passageRef);
+    if (url) { audioCache.set(cacheKey, url); return url; }
+  }
+
+  // ── 2. Bible Brain — native human-read audio (Faith Comes By Hearing) ──
+  if (passageRef && NATIVE_AUDIO_TRANSLATIONS.has(translation)) {
+    const url = await _tryBibleBrainAudio(passageRef, translation);
+    if (url) { audioCache.set(cacheKey, url); return url; }
+  }
+
+  // ── 3. API.Bible — native audio (KJV, WEB) ──
+  if (passageRef && (translation === 'KJV' || translation === 'WEB')) {
+    const url = await _tryApiBibleAudio(passageRef, translation);
+    if (url) { audioCache.set(cacheKey, url); return url; }
+  }
 
   if (!cleanText) return null;
 
-  // ── 2. ElevenLabs AI voice (primary TTS) ──
+  // ── 4. ElevenLabs AI voice (primary TTS — costs money) ──
   try {
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
@@ -179,11 +214,15 @@ export async function fetchAudio(text: string, translation: TranslationCode, pas
     });
     if (res.ok) {
       const blob = await res.blob();
-      if (blob.size > 500) return URL.createObjectURL(blob);
+      if (blob.size > 500) {
+        const url = URL.createObjectURL(blob);
+        audioCache.set(cacheKey, url);
+        return url;
+      }
     }
   } catch { /* continue to Polly */ }
 
-  // ── 3. AWS Polly neural voice (fallback) ──
+  // ── 5. AWS Polly neural voice (cheapest fallback) ──
   try {
     const lang = localStorage.getItem('dw_lang') || 'en';
     const voiceId = lang === 'es' ? 'Lucia' : lang === 'pt' ? 'Camila' : lang === 'id' ? 'Andika' : 'Matthew';
@@ -194,10 +233,63 @@ export async function fetchAudio(text: string, translation: TranslationCode, pas
     });
     if (res.ok) {
       const blob = await res.blob();
-      if (blob.size > 500) return URL.createObjectURL(blob);
+      if (blob.size > 500) {
+        const url = URL.createObjectURL(blob);
+        audioCache.set(cacheKey, url);
+        return url;
+      }
     }
   } catch { /* no audio available */ }
 
+  return null;
+}
+
+// ── Helper: ESV.org native audio ──
+async function _tryESVAudio(passageRef: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 1000) return URL.createObjectURL(blob);
+    }
+    // Try first individual ref if combined failed
+    const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
+    if (refs.length > 1) {
+      const singleRes = await fetch(`/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
+      if (singleRes.ok) {
+        const blob = await singleRes.blob();
+        if (blob.size > 1000) return URL.createObjectURL(blob);
+      }
+    }
+  } catch { /* no ESV audio */ }
+  return null;
+}
+
+// ── Helper: Bible Brain (FCBH) native audio ──
+async function _tryBibleBrainAudio(passageRef: string, translation: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `/api/biblebrain-audio?passage=${encodeURIComponent(passageRef)}&translation=${encodeURIComponent(translation)}`
+    );
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 1000) return URL.createObjectURL(blob);
+    }
+  } catch { /* Bible Brain unavailable */ }
+  return null;
+}
+
+// ── Helper: API.Bible native audio ──
+async function _tryApiBibleAudio(passageRef: string, translation: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `/api/apibible-audio?passage=${encodeURIComponent(passageRef)}&translation=${encodeURIComponent(translation)}`
+    );
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 1000) return URL.createObjectURL(blob);
+    }
+  } catch { /* API.Bible unavailable */ }
   return null;
 }
 
