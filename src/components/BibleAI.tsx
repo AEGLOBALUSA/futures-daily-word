@@ -319,7 +319,14 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         </div>
 
         {/* Messages or empty state */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch' as any,
+          overscrollBehavior: 'contain',
+          padding: '12px 16px',
+          minHeight: 0,
+        }}>
           {messages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px 8px 16px' }}>
               {/* Season & Context tip banner */}
