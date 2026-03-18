@@ -485,7 +485,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   });
   const [showReadingSetup, setShowReadingSetup] = useState(false);
   const [pastorOnboardStep, setPastorOnboardStep] = useState<number>(() => {
-    try { return localStorage.getItem('dw_pastor_onboard_dismissed') ? -1 : 0; } catch { return 0; }
+    try {
+      if (localStorage.getItem('dw_pastor_onboard_completed')) return -2; // fully done, never show
+      return localStorage.getItem('dw_pastor_onboard_dismissed') ? -1 : 0;
+    } catch { return 0; }
   });
 
   // ── Comfort reading state ──
@@ -2038,7 +2041,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
           const isPastor = personaConfig.persona === 'pastor_leader';
 
-          // Dismissed state
+          // Fully completed — never show again
+          if (pastorOnboardStep === -2) {
+            return null;
+          }
+
+          // Dismissed (said "Later") — show gentle re-entry
           if (pastorOnboardStep === -1) {
             return (
               <Card style={{ marginBottom: 16, textAlign: 'center', padding: '24px 16px' }}>
@@ -2077,8 +2085,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Three quick questions</p>
                   </button>
                   <button onClick={() => {
-                    const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement;
-                    if (tabBar) tabBar.click();
+                    setPastorOnboardStep(-2);
+                    try {
+                      localStorage.setItem('dw_pastor_onboard_completed', '1');
+                      localStorage.setItem('dw_pastor_onboard_dismissed', '1');
+                      localStorage.setItem('dw_setup_dismissed', '1');
+                    } catch {}
+                    onNavigate?.('plans');
                   }} style={{
                     padding: '14px 16px', borderRadius: 14, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
                     cursor: 'pointer', textAlign: 'left',
@@ -2139,7 +2152,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     { plan: 'gospel-john', label: 'Gospel of John', sub: '21 days. One chapter a day.' },
                     { plan: 'wisdom-lit', label: 'Wisdom Literature', sub: 'Proverbs, Ecclesiastes, Job — 60 days.' },
                   ].map(opt => (
-                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-1); try { localStorage.removeItem('dw_pastor_onboard_dismissed'); } catch {} window.location.reload(); }} style={{
+                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch {} window.location.reload(); }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{opt.label}</p>
@@ -2167,7 +2180,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     { plan: 'wisdom-lit', label: 'Wisdom Literature', sub: 'Proverbs, Ecclesiastes, Song of Solomon, Job. 60 days.' },
                     { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One of each, daily.' },
                   ].map(opt => (
-                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-1); try { localStorage.removeItem('dw_pastor_onboard_dismissed'); } catch {} window.location.reload(); }} style={{
+                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch {} window.location.reload(); }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{opt.label}</p>
@@ -2195,7 +2208,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     { plan: 'gospels-acts', label: '15–20 minutes', sub: 'Gospels & Acts — 2 chapters a day.' },
                     { plan: 'nt-60', label: '20+ minutes', sub: 'Entire New Testament in 60 days. 4–5 chapters a day.' },
                   ].map(opt => (
-                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-1); try { localStorage.removeItem('dw_pastor_onboard_dismissed'); } catch {} window.location.reload(); }} style={{
+                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch {} window.location.reload(); }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{opt.label}</p>
@@ -2223,7 +2236,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One of each, daily. Good for a wisdom series.' },
                     { plan: 'book-church', label: 'The Church Awakening', sub: "Ps A's book on purpose and identity of the church." },
                   ].map(opt => (
-                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-1); try { localStorage.removeItem('dw_pastor_onboard_dismissed'); } catch {} window.location.reload(); }} style={{
+                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch {} window.location.reload(); }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{opt.label}</p>
@@ -2254,7 +2267,15 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     <p style={{ fontWeight: 600, fontSize: 15, color: '#fff', fontFamily: 'var(--font-sans)', margin: 0 }}>Help me choose a plan</p>
                     <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>We'll recommend one based on your pace</p>
                   </button>
-                  <button onClick={() => { const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement; if (tabBar) tabBar.click(); }} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left' }}>
+                  <button onClick={() => {
+                    setPastorOnboardStep(-2);
+                    try {
+                      localStorage.setItem('dw_pastor_onboard_completed', '1');
+                      localStorage.setItem('dw_pastor_onboard_dismissed', '1');
+                      localStorage.setItem('dw_setup_dismissed', '1');
+                    } catch {}
+                    onNavigate?.('plans');
+                  }} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left' }}>
                     <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>I know what I want</p>
                     <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Go straight to the plans</p>
                   </button>
@@ -2275,7 +2296,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick one and you're in. You can always switch later.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {recommendedPlans.map(plan => (
-                    <button key={plan.id} onClick={() => { startPlanFromHome(plan.id); setPastorOnboardStep(-1); try { localStorage.removeItem('dw_pastor_onboard_dismissed'); } catch {} window.location.reload(); }} style={{
+                    <button key={plan.id} onClick={() => { startPlanFromHome(plan.id); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch {} window.location.reload(); }} style={{
                       padding: '12px 14px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{plan.title}</p>
