@@ -11,6 +11,7 @@
   --dw-surface: #1A1A1A;
   --dw-surface-hover: #222222;
   --dw-surface-active: #2A2A2A;
+  --dw-card: #1E1D1B;
   --dw-charcoal: #1E1D1B;
   --dw-charcoal-deep: #151413;
   --dw-charcoal-light: #2C2A27;
@@ -18,6 +19,7 @@
   --dw-accent-hover: #C94048;
   --dw-accent-active: #B5363E;
   --dw-accent-bg: rgba(220, 83, 93, 0.12);
+  --dw-text: #F0ECE6;
   --dw-text-primary: #FFFFFF;
   --dw-text-secondary: #E8E4DF;
   --dw-text-muted: #B0AAA4;
@@ -43,6 +45,7 @@
   --dw-surface: #FDFCFB;
   --dw-surface-hover: #F8F6F4;
   --dw-surface-active: #F2F0ED;
+  --dw-card: #F5F3EF;
   --dw-charcoal: #2E2C29;
   --dw-charcoal-deep: #1F1E1C;
   --dw-charcoal-light: #3D3A36;
@@ -50,6 +53,7 @@
   --dw-accent-hover: #8C2830;
   --dw-accent-active: #711F27;
   --dw-accent-bg: rgba(168, 50, 59, 0.05);
+  --dw-text: #1A1714;
   --dw-text-primary: #050505;
   --dw-text-secondary: #111111;
   --dw-text-muted: #4A4A4A;
