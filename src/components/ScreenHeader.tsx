@@ -37,7 +37,7 @@ export function ScreenHeader({ title, onBack }: Props) {
         }}
       >
         <ChevronLeft size={20} />
-        Home
+        Back
       </button>
       <span style={{
         fontSize: 16,

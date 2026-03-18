@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
@@ -36,7 +36,28 @@ function ScreenLoader() {
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
+  const tabHistoryRef = useRef<TabId[]>(['home']);
   const [showBibleAI, setShowBibleAI] = useState(false);
+
+  // Track tab navigation history
+  const navigateTab = (tab: TabId) => {
+    const h = tabHistoryRef.current;
+    // Don't push duplicate if already on this tab
+    if (h[h.length - 1] !== tab) {
+      h.push(tab);
+      if (h.length > 20) h.splice(0, h.length - 20);
+    }
+    setActiveTab(tab);
+  };
+
+  // Go back to previous tab
+  const goBack = () => {
+    const h = tabHistoryRef.current;
+    if (h.length > 1) {
+      h.pop(); // remove current
+      setActiveTab(h[h.length - 1]);
+    }
+  };
   const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
 
@@ -96,11 +117,11 @@ function AppContent() {
   }, [selection?.text]);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={setActiveTab} onOpenAI={() => setShowBibleAI(true)} />,
-    journal: <JournalScreen onBack={() => setActiveTab('home')} />,
-    messages: <MessagesScreen onBack={() => setActiveTab('home')} />,
-    plans: <PlansScreen onBack={() => setActiveTab('home')} />,
-    more: <MoreScreen onBack={() => setActiveTab('home')} />,
+    home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} />,
+    journal: <JournalScreen onBack={goBack} />,
+    messages: <MessagesScreen onBack={goBack} />,
+    plans: <PlansScreen onBack={goBack} />,
+    more: <MoreScreen onBack={goBack} />,
   };
 
   // Full-screen pathway picker — renders INSTEAD of app when needed
@@ -115,7 +136,7 @@ function AppContent() {
           {screens[activeTab]}
         </Suspense>
       </ErrorBoundary>
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar activeTab={activeTab} onTabChange={navigateTab} />
       {!sundayGuest && <EmailGate />}
       <BibleAI
         isOpen={showBibleAI}
