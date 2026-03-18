@@ -12,6 +12,7 @@ import type { TabId } from './components/TabBar';
 import type { Persona } from './utils/persona-config';
 import { isSundayWindow, isSundayDeepLink, activateSundayGuest, isSundayGuest } from './utils/sunday';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
+import { track } from './utils/analytics';
 
 // ── Lazy-loaded screens — only downloaded when the user navigates to them ──
 const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
@@ -38,6 +39,11 @@ function AppContent() {
   const [showBibleAI, setShowBibleAI] = useState(false);
   const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
+
+  // Track app open
+  useEffect(() => {
+    track('app_open', setup?.persona || 'none');
+  }, []);
 
   // Sunday QR deep link — bypass onboarding and go straight to sermon notes
   useEffect(() => {

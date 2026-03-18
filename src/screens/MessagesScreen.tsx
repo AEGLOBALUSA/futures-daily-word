@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2, Save, CheckCircle } from 'lucide-react';
@@ -680,6 +681,7 @@ function PrayerWallPanel({
     );
     setSubmitting(false);
     if (ok) {
+      track('prayer_submit', campus);
       setPrayerText('');
       setIsAnonymous(false);
       setShowForm(false);

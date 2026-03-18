@@ -1,5 +1,5 @@
 import { trackBehavior } from '../utils/behavior';
-import { gaEvent } from '../utils/analytics';
+import { track } from '../utils/analytics';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
@@ -217,7 +217,7 @@ export function PlansScreen() {
       [planId]: { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 },
     };
     trackBehavior('plan_started', planId);
-    gaEvent('plan_start', { plan: planId });
+    track('plan_start', planId);
     savePlans(updated);
     setActivePlans(updated);
     // If this is a book plan, also start the book reading plan

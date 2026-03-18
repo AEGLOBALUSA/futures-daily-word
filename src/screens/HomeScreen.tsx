@@ -26,7 +26,7 @@ import { StopAllAudio } from '../components/StopAllAudio';
 import { FeedbackPoll } from '../components/FeedbackPoll';
 // audioManager replaced by audioPlayer (AP) imported above
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
-import { gaEvent } from '../utils/analytics';
+import { track } from '../utils/analytics';
 import { personalize } from '../utils/personalization';
 import { getPersonaConfig, getGreeting, ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
@@ -633,6 +633,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const handleCampusSelect = (campusId: string) => {
     if (userProfile) {
       saveProfile({ ...userProfile, campus: campusId });
+      track('campus_switched', campusId);
     } else {
       requireEmail(() => {});
     }
@@ -702,7 +703,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     setExpandedPassages(new Set([passage]));
     loadPassage(passage);
     trackBehavior('passage_read', passage);
-    gaEvent('daily_reading', { passage });
+    track('daily_reading', passage);
   };
 
   const handleListen = (passage: string) => {
@@ -886,7 +887,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
     localStorage.setItem('dw_translation', t);
-    gaEvent('translation_switch', { translation: t });
+    track('translation_switch', t);
   };
 
   const stopAudio = () => {
@@ -908,7 +909,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
     setAudioError(false);
     trackBehavior('audio_played', passage);
-    gaEvent('audio_play', { passage, translation });
+    track('audio_play', passage, { translation });
 
     try {
       const cacheKey = `${passage}_${translation}`;

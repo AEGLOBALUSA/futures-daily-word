@@ -1,5 +1,6 @@
 // Build: 2026-03-18T10:55:15.514226
 import { useState } from 'react';
+import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
@@ -115,6 +116,7 @@ export function MoreScreen() {
   const handleTranslationSelect = (t: TranslationCode) => {
     localStorage.setItem('dw_translation', t);
     localStorage.setItem('dw_translation_manual', 'true');
+    track('translation_switch', t);
     window.location.reload();
   };
 
@@ -125,6 +127,7 @@ export function MoreScreen() {
 
   const handleLangSelect = (val: string) => {
     localStorage.setItem('dw_lang', val);
+    track('language_change', val);
     window.location.reload();
   };
 
@@ -145,6 +148,7 @@ export function MoreScreen() {
   const handlePersonaSave = () => {
     if (!pendingPersona) return;
     saveSetup({ persona: pendingPersona, source: setup?.source || 'settings' });
+    track('persona_change', pendingPersona);
     setPersonaSaved(true);
     setPendingPersona(null);
     setTimeout(() => setPersonaSaved(false), 2500);
