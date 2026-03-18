@@ -35,19 +35,18 @@ export function ScripturePassage({
 
   const verses = useMemo(() => parseVerses(text), [text]);
 
-  const handleVerseTap = useCallback(
-    (verseNum: number, verseText: string) => {
-      if (greekHebrewMode) return; // in Gk/Heb mode, word taps take priority
-      const ref = verseNum > 0 ? `${passageRef}:${verseNum}` : passageRef;
-      // Toggle: if this verse is already selected, deselect it
-      if (selection?.verseRefs?.[0] === ref && selection?.source === 'tap') {
-        setSelection(null);
-        return;
-      }
-      setSelection({ text: verseText, verseRefs: [ref], source: 'tap' });
-    },
-    [passageRef, setSelection, greekHebrewMode, selection],
-  );
+  // No useCallback — needs fresh `selection` on every tap to toggle correctly
+  const handleVerseTap = (verseNum: number, verseText: string) => {
+    if (greekHebrewMode) return; // in Gk/Heb mode, word taps take priority
+    const ref = verseNum > 0 ? `${passageRef}:${verseNum}` : passageRef;
+    // Toggle: if this verse is already selected, deselect it
+    const currentRef = selection?.verseRefs?.[0];
+    if (currentRef === ref) {
+      setSelection(null);
+      return;
+    }
+    setSelection({ text: verseText, verseRefs: [ref], source: 'tap' });
+  };
 
   // Determine if a specific verse is currently selected
   const selectedRef = selection?.verseRefs?.[0] || '';
