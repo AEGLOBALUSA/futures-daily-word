@@ -49,15 +49,14 @@ function AppContent() {
 
   const sundayGuest = isSundayGuest();
 
-  // Show PathwayPicker if no persona set, first run, or every 10th open
-  // BUT skip entirely during Sunday window and for Sunday guests
+  // Show PathwayPicker only on first run (no persona selected yet)
+  // Once a persona is chosen, never show again automatically
+  // Users can still change persona from the More/Settings screen
   const [showPathway, setShowPathway] = useState(() => {
     if (sundayGuest || isSundayWindow()) return false; // no gate during service
     const v7Done = localStorage.getItem('dw_v7_pathway_done');
     if (!setup?.persona || !v7Done) return true;
-    const count = parseInt(localStorage.getItem('dw_open_count') || '0', 10) + 1;
-    localStorage.setItem('dw_open_count', String(count));
-    return count % 10 === 0;
+    return false;
   });
 
   function handlePathwaySelect(persona: Persona) {

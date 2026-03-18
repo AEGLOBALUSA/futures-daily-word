@@ -1,12 +1,12 @@
 /**
- * Futures Daily Word — Service Worker v21
+ * Futures Daily Word — Service Worker v22
  * Strategy: Network-first for API, Cache-first for static assets,
  * Stale-while-revalidate for fonts and images.
- * V21: Updated sermon notes, bigger fonts, clean buttons, Sunday window intact
+ * V22: Removed aggressive tab reload on activate — uses gentle postMessage instead
  */
 
-const CACHE_NAME = 'fdw-v33';
-const STATIC_CACHE = 'fdw-static-v33';
+const CACHE_NAME = 'fdw-v34';
+const STATIC_CACHE = 'fdw-static-v34';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
@@ -32,9 +32,9 @@ self.addEventListener('activate', (event) => {
           .map((key) => caches.delete(key))
       )
     ).then(() => {
-      // Force all open tabs to reload with fresh content
+      // Notify open tabs that a new version is available (gentle — no forced reload)
       self.clients.matchAll({ type: 'window' }).then((clients) => {
-        clients.forEach((client) => client.navigate(client.url));
+        clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED' }));
       });
     })
   );
