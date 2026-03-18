@@ -342,7 +342,7 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
 }
 
 
-/* ---- Bible Books and Chapters ---- */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Bible Books and Chapters ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 const BIBLE_BOOKS = [
   'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth',
   '1 Samuel', '2 Samuel', '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah',
@@ -368,7 +368,7 @@ const BOOK_CHAPTERS: Record<string, number> = {
   '1 John': 5, '2 John': 1, '3 John': 1, Jude: 1, Revelation: 22,
 };
 
-/* ---- Faith Pathway types ---- */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Faith Pathway types ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 interface PathwayDay {
   day: number;
   title: string;
@@ -1281,7 +1281,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                     }}
                   >
-                    =� {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
+                    📍 {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
                     <ChevronDown size={10} style={{ opacity: 0.6 }} />
                   </button>
                   {showHeaderCampus && (
@@ -2506,7 +2506,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </div>
         {/* Persona greeting + picker moved to Settings */}
 
-        {/* ---- FAITH PATHWAY CARD ---- for new_returning persona */}
+        {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FAITH PATHWAY CARD ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ for new_returning persona */}
         {pf.faithPathway && personaConfig.sectionOrder.includes('devotion') && pathwayProgress.enrolled && pathwayData && (() => {
           /* Only show this compact pathway card for personas that ALSO have the devotion section.
              new_to_faith gets the full plan-based lesson card above instead. */
@@ -4738,7 +4738,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       />
       <StopAllAudio />
       {/* Temp version tag — remove after audio confirmed working */}
-      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v53</p>
+      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v51</p>
     </div>
   );
 }
