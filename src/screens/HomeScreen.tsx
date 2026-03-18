@@ -2332,18 +2332,33 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* Comfort Card — comfort persona only */}
         {pf.comfortCard && <ComfortCard />}
 
-        {/* Book Cards — comfort persona surfaces recommended books */}
+        {/* Book Cards — surfaces recommended books, tapping starts the reading plan */}
         {pf.bookCards.length > 0 && (
           <div style={{ marginBottom: 20, overflowX: 'auto', display: 'flex', gap: 12, scrollbarWidth: 'none' }}>
             {pf.bookCards.map((bookId: string) => {
-              const bookInfo: Record<string, { title: string; description: string; color: string }> = {
+              const bookInfo: Record<string, { title: string; description: string; color: string; planId?: string }> = {
                 'grace-and-truth': { title: 'Grace & Truth', description: 'Biblical foundations for living', color: '#6B4C8A' },
-                'no-more-fear': { title: 'No More Fear', description: 'Living boldly in faith', color: '#2E6B5A' },
+                'no-more-fear': { title: 'No More Fear', description: 'Living boldly in faith', color: '#2E6B5A', planId: 'book-no-more-fear' },
               };
               const info = bookInfo[bookId] || { title: bookId, description: '', color: '#6B1A22' };
+
+              // Check if the plan is already active
+              const activePlans: Record<string, unknown> = (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
+              const isActive = info.planId ? !!activePlans[info.planId] : false;
+
               return (
                 <div
                   key={bookId}
+                  onClick={() => {
+                    if (info.planId && !isActive) {
+                      startPlanFromHome(info.planId);
+                      setPlanTick(t => t + 1);
+                      window.location.reload();
+                    } else {
+                      // No specific plan — go to Plans tab to browse
+                      onNavigate?.('plans');
+                    }
+                  }}
                   style={{
                     minWidth: 180,
                     background: `linear-gradient(135deg, ${info.color}, ${info.color}CC)`,
@@ -2355,13 +2370,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   }}
                 >
                   <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
-                    RECOMMENDED
+                    {isActive ? 'READING NOW' : 'RECOMMENDED'}
                   </p>
                   <p style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-serif)', marginBottom: 4 }}>
                     {info.title}
                   </p>
                   <p style={{ fontSize: 12, opacity: 0.8, fontFamily: 'var(--font-sans)' }}>
-                    {info.description}
+                    {isActive ? 'Tap to continue reading' : info.description}
                   </p>
                 </div>
               );
@@ -2521,19 +2536,22 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
           if (completed >= totalDays) {
             return (
-              <div style={{
-                background: 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
-                color: 'white',
-                padding: 20,
-                borderRadius: 16,
-                marginBottom: 16,
-                cursor: 'pointer',
-              }}>
+              <div
+                onClick={() => onNavigate?.('plans')}
+                style={{
+                  background: 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
+                  color: 'white',
+                  padding: 20,
+                  borderRadius: 16,
+                  marginBottom: 16,
+                  cursor: 'pointer',
+                }}
+              >
                 <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.9, marginBottom: 6 }}>
                   Journey Complete
                 </div>
                 <div style={{ fontSize: 14, opacity: 0.85 }}>
-                  You've completed {pathTitle}! Start again or explore other plans.
+                  You've completed {pathTitle}! Tap to explore other plans.
                 </div>
               </div>
             );
