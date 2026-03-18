@@ -726,7 +726,7 @@ export function MoreScreen() {
             <div style={rowStyle}>
               <Info size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>About Daily Word</span>
-              <span style={valStyle}>v2.0</span>
+              <span style={valStyle}>v2.1</span>
             </div>
             <div style={dividerStyle} />
             <div style={rowStyle}>
@@ -770,7 +770,7 @@ export function MoreScreen() {
           fontFamily: 'var(--font-sans)',
           paddingBottom: 24,
         }}>
-          Futures Daily Word v2.0 · Futures Church
+          Futures Daily Word v2.1  -  Futures Church
         </p>
       </div>
     </div>
