@@ -39,9 +39,14 @@ export function ScripturePassage({
     (verseNum: number, verseText: string) => {
       if (greekHebrewMode) return; // in Gk/Heb mode, word taps take priority
       const ref = verseNum > 0 ? `${passageRef}:${verseNum}` : passageRef;
+      // Toggle: if this verse is already selected, deselect it
+      if (selection?.verseRefs?.[0] === ref && selection?.source === 'tap') {
+        setSelection(null);
+        return;
+      }
       setSelection({ text: verseText, verseRefs: [ref], source: 'tap' });
     },
-    [passageRef, setSelection, greekHebrewMode],
+    [passageRef, setSelection, greekHebrewMode, selection],
   );
 
   // Determine if a specific verse is currently selected
