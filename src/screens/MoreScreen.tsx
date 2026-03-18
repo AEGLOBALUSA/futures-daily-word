@@ -24,10 +24,11 @@ const PERSONAS = ALL_PERSONAS.map(id => ({
   desc: PERSONA_CONFIGS[id].description,
 }));
 
+// Font sizes in absolute pixels — matches HomeScreen's dw_font_size (default 15, range 13-32)
 const FONT_SIZES = [
-  { value: 0.85, label: 'Small' },
-  { value: 1, label: 'Medium' },
-  { value: 1.35, label: 'Large' },
+  { value: 13, label: 'Small' },
+  { value: 15, label: 'Medium' },
+  { value: 20, label: 'Large' },
 ];
 
 const LANGUAGES = [
@@ -51,7 +52,7 @@ export function MoreScreen() {
     : 'Guest';
 
   const translation = localStorage.getItem('dw_translation') || 'ESV';
-  const fontScale = parseFloat(localStorage.getItem('dw_fontscale') || '1');
+  const fontSizePx = parseInt(localStorage.getItem('dw_font_size') || '15', 10);
   const lang = localStorage.getItem('dw_lang') || 'en';
   const kjvDownloaded = localStorage.getItem('dw_kjv_downloaded') === 'true';
   const [chaptersPerDay, setChaptersPerDay] = useState<number>(() => {
@@ -118,8 +119,7 @@ export function MoreScreen() {
   };
 
   const handleFontSelect = (val: number) => {
-    localStorage.setItem('dw_fontscale', String(val));
-    document.documentElement.style.setProperty('--dw-font-scale', String(val));
+    localStorage.setItem('dw_font_size', String(val));
     window.location.reload();
   };
 
@@ -466,8 +466,8 @@ export function MoreScreen() {
                   onClick={() => handleFontSelect(fs.value)}
                   style={{
                     flex: 1,
-                    background: Math.abs(fontScale - fs.value) < 0.1 ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: Math.abs(fontScale - fs.value) < 0.1 ? '#fff' : 'var(--dw-text-secondary)',
+                    background: fs.value === FONT_SIZES.reduce((closest, s) => Math.abs(s.value - fontSizePx) < Math.abs(closest.value - fontSizePx) ? s : closest).value ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: fs.value === FONT_SIZES.reduce((closest, s) => Math.abs(s.value - fontSizePx) < Math.abs(closest.value - fontSizePx) ? s : closest).value ? '#fff' : 'var(--dw-text-secondary)',
                     border: 'none', borderRadius: 10,
                     padding: '12px 0', fontSize: 14, fontWeight: 600,
                     cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 44,
