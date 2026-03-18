@@ -1783,9 +1783,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             disabled={scriptureFontSize >= FONT_MAX}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 32, height: 32, borderRadius: '50%',
+              width: 42, height: 42, borderRadius: '50%',
               background: scriptureFontSize >= FONT_MAX ? 'var(--dw-surface)' : 'var(--dw-surface-raised, rgba(0,0,0,0.04))',
-              border: '1px solid var(--dw-border)',
+              border: '1.5px solid var(--dw-border)',
               cursor: scriptureFontSize >= FONT_MAX ? 'default' : 'pointer',
               color: scriptureFontSize >= FONT_MAX ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
               opacity: scriptureFontSize >= FONT_MAX ? 0.4 : 1,
@@ -1793,7 +1793,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             }}
             aria-label="Increase font size"
           >
-            <Plus size={14} />
+            <Plus size={20} />
           </button>
         </div>
 
