@@ -437,7 +437,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   });
   // ── Font size control ──
   const FONT_MIN = 13;
-  const FONT_MAX = 28;
+  const FONT_MAX = 32;
   const FONT_STEP = 1;
   const [scriptureFontSize, setScriptureFontSize] = useState<number>(() => {
     const saved = localStorage.getItem('dw_font_size');
