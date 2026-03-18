@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, Minus, X, Share2 } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
@@ -435,6 +435,22 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
   });
+  // ── Font size control ──
+  const FONT_MIN = 13;
+  const FONT_MAX = 24;
+  const FONT_STEP = 1;
+  const [scriptureFontSize, setScriptureFontSize] = useState<number>(() => {
+    const saved = localStorage.getItem('dw_font_size');
+    return saved ? Math.min(FONT_MAX, Math.max(FONT_MIN, parseInt(saved, 10))) : 15;
+  });
+  const adjustFontSize = (delta: number) => {
+    setScriptureFontSize(prev => {
+      const next = Math.min(FONT_MAX, Math.max(FONT_MIN, prev + delta));
+      localStorage.setItem('dw_font_size', String(next));
+      return next;
+    });
+  };
+
   const [compareMode, setCompareMode] = useState(false);
   const [compareTranslation, setCompareTranslation] = useState<TranslationCode>('KJV');
   const [compareTexts, setCompareTexts] = useState<Record<string, string>>({});
@@ -1733,6 +1749,54 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           )}
         </div>
 
+        {/* ── Font Size Controls ── */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          marginBottom: 14,
+        }}>
+          <button
+            onClick={() => adjustFontSize(-FONT_STEP)}
+            disabled={scriptureFontSize <= FONT_MIN}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32, borderRadius: '50%',
+              background: scriptureFontSize <= FONT_MIN ? 'var(--dw-surface)' : 'var(--dw-surface-raised, rgba(0,0,0,0.04))',
+              border: '1px solid var(--dw-border)',
+              cursor: scriptureFontSize <= FONT_MIN ? 'default' : 'pointer',
+              color: scriptureFontSize <= FONT_MIN ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
+              opacity: scriptureFontSize <= FONT_MIN ? 0.4 : 1,
+              transition: 'all 0.15s ease',
+            }}
+            aria-label="Decrease font size"
+          >
+            <Minus size={14} />
+          </button>
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)',
+            fontFamily: 'var(--font-sans)', letterSpacing: '0.03em',
+            minWidth: 24, textAlign: 'center',
+          }}>
+            {scriptureFontSize}
+          </span>
+          <button
+            onClick={() => adjustFontSize(FONT_STEP)}
+            disabled={scriptureFontSize >= FONT_MAX}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32, borderRadius: '50%',
+              background: scriptureFontSize >= FONT_MAX ? 'var(--dw-surface)' : 'var(--dw-surface-raised, rgba(0,0,0,0.04))',
+              border: '1px solid var(--dw-border)',
+              cursor: scriptureFontSize >= FONT_MAX ? 'default' : 'pointer',
+              color: scriptureFontSize >= FONT_MAX ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
+              opacity: scriptureFontSize >= FONT_MAX ? 0.4 : 1,
+              transition: 'all 0.15s ease',
+            }}
+            aria-label="Increase font size"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+
         {/* ── Hero Listen Button ── always shown; plays all today's passages in ESV */}
         {(() => {
           const firstPlan = todaysPlanPassages[0];
@@ -2617,7 +2681,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
             {todaysDevotion.verse}
           </p>
-          <p className="text-devotion">{todaysDevotion.body}</p>
+          <p className="text-devotion" style={{ fontSize: scriptureFontSize + 2 }}>{todaysDevotion.body}</p>
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
             — {todaysDevotion.author}
           </p>
@@ -2764,6 +2828,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     passageRef={comfortPassage}
                     renderScripture={renderScripture}
                     greekHebrewMode={greekHebrewMode}
+                    fontSize={scriptureFontSize}
                   />
                 ) : (
                   <button
@@ -3055,6 +3120,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   passageRef={devPassage}
                   renderScripture={renderScripture}
                   greekHebrewMode={greekHebrewMode}
+                  fontSize={scriptureFontSize}
                 />
               ) : (
                 <button
@@ -3173,6 +3239,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                           passageRef={passage}
                           renderScripture={renderScripture}
                           greekHebrewMode={greekHebrewMode}
+                          fontSize={scriptureFontSize}
                         />
 
                         {/* Compare translation (when active) */}
@@ -3340,7 +3407,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               )}
               {/* Full lesson text */}
               {dayLesson && (
-                <p className="text-devotion" style={{ whiteSpace: 'pre-line' }}>{dayLesson}</p>
+                <p className="text-devotion" style={{ whiteSpace: 'pre-line', fontSize: scriptureFontSize + 2 }}>{dayLesson}</p>
               )}
               {/* Actions row */}
               <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -3459,6 +3526,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         passageRef={fullChapter}
                         renderScripture={renderScripture}
                         greekHebrewMode={greekHebrewMode}
+                        fontSize={scriptureFontSize}
                       />
                     ) : (
                       <button
@@ -3639,6 +3707,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     passageRef={passage}
                     renderScripture={renderScripture}
                     greekHebrewMode={greekHebrewMode}
+                    fontSize={scriptureFontSize}
                   />
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -3771,6 +3840,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 passageRef={passage}
                 renderScripture={renderScripture}
                 greekHebrewMode={greekHebrewMode}
+                fontSize={scriptureFontSize}
               />
 
               {/* Compare translation text */}
@@ -3788,7 +3858,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         <span style={{ color: 'var(--dw-text-muted)', fontSize: 12 }}>Loading {compareTranslation}...</span>
                       </div>
                     ) : (
-                      <p className="text-scripture" style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', borderRadius: 4 }}>
+                      <p className="text-scripture" style={{ fontSize: scriptureFontSize - 1, lineHeight: 1.7, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', borderRadius: 4 }}>
                         {renderScripture(compareText, passage)}
                       </p>
                     )}

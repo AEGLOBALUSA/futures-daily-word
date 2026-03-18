@@ -20,6 +20,8 @@ interface ScripturePassageProps {
   renderScripture?: (text: string, passage: string) => React.ReactNode;
   /** Whether Greek/Hebrew mode is active */
   greekHebrewMode?: boolean;
+  /** Override font size in px (default 15) */
+  fontSize?: number;
 }
 
 export function ScripturePassage({
@@ -27,6 +29,7 @@ export function ScripturePassage({
   passageRef,
   renderScripture,
   greekHebrewMode = false,
+  fontSize = 15,
 }: ScripturePassageProps) {
   const { selection, setSelection } = useScriptureSelection();
 
@@ -115,7 +118,7 @@ export function ScripturePassage({
             key={v.verse}
             onClick={() => handleVerseTap(v.verse, v.text)}
             style={{
-              fontSize: 15,
+              fontSize,
               lineHeight: 1.75,
               color: 'var(--dw-text-secondary)',
               whiteSpace: 'pre-wrap',
@@ -136,7 +139,7 @@ export function ScripturePassage({
               <span
                 style={{
                   color: '#9A7B2E',
-                  fontSize: 10,
+                  fontSize: Math.round(fontSize * 0.65),
                   fontWeight: 700,
                   marginRight: 5,
                   verticalAlign: 'super',
