@@ -230,7 +230,7 @@ export function MoreScreen() {
           </p>
         </div>
 
-        {/* âââ PROFILE âââ */}
+        {/* ─── PROFILE ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PROFILE</p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -248,7 +248,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* âââ PERSONA âââ */}
+        {/* ─── PERSONA ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Heart size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -284,7 +284,7 @@ export function MoreScreen() {
                 );
               })}
             </div>
-            {/* Save button â appears when a new persona is selected */}
+            {/* Save button — appears when a new persona is selected */}
             {pendingPersona && pendingPersona !== setup?.persona && (
               <button
                 onClick={handlePersonaSave}
@@ -313,7 +313,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* âââ MY STORY âââ */}
+        {/* ─── MY STORY ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 4, paddingLeft: 4 }}>
             <User size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -323,13 +323,13 @@ export function MoreScreen() {
             fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
             paddingLeft: 4, marginBottom: 10, lineHeight: 1.5,
           }}>
-            Tell Bible AI about your life right now â season, what you're studying, what you need. This shapes every conversation.
+            Tell Bible AI about your life right now — season, what you're studying, what you need. This shapes every conversation.
           </p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <textarea
               value={userStory}
               onChange={e => setUserStory(e.target.value)}
-              placeholder={"E.g. I'm walking through grief after losing my father. I lead a small group studying Paul's letters. I'm preparing a sermon series on prayer. I'm new to Christianity and want to understand the Gospelsâ¦"}
+              placeholder={"E.g. I'm walking through grief after losing my father. I lead a small group studying Paul's letters. I'm preparing a sermon series on prayer. I'm new to Christianity and want to understand the Gospels…"}
               style={{
                 width: '100%', minHeight: 120,
                 padding: '14px 16px',
@@ -362,13 +362,13 @@ export function MoreScreen() {
                   transition: 'background 0.2s',
                 }}
               >
-                {storySaved ? 'â Saved' : 'Save'}
+                {storySaved ? '✓ Saved' : 'Save'}
               </button>
             </div>
           </Card>
         </div>
 
-        {/* âââ TRANSLATION âââ */}
+        {/* ─── TRANSLATION ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Globe size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -395,7 +395,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* âââ CAMPUS âââ */}
+        {/* ─── CAMPUS ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -430,7 +430,7 @@ export function MoreScreen() {
                   return (
                     <optgroup key={region} label={region}>
                       {regionCampuses.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} â {c.city}</option>
+                        <option key={c.id} value={c.id}>{c.name} — {c.city}</option>
                       ))}
                     </optgroup>
                   );
@@ -451,7 +451,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* âââ FONT SIZE âââ */}
+        {/* ─── FONT SIZE ─── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Type size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -480,7 +480,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ââ LANGUAGE ââ */}
+        {/* ── LANGUAGE ── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Languages size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -509,7 +509,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ââ DAILY READING ââ */}
+        {/* ── DAILY READING ── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <BookOpen size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -541,7 +541,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ââ MEDIA ââ */}
+        {/* ── MEDIA ── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Music size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -609,7 +609,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* ââ NOTIFICATIONS ââ */}
+        {/* ── NOTIFICATIONS ── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Bell size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -628,24 +628,24 @@ export function MoreScreen() {
                 textAlign: 'center',
               }}
             >
-              {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications â On' : 'Turn On Push Notifications'}
+              {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : 'Turn On Push Notifications'}
             </button>
           </Card>
         </div>
 
-        {/* ââ LIBRARY ââ */}
+        {/* ── LIBRARY ── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>LIBRARY</p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <button onClick={() => setShowLibrary(true)} style={rowStyle}>
               <BookOpen size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>Essays &amp; Bible Resources</span>
-              <span style={valStyle}>â</span>
+              <span style={valStyle}>→</span>
             </button>
           </Card>
         </div>
 
-        {/* ââ CONTENT ââ */}
+        {/* ── CONTENT ── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -653,13 +653,13 @@ export function MoreScreen() {
               <Download size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>Offline Bible</span>
               <span style={valStyle}>
-                {downloadingKJV ? 'Downloading...' : kjvDownloaded ? 'KJV â Downloaded' : 'KJV â Tap to download'}
+                {downloadingKJV ? 'Downloading...' : kjvDownloaded ? 'KJV — Downloaded' : 'KJV — Tap to download'}
               </span>
             </button>
           </Card>
         </div>
 
-        {/* ââ PASTORAL CARE (Comfort Persona Only) ââ */}
+        {/* ── PASTORAL CARE (Comfort Persona Only) ── */}
         {setup?.persona === 'comfort' && (
           <div style={{ marginBottom: 24 }}>
             <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PASTORAL CARE</p>
@@ -719,14 +719,14 @@ export function MoreScreen() {
           </div>
         )}
 
-        {/* ââ ABOUT ââ */}
+        {/* ── ABOUT ── */}
         <div style={{ marginBottom: 24 }}>
           <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>ABOUT</p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <div style={rowStyle}>
               <Info size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>About Daily Word</span>
-              <span style={valStyle}>v2.1</span>
+              <span style={valStyle}>v2.0</span>
             </div>
             <div style={dividerStyle} />
             <div style={rowStyle}>
@@ -736,7 +736,7 @@ export function MoreScreen() {
           </Card>
         </div>
 
-        {/* Admin â Poll Results */}
+        {/* Admin — Poll Results */}
         {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor') && (
           <div style={{ marginBottom: 20 }}>
             <p style={{
@@ -770,14 +770,14 @@ export function MoreScreen() {
           fontFamily: 'var(--font-sans)',
           paddingBottom: 24,
         }}>
-          Futures Daily Word v2.1 - Futures Church
+          Futures Daily Word v2.0 · Futures Church
         </p>
       </div>
     </div>
   );
 }
 
-/* ââ Shared styles ââ */
+/* ── Shared styles ── */
 const rowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
