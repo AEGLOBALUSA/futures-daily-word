@@ -1,19 +1,19 @@
 /**
- * FeedbackPoll â floating "Help Us Improve" button that opens a 2-question modal.
+ * FeedbackPoll — floating "Help Us Improve" button that opens a 2-question modal.
  * Responses go to Supabase via /api/poll. Auto-hides after submission or after
  * the poll window expires (7 days from POLL_START).
  */
 import { useState, useEffect } from 'react';
 import { X, CheckCircle, MessageCircle } from 'lucide-react';
 
-// ââ Poll configuration ââ
+// ── Poll configuration ──
 const POLL_VERSION = 'v1';
 const POLL_START = new Date('2026-03-14T00:00:00Z'); // poll goes live
 const POLL_DAYS = 7; // auto-expires after 7 days
 const POLL_END = new Date(POLL_START.getTime() + POLL_DAYS * 86400000);
 const LS_KEY = `dw_poll_submitted_${POLL_VERSION}`;
 
-// ââ Questions ââ
+// ── Questions ──
 const Q1_OPTIONS = [
   { id: 'clean', label: "It's clean and easy to use" },
   { id: 'busy', label: 'It feels a bit busy' },
@@ -58,7 +58,7 @@ export function FeedbackPoll({ userCampus }: Props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Poll expired or not yet visible â render nothing
+  // Poll expired or not yet visible — render nothing
   if (!visible) return null;
 
   const toggleQ2 = (id: string) => {
@@ -88,7 +88,7 @@ export function FeedbackPoll({ userCampus }: Props) {
         }),
       });
     } catch {
-      // Silent fail â still mark as submitted so we don't nag
+      // Silent fail — still mark as submitted so we don't nag
     }
     localStorage.setItem(LS_KEY, new Date().toISOString());
     setStep('done');
@@ -100,7 +100,7 @@ export function FeedbackPoll({ userCampus }: Props) {
     }, 2000);
   };
 
-  // ââ Inline banner card ââ
+  // ── Inline banner card ──
   if (!open) {
     return (
       <button
@@ -127,13 +127,13 @@ export function FeedbackPoll({ userCampus }: Props) {
         }}
       >
         <MessageCircle size={16} style={{ flexShrink: 0 }} />
-        <span style={{ flex: 1 }}>Help us improve â quick 2-question survey</span>
+        <span style={{ flex: 1 }}>Help us improve — quick 2-question survey</span>
         <span style={{ fontSize: 11, opacity: 0.6, flexShrink: 0 }}>Give feedback</span>
       </button>
     );
   }
 
-  // ââ Modal ââ
+  // ── Modal ──
   return (
     <>
       {/* Backdrop */}
@@ -176,7 +176,7 @@ export function FeedbackPoll({ userCampus }: Props) {
               fontFamily: 'var(--font-sans)', fontSize: 12,
               color: 'var(--dw-text-muted)', margin: '4px 0 0',
             }}>
-              Quick anonymous survey Â· 2 questions
+              Quick anonymous survey · 2 questions
             </p>
           </div>
           <button
