@@ -31,7 +31,7 @@ const JANE_BOOKS: Book[] = [
   { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Ps Jane', jsonFile: undefined },
 ];
 
-/* ââ localStorage helpers ââ */
+/* ── localStorage helpers ── */
 interface PlanProgress {
   startedAt: string;
   completedDays: number[];
@@ -152,7 +152,7 @@ export function PlansScreen() {
     } catch {}
   };
 
-  // Book reader state â must be at top level (Rules of Hooks)
+  // Book reader state — must be at top level (Rules of Hooks)
   const [activeBook, setActiveBook] = useState<string | null>(null);
   const [bookData, setBookData] = useState<BookData | null>(null);
   const [bookChapter, setBookChapter] = useState<number | null>(null);
@@ -209,7 +209,7 @@ export function PlansScreen() {
 
   const activePlanIds = Object.keys(activePlans);
 
-  // Start a plan â also kicks off the book plan system if plan has a bookId
+  // Start a plan — also kicks off the book plan system if plan has a bookId
   const startPlan = useCallback((planId: string) => {
     const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
     const updated = {
@@ -271,7 +271,7 @@ export function PlansScreen() {
     }
   }, [persona]);
 
-  // Book fetch effect â top level (Rules of Hooks)
+  // Book fetch effect — top level (Rules of Hooks)
   useEffect(() => {
     if (!activeBook) { setBookData(null); setBookChapter(null); return; }
     setBookLoading(true);
@@ -339,14 +339,14 @@ export function PlansScreen() {
     return 0;
   });
   const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
-  // Single devotion for the whole site â same source as HomeScreen
+  // Single devotion for the whole site — same source as HomeScreen
   const devotion = getTodaysDevotion();
 
   // Hub view (V1 structure) - the main Plans & More page
   if (!showPlanDetail) {
     return (
       <div className="screen-container">
-      {/* ââ In-app book reader ââ */}
+      {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Reader header */}
@@ -388,7 +388,7 @@ export function PlansScreen() {
             {bookLoading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 24 }}>
                 <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loadingâ¦</span>
+                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
               </div>
             )}
             {/* Chapter list */}
@@ -422,7 +422,7 @@ export function PlansScreen() {
         </div>
       )}
 
-      {/* ââ In-app essay reader ââ */}
+      {/* ── In-app essay reader ── */}
       {activeEssay && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
@@ -458,7 +458,7 @@ export function PlansScreen() {
             {essayLoading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 24 }}>
                 <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loadingâ¦</span>
+                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
               </div>
             )}
             {/* Section list */}
@@ -505,7 +505,7 @@ export function PlansScreen() {
             Your reading plans, devotion, and community
           </p>
 
-          {/* Devotion of the Day â congregation only */}
+          {/* Devotion of the Day — congregation only */}
           {devotion && persona === 'congregation' && (
             <Card style={{ marginBottom: 24, borderLeft: '3px solid var(--dw-accent)' }}>
               <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
@@ -517,7 +517,7 @@ export function PlansScreen() {
                 {devotion.body}
               </p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                â {devotion.author}
+                — {devotion.author}
               </p>
             </Card>
           )}
@@ -617,7 +617,7 @@ export function PlansScreen() {
                         </p>
                         {bp && (
                           <p style={{ fontSize: 12, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginTop: 3, fontWeight: 600 }}>
-                            Chapter {bp.currentChapter + 1} of {bp.totalChapters} Â· in Study Notes
+                            Chapter {bp.currentChapter + 1} of {bp.totalChapters} · in Study Notes
                           </p>
                         )}
                       </div>
@@ -638,7 +638,7 @@ export function PlansScreen() {
                               letterSpacing: '0.04em',
                             }}
                           >
-                            {startingBook === book.id ? '+ Addingâ¦' : '+ Add to Reading Plan'}
+                            {startingBook === book.id ? '+ Adding…' : '+ Add to Reading Plan'}
                           </button>
                         ) : (
                           <>
@@ -663,7 +663,7 @@ export function PlansScreen() {
                                   fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
                                 }}
                               >
-                                Next Chapter â
+                                Next Chapter →
                               </button>
                             )}
                           </>
@@ -696,7 +696,7 @@ export function PlansScreen() {
                     </p>
                     {book.jsonFile ? (
                       <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 500 }}>
-                        Tap to view â
+                        Tap to view →
                       </p>
                     ) : (
                       <p style={{ color: 'var(--dw-text-faint)', fontSize: 11, fontFamily: 'var(--font-sans)', marginTop: 4, fontWeight: 600, letterSpacing: '0.05em' }}>
@@ -751,7 +751,7 @@ export function PlansScreen() {
               minHeight: 44,
             }}
           >
-            â Back
+            ← Back
           </button>
         </div>
 
@@ -863,8 +863,8 @@ export function PlansScreen() {
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-serif-text)', lineHeight: 1.4 }}>
                                 {isBookPlan
-                                  ? `Up next: ${plan.passages[nextDay] || plan.passages[plan.passages.length - 1] || 'â'}`
-                                  : `Day ${nextDay}: ${plan.passages[nextDay - 1] || 'â'}`}
+                                  ? `Up next: ${plan.passages[nextDay] || plan.passages[plan.passages.length - 1] || '—'}`
+                                  : `Day ${nextDay}: ${plan.passages[nextDay - 1] || '—'}`}
                               </p>
                               {!isBookPlan && (
                                 <button
@@ -906,7 +906,7 @@ export function PlansScreen() {
                               padding: 0, display: 'flex', alignItems: 'center', gap: 4,
                             }}
                           >
-                            Ã Remove this plan
+                            × Remove this plan
                           </button>
                         </div>
                       )}
@@ -993,7 +993,7 @@ export function PlansScreen() {
                               fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
                               textTransform: 'uppercase', transition: 'background 0.2s',
                             }}>
-                              {isConfirmingDeactivate ? 'Tap to remove' : 'â Active'}
+                              {isConfirmingDeactivate ? 'Tap to remove' : '✓ Active'}
                             </div>
                           ) : (
                             <div style={{
@@ -1062,7 +1062,7 @@ export function PlansScreen() {
                                 fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
                               }}
                             >
-                              {isPreviewOpen ? 'Hide schedule â²' : 'See schedule â¼'}
+                              {isPreviewOpen ? 'Hide schedule ▲' : 'See schedule ▼'}
                             </button>
                           </div>
 
@@ -1106,7 +1106,7 @@ export function PlansScreen() {
                 ));
               })()}
 
-              {/* Save button â appears when plans selected */}
+              {/* Save button — appears when plans selected */}
               {selectedToStart.length > 0 && (
                 <div style={{ position: 'sticky', bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', zIndex: 10 }}>
                   <button
@@ -1161,7 +1161,7 @@ export function PlansScreen() {
             <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-              Perfect for new believers â a guided journey through the foundations of faith.
+              Perfect for new believers — a guided journey through the foundations of faith.
             </p>
             <button
               onClick={() => { startPlan('faith-pathway'); }}
