@@ -27,17 +27,17 @@ function getCorsHeaders(origin) {
 }
 
 // API.Bible Bible IDs — these map to specific audio Bibles
-// Format: { bibleId (text), audioBibleId (audio version) }
-// Audio Bible IDs found via: GET https://api.scripture.api.bible/v1/audio-bibles
+// Audio Bible IDs found via: GET https://rest.api.bible/v1/audio-bibles
+// Only WEB (Drama NT) is available on free tier
 const BIBLE_MAP = {
-  KJV:  { audioBibleId: '105a06b6146d11e7-01' },  // KJV audio
-  NIV:  { audioBibleId: null },                      // NIV audio not free on API.Bible
-  NLT:  { audioBibleId: null },                      // Check availability
-  NKJV: { audioBibleId: null },                      // Check availability
+  WEB:  { audioBibleId: '105a06b6146d11e7-01' },    // World English Bible 2013 (Drama NT)
+  KJV:  { audioBibleId: null },                      // Not available on free tier
+  NIV:  { audioBibleId: null },
+  NLT:  { audioBibleId: null },
+  NKJV: { audioBibleId: null },
   AMP:  { audioBibleId: null },
   NASB: { audioBibleId: null },
   ESV:  { audioBibleId: null },
-  WEB:  { audioBibleId: '9879dbb7cfe39e4d-04' },    // World English Bible audio
 };
 
 // Map book names to API.Bible book IDs (same as USFM standard)
@@ -110,7 +110,7 @@ exports.handler = async (event) => {
     // Step 1: Get the chapter audio from API.Bible
     // Endpoint: GET /v1/audio-bibles/{audioBibleId}/chapters/{bookId}.{chapter}
     const chapterId = `${parsed.bookId}.${parsed.chapter}`;
-    const url = `https://api.scripture.api.bible/v1/audio-bibles/${bibleInfo.audioBibleId}/chapters/${chapterId}`;
+    const url = `https://rest.api.bible/v1/audio-bibles/${bibleInfo.audioBibleId}/chapters/${chapterId}`;
 
     const res = await fetch(url, {
       headers: { 'api-key': API_KEY }

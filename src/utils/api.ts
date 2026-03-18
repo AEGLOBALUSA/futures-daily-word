@@ -197,8 +197,8 @@ async function _doFetchAudio(
     if (url) { audioCache.set(cacheKey, url); return url; }
   }
 
-  // ── 3. API.Bible — native audio (KJV, WEB) ──
-  if (passageRef && (translation === 'KJV' || translation === 'WEB')) {
+  // ── 3. API.Bible — native audio (WEB only on free tier) ──
+  if (passageRef && translation === 'WEB') {
     const url = await _tryApiBibleAudio(passageRef, translation);
     if (url) { audioCache.set(cacheKey, url); return url; }
   }
