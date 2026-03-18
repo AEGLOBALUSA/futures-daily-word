@@ -31,8 +31,8 @@ const FONT_SIZES = [
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
-  { value: 'es', label: 'EspaÃ±ol' },
-  { value: 'pt', label: 'PortuguÃªs' },
+  { value: 'es', label: 'Español' },
+  { value: 'pt', label: 'Português' },
   { value: 'id', label: 'Bahasa Indonesia' },
 ];
 
@@ -770,7 +770,7 @@ export function MoreScreen() {
           fontFamily: 'var(--font-sans)',
           paddingBottom: 24,
         }}>
-          Futures Daily Word v2.1 · Futures Church
+          Futures Daily Word v2.1 - Futures Church
         </p>
       </div>
     </div>
