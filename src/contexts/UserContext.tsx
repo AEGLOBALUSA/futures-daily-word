@@ -5,6 +5,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { PERSONA_MIGRATION } from '../utils/persona-config';
+import { setCampus as setAnalyticsCampus } from '../utils/analytics';
 
 export interface UserProfile {
   email: string;
@@ -71,6 +72,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!(userProfile?.email);
 
+  // Set initial analytics campus from profile
+  useEffect(() => {
+    if (userProfile?.campus) setAnalyticsCampus(userProfile.campus);
+  }, [userProfile?.campus]);
+
   // ── V7 persona migration: map old persona values to new ones ──
   useEffect(() => {
     if (!setup?.persona) return;
@@ -93,7 +99,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     fetch('/api/user-profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'heartbeat', email: userProfile.email, persona, lang }),
+      body: JSON.stringify({ action: 'heartbeat', email: userProfile.email, persona, lang, campus: userProfile.campus }),
     }).catch(() => {});
 
     // Sync profile from server
@@ -144,6 +150,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const saveProfile = useCallback((profile: UserProfile) => {
     localStorage.setItem('dw_profile', JSON.stringify(profile));
     setUserProfile(profile);
+
+    // Keep GA4 analytics campus in sync
+    if (profile.campus) setAnalyticsCampus(profile.campus);
+
+    // Sync profile changes to server (non-blocking)
+    if (profile.email) {
+      fetch('/api/user-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          email: profile.email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          phone: profile.phone,
+          church: profile.church,
+          city: profile.city,
+          campus: profile.campus,
+        }),
+      }).catch(() => {});
+    }
   }, []);
 
   const saveSetup = useCallback((s: SetupState) => {

@@ -165,6 +165,7 @@ exports.handler = async (event) => {
       const updates = { last_active_at: new Date().toISOString() };
       if (body.persona) updates.persona = sanitize(body.persona, 50);
       if (body.lang) updates.lang = sanitize(body.lang, 5);
+      if (body.campus) updates.campus = sanitize(body.campus, 100);
 
       await db.from("profiles").update(updates).eq("email", email);
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
