@@ -770,7 +770,7 @@ export function MoreScreen() {
           fontFamily: 'var(--font-sans)',
           paddingBottom: 24,
         }}>
-          Futures Daily Word v2.0 Â· Futures Church
+          Futures Daily Word v2.1 · Futures Church
         </p>
       </div>
     </div>

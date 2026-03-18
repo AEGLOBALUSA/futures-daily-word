@@ -1281,7 +1281,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                     }}
                   >
-                    =Í {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
+                    =ï¿½ {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
                     <ChevronDown size={10} style={{ opacity: 0.6 }} />
                   </button>
                   {showHeaderCampus && (
@@ -4738,7 +4738,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       />
       <StopAllAudio />
       {/* Temp version tag â€” remove after audio confirmed working */}
-      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v51</p>
+      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v53</p>
     </div>
   );
 }
