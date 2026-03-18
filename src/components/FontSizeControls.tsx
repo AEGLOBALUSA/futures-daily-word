@@ -20,16 +20,20 @@ export const FontSizeControls = memo(function FontSizeControls({
   const atMax = fontSize >= max;
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-      marginBottom: 14,
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 14, gap: 6 }}>
+      <span style={{
+        fontSize: 10, fontWeight: 600, color: 'var(--dw-text-faint)',
+        fontFamily: 'var(--font-sans)', letterSpacing: '0.06em', textTransform: 'uppercase',
+      }}>
+        Font Size
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
       <button
         onClick={onDecrease}
         disabled={atMin}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 32, height: 32, borderRadius: '50%',
+          width: 36, height: 36, borderRadius: '50%',
           background: atMin ? 'var(--dw-surface)' : 'var(--dw-surface-raised, rgba(0,0,0,0.04))',
           border: '1px solid var(--dw-border)',
           cursor: atMin ? 'default' : 'pointer',
@@ -53,9 +57,9 @@ export const FontSizeControls = memo(function FontSizeControls({
         disabled={atMax}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 42, height: 42, borderRadius: '50%',
+          width: 36, height: 36, borderRadius: '50%',
           background: atMax ? 'var(--dw-surface)' : 'var(--dw-surface-raised, rgba(0,0,0,0.04))',
-          border: '1.5px solid var(--dw-border)',
+          border: '1px solid var(--dw-border)',
           cursor: atMax ? 'default' : 'pointer',
           color: atMax ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
           opacity: atMax ? 0.4 : 1,
@@ -63,8 +67,9 @@ export const FontSizeControls = memo(function FontSizeControls({
         }}
         aria-label="Increase font size"
       >
-        <Plus size={20} />
+        <Plus size={16} />
       </button>
+      </div>
     </div>
   );
 });
