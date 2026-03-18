@@ -50,7 +50,7 @@ export function ScriptureBlock({
   }, [verseKey, text, toggleHighlight]);
 
   const bg = isHighlighted
-    ? 'rgba(154,123,46,0.28)'
+    ? 'rgba(154,123,46,0.40)'
     : inRange
     ? 'rgba(74,99,64,0.22)'
     : 'transparent';

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { trackBehavior } from '../utils/behavior';
+import { gaEvent } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
@@ -648,6 +649,7 @@ function ScriptureModal({
           verseRef: passage,
         };
     trackBehavior('note_created', entry.verseRef || '');
+    gaEvent('journal_save', { type: entry.type || 'journal' });
     onSave(entry);
     setNoteSaved(true);
     setTimeout(() => { setNoteSaved(false); onClose(); }, 1200);
@@ -1299,6 +1301,7 @@ export function JournalScreen() {
       all.unshift(editingEntry);
     }
     trackBehavior('note_created');
+    gaEvent('journal_save', { type: editingEntry.type || 'journal' });
     saveEntries(all);
     setEntries(all);
     setShowEditor(false);

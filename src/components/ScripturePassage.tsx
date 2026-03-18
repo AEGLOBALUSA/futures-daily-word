@@ -75,7 +75,7 @@ export function ScripturePassage({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
-              background: isAllSelected ? 'rgba(154,123,46,0.18)' : 'var(--dw-surface-raised, rgba(0,0,0,0.03))',
+              background: isAllSelected ? 'rgba(154,123,46,0.35)' : 'var(--dw-surface-raised, rgba(0,0,0,0.03))',
               border: '1px solid var(--dw-border)',
               borderRadius: 14,
               padding: '4px 12px',
@@ -130,7 +130,7 @@ export function ScripturePassage({
               margin: '3px 0',
               padding: isSelected ? '2px 5px' : '2px 0',
               background: isSelected
-                ? 'rgba(154,123,46,0.18)'
+                ? 'rgba(154,123,46,0.35)'
                 : 'transparent',
               borderRadius: 4,
               cursor: greekHebrewMode ? 'default' : 'pointer',

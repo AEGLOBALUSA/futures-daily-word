@@ -26,6 +26,7 @@ import { StopAllAudio } from '../components/StopAllAudio';
 import { FeedbackPoll } from '../components/FeedbackPoll';
 // audioManager replaced by audioPlayer (AP) imported above
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
+import { gaEvent } from '../utils/analytics';
 import { personalize } from '../utils/personalization';
 import { getPersonaConfig, getGreeting, ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
@@ -701,6 +702,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     setExpandedPassages(new Set([passage]));
     loadPassage(passage);
     trackBehavior('passage_read', passage);
+    gaEvent('daily_reading', { passage });
   };
 
   const handleListen = (passage: string) => {
@@ -884,6 +886,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
     localStorage.setItem('dw_translation', t);
+    gaEvent('translation_switch', { translation: t });
   };
 
   const stopAudio = () => {
@@ -905,6 +908,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
     setAudioError(false);
     trackBehavior('audio_played', passage);
+    gaEvent('audio_play', { passage, translation });
 
     try {
       const cacheKey = `${passage}_${translation}`;
@@ -2243,7 +2247,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>{opt.sub}</p>
                     </button>
                   ))}
-                  <button onClick={() => { const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement; if (tabBar) tabBar.click(); }} style={{
+                  <button onClick={() => { onNavigate?.('plans'); }} style={{
                     padding: '12px 14px', borderRadius: 12, background: 'transparent', border: '1px dashed var(--dw-border)', cursor: 'pointer', textAlign: 'center',
                   }}>
                     <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>Browse all plans</p>
@@ -2303,7 +2307,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>{plan.description.slice(0, 80)}…</p>
                     </button>
                   ))}
-                  <button onClick={() => { const tabBar = document.querySelector('[data-tab="plans"]') as HTMLElement; if (tabBar) tabBar.click(); }} style={{
+                  <button onClick={() => { onNavigate?.('plans'); }} style={{
                     padding: '12px 14px', borderRadius: 12, background: 'transparent', border: '1px dashed var(--dw-border)', cursor: 'pointer', textAlign: 'center',
                   }}>
                     <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>Browse all plans →</p>
@@ -3305,8 +3309,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         type: 'pastoral-reflection',
                       }));
                     } catch {}
-                    const tabBar = document.querySelector('[data-tab="journal"]') as HTMLElement;
-                    if (tabBar) tabBar.click();
+                    onNavigate?.('journal');
                   }}
                   style={{
                     padding: '8px 16px', borderRadius: 10,
