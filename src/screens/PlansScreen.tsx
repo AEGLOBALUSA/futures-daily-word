@@ -67,9 +67,10 @@ function savePlans(plans: Record<string, PlanProgress>) {
   localStorage.setItem('dw_activeplans', JSON.stringify(plans));
 }
 
+// Uses dw_streak_v2 — same key as HomeScreen for consistent streak tracking
 function getStreak(): number {
   try {
-    const data = JSON.parse(localStorage.getItem('dw_streak') || '{}');
+    const data = JSON.parse(localStorage.getItem('dw_streak_v2') || '{}');
     const today = new Date().toISOString().slice(0, 10);
     if (data.lastDate === today) return data.count || 0;
     const yesterday = new Date();
@@ -82,14 +83,15 @@ function getStreak(): number {
 function recordStreak() {
   const today = new Date().toISOString().slice(0, 10);
   try {
-    const data = JSON.parse(localStorage.getItem('dw_streak') || '{}');
+    const data = JSON.parse(localStorage.getItem('dw_streak_v2') || '{"count":0,"lastDate":"","freezesAvailable":1,"lastFreezeWeek":""}');
     if (data.lastDate === today) return;
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const count = data.lastDate === yesterday.toISOString().slice(0, 10) ? (data.count || 0) + 1 : 1;
-    localStorage.setItem('dw_streak', JSON.stringify({ lastDate: today, count }));
+    // Preserve freezesAvailable and lastFreezeWeek from HomeScreen's richer structure
+    localStorage.setItem('dw_streak_v2', JSON.stringify({ ...data, lastDate: today, count }));
   } catch {
-    localStorage.setItem('dw_streak', JSON.stringify({ lastDate: today, count: 1 }));
+    localStorage.setItem('dw_streak_v2', JSON.stringify({ lastDate: today, count: 1, freezesAvailable: 1, lastFreezeWeek: '' }));
   }
 }
 
