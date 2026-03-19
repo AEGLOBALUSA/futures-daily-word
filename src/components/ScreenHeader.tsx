@@ -9,15 +9,19 @@ export function ScreenHeader({ title, onBack }: Props) {
   if (!onBack) return null;
 
   return (
+    <>
     <div style={{
       display: 'flex',
       alignItems: 'center',
       gap: 8,
-      padding: '14px 16px 10px',
-      position: 'sticky',
+      padding: 'calc(10px + var(--safe-top, 0px)) 16px 10px',
+      position: 'fixed',
       top: 0,
-      zIndex: 10,
+      left: 0,
+      right: 0,
+      zIndex: 50,
       background: 'var(--dw-canvas)',
+      borderBottom: '1px solid var(--dw-border)',
     }}>
       <button
         onClick={onBack}
@@ -48,5 +52,8 @@ export function ScreenHeader({ title, onBack }: Props) {
         {title}
       </span>
     </div>
+    {/* Spacer so content below isn't hidden behind the fixed header */}
+    <div style={{ height: 'calc(44px + var(--safe-top, 0px))' }} />
+    </>
   );
 }
