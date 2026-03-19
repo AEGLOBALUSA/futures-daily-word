@@ -246,6 +246,22 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     setStreak(getStreak());
   }, []);
 
+  // Manually set plan progress to a specific day
+  const setPlanToDay = useCallback((planId: string, targetDay: number) => {
+    const plans = getActivePlans();
+    const plan = plans[planId];
+    if (!plan) return;
+    const catalogPlan = PLAN_CATALOGUE.find(p => p.id === planId);
+    const max = catalogPlan?.totalDays || 365;
+    const day = Math.max(0, Math.min(targetDay, max));
+    // Build completedDays array: [1, 2, 3, ..., day]
+    plan.completedDays = Array.from({ length: day }, (_, i) => i + 1);
+    plan.lastDay = day;
+    plans[planId] = plan;
+    savePlans(plans);
+    setActivePlans({ ...plans });
+  }, []);
+
   const resetPlan = useCallback((planId: string) => {
     const plans = getActivePlans();
     trackBehavior('plan_dropped', planId);
@@ -899,6 +915,50 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                               </button>
                             </div>
                           )}
+                          {/* Manual day adjustment */}
+                          {!isBookPlan && (
+                            <div style={{
+                              marginTop: 12, padding: '10px 12px',
+                              background: 'var(--dw-surface-hover)', borderRadius: 10,
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            }}>
+                              <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                                Adjust progress
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setPlanToDay(plan.id, completedCount - 1); }}
+                                  disabled={completedCount <= 0}
+                                  style={{
+                                    width: 32, height: 32, borderRadius: 8,
+                                    background: completedCount > 0 ? 'var(--dw-surface)' : 'var(--dw-border)',
+                                    border: '1px solid var(--dw-border)', cursor: completedCount > 0 ? 'pointer' : 'default',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 16, fontWeight: 700, color: 'var(--dw-text-secondary)',
+                                  }}
+                                >
+                                  −
+                                </button>
+                                <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-primary)', minWidth: 50, textAlign: 'center' }}>
+                                  Day {completedCount}
+                                </span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setPlanToDay(plan.id, completedCount + 1); }}
+                                  disabled={completedCount >= totalItems}
+                                  style={{
+                                    width: 32, height: 32, borderRadius: 8,
+                                    background: completedCount < totalItems ? 'var(--dw-surface)' : 'var(--dw-border)',
+                                    border: '1px solid var(--dw-border)', cursor: completedCount < totalItems ? 'pointer' : 'default',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 16, fontWeight: 700, color: 'var(--dw-text-secondary)',
+                                  }}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Remove plan button */}
                           <button
                             onClick={(e) => { e.stopPropagation(); resetPlan(plan.id); }}
