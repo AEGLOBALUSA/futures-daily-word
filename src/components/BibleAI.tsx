@@ -491,8 +491,15 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                   }}
                 />
                 <button
-                  onClick={() => sendMessage()}
-                  disabled={!input.trim() || loading}
+                  onClick={() => {
+                    if (loading) {
+                      if (abortRef.current) abortRef.current.abort();
+                      setLoading(false);
+                    } else {
+                      sendMessage();
+                    }
+                  }}
+                  disabled={!loading && !input.trim()}
                   style={{
                     position: 'absolute',
                     right: 10,
@@ -500,19 +507,25 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                     width: 40,
                     height: 40,
                     borderRadius: '50%',
-                    background: input.trim() && !loading
-                      ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
-                      : 'var(--dw-border, #E8E6E0)',
+                    background: loading
+                      ? 'var(--dw-accent)'
+                      : input.trim()
+                        ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
+                        : 'var(--dw-border, #E8E6E0)',
                     border: 'none',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: input.trim() && !loading ? 'pointer' : 'default',
+                    cursor: loading || input.trim() ? 'pointer' : 'default',
                     transition: 'background 0.2s',
-                    boxShadow: input.trim() && !loading ? '0 2px 10px rgba(140,95,5,0.4)' : 'none',
+                    boxShadow: loading ? 'none' : input.trim() ? '0 2px 10px rgba(140,95,5,0.4)' : 'none',
                   }}
                 >
-                  <Send size={18} color={input.trim() && !loading ? '#fff' : 'var(--dw-text-muted)'} />
+                  {loading ? (
+                    <div style={{ width: 14, height: 14, borderRadius: 2, background: '#fff' }} />
+                  ) : (
+                    <Send size={18} color={input.trim() ? '#fff' : 'var(--dw-text-muted)'} />
+                  )}
                 </button>
               </div>
 
@@ -681,14 +694,38 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 </div>
               ))}
               {loading && (
-                <div style={{ display: 'flex', gap: 4, padding: '8px 0', alignItems: 'center' }}>
-                  {[0,1,2].map(i => (
-                    <div key={i} style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: 'var(--dw-text-muted)',
-                      animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-                    }} />
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' }}>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    {[0,1,2].map(i => (
+                      <div key={i} style={{
+                        width: 7, height: 7, borderRadius: '50%',
+                        background: 'var(--dw-text-muted)',
+                        animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                      }} />
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (abortRef.current) abortRef.current.abort();
+                      setLoading(false);
+                    }}
+                    style={{
+                      background: 'var(--dw-surface-hover)',
+                      border: '1px solid var(--dw-border)',
+                      borderRadius: 8,
+                      padding: '5px 12px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--dw-text-muted)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    ■ Stop
+                  </button>
                 </div>
               )}
               {/* Follow-up suggestions after AI responds */}
@@ -757,25 +794,38 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
             }}
           />
           <button
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || loading}
+            onClick={() => {
+              if (loading) {
+                if (abortRef.current) abortRef.current.abort();
+                setLoading(false);
+              } else {
+                sendMessage();
+              }
+            }}
+            disabled={!loading && !input.trim()}
             style={{
               width: 40,
               height: 40,
               borderRadius: '50%',
-              background: input.trim() && !loading
-                ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
-                : 'var(--dw-border, #E8E6E0)',
+              background: loading
+                ? 'var(--dw-accent)'
+                : input.trim()
+                  ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
+                  : 'var(--dw-border, #E8E6E0)',
               border: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: input.trim() && !loading ? 'pointer' : 'default',
+              cursor: loading || input.trim() ? 'pointer' : 'default',
               flexShrink: 0,
               transition: 'background 0.2s',
             }}
           >
-            <Send size={17} color={input.trim() && !loading ? '#fff' : 'var(--dw-text-muted)'} />
+            {loading ? (
+              <div style={{ width: 14, height: 14, borderRadius: 2, background: '#fff' }} />
+            ) : (
+              <Send size={17} color={input.trim() ? '#fff' : 'var(--dw-text-muted)'} />
+            )}
           </button>
         </div>
       </div>
