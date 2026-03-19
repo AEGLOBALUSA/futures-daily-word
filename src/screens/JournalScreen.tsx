@@ -1257,11 +1257,16 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', refresh);
     // Custom event fired when a note is saved from another screen
-    window.addEventListener('dw-journal-updated', refresh);
+    // Auto-switch to "My Notes" tab so the user sees their saved note immediately
+    const handleJournalUpdate = () => {
+      refresh();
+      setActiveTab('saved');
+    };
+    window.addEventListener('dw-journal-updated', handleJournalUpdate);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', refresh);
-      window.removeEventListener('dw-journal-updated', refresh);
+      window.removeEventListener('dw-journal-updated', handleJournalUpdate);
     };
   }, []);
 
@@ -1270,17 +1275,19 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const allowedEntryTypes = personaConfig.journal.entryTypes;
   const allTabs = [
     { id: 'today' as const, label: 'Today', icon: BookOpen, entryType: 'journal' },
+    { id: 'saved' as const, label: 'My Notes', icon: Bookmark, entryType: 'saved' },
     { id: 'journal' as const, label: 'Journal', icon: PenLine, entryType: 'journal' },
     { id: 'prayer' as const, label: 'Prayer', icon: Heart, entryType: 'prayer' },
     { id: 'sermon' as const, label: 'Sermons', icon: PenLine, entryType: 'sermon' },
     { id: 'teaching' as const, label: 'Teaching Notes', icon: GraduationCap, entryType: 'teaching-notes' },
-    { id: 'saved' as const, label: 'Saved', icon: Bookmark, entryType: 'saved' },
   ];
   const tabs = allTabs.filter(t => t.id === 'today' || allowedEntryTypes.includes(t.entryType));
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
     if (activeTab === 'teaching') return e.type === 'teaching-notes';
     if (activeTab === 'prayer') return e.type === 'prayer';
+    // "My Notes" shows saved items + any journal entry with a verse reference (scripture notes)
+    if (activeTab === 'saved') return e.type === 'saved' || (e.type === 'journal' && e.verseRef);
     return e.type === activeTab;
   }) : [];
 

@@ -17,7 +17,7 @@ function saveToJournal(verseRef: string, highlightedText: string, note: string) 
     existing.unshift({
       id: Date.now().toString(),
       date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      type: 'journal',
+      type: 'saved',
       title: verseRef || 'Scripture Note',
       body: note,
       tags: ['scripture'],
