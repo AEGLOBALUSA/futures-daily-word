@@ -513,6 +513,38 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 </button>
               </div>
 
+              {/* Greek & Hebrew word study — standalone entry point */}
+              <button
+                onClick={() => {
+                  const passage = selectedText ? `this passage: "${selectedText.substring(0, 120)}"` : 'today\'s reading';
+                  sendMessage(`Break down the key Greek and Hebrew words in ${passage}. For each word, give me the original word, transliteration, Strong's number if known, and what it means in context.`);
+                }}
+                style={{
+                  width: '100%',
+                  maxWidth: 340,
+                  margin: '0 auto 16px',
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, rgba(154,123,46,0.12), rgba(154,123,46,0.06))',
+                  border: '1px solid rgba(154,123,46,0.25)',
+                  borderRadius: 12,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 20 }}>Hebrew</span>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)', display: 'block' }}>
+                    Greek & Hebrew Word Meanings
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                    Original language breakdown
+                  </span>
+                </div>
+              </button>
+
               <p style={{
                 fontSize: 12, color: 'rgba(154,123,46,0.75)', fontFamily: 'var(--font-sans)',
                 marginBottom: 14, letterSpacing: '0.03em',
