@@ -37,7 +37,7 @@ function getCorsHeaders(origin) {
 }
 
 // Fetch with timeout
-async function fetchWithTimeout(url, opts, timeoutMs = 25000) {
+async function fetchWithTimeout(url, opts, timeoutMs = 55000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -113,7 +113,7 @@ exports.handler = async (event) => {
         },
         body: JSON.stringify(sanitized)
       },
-      25000 // 25 second timeout
+      55000 // 55 second timeout (Netlify max is 60s)
     );
 
     const data = await response.json();

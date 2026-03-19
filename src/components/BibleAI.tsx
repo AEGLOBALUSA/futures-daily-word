@@ -102,9 +102,18 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     }
   }, [isOpen])
 
+  const abortRef = useRef<AbortController | null>(null)
+
   async function sendMessage(text?: string) {
     const msg = text ?? input.trim()
-    if (!msg || loading) return
+    if (!msg) return
+    // If already loading, abort the previous request so user isn't stuck
+    if (loading && abortRef.current) {
+      abortRef.current.abort()
+      setLoading(false)
+      return
+    }
+    if (loading) return
     setInput('')
     const userMsg: Message = { role: 'user', content: msg }
     setMessages(prev => [...prev, userMsg])
@@ -128,6 +137,8 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     const systemPrompt = systemParts.join('\n\n')
 
     try {
+      const controller = new AbortController()
+      abortRef.current = controller
       const res = await fetch('/.netlify/functions/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,13 +147,19 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           system: systemPrompt,
           max_tokens: 1024,
         }),
+        signal: controller.signal,
       })
       const data = await res.json()
       const reply = data?.content?.[0]?.text ?? data?.error ?? 'Sorry, something went wrong. Please try again.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }])
+    } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') {
+        // User cancelled — don't add error message
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }])
+      }
     } finally {
+      abortRef.current = null
       setLoading(false)
     }
   }
@@ -594,7 +611,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
 
         {/* Input bar */}
         <div style={{
-          padding: '10px 12px',
+          padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) 12px',
           borderTop: '1px solid var(--dw-border, #E8E6E0)',
           display: 'flex',
           gap: 8,
