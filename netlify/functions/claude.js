@@ -1,9 +1,6 @@
 /**
- * AI Chat Proxy — Google Gemini backend
- * Accepts Anthropic-format requests from the frontend, translates to Gemini,
- * and returns responses in Anthropic-compatible format so the frontend is unchanged.
- *
- * Falls back to Anthropic Claude if GEMINI_API_KEY is not set but ANTHROPIC_API_KEY is.
+ * AI Chat Proxy — Claude (Anthropic) backend
+ * Proxies requests from the BibleAI frontend to the Anthropic Messages API.
  */
 
 const ALLOWED_ORIGINS = [
@@ -53,92 +50,6 @@ async function fetchWithTimeout(url, opts, timeoutMs = 55000) {
   }
 }
 
-// ── Gemini API call ──
-async function callGemini(apiKey, messages, systemPrompt, maxTokens) {
-  // Convert Anthropic messages to Gemini format
-  const geminiContents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
-  }));
-
-  const geminiBody = {
-    contents: geminiContents,
-    generationConfig: {
-      maxOutputTokens: maxTokens,
-      temperature: 0.7,
-    },
-  };
-
-  // System instruction (Gemini supports this natively)
-  if (systemPrompt) {
-    geminiBody.systemInstruction = {
-      parts: [{ text: systemPrompt }],
-    };
-  }
-
-  const model = 'gemini-2.0-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-  const response = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(geminiBody),
-  }, 55000);
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    return {
-      status: response.status,
-      body: {
-        error: data?.error?.message || 'Gemini API error',
-      },
-    };
-  }
-
-  // Extract text from Gemini response
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-  // Return in Anthropic-compatible format so frontend doesn't need changes
-  return {
-    status: 200,
-    body: {
-      content: [{ type: 'text', text }],
-      model,
-      role: 'assistant',
-      stop_reason: data?.candidates?.[0]?.finishReason === 'MAX_TOKENS' ? 'max_tokens' : 'end_turn',
-    },
-  };
-}
-
-// ── Anthropic Claude API call (fallback) ──
-async function callClaude(apiKey, messages, systemPrompt, maxTokens) {
-  const sanitized = {
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: maxTokens,
-    messages,
-  };
-  if (systemPrompt) sanitized.system = systemPrompt;
-
-  const response = await fetchWithTimeout(
-    'https://api.anthropic.com/v1/messages',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(sanitized),
-    },
-    55000
-  );
-
-  const data = await response.json();
-  return { status: response.status, body: data };
-}
-
-// ── Main handler ──
 exports.handler = async (event) => {
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const corsHeaders = getCorsHeaders(origin);
@@ -165,12 +76,9 @@ exports.handler = async (event) => {
     return { statusCode: 429, headers: corsHeaders, body: JSON.stringify({ error: 'Too many requests. Please slow down.' }) };
   }
 
-  // Check which API key is available — prefer Gemini, fall back to Claude
-  const GEMINI_KEY = process.env.GEMINI_API_KEY;
-  const CLAUDE_KEY = process.env.ANTHROPIC_API_KEY;
-
-  if (!GEMINI_KEY && !CLAUDE_KEY) {
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'No AI API key configured' }) };
+  const API_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!API_KEY) {
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'API key not configured' }) };
   }
 
   try {
@@ -187,28 +95,39 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Too many messages (max 20)' }) };
     }
 
-    const maxTokens = Math.min(body.max_tokens || 1024, 2048);
-    const systemPrompt = body.system || '';
+    const sanitized = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: Math.min(body.max_tokens || 1024, 2048),
+      messages: body.messages,
+    };
+    if (body.system) sanitized.system = body.system;
 
-    // Try Gemini first, fall back to Claude
-    let result;
-    if (GEMINI_KEY) {
-      result = await callGemini(GEMINI_KEY, body.messages, systemPrompt, maxTokens);
-    } else {
-      result = await callClaude(CLAUDE_KEY, body.messages, systemPrompt, maxTokens);
-    }
+    const response = await fetchWithTimeout(
+      'https://api.anthropic.com/v1/messages',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(sanitized)
+      },
+      55000
+    );
 
+    const data = await response.json();
     return {
-      statusCode: result.status,
+      statusCode: response.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify(result.body),
+      body: JSON.stringify(data)
     };
   } catch (err) {
     const isTimeout = err.name === 'AbortError';
     return {
       statusCode: isTimeout ? 504 : 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: isTimeout ? 'AI request timed out — try a shorter question' : 'Proxy error' }),
+      body: JSON.stringify({ error: isTimeout ? 'AI request timed out — try a shorter question' : 'Proxy error' })
     };
   }
 };
