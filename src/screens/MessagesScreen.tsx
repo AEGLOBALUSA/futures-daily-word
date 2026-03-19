@@ -191,6 +191,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
 
     entries.unshift(entry);
     localStorage.setItem('dw_journal', JSON.stringify(entries));
+    window.dispatchEvent(new Event('dw-journal-updated'));
 
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
