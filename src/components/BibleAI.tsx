@@ -229,15 +229,18 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
   function saveToJournal(content: string) {
     try {
       const entry = {
+        id: Date.now().toString(),
+        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         type: 'saved',
-        tag: 'bible-ai',
-        content,
-        timestamp: new Date().toISOString(),
+        title: 'Bible AI Response',
+        body: content,
+        tags: ['bible-ai'],
       }
       const journal = JSON.parse(localStorage.getItem('dw_journal') || '[]')
-      journal.push(entry)
+      journal.unshift(entry)
       localStorage.setItem('dw_journal', JSON.stringify(journal))
-      showToast('Saved!')
+      window.dispatchEvent(new Event('dw-journal-updated'))
+      showToast('Saved to Journal!')
     } catch {
       showToast('Failed to save')
     }

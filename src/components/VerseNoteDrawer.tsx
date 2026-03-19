@@ -25,6 +25,8 @@ function saveToJournal(verseRef: string, highlightedText: string, note: string) 
       highlightedText,
     });
     localStorage.setItem(JOURNAL_KEY, JSON.stringify(existing.slice(0, 500)));
+    // Notify JournalScreen to refresh its entries
+    window.dispatchEvent(new Event('dw-journal-updated'));
   } catch {}
 }
 

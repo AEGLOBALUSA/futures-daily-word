@@ -1241,10 +1241,28 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
     return entries.find(e => e.verseRef === ref && e.date === today);
   }, [entries]);
 
-  // Re-read entries every time the screen mounts so scripture notes from HomeScreen appear
+  // Re-read entries on mount AND whenever the user navigates back to this screen.
+  // Since screens stay mounted, we listen for visibility/focus changes to pick up
+  // notes saved from HomeScreen's VerseNoteDrawer or BibleAI.
   useEffect(() => {
-    setEntries(getEntries());
-    setActivePlansData(getActivePlansData());
+    const refresh = () => {
+      setEntries(getEntries());
+      setActivePlansData(getActivePlansData());
+    };
+    refresh(); // initial load
+    // Re-read when tab becomes visible (covers switching between app tabs)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', refresh);
+    // Custom event fired when a note is saved from another screen
+    window.addEventListener('dw-journal-updated', refresh);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('dw-journal-updated', refresh);
+    };
   }, []);
 
   // Persona-filtered tabs
