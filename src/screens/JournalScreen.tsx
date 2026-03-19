@@ -1275,19 +1275,22 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const allowedEntryTypes = personaConfig.journal.entryTypes;
   const allTabs = [
     { id: 'today' as const, label: 'Today', icon: BookOpen, entryType: 'journal' },
-    { id: 'saved' as const, label: 'My Notes', icon: Bookmark, entryType: 'saved' },
-    { id: 'journal' as const, label: 'Journal', icon: PenLine, entryType: 'journal' },
+    { id: 'saved' as const, label: 'All Notes', icon: Bookmark, entryType: 'saved' },
     { id: 'prayer' as const, label: 'Prayer', icon: Heart, entryType: 'prayer' },
     { id: 'sermon' as const, label: 'Sermons', icon: PenLine, entryType: 'sermon' },
     { id: 'teaching' as const, label: 'Teaching Notes', icon: GraduationCap, entryType: 'teaching-notes' },
   ];
-  const tabs = allTabs.filter(t => t.id === 'today' || allowedEntryTypes.includes(t.entryType));
+  // "All Notes" shows for any persona that has 'journal' or 'saved' in their entryTypes
+  const tabs = allTabs.filter(t => t.id === 'today' || t.id === 'saved'
+    ? (allowedEntryTypes.includes('journal') || allowedEntryTypes.includes('saved'))
+    : allowedEntryTypes.includes(t.entryType));
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
     if (activeTab === 'teaching') return e.type === 'teaching-notes';
     if (activeTab === 'prayer') return e.type === 'prayer';
-    // "My Notes" shows saved items + any journal entry with a verse reference (scripture notes)
-    if (activeTab === 'saved') return e.type === 'saved' || (e.type === 'journal' && e.verseRef);
+    if (activeTab === 'sermon') return e.type === 'sermon';
+    // "All Notes" shows everything: journal entries, saved scripture notes, BibleAI saves
+    if (activeTab === 'saved') return e.type === 'saved' || e.type === 'journal';
     return e.type === activeTab;
   }) : [];
 
@@ -1307,7 +1310,7 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
       title: '',
       body: '',
       tags: [],
-      type: (activeTab === 'saved' || activeTab === 'today') ? 'journal' : activeTab === 'teaching' ? 'teaching-notes' : activeTab === 'prayer' ? 'prayer' : activeTab as JournalEntry['type'],
+      type: (activeTab === 'saved' || activeTab === 'today' || activeTab === 'journal') ? 'journal' : activeTab === 'teaching' ? 'teaching-notes' : activeTab === 'prayer' ? 'prayer' : activeTab as JournalEntry['type'],
     });
     setShowEditor(true);
   }, [activeTab, userProfile, requireEmail]);
