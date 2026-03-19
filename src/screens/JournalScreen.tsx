@@ -1316,6 +1316,8 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
     setShowEditor(true);
   }, []);
 
+  const [editorSaved, setEditorSaved] = useState(false);
+
   const saveEntry = useCallback(() => {
     if (!editingEntry || !editingEntry.title.trim()) return;
     const all = getEntries();
@@ -1329,8 +1331,13 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
     track('journal_save', editingEntry.type || 'journal');
     saveEntries(all);
     setEntries(all);
-    setShowEditor(false);
-    setEditingEntry(null);
+    // Show "Saved!" confirmation before closing
+    setEditorSaved(true);
+    setTimeout(() => {
+      setEditorSaved(false);
+      setShowEditor(false);
+      setEditingEntry(null);
+    }, 1200);
   }, [editingEntry]);
 
   const deleteEntry = useCallback((id: string) => {
@@ -1376,23 +1383,28 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
           </span>
           <div style={{ display: 'flex', gap: 12 }}>
             <button
-              onClick={() => deleteEntry(editingEntry.id)}
+              onClick={() => {
+                if (window.confirm('Delete this entry? This cannot be undone.')) {
+                  deleteEntry(editingEntry.id);
+                }
+              }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4 }}
             >
               <Trash2 size={18} />
             </button>
             <button
               onClick={saveEntry}
-              disabled={!editingEntry.title.trim()}
+              disabled={!editingEntry.title.trim() || editorSaved}
               style={{
-                background: 'var(--dw-accent)', border: 'none', borderRadius: 8,
+                background: editorSaved ? '#2563EB' : 'var(--dw-accent)', border: 'none', borderRadius: 8,
                 padding: '6px 14px', color: '#fff', fontSize: 13, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4,
-                opacity: !editingEntry.title.trim() ? 0.5 : 1,
+                opacity: !editingEntry.title.trim() && !editorSaved ? 0.5 : 1,
                 fontFamily: 'var(--font-sans)',
+                transition: 'background 0.2s',
               }}
             >
-              <Save size={14} /> Save
+              {editorSaved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save</>}
             </button>
           </div>
         </div>

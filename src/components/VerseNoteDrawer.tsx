@@ -96,7 +96,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
     setTimeout(() => {
       onClose();
       setSaved(false);
-    }, 1200);
+    }, 1800);
   };
 
   const handleCommentaryTab = () => {
