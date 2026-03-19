@@ -879,7 +879,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   }, [compareMode, compareTranslation, todaysPlanPassages]);
 
   // ── Hero full-passage state (always ESV for real human audio) ──────────────
-  const [heroFullText, setHeroFullText] = useState('');
+  // heroFullText removed — audio now fetches per-chapter on demand
   const [heroLoading, setHeroLoading] = useState(false);
   const [planTick, setPlanTick] = useState(0); // increment to force plan list re-render
   const HERO_KEY = '__hero__';
@@ -1051,37 +1051,77 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef]);
   const heroKey = heroChapterRefs.join('|');
 
-  // Pre-load all today's chapters in ESV — real human audio via ESV.org
+  // Pre-load all today's chapter texts (for read view and audio)
   useEffect(() => {
     if (!heroKey) return;
     setHeroLoading(true);
-    Promise.all(heroChapterRefs.map(ref => fetchPassage(ref, 'ESV').catch(() => '')))
-      .then(texts => setHeroFullText(texts.filter(Boolean).join('\n\n')))
+    Promise.all(heroChapterRefs.map(ref => fetchPassage(ref, translation).catch(() => '')))
       .finally(() => setHeroLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroKey]);
 
-  // Play all today's chapters combined in ESV (real human reader)
-  const handleHeroListen = async () => {
-    AP.unlock(); // must be synchronous in tap handler
-    setAudioError(false);
-    if (AP.isPlaying(HERO_KEY)) { AP.stop(); return; }
-    if (audioPlaying) AP.stop();
-    if (!heroFullText) return;
+  // Play all today's chapters one by one (sequential queue)
+  const heroQueueRef = useRef<string[]>([]);
+  const heroQueueActiveRef = useRef(false);
 
+  const playNextInQueue = async () => {
+    if (heroQueueRef.current.length === 0) {
+      heroQueueActiveRef.current = false;
+      return;
+    }
+    const ref = heroQueueRef.current.shift()!;
+    const cacheKey = HERO_KEY + ref;
     try {
-      const combinedRef = heroChapterRefs.join('; ');
-      const cacheKey = HERO_KEY + heroKey;
       let src = audioSrcCache.current.get(cacheKey);
       if (!src) {
-        src = await AP.fetchAudioSrc(heroFullText.slice(0, 20000), 'ESV', combinedRef) ?? undefined;
-        if (src) audioSrcCache.current.set(cacheKey, src);
+        // Fetch the text for this chapter, then get audio
+        const text = await fetchPassage(ref, translation).catch(() => '');
+        if (text) {
+          src = await AP.fetchAudioSrc(text, translation, ref) ?? undefined;
+          if (src) audioSrcCache.current.set(cacheKey, src);
+        }
       }
       if (src) {
         await AP.play(HERO_KEY, src);
+        // Wait for this chapter to finish playing before starting next
+        await new Promise<void>(resolve => {
+          const unsub = AP.onStateChange((state) => {
+            if (state === 'idle') { unsub(); resolve(); }
+          });
+        });
+        // Play next chapter
+        playNextInQueue();
       } else {
-        setAudioError(true);
+        // Skip this chapter, try next
+        playNextInQueue();
       }
+    } catch {
+      // Skip on error, try next
+      playNextInQueue();
+    }
+  };
+
+  const handleHeroListen = async () => {
+    AP.unlock(); // must be synchronous in tap handler
+    setAudioError(false);
+
+    // Toggle off if already playing
+    if (AP.isPlaying(HERO_KEY)) {
+      AP.stop();
+      heroQueueRef.current = [];
+      heroQueueActiveRef.current = false;
+      return;
+    }
+    if (audioPlaying) AP.stop();
+
+    if (heroChapterRefs.length === 0) return;
+
+    // Queue all chapters for sequential playback
+    heroQueueRef.current = [...heroChapterRefs];
+    heroQueueActiveRef.current = true;
+
+    try {
+      await playNextInQueue();
     } catch { setAudioError(true); }
   };
 
