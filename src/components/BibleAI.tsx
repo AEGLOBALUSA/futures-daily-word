@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { trackBehavior } from '../utils/behavior'
 import { getPersonaConfig } from '../utils/persona-config'
-import { Send, ChevronDown, Copy, BookmarkPlus } from 'lucide-react'
+import { Send, ChevronDown, Copy, BookmarkPlus, RotateCcw } from 'lucide-react'
 
 /** Inline "BIBLE AI" wordmark used wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -103,6 +103,46 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
   }, [isOpen])
 
   const abortRef = useRef<AbortController | null>(null)
+  const [followUps, setFollowUps] = useState<string[]>([])
+
+  function resetChat() {
+    if (abortRef.current) abortRef.current.abort()
+    setMessages([])
+    setInput('')
+    setLoading(false)
+    setFollowUps([])
+    setTimeout(() => inputRef.current?.focus(), 300)
+  }
+
+  // Generate follow-up suggestions from the last AI response
+  function generateFollowUps(aiResponse: string): string[] {
+    const suggestions: string[] = []
+    // Context-aware follow-ups based on what the AI talked about
+    if (aiResponse.includes('Greek') || aiResponse.includes('Hebrew') || aiResponse.includes('original')) {
+      suggestions.push('What other words in this passage have interesting original meanings?')
+    }
+    if (aiResponse.includes('context') || aiResponse.includes('audience') || aiResponse.includes('written')) {
+      suggestions.push('How does the historical context change how we read this?')
+    }
+    if (aiResponse.includes('apply') || aiResponse.includes('practical') || aiResponse.includes('life')) {
+      suggestions.push('Give me a specific way to apply this today')
+    }
+    if (aiResponse.includes('cross-reference') || aiResponse.includes('other passage') || aiResponse.includes('also says')) {
+      suggestions.push('What other passages connect to this theme?')
+    }
+    // Always offer these general ones if we don't have enough
+    const general = [
+      'Go deeper on this — what am I missing?',
+      'How would you explain this to someone new to faith?',
+      'What does this mean for my daily life?',
+      'Are there any cross-references I should look at?',
+    ]
+    while (suggestions.length < 2) {
+      const pick = general[Math.floor(Math.random() * general.length)]
+      if (!suggestions.includes(pick)) suggestions.push(pick)
+    }
+    return suggestions.slice(0, 3)
+  }
 
   async function sendMessage(text?: string) {
     const msg = text ?? input.trim()
@@ -152,6 +192,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
       const data = await res.json()
       const reply = data?.content?.[0]?.text ?? data?.error ?? 'Sorry, something went wrong. Please try again.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      setFollowUps(generateFollowUps(reply))
     } catch (err: unknown) {
       if ((err as Error)?.name === 'AbortError') {
         // User cancelled — don't add error message
@@ -323,16 +364,27 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                 letterSpacing: '0.03em', display: 'block', marginTop: 1,
               }}>
-                Powered by Claude · Anthropic
+                Ask anything about the Bible
               </span>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--dw-text-muted)' }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {messages.length > 0 && (
+              <button
+                onClick={resetChat}
+                title="Start fresh"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--dw-text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontFamily: 'var(--font-sans)' }}
+              >
+                <RotateCcw size={15} /> New
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--dw-text-muted)' }}
+            >
             <ChevronDown size={22} />
           </button>
+          </div>
         </div>
 
         {/* Messages or empty state */}
@@ -601,6 +653,34 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                       background: 'var(--dw-text-muted)',
                       animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
                     }} />
+                  ))}
+                </div>
+              )}
+              {/* Follow-up suggestions after AI responds */}
+              {!loading && followUps.length > 0 && messages.length > 0 && messages[messages.length - 1].role === 'assistant' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4, marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Keep going
+                  </span>
+                  {followUps.map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setFollowUps([]); sendMessage(q); }}
+                      style={{
+                        background: 'var(--dw-card, #F5F3EF)',
+                        border: '1px solid var(--dw-border, #E0DDD6)',
+                        borderRadius: 10,
+                        padding: '8px 12px',
+                        fontSize: 12,
+                        color: 'var(--dw-text)',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-sans)',
+                        textAlign: 'left',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {q}
+                    </button>
                   ))}
                 </div>
               )}
