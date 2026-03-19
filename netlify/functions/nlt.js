@@ -86,8 +86,8 @@ exports.handler = async (event) => {
   }
 
   try {
-    const passage = event.queryStringParameters.q;
-    const version = event.queryStringParameters.v || 'NLT';
+    const passage = event.queryStringParameters?.q;
+    const version = event.queryStringParameters?.v || 'NLT';
 
     if (!passage) {
       return {

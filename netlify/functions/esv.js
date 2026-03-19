@@ -51,7 +51,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const passage = event.queryStringParameters.q;
+    const passage = event.queryStringParameters?.q;
     if (!passage) {
       return {
         statusCode: 400,

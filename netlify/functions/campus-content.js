@@ -81,6 +81,12 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing required fields" }) };
       }
 
+      // Validate content type
+      const validTypes = ["note", "announcement", "sermon_note", "essay", "prayer_point", "video"];
+      if (type && !validTypes.includes(type)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid content type" }) };
+      }
+
       // Require valid pastor code for the campus
       if (!validateCampusCode(campus, code)) {
         return { statusCode: 403, headers, body: JSON.stringify({ error: "Invalid or missing pastor code" }) };
