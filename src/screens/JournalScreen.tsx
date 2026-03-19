@@ -5,7 +5,7 @@ import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, GraduationCap } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart } from 'lucide-react';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -1274,23 +1274,19 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const personaConfig = getPersonaConfig(setup?.persona);
   const allowedEntryTypes = personaConfig.journal.entryTypes;
   const allTabs = [
-    { id: 'today' as const, label: 'Today', icon: BookOpen, entryType: 'journal' },
-    { id: 'saved' as const, label: 'All Notes', icon: Bookmark, entryType: 'saved' },
-    { id: 'prayer' as const, label: 'Prayer', icon: Heart, entryType: 'prayer' },
-    { id: 'sermon' as const, label: 'Sermons', icon: PenLine, entryType: 'sermon' },
-    { id: 'teaching' as const, label: 'Teaching Notes', icon: GraduationCap, entryType: 'teaching-notes' },
+    { id: 'today' as const, label: 'Today', icon: BookOpen },
+    { id: 'saved' as const, label: 'All Notes', icon: Bookmark },
+    { id: 'prayer' as const, label: 'Prayer', icon: Heart },
   ];
-  // "All Notes" shows for any persona that has 'journal' or 'saved' in their entryTypes
-  const tabs = allTabs.filter(t => t.id === 'today' || t.id === 'saved'
-    ? (allowedEntryTypes.includes('journal') || allowedEntryTypes.includes('saved'))
-    : allowedEntryTypes.includes(t.entryType));
+  // Show all 3 tabs for every persona (prayer shows if persona has 'prayer' in entryTypes)
+  const tabs = allTabs.filter(t =>
+    t.id === 'today' || t.id === 'saved' || allowedEntryTypes.includes(t.id)
+  );
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
-    if (activeTab === 'teaching') return e.type === 'teaching-notes';
     if (activeTab === 'prayer') return e.type === 'prayer';
-    if (activeTab === 'sermon') return e.type === 'sermon';
-    // "All Notes" shows everything: journal entries, saved scripture notes, BibleAI saves
-    if (activeTab === 'saved') return e.type === 'saved' || e.type === 'journal';
+    // "All Notes" shows everything: journal, saved, sermon, teaching notes — one list
+    if (activeTab === 'saved') return e.type !== 'prayer';
     return e.type === activeTab;
   }) : [];
 
