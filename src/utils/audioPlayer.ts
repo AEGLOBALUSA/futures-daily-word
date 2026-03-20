@@ -11,6 +11,7 @@ type StateListener = (state: PlaybackState, passage?: string) => void;
 let audioEl: HTMLAudioElement | null = null;
 let unlocked = false;
 let unlockVersion = 0;
+let unlockPromise: Promise<void> | null = null;
 let currentPassage: string | null = null;
 let state: PlaybackState = 'idle';
 const listeners = new Set<StateListener>();
@@ -18,7 +19,9 @@ const listeners = new Set<StateListener>();
 function setState(s: PlaybackState, passage?: string | null) {
   state = s;
   currentPassage = passage ?? null;
-  listeners.forEach(fn => { try { fn(state, currentPassage ?? undefined); } catch {} });
+  listeners.forEach(fn => {
+    try { fn(state, currentPassage ?? undefined); } catch {}
+  });
 }
 
 export function onStateChange(fn: StateListener): () => void {
@@ -45,7 +48,6 @@ function getAudio(): HTMLAudioElement {
   }
   return audioEl;
 }
-
 function generateSilenceBlob(): Blob {
   const numSamples = 441;
   const dataSize = numSamples * 2;
@@ -76,7 +78,7 @@ export function unlock(): void {
   audio.src = silenceUrl;
   const p = audio.play();
   if (p && p.then) {
-    p.then(() => {
+    unlockPromise = p.then(() => {
       unlocked = true;
       if (unlockVersion === v && state !== 'loading' && state !== 'playing') {
         audio.pause();
@@ -84,6 +86,8 @@ export function unlock(): void {
       URL.revokeObjectURL(silenceUrl);
     }).catch(() => {
       URL.revokeObjectURL(silenceUrl);
+    }).finally(() => {
+      unlockPromise = null;
     });
   }
 }
@@ -93,10 +97,8 @@ export function stop(): void {
   try { audio.pause(); } catch {}
   setState('idle');
 }
-
 // ── Fetch audio src as blob URL ──
 // Chain: ESV.org native → ElevenLabs AI → AWS Polly
-
 export async function fetchAudioSrc(
   text: string,
   translation: string,
@@ -141,7 +143,10 @@ export async function fetchAudioSrc(
   // ── 3. AWS Polly neural voice ──
   try {
     const lang = localStorage.getItem('dw_lang') || 'en';
-    const voiceId = lang === 'es' ? 'Lucia' : lang === 'pt' ? 'Camila' : lang === 'id' ? 'Andika' : 'Matthew';
+    const voiceId =
+      lang === 'es' ? 'Lucia' :
+      lang === 'pt' ? 'Camila' :
+      lang === 'id' ? 'Andika' : 'Matthew';
     const res = await fetch('/api/polly-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -155,10 +160,13 @@ export async function fetchAudioSrc(
 
   return null;
 }
-
 // ── Play ──
-
 export async function play(key: string, blobUrl: string): Promise<void> {
+  // Wait for any pending unlock to finish before touching the audio element
+  if (unlockPromise) {
+    try { await unlockPromise; } catch {}
+  }
+
   const audio = getAudio();
 
   if (state === 'playing' && currentPassage === key) { stop(); return; }
@@ -181,13 +189,10 @@ export async function play(key: string, blobUrl: string): Promise<void> {
       audio.load();
       const timer = setTimeout(onReady, 3000);
     });
-
     if (currentPassage !== key) return;
-
     await audio.play();
     unlocked = true;
     setState('playing', key);
-
   } catch (err) {
     console.error('[AudioPlayer]', err);
     setState('idle');
