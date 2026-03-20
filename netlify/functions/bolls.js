@@ -82,8 +82,8 @@ async function fetchWithTimeout(url, timeoutMs = 8000) {
 }
 
 exports.handler = async (event) => {
-  const origin = event.headers.origin || event.headers.Origin || '';
-  const referer = event.headers.referer || event.headers.Referer || '';
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+  const referer = event.headers?.referer || event.headers?.Referer || '';
   const corsHeaders = getCorsHeaders(origin);
 
   if (event.httpMethod === 'OPTIONS') {

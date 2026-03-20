@@ -1216,7 +1216,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
 export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, setup, requireEmail } = useUser();
   const { selection } = useScriptureSelection();
-  const [activeTab, setActiveTab] = useState<'today' | 'journal' | 'sermon' | 'saved' | 'prayer' | 'teaching'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
