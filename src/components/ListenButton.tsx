@@ -3,8 +3,8 @@
  * Uses the global AudioPlayer (single Audio element, iOS-safe).
  *
  * Usage:
- *   <ListenButton text="The Lord is my shepherd..." />
- *   <ListenButton text={longText} size="lg" label="Listen to all" />
+ * <ListenButton text="The Lord is my shepherd..." />
+ * <ListenButton text={longText} size="lg" label="Listen to all" />
  */
 import { useState, useEffect, useRef } from 'react';
 import { Volume2, Loader2, Square } from 'lucide-react';
@@ -42,9 +42,6 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
   const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Unlock iOS audio synchronously on tap
-    AP.unlock();
-
     // Toggle off
     if (AP.isPlaying(keyRef.current)) {
       AP.stop();
@@ -53,18 +50,15 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
 
     if (!text.trim()) return;
 
-    setLoading(true);
+    const activeTranslation = translation || localStorage.getItem('dw_translation') || 'ESV';
+
+    // ── iOS FIX: play() now handles unlock → fetch → play in one call ──
+    // unlock() is called synchronously inside play() within this tap gesture,
+    // BEFORE any network fetch. This keeps iOS Safari happy.
     try {
-      const activeTranslation = translation || localStorage.getItem('dw_translation') || 'ESV';
-      const src = await AP.fetchAudioSrc(text.slice(0, 20000), activeTranslation, passageRef);
-      if (src) {
-        await AP.play(keyRef.current, src);
-      } else {
-        setLoading(false);
-      }
+      await AP.play(keyRef.current, text.slice(0, 20000), activeTranslation, passageRef);
     } catch {
       AP.stop();
-      setLoading(false);
     }
   };
 
@@ -174,3 +168,4 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
     </button>
   );
 }
+
