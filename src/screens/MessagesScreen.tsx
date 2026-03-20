@@ -91,14 +91,14 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="screen-container">
-      <ScreenHeader title="Notes" onBack={onBack} />
+      <ScreenHeader title="Church" onBack={onBack} />
       {/* Tab switcher */}
       <div style={{ padding: '24px 24px 0' }}>
         <h1 style={{
           fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400,
           color: 'var(--dw-text-primary)', letterSpacing: '-0.02em', marginBottom: 16,
         }}>
-          Notes
+          Church
         </h1>
         <div style={{
           display: 'flex', gap: 0, marginBottom: 24,
