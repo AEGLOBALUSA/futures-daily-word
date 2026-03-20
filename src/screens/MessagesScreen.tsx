@@ -158,13 +158,14 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
     );
   }
 
-  const typeLabel: Record<string, string> = {
-    announcement: 'Announcement',
-    sermon_note: 'Sermon Note',
-    essay: 'Essay',
-    note: 'Note',
-    prayer_point: 'Prayer Point',
-    video: 'Video',
+  // Type config: label, color, icon emoji
+  const typeConfig: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+    announcement: { label: 'Announcement', color: '#D97706', bg: 'rgba(217,119,6,0.10)', icon: '' },
+    sermon_note:  { label: 'Sermon Note',  color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', icon: '' },
+    essay:        { label: 'Essay',         color: '#2563EB', bg: 'rgba(37,99,235,0.10)', icon: '' },
+    note:         { label: 'Note',          color: 'var(--dw-text-muted)', bg: 'var(--dw-surface-hover)', icon: '' },
+    prayer_point: { label: 'Prayer Point',  color: '#059669', bg: 'rgba(5,150,105,0.10)', icon: '' },
+    video:        { label: 'Video',         color: '#DC2626', bg: 'rgba(220,38,38,0.10)', icon: '' },
   };
 
   return (
@@ -174,159 +175,228 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
         <button
           onClick={() => setShowPostForm(true)}
           style={{
-            width: '100%', padding: '12px', borderRadius: 12,
-            background: 'var(--dw-accent)', border: 'none', color: '#fff',
-            fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', marginBottom: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            width: '100%', padding: '14px 16px', borderRadius: 14,
+            background: 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
+            border: 'none', color: '#fff',
+            fontSize: 15, fontWeight: 700, cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', marginBottom: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 2px 12px rgba(168,50,59,0.3)',
           }}
         >
-          <Plus size={16} /> Post to Your Campus
+          <Plus size={18} /> Post to Your Campus
         </button>
       )}
 
       {/* Post form */}
       {isPastor && showPostForm && (
-        <Card style={{ marginBottom: 16, padding: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+        <div style={{
+          marginBottom: 20, padding: '20px',
+          background: 'var(--dw-card)', borderRadius: 16,
+          border: '1px solid var(--dw-border)',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)' }}>
               New Post
             </span>
-            <button onClick={() => setShowPostForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 4 }}>
-              ✕
+            <button onClick={() => setShowPostForm(false)} style={{
+              background: 'var(--dw-surface-hover)', border: 'none', cursor: 'pointer',
+              color: 'var(--dw-text-muted)', padding: '4px 8px', borderRadius: 6,
+              fontSize: 12, fontFamily: 'var(--font-sans)',
+            }}>
+              Cancel
             </button>
           </div>
+
           {/* Type selector */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-            {['announcement', 'sermon_note', 'essay', 'prayer_point'].map(t => (
-              <button
-                key={t}
-                onClick={() => setPostType(t)}
-                style={{
-                  padding: '5px 12px', borderRadius: 20,
-                  border: '1px solid', fontSize: 11, fontWeight: 600,
-                  borderColor: postType === t ? 'var(--dw-accent)' : 'var(--dw-border)',
-                  background: postType === t ? 'var(--dw-accent)' : 'transparent',
-                  color: postType === t ? '#fff' : 'var(--dw-text-muted)',
-                  cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                }}
-              >
-                {typeLabel[t]}
-              </button>
-            ))}
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Type
+          </p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {['announcement', 'sermon_note', 'essay', 'prayer_point'].map(t => {
+              const tc = typeConfig[t];
+              const active = postType === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setPostType(t)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 20,
+                    border: `1.5px solid ${active ? tc.color : 'var(--dw-border)'}`,
+                    background: active ? tc.bg : 'transparent',
+                    color: active ? tc.color : 'var(--dw-text-muted)',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
+                  }}
+                >
+                  {tc.icon} {tc.label}
+                </button>
+              );
+            })}
           </div>
+
           <input
             value={postTitle}
             onChange={e => setPostTitle(e.target.value)}
             placeholder="Title"
             style={{
-              width: '100%', padding: '10px 12px', borderRadius: 10,
-              border: '1px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
-              marginBottom: 8, outline: 'none', boxSizing: 'border-box',
+              width: '100%', padding: '12px 14px', borderRadius: 12,
+              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
+              color: 'var(--dw-text)', fontSize: 15, fontWeight: 600,
+              fontFamily: 'var(--font-sans)', marginBottom: 10, outline: 'none',
+              boxSizing: 'border-box',
             }}
           />
           <textarea
             value={postContent}
             onChange={e => setPostContent(e.target.value)}
-            placeholder="Write your message..."
-            rows={4}
+            placeholder="Write your message to the campus..."
+            rows={5}
             style={{
-              width: '100%', padding: '10px 12px', borderRadius: 10,
-              border: '1px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
-              marginBottom: 8, outline: 'none', resize: 'none', boxSizing: 'border-box',
+              width: '100%', padding: '12px 14px', borderRadius: 12,
+              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
+              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-serif-text)',
+              marginBottom: 10, outline: 'none', resize: 'none',
+              boxSizing: 'border-box', lineHeight: 1.6,
             }}
           />
           <input
             value={pastorCode}
             onChange={e => setPastorCode(e.target.value)}
-            placeholder="Pastor code"
+            placeholder="Enter your pastor code to publish"
+            type="password"
             style={{
-              width: '100%', padding: '10px 12px', borderRadius: 10,
-              border: '1px solid var(--dw-border)', background: 'var(--dw-surface)',
+              width: '100%', padding: '12px 14px', borderRadius: 12,
+              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
               color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
-              marginBottom: 12, outline: 'none', boxSizing: 'border-box',
+              marginBottom: 14, outline: 'none', boxSizing: 'border-box',
             }}
           />
           <button
             onClick={handlePost}
             disabled={posting || !postTitle.trim() || !postContent.trim() || !pastorCode.trim()}
             style={{
-              width: '100%', padding: '12px', borderRadius: 12,
-              background: posting ? 'var(--dw-border)' : 'var(--dw-accent)',
-              border: 'none', color: '#fff', fontSize: 14, fontWeight: 700,
+              width: '100%', padding: '14px', borderRadius: 14,
+              background: posting ? 'var(--dw-border)' : 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
+              border: 'none', color: '#fff', fontSize: 15, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'var(--font-sans)',
               opacity: (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) ? 0.5 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            {posting ? 'Posting...' : 'Post'}
+            {posting ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Publishing...</> : <><Send size={16} /> Publish</>}
           </button>
-        </Card>
+        </div>
       )}
 
       {posted && (
-        <div style={{ textAlign: 'center', color: '#2563EB', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-          <CheckCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Posted!
+        <div style={{
+          textAlign: 'center', padding: '10px 16px', marginBottom: 14,
+          background: 'rgba(37,99,235,0.08)', borderRadius: 10,
+          color: '#2563EB', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+        }}>
+          <CheckCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Published to your campus!
         </div>
       )}
 
       {/* Content list */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '32px 0' }}>
-          <Loader2 size={20} style={{ color: 'var(--dw-text-muted)', animation: 'spin 1s linear infinite' }} />
+        <div style={{ textAlign: 'center', padding: '48px 0' }}>
+          <Loader2 size={24} style={{ color: 'var(--dw-text-muted)', animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 8 }}>
+            Loading updates...
+          </p>
         </div>
       ) : items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '32px 0' }}>
-          <MessageSquare size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-            No updates from your campus pastor yet.
+        <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: '50%',
+            background: 'var(--dw-surface-hover)', margin: '0 auto 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <MessageSquare size={24} style={{ color: 'var(--dw-text-faint)' }} />
+          </div>
+          <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+            No updates yet
+          </p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', lineHeight: 1.5 }}>
+            Your campus pastor hasn't posted anything yet. Check back soon.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {items.map(item => {
             const isExpanded = expandedItem === item.id;
+            const tc = typeConfig[item.type] || typeConfig.note;
             return (
-              <Card key={item.id} onClick={() => setExpandedItem(isExpanded ? null : item.id)}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+              <div
+                key={item.id}
+                onClick={() => setExpandedItem(isExpanded ? null : item.id)}
+                style={{
+                  background: 'var(--dw-card)',
+                  border: '1px solid var(--dw-border)',
+                  borderLeft: `3px solid ${tc.color}`,
+                  borderRadius: '0 14px 14px 0',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                   <div style={{ flex: 1 }}>
                     <span style={{
-                      fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                      textTransform: 'uppercase', color: 'var(--dw-accent)',
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                      textTransform: 'uppercase', color: tc.color,
                       fontFamily: 'var(--font-sans)',
+                      background: tc.bg, padding: '2px 8px', borderRadius: 4,
                     }}>
-                      {typeLabel[item.type] || 'Note'}
+                      {tc.icon} {tc.label}
                     </span>
-                    <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
+                    <p style={{
+                      fontSize: 16, fontWeight: 600, color: 'var(--dw-text-primary)',
+                      fontFamily: 'var(--font-serif)', margin: '8px 0 0', lineHeight: 1.3,
+                    }}>
                       {item.title}
                     </p>
                   </div>
-                  <span style={{ fontSize: 10, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', marginLeft: 8 }}>
+                  <span style={{
+                    fontSize: 10, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)',
+                    whiteSpace: 'nowrap', marginLeft: 12, marginTop: 2,
+                  }}>
                     {item.date}
                   </span>
                 </div>
+
+                {!isExpanded && item.content.length > 100 && (
+                  <p style={{
+                    fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                    margin: '4px 0 0', lineHeight: 1.5,
+                  }}>
+                    {item.content.slice(0, 100)}...
+                  </p>
+                )}
+
                 {isExpanded && (
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--dw-border-subtle)' }}>
                     <p style={{
-                      fontSize: 14, lineHeight: 1.7, color: 'var(--dw-text-secondary)',
-                      fontFamily: 'var(--font-serif-text)', whiteSpace: 'pre-wrap',
+                      fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)',
+                      fontFamily: 'var(--font-serif-text)', whiteSpace: 'pre-wrap', margin: 0,
                     }}>
                       {item.content}
                     </p>
                     {item.author && (
-                      <p style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', marginTop: 8, textAlign: 'right' }}>
-                        — {item.author}
+                      <p style={{
+                        fontSize: 12, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)',
+                        marginTop: 12, paddingTop: 8, borderTop: '1px solid var(--dw-border-subtle)',
+                        fontStyle: 'italic',
+                      }}>
+                        -- {item.author}
                       </p>
                     )}
                   </div>
                 )}
-                {!isExpanded && item.content.length > 80 && (
-                  <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
-                    {item.content.slice(0, 80)}...
-                  </p>
-                )}
-              </Card>
+              </div>
             );
           })}
         </div>
