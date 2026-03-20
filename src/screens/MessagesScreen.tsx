@@ -114,7 +114,7 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
               fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
               transition: 'all 0.2s ease',
             }}>
-              {tab === 'notes' ? 'Sermon Notes' : '🙏 Prayer Wall'}
+              {tab === 'notes' ? 'Sermons' : 'Prayer Wall'}
             </button>
           ))}
         </div>
@@ -236,7 +236,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
             transition: 'all 0.2s ease',
           }}>
             {saved ? <CheckCircle size={13} /> : <Save size={13} />}
-            {saved ? 'Saved!' : 'Save to Journal'}
+            {saved ? 'Saved!' : 'Save to Notes'}
           </button>
           <button onClick={handleShare} style={{
             display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
@@ -397,7 +397,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
         ))}
       </div>
 
-      {/* ── Bottom Save to Journal + Share ── */}
+      {/* ── Bottom Save to Notes + Share ── */}
       <div style={{
         padding: '32px 24px 24px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center',
       }}>
@@ -411,7 +411,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
           transition: 'all 0.2s ease',
         }}>
           {saved ? <CheckCircle size={18} /> : <Save size={18} />}
-          {saved ? 'Saved to Journal!' : 'Save to Journal'}
+          {saved ? 'Saved to Notes!' : 'Save to Notes'}
         </button>
         <button onClick={handleShare} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,

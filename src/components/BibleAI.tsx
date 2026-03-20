@@ -240,7 +240,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
       journal.unshift(entry)
       localStorage.setItem('dw_journal', JSON.stringify(journal))
       window.dispatchEvent(new Event('dw-journal-updated'))
-      showToast('Saved to Journal!')
+      showToast('Saved to Notes!')
     } catch {
       showToast('Failed to save')
     }

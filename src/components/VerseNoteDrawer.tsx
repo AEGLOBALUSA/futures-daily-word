@@ -268,7 +268,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
                   transition: 'background 0.2s',
                 }}
               >
-                {saved ? <><Check size={16} /> Saved to Journal</> : 'Save to Journal'}
+                {saved ? <><Check size={16} /> Saved to Notes</> : 'Save to Notes'}
               </button>
             </div>
           </>

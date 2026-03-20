@@ -1379,7 +1379,7 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
             <X size={22} />
           </button>
           <span style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-            {editingEntry.type === 'sermon' ? 'Sermon Notes' : 'Journal Entry'}
+            {editingEntry.type === 'sermon' ? 'Sermon Notes' : 'Note'}
           </span>
           <div style={{ display: 'flex', gap: 12 }}>
             <button
