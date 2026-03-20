@@ -3,7 +3,7 @@ import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
-import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2, Save, CheckCircle } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2, Save, CheckCircle, MessageSquare } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
@@ -84,10 +84,261 @@ async function prayForIt(id: string): Promise<boolean> {
   }
 }
 
+// ── Pastor's Corner Panel ────────────────────────────────────────────────────
+interface CampusItem { id: string; type: string; title: string; content: string; author: string; date: string; }
+
+function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: any }) {
+  const campus = userProfile?.campus || '';
+  const isPastor = setup?.persona === 'pastor_leader' || setup?.persona === 'pastor';
+  const [items, setItems] = useState<CampusItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postContent, setPostContent] = useState('');
+  const [postType, setPostType] = useState('announcement');
+  const [posting, setPosting] = useState(false);
+  const [posted, setPosted] = useState(false);
+  const [pastorCode, setPastorCode] = useState('');
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+
+  const fetchItems = useCallback(async () => {
+    if (!campus) { setLoading(false); return; }
+    try {
+      const res = await fetch(`/api/campus-content?campus=${encodeURIComponent(campus)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items || []);
+      }
+    } catch { /* */ }
+    setLoading(false);
+  }, [campus]);
+
+  useEffect(() => { fetchItems(); }, [fetchItems]);
+
+  const handlePost = async () => {
+    if (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) return;
+    setPosting(true);
+    try {
+      const res = await fetch('/api/campus-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campus,
+          type: postType,
+          title: postTitle.trim(),
+          content: postContent.trim(),
+          author: userProfile?.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : 'Pastor',
+          code: pastorCode.trim(),
+        }),
+      });
+      if (res.ok) {
+        setPosted(true);
+        setPostTitle('');
+        setPostContent('');
+        setShowPostForm(false);
+        setTimeout(() => setPosted(false), 2000);
+        fetchItems();
+        track('campus_content_post', postType);
+      } else {
+        const err = await res.json().catch(() => ({ error: 'Failed' }));
+        alert(err.error || 'Failed to post. Check your pastor code.');
+      }
+    } catch { alert('Network error. Please try again.'); }
+    setPosting(false);
+  };
+
+  if (!campus) {
+    return (
+      <div style={{ padding: '32px 24px', textAlign: 'center' }}>
+        <MessageSquare size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
+        <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+          Select your campus in Settings to see updates from your pastor.
+        </p>
+      </div>
+    );
+  }
+
+  const typeLabel: Record<string, string> = {
+    announcement: 'Announcement',
+    sermon_note: 'Sermon Note',
+    essay: 'Essay',
+    note: 'Note',
+    prayer_point: 'Prayer Point',
+    video: 'Video',
+  };
+
+  return (
+    <div style={{ padding: '0 24px 24px' }}>
+      {/* Pastor post button */}
+      {isPastor && !showPostForm && (
+        <button
+          onClick={() => setShowPostForm(true)}
+          style={{
+            width: '100%', padding: '12px', borderRadius: 12,
+            background: 'var(--dw-accent)', border: 'none', color: '#fff',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            fontFamily: 'var(--font-sans)', marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          <Plus size={16} /> Post to Your Campus
+        </button>
+      )}
+
+      {/* Post form */}
+      {isPastor && showPostForm && (
+        <Card style={{ marginBottom: 16, padding: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+              New Post
+            </span>
+            <button onClick={() => setShowPostForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 4 }}>
+              ✕
+            </button>
+          </div>
+          {/* Type selector */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            {['announcement', 'sermon_note', 'essay', 'prayer_point'].map(t => (
+              <button
+                key={t}
+                onClick={() => setPostType(t)}
+                style={{
+                  padding: '5px 12px', borderRadius: 20,
+                  border: '1px solid', fontSize: 11, fontWeight: 600,
+                  borderColor: postType === t ? 'var(--dw-accent)' : 'var(--dw-border)',
+                  background: postType === t ? 'var(--dw-accent)' : 'transparent',
+                  color: postType === t ? '#fff' : 'var(--dw-text-muted)',
+                  cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                }}
+              >
+                {typeLabel[t]}
+              </button>
+            ))}
+          </div>
+          <input
+            value={postTitle}
+            onChange={e => setPostTitle(e.target.value)}
+            placeholder="Title"
+            style={{
+              width: '100%', padding: '10px 12px', borderRadius: 10,
+              border: '1px solid var(--dw-border)', background: 'var(--dw-surface)',
+              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
+              marginBottom: 8, outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+          <textarea
+            value={postContent}
+            onChange={e => setPostContent(e.target.value)}
+            placeholder="Write your message..."
+            rows={4}
+            style={{
+              width: '100%', padding: '10px 12px', borderRadius: 10,
+              border: '1px solid var(--dw-border)', background: 'var(--dw-surface)',
+              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
+              marginBottom: 8, outline: 'none', resize: 'none', boxSizing: 'border-box',
+            }}
+          />
+          <input
+            value={pastorCode}
+            onChange={e => setPastorCode(e.target.value)}
+            placeholder="Pastor code"
+            style={{
+              width: '100%', padding: '10px 12px', borderRadius: 10,
+              border: '1px solid var(--dw-border)', background: 'var(--dw-surface)',
+              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
+              marginBottom: 12, outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+          <button
+            onClick={handlePost}
+            disabled={posting || !postTitle.trim() || !postContent.trim() || !pastorCode.trim()}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 12,
+              background: posting ? 'var(--dw-border)' : 'var(--dw-accent)',
+              border: 'none', color: '#fff', fontSize: 14, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              opacity: (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) ? 0.5 : 1,
+            }}
+          >
+            {posting ? 'Posting...' : 'Post'}
+          </button>
+        </Card>
+      )}
+
+      {posted && (
+        <div style={{ textAlign: 'center', color: '#2563EB', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+          <CheckCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Posted!
+        </div>
+      )}
+
+      {/* Content list */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
+          <Loader2 size={20} style={{ color: 'var(--dw-text-muted)', animation: 'spin 1s linear infinite' }} />
+        </div>
+      ) : items.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
+          <MessageSquare size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+            No updates from your campus pastor yet.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {items.map(item => {
+            const isExpanded = expandedItem === item.id;
+            return (
+              <Card key={item.id} onClick={() => setExpandedItem(isExpanded ? null : item.id)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                      textTransform: 'uppercase', color: 'var(--dw-accent)',
+                      fontFamily: 'var(--font-sans)',
+                    }}>
+                      {typeLabel[item.type] || 'Note'}
+                    </span>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
+                      {item.title}
+                    </p>
+                  </div>
+                  <span style={{ fontSize: 10, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', marginLeft: 8 }}>
+                    {item.date}
+                  </span>
+                </div>
+                {isExpanded && (
+                  <div style={{ marginTop: 8 }}>
+                    <p style={{
+                      fontSize: 14, lineHeight: 1.7, color: 'var(--dw-text-secondary)',
+                      fontFamily: 'var(--font-serif-text)', whiteSpace: 'pre-wrap',
+                    }}>
+                      {item.content}
+                    </p>
+                    {item.author && (
+                      <p style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', marginTop: 8, textAlign: 'right' }}>
+                        — {item.author}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {!isExpanded && item.content.length > 80 && (
+                  <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
+                    {item.content.slice(0, 80)}...
+                  </p>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 export function MessagesScreen({ onBack }: { onBack?: () => void }) {
-  const { userProfile, requireEmail } = useUser();
-  const [activeTab, setActiveTab] = useState<'notes' | 'prayer'>('notes');
+  const { userProfile, requireEmail, setup } = useUser();
+  const [activeTab, setActiveTab] = useState<'pastor' | 'notes' | 'prayer'>('pastor');
 
   return (
     <div className="screen-container">
@@ -105,22 +356,24 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
           background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
           border: '1px solid var(--dw-border)',
         }}>
-          {(['notes', 'prayer'] as const).map(tab => (
+          {(['pastor', 'notes', 'prayer'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               flex: 1, padding: '10px 0',
               background: activeTab === tab ? 'var(--dw-accent)' : 'transparent',
               color: activeTab === tab ? '#fff' : 'var(--dw-text-muted)',
               border: 'none', borderRadius: 9, cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+              fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
               transition: 'all 0.2s ease',
             }}>
-              {tab === 'notes' ? 'Sermons' : 'Prayer Wall'}
+              {tab === 'pastor' ? "Pastor's Corner" : tab === 'notes' ? 'Sermons' : 'Prayer Wall'}
             </button>
           ))}
         </div>
       </div>
 
-      {activeTab === 'notes'
+      {activeTab === 'pastor'
+        ? <PastorsCornerPanel userProfile={userProfile} setup={setup} />
+        : activeTab === 'notes'
         ? <SermonNotesPanel userProfile={userProfile} requireEmail={requireEmail} />
         : <PrayerWallPanel userProfile={userProfile} requireEmail={requireEmail} />
       }
