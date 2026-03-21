@@ -1081,7 +1081,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     playNextInQueue();
   }, [allPassagesSelected, heroChapterRefs, playNextInQueue]);
 
-  const playNextInQueue = async () => {
+  async function playNextInQueue() {
     if (!heroQueueActiveRef.current || heroQueueRef.current.length === 0) {
       heroQueueActiveRef.current = false;
       return;
