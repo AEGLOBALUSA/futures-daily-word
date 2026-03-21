@@ -12,6 +12,7 @@ import { PLAN_CATALOGUE } from '../data/plans';
 import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
+import { schedulePush } from '../utils/cloudSync';
 import { getPersonaConfig } from '../utils/persona-config';
 // sermons moved to Campus tab
 import { BibleAI } from '../components/BibleAI';
@@ -37,6 +38,9 @@ function getEntries(): JournalEntry[] {
 
 function saveEntries(entries: JournalEntry[]) {
   localStorage.setItem('dw_journal', JSON.stringify(entries));
+    // Cloud sync: push updated journal to cloud
+    const profile = JSON.parse(localStorage.getItem('dw_profile') || '{}');
+    if (profile.email) schedulePush(profile.email);
 }
 
 function generateId() {
