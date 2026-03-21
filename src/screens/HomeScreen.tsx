@@ -35,6 +35,7 @@ import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
 import { isSundayWindow } from '../utils/sunday';
+import { schedulePush } from '../utils/cloudSync';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
@@ -207,6 +208,7 @@ function recordStreakToday(): { count: number; isNew: boolean; isMilestone: bool
       newCount = (raw.count || 0) + 1;
       const saved = { count: newCount, lastDate: today, freezesAvailable: freezesAvailable - 1, lastFreezeWeek: thisWeek };
       localStorage.setItem('dw_streak_v2', JSON.stringify(saved));
+      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       const milestones = [7, 14, 30, 60, 100, 365];
       return { count: newCount, isNew: true, isMilestone: milestones.includes(newCount) };
     } else {
@@ -216,10 +218,12 @@ function recordStreakToday(): { count: number; isNew: boolean; isMilestone: bool
 
     const saved = { count: newCount, lastDate: today, freezesAvailable, lastFreezeWeek: raw.lastFreezeWeek || '' };
     localStorage.setItem('dw_streak_v2', JSON.stringify(saved));
+    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
     const milestones = [7, 14, 30, 60, 100, 365];
     return { count: newCount, isNew: true, isMilestone: milestones.includes(newCount) };
   } catch {
     localStorage.setItem('dw_streak_v2', JSON.stringify({ count: 1, lastDate: today, freezesAvailable: 1, lastFreezeWeek: thisWeek }));
+    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
     return { count: 1, isNew: true, isMilestone: false };
   }
 }
@@ -280,6 +284,7 @@ function saveTodayReaction(emoji: string) {
     const data = JSON.parse(localStorage.getItem('dw_reactions') || '{}');
     data[new Date().toISOString().slice(0, 10)] = emoji;
     localStorage.setItem('dw_reactions', JSON.stringify(data));
+      try { const _p = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_p.email) schedulePush(_p.email); } catch {}
   } catch { /* empty */ }
 }
 
@@ -563,6 +568,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         const updated = { ...pathwayProgress, enrolled: true, completedDays: pathwayProgress.completedDays || [], currentDay: pathwayProgress.currentDay || 1 };
         setPathwayProgress(updated);
         try { localStorage.setItem('dw_pathway_progress', JSON.stringify(updated)); } catch {}
+        try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       }
       if (!pathwayData) {
         fetch('/books/faith-pathway.json')
@@ -597,6 +603,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const savePathwayProgress = (p: PathwayProgress) => {
     setPathwayProgress(p);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
+    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
   };
 
   const saveReadingSlots = (slots: ReadingSlot[]) => {
@@ -943,6 +950,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         }
       }
       localStorage.setItem('dw_activeplans', JSON.stringify(updated));
+      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
     }
     localStorage.setItem('dw_setup_dismissed', '1');
     setShowSetupModal(false);
@@ -990,6 +998,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       if (existing[planId]) return; // already active
       existing[planId] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
       localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
 
       // If this is a book plan, also initialize dw_book_plans so progress tracking works
       const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
@@ -1006,6 +1015,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             startedAt: new Date().toISOString(),
           };
           localStorage.setItem('dw_book_plans', JSON.stringify(bookPlans));
+          try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
         }
       }
 
@@ -1018,6 +1028,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       delete existing[planId];
       localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
 
       // Also clean up book plan data if applicable
       const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
@@ -1026,6 +1037,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           (() => { try { return JSON.parse(localStorage.getItem('dw_book_plans') || '{}'); } catch { return {}; } })();
         delete bookPlans[planDef.bookId];
         localStorage.setItem('dw_book_plans', JSON.stringify(bookPlans));
+        try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
         localStorage.removeItem(`dw_book_today_${planDef.bookId}`);
       }
 
@@ -2522,6 +2534,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
                       existing[plan.id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
                       localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+                      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
                       localStorage.setItem('dw_setup_dismissed', '1');
                       window.location.reload();
                     }}
@@ -4290,6 +4303,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   const existing: Record<string, unknown> = (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
                   existing[featured.id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
                   localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+                  try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
                   window.location.reload();
                 }}
                 style={{
@@ -4468,6 +4482,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                                 const ap = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
                                 delete ap[plan.id];
                                 localStorage.setItem('dw_activeplans', JSON.stringify(ap));
+                                try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
                                 setPlanTick(t => t + 1);
                               } catch {}
                             }}
