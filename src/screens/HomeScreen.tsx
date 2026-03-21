@@ -3,7 +3,7 @@ import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { FontSizeControls } from '../components/FontSizeControls';
 import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
-import { getDailyPassages, getDatetring, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
+import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
