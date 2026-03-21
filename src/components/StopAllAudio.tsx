@@ -52,4 +52,4 @@ export function StopAllAudio({ onStop }: { onStop?: () => void } = {}) {
                                                         `}</style>
         </button>
       );
-}</button>
+}
