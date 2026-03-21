@@ -86,7 +86,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
     setAudioActive(true);
     try {
       const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
-      if (src) { await AP.play('library-read', src); }
+      if (src) { await AP.playUrl('library-read', src); }
       else { setAudioActive(false); }
     } catch { setAudioActive(false); }
   };

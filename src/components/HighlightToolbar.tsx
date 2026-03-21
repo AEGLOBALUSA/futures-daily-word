@@ -43,7 +43,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
     try {
       const src = await AP.fetchAudioSrc(selection.text.slice(0, 20000), 'ESV');
       if (src) {
-        await AP.play('highlight-listen', src);
+        await AP.playUrl('highlight-listen', src);
       } else { setListening(false); }
     } catch { setListening(false); }
   };

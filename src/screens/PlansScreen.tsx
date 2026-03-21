@@ -186,7 +186,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     try {
       const text = paragraphs.join(' ');
       const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
-      if (src) { await AP.play('book-chapter', src); }
+      if (src) { await AP.playUrl('book-chapter', src); }
       else { setBookAudioActive(false); }
     } catch { setBookAudioActive(false); }
   };
@@ -205,7 +205,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     setEssayAudioActive(true);
     try {
       const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
-      if (src) { await AP.play('essay-section', src); }
+      if (src) { await AP.playUrl('essay-section', src); }
       else { setEssayAudioActive(false); }
     } catch { setEssayAudioActive(false); }
   };

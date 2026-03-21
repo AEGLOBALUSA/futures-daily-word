@@ -497,7 +497,7 @@ function ModalSelectionBar({
     setListening(true);
     try {
       const src = await AP.fetchAudioSrc(selectedText.slice(0, 20000), 'ESV');
-      if (src) { await AP.play('journal-listen', src); }
+      if (src) { await AP.playUrl('journal-listen', src); }
       else { setListening(false); }
     } catch { setListening(false); }
   };

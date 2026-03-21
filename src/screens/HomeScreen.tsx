@@ -919,7 +919,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         if (src) audioSrcCache.current.set(cacheKey, src);
       }
       if (src) {
-        await AP.play(passage, src);
+        await AP.playUrl(passage, src);
       } else {
         setAudioError(true);
       }
@@ -1082,7 +1082,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         }
       }
       if (src) {
-        await AP.play(HERO_KEY, src);
+        await AP.playUrl(HERO_KEY, src);
         // Wait for this chapter to finish playing before starting next
         await new Promise<void>(resolve => {
           const unsub = AP.onStateChange((state) => {
