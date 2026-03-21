@@ -392,3 +392,21 @@ sup {
   -webkit-font-smoothing: auto !important;
   -moz-osx-font-smoothing: auto !important;
 }
+
+/* === CONTRAST FIX: White text on dark charcoal backgrounds === */
+[style*="charcoal"] {
+  color: #fff !important;
+  }
+  [style*="charcoal"] * {
+    color: #fff !important;
+    }
+    [style*="charcoal"] svg path {
+      stroke: #fff !important;
+      }
+      [style*="charcoal"] svg polyline {
+        stroke: #fff !important;
+        }
+        [style*="charcoal"] svg line {
+          stroke: #fff !important;
+          }
+          
