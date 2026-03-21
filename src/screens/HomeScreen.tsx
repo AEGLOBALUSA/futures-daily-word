@@ -1087,7 +1087,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         await new Promise<void>(resolve => {
           let unsub: (() => void) | undefined;
           unsub = AP.onStateChange((st) => {
-            if (st === 'idle') { unsub?.(); resolve(); }
+            if (st === 'idle') { unsub?.(); if (AP.wasStopRequested()) heroQueueActiveRef.current = false; resolve(); }
           });
         });
         // Play next chapter
