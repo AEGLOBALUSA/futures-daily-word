@@ -385,3 +385,10 @@ sup {
 :root:not([data-theme="light"]) a {
   color: #FFFFFF !important;
 }
+
+
+/* FONT SMOOTHING FIX: antialiased makes white text look gray on dark bg */
+:root:not([data-theme="light"]) * {
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
+}
