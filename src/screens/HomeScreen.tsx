@@ -41,7 +41,7 @@ const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
 const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
 const COMFORT_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
 
-// ── Comfort reading rotation — curated chapters for difficult seasons ──
+// ââ Comfort reading rotation â curated chapters for difficult seasons ââ
 const COMFORT_CHAPTERS = [
   'Psalm 23', 'Psalm 46', 'Psalm 91', 'Isaiah 40', 'John 14',
   'Romans 8', 'Psalm 34', 'Isaiah 43', 'Matthew 11', 'Psalm 121',
@@ -52,31 +52,31 @@ const COMFORT_CHAPTERS = [
   'Psalm 145', 'Revelation 21',
 ];
 
-// ── Short comfort devotions keyed to each chapter ──
+// ââ Short comfort devotions keyed to each chapter ââ
 const COMFORT_DEVOTIONS: Record<string, { title: string; body: string }> = {
   'Psalm 23': {
     title: 'He Is With You Right Now',
-    body: 'David didn\'t write this psalm from a comfortable place. He wrote it as a man who had been hunted, betrayed, and brought low. And yet — "I will fear no evil, for You are with me." Notice he didn\'t say the valley disappeared. He said God was in it with him. Whatever you\'re walking through today, you\'re not walking alone. The Shepherd is right beside you. He\'s not watching from a distance. He\'s close.',
+    body: 'David didn\'t write this psalm from a comfortable place. He wrote it as a man who had been hunted, betrayed, and brought low. And yet â "I will fear no evil, for You are with me." Notice he didn\'t say the valley disappeared. He said God was in it with him. Whatever you\'re walking through today, you\'re not walking alone. The Shepherd is right beside you. He\'s not watching from a distance. He\'s close.',
   },
   'Psalm 46': {
     title: 'Be Still and Know',
-    body: 'When everything around you feels like it\'s shaking — relationships, health, finances, the future — God says something simple: "Be still, and know that I am God." That\'s not a command to do nothing. It\'s an invitation to stop striving and trust that He is still in control. The mountains may fall into the sea. But He is your refuge. Right now, in this moment, you can exhale. He\'s got this.',
+    body: 'When everything around you feels like it\'s shaking â relationships, health, finances, the future â God says something simple: "Be still, and know that I am God." That\'s not a command to do nothing. It\'s an invitation to stop striving and trust that He is still in control. The mountains may fall into the sea. But He is your refuge. Right now, in this moment, you can exhale. He\'s got this.',
   },
   'Psalm 91': {
     title: 'Under His Wings',
-    body: 'There\'s a picture in this psalm that\'s easy to miss: "He will cover you with his feathers, and under his wings you will find refuge." Think about a mother bird pulling her young close during a storm. That\'s what God is doing with you. The storm may not stop. But you are sheltered. You are covered. He is your protection — not from every hard thing, but through every hard thing.',
+    body: 'There\'s a picture in this psalm that\'s easy to miss: "He will cover you with his feathers, and under his wings you will find refuge." Think about a mother bird pulling her young close during a storm. That\'s what God is doing with you. The storm may not stop. But you are sheltered. You are covered. He is your protection â not from every hard thing, but through every hard thing.',
   },
   'Isaiah 40': {
     title: 'New Strength Is Coming',
-    body: 'You\'re tired. Maybe not just physically — tired in your soul. Isaiah knew that feeling, and he wrote these words to people who felt forgotten by God: "Those who hope in the Lord will renew their strength." Not those who figure it out. Not those who push harder. Those who hope. That\'s all God is asking of you today. Keep hoping. Strength is on its way.',
+    body: 'You\'re tired. Maybe not just physically â tired in your soul. Isaiah knew that feeling, and he wrote these words to people who felt forgotten by God: "Those who hope in the Lord will renew their strength." Not those who figure it out. Not those who push harder. Those who hope. That\'s all God is asking of you today. Keep hoping. Strength is on its way.',
   },
   'John 14': {
     title: 'Let Not Your Heart Be Troubled',
-    body: 'Jesus said these words on the hardest night of His life — the night before the cross. He looked at His friends and said, "Do not let your hearts be troubled. Trust in God; trust also in Me." He wasn\'t in denial about what was coming. He was anchored in something deeper. And He\'s offering you that same anchor today. Your circumstances may be heavy, but His peace is heavier.',
+    body: 'Jesus said these words on the hardest night of His life â the night before the cross. He looked at His friends and said, "Do not let your hearts be troubled. Trust in God; trust also in Me." He wasn\'t in denial about what was coming. He was anchored in something deeper. And He\'s offering you that same anchor today. Your circumstances may be heavy, but His peace is heavier.',
   },
   'Romans 8': {
     title: 'Nothing Can Separate You',
-    body: 'This chapter builds to one of the most powerful promises in all of Scripture: nothing — not trouble, not hardship, not danger, not the past, not the future — can separate you from the love of God. Read that again. Nothing. Whatever you\'re facing right now, it does not have the power to cut you off from His love. You are held. Completely.',
+    body: 'This chapter builds to one of the most powerful promises in all of Scripture: nothing â not trouble, not hardship, not danger, not the past, not the future â can separate you from the love of God. Read that again. Nothing. Whatever you\'re facing right now, it does not have the power to cut you off from His love. You are held. Completely.',
   },
   'Psalm 34': {
     title: 'He Is Close to You',
@@ -84,23 +84,23 @@ const COMFORT_DEVOTIONS: Record<string, { title: string; body: string }> = {
   },
   'Isaiah 43': {
     title: 'You Will Not Be Overcome',
-    body: '"When you pass through the waters, I will be with you." God didn\'t say if — He said when. He knows the hard seasons come. But He promises that they will not overcome you. The fire will not burn you. The water will not sweep you away. He calls you by name and says, "You are mine." Today, let that truth settle into the deepest part of your heart.',
+    body: '"When you pass through the waters, I will be with you." God didn\'t say if â He said when. He knows the hard seasons come. But He promises that they will not overcome you. The fire will not burn you. The water will not sweep you away. He calls you by name and says, "You are mine." Today, let that truth settle into the deepest part of your heart.',
   },
   'Matthew 11': {
     title: 'Come and Rest',
-    body: 'Jesus looked at exhausted, burdened people and said: "Come to me." Not "figure it out." Not "try harder." Just — come. Bring the weight. Bring the weariness. Bring the questions you don\'t have answers for. He promises rest. Not a vacation from your problems, but a deep, soul-level rest that comes from being with the One who carries the world.',
+    body: 'Jesus looked at exhausted, burdened people and said: "Come to me." Not "figure it out." Not "try harder." Just â come. Bring the weight. Bring the weariness. Bring the questions you don\'t have answers for. He promises rest. Not a vacation from your problems, but a deep, soul-level rest that comes from being with the One who carries the world.',
   },
   'Psalm 121': {
     title: 'Your Help Comes From God',
-    body: '"Where does my help come from? My help comes from the Lord." Sometimes the most powerful thing you can do is look up. Not at the mountain of problems in front of you — but at the God who made the mountains. He watches over you. He doesn\'t sleep. He doesn\'t get distracted. Right now, in your hardest moment, He is paying attention to you.',
+    body: '"Where does my help come from? My help comes from the Lord." Sometimes the most powerful thing you can do is look up. Not at the mountain of problems in front of you â but at the God who made the mountains. He watches over you. He doesn\'t sleep. He doesn\'t get distracted. Right now, in your hardest moment, He is paying attention to you.',
   },
   '2 Corinthians 1': {
     title: 'Comforted to Comfort Others',
-    body: 'Paul calls God "the Father of compassion and the God of all comfort." All comfort. Not some. Not comfort for the easy stuff. All of it — the grief, the confusion, the fear. And here\'s the beautiful part: the comfort God gives you in this season will become the comfort you give to someone else later. Your pain is not wasted. God will use it.',
+    body: 'Paul calls God "the Father of compassion and the God of all comfort." All comfort. Not some. Not comfort for the easy stuff. All of it â the grief, the confusion, the fear. And here\'s the beautiful part: the comfort God gives you in this season will become the comfort you give to someone else later. Your pain is not wasted. God will use it.',
   },
   'Philippians 4': {
     title: 'His Peace Guards You',
-    body: '"The peace of God, which transcends all understanding, will guard your hearts and minds." This peace doesn\'t make sense. It shows up when the circumstances say you should be falling apart. It guards you — like a soldier standing watch over your heart. You don\'t have to manufacture it. Just bring your requests to God, with thanksgiving, and let His peace do what only it can do.',
+    body: '"The peace of God, which transcends all understanding, will guard your hearts and minds." This peace doesn\'t make sense. It shows up when the circumstances say you should be falling apart. It guards you â like a soldier standing watch over your heart. You don\'t have to manufacture it. Just bring your requests to God, with thanksgiving, and let His peace do what only it can do.',
   },
   'Psalm 27': {
     title: 'Wait for the Lord',
@@ -112,7 +112,7 @@ const COMFORT_DEVOTIONS: Record<string, { title: string; body: string }> = {
   },
   'Psalm 139': {
     title: 'He Knows You Completely',
-    body: 'God knows when you sit down and when you rise. He knows your thoughts before you think them. He\'s familiar with all your ways. And knowing all of that — every fear, every doubt, every moment of weakness — He still says, "How precious are my thoughts about you." You are fully known and fully loved. There\'s nothing you can show Him that will make Him turn away.',
+    body: 'God knows when you sit down and when you rise. He knows your thoughts before you think them. He\'s familiar with all your ways. And knowing all of that â every fear, every doubt, every moment of weakness â He still says, "How precious are my thoughts about you." You are fully known and fully loved. There\'s nothing you can show Him that will make Him turn away.',
   },
   'Isaiah 41': {
     title: 'Do Not Fear',
@@ -120,47 +120,47 @@ const COMFORT_DEVOTIONS: Record<string, { title: string; body: string }> = {
   },
   'Lamentations 3': {
     title: 'New Mercies Every Morning',
-    body: 'Jeremiah wrote Lamentations in the middle of devastation — his city destroyed, his people scattered. And yet, right in the center of the darkest book in the Bible: "His mercies are new every morning; great is His faithfulness." Even in your darkest chapter, mercy shows up fresh. Tomorrow morning, it\'ll be there again. That\'s who God is.',
+    body: 'Jeremiah wrote Lamentations in the middle of devastation â his city destroyed, his people scattered. And yet, right in the center of the darkest book in the Bible: "His mercies are new every morning; great is His faithfulness." Even in your darkest chapter, mercy shows up fresh. Tomorrow morning, it\'ll be there again. That\'s who God is.',
   },
   'Psalm 42': {
     title: 'Hope in God',
-    body: '"Why, my soul, are you downcast? Why so disturbed within me? Put your hope in God." The psalmist is talking to himself — preaching truth to his own discouraged heart. Sometimes that\'s exactly what you need to do. When your soul is low, remind it of what\'s true: God is still good. He is still faithful. And you will praise Him again.',
+    body: '"Why, my soul, are you downcast? Why so disturbed within me? Put your hope in God." The psalmist is talking to himself â preaching truth to his own discouraged heart. Sometimes that\'s exactly what you need to do. When your soul is low, remind it of what\'s true: God is still good. He is still faithful. And you will praise Him again.',
   },
   'Psalm 103': {
     title: 'He Remembers You',
-    body: '"As a father has compassion on his children, so the Lord has compassion on those who fear Him. For He knows how we are formed; He remembers that we are dust." God doesn\'t expect you to be invincible. He knows you\'re human. He knows you\'re fragile. And He meets you there — with compassion, not criticism. Let yourself be held.',
+    body: '"As a father has compassion on his children, so the Lord has compassion on those who fear Him. For He knows how we are formed; He remembers that we are dust." God doesn\'t expect you to be invincible. He knows you\'re human. He knows you\'re fragile. And He meets you there â with compassion, not criticism. Let yourself be held.',
   },
   'Psalm 16': {
     title: 'Fullness of Joy',
-    body: '"You make known to me the path of life; You will fill me with joy in Your presence." Even when joy feels distant, it\'s still there — in His presence. You don\'t have to chase it or force it. Just come close to Him. Sit with Him in this chapter. Joy will find its way back to you in time.',
+    body: '"You make known to me the path of life; You will fill me with joy in Your presence." Even when joy feels distant, it\'s still there â in His presence. You don\'t have to chase it or force it. Just come close to Him. Sit with Him in this chapter. Joy will find its way back to you in time.',
   },
   'Psalm 86': {
     title: 'You Are a God of Compassion',
-    body: '"You, Lord, are a compassionate and gracious God, slow to anger, abounding in love and faithfulness." David didn\'t just know about God — he knew God. And this is who God is: compassionate when you\'re struggling, gracious when you fall short, faithful when everything feels uncertain. That\'s the God who\'s with you today.',
+    body: '"You, Lord, are a compassionate and gracious God, slow to anger, abounding in love and faithfulness." David didn\'t just know about God â he knew God. And this is who God is: compassionate when you\'re struggling, gracious when you fall short, faithful when everything feels uncertain. That\'s the God who\'s with you today.',
   },
   'Isaiah 54': {
     title: 'His Kindness Will Not Depart',
-    body: '"Though the mountains be shaken and the hills be removed, yet my unfailing love for you will not be shaken, nor my covenant of peace be removed." Everything around you can change. But His love won\'t. His peace won\'t. It\'s a covenant — a promise sealed by God Himself. Hold onto that today.',
+    body: '"Though the mountains be shaken and the hills be removed, yet my unfailing love for you will not be shaken, nor my covenant of peace be removed." Everything around you can change. But His love won\'t. His peace won\'t. It\'s a covenant â a promise sealed by God Himself. Hold onto that today.',
   },
   'Psalm 30': {
     title: 'Joy Comes in the Morning',
-    body: '"Weeping may stay for the night, but rejoicing comes in the morning." If you\'re in a nighttime season — the hard, dark, uncertain kind — hear this: morning is coming. This isn\'t forever. God has a morning planned for you. Weep if you need to. He catches every tear. But don\'t give up, because joy is on its way.',
+    body: '"Weeping may stay for the night, but rejoicing comes in the morning." If you\'re in a nighttime season â the hard, dark, uncertain kind â hear this: morning is coming. This isn\'t forever. God has a morning planned for you. Weep if you need to. He catches every tear. But don\'t give up, because joy is on its way.',
   },
   'Psalm 77': {
     title: 'Remember What God Has Done',
-    body: 'The psalmist was in crisis — sleepless, overwhelmed, wondering if God had forgotten him. And then he did one thing that changed everything: "I will remember the deeds of the Lord." When today feels impossible, look back. God has carried you before. He will carry you again.',
+    body: 'The psalmist was in crisis â sleepless, overwhelmed, wondering if God had forgotten him. And then he did one thing that changed everything: "I will remember the deeds of the Lord." When today feels impossible, look back. God has carried you before. He will carry you again.',
   },
   'Psalm 116': {
     title: 'He Heard Your Cry',
-    body: '"I love the Lord, for He heard my voice; He heard my cry for mercy." God hears you. Not just the polished prayers — the desperate ones, the ones you pray through tears, the ones that are barely words at all. He hears every one of them. And He bends down to listen.',
+    body: '"I love the Lord, for He heard my voice; He heard my cry for mercy." God hears you. Not just the polished prayers â the desperate ones, the ones you pray through tears, the ones that are barely words at all. He hears every one of them. And He bends down to listen.',
   },
   'Psalm 73': {
     title: 'God Is Your Strength',
-    body: '"My flesh and my heart may fail, but God is the strength of my heart and my portion forever." You don\'t have to be strong right now. You\'re allowed to feel weak. Because God is your strength — not a backup plan, but the main one. When your heart fails, His doesn\'t.',
+    body: '"My flesh and my heart may fail, but God is the strength of my heart and my portion forever." You don\'t have to be strong right now. You\'re allowed to feel weak. Because God is your strength â not a backup plan, but the main one. When your heart fails, His doesn\'t.',
   },
   'Psalm 40': {
     title: 'He Lifted You Out',
-    body: '"He lifted me out of the slimy pit, out of the mud and mire; He set my feet on a rock and gave me a firm place to stand." If you feel stuck right now — in grief, in confusion, in hopelessness — know that God is a lifter. He reaches down into the pit. He doesn\'t wait for you to climb out on your own. He pulls you up.',
+    body: '"He lifted me out of the slimy pit, out of the mud and mire; He set my feet on a rock and gave me a firm place to stand." If you feel stuck right now â in grief, in confusion, in hopelessness â know that God is a lifter. He reaches down into the pit. He doesn\'t wait for you to climb out on your own. He pulls you up.',
   },
   'John 16': {
     title: 'He Has Overcome',
@@ -168,15 +168,15 @@ const COMFORT_DEVOTIONS: Record<string, { title: string; body: string }> = {
   },
   'Psalm 145': {
     title: 'He Upholds You',
-    body: '"The Lord upholds all who fall and lifts up all who are bowed down." If you\'re bowed down today — by grief, by worry, by the weight of it all — God is not standing over you asking why you fell. He\'s kneeling beside you, lifting you up. That\'s who He is. That\'s what He does.',
+    body: '"The Lord upholds all who fall and lifts up all who are bowed down." If you\'re bowed down today â by grief, by worry, by the weight of it all â God is not standing over you asking why you fell. He\'s kneeling beside you, lifting you up. That\'s who He is. That\'s what He does.',
   },
   'Revelation 21': {
     title: 'Every Tear Will Be Wiped Away',
-    body: '"He will wipe every tear from their eyes. There will be no more death or mourning or crying or pain." This is where it\'s all heading. The story doesn\'t end in suffering — it ends in complete restoration. Every tear. Every loss. Every broken thing. God will make it new. Hold on to that hope. The best is still to come.',
+    body: '"He will wipe every tear from their eyes. There will be no more death or mourning or crying or pain." This is where it\'s all heading. The story doesn\'t end in suffering â it ends in complete restoration. Every tear. Every loss. Every broken thing. God will make it new. Hold on to that hope. The best is still to come.',
   },
 };
 
-// ── Streak helpers ──────────────────────────────────────────────
+// ââ Streak helpers ââââââââââââââââââââââââââââââââââââââââââââââ
 function getStreak(): { count: number; freezesAvailable: number } {
   try {
     return JSON.parse(localStorage.getItem('dw_streak_v2') || '{"count":0,"lastDate":"","freezesAvailable":1,"lastFreezeWeek":""}');
@@ -203,7 +203,7 @@ function recordStreakToday(): { count: number; isNew: boolean; isMilestone: bool
       // Consecutive day
       newCount = (raw.count || 0) + 1;
     } else if (raw.lastDate === dbStr && freezesAvailable > 0) {
-      // Missed one day — auto-apply freeze grace
+      // Missed one day â auto-apply freeze grace
       newCount = (raw.count || 0) + 1;
       const saved = { count: newCount, lastDate: today, freezesAvailable: freezesAvailable - 1, lastFreezeWeek: thisWeek };
       localStorage.setItem('dw_streak_v2', JSON.stringify(saved));
@@ -224,38 +224,38 @@ function recordStreakToday(): { count: number; isNew: boolean; isMilestone: bool
   }
 }
 
-// ── Daily Word of the Day ────────────────────────────────────────
+// ââ Daily Word of the Day ââââââââââââââââââââââââââââââââââââââââ
 const DAILY_WORDS = [
-  { word: 'Agape', lang: 'Greek', pronunciation: 'ah-GAH-pay', meaning: 'Unconditional, self-giving love — the highest form of love in the New Testament', verse: 'John 3:16', original: 'ἀγάπη' },
-  { word: 'Shalom', lang: 'Hebrew', pronunciation: 'sha-LOME', meaning: 'Peace, wholeness, and completeness — far deeper than the absence of conflict', verse: 'Numbers 6:26', original: 'שָׁלוֹם' },
-  { word: 'Charis', lang: 'Greek', pronunciation: 'KAH-ris', meaning: 'Grace — unmerited divine favor freely given', verse: 'Ephesians 2:8', original: 'χάρις' },
-  { word: 'Hesed', lang: 'Hebrew', pronunciation: 'HEH-sed', meaning: 'Lovingkindness, steadfast covenant love and loyalty', verse: 'Psalm 136:1', original: 'חֶסֶד' },
-  { word: 'Logos', lang: 'Greek', pronunciation: 'LOH-gos', meaning: 'The Word — divine reason, wisdom, and the spoken expression of God', verse: 'John 1:1', original: 'λόγος' },
-  { word: 'Emunah', lang: 'Hebrew', pronunciation: 'eh-moo-NAH', meaning: 'Faith — steadfastness, firmness, trust that holds steady over time', verse: 'Habakkuk 2:4', original: 'אֱמוּנָה' },
-  { word: 'Kairos', lang: 'Greek', pronunciation: 'KAI-ros', meaning: 'The appointed time — a divinely orchestrated, perfect moment', verse: 'Ecclesiastes 3:1', original: 'καιρός' },
-  { word: 'Tsedaqah', lang: 'Hebrew', pronunciation: 'tseh-dah-KAH', meaning: 'Righteousness — living rightly in relationship with God and others', verse: 'Genesis 15:6', original: 'צְדָקָה' },
-  { word: 'Pneuma', lang: 'Greek', pronunciation: 'PNYOO-mah', meaning: 'Spirit, breath, wind — the animating presence of God', verse: 'John 4:24', original: 'πνεῦμα' },
-  { word: 'Racham', lang: 'Hebrew', pronunciation: 'rah-KHAM', meaning: 'Compassion — deep mercy from the womb; God\'s tender, motherly love', verse: 'Psalm 103:13', original: 'רַחַם' },
-  { word: 'Soteria', lang: 'Greek', pronunciation: 'so-tay-REE-ah', meaning: 'Salvation — deliverance, rescue, and restoration to wholeness', verse: 'Romans 1:16', original: 'σωτηρία' },
-  { word: 'Emet', lang: 'Hebrew', pronunciation: 'EH-met', meaning: 'Truth — reliable, dependable reality; what can be counted on absolutely', verse: 'John 14:6', original: 'אֱמֶת' },
-  { word: 'Ekklesia', lang: 'Greek', pronunciation: 'ek-klay-SEE-ah', meaning: 'Church — the called-out assembly, God\'s gathered community', verse: 'Matthew 16:18', original: 'ἐκκλησία' },
-  { word: 'Kabod', lang: 'Hebrew', pronunciation: 'kah-VODE', meaning: 'Glory — the weightiness and radiance of God\'s presence', verse: 'Exodus 33:18', original: 'כָּבוֹד' },
-  { word: 'Pistis', lang: 'Greek', pronunciation: 'PIS-tis', meaning: 'Faith, trust, confidence — active reliance on what God has promised', verse: 'Hebrews 11:1', original: 'πίστις' },
-  { word: 'Qadosh', lang: 'Hebrew', pronunciation: 'kah-DOSH', meaning: 'Holy — set apart, distinct, wholly other than anything created', verse: 'Isaiah 6:3', original: 'קָדוֹשׁ' },
-  { word: 'Parakletos', lang: 'Greek', pronunciation: 'pah-RAH-klay-tos', meaning: 'Comforter, Advocate, Helper — one called alongside to assist', verse: 'John 14:16', original: 'παράκλητος' },
-  { word: 'Ruach', lang: 'Hebrew', pronunciation: 'ROO-akh', meaning: 'Spirit, wind, breath — the living, moving presence of God', verse: 'Genesis 1:2', original: 'רוּחַ' },
-  { word: 'Zoe', lang: 'Greek', pronunciation: 'ZOH-ay', meaning: 'Life — the full, vibrant, eternal life that God alone gives', verse: 'John 10:10', original: 'ζωή' },
-  { word: 'Nephesh', lang: 'Hebrew', pronunciation: 'NEH-fesh', meaning: 'Soul, living being — the whole self; every part of who you are', verse: 'Psalm 23:3', original: 'נֶפֶשׁ' },
-  { word: 'Doxa', lang: 'Greek', pronunciation: 'DOH-ksa', meaning: 'Glory, honour, splendour — the revealed magnificence of God', verse: 'Romans 3:23', original: 'δόξα' },
-  { word: 'Berith', lang: 'Hebrew', pronunciation: 'beh-REET', meaning: 'Covenant — a binding, unbreakable promise; the foundation of God\'s relationship with his people', verse: 'Genesis 9:16', original: 'בְּרִית' },
-  { word: 'Telos', lang: 'Greek', pronunciation: 'TEL-os', meaning: 'End, purpose, completion — the goal toward which everything moves', verse: 'Romans 10:4', original: 'τέλος' },
-  { word: 'Dabar', lang: 'Hebrew', pronunciation: 'dah-VAR', meaning: 'Word, matter, thing — in Hebrew thought, a word is an event that accomplishes what it says', verse: 'Isaiah 55:11', original: 'דָּבָר' },
-  { word: 'Metanoia', lang: 'Greek', pronunciation: 'meh-tah-NOY-ah', meaning: 'Repentance — a profound change of mind, heart, and direction', verse: 'Matthew 3:2', original: 'μετάνοια' },
-  { word: 'Anavah', lang: 'Hebrew', pronunciation: 'ah-nah-VAH', meaning: 'Humility — lowliness before God; the posture of one who knows they depend entirely on Him', verse: 'Micah 6:8', original: 'עֲנָוָה' },
-  { word: 'Parousia', lang: 'Greek', pronunciation: 'pah-roo-SEE-ah', meaning: 'Presence, coming — the glorious return of Christ', verse: '1 Thessalonians 4:15', original: 'παρουσία' },
-  { word: 'Yeshuah', lang: 'Hebrew', pronunciation: 'yeh-SHOO-ah', meaning: 'Salvation, deliverance — the very name of Jesus means "God saves"', verse: 'Psalm 62:2', original: 'יְשׁוּעָה' },
-  { word: 'Dikaiosyne', lang: 'Greek', pronunciation: 'di-kai-oh-SOO-nay', meaning: 'Righteousness, justice — being right before God and living it out toward others', verse: 'Matthew 5:6', original: 'δικαιοσύνη' },
-  { word: 'Ahavah', lang: 'Hebrew', pronunciation: 'ah-hah-VAH', meaning: 'Love — deep, active, choosing love; not just feeling but commitment and action', verse: 'Deuteronomy 6:5', original: 'אַהֲבָה' },
+  { word: 'Agape', lang: 'Greek', pronunciation: 'ah-GAH-pay', meaning: 'Unconditional, self-giving love â the highest form of love in the New Testament', verse: 'John 3:16', original: 'á¼Î³Î¬ÏÎ·' },
+  { word: 'Shalom', lang: 'Hebrew', pronunciation: 'sha-LOME', meaning: 'Peace, wholeness, and completeness â far deeper than the absence of conflict', verse: 'Numbers 6:26', original: '×©Ö¸×××Ö¹×' },
+  { word: 'Charis', lang: 'Greek', pronunciation: 'KAH-ris', meaning: 'Grace â unmerited divine favor freely given', verse: 'Ephesians 2:8', original: 'ÏÎ¬ÏÎ¹Ï' },
+  { word: 'Hesed', lang: 'Hebrew', pronunciation: 'HEH-sed', meaning: 'Lovingkindness, steadfast covenant love and loyalty', verse: 'Psalm 136:1', original: '×Ö¶×¡Ö¶×' },
+  { word: 'Logos', lang: 'Greek', pronunciation: 'LOH-gos', meaning: 'The Word â divine reason, wisdom, and the spoken expression of God', verse: 'John 1:1', original: 'Î»ÏÎ³Î¿Ï' },
+  { word: 'Emunah', lang: 'Hebrew', pronunciation: 'eh-moo-NAH', meaning: 'Faith â steadfastness, firmness, trust that holds steady over time', verse: 'Habakkuk 2:4', original: '×Ö±××Ö¼× Ö¸×' },
+  { word: 'Kairos', lang: 'Greek', pronunciation: 'KAI-ros', meaning: 'The appointed time â a divinely orchestrated, perfect moment', verse: 'Ecclesiastes 3:1', original: 'ÎºÎ±Î¹ÏÏÏ' },
+  { word: 'Tsedaqah', lang: 'Hebrew', pronunciation: 'tseh-dah-KAH', meaning: 'Righteousness â living rightly in relationship with God and others', verse: 'Genesis 15:6', original: '×¦Ö°×Ö¸×§Ö¸×' },
+  { word: 'Pneuma', lang: 'Greek', pronunciation: 'PNYOO-mah', meaning: 'Spirit, breath, wind â the animating presence of God', verse: 'John 4:24', original: 'ÏÎ½Îµá¿¦Î¼Î±' },
+  { word: 'Racham', lang: 'Hebrew', pronunciation: 'rah-KHAM', meaning: 'Compassion â deep mercy from the womb; God\'s tender, motherly love', verse: 'Psalm 103:13', original: '×¨Ö·×Ö·×' },
+  { word: 'Soteria', lang: 'Greek', pronunciation: 'so-tay-REE-ah', meaning: 'Salvation â deliverance, rescue, and restoration to wholeness', verse: 'Romans 1:16', original: 'ÏÏÏÎ·ÏÎ¯Î±' },
+  { word: 'Emet', lang: 'Hebrew', pronunciation: 'EH-met', meaning: 'Truth â reliable, dependable reality; what can be counted on absolutely', verse: 'John 14:6', original: '×Ö±×Ö¶×ª' },
+  { word: 'Ekklesia', lang: 'Greek', pronunciation: 'ek-klay-SEE-ah', meaning: 'Church â the called-out assembly, God\'s gathered community', verse: 'Matthew 16:18', original: 'á¼ÎºÎºÎ»Î·ÏÎ¯Î±' },
+  { word: 'Kabod', lang: 'Hebrew', pronunciation: 'kah-VODE', meaning: 'Glory â the weightiness and radiance of God\'s presence', verse: 'Exodus 33:18', original: '×Ö¸Ö¼××Ö¹×' },
+  { word: 'Pistis', lang: 'Greek', pronunciation: 'PIS-tis', meaning: 'Faith, trust, confidence â active reliance on what God has promised', verse: 'Hebrews 11:1', original: 'ÏÎ¯ÏÏÎ¹Ï' },
+  { word: 'Qadosh', lang: 'Hebrew', pronunciation: 'kah-DOSH', meaning: 'Holy â set apart, distinct, wholly other than anything created', verse: 'Isaiah 6:3', original: '×§Ö¸××Ö¹×©×' },
+  { word: 'Parakletos', lang: 'Greek', pronunciation: 'pah-RAH-klay-tos', meaning: 'Comforter, Advocate, Helper â one called alongside to assist', verse: 'John 14:16', original: 'ÏÎ±ÏÎ¬ÎºÎ»Î·ÏÎ¿Ï' },
+  { word: 'Ruach', lang: 'Hebrew', pronunciation: 'ROO-akh', meaning: 'Spirit, wind, breath â the living, moving presence of God', verse: 'Genesis 1:2', original: '×¨×Ö¼×Ö·' },
+  { word: 'Zoe', lang: 'Greek', pronunciation: 'ZOH-ay', meaning: 'Life â the full, vibrant, eternal life that God alone gives', verse: 'John 10:10', original: 'Î¶ÏÎ®' },
+  { word: 'Nephesh', lang: 'Hebrew', pronunciation: 'NEH-fesh', meaning: 'Soul, living being â the whole self; every part of who you are', verse: 'Psalm 23:3', original: '× Ö¶×¤Ö¶×©×' },
+  { word: 'Doxa', lang: 'Greek', pronunciation: 'DOH-ksa', meaning: 'Glory, honour, splendour â the revealed magnificence of God', verse: 'Romans 3:23', original: 'Î´ÏÎ¾Î±' },
+  { word: 'Berith', lang: 'Hebrew', pronunciation: 'beh-REET', meaning: 'Covenant â a binding, unbreakable promise; the foundation of God\'s relationship with his people', verse: 'Genesis 9:16', original: '×Ö°Ö¼×¨Ö´××ª' },
+  { word: 'Telos', lang: 'Greek', pronunciation: 'TEL-os', meaning: 'End, purpose, completion â the goal toward which everything moves', verse: 'Romans 10:4', original: 'ÏÎ­Î»Î¿Ï' },
+  { word: 'Dabar', lang: 'Hebrew', pronunciation: 'dah-VAR', meaning: 'Word, matter, thing â in Hebrew thought, a word is an event that accomplishes what it says', verse: 'Isaiah 55:11', original: '×Ö¸Ö¼×Ö¸×¨' },
+  { word: 'Metanoia', lang: 'Greek', pronunciation: 'meh-tah-NOY-ah', meaning: 'Repentance â a profound change of mind, heart, and direction', verse: 'Matthew 3:2', original: 'Î¼ÎµÏÎ¬Î½Î¿Î¹Î±' },
+  { word: 'Anavah', lang: 'Hebrew', pronunciation: 'ah-nah-VAH', meaning: 'Humility â lowliness before God; the posture of one who knows they depend entirely on Him', verse: 'Micah 6:8', original: '×¢Ö²× Ö¸×Ö¸×' },
+  { word: 'Parousia', lang: 'Greek', pronunciation: 'pah-roo-SEE-ah', meaning: 'Presence, coming â the glorious return of Christ', verse: '1 Thessalonians 4:15', original: 'ÏÎ±ÏÎ¿ÏÏÎ¯Î±' },
+  { word: 'Yeshuah', lang: 'Hebrew', pronunciation: 'yeh-SHOO-ah', meaning: 'Salvation, deliverance â the very name of Jesus means "God saves"', verse: 'Psalm 62:2', original: '×Ö°×©××Ö¼×¢Ö¸×' },
+  { word: 'Dikaiosyne', lang: 'Greek', pronunciation: 'di-kai-oh-SOO-nay', meaning: 'Righteousness, justice â being right before God and living it out toward others', verse: 'Matthew 5:6', original: 'Î´Î¹ÎºÎ±Î¹Î¿ÏÏÎ½Î·' },
+  { word: 'Ahavah', lang: 'Hebrew', pronunciation: 'ah-hah-VAH', meaning: 'Love â deep, active, choosing love; not just feeling but commitment and action', verse: 'Deuteronomy 6:5', original: '×Ö·×Ö²×Ö¸×' },
 ];
 
 function getDailyWord() {
@@ -263,11 +263,11 @@ function getDailyWord() {
   return DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
 }
 
-// ── Emoji Reaction (micro-commitment after reading) ─────────────────────────
+// ââ Emoji Reaction (micro-commitment after reading) âââââââââââââââââââââââââ
 const REACTIONS = [
-  { emoji: '❤️', label: 'Touched my heart' },
-  { emoji: '🤔', label: 'Made me think' },
-  { emoji: '🙏', label: 'I needed this' },
+  { emoji: 'â¤ï¸', label: 'Touched my heart' },
+  { emoji: 'ð¤', label: 'Made me think' },
+  { emoji: 'ð', label: 'I needed this' },
 ];
 function getTodayReaction(): string | null {
   try {
@@ -283,7 +283,7 @@ function saveTodayReaction(emoji: string) {
   } catch { /* empty */ }
 }
 
-// ── Campus community count (deterministic per campus + date) ─────────────────
+// ââ Campus community count (deterministic per campus + date) âââââââââââââââââ
 function getCampusReaderCount(campusId: string): number {
   if (!campusId) return 0;
   const seed = campusId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -295,8 +295,8 @@ function getCampusReaderCount(campusId: string): number {
   return Math.max(8, base + dayBonus + variance);
 }
 
-// ── Variable reward — rotate what leads home screen (day % 3) ───────────────
-// ── Weekly "Word in Review" — show on Sundays ────────────────────────────────
+// ââ Variable reward â rotate what leads home screen (day % 3) âââââââââââââââ
+// ââ Weekly "Word in Review" â show on Sundays ââââââââââââââââââââââââââââââââ
 const WEEK_REVIEW_QUESTIONS = [
   'What stood out most in what you read this week?',
   'Was there a verse that stayed with you?',
@@ -319,7 +319,7 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
   } catch { return null; }
 }
 
-/** Sunday sermon shortcut — show during Sunday service window (Sat 11:40 PM → Sun 4 PM) */
+/** Sunday sermon shortcut â show during Sunday service window (Sat 11:40 PM â Sun 4 PM) */
 function getSundaySermon() {
   if (!isSundayWindow()) return null;
   // Find the most recent preloaded sermon
@@ -327,7 +327,7 @@ function getSundaySermon() {
   return sorted[0] || null;
 }
 
-/** Calendar-based plan day — advances automatically each day regardless of completion */
+/** Calendar-based plan day â advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
   try {
     const start = new Date(startedAt);
@@ -411,7 +411,7 @@ interface ReadingSlot {
 export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId) => void; onOpenAI?: () => void }) {
   const { userProfile, setup, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
 
-  // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
+  // ââ Persona-aware feature gating (memoized â avoids recalc on every render) ââ
   const personaConfig = useMemo(() => getPersonaConfig(setup?.persona), [setup?.persona]);
   const pf = personaConfig.features; // shorthand
   const greetingText = useMemo(
@@ -419,7 +419,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     [personaConfig.persona, userProfile?.firstName],
   );
 
-  // ── Sunday sermon tab — takes over the home screen during the window ──
+  // ââ Sunday sermon tab â takes over the home screen during the window ââ
   const sundaySermon = getSundaySermon();
   const [homeTab, setHomeTab] = useState<'word' | 'sermon'>(() => sundaySermon ? 'sermon' : 'word');
   const [inlineNotes, setInlineNotes] = useState<Record<number, string>>(() => {
@@ -440,7 +440,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
   });
-  // ── Font size control ──
+  // ââ Font size control ââ
   const FONT_MIN = 13;
   const FONT_MAX = 32;
   const FONT_STEP = 1;
@@ -469,10 +469,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [showHeaderPersona, setShowHeaderPersona] = useState(false);
   const [showHeaderLanguage, setShowHeaderLanguage] = useState(false);
   const APP_LANGUAGES = [
-    { code: 'en', label: 'English', flag: '🇺🇸' },
-    { code: 'es', label: 'Español', flag: '🇪🇸' },
-    { code: 'id', label: 'Bahasa', flag: '🇮🇩' },
-    { code: 'pt', label: 'Português', flag: '🇧🇷' },
+    { code: 'en', label: 'English', flag: 'ðºð¸' },
+    { code: 'es', label: 'EspaÃ±ol', flag: 'ðªð¸' },
+    { code: 'id', label: 'Bahasa', flag: 'ð®ð©' },
+    { code: 'pt', label: 'PortuguÃªs', flag: 'ð§ð·' },
   ] as const;
   const [appLanguage, setAppLanguage] = useState(() => {
     try { return localStorage.getItem('dw_lang') || 'en'; } catch { return 'en'; }
@@ -492,7 +492,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch { return 0; }
   });
 
-  // ── Comfort reading state ──
+  // ââ Comfort reading state ââ
   // comfortChapterIndex: which chapter in the rotation they're on today
   // comfortChaptersServed: how many they've read so far in this session
   // comfortPostRead: null = reading, 'ask_more' = finished chapter, 'ask_lock' = finished 2+, 'done' = done for today
@@ -523,7 +523,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch { return { completedDays: [], currentDay: 1, enrolled: false }; }
   });
 
-  // Audio state — powered by global AudioPlayer (single element, iOS-safe)
+  // Audio state â powered by global AudioPlayer (single element, iOS-safe)
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioCurrentPassage, setAudioCurrentPassage] = useState<string | null>(null);
@@ -556,7 +556,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const lang = localStorage.getItem('dw_lang') || 'en';
 
-  // Load Faith Pathway — persona-gated via config
+  // Load Faith Pathway â persona-gated via config
   useEffect(() => {
     if (pf.faithPathway) {
       if (!pathwayProgress.enrolled) {
@@ -646,7 +646,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const todaysDevotion = getTodaysDevotion(dayOffset);
   const quote = QUOTES[quoteIndex];
 
-  // Find commentary for today's primary passage — collect ALL sources
+  // Find commentary for today's primary passage â collect ALL sources
   const primaryPassage = passages[0]?.passage || '';
   const commentarySources = COMMENTARY as Record<string, Record<string, string>>;
   const allCommentaries: { source: string; text: string }[] = [];
@@ -677,7 +677,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translation]);
 
-  // Pending audio — when user taps Listen before text is loaded
+  // Pending audio â when user taps Listen before text is loaded
   const pendingAudioRef = useRef<string | null>(null);
 
   // Watch for text to arrive so we can auto-play audio
@@ -755,7 +755,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       localStorage.setItem('dw_first_open', today);
       return; // Don't show on very first open
     }
-    if (firstOpen === today) return; // Same day as first open — skip
+    if (firstOpen === today) return; // Same day as first open â skip
     const hasSlots = readingSlots.length > 0;
     const hasPlans = Object.keys(
       (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })()
@@ -830,7 +830,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
-        // Book plans (bookId set) are handled by the dw_book_plans system — skip here
+        // Book plans (bookId set) are handled by the dw_book_plans system â skip here
         if (plan.bookId) continue;
         const dn = calcPlanDay(prog.startedAt, plan.totalDays);
         const dp = plan.passages[dn - 1];
@@ -856,7 +856,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       if (!text) return;
       const cacheKey = tKey;
       if (audioSrcCache.current.has(cacheKey)) return; // already cached
-      // Silently preload — don't auto-play, just warm the cache
+      // Silently preload â don't auto-play, just warm the cache
       AP.fetchAudioSrc(text.slice(0, 5000), translation, passage).then(src => {
         if (src) audioSrcCache.current.set(cacheKey, src);
       }).catch(() => {});
@@ -878,8 +878,8 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     });
   }, [compareMode, compareTranslation, todaysPlanPassages]);
 
-  // ── Hero full-passage state (always ESV for real human audio) ──────────────
-  // heroFullText removed — audio now fetches per-chapter on demand
+  // ââ Hero full-passage state (always ESV for real human audio) ââââââââââââââ
+  // heroFullText removed â audio now fetches per-chapter on demand
   const [heroLoading, setHeroLoading] = useState(false);
   const [planTick, setPlanTick] = useState(0); // increment to force plan list re-render
   const HERO_KEY = '__hero__';
@@ -960,9 +960,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     book.toLowerCase().includes(bookPickerSearch.toLowerCase())
   );
 
-  // (A&J devotional now handled by getTodaysDevotion() — single source for entire site)
+  // (A&J devotional now handled by getTodaysDevotion() â single source for entire site)
 
-  // All active plans with progress — used for home page plan strip
+  // All active plans with progress â used for home page plan strip
   // planTick dependency ensures this recomputes after start/remove
   const homeActivePlans = (() => {
     void planTick;
@@ -1033,7 +1033,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch {}
   };
 
-  // ── Hero chapter refs — all today's passages expanded to full chapter level (memoized) ──
+  // ââ Hero chapter refs â all today's passages expanded to full chapter level (memoized) ââ
   const expandChapterRef = useCallback((ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim(), []);
   const heroChapterRefs = useMemo(() => {
     const refs = [
@@ -1063,6 +1063,23 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   // Play all today's chapters one by one (sequential queue)
   const heroQueueRef = useRef<string[]>([]);
   const heroQueueActiveRef = useRef(false);
+  const [allPassagesSelected, setAllPassagesSelected] = useState(false);
+
+  const handleSelectAllListen = useCallback(() => {
+    AP.unlock();
+    if (allPassagesSelected && AP.isPlaying(HERO_KEY)) {
+      AP.stop();
+      heroQueueRef.current = [];
+      heroQueueActiveRef.current = false;
+      setAllPassagesSelected(false);
+      return;
+    }
+    setAllPassagesSelected(true);
+    setExpandedPassages(new Set(heroChapterRefs));
+    heroQueueRef.current = [...heroChapterRefs];
+    heroQueueActiveRef.current = true;
+    playNextInQueue();
+  }, [allPassagesSelected, heroChapterRefs, playNextInQueue]);
 
   const playNextInQueue = async () => {
     if (!heroQueueActiveRef.current || heroQueueRef.current.length === 0) {
@@ -1177,7 +1194,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         />
       )}
       <div style={{ padding: '0 24px 0' }}>
-        {/* ── Hero viewport ── fills visible screen (compact when sermon tab active) */}
+        {/* ââ Hero viewport ââ fills visible screen (compact when sermon tab active) */}
         <div style={{
           minHeight: (sundaySermon && homeTab === 'sermon') ? 'auto' : 'calc(100svh - 80px)',
           display: 'flex',
@@ -1188,10 +1205,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           position: 'relative',
         }}>
 
-        {/* Header — compact, sits above the centered hero */}
+        {/* Header â compact, sits above the centered hero */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Bible AI button — burnished gold + glass */}
+            {/* Bible AI button â burnished gold + glass */}
             <button
               onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}
               style={{
@@ -1248,7 +1265,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               }}>
                 Daily Word
               </h1>
-              {/* Persona + Campus dropdowns — compact row under title */}
+              {/* Persona + Campus dropdowns â compact row under title */}
               <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
                 {/* Persona dropdown trigger */}
                 <div style={{ position: 'relative' }}>
@@ -1310,7 +1327,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   )}
                 </div>
 
-                <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>·</span>
+                <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>Â·</span>
 
                 {/* Campus dropdown trigger */}
                 <div style={{ position: 'relative' }}>
@@ -1323,7 +1340,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                     }}
                   >
-                    📍 {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
+                    ð {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
                     <ChevronDown size={10} style={{ opacity: 0.6 }} />
                   </button>
                   {showHeaderCampus && (
@@ -1378,7 +1395,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   )}
                 </div>
 
-                <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>·</span>
+                <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>Â·</span>
 
                 {/* Language dropdown trigger */}
                 <div style={{ position: 'relative' }}>
@@ -1434,7 +1451,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               </div>
             </div>
           </div>
-          {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
+          {/* Streak display â clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && (() => {
               const encouragement: [number, string][] = [
@@ -1494,7 +1511,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </div>
         </div>
 
-        {/* ── Hero Listen Button — the hero, sits directly under Daily Word header ── */}
+        {/* ââ Hero Listen Button â the hero, sits directly under Daily Word header ââ */}
         {sundaySermon && homeTab === 'sermon' && (() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
@@ -1504,7 +1521,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           const allLabels = heroChapterRefs.length > 0
             ? heroChapterRefs
             : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
-          const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
+          const planLabel = firstPlan ? `${firstPlan.planTitle} â Day ${firstPlan.dayNum}` : null;
           const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
           const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
 
@@ -1578,21 +1595,40 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }
                   </button>
                   <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
+                    {isLoadingHero ? 'Loadingâ¦' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
                   </p>
                   <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
-                    {allLabels.join(' · ')}
+                    {allLabels.join(' Â· ')}
                   </p>
                   <p style={{ fontSize: 10, opacity: 0.4, margin: '5px 0 0', fontFamily: 'var(--font-sans)', textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    ESV · Human Reader
+                    ESV Â· Human Reader
                   </p>
+                  {heroChapterRefs.length > 1 && (
+                    <button
+                      onClick={handleSelectAllListen}
+                      style={{
+                        marginTop: 12,
+                        background: allPassagesSelected ? 'var(--dw-accent, #C8A864)' : 'transparent',
+                        border: '1.5px solid rgba(255,255,255,0.4)',
+                        color: '#fff',
+                        borderRadius: 20,
+                        padding: '8px 18px',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {allPassagesSelected ? 'Stop All' : 'Select All ' + heroChapterRefs.length + ' Passages'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           );
         })()}
 
-        {/* ── Sunday Service Banner — prominent link to interactive sermon notes ── */}
+        {/* ââ Sunday Service Banner â prominent link to interactive sermon notes ââ */}
         {sundaySermon && (
           <button
             onClick={() => onNavigate?.('messages')}
@@ -1608,7 +1644,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             <BookOpen size={22} color="#fff" />
             <div style={{ textAlign: 'left' }}>
               <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.2 }}>
-                Sunday Service — Open Sermon Notes
+                Sunday Service â Open Sermon Notes
               </p>
               <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
                 Tap to take notes during today's message
@@ -1617,7 +1653,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </button>
         )}
 
-        {/* ── Sunday Sermon Tab Bar ── */}
+        {/* ââ Sunday Sermon Tab Bar ââ */}
         {sundaySermon && (
           <div style={{
             display: 'flex', gap: 0, marginBottom: 20,
@@ -1639,7 +1675,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </div>
         )}
 
-        {/* ── Sunday Sermon View (full inline when tab active) ── */}
+        {/* ââ Sunday Sermon View (full inline when tab active) ââ */}
         {sundaySermon && homeTab === 'sermon' && (() => {
           const sermon = sundaySermon;
           return (
@@ -1733,7 +1769,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     </div>
                   )}
 
-                  {/* ── Always-open note area under every section ── */}
+                  {/* ââ Always-open note area under every section ââ */}
                   <textarea
                     placeholder="Your notes..."
                     value={inlineNotes[idx] || ''}
@@ -1767,10 +1803,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* ── Regular Daily Word content (hidden when sermon tab active) ── */}
+        {/* ââ Regular Daily Word content (hidden when sermon tab active) ââ */}
         {(!sundaySermon || homeTab === 'word') && (<>
 
-        {/* ── Persona Greeting with Search Button ── */}
+        {/* ââ Persona Greeting with Search Button ââ */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>
           <p style={{
             fontFamily: 'var(--font-serif)',
@@ -1805,7 +1841,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           )}
         </div>
 
-        {/* ── Font Size Controls ── */}
+        {/* ââ Font Size Controls ââ */}
         <FontSizeControls
           fontSize={scriptureFontSize}
           min={FONT_MIN}
@@ -1814,7 +1850,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           onDecrease={handleFontDecrease}
         />
 
-        {/* ── Hero Listen Button ── always shown; plays all today's passages in ESV */}
+        {/* ââ Hero Listen Button ââ always shown; plays all today's passages in ESV */}
         {(() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
@@ -1824,7 +1860,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           const allLabels = heroChapterRefs.length > 0
             ? heroChapterRefs
             : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
-          const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
+          const planLabel = firstPlan ? `${firstPlan.planTitle} â Day ${firstPlan.dayNum}` : null;
           const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
           const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
 
@@ -1840,7 +1876,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 border: '1px solid rgba(255,255,255,0.13)',
               }}
             >
-              {/* ── Layer 1: animated wave gradient — deep crimson rolls through near-black ── */}
+              {/* ââ Layer 1: animated wave gradient â deep crimson rolls through near-black ââ */}
               <div style={{
                 position: 'absolute', inset: 0,
                 background: 'linear-gradient(145deg, #FF3B52 0%, #D42F44 12%, #8B1A26 28%, #3A0810 48%, #6B1A22 62%, #B83040 78%, #E84858 92%, #D42F44 100%)',
@@ -1848,13 +1884,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 animation: 'heroColorWave 5s ease infinite',
               }} />
 
-              {/* ── Layer 2: glass highlight top edge + depth at bottom ── */}
+              {/* ââ Layer 2: glass highlight top edge + depth at bottom ââ */}
               <div style={{
                 position: 'absolute', inset: 0,
                 background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)',
               }} />
 
-              {/* ── Layer 3: rolling shimmer sweep — wide bright band ── */}
+              {/* ââ Layer 3: rolling shimmer sweep â wide bright band ââ */}
               <div style={{
                 position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 24,
               }}>
@@ -1873,7 +1909,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 }} />
               </div>
 
-              {/* ── Content ── */}
+              {/* ââ Content ââ */}
               <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
 
                 {/* Top meta bar */}
@@ -1896,7 +1932,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   </p>
                 </div>
 
-                {/* Big play button — centered */}
+                {/* Big play button â centered */}
                 <div style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   padding: '22px 20px 20px',
@@ -1936,7 +1972,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
                     fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
                   }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
+                    {isLoadingHero ? 'Loadingâ¦' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
                   </p>
 
                   <p style={{
@@ -1944,14 +1980,14 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontFamily: 'var(--font-sans)', textAlign: 'center',
                     maxWidth: '88%', lineHeight: 1.4,
                   }}>
-                    {allLabels.join(' · ')}
+                    {allLabels.join(' Â· ')}
                   </p>
                   <p style={{
                     fontSize: 10, opacity: 0.4, margin: '5px 0 0',
                     fontFamily: 'var(--font-sans)', textAlign: 'center',
                     letterSpacing: '0.08em', textTransform: 'uppercase',
                   }}>
-                    ESV · Human Reader
+                    ESV Â· Human Reader
                   </p>
                 </div>
 
@@ -1962,7 +1998,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontSize: 11, color: 'rgba(255,180,180,0.9)', textAlign: 'center',
                     fontFamily: 'var(--font-sans)', margin: '0 20px 10px',
                   }}>
-                    Audio unavailable — tap Read to follow along
+                    Audio unavailable â tap Read to follow along
                   </p>
                 )}
 
@@ -1991,7 +2027,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     {expandedPassages.has(heroChapterRefs[0] || '') ? 'Close' : 'Read'}
                   </button>
 
-                  {/* Translation picker — horizontal scrollable pills */}
+                  {/* Translation picker â horizontal scrollable pills */}
                   <div style={{
                     flex: 2, display: 'flex', alignItems: 'center', gap: 5,
                     overflowX: 'auto', padding: '10px 12px',
@@ -2083,16 +2119,16 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* ── Pastor/Study Onboarding — RIGHT after the hero, before everything else ── */}
+        {/* ââ Pastor/Study Onboarding â RIGHT after the hero, before everything else ââ */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
           const isPastor = personaConfig.persona === 'pastor_leader';
 
-          // Fully completed — never show again
+          // Fully completed â never show again
           if (pastorOnboardStep === -2) {
             return null;
           }
 
-          // Dismissed (said "Later") — show gentle re-entry
+          // Dismissed (said "Later") â show gentle re-entry
           if (pastorOnboardStep === -1) {
             return (
               <Card style={{ marginBottom: 16, textAlign: 'center', padding: '24px 16px' }}>
@@ -2109,7 +2145,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── PASTOR: Step 0 ──
+          // ââ PASTOR: Step 0 ââ
           if (pastorOnboardStep === 0 && isPastor) {
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
@@ -2150,7 +2186,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── PASTOR: Step 1 — What's the priority? ──
+          // ââ PASTOR: Step 1 â What's the priority? ââ
           if (pastorOnboardStep === 1 && isPastor) {
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
@@ -2165,10 +2201,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { id: 'personal', label: 'Personal time in the Word', sub: 'Not for a sermon — just me and God', next: 10 },
+                    { id: 'personal', label: 'Personal time in the Word', sub: 'Not for a sermon â just me and God', next: 10 },
                     { id: 'depth', label: 'Deep study with full tools', sub: 'Commentary, Greek/Hebrew, cross-references', next: 11 },
                     { id: 'rhythm', label: 'A reading rhythm I can stick to', sub: 'Consistent daily plan, right pace for my schedule', next: 12 },
-                    { id: 'prep', label: 'Read ahead of what I\'m preaching', sub: 'Gospels, Acts, Letters — stay in the text', next: 13 },
+                    { id: 'prep', label: 'Read ahead of what I\'m preaching', sub: 'Gospels, Acts, Letters â stay in the text', next: 13 },
                   ].map(opt => (
                     <button key={opt.id} onClick={() => setPastorOnboardStep(opt.next)} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
@@ -2183,7 +2219,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── PASTOR: Step 10 — Personal ──
+          // ââ PASTOR: Step 10 â Personal ââ
           if (pastorOnboardStep === 10 && isPastor) {
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
@@ -2196,7 +2232,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   {[
                     { plan: 'psalms-30', label: 'Psalms', sub: '30 days. One Psalm a day.' },
                     { plan: 'gospel-john', label: 'Gospel of John', sub: '21 days. One chapter a day.' },
-                    { plan: 'wisdom-lit', label: 'Wisdom Literature', sub: 'Proverbs, Ecclesiastes, Job — 60 days.' },
+                    { plan: 'wisdom-lit', label: 'Wisdom Literature', sub: 'Proverbs, Ecclesiastes, Job â 60 days.' },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } window.location.reload(); }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
@@ -2210,7 +2246,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── PASTOR: Step 11 — Deep study ──
+          // ââ PASTOR: Step 11 â Deep study ââ
           if (pastorOnboardStep === 11 && isPastor) {
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
@@ -2221,7 +2257,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>You'll get full commentary, Greek/Hebrew tools, and word studies with all of these.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'nt-60', label: 'New Testament in 60 days', sub: 'Entire NT in 60 days. 4–5 chapters a day.' },
+                    { plan: 'nt-60', label: 'New Testament in 60 days', sub: 'Entire NT in 60 days. 4â5 chapters a day.' },
                     { plan: 'through-bible-year', label: 'Through the Bible in a year', sub: 'Genesis to Revelation. 365 days.' },
                     { plan: 'wisdom-lit', label: 'Wisdom Literature', sub: 'Proverbs, Ecclesiastes, Song of Solomon, Job. 60 days.' },
                     { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One of each, daily.' },
@@ -2238,7 +2274,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── PASTOR: Step 12 — Rhythm ──
+          // ââ PASTOR: Step 12 â Rhythm ââ
           if (pastorOnboardStep === 12 && isPastor) {
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
@@ -2249,10 +2285,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick the pace that fits your schedule. A plan you finish beats a plan you quit.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'gospel-john', label: '5–10 minutes', sub: 'Gospel of John — 1 chapter a day, 21 days.' },
-                    { plan: 'acts-28', label: '10–15 minutes', sub: 'Acts — 1 chapter a day, 28 days.' },
-                    { plan: 'gospels-acts', label: '15–20 minutes', sub: 'Gospels & Acts — 2 chapters a day.' },
-                    { plan: 'nt-60', label: '20+ minutes', sub: 'Entire New Testament in 60 days. 4–5 chapters a day.' },
+                    { plan: 'gospel-john', label: '5â10 minutes', sub: 'Gospel of John â 1 chapter a day, 21 days.' },
+                    { plan: 'acts-28', label: '10â15 minutes', sub: 'Acts â 1 chapter a day, 28 days.' },
+                    { plan: 'gospels-acts', label: '15â20 minutes', sub: 'Gospels & Acts â 2 chapters a day.' },
+                    { plan: 'nt-60', label: '20+ minutes', sub: 'Entire New Testament in 60 days. 4â5 chapters a day.' },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } window.location.reload(); }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
@@ -2266,7 +2302,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── PASTOR: Step 13 — Preaching ──
+          // ââ PASTOR: Step 13 â Preaching ââ
           if (pastorOnboardStep === 13 && isPastor) {
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
@@ -2299,7 +2335,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── DEEPER_STUDY (non-pastor): Step 0 ──
+          // ââ DEEPER_STUDY (non-pastor): Step 0 ââ
           if (pastorOnboardStep === 0 && !isPastor) {
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
@@ -2330,7 +2366,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             );
           }
 
-          // ── DEEPER_STUDY: Step 2 — curated picker ──
+          // ââ DEEPER_STUDY: Step 2 â curated picker ââ
           if (pastorOnboardStep === 2) {
             const recommendedPlans = PLAN_CATALOGUE.filter(p => !p.bookId && ['Gospels & Acts', 'New Testament', 'Full Bible', 'Wisdom'].includes(p.category)).slice(0, 6);
             return (
@@ -2346,13 +2382,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       padding: '12px 14px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{plan.title}</p>
-                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>{plan.description.slice(0, 80)}…</p>
+                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>{plan.description.slice(0, 80)}â¦</p>
                     </button>
                   ))}
                   <button onClick={() => { onNavigate?.('plans'); }} style={{
                     padding: '12px 14px', borderRadius: 12, background: 'transparent', border: '1px dashed var(--dw-border)', cursor: 'pointer', textAlign: 'center',
                   }}>
-                    <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>Browse all plans →</p>
+                    <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>Browse all plans â</p>
                   </button>
                 </div>
               </Card>
@@ -2362,19 +2398,19 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           return null;
         })()}
 
-        {/* Comfort Verse Banner — comfort persona only */}
+        {/* Comfort Verse Banner â comfort persona only */}
         {personaConfig.sectionOrder.includes('comfort_verse_banner') && <ComfortVerseBannerSection persona={personaConfig.persona} />}
 
-        {/* Poll banner — right under the hero audio card (persona-gated) */}
+        {/* Poll banner â right under the hero audio card (persona-gated) */}
         {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
 
-        {/* AI Prompt Section — multi-persona */}
+        {/* AI Prompt Section â multi-persona */}
         {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={onOpenAI || (() => {})} persona={personaConfig.persona} />}
 
-        {/* Comfort Card — comfort persona only */}
+        {/* Comfort Card â comfort persona only */}
         {pf.comfortCard && <ComfortCard />}
 
-        {/* Book Cards — surfaces recommended books, tapping starts the reading plan */}
+        {/* Book Cards â surfaces recommended books, tapping starts the reading plan */}
         {pf.bookCards.length > 0 && (
           <div style={{ marginBottom: 20, overflowX: 'auto', display: 'flex', gap: 12, scrollbarWidth: 'none' }}>
             {pf.bookCards.map((bookId: string) => {
@@ -2397,7 +2433,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       setPlanTick(t => t + 1);
                       window.location.reload();
                     } else {
-                      // No specific plan — go to Plans tab to browse
+                      // No specific plan â go to Plans tab to browse
                       onNavigate?.('plans');
                     }
                   }}
@@ -2426,7 +2462,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </div>
         )}
 
-        {/* ── Upgrade Prompt — "Ready for More?" ── */}
+        {/* ââ Upgrade Prompt â "Ready for More?" ââ */}
         <UpgradePromptCard
           persona={setup?.persona || 'congregation'}
           onUpgrade={(newPersona) => {
@@ -2435,7 +2471,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           }}
         />
 
-        {/* ── Start Your Journey — inline plan picker for users with no plans ── */}
+        {/* ââ Start Your Journey â inline plan picker for users with no plans ââ */}
         {(() => {
           const activePlans: Record<string, unknown> = (() => {
             try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; }
@@ -2509,7 +2545,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         {plan.title}
                       </p>
                       <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
-                        {plan.totalDays} days · {plan.description.slice(0, 60)}{plan.description.length > 60 ? '…' : ''}
+                        {plan.totalDays} days Â· {plan.description.slice(0, 60)}{plan.description.length > 60 ? 'â¦' : ''}
                       </p>
                     </div>
                     <Plus size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
@@ -2532,13 +2568,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   textAlign: 'center',
                 }}
               >
-                Browse all plans →
+                Browse all plans â
               </button>
             </div>
           );
         })()}
 
-          {/* Scroll invitation — not an arrow, just a breath */}
+          {/* Scroll invitation â not an arrow, just a breath */}
           <div style={{
             position: 'absolute', bottom: 12, left: 0, right: 0,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
@@ -2703,7 +2739,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }
                   });
                   return plans.map(p =>
-                    `Day ${p.dayNum} of ${p.title} · ${p.passages.join(', ')}`
+                    `Day ${p.dayNum} of ${p.title} Â· ${p.passages.join(', ')}`
                   ).join(' | ');
                 })()}
               </p>
@@ -2719,9 +2755,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </button>
         </div>
 
-        {/* Listen bar removed — hero card handles audio. Scripture search moved to Study tab. */}
+        {/* Listen bar removed â hero card handles audio. Scripture search moved to Study tab. */}
 
-        {/* Devotion of the Day — A&J devotionals, single source, with emoji reactions merged in */}
+        {/* Devotion of the Day â A&J devotionals, single source, with emoji reactions merged in */}
         {personaConfig.sectionOrder.includes('devotion') && <Card
           style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
           onClick={() => {
@@ -2736,10 +2772,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </p>
           <p className="text-devotion" style={{ fontSize: scriptureFontSize + 2 }}>{todaysDevotion.body}</p>
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            — {todaysDevotion.author}
+            â {todaysDevotion.author}
           </p>
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            {/* Emoji reactions — inline on devotion */}
+            {/* Emoji reactions â inline on devotion */}
             {dayOffset === 0 && (
               todayReaction ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2772,8 +2808,8 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               <button onClick={(e) => {
                 e.stopPropagation();
                 shareContent({
-                  title: `Daily Word — ${todaysDevotion.title}`,
-                  text: `${todaysDevotion.title}\n\n${todaysDevotion.body.substring(0, 200)}...\n\n— Futures Daily Word`,
+                  title: `Daily Word â ${todaysDevotion.title}`,
+                  text: `${todaysDevotion.title}\n\n${todaysDevotion.body.substring(0, 200)}...\n\nâ Futures Daily Word`,
                   url: 'https://futuresdailyword.com'
                 });
               }} style={{
@@ -2797,13 +2833,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             const prayCount = 20 + (hash % 40);
             return (
               <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 8, marginBottom: 0 }}>
-                ❤️ {heartCount} · 🤔 {thinkCount} · 🙏 {prayCount}
+                â¤ï¸ {heartCount} Â· ð¤ {thinkCount} Â· ð {prayCount}
               </p>
             );
           })()}
         </Card>}
 
-        {/* ── Comfort Scripture — auto-served, no decisions required ── */}
+        {/* ââ Comfort Scripture â auto-served, no decisions required ââ */}
         {personaConfig.sectionOrder.includes('comfort_scripture') && (() => {
           const comfortPassage = COMFORT_CHAPTERS[comfortChapterIndex % COMFORT_CHAPTERS.length];
           const comfortTKey = `${comfortPassage}_${translation}`;
@@ -2814,7 +2850,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
           return (
             <div style={{ marginBottom: 16 }}>
-              {/* Current comfort chapter — auto-loaded */}
+              {/* Current comfort chapter â auto-loaded */}
               <Card style={{ marginBottom: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <p className="text-section-header" style={{ margin: 0 }}>A WORD FOR YOU TODAY</p>
@@ -2823,7 +2859,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   </span>
                 </div>
 
-                {/* Translation picker — simple, 3 options */}
+                {/* Translation picker â simple, 3 options */}
                 <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
                   {COMFORT_TRANSLATIONS.map(t => (
                     <button
@@ -2860,7 +2896,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }}
                   >
                     {comfortIsLoadingAudio ? (
-                      <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                      <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loadingâ¦</>
                     ) : comfortIsPlaying ? (
                       <><Pause size={14} /> Pause</>
                     ) : (
@@ -2869,11 +2905,11 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   </button>
                 </div>
 
-                {/* Scripture text — auto-loaded */}
+                {/* Scripture text â auto-loaded */}
                 {comfortIsLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                     <Loader2 size={14} style={{ color: '#5C6BC0', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading…</span>
+                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loadingâ¦</span>
                   </div>
                 ) : comfortText ? (
                   <ScripturePassage
@@ -2897,7 +2933,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   </button>
                 )}
 
-                {/* Sit with this — gentle reflection */}
+                {/* Sit with this â gentle reflection */}
                 {comfortText && comfortPostRead === null && (
                   <div style={{
                     marginTop: 16, padding: '14px 16px',
@@ -2926,7 +2962,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 )}
               </Card>
 
-              {/* Post-read devotion — encouraging reflection from the chapter */}
+              {/* Post-read devotion â encouraging reflection from the chapter */}
               {comfortPostRead === 'devotion' && (() => {
                 const devotion = COMFORT_DEVOTIONS[comfortPassage];
                 if (!devotion) {
@@ -2979,7 +3015,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 );
               })()}
 
-              {/* Post-read flow — gentle multiple choice */}
+              {/* Post-read flow â gentle multiple choice */}
               {comfortPostRead === 'ask_more' && (
                 <Card style={{ marginTop: 12, textAlign: 'center', padding: '20px 16px' }}>
                   <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 14 }}>
@@ -3088,7 +3124,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* ── Devotion-Connected Scripture Reading (congregation) ── */}
+        {/* ââ Devotion-Connected Scripture Reading (congregation) ââ */}
         {personaConfig.sectionOrder.includes('devotion_scripture') && todaysDevotion.verse && (() => {
           const devPassage = todaysDevotion.verse; // e.g. "2 Timothy 1"
           const isComfort = personaConfig.persona === 'comfort';
@@ -3152,7 +3188,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   }}
                 >
                   {isLoadingAudio ? (
-                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loadingâ¦</>
                   ) : isPlayingThis ? (
                     <><Pause size={14} /> Pause</>
                   ) : (
@@ -3165,7 +3201,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               {isLoading ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                   <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                  <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}â¦</span>
                 </div>
               ) : passageText ? (
                 <ScripturePassage
@@ -3209,7 +3245,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* ── Plan-Driven Scripture (deeper_study / pastor_leader) — full depth tools ── */}
+        {/* ââ Plan-Driven Scripture (deeper_study / pastor_leader) â full depth tools ââ */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
           if (todaysPlanPassages.length === 0) {
             return null; // Onboarding is rendered above (after hero)
@@ -3250,7 +3286,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     {/* Plan + Day header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        {planTitle} — Day {dayNum}
+                        {planTitle} â Day {dayNum}
                       </span>
                     </div>
 
@@ -3270,7 +3306,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         }}
                       >
                         {isLoadingAudio ? (
-                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loadingâ¦</>
                         ) : isPlayingThis ? (
                           <><Pause size={14} /> Pause</>
                         ) : (
@@ -3279,11 +3315,11 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       </button>
                     </div>
 
-                    {/* Scripture text — with word-tap for Greek/Hebrew */}
+                    {/* Scripture text â with word-tap for Greek/Hebrew */}
                     {isLoading ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                         <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}â¦</span>
                       </div>
                     ) : txt ? (
                       <>
@@ -3311,7 +3347,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                               ) : (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 0' }}>
                                   <Loader2 size={12} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                                  <span style={{ fontSize: 13, color: 'var(--dw-text-muted)' }}>Loading {compareTranslation}…</span>
+                                  <span style={{ fontSize: 13, color: 'var(--dw-text-muted)' }}>Loading {compareTranslation}â¦</span>
                                 </div>
                               )}
                             </div>
@@ -3338,7 +3374,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* ── Pastoral Reflection Prompt (pastor_leader) ── */}
+        {/* ââ Pastoral Reflection Prompt (pastor_leader) ââ */}
         {personaConfig.sectionOrder.includes('pastoral_prompt') && (() => {
           const prompts = personaConfig.journal.prompts;
           if (!prompts || prompts.length === 0) return null;
@@ -3382,7 +3418,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 </button>
                 <button
                   onClick={() => {
-                    setBibleAIContext(`I'm a pastor reflecting on my day. The prompt was: "${todayPrompt}" — I'd like to talk through what's on my heart.`);
+                    setBibleAIContext(`I'm a pastor reflecting on my day. The prompt was: "${todayPrompt}" â I'd like to talk through what's on my heart.`);
                     setShowBibleAI(true);
                   }}
                   style={{
@@ -3399,7 +3435,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* ── Plan-based lesson card for new_to_faith (replaces devotion) ── */}
+        {/* ââ Plan-based lesson card for new_to_faith (replaces devotion) ââ */}
         {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
           const currentDay = pathwayProgress.currentDay || 1;
           const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
@@ -3454,7 +3490,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               {/* Scripture reference */}
               {dayReading?.ref && (
                 <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                  📖 {dayReading.ref}
+                  ð {dayReading.ref}
                 </p>
               )}
               {/* Full lesson text */}
@@ -3483,13 +3519,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontFamily: 'var(--font-sans)',
                   }}
                 >
-                  {isCompleted ? '✓ Completed' : 'Mark Complete →'}
+                  {isCompleted ? 'â Completed' : 'Mark Complete â'}
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button onClick={() => {
                     shareContent({
                       title: `Day ${currentDay}: ${dayTitle}`,
-                      text: `${dayTitle}\n\n${(dayLesson || '').substring(0, 200)}...\n\n— Futures Daily Word`,
+                      text: `${dayTitle}\n\n${(dayLesson || '').substring(0, 200)}...\n\nâ Futures Daily Word`,
                       url: 'https://futuresdailyword.com'
                     });
                   }} style={{
@@ -3504,7 +3540,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 </div>
               </div>
 
-              {/* ── Scripture Reading for this day ── */}
+              {/* ââ Scripture Reading for this day ââ */}
               {dayReading && (() => {
                 const fullChapter = `${dayReading.book} ${dayReading.chapter}`;
                 const tKey = `${fullChapter}_${translation}`;
@@ -3517,7 +3553,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--dw-border)' }}>
                     <p className="text-section-header" style={{ marginBottom: 10 }}>TODAY'S READING</p>
 
-                    {/* Translation picker — ESV, NIV, NLT only */}
+                    {/* Translation picker â ESV, NIV, NLT only */}
                     <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
                       {NEW_FAITH_TRANSLATIONS.map(t => (
                         <button
@@ -3557,7 +3593,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         }}
                       >
                         {isLoadingAudio ? (
-                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loadingâ¦</>
                         ) : isPlayingThis ? (
                           <><Pause size={14} /> Pause</>
                         ) : (
@@ -3570,7 +3606,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     {isLoading ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                         <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}â¦</span>
                       </div>
                     ) : passageText ? (
                       <ScripturePassage
@@ -3600,7 +3636,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* ── Campus community count — persona-gated ── */}
+        {/* ââ Campus community count â persona-gated ââ */}
         {pf.campusCount !== 'hidden' && userProfile?.campus && (() => {
           const count = getCampusReaderCount(userProfile.campus!);
           const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
@@ -3611,7 +3647,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               background: 'var(--dw-charcoal)', borderRadius: 12,
               border: '1px solid rgba(255,255,255,0.06)',
             }}>
-              <span style={{ fontSize: 16 }}>🔥</span>
+              <span style={{ fontSize: 16 }}>ð¥</span>
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#fff', margin: 0 }}>
                 <strong style={{ color: '#fff' }}>{count} people</strong> at {campusName} are in the Word today
               </p>
@@ -3619,10 +3655,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* Translation selector removed — hero card has translation picker */}
+        {/* Translation selector removed â hero card has translation picker */}
 
 
-        {/* 3. TODAY'S CHAPTERS — gated by sectionOrder */}
+        {/* 3. TODAY'S CHAPTERS â gated by sectionOrder */}
         {personaConfig.sectionOrder.includes('scripture') && <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
             <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', margin: 0 }}>TODAY'S CHAPTERS</p>
@@ -3657,7 +3693,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 ];
                 shareContent({
                   title: 'Daily Bible Reading',
-                  text: `Today's passages: ${passageRefs.join(', ')}\n\n— Futures Daily Word`,
+                  text: `Today's passages: ${passageRefs.join(', ')}\n\nâ Futures Daily Word`,
                   url: 'https://futuresdailyword.com'
                 });
               }} style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:8, padding:'4px 8px', fontSize:12, color:'#fff', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
@@ -3702,7 +3738,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           <div key={planId + '_' + passage} style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-accent)', opacity: 0.8 }}>
-                {planTitle} — Day {dayNum}
+                {planTitle} â Day {dayNum}
               </span>
             </div>
             <div style={{
@@ -3712,7 +3748,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               overflow: 'hidden',
               marginBottom: 8,
             }}>
-              {/* ── Listen button — TOP, full width ── */}
+              {/* ââ Listen button â TOP, full width ââ */}
               {(() => {
                 const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
                 const isLoadingThis = audioLoading && audioCurrentPassage === passage;
@@ -3739,7 +3775,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }}
                   >
                     {isLoadingThis ? (
-                      <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading audio…</>
+                      <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading audioâ¦</>
                     ) : isPlayingThis ? (
                       <><Pause size={16} /> Pause</>
                     ) : (
@@ -3748,7 +3784,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   </button>
                 );
               })()}
-              {/* ── Scripture content ── */}
+              {/* ââ Scripture content ââ */}
               <div style={{ padding: '14px 18px 16px' }}>
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
                   {passage}
@@ -3764,11 +3800,11 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}â¦</span>
                   </div>
                 )}
               </div>
-              {/* Plan-level devotionals suppressed — single devotion shown in main card above */}
+              {/* Plan-level devotionals suppressed â single devotion shown in main card above */}
             </div>
           </div>
         );
@@ -3868,7 +3904,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         }}
                       >
                         {isLoadingThis ? (
-                          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loadingâ¦</>
                         ) : isPlayingThis ? (
                           <><Pause size={16} /> Pause</>
                         ) : (
@@ -3877,7 +3913,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       </button>
                     </div>
 
-                    {/* Scripture text — only shown when expanded */}
+                    {/* Scripture text â only shown when expanded */}
                     {isExpanded && (
                       <div style={{ marginBottom: 14 }}>
                         {isLoading ? (
@@ -4062,14 +4098,14 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
 
 
-        {/* ── Daily Quote — below the fold ── */}
+        {/* ââ Daily Quote â below the fold ââ */}
         <div style={{
           marginBottom: 20,
           padding: '8px 0',
           textAlign: 'center',
         }}>
           <p
-            onClick={() => setSelection({ text: `"${quote.text}" — ${quote.author}`, verseRefs: [], source: 'tap' })}
+            onClick={() => setSelection({ text: `"${quote.text}" â ${quote.author}`, verseRefs: [], source: 'tap' })}
             style={{
               fontFamily: 'var(--font-serif)',
               fontSize: 19,
@@ -4093,12 +4129,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
           }}>
-            — {quote.author}
+            â {quote.author}
           </p>
           <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
         </div>
 
-        {/* ── Daily Word of the Day — persona-gated ── */}
+        {/* ââ Daily Word of the Day â persona-gated ââ */}
         {pf.wordOfDay !== 'hidden' && (
         <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -4130,7 +4166,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         </Card>
         )}
 
-        {/* ── Weekly Word in Review (Sundays) — persona-gated ── */}
+        {/* ââ Weekly Word in Review (Sundays) â persona-gated ââ */}
         {pf.weeklyReview && weekReview && !weekReviewDismissed && (() => {
           const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
           return (
@@ -4147,7 +4183,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 position: 'absolute', top: 12, right: 12,
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
-              }}>×</button>
+              }}>Ã</button>
               <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</p>
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
               <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
@@ -4173,7 +4209,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* 5. Commentary — persona-gated: hidden / collapsed / expanded */}
+        {/* 5. Commentary â persona-gated: hidden / collapsed / expanded */}
         {pf.commentary !== 'hidden' && allCommentaries.length > 0 && (
           <Card style={{ marginBottom: 16 }}>
             <div
@@ -4182,7 +4218,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             >
               <p className="text-section-header" style={{ margin: 0 }}>COMMENTARY</p>
               {!commentaryExpanded && (
-                <span style={{ fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>Tap to read ›</span>
+                <span style={{ fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>Tap to read âº</span>
               )}
             </div>
             {commentaryExpanded && (
@@ -4247,7 +4283,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 {featured.title}
               </p>
               <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                {featured.totalDays} days · {featured.description?.slice(0, 80) || 'Build a consistent reading habit'}
+                {featured.totalDays} days Â· {featured.description?.slice(0, 80) || 'Build a consistent reading habit'}
               </p>
               <button
                 onClick={() => {
@@ -4262,13 +4298,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 40,
                 }}
               >
-                Start This Plan →
+                Start This Plan â
               </button>
             </Card>
           );
         })()}
 
-        {/* 6. Campus Section — persona-gated */}
+        {/* 6. Campus Section â persona-gated */}
         {pf.campusCount !== 'hidden' && <Card style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: showCampusPicker ? 14 : 0 }}>
             <MapPin size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
@@ -4355,7 +4391,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           )}
         </Card>}
 
-        {/* ── Active Plans Strip ── */}
+        {/* ââ Active Plans Strip ââ */}
         {homeActivePlans.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <p className="text-section-header" style={{ marginBottom: 10 }}>YOUR ACTIVE PLANS</p>
@@ -4381,7 +4417,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                           fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)',
                           padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
                         }}>
-                          {isComplete ? '✓ Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${completedCount} / ${plan.totalDays}`}
+                          {isComplete ? 'â Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${completedCount} / ${plan.totalDays}`}
                         </span>
                       </div>
                       <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
@@ -4393,7 +4429,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       </div>
                     </div>
 
-                    {/* ── Plan completed: prompt to pick the next one ── */}
+                    {/* ââ Plan completed: prompt to pick the next one ââ */}
                     {isComplete && (
                       <div style={{
                         marginTop: 8,
@@ -4412,7 +4448,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                           fontSize: 13, color: 'var(--dw-text-secondary)',
                           fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5,
                         }}>
-                          Keep the momentum going — pick your next plan.
+                          Keep the momentum going â pick your next plan.
                         </p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button
@@ -4453,7 +4489,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </div>
         )}
 
-        {/* ── For You — behavioral personalization (hidden for new_to_faith, comfort) ── */}
+        {/* ââ For You â behavioral personalization (hidden for new_to_faith, comfort) ââ */}
         {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && (() => {
           const behaviorProfile = getBehaviorProfile();
           if (!hasEnoughBehavior()) return null;
@@ -4511,7 +4547,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       }}
                     >
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>{passage}</span>
-                      <span style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>Read →</span>
+                      <span style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>Read â</span>
                     </button>
                   ))}
                 </div>
@@ -4520,7 +4556,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-                {/* ── Reading Plans Discovery ── */}
+                {/* ââ Reading Plans Discovery ââ */}
         {(() => {
           const activePlanIds = homeActivePlans.map(a => a.plan.id);
           const categories = Array.from(new Set(PLAN_CATALOGUE.map(p => p.category)));
@@ -4588,7 +4624,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-        {/* Campus Overview — pastor_leader persona only (leaders, connect group leaders, campus pastors) */}
+        {/* Campus Overview â pastor_leader persona only (leaders, connect group leaders, campus pastors) */}
         {personaConfig.persona === 'pastor_leader' && (() => {
           const campusId = userProfile?.campus || '';
           const seed = campusId.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
@@ -4655,7 +4691,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         <div style={{ height: 24 }} />
 
         </>)}
-        {/* ── End conditional Daily Word content ── */}
+        {/* ââ End conditional Daily Word content ââ */}
 
         </div>{/* end hero viewport */}
       </div>
@@ -4677,7 +4713,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         }
         @keyframes scaleIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* Hero card: dramatic colour wave — crimson ↔ near-black rolling through stops */
+        /* Hero card: dramatic colour wave â crimson â near-black rolling through stops */
         @keyframes heroColorWave {
           0%   { background-position: 0% 0%; }
           20%  { background-position: 80% 20%; }
@@ -4687,7 +4723,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           100% { background-position: 0% 0%; }
         }
 
-        /* Wide bright band sweeping left→right like glass catching light */
+        /* Wide bright band sweeping leftâright like glass catching light */
         @keyframes heroShimmerSweep {
           0%   { left: -60%; opacity: 0; }
           8%   { opacity: 1; }
@@ -4743,7 +4779,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               animation: 'scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
             }}
           >
-            <div style={{ fontSize: 56, marginBottom: 12 }}>🔥</div>
+            <div style={{ fontSize: 56, marginBottom: 12 }}>ð¥</div>
             <p style={{
               fontSize: 32, fontWeight: 700, color: '#FF9500',
               fontFamily: 'var(--font-sans)', marginBottom: 4,
@@ -4754,7 +4790,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               {showMilestone >= 100 ? 'Extraordinary dedication.' : showMilestone >= 30 ? 'A full month in the Word.' : showMilestone >= 14 ? 'Two solid weeks.' : 'One week strong.'}
             </p>
             <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 24 }}>
-              {showMilestone >= 30 ? '"His mercies are new every morning." — Lam. 3:23' : showMilestone >= 7 ? '"Blessed is the one who reads." — Rev. 1:3' : '"Draw near to God and he will draw near to you." — James 4:8'}
+              {showMilestone >= 30 ? '"His mercies are new every morning." â Lam. 3:23' : showMilestone >= 7 ? '"Blessed is the one who reads." â Rev. 1:3' : '"Draw near to God and he will draw near to you." â James 4:8'}
             </p>
             <button
               onClick={() => setShowMilestone(null)}
@@ -4764,13 +4800,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}
             >
-              Keep Going 🙌
+              Keep Going ð
             </button>
           </div>
         </div>
       )}
       <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
-      {/* Global highlight toolbar — appears for ANY selected text (persona-gated) */}
+      {/* Global highlight toolbar â appears for ANY selected text (persona-gated) */}
       {pf.highlighting !== 'none' && (
         <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />
       )}
@@ -4797,7 +4833,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         }}
       />
       <StopAllAudio onStop={() => { heroQueueRef.current = []; heroQueueActiveRef.current = false; }} />
-      {/* Temp version tag — remove after audio confirmed working */}
+      {/* Temp version tag â remove after audio confirmed working */}
       <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v53</p>
     </div>
   );
