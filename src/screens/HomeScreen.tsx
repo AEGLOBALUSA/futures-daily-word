@@ -1065,7 +1065,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const heroQueueActiveRef = useRef(false);
 
   const playNextInQueue = async () => {
-    if (heroQueueRef.current.length === 0) {
+    if (!heroQueueActiveRef.current || heroQueueRef.current.length === 0) {
       heroQueueActiveRef.current = false;
       return;
     }
@@ -1085,19 +1085,20 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         await AP.playUrl(HERO_KEY, src);
         // Wait for this chapter to finish playing before starting next
         await new Promise<void>(resolve => {
-          const unsub = AP.onStateChange((state) => {
-            if (state === 'idle') { unsub(); resolve(); }
+          let unsub: (() => void) | undefined;
+          unsub = AP.onStateChange((st) => {
+            if (st === 'idle') { unsub?.(); resolve(); }
           });
         });
         // Play next chapter
-        playNextInQueue();
+        if (heroQueueActiveRef.current) playNextInQueue();
       } else {
         // Skip this chapter, try next
-        playNextInQueue();
+        if (heroQueueActiveRef.current) playNextInQueue();
       }
     } catch {
       // Skip on error, try next
-      playNextInQueue();
+      if (heroQueueActiveRef.current) playNextInQueue();
     }
   };
 
