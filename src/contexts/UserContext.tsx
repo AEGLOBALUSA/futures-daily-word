@@ -6,6 +6,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import type { ReactNode } from 'react';
 import { PERSONA_MIGRATION } from '../utils/persona-config';
 import { setCampus as setAnalyticsCampus } from '../utils/analytics';
+import { syncOnStartup } from '../utils/cloudSync';
 
 export interface UserProfile {
   email: string;
@@ -129,6 +130,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {});
   }, [userProfile?.email, setup]);
+
+  // ── Cloud sync: backup & restore all user data ──
+  useEffect(() => {
+    if (!userProfile?.email) return;
+    syncOnStartup(userProfile.email).catch(() => {});
+  }, [userProfile?.email]);
 
   // Show email gate for first-time users (only once — respect skip)
   useEffect(() => {
