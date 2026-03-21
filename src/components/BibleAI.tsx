@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { trackBehavior } from '../utils/behavior'
 import { getPersonaConfig } from '../utils/persona-config'
-import { Send, ChevronDown, Copy, BookmarkPlus, RotateCcw } from 'lucide-react'
+import { Send, ChevronDown, Copy, BookmarkPlus, RotateCcw } from 'lucide-react';
+import { schedulePush } from '../utils/cloudSync'
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -238,7 +239,8 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
       }
       const journal = JSON.parse(localStorage.getItem('dw_journal') || '[]')
       journal.unshift(entry)
-      localStorage.setItem('dw_journal', JSON.stringify(journal))
+      localStorage.setItem('dw_journal', JSON.stringify(journal));
+        try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       window.dispatchEvent(new Event('dw-journal-updated'))
       showToast('Saved to Notes!')
     } catch {
