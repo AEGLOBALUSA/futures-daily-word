@@ -19,11 +19,11 @@
   --dw-accent-hover: #C94048;
   --dw-accent-active: #B5363E;
   --dw-accent-bg: rgba(220, 83, 93, 0.12);
-  --dw-text: #F0ECE6;
+  --dw-text: #FFFFFF;
   --dw-text-primary: #FFFFFF;
-  --dw-text-secondary: #E8E4DF;
-  --dw-text-muted: #B0AAA4;
-  --dw-text-faint: #9A9590;
+  --dw-text-secondary: #FFFFFF;
+  --dw-text-muted: #FFFFFF;
+  --dw-text-faint: #D4D0CC;
   --dw-text-christ: #DC535D;
   --dw-border: #333333;
   --dw-border-subtle: #252525;
@@ -276,3 +276,61 @@ body {
   background: var(--dw-accent-bg);
   color: var(--dw-accent);
 }
+
+/* ============================================
+   Contrast Fix Overrides — Dark Mode
+   Forces all low-contrast text to white on dark backgrounds
+   ============================================ */
+
+/* Bible version selector pills */
+.version-pill,
+[class*="version"] button,
+[class*="Version"] button {
+  color: #FFFFFF !important;
+}
+
+/* Plan card subtitles and meta text */
+[class*="plan"] [class*="subtitle"],
+[class*="plan"] [class*="meta"],
+[class*="plan"] [class*="desc"],
+[class*="card"] [class*="subtitle"],
+[class*="card"] [class*="meta"] {
+  color: #FFFFFF !important;
+}
+
+/* Verse numbers */
+.verse-number,
+[class*="verse-num"],
+sup {
+  color: #D4D0CC !important;
+}
+
+/* Force all muted/secondary/faint text white in dark mode */
+:root:not([data-theme="light"]) [style*="color: #B0AAA4"],
+:root:not([data-theme="light"]) [style*="color: #9A9590"],
+:root:not([data-theme="light"]) [style*="color: #6E6862"],
+:root:not([data-theme="light"]) [style*="color: #8A8480"],
+:root:not([data-theme="light"]) [style*="color: rgb(176"],
+:root:not([data-theme="light"]) [style*="color: rgb(154"],
+:root:not([data-theme="light"]) [style*="color: rgb(110"] {
+  color: #FFFFFF !important;
+}
+
+/* Catch rgba text with low opacity on dark backgrounds */
+:root:not([data-theme="light"]) [style*="rgba(255, 255, 255, 0.4)"],
+:root:not([data-theme="light"]) [style*="rgba(255, 255, 255, 0.5)"],
+:root:not([data-theme="light"]) [style*="rgba(255, 255, 255, 0.45)"],
+:root:not([data-theme="light"]) [style*="rgba(255,255,255,0.4)"],
+:root:not([data-theme="light"]) [style*="rgba(255,255,255,0.5)"],
+:root:not([data-theme="light"]) [style*="rgba(255,255,255,0.45)"] {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Global catch-all: any element with opacity text on dark bg */
+:root:not([data-theme="light"]) [style*="opacity: 0.5"],
+:root:not([data-theme="light"]) [style*="opacity: 0.4"],
+:root:not([data-theme="light"]) [style*="opacity:0.5"],
+:root:not([data-theme="light"]) [style*="opacity:0.4"] {
+  opacity: 0.85 !important;
+}
+
