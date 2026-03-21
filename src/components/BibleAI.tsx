@@ -3,10 +3,10 @@ import { trackBehavior } from '../utils/behavior'
 import { getPersonaConfig } from '../utils/persona-config'
 import { Send, ChevronDown, Copy, BookmarkPlus, RotateCcw } from 'lucide-react'
 
-/** Inline "BIBLE AI" wordmark used wherever Brain icon used to be */
+/** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
   const styles: Record<string, React.CSSProperties> = {
-    sm: { fontSize: 9, padding: '2px 6px', borderRadius: 5, letterSpacing: '0.08em' },
+    sm: { fontSize: 9, padding:'2px 6px', borderRadius: 5, letterSpacing: '0.08em' },
     md: { fontSize: 11, padding: '3px 8px', borderRadius: 6, letterSpacing: '0.08em' },
     lg: { fontSize: 14, padding: '5px 11px', borderRadius: 8, letterSpacing: '0.1em' },
   };
@@ -434,7 +434,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#9A7B2E',
+                          color: '#D4B44C',
                           cursor: 'pointer',
                           fontSize: 11,
                           fontWeight: 600,
