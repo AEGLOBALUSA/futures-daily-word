@@ -49,7 +49,7 @@ export function StopAllAudio({ onStop }: { onStop?: () => void } = {}) {
                                 0%, 100% { box-shadow: 0 4px 20px rgba(107,26,34,0.4); }
                                           50% { box-shadow: 0 4px 28px rgba(107,26,34,0.65); }
                                                   }
-                                                        `}</style>style>
-        </button>button>
+                                                        `}</style>
+        </button>
       );
 }</button>
