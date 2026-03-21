@@ -11,6 +11,7 @@ import { getPersonaConfig } from '../utils/persona-config';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Circle } from 'lucide-react';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
+import { schedulePush } from '../utils/cloudSync';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -65,6 +66,7 @@ function getActivePlans(): Record<string, PlanProgress> {
 
 function savePlans(plans: Record<string, PlanProgress>) {
   localStorage.setItem('dw_activeplans', JSON.stringify(plans));
+  try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
 }
 
 // Uses dw_streak_v2 — same key as HomeScreen for consistent streak tracking
@@ -90,8 +92,10 @@ function recordStreak() {
     const count = data.lastDate === yesterday.toISOString().slice(0, 10) ? (data.count || 0) + 1 : 1;
     // Preserve freezesAvailable and lastFreezeWeek from HomeScreen's richer structure
     localStorage.setItem('dw_streak_v2', JSON.stringify({ ...data, lastDate: today, count }));
+    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
   } catch {
     localStorage.setItem('dw_streak_v2', JSON.stringify({ lastDate: today, count: 1, freezesAvailable: 1, lastFreezeWeek: '' }));
+    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
   }
 }
 
@@ -130,6 +134,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
       };
       const updated = { ...getBookPlans(), [book.id]: plan };
       localStorage.setItem('dw_book_plans', JSON.stringify(updated));
+      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       saveBookToday(book.id, { title: chapters[0].title, paragraphs: chapters[0].paragraphs, chapterIndex: 0, bookTitle: book.title, bookAuthor: book.author });
       setBookPlans(updated);
     } catch {}
@@ -150,6 +155,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
       plan.currentChapter = nextChapter;
       plans[bookId] = plan;
       localStorage.setItem('dw_book_plans', JSON.stringify(plans));
+      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       saveBookToday(bookId, { title: ch.title, paragraphs: ch.paragraphs, chapterIndex: nextChapter, bookTitle: plan.title, bookAuthor: plan.author });
       setBookPlans({ ...plans });
     } catch {}
@@ -277,6 +283,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
         const bookPlansData = JSON.parse(localStorage.getItem('dw_book_plans') || '{}');
         delete bookPlansData[planDef.bookId];
         localStorage.setItem('dw_book_plans', JSON.stringify(bookPlansData));
+        try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
         localStorage.removeItem(`dw_book_today_${planDef.bookId}`);
         setBookPlans({ ...bookPlansData });
       } catch {}
