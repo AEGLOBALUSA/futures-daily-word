@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { cpSync, existsSync } from 'fs'
+import { cpSync, copyFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 
 export default defineConfig({
@@ -11,10 +11,17 @@ export default defineConfig({
     {
       name: 'copy-static-dirs',
       closeBundle() {
-        for (const dir of ['books', 'essays', 'data', 'bible']) {
+        for (const dir of ['books', 'essays', 'data', 'bible', 'icons']) {
           const src = resolve(dir)
           if (existsSync(src)) {
             cpSync(src, resolve('dist', dir), { recursive: true })
+          }
+        }
+        // Copy root-level static files into dist
+        for (const file of ['robots.txt', 'sitemap.xml', 'manifest.json', '_redirects', '404.html', 'apple-touch-icon.png']) {
+          const src = resolve(file)
+          if (existsSync(src)) {
+            copyFileSync(src, resolve('dist', file))
           }
         }
       },
