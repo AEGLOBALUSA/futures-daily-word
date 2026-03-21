@@ -19,6 +19,7 @@ let unlockPromise: Promise<void> | null = null;
 let currentPassage: string | null = null;
 let state: PlaybackState = 'idle';
 const listeners = new Set<StateListener>();
+let stopRequested = false;
 
 /* ------------------------------------------------------------------ */
 /*  State helpers                                                      */
@@ -120,8 +121,15 @@ export function unlock(): void {
 
 export function stop(): void {
   const audio = getAudio();
+    stopRequested = true;
   try { audio.pause(); } catch {}
   setState('idle');
+}
+
+export function wasStopRequested(): boolean {
+    const val = stopRequested;
+      stopRequested = false;
+        return val;
 }
 
 /* ------------------------------------------------------------------ */
