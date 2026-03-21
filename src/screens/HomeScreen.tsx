@@ -2546,7 +2546,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             <span style={{
               fontSize: 10, fontWeight: 500, letterSpacing: '0.12em',
               textTransform: 'uppercase', color: 'var(--dw-text-muted)',
-              fontFamily: 'var(--font-sans)', opacity: 0.6,
+              fontFamily: 'var(--font-sans)', opacity: 1,
             }}>
               Today's reflection
             </span>
