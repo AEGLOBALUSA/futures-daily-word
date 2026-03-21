@@ -5,8 +5,8 @@
  * V22: Removed aggressive tab reload on activate — uses gentle postMessage instead
  */
 
-const CACHE_NAME = 'fdw-v35';
-const STATIC_CACHE = 'fdw-static-v35';
+const CACHE_NAME = 'fdw-v36';
+const STATIC_CACHE = 'fdw-static-v36';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
