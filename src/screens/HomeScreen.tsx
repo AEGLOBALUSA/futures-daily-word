@@ -3,7 +3,7 @@ import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { FontSizeControls } from '../components/FontSizeControls';
 import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
-import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
+import { getDailyPassages, getDatetring, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -4796,7 +4796,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           }
         }}
       />
-      <StopAllAudio />
+      <StopAllAudio onStop={() => { heroQueueRef.current = []; heroQueueActiveRef.current = false; }} />
       {/* Temp version tag — remove after audio confirmed working */}
       <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v53</p>
     </div>
