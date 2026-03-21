@@ -334,3 +334,34 @@ sup {
   opacity: 0.85 !important;
 }
 
+
+
+/* NUCLEAR: Force all text bright white on dark bg */
+:root:not([data-theme="light"]) body,
+:root:not([data-theme="light"]) p,
+:root:not([data-theme="light"]) span,
+:root:not([data-theme="light"]) div,
+:root:not([data-theme="light"]) h1,
+:root:not([data-theme="light"]) h2,
+:root:not([data-theme="light"]) h3,
+:root:not([data-theme="light"]) h4,
+:root:not([data-theme="light"]) h5,
+:root:not([data-theme="light"]) h6,
+:root:not([data-theme="light"]) li,
+:root:not([data-theme="light"]) td,
+:root:not([data-theme="light"]) th,
+:root:not([data-theme="light"]) label,
+:root:not([data-theme="light"]) small,
+:root:not([data-theme="light"]) strong,
+:root:not([data-theme="light"]) em,
+:root:not([data-theme="light"]) b,
+:root:not([data-theme="light"]) i,
+:root:not([data-theme="light"]) sup {
+  color: #FFFFFF !important;
+}
+:root:not([data-theme="light"]) [style*="color:"] {
+  color: #FFFFFF !important;
+}
+:root:not([data-theme="light"]) [style*="color :"] {
+  color: #FFFFFF !important;
+}
