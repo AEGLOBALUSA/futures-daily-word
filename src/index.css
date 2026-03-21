@@ -334,34 +334,54 @@ sup {
   opacity: 0.85 !important;
 }
 
+/* ============================================
+   NUCLEAR DARK MODE TEXT OVERRIDE
+   Forces ALL text to bright white #FFFFFF
+   ============================================ */
 
-
-/* NUCLEAR: Force all text bright white on dark bg */
-:root:not([data-theme="light"]) body,
-:root:not([data-theme="light"]) p,
-:root:not([data-theme="light"]) span,
-:root:not([data-theme="light"]) div,
-:root:not([data-theme="light"]) h1,
-:root:not([data-theme="light"]) h2,
-:root:not([data-theme="light"]) h3,
-:root:not([data-theme="light"]) h4,
-:root:not([data-theme="light"]) h5,
-:root:not([data-theme="light"]) h6,
-:root:not([data-theme="light"]) li,
-:root:not([data-theme="light"]) td,
-:root:not([data-theme="light"]) th,
-:root:not([data-theme="light"]) label,
-:root:not([data-theme="light"]) small,
-:root:not([data-theme="light"]) strong,
-:root:not([data-theme="light"]) em,
-:root:not([data-theme="light"]) b,
-:root:not([data-theme="light"]) i,
-:root:not([data-theme="light"]) sup {
+/* Ultimate catch-all: every element gets white text in dark mode */
+:root:not([data-theme="light"]) *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
   color: #FFFFFF !important;
 }
-:root:not([data-theme="light"]) [style*="color:"] {
+
+/* Override ALL inline color styles */
+:root:not([data-theme="light"]) [style] {
   color: #FFFFFF !important;
 }
-:root:not([data-theme="light"]) [style*="color :"] {
+
+/* Override ALL inline styles with any color format */
+:root:not([data-theme="light"]) [style*="color"] {
+  color: #FFFFFF !important;
+}
+:root:not([data-theme="light"]) [style*="rgba"] {
+  color: #FFFFFF !important;
+}
+:root:not([data-theme="light"]) [style*="rgb("] {
+  color: #FFFFFF !important;
+}
+:root:not([data-theme="light"]) [style*="#"] {
+  color: #FFFFFF !important;
+}
+
+/* Force opacity to 1 on anything dimmed */
+:root:not([data-theme="light"]) [style*="opacity"] {
+  opacity: 1 !important;
+}
+
+/* Button, input, form text */
+:root:not([data-theme="light"]) button,
+:root:not([data-theme="light"]) input,
+:root:not([data-theme="light"]) textarea,
+:root:not([data-theme="light"]) select {
+  color: #FFFFFF !important;
+}
+
+/* Placeholder text */
+:root:not([data-theme="light"]) ::placeholder {
+  color: rgba(255,255,255,0.7) !important;
+}
+
+/* Links */
+:root:not([data-theme="light"]) a {
   color: #FFFFFF !important;
 }
