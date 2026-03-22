@@ -535,7 +535,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           {/* Devotion of the Day — congregation only */}
           {devotion && persona === 'congregation' && (
             <Card style={{ marginBottom: 24, borderLeft: '3px solid var(--dw-accent)' }}>
-              <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
+              <h2 className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</h2>
               <p className="text-card-title" style={{ marginBottom: 8 }}>{devotion.title}</p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
                 {devotion.verse}
@@ -585,7 +585,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
           {/* Your Plans */}
           <div style={{ marginBottom: 24 }}>
-            <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>YOUR PLANS</p>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>YOUR PLANS</h2>
             {myPlans.length === 0 ? (
               <Card style={{ textAlign: 'center', padding: '20px 16px' }}>
                 <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
@@ -626,7 +626,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
           {/* Ps A's Books */}
           <div style={{ marginBottom: 24 }}>
-            <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PASTOR ASHLEY'S BOOKS</p>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PASTOR ASHLEY'S BOOKS</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {BOOKS.map(book => {
                 const bp = bookPlans[book.id];
@@ -705,7 +705,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
           {/* Ps Jane's Books */}
           <div style={{ marginBottom: 24 }}>
-            <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS JANE'S BOOKS</p>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS JANE'S BOOKS</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {JANE_BOOKS.map(book => (
                 <Card
@@ -739,7 +739,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
           {/* Essays */}
           <div style={{ marginBottom: 24 }}>
-            <p className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>ESSAYS</p>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>ESSAYS</h2>
             <Card style={{ cursor: 'pointer' }} onClick={() => setActiveEssay('knocking-on-the-door')}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Scroll size={18} style={{ color: 'var(--dw-accent)' }} />
@@ -1229,7 +1229,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
         {/* Suggested faith pathway for new believers */}
         {(persona === 'new_to_faith' || persona === 'new_returning') && !activePlans['faith-pathway'] && (
           <Card style={{ marginTop: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-            <p className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</p>
+            <h2 className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</h2>
             <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
               Perfect for new believers — a guided journey through the foundations of faith.

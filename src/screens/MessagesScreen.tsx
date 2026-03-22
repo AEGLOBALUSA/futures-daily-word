@@ -841,9 +841,9 @@ function SermonNotesPanel({
 
       {showForm && (
         <Card style={{ marginBottom: 20 }}>
-          <p className="text-section-header" style={{ marginBottom: 12 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 12 }}>
             {editingId ? 'EDIT NOTE' : 'NEW SERMON NOTE'}
-          </p>
+          </h2>
           {[
             { placeholder: 'Note title...', key: 'title', fontSize: 14 },
             { placeholder: 'Sermon title (optional)...', key: 'sermon', fontSize: 13 },
@@ -882,7 +882,7 @@ function SermonNotesPanel({
       {/* ── Pre-loaded Sermons from Leadership ── */}
       {PRELOADED_SERMONS.length > 0 && (
         <div style={{ marginBottom: 20 }}>
-          <p className="text-section-header" style={{ marginBottom: 10 }}>FROM YOUR PASTORS</p>
+          <h2 className="text-section-header" style={{ marginBottom: 10 }}>FROM YOUR PASTORS</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {PRELOADED_SERMONS.map(sermon => (
               <Card key={sermon.id} onClick={() => setViewingSermon(sermon)}
@@ -926,7 +926,7 @@ function SermonNotesPanel({
         </Card>
       ) : (
         <>
-          <p className="text-section-header" style={{ marginBottom: 10 }}>MY NOTES</p>
+          <h2 className="text-section-header" style={{ marginBottom: 10 }}>MY NOTES</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {notes.map(note => (
               <Card key={note.id}>
@@ -1062,7 +1062,7 @@ function PrayerWallPanel({
       {/* New prayer form */}
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
-          <p className="text-section-header" style={{ marginBottom: 10 }}>SHARE A PRAYER REQUEST</p>
+          <h2 className="text-section-header" style={{ marginBottom: 10 }}>SHARE A PRAYER REQUEST</h2>
           <textarea
             placeholder="What would you like your church family to pray for?"
             value={prayerText}

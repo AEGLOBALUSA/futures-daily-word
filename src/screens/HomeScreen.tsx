@@ -2802,7 +2802,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             setSelection({ text: `${todaysDevotion.title}\n\n${todaysDevotion.body}`, verseRefs: [todaysDevotion.verse || ''], source: 'tap' });
           }}
         >
-          <p className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</p>
+          <h2 className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</h2>
           <p className="text-card-title" style={{ marginBottom: 6 }}>{todaysDevotion.title}</p>
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
             {todaysDevotion.verse}
@@ -2890,7 +2890,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               {/* Current comfort chapter — auto-loaded */}
               <Card style={{ marginBottom: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <p className="text-section-header" style={{ margin: 0 }}>A WORD FOR YOU TODAY</p>
+                  <h2 className="text-section-header" style={{ margin: 0 }}>A WORD FOR YOU TODAY</h2>
                   <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                     Take your time
                   </span>
@@ -3177,9 +3177,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           return (
             <Card style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <p className="text-section-header" style={{ margin: 0 }}>
+                <h2 className="text-section-header" style={{ margin: 0 }}>
                   {isComfort ? "TODAY'S SCRIPTURE" : "TODAY'S READING"}
-                </p>
+                </h2>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                   {isComfort ? 'Read at your own pace' : 'From today\'s devotion'}
                 </span>
@@ -3292,7 +3292,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           return (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <p className="text-section-header" style={{ margin: 0 }}>TODAY'S STUDY</p>
+                <h2 className="text-section-header" style={{ margin: 0 }}>TODAY'S STUDY</h2>
                 {/* Greek/Hebrew mode toggle */}
                 {pf.greekHebrew === 'full' && (
                   <button
@@ -3502,9 +3502,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             <Card style={{ marginBottom: 16 }}>
               {/* Header: plan name + progress */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <p className="text-section-header" style={{ margin: 0 }}>
+                <h2 className="text-section-header" style={{ margin: 0 }}>
                   DAY {currentDay} OF {totalDays}
-                </p>
+                </h2>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                   {pathTitle}
                 </span>
@@ -3588,7 +3588,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
                 return (
                   <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--dw-border)' }}>
-                    <p className="text-section-header" style={{ marginBottom: 10 }}>TODAY'S READING</p>
+                    <h2 className="text-section-header" style={{ marginBottom: 10 }}>TODAY'S READING</h2>
 
                     {/* Translation picker — ESV, NIV, NLT only */}
                     <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -4175,7 +4175,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {pf.wordOfDay !== 'hidden' && (
         <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-            <p className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</p>
+            <h2 className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</h2>
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
               {dailyWord.lang}
             </span>
@@ -4221,7 +4221,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
               }}>×</button>
-              <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</p>
+              <h2 className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</h2>
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
               <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
                 {[
@@ -4253,7 +4253,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               onClick={() => !commentaryExpanded && setCommentaryExpanded(true)}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: commentaryExpanded ? 'default' : 'pointer', marginBottom: commentaryExpanded ? 10 : 0 }}
             >
-              <p className="text-section-header" style={{ margin: 0 }}>COMMENTARY</p>
+              <h2 className="text-section-header" style={{ margin: 0 }}>COMMENTARY</h2>
               {!commentaryExpanded && (
                 <span style={{ fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>Tap to read ›</span>
               )}
@@ -4315,7 +4315,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           if (!featured) return null;
           return (
             <Card style={{ marginBottom: 16, border: '1px solid rgba(154,123,46,0.25)', background: 'rgba(154,123,46,0.05)' }}>
-              <p className="text-section-header" style={{ marginBottom: 8, color: 'var(--dw-accent)' }}>READING PLAN</p>
+              <h2 className="text-section-header" style={{ marginBottom: 8, color: 'var(--dw-accent)' }}>READING PLAN</h2>
               <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
                 {featured.title}
               </p>
@@ -4347,7 +4347,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: showCampusPicker ? 14 : 0 }}>
             <MapPin size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <p className="text-section-header" style={{ marginBottom: 2 }}>YOUR CAMPUS</p>
+              <h2 className="text-section-header" style={{ marginBottom: 2 }}>YOUR CAMPUS</h2>
               <p style={{
                 color: 'var(--dw-text-primary)',
                 fontSize: 15,
@@ -4432,7 +4432,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* ── Active Plans Strip ── */}
         {homeActivePlans.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <p className="text-section-header" style={{ marginBottom: 10 }}>YOUR ACTIVE PLANS</p>
+            <h2 className="text-section-header" style={{ marginBottom: 10 }}>YOUR ACTIVE PLANS</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {homeActivePlans.map(({ plan, completedCount }) => {
                 const pct = Math.min((completedCount / plan.totalDays) * 100, 100);
@@ -4541,7 +4541,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           return (
             <Card style={{ marginBottom: 16, border: '1px solid rgba(37,99,235,0.18)', background: 'rgba(37,99,235,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <p className="text-section-header" style={{ margin: 0, color: '#2563EB' }}>FOR YOU</p>
+                <h2 className="text-section-header" style={{ margin: 0, color: '#2563EB' }}>FOR YOU</h2>
                 {signal && signal !== 'mixed' && (
                   <span style={{
                     fontSize: 10, fontWeight: 600, color: '#2563EB',
@@ -4601,7 +4601,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           const categories = Array.from(new Set(PLAN_CATALOGUE.map(p => p.category)));
           return (
             <div style={{ marginBottom: 20 }}>
-              <p className="text-section-header" style={{ marginBottom: 12 }}>READING PLANS</p>
+              <h2 className="text-section-header" style={{ marginBottom: 12 }}>READING PLANS</h2>
               {categories.map(cat => (
                 <div key={cat} style={{ marginBottom: 16 }}>
                   <p style={{

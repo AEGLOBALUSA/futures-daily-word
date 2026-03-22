@@ -239,7 +239,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ─── PROFILE ─── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PROFILE</p>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PROFILE</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <button onClick={() => requireEmail()} style={rowStyle}>
               <User size={18} style={iconStyle} />
@@ -257,7 +257,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ─── PERSONA ─── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Heart size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             YOUR JOURNEY
           </p>
@@ -322,7 +322,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ─── MY STORY ─── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 4, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 4, paddingLeft: 4 }}>
             <User size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             MY SEASON &amp; CONTEXT
           </p>
@@ -377,7 +377,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ─── TRANSLATION ─── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Globe size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             BIBLE TRANSLATION
           </p>
@@ -404,7 +404,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ─── CAMPUS ─── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             YOUR CAMPUS
           </p>
@@ -460,7 +460,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ─── FONT SIZE ─── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Type size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             FONT SIZE
           </p>
@@ -489,7 +489,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ── LANGUAGE ── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Languages size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             LANGUAGE
           </p>
@@ -518,7 +518,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ── DAILY READING ── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <BookOpen size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             DAILY READING
           </p>
@@ -550,7 +550,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ── MEDIA ── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Music size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             MEDIA
           </p>
@@ -618,7 +618,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ── NOTIFICATIONS ── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Bell size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             NOTIFICATIONS
           </p>
@@ -642,7 +642,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ── LIBRARY ── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>LIBRARY</p>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>LIBRARY</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <button onClick={() => setShowLibrary(true)} style={rowStyle}>
               <BookOpen size={18} style={iconStyle} />
@@ -654,7 +654,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ── CONTENT ── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</p>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <button onClick={handleKJVDownload} style={rowStyle}>
               <Download size={18} style={iconStyle} />
@@ -669,7 +669,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         {/* ── PASTORAL CARE (Comfort Persona Only) ── */}
         {setup?.persona === 'comfort' && (
           <div style={{ marginBottom: 24 }}>
-            <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PASTORAL CARE</p>
+            <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PASTORAL CARE</h2>
             <Card style={{ padding: 16 }}>
               <div style={{ marginBottom: 14 }}>
                 <p style={{
@@ -728,7 +728,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
         {/* ── ABOUT ── */}
         <div style={{ marginBottom: 24 }}>
-          <p className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>ABOUT</p>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>ABOUT</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <div style={rowStyle}>
               <Info size={18} style={iconStyle} />

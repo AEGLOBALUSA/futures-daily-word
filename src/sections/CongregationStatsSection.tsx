@@ -58,9 +58,9 @@ export function CongregationStatsSection() {
       border: '1px solid var(--dw-border, #E8E6E0)',
       opacity: 0.85,
     }}>
-      <p className="text-section-header" style={{ color: 'var(--dw-text-muted, #777)', marginBottom: 12, fontSize: 10 }}>
+      <h2 className="text-section-header" style={{ color: 'var(--dw-text-muted, #777)', marginBottom: 12, fontSize: 10 }}>
         QUICK GLANCE
-      </p>
+      </h2>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         <div style={{
           background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center',

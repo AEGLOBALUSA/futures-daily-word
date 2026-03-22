@@ -52,7 +52,7 @@ export function WeeklyReviewSection() {
         background: 'none', border: 'none', cursor: 'pointer',
         color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
       }}>&times;</button>
-      <p className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</p>
+      <h2 className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</h2>
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
       <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
         {[
