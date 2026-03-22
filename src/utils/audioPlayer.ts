@@ -95,7 +95,7 @@ function generateSilenceBlob(): Blob {
 
 export function unlock(): void {
   if (unlocked) return;
-  const v = ++unlockVersion;
+  ++unlockVersion;
   const audio = getAudio();
   const silenceUrl = URL.createObjectURL(generateSilenceBlob());
   audio.src = silenceUrl;
