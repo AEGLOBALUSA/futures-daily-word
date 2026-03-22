@@ -1386,7 +1386,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                     }}
                   >
-                    📍 {currentCampus?.name?.replace('Futures ', '') || {t('select_campus')}}
+                    📍 {currentCampus?.name?.replace('Futures ', '') || t('select_campus')}
                     <ChevronDown size={10} style={{ opacity: 0.6 }} />
                   </button>
                   {showHeaderCampus && (
@@ -1641,7 +1641,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }
                   </button>
                   <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : {t('listen_now')}}
+                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : t('listen_now')}
                   </p>
                   <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
                     {allLabels.join(' · ')}
@@ -2019,7 +2019,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
                     fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
                   }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : {t('listen_now')}}
+                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : t('listen_now')}
                   </p>
 
                   <p style={{
@@ -3212,7 +3212,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             <Card style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <h2 className="text-section-header" style={{ margin: 0 }}>
-                  {isComfort ? "TODAY'S SCRIPTURE" : {t('todays_reading')}}
+                  {isComfort ? "TODAY'S SCRIPTURE" : t('todays_reading')}
                 </h2>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                   {isComfort ? 'Read at your own pace' : 'From today\'s devotion'}
@@ -3590,7 +3590,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontFamily: 'var(--font-sans)',
                   }}
                 >
-                  {isCompleted ? '✓ Completed' : {t('mark_complete')}}
+                  {isCompleted ? '✓ Completed' : t('mark_complete')}
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button onClick={() => {
