@@ -449,3 +449,91 @@ sup {
 :root[data-theme="light"] [style*="background"][style*="var(--dw-accent)"] {
   color: #FFFFFF !important;
 }
+
+/* ============================================
+   NUCLEAR LIGHT MODE TEXT OVERRIDE
+   Forces dark text on light backgrounds.
+   Fixes white-on-white "whited out" panels on iOS.
+   ============================================ */
+
+/* Catch-all: dark text in light mode */
+:root[data-theme="light"] *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
+  color: var(--dw-text-primary) !important;
+}
+
+/* Override inline color styles */
+:root[data-theme="light"] [style*="color"] {
+  color: var(--dw-text-primary) !important;
+}
+:root[data-theme="light"] [style*="rgba"] {
+  color: var(--dw-text-primary) !important;
+}
+:root[data-theme="light"] [style*="rgb("] {
+  color: var(--dw-text-primary) !important;
+}
+
+/* Muted/secondary text */
+:root[data-theme="light"] .text-section-header {
+  color: var(--dw-text-muted) !important;
+}
+
+/* Buttons, inputs */
+:root[data-theme="light"] button,
+:root[data-theme="light"] input,
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] select {
+  color: var(--dw-text-primary) !important;
+}
+
+/* Placeholder */
+:root[data-theme="light"] ::placeholder {
+  color: var(--dw-text-faint) !important;
+}
+
+/* Links */
+:root[data-theme="light"] a {
+  color: var(--dw-text-primary) !important;
+}
+
+/* ====== EXCEPTIONS: keep white text on dark backgrounds ====== */
+
+/* Hero card (red gradient) */
+:root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] *:not(svg):not(path) {
+  color: #FFFFFF !important;
+}
+
+/* Tab bar */
+:root[data-theme="light"] .tab-bar *,
+:root[data-theme="light"] .tab-bar-item,
+:root[data-theme="light"] .tab-bar-item * {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+:root[data-theme="light"] .tab-bar-item.active,
+:root[data-theme="light"] .tab-bar-item.active * {
+  color: #FFFFFF !important;
+}
+
+/* Charcoal/dark background elements */
+:root[data-theme="light"] [style*="charcoal-deep"] *,
+:root[data-theme="light"] [style*="charcoal-deep"],
+:root[data-theme="light"] [style*="var(--dw-charcoal"] *,
+:root[data-theme="light"] [style*="var(--dw-charcoal"] {
+  color: #FFFFFF !important;
+}
+
+/* Accent/primary buttons */
+:root[data-theme="light"] .dw-btn-primary {
+  color: #FFFFFF !important;
+}
+:root[data-theme="light"] button[style*="var(--dw-accent)"],
+:root[data-theme="light"] button[style*="DC535D"],
+:root[data-theme="light"] button[style*="dc535d"],
+:root[data-theme="light"] button[style*="A8323B"],
+:root[data-theme="light"] button[style*="a8323b"] {
+  color: #FFFFFF !important;
+}
+
+/* Gold gradient buttons - dark text */
+:root[data-theme="light"] button[style*="linear-gradient"] {
+  color: #1A1714 !important;
+}
