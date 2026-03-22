@@ -1,6 +1,6 @@
 import { Home, PenLine, MessageCircle, Calendar, Settings } from 'lucide-react';
 
-export type TabId = 'home' | 'journal' | 'messages' | 'plans' | 'more';
+export type TabId = 'home' | 'journal' | 'messages' | 'plans' | 'more' | 'sermon-notes';
 
 interface TabBarProps {
   activeTab: TabId;
