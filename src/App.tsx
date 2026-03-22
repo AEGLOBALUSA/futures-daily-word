@@ -20,6 +20,7 @@ const JournalScreen = lazy(() => import('./screens/JournalScreen').then(m => ({ 
 const MessagesScreen = lazy(() => import('./screens/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
 const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ default: m.PlansScreen })));
 const MoreScreen = lazy(() => import('./screens/MoreScreen').then(m => ({ default: m.MoreScreen })));
+const SermonNotesScreen = lazy(() => import('./screens/SermonNotesScreen').then(m => ({ default: m.SermonNotesScreen })));
 
 /** Minimal loading spinner shown while a screen chunk downloads */
 function ScreenLoader() {
@@ -122,6 +123,7 @@ function AppContent() {
     messages: <MessagesScreen onBack={goBack} />,
     plans: <PlansScreen onBack={goBack} />,
     more: <MoreScreen onBack={goBack} />,
+    'sermon-notes': <SermonNotesScreen onBack={goBack} />,
   };
 
   // Full-screen pathway picker — renders INSTEAD of app when needed
