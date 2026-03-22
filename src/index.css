@@ -537,3 +537,20 @@ sup {
 :root[data-theme="light"] button[style*="linear-gradient"] {
   color: #1A1714 !important;
 }
+
+/* FIX: Buttons with transparent bg that use accent as TEXT color (not background) */
+/* "Browse all plans" link and similar accent-colored text buttons */
+:root[data-theme="light"] button[style*="background: none"][style*="var(--dw-accent)"],
+:root[data-theme="light"] button[style*="background:none"][style*="var(--dw-accent)"] {
+     color: var(--dw-accent) !important;
+}
+
+/* FIX: Ensure accent-background buttons and their children keep white text */
+:root[data-theme="light"] button[style*="background: var(--dw-accent)"],
+:root[data-theme="light"] button[style*="background:var(--dw-accent)"] {
+     color: #FFFFFF !important;
+}
+:root[data-theme="light"] button[style*="background: var(--dw-accent)"] *,
+:root[data-theme="light"] button[style*="background:var(--dw-accent)"] * {
+     color: #FFFFFF !important;
+}
