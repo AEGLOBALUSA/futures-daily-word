@@ -2730,11 +2730,11 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           }}
         >
           <div>
-            <div style={{ fontSize: '11px', letterSpacing: '2px', color: '#C8A84E', textTransform: 'uppercase' as const }}>Today&apos;s Sermon</div>
+            <div style={{ fontSize: '11px', letterSpacing: '2px', color: '#C8A84E', textTransform: 'uppercase' }}>Today's Sermon</div>
             <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFFFFF', marginTop: '2px' }}>TAKE IT OFF</div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>Ephesians 4:22\u201324</div>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>Ephesians 4:22–24</div>
           </div>
-          <div style={{ color: '#C8A84E', fontSize: '24px' }}>\u2192</div>
+          <div style={{ color: '#C8A84E', fontSize: '24px' }}>→</div>
         </div>
 
         {/* Date Navigation */}
