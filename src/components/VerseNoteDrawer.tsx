@@ -153,7 +153,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
               </span>
             )}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)' }}>
+          <button aria-label="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)' }}>
             <X size={18} />
           </button>
         </div>
