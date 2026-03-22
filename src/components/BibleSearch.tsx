@@ -56,7 +56,7 @@ export function BibleSearch({ isOpen, onClose, onSearch }: BibleSearchProps) {
           >
             Search the Bible
           </h3>
-          <button
+          <button aria-label="Close search"
             onClick={onClose}
             style={{
               background: 'none',
