@@ -32,9 +32,9 @@ import { getPersonaConfig, getGreeting, ALL_PERSONAS, PERSONA_CONFIGS } from '..
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
-import { PRELOADED_SERMONS } from '../data/sermons';
+import { type SermonData } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
-import { isSundayWindow } from '../utils/sunday';
+// import { isSundayWindow } from '../utils/sunday';
 import { schedulePush } from '../utils/cloudSync';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
@@ -325,7 +325,7 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
 }
 
 /** Sunday sermon shortcut — show during Sunday service window (Sat 11:40 PM → Sun 4 PM) */
-function getSundaySermon() { return null; /* sermon banner disabled */ }
+function getSundaySermon(): SermonData | null { return null; /* sermon banner disabled */ }
 
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
