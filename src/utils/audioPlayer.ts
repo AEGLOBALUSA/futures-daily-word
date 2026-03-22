@@ -55,6 +55,7 @@ function getAudio(): HTMLAudioElement {
   if (!audioEl) {
     audioEl = new Audio();
     audioEl.preload = 'auto';
+    audioEl.setAttribute('playsinline', '');
     audioEl.addEventListener('ended', () => {
       if (state === 'playing') setState('idle');
     });
@@ -67,7 +68,7 @@ function getAudio(): HTMLAudioElement {
 /* ------------------------------------------------------------------ */
 
 function generateSilenceBlob(): Blob {
-  const numSamples = 441;          // 10 ms of silence at 44.1 kHz
+  const numSamples = 44100;          // 10 ms of silence at 44.1 kHz
   const dataSize = numSamples * 2;
   const fileSize = 36 + dataSize;
   const buf = new ArrayBuffer(44 + dataSize);
@@ -102,10 +103,8 @@ export function unlock(): void {
   if (p && p.then) {
     unlockPromise = p.then(() => {
       unlocked = true;
-      // Only pause if nothing else has taken over the element
-      if (unlockVersion === v && state !== 'loading' && state !== 'playing') {
-        audio.pause();
-      }
+          // iOS FIX: Do NOT pause after unlock — the silence blob is short
+          // and pausing here can revoke the audio session before playUrl fires.
       URL.revokeObjectURL(silenceUrl);
     }).catch(() => {
       URL.revokeObjectURL(silenceUrl);
@@ -285,6 +284,8 @@ export async function play(
 /* ------------------------------------------------------------------ */
 
 export async function playUrl(key: string, blobUrl: string): Promise<void> {
+  // iOS FIX: ensure audio session is unlocked even when called directly
+  unlock();
   if (unlockPromise) {
     try { await unlockPromise; } catch {}
   }
