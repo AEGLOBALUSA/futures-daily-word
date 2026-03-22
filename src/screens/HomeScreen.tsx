@@ -325,12 +325,7 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
 }
 
 /** Sunday sermon shortcut — show during Sunday service window (Sat 11:40 PM → Sun 4 PM) */
-function getSundaySermon() {
-  if (!isSundayWindow()) return null;
-  // Find the most recent preloaded sermon
-  const sorted = [...PRELOADED_SERMONS].sort((a, b) => b.date.localeCompare(a.date));
-  return sorted[0] || null;
-}
+function getSundaySermon() { return null; /* sermon banner disabled */ }
 
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
@@ -482,6 +477,45 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   const [appLanguage, setAppLanguage] = useState(() => {
     try { return localStorage.getItem('dw_lang') || 'en'; } catch { return 'en'; }
   });
+
+  // ── i18n: UI translations ──
+  const UI_STRINGS: Record<string, Record<string, string>> = {
+    'todays_reading': { en: "TODAY'S READING", es: "LECTURA DE HOY", pt: "LEITURA DE HOJE", id: "BACAAN HARI INI" },
+    'listen_now': { en: "Listen Now", es: "Escuchar ahora", pt: "Ouça agora", id: "Dengarkan" },
+    'read': { en: "Read", es: "Leer", pt: "Ler", id: "Baca" },
+    'mark_complete': { en: "Mark Complete \u2192", es: "Marcar completo \u2192", pt: "Marcar completo \u2192", id: "Tandai Selesai \u2192" },
+    'share': { en: "Share", es: "Compartir", pt: "Compartilhar", id: "Bagikan" },
+    'font_size': { en: "Font Size", es: "Tam. de fuente", pt: "Tam. da fonte", id: "Ukuran Font" },
+    'select_campus': { en: "Select Campus", es: "Seleccionar sede", pt: "Selecionar campus", id: "Pilih Kampus" },
+    'search': { en: "Search", es: "Buscar", pt: "Buscar", id: "Cari" },
+    'daily_word': { en: "Daily Word", es: "Palabra del D\u00eda", pt: "Palavra do Dia", id: "Firman Harian" },
+    'reading_plan': { en: "READING PLAN", es: "PLAN DE LECTURA", pt: "PLANO DE LEITURA", id: "RENCANA BACAAN" },
+    'reading_plans': { en: "READING PLANS", es: "PLANES DE LECTURA", pt: "PLANOS DE LEITURA", id: "RENCANA BACAAN" },
+    'start_plan': { en: "Start This Plan \u2192", es: "Comenzar este plan \u2192", pt: "Come\u00e7ar este plano \u2192", id: "Mulai Rencana Ini \u2192" },
+    'todays_reflection': { en: "Today's reflection", es: "Reflexi\u00f3n de hoy", pt: "Reflex\u00e3o de hoje", id: "Refleksi hari ini" },
+    'previous_day': { en: "Previous day", es: "D\u00eda anterior", pt: "Dia anterior", id: "Hari sebelumnya" },
+    'next_day': { en: "Next day", es: "D\u00eda siguiente", pt: "Pr\u00f3ximo dia", id: "Hari berikutnya" },
+    'bible_ai': { en: "Bible AI", es: "Biblia IA", pt: "B\u00edblia IA", id: "Alkitab AI" },
+    'home': { en: "Home", es: "Inicio", pt: "In\u00edcio", id: "Beranda" },
+    'notes': { en: "Notes", es: "Notas", pt: "Notas", id: "Catatan" },
+    'campus': { en: "Campus", es: "Sede", pt: "Campus", id: "Kampus" },
+    'plans': { en: "Plans", es: "Planes", pt: "Planos", id: "Rencana" },
+    'settings': { en: "Settings", es: "Ajustes", pt: "Configura\u00e7\u00f5es", id: "Pengaturan" },
+    'listen': { en: "Listen", es: "Escuchar", pt: "Ouvir", id: "Dengarkan" },
+    'commentary': { en: "Commentary", es: "Comentario", pt: "Coment\u00e1rio", id: "Komentar" },
+    'note': { en: "Note", es: "Nota", pt: "Nota", id: "Catatan" },
+    'save_notes': { en: "Save to Notes", es: "Guardar en notas", pt: "Salvar nas notas", id: "Simpan ke Catatan" },
+    'welcome_back': { en: "Welcome back.", es: "Bienvenido de nuevo.", pt: "Bem-vindo de volta.", id: "Selamat datang kembali." },
+    'im_new': { en: "I'm New to This", es: "Soy nuevo en esto", pt: "Sou novo nisso", id: "Saya Baru" },
+    'featured': { en: "Featured", es: "Destacados", pt: "Destaques", id: "Unggulan" },
+    'books': { en: "Books", es: "Libros", pt: "Livros", id: "Buku" },
+    'sunday_service': { en: "Sunday Service \u2014 Open Sermon Notes", es: "Servicio dominical \u2014 Abrir notas del serm\u00f3n", pt: "Culto de domingo \u2014 Abrir notas do serm\u00e3o", id: "Ibadah Minggu \u2014 Buka Catatan Khotbah" },
+    'tap_notes': { en: "Tap to take notes during today's message", es: "Toca para tomar notas durante el mensaje de hoy", pt: "Toque para fazer anota\u00e7\u00f5es durante a mensagem de hoje", id: "Ketuk untuk mencatat selama pesan hari ini" },
+    'sermon_notes': { en: "Sermon Notes", es: "Notas del serm\u00f3n", pt: "Notas do serm\u00e3o", id: "Catatan Khotbah" },
+    'esv_human': { en: "ESV \u00b7 Human Reader", es: "ESV \u00b7 Lector humano", pt: "ESV \u00b7 Leitor humano", id: "ESV \u00b7 Pembaca" },
+  };
+  const t = (key: string): string => UI_STRINGS[key]?.[appLanguage] || UI_STRINGS[key]?.['en'] || key;
+
 
   // Reading Slots state
   const [readingSlots, setReadingSlots] = useState<ReadingSlot[]>(() => {
@@ -1220,7 +1254,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* Header — compact, sits above the centered hero */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Bible AI button — burnished gold + glass */}
+            {/* {t('bible_ai')} button — burnished gold + glass */}
             <button
               onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}
               style={{
@@ -1265,7 +1299,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 textTransform: 'uppercase',
                 position: 'relative',
                 textShadow: '0 1px 3px rgba(80,40,0,0.6)',
-              }}>Bible AI</span>
+              }}>{t('bible_ai')}</span>
             </button>
             <div>
               <h1 style={{
@@ -1352,7 +1386,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                       color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                     }}
                   >
-                    📍 {currentCampus?.name?.replace('Futures ', '') || 'Select Campus'}
+                    📍 {currentCampus?.name?.replace('Futures ', '') || {t('select_campus')}}
                     <ChevronDown size={10} style={{ opacity: 0.6 }} />
                   </button>
                   {showHeaderCampus && (
@@ -1607,7 +1641,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }
                   </button>
                   <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
+                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : {t('listen_now')}}
                   </p>
                   <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
                     {allLabels.join(' · ')}
@@ -1656,10 +1690,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             <BookOpen size={22} color="#fff" />
             <div style={{ textAlign: 'left' }}>
               <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.2 }}>
-                Sunday Service — Open Sermon Notes
+                {t('sunday_service')}
               </p>
               <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
-                Tap to take notes during today's message
+                {t('tap_notes')}
               </p>
             </div>
           </button>
@@ -1854,7 +1888,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           )}
         </div>
 
-        {/* ── Font Size Controls ── */}
+        {/* ── {t('font_size')} Controls ── */}
         <FontSizeControls
           fontSize={scriptureFontSize}
           min={FONT_MIN}
@@ -1985,7 +2019,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
                     fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
                   }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : 'Listen Now'}
+                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : {t('listen_now')}}
                   </p>
 
                   <p style={{
@@ -2599,7 +2633,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               textTransform: 'uppercase', color: 'var(--dw-text-muted)',
               fontFamily: 'var(--font-sans)', opacity: 1,
             }}>
-              Today's reflection
+              {t('todays_reflection')}
             </span>
             <div style={{ display: 'flex', gap: 4 }}>
               {[0, 1, 2].map(i => (
@@ -2752,12 +2786,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           <button
             onClick={() => setDayOffset(d => d - 1)}
             style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label="Previous day"
+            aria-label={t('previous_day')}
           >
             <ChevronLeft size={20} />
           </button>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', marginBottom: 4 }}>TODAY'S READING</p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', marginBottom: 4 }}>{t('todays_reading')}</p>
             <p style={{ color: '#fff', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
               {dateStr}
             </p>
@@ -2786,7 +2820,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             onClick={() => setDayOffset(d => d + 1)}
             disabled={dayOffset >= 30}
             style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'rgba(255,255,255,0.3)' : '#fff', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label="Next day"
+            aria-label={t('next_day')}
           >
             <ChevronRight size={20} />
           </button>
@@ -3178,7 +3212,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             <Card style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <h2 className="text-section-header" style={{ margin: 0 }}>
-                  {isComfort ? "TODAY'S SCRIPTURE" : "TODAY'S READING"}
+                  {isComfort ? "TODAY'S SCRIPTURE" : {t('todays_reading')}}
                 </h2>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                   {isComfort ? 'Read at your own pace' : 'From today\'s devotion'}
@@ -3556,7 +3590,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontFamily: 'var(--font-sans)',
                   }}
                 >
-                  {isCompleted ? '✓ Completed' : 'Mark Complete →'}
+                  {isCompleted ? '✓ Completed' : {t('mark_complete')}}
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button onClick={() => {
@@ -3588,7 +3622,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
                 return (
                   <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--dw-border)' }}>
-                    <h2 className="text-section-header" style={{ marginBottom: 10 }}>TODAY'S READING</h2>
+                    <h2 className="text-section-header" style={{ marginBottom: 10 }}>{t('todays_reading')}</h2>
 
                     {/* Translation picker — ESV, NIV, NLT only */}
                     <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -4315,7 +4349,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           if (!featured) return null;
           return (
             <Card style={{ marginBottom: 16, border: '1px solid rgba(154,123,46,0.25)', background: 'rgba(154,123,46,0.05)' }}>
-              <h2 className="text-section-header" style={{ marginBottom: 8, color: 'var(--dw-accent)' }}>READING PLAN</h2>
+              <h2 className="text-section-header" style={{ marginBottom: 8, color: 'var(--dw-accent)' }}>{t('reading_plan')}</h2>
               <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
                 {featured.title}
               </p>
@@ -4336,7 +4370,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 40,
                 }}
               >
-                Start This Plan →
+                {t('start_plan')}
               </button>
             </Card>
           );
@@ -4601,7 +4635,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           const categories = Array.from(new Set(PLAN_CATALOGUE.map(p => p.category)));
           return (
             <div style={{ marginBottom: 20 }}>
-              <h2 className="text-section-header" style={{ marginBottom: 12 }}>READING PLANS</h2>
+              <h2 className="text-section-header" style={{ marginBottom: 12 }}>{t('reading_plans')}</h2>
               {categories.map(cat => (
                 <div key={cat} style={{ marginBottom: 16 }}>
                   <p style={{
