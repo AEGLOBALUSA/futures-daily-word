@@ -492,7 +492,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                     boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                   }}
                 />
-                <button
+                <button aria-label="Send message"
                   onClick={() => {
                     if (loading) {
                       if (abortRef.current) abortRef.current.abort();
@@ -795,7 +795,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
               overflowY: 'auto',
             }}
           />
-          <button
+          <button aria-label="Send message"
             onClick={() => {
               if (loading) {
                 if (abortRef.current) abortRef.current.abort();
