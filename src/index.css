@@ -410,3 +410,42 @@ sup {
           stroke: #fff !important;
           }
           
+
+/* === CONTRAST FIX: Dark text on gold gradient buttons (dark mode) === */
+:root:not([data-theme="light"]) button[style*="linear-gradient"] {
+  color: #1A1714 !important;
+  text-shadow: none !important;
+}
+
+/* === CONTRAST FIX: Dark text on gold gradient buttons (light mode) === */
+:root[data-theme="light"] button[style*="linear-gradient"] {
+  color: #1A1714 !important;
+  text-shadow: none !important;
+}
+
+/* === CONTRAST FIX: Bright white text on accent/pink buttons === */
+:root:not([data-theme="light"]) button[style*="var(--dw-accent)"],
+:root:not([data-theme="light"]) button[style*="DC535D"],
+:root:not([data-theme="light"]) button[style*="dc535d"],
+:root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"] {
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+/* === CONTRAST FIX: Version pills visibility on hero gradient === */
+:root:not([data-theme="light"]) button[style*="rgba(255, 255, 255, 0.22)"] {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  border-color: rgba(255,255,255,0.8) !important;
+}
+
+/* Inactive version pills - boost visibility */
+:root:not([data-theme="light"]) button[style*="rgba(255, 255, 255, 0.5)"] {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* === LIGHT MODE: Ensure dark text on light backgrounds === */
+:root[data-theme="light"] button[style*="var(--dw-accent)"],
+:root[data-theme="light"] [style*="background"][style*="var(--dw-accent)"] {
+  color: #FFFFFF !important;
+}
