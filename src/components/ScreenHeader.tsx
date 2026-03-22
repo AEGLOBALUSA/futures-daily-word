@@ -23,7 +23,7 @@ export function ScreenHeader({ title, onBack }: Props) {
       background: 'var(--dw-canvas)',
       borderBottom: '1px solid var(--dw-border)',
     }}>
-      <button
+      <button aria-label="Go back"
         onClick={onBack}
         style={{
           background: 'none',
