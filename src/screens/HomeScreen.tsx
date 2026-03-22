@@ -1833,6 +1833,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </p>
           {pf.searchEnabled && (
             <button
+              aria-label="Search"
               onClick={() => setShowSearch(true)}
               style={{
                 background: 'none',
