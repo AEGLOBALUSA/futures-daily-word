@@ -68,7 +68,7 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
 
   if (size === 'lg') {
     return (
-      <button
+      <button aria-label="Toggle audio"
         onClick={handleClick}
         style={{
           width: '100%',
@@ -105,7 +105,7 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
 
   if (size === 'md') {
     return (
-      <button
+      <button aria-label="Toggle audio"
         onClick={handleClick}
         style={{
           display: 'inline-flex',
@@ -139,7 +139,7 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
 
   // sm — icon only
   return (
-    <button
+    <button aria-label="Toggle audio"
       onClick={handleClick}
       title={playing ? 'Stop listening' : 'Listen'}
       style={{
