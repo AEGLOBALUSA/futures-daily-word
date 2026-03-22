@@ -260,7 +260,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Heart size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             YOUR JOURNEY
-          </p>
+          </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {PERSONAS.map(p => {
@@ -325,7 +325,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 4, paddingLeft: 4 }}>
             <User size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             MY SEASON &amp; CONTEXT
-          </p>
+          </h2>
           <p style={{
             fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
             paddingLeft: 4, marginBottom: 10, lineHeight: 1.5,
@@ -380,7 +380,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Globe size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             BIBLE TRANSLATION
-          </p>
+          </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {TRANSLATIONS.map(t => (
@@ -407,7 +407,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             YOUR CAMPUS
-          </p>
+          </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ position: 'relative' }}>
               <select
@@ -463,7 +463,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Type size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             FONT SIZE
-          </p>
+          </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               {FONT_SIZES.map(fs => (
@@ -492,7 +492,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Languages size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             LANGUAGE
-          </p>
+          </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
               {LANGUAGES.map(l => (
@@ -521,7 +521,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <BookOpen size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             DAILY READING
-          </p>
+          </h2>
           <Card style={{ padding: 12 }}>
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
               Chapters to show on home screen each day
@@ -553,7 +553,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Music size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             MEDIA
-          </p>
+          </h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <div style={rowStyle}>
               <Link size={18} style={iconStyle} />
@@ -621,7 +621,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Bell size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             NOTIFICATIONS
-          </p>
+          </h2>
           <Card style={{ padding: 12 }}>
             <button
               onClick={handlePushToggle}
