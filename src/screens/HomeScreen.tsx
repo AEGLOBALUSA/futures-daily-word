@@ -2717,7 +2717,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
         {/* Sermon Notes Banner */}
         <div
-          onClick={() => onNavigate('sermon-notes')}
+                    onClick={() => onNavigate?.('sermon-notes')}
           style={{
             margin: '12px 20px 0',
             padding: '14px 20px',
