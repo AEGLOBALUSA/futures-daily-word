@@ -167,7 +167,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
           }}>Ask AI</span>
         </button>
 
-        <button
+        <button aria-label="Close"
           onClick={handleDismiss}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
