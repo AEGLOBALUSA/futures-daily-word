@@ -59,7 +59,6 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const translation = localStorage.getItem('dw_translation') || 'ESV';
   const fontSizePx = parseInt(localStorage.getItem('dw_font_size') || '15', 10);
-  const lang = localStorage.getItem('dw_lang') || 'en';
   const kjvDownloaded = localStorage.getItem('dw_kjv_downloaded') === 'true';
   const [chaptersPerDay, setChaptersPerDay] = useState<number>(() => {
     return parseInt(localStorage.getItem('dw_chapters_per_day') || '3', 10);
