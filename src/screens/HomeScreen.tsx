@@ -2453,6 +2453,49 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
 
         {/* AI Prompt Section — multi-persona */}
+
+      {/* Blue Faith Pathway Banner for New Christians */}
+      {pf.faithPathway && pathwayProgress.enrolled && pathwayData && (
+        <div
+          onClick={() => {
+            const el = document.getElementById('pathway-lesson-card');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (onNavigate) {
+              onNavigate('plans');
+            }
+          }}
+          style={{
+            margin: '12px 0',
+            padding: '20px',
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #2563eb 100%)',
+            borderRadius: '16px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '120px', height: '120px', background: 'rgba(255,255,255,0.08)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', bottom: '-30px', left: '20%', width: '80px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.85)', marginBottom: '6px', textTransform: 'uppercase' }}>YOUR FAITH JOURNEY</p>
+          <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>
+            Day {pathwayProgress.currentDay} of {pathwayData.days?.length || 40}
+          </p>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', margin: '0 0 12px 0' }}>
+            {pathwayData.days?.find(d => d.day === pathwayProgress.currentDay)?.title || 'Your next lesson is ready'}
+          </p>
+          <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '100px', height: '6px', marginBottom: '8px' }}>
+            <div style={{ background: '#fff', height: '100%', borderRadius: '100px', width: `${Math.round(((pathwayProgress.currentDay - 1) / (pathwayData.days?.length || 40)) * 100)}%`, transition: 'width 0.5s ease' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
+              {pathwayProgress.currentDay === 1 ? 'Just getting started' : `${pathwayProgress.completedDays?.length || 0} days completed`}
+            </span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>Continue \u2192</span>
+          </div>
+        </div>
+      )}
         {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={onOpenAI || (() => {})} persona={personaConfig.persona} />}
 
         {/* Comfort Card — comfort persona only */}
