@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'; 
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { FontSizeControls } from '../components/FontSizeControls';
