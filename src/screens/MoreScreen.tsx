@@ -1,5 +1,5 @@
 // Build: 2026-03-18T10:55:15.514226
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
+import { t, getLang } from '../utils/i18n';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 
@@ -42,6 +43,9 @@ const LANGUAGES = [
 
 export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [downloadingKJV, setDownloadingKJV] = useState(false);
@@ -51,7 +55,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
-    : 'Guest';
+    : t('guest', getLang());
 
   const translation = localStorage.getItem('dw_translation') || 'ESV';
   const fontSizePx = parseInt(localStorage.getItem('dw_font_size') || '15', 10);
@@ -183,7 +187,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="screen-container">
-      <ScreenHeader title="Settings" onBack={onBack} />
+      <ScreenHeader title={t("settings_title", lang)} onBack={onBack} />
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -194,7 +198,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             color: 'var(--dw-text-primary)',
             letterSpacing: '-0.02em',
           }}>
-            Settings
+            {t("settings_title", lang)}
           </h1>
           <ThemeToggle />
         </div>
@@ -233,24 +237,24 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             </p>
           )}
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-            {userProfile?.email || 'Tap to set up your profile'}
+            {userProfile?.email || t("tap_setup_profile", lang)}
           </p>
         </div>
 
         {/* ─── PROFILE ─── */}
         <div style={{ marginBottom: 24 }}>
-          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PROFILE</h2>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>{t("profile", lang)}</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <button onClick={() => requireEmail()} style={rowStyle}>
               <User size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>Name</span>
+              <span style={{ flex: 1 }}>{t("name_label", lang)}</span>
               <span style={valStyle}>{displayName}</span>
             </button>
             <div style={dividerStyle} />
             <button onClick={() => requireEmail()} style={rowStyle}>
               <Mail size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>Email</span>
-              <span style={valStyle}>{userProfile?.email || 'Not set'}</span>
+              <span style={{ flex: 1 }}>{t("email_label", lang)}</span>
+              <span style={valStyle}>{userProfile?.email || t("not_set", lang)}</span>
             </button>
           </Card>
         </div>
@@ -259,7 +263,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Heart size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            YOUR JOURNEY
+            {t("your_journey", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -324,7 +328,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 4, paddingLeft: 4 }}>
             <User size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            MY SEASON &amp; CONTEXT
+            {t("my_season", lang)}
           </h2>
           <p style={{
             fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
@@ -355,7 +359,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               borderTop: '1px solid var(--dw-border)',
             }}>
               <span style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)' }}>
-                {userStory.length} / 600 characters
+                {userStory.length} / 600 " + t("characters", lang)
               </span>
               <button
                 onClick={() => handleUserStorySave(userStory.slice(0, 600))}
@@ -379,7 +383,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Globe size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            BIBLE TRANSLATION
+            {t("bible_translation", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -406,7 +410,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            YOUR CAMPUS
+            {t("your_campus", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ position: 'relative' }}>
@@ -430,7 +434,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                   outline: 'none',
                 }}
               >
-                <option value="">Select your campus</option>
+                <option value="">{t("select_your_campus", lang)}</option>
                 {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
                   const regionCampuses = CAMPUSES.filter(c => c.region === region);
                   if (!regionCampuses.length) return null;
@@ -620,7 +624,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Bell size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            NOTIFICATIONS
+            {t("notifications", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
             <button
@@ -635,7 +639,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 textAlign: 'center',
               }}
             >
-              {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : 'Turn On Push Notifications'}
+              {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : t("turn_on_push", lang)}
             </button>
           </Card>
         </div>
@@ -658,7 +662,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <button onClick={handleKJVDownload} style={rowStyle}>
               <Download size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>Offline Bible</span>
+              <span style={{ flex: 1 }}>{t("offline_bible", lang)}</span>
               <span style={valStyle}>
                 {downloadingKJV ? 'Downloading...' : kjvDownloaded ? 'KJV — Downloaded' : 'KJV — Tap to download'}
               </span>
@@ -732,13 +736,13 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <div style={rowStyle}>
               <Info size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>About Daily Word</span>
+              <span style={{ flex: 1 }}>{t("about_daily_word", lang)}</span>
               <span style={valStyle}>v2.1</span>
             </div>
             <div style={dividerStyle} />
             <div style={rowStyle}>
               <Shield size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>Privacy Policy</span>
+              <span style={{ flex: 1 }}>{t("privacy_policy", lang)}</span>
             </div>
           </Card>
         </div>
