@@ -12,6 +12,7 @@ import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Vide
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
+import { t, getLang } from '../utils/i18n';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -105,6 +106,8 @@ interface EssayTOC { title: string; author: string; sections: EssaySection[]; }
 export function PlansScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
   const [plansView, setPlanView] = useState<'active' | 'browse'>('active');
   const [activePlans, setActivePlans] = useState<Record<string, PlanProgress>>(getActivePlans);
   const [streak, setStreak] = useState(getStreak);
@@ -529,13 +532,13 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
             Plans & More
           </h1>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 24, fontFamily: 'var(--font-sans)' }}>
-            Your reading plans, devotion, and community
+            {t('p_plans_subtitle', lang)}
           </p>
 
           {/* Devotion of the Day — congregation only */}
           {devotion && persona === 'congregation' && (
             <Card style={{ marginBottom: 24, borderLeft: '3px solid var(--dw-accent)' }}>
-              <h2 className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</h2>
+              <h2 className="text-section-header" style={{ marginBottom: 8 }}>{t('p_devotion_of_day', lang)}</h2>
               <p className="text-card-title" style={{ marginBottom: 8 }}>{devotion.title}</p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
                 {devotion.verse}
@@ -566,7 +569,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="dw-btn-secondary" style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-                  <Heart size={14} /> Prayer Wall
+                  <Heart size={14} /> {t('p_prayer_wall', lang)}
                 </button>
                 {campusData.videoUrl && (
                   <a
@@ -576,7 +579,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                     className="dw-btn-secondary"
                     style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flex: 1, textDecoration: 'none' }}
                   >
-                    <Video size={14} /> Live Stream
+                    <Video size={14} /> {t('p_live_stream', lang)}
                   </a>
                 )}
               </div>
@@ -585,14 +588,14 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
           {/* Your Plans */}
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>YOUR PLANS</h2>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('your_plans', lang)}</h2>
             {myPlans.length === 0 ? (
               <Card style={{ textAlign: 'center', padding: '20px 16px' }}>
                 <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                  No active plans
+                  {t('no_active_plans', lang)}
                 </p>
                 <button className="dw-btn-primary" style={{ fontSize: 12, padding: '8px 16px' }} onClick={() => setShowPlanDetail(true)}>
-                  Browse Plans
+                  {t('browse_plans', lang)}
                 </button>
               </Card>
             ) : (
@@ -690,7 +693,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                   fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
                                 }}
                               >
-                                Next Chapter →
+                                {t('p_next_chapter', lang)} →
                               </button>
                             )}
                           </>
@@ -791,7 +794,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           Your Plans
         </h1>
         <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20, fontFamily: 'var(--font-sans)' }}>
-          Browse and manage your reading plans
+          {t('p_browse_manage', lang)}
         </p>
 
         {/* Tabs */}
@@ -813,7 +816,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                 transition: 'all var(--transition-fast)',
               }}
             >
-              {view === 'active' ? `My Plans (${myPlans.length})` : `Browse All (${browsePlans.length})`}
+              {view === 'active' ? `${t('p_my_plans', lang)} (${myPlans.length})` : `${t('p_browse_all', lang)} (${browsePlans.length})`}
             </button>
           ))}
         </div>
@@ -824,10 +827,10 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
               <Card style={{ textAlign: 'center', padding: '32px 16px', marginBottom: 16 }}>
                 <BookOpen size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
                 <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                  No active plans yet
+                  {t('p_no_active_yet', lang)}
                 </p>
                 <button className="dw-btn-primary" style={{ fontSize: 13 }} onClick={() => { setShowPlanDetail(true); setPlanView('browse'); }}>
-                  Browse Plans
+                  {t('browse_plans', lang)}
                 </button>
               </Card>
             ) : (
@@ -880,7 +883,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                           }} />
                         </div>
                         <span style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontWeight: 500, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                          {isBookPlan ? `Ch ${completedCount}/${totalItems}` : `Day ${Math.min(completedCount + 1, totalItems)}/${totalItems}`}
+                          {isBookPlan ? `Ch ${completedCount}/${totalItems}` : `${t('p_day_of', lang)} ${Math.min(completedCount + 1, totalItems)}/${totalItems}`}
                         </span>
                       </div>
 
@@ -890,7 +893,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                             <div style={{ marginBottom: 12 }}>
                               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 6, fontFamily: 'var(--font-serif-text)', lineHeight: 1.4 }}>
                                 {isBookPlan
-                                  ? `Up next: ${plan.passages[nextDay] || plan.passages[plan.passages.length - 1] || '—'}`
+                                  ? `${t('p_up_next', lang)} ${plan.passages[nextDay] || plan.passages[plan.passages.length - 1] || '—'}`
                                   : `Day ${nextDay}: ${plan.passages[nextDay - 1] || '—'}`}
                               </p>
                               {!isBookPlan && (
@@ -899,7 +902,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                   className="dw-btn-primary"
                                   style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
                                 >
-                                  <CheckCircle size={14} /> Mark Day {nextDay} Complete
+                                  <CheckCircle size={14} /> {t('p_mark_day', lang)} {nextDay} {t('p_complete_word', lang)}
                                 </button>
                               )}
                               {isBookPlan && plan.bookId && (
@@ -920,7 +923,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 className="dw-btn-secondary"
                                 style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
                               >
-                                <RotateCcw size={14} /> Restart
+                                <RotateCcw size={14} /> {t('p_restart', lang)}
                               </button>
                             </div>
                           )}
@@ -932,7 +935,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             }}>
                               <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                                Adjust progress
+                                {t('p_adjust_progress', lang)}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <button
@@ -977,7 +980,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                               padding: 0, display: 'flex', alignItems: 'center', gap: 4,
                             }}
                           >
-                            × Remove this plan
+                            × {t('p_remove_plan', lang)}
                           </button>
                         </div>
                       )}
@@ -1064,7 +1067,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                               fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
                               textTransform: 'uppercase', transition: 'background 0.2s',
                             }}>
-                              {isConfirmingDeactivate ? 'Tap to remove' : '✓ Active'}
+                              {isConfirmingDeactivate ? t('p_tap_remove', lang) : '✓ ' + t('p_active', lang)}
                             </div>
                           ) : (
                             <div style={{
@@ -1133,7 +1136,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
                               }}
                             >
-                              {isPreviewOpen ? 'Hide schedule ▲' : 'See schedule ▼'}
+                              {isPreviewOpen ? t('p_hide_schedule', lang) + ' ▲' : t('p_see_schedule', lang) + ' ▼'}
                             </button>
                           </div>
 
@@ -1148,7 +1151,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                               }}
                             >
                               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, textTransform: 'uppercase' }}>
-                                {plan.bookId ? 'Reading Schedule' : 'Daily Schedule'}
+                                {plan.bookId ? t('p_reading_schedule', lang) : t('p_daily_schedule', lang)}
                               </p>
                               {plan.passages.map((passage, i) => (
                                 <div key={i} style={{
@@ -1217,29 +1220,29 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
         <Card style={{ marginTop: 24, textAlign: 'center' }}>
           <Clock size={24} style={{ color: 'var(--dw-accent)', marginBottom: 8 }} />
           <p className="text-card-title" style={{ marginBottom: 4 }}>
-            {streak > 0 ? `${streak} Day Streak` : 'Start Your Streak'}
+            {streak > 0 ? `${streak} ${t('p_day_streak', lang)}` : t('p_start_streak', lang)}
           </p>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
             {streak > 0
-              ? `Keep going! You've read for ${streak} day${streak > 1 ? 's' : ''} in a row.`
-              : 'Complete a plan day to start your reading streak.'}
+              ? `${t('p_keep_going', lang)} ${t('p_read_for', lang)} ${streak} ${t('p_days_in_row', lang)}`
+              : t('p_complete_to_start', lang)}
           </p>
         </Card>
 
         {/* Suggested faith pathway for new believers */}
         {(persona === 'new_to_faith' || persona === 'new_returning') && !activePlans['faith-pathway'] && (
           <Card style={{ marginTop: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-            <h2 className="text-section-header" style={{ marginBottom: 8 }}>RECOMMENDED FOR YOU</h2>
-            <p className="text-card-title" style={{ marginBottom: 4 }}>30-Day Faith Pathway</p>
+            <h2 className="text-section-header" style={{ marginBottom: 8 }}>{t('p_recommended', lang)}</h2>
+            <p className="text-card-title" style={{ marginBottom: 4 }}>{t('p_faith_pathway', lang)}</p>
             <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-              Perfect for new believers — a guided journey through the foundations of faith.
+              {t('p_faith_desc', lang)}
             </p>
             <button
               onClick={() => { startPlan('faith-pathway'); }}
               className="dw-btn-primary"
               style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              <Play size={14} /> Start Faith Pathway
+              <Play size={14} /> {t('p_start_faith', lang)}
             </button>
           </Card>
         )}
