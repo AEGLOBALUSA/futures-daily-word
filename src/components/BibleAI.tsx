@@ -3,6 +3,7 @@ import { trackBehavior } from '../utils/behavior'
 import { getPersonaConfig } from '../utils/persona-config'
 import { Send, ChevronDown, Copy, BookmarkPlus, RotateCcw } from 'lucide-react';
 import { schedulePush } from '../utils/cloudSync'
+import { t, getLang } from '../utils/i18n';
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -31,13 +32,13 @@ interface Message {
   content: string
 }
 
-const QUICK_PROMPTS = [
-  'What does this passage mean?',
-  'Give me historical context',
-  'How does this apply to my life?',
-  'What do Greek/Hebrew words reveal here?',
-  'Connect this to the rest of Scripture',
-  'What is God saying to me through this?',
+const QUICK_PROMPTS = (lang: string) => [
+  t('quick_meaning', lang),
+  t('quick_history', lang),
+  t('quick_apply', lang),
+  t('quick_greek', lang),
+  t('quick_connect', lang),
+  t('quick_god', lang),
 ]
 
 const SELECTION_PROMPTS = (text: string) => [
@@ -58,6 +59,8 @@ interface BibleAIProps {
 
 export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText }: BibleAIProps) {
   const [messages, setMessages] = useState<Message[]>([])
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -233,7 +236,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         id: Date.now().toString(),
         date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         type: 'saved',
-        title: 'Bible AI Response',
+        title: t('bible_ai_label', lang),
         body: content,
         tags: ['bible-ai'],
       }
@@ -248,7 +251,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     }
   }
 
-  const promptsToShow = selectedText ? SELECTION_PROMPTS(selectedText) : QUICK_PROMPTS
+  const promptsToShow = selectedText ? SELECTION_PROMPTS(selectedText) : QUICK_PROMPTS(lang)
 
   return (
     <>
@@ -369,7 +372,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                 letterSpacing: '0.03em', display: 'block', marginTop: 1,
               }}>
-                Ask anything about the Bible
+                {t("ask_anything", lang)}
               </span>
             </div>
           </div>
@@ -426,7 +429,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                     <span style={{ fontSize: 14, flexShrink: 0 }}>💡</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ marginBottom: 6 }}>
-                        <strong>Tip:</strong> Tell Bible AI about your life season in Settings → My Season & Context. This makes every conversation more personal.
+                        {t("tip_season", lang)}
                       </div>
                       <button
                         onClick={() => {
@@ -444,7 +447,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                           fontFamily: 'var(--font-sans)',
                         }}
                       >
-                        Got it
+                        {t("got_it", lang)}
                       </button>
                     </div>
                   </div>
@@ -467,7 +470,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 14, textAlign: 'center' }}>
                   {selectedText
                     ? 'Context, meaning, language, application'
-                    : 'Type your question below and press send'}
+                    : t("type_question", lang)}
                 </p>
                 <textarea
                   ref={inputRef}
@@ -555,10 +558,10 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 <span style={{ fontSize: 20 }}>Hebrew</span>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)', display: 'block' }}>
-                    Greek & Hebrew Word Meanings
+                    {t("greek_hebrew", lang)}
                   </span>
                   <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                    Original language breakdown
+                    {t("original_lang", lang)}
                   </span>
                 </div>
               </button>
@@ -567,7 +570,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 fontSize: 12, color: 'rgba(154,123,46,0.75)', fontFamily: 'var(--font-sans)',
                 marginBottom: 14, letterSpacing: '0.03em',
               }}>
-                — or choose a quick question —
+                — {t("or_choose_quick", lang)} —
               </p>
               {selectedText && (
                 <div style={{
