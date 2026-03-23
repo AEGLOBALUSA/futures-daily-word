@@ -513,6 +513,8 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     'tap_notes': { en: "Tap to take notes during today's message", es: "Toca para tomar notas durante el mensaje de hoy", pt: "Toque para fazer anota\u00e7\u00f5es durante a mensagem de hoje", id: "Ketuk untuk mencatat selama pesan hari ini" },
     'sermon_notes': { en: "Sermon Notes", es: "Notas del serm\u00f3n", pt: "Notas do serm\u00e3o", id: "Catatan Khotbah" },
     'esv_human': { en: "ESV \u00b7 Human Reader", es: "ESV \u00b7 Lector humano", pt: "ESV \u00b7 Leitor humano", id: "ESV \u00b7 Pembaca" },
+    'day_label': { en: "DAY", es: "DÍA", pt: "DIA", id: "HARI" },
+    'of_label': { en: "OF", es: "DE", pt: "DE", id: "DARI" },
   };
   const t = (key: string): string => UI_STRINGS[key]?.[appLanguage] || UI_STRINGS[key]?.['en'] || key;
 
@@ -3560,7 +3562,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               {/* Header: plan name + progress */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <h2 className="text-section-header" style={{ margin: 0 }}>
-                  DAY {currentDay} OF {totalDays}
+                  {t('day_label')} {currentDay} {t('of_label')} {totalDays}
                 </h2>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                   {pathTitle}
