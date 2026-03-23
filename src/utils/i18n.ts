@@ -9,7 +9,7 @@ type LangMap = Record<string, string>;
 type Translations = Record<string, LangMap>;
 
 const UI: Translations = {
-  // ── HOME SCREEN ──
+  // ââ HOME SCREEN ââ
   daily_word_title: { en: 'Daily Word', es: 'Palabra Diaria', pt: 'Palavra Di\u00e1ria', id: 'Firman Harian' },
   todays_reading: { en: "TODAY'S READING", es: 'LECTURA DE HOY', pt: 'LEITURA DE HOJE', id: 'BACAAN HARI INI' },
   todays_reflection: { en: "TODAY'S REFLECTION", es: "REFLEXI\u00d3N DE HOY", pt: "REFLEX\u00c3O DE HOJE", id: "REFLEKSI HARI INI" },
@@ -31,14 +31,14 @@ const UI: Translations = {
   esv_human: { en: 'ESV \u00b7 HUMAN READER', es: 'ESV \u00b7 LECTOR HUMANO', pt: 'ESV \u00b7 LEITOR HUMANO', id: 'ESV \u00b7 PEMBACA MANUSIA' },
   credits: { en: 'Created & Developed by Ashley Evans for Futures Church', es: 'Creado y desarrollado por Ashley Evans para Futures Church', pt: 'Criado e desenvolvido por Ashley Evans para Futures Church', id: 'Dibuat dan dikembangkan oleh Ashley Evans untuk Futures Church' },
 
-  // ── TAB BAR ──
+  // ââ TAB BAR ââ
   tab_home: { en: 'Home', es: 'Inicio', pt: 'In\u00edcio', id: 'Beranda' },
   tab_notes: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   tab_campus: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
   tab_plans: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
   tab_settings: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 
-  // ── SETTINGS / MORE SCREEN ──
+  // ââ SETTINGS / MORE SCREEN ââ
   back: { en: 'Back', es: 'Atr\u00e1s', pt: 'Voltar', id: 'Kembali' },
   settings_title: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
   guest: { en: 'Guest', es: 'Invitado', pt: 'Convidado', id: 'Tamu' },
@@ -75,7 +75,7 @@ const UI: Translations = {
   privacy_policy: { en: 'Privacy Policy', es: 'Pol\u00edtica de privacidad', pt: 'Pol\u00edtica de privacidade', id: 'Kebijakan Privasi' },
   characters: { en: 'characters', es: 'caracteres', pt: 'caracteres', id: 'karakter' },
 
-  // ── PLANS SCREEN ──
+  // ââ PLANS SCREEN ââ
   plans_title: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
   plans_and_more: { en: 'Plans & More', es: 'Planes y m\u00e1s', pt: 'Planos e mais', id: 'Rencana & Lainnya' },
   plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devo\u00e7\u00e3o e comunidade', id: 'Rencana bacaan, devosi, dan komunitas Anda' },
@@ -89,7 +89,7 @@ const UI: Translations = {
   start_plan: { en: 'Start Plan', es: 'Iniciar plan', pt: 'Iniciar plano', id: 'Mulai Rencana' },
   days: { en: 'days', es: 'd\u00edas', pt: 'dias', id: 'hari' },
 
-  // ── NOTES / JOURNAL SCREEN ──
+  // ââ NOTES / JOURNAL SCREEN ââ
   notes_title: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   record: { en: 'Record', es: 'Grabar', pt: 'Gravar', id: 'Rekam' },
   new_entry: { en: 'New Entry', es: 'Nueva entrada', pt: 'Nova entrada', id: 'Entri Baru' },
@@ -99,14 +99,14 @@ const UI: Translations = {
   no_passages: { en: 'No passages scheduled for today', es: 'No hay pasajes programados para hoy', pt: 'Nenhuma passagem programada para hoje', id: 'Tidak ada bagian yang dijadwalkan untuk hari ini' },
   add_reading_plan_cta: { en: 'Add a reading plan in Plans & More', es: 'A\u00f1ade un plan de lectura en Planes y m\u00e1s', pt: 'Adicione um plano de leitura em Planos e mais', id: 'Tambahkan rencana baca di Rencana & Lainnya' },
 
-  // ── CAMPUS / MESSAGES SCREEN ──
+  // ââ CAMPUS / MESSAGES SCREEN ââ
   campus_title: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
   pastors_corner: { en: "Pastor's Corner", es: 'Rinc\u00f3n del Pastor', pt: 'Cantinho do Pastor', id: 'Pojok Pendeta' },
   sermons: { en: 'Sermons', es: 'Sermones', pt: 'Serm\u00f5es', id: 'Khotbah' },
   prayer_wall: { en: 'Prayer Wall', es: 'Muro de oraci\u00f3n', pt: 'Mural de ora\u00e7\u00e3o', id: 'Dinding Doa' },
   select_campus_settings: { en: 'Select your campus in Settings to see updates from your pastor.', es: 'Selecciona tu sede en Ajustes para ver actualizaciones de tu pastor.', pt: 'Selecione seu campus em Configura\u00e7\u00f5es para ver atualiza\u00e7\u00f5es do seu pastor.', id: 'Pilih kampus Anda di Pengaturan untuk melihat pembaruan dari pendeta Anda.' },
 
-  // ── BIBLE AI ──
+  // ââ BIBLE AI ââ
   bible_ai: { en: 'BIBLE AI', es: 'BIBLIA IA', pt: 'B\u00cdBLIA IA', id: 'ALKITAB AI' },
   bible_ai_label: { en: 'Bible AI', es: 'Biblia IA', pt: 'B\u00edblia IA', id: 'Alkitab AI' },
   ask_anything: { en: 'Ask anything about the Bible', es: 'Pregunta lo que quieras sobre la Biblia', pt: 'Pergunte qualquer coisa sobre a B\u00edblia', id: 'Tanyakan apa saja tentang Alkitab' },
@@ -124,6 +124,110 @@ const UI: Translations = {
   greek_hebrew: { en: 'Greek & Hebrew Word Meanings', es: 'Significados de palabras en griego y hebreo', pt: 'Significados de palavras em grego e hebraico', id: 'Arti Kata Yunani & Ibrani' },
   original_lang: { en: 'Original language breakdown', es: 'Desglose del idioma original', pt: 'Detalhamento do idioma original', id: 'Rincian bahasa asli' },
   or_choose_quick: { en: '\u2014 or choose a quick question \u2014', es: '\u2014 o elige una pregunta r\u00e1pida \u2014', pt: '\u2014 ou escolha uma pergunta r\u00e1pida \u2014', id: '\u2014 atau pilih pertanyaan cepat \u2014' },
+
+  // JOURNAL SCREEN - Additional
+  j_close: { en: 'Close', es: 'Cerrar', pt: 'Fechar', id: 'Tutup' },
+  j_record_yourself: { en: 'Record Yourself', es: 'Grab\u00e1rte', pt: 'Gravar-se', id: 'Rekam Diri' },
+  j_recording: { en: 'Recording', es: 'Grabando', pt: 'Gravando', id: 'Merekam' },
+  j_copied: { en: 'Copied!', es: '\u00a1Copiado!', pt: 'Copiado!', id: 'Disalin!' },
+  j_copy: { en: 'Copy', es: 'Copiar', pt: 'Copiar', id: 'Salin' },
+  j_listen: { en: 'Listen', es: 'Escuchar', pt: 'Ouvir', id: 'Dengar' },
+  j_stop: { en: 'Stop', es: 'Parar', pt: 'Parar', id: 'Berhenti' },
+  j_share: { en: 'Share', es: 'Compartir', pt: 'Compartilhar', id: 'Bagikan' },
+  j_note: { en: 'Note', es: 'Nota', pt: 'Nota', id: 'Catatan' },
+  j_ask_ai: { en: 'Ask AI', es: 'Preguntar IA', pt: 'Perguntar IA', id: 'Tanya AI' },
+  j_chapter: { en: 'Chapter', es: 'Cap\u00edtulo', pt: 'Cap\u00edtulo', id: 'Pasal' },
+  j_key_verse: { en: 'Key verse:', es: 'Vers\u00edculo clave:', pt: 'Vers\u00edculo chave:', id: 'Ayat kunci:' },
+  j_reading: { en: 'Reading', es: 'Lectura', pt: 'Leitura', id: 'Bacaan' },
+  j_todays_devotional: { en: "Today's Devotional", es: 'Devocional de Hoy', pt: 'Devocional de Hoje', id: 'Renungan Hari Ini' },
+  j_select_all: { en: 'Select All', es: 'Seleccionar Todo', pt: 'Selecionar Tudo', id: 'Pilih Semua' },
+  j_reflect_respond: { en: 'Reflect & Respond', es: 'Reflexionar y Responder', pt: 'Refletir e Responder', id: 'Renungkan & Tanggapi' },
+  j_tap_answer: { en: 'Tap to answer in notes \u2192', es: 'Toca para responder en notas \u2192', pt: 'Toque para responder nas notas \u2192', id: 'Ketuk untuk menjawab di catatan \u2192' },
+  j_scripture: { en: 'Scripture', es: 'Escritura', pt: 'Escritura', id: 'Kitab Suci' },
+  j_loading: { en: 'Loading', es: 'Cargando', pt: 'Carregando', id: 'Memuat' },
+  j_load_error: { en: 'Could not load passage. Check your connection.', es: 'No se pudo cargar el pasaje. Verifica tu conexi\u00f3n.', pt: 'N\u00e3o foi poss\u00edvel carregar a passagem. Verifique sua conex\u00e3o.', id: 'Tidak dapat memuat bagian. Periksa koneksi Anda.' },
+  j_my_notes: { en: 'My Notes', es: 'Mis Notas', pt: 'Minhas Notas', id: 'Catatan Saya' },
+  j_what_god_saying: { en: 'What is God saying to you through', es: 'Qu\u00e9 te est\u00e1 diciendo Dios a trav\u00e9s de', pt: 'O que Deus est\u00e1 dizendo a voc\u00ea atrav\u00e9s de', id: 'Apa yang Tuhan katakan kepadamu melalui' },
+  j_save_note: { en: 'Save Note', es: 'Guardar Nota', pt: 'Salvar Nota', id: 'Simpan Catatan' },
+  j_saved: { en: 'Saved', es: 'Guardado', pt: 'Salvo', id: 'Tersimpan' },
+  j_edit_note: { en: 'Edit note', es: 'Editar nota', pt: 'Editar nota', id: 'Edit catatan' },
+  j_read_chapter_notes: { en: 'Read chapter & notes', es: 'Leer cap\u00edtulo y notas', pt: 'Ler cap\u00edtulo e notas', id: 'Baca pasal & catatan' },
+  j_read_devotional_notes: { en: 'Read devotional & notes', es: 'Leer devocional y notas', pt: 'Ler devocional e notas', id: 'Baca renungan & catatan' },
+  j_read_add_note: { en: 'Read & add note', es: 'Leer y agregar nota', pt: 'Ler e adicionar nota', id: 'Baca & tambah catatan' },
+  j_tap_study: { en: 'Tap to study \u2192', es: 'Toca para estudiar \u2192', pt: 'Toque para estudar \u2192', id: 'Ketuk untuk belajar \u2192' },
+  j_delete_entry: { en: 'Delete this entry? This cannot be undone.', es: 'Eliminar esta entrada? No se puede deshacer.', pt: 'Excluir esta entrada? Isso n\u00e3o pode ser desfeito.', id: 'Hapus entri ini? Ini tidak bisa dibatalkan.' },
+  j_title_placeholder: { en: 'Title...', es: 'T\u00edtulo...', pt: 'T\u00edtulo...', id: 'Judul...' },
+  j_todays_prompt: { en: "Today's Prompt", es: 'Mensaje de Hoy', pt: 'Prompt de Hoje', id: 'Prompt Hari Ini' },
+  j_tap_start_prompt: { en: 'Tap to start with this prompt', es: 'Toca para comenzar con este mensaje', pt: 'Toque para come\u00e7ar com este prompt', id: 'Ketuk untuk memulai dengan prompt ini' },
+  j_write_sermon: { en: 'Write your sermon notes...', es: 'Escribe tus notas del serm\u00f3n...', pt: 'Escreva suas notas do serm\u00e3o...', id: 'Tulis catatan khotbahmu...' },
+  j_write_prayer: { en: "What's on your heart? Write a prayer...", es: 'Qu\u00e9 hay en tu coraz\u00f3n? Escribe una oraci\u00f3n...', pt: 'O que est\u00e1 no seu cora\u00e7\u00e3o? Escreva uma ora\u00e7\u00e3o...', id: 'Apa yang ada di hatimu? Tulis doa...' },
+  j_sermon_prep: { en: 'Sermon prep, teaching notes...', es: 'Preparaci\u00f3n de serm\u00f3n, notas...', pt: 'Prepara\u00e7\u00e3o de serm\u00e3o, notas...', id: 'Persiapan khotbah, catatan...' },
+  j_write_thoughts: { en: 'Write your thoughts...', es: 'Escribe tus pensamientos...', pt: 'Escreva seus pensamentos...', id: 'Tulis pikiranmu...' },
+  j_tags: { en: 'Tags', es: 'Etiquetas', pt: 'Tags', id: 'Tag' },
+  j_your_active_plans: { en: 'YOUR ACTIVE PLANS', es: 'TUS PLANES ACTIVOS', pt: 'SEUS PLANOS ATIVOS', id: 'RENCANA AKTIFMU' },
+  j_up_next_day: { en: 'UP NEXT', es: 'SIGUIENTE', pt: 'PR\u00d3XIMO', id: 'BERIKUTNYA' },
+  j_continue_reading: { en: 'Continue Reading', es: 'Continuar Leyendo', pt: 'Continuar Lendo', id: 'Lanjut Membaca' },
+  j_no_prayers: { en: 'No prayers yet', es: 'Sin oraciones a\u00fan', pt: 'Nenhuma ora\u00e7\u00e3o ainda', id: 'Belum ada doa' },
+  j_no_notes: { en: 'No notes yet', es: 'Sin notas a\u00fan', pt: 'Nenhuma nota ainda', id: 'Belum ada catatan' },
+  j_create_first: { en: 'Create Your First Entry', es: 'Crea Tu Primera Entrada', pt: 'Crie Sua Primeira Entrada', id: 'Buat Entri Pertamamu' },
+  j_showing_full_chapter: { en: 'showing full chapter', es: 'mostrando cap\u00edtulo completo', pt: 'mostrando cap\u00edtulo completo', id: 'menampilkan pasal lengkap' },
+  j_listen_all: { en: 'Listen to all content', es: 'Escuchar todo el contenido', pt: 'Ouvir todo o conte\u00fado', id: 'Dengarkan semua konten' },
+  j_camera_denied: { en: 'Camera access denied. Please allow camera and mic permissions and try again.', es: 'Acceso a c\u00e1mara denegado. Permite c\u00e1mara y micr\u00f3fono e int\u00e9ntalo de nuevo.', pt: 'Acesso \u00e0 c\u00e2mera negado. Permita c\u00e2mera e microfone e tente novamente.', id: 'Akses kamera ditolak. Izinkan kamera dan mikrofon dan coba lagi.' },
+  j_camera_error: { en: 'Could not access camera:', es: 'No se pudo acceder a la c\u00e1mara:', pt: 'N\u00e3o foi poss\u00edvel acessar a c\u00e2mera:', id: 'Tidak dapat mengakses kamera:' },
+
+  // PLANS SCREEN - Additional
+  p_devotion_of_day: { en: 'DEVOTION OF THE DAY', es: 'DEVOCIONAL DEL D\u00cdA', pt: 'DEVOCIONAL DO DIA', id: 'RENUNGAN HARI INI' },
+  p_prayer_wall: { en: 'Prayer Wall', es: 'Muro de Oraci\u00f3n', pt: 'Mural de Ora\u00e7\u00e3o', id: 'Dinding Doa' },
+  p_live_stream: { en: 'Live Stream', es: 'En Vivo', pt: 'Ao Vivo', id: 'Siaran Langsung' },
+  p_your_plans_header: { en: 'Your Plans', es: 'Tus Planes', pt: 'Seus Planos', id: 'Rencanamu' },
+  p_browse_manage: { en: 'Browse and manage your reading plans', es: 'Explora y administra tus planes de lectura', pt: 'Navegue e gerencie seus planos de leitura', id: 'Jelajahi dan kelola rencana bacaanmu' },
+  p_my_plans: { en: 'My Plans', es: 'Mis Planes', pt: 'Meus Planos', id: 'Rencanaku' },
+  p_browse_all: { en: 'Browse All', es: 'Ver Todos', pt: 'Ver Todos', id: 'Lihat Semua' },
+  p_no_active_yet: { en: 'No active plans yet', es: 'Sin planes activos a\u00fan', pt: 'Nenhum plano ativo ainda', id: 'Belum ada rencana aktif' },
+  p_up_next: { en: 'Up next:', es: 'Siguiente:', pt: 'Pr\u00f3ximo:', id: 'Berikutnya:' },
+  p_mark_day: { en: 'Mark Day', es: 'Marcar D\u00eda', pt: 'Marcar Dia', id: 'Tandai Hari' },
+  p_complete_word: { en: 'Complete', es: 'Completo', pt: 'Completo', id: 'Selesai' },
+  p_next_chapter: { en: 'Next Chapter', es: 'Siguiente Cap\u00edtulo', pt: 'Pr\u00f3ximo Cap\u00edtulo', id: 'Pasal Berikutnya' },
+  p_restart: { en: 'Restart', es: 'Reiniciar', pt: 'Reiniciar', id: 'Mulai Ulang' },
+  p_adjust_progress: { en: 'Adjust progress', es: 'Ajustar progreso', pt: 'Ajustar progresso', id: 'Sesuaikan progres' },
+  p_remove_plan: { en: 'Remove this plan', es: 'Eliminar este plan', pt: 'Remover este plano', id: 'Hapus rencana ini' },
+  p_run_multiple: { en: 'You can run multiple plans at once. Tap to select, then save.', es: 'Puedes ejecutar varios planes a la vez. Toca para seleccionar, luego guarda.', pt: 'Voc\u00ea pode executar v\u00e1rios planos ao mesmo tempo. Toque para selecionar, depois salve.', id: 'Kamu bisa menjalankan beberapa rencana sekaligus. Ketuk untuk memilih, lalu simpan.' },
+  p_tap_remove: { en: 'Tap to remove', es: 'Toca para eliminar', pt: 'Toque para remover', id: 'Ketuk untuk menghapus' },
+  p_active: { en: 'Active', es: 'Activo', pt: 'Ativo', id: 'Aktif' },
+  p_day_of: { en: 'Day', es: 'D\u00eda', pt: 'Dia', id: 'Hari' },
+  p_of: { en: 'of', es: 'de', pt: 'de', id: 'dari' },
+  p_chapter_of: { en: 'Chapter', es: 'Cap\u00edtulo', pt: 'Cap\u00edtulo', id: 'Pasal' },
+  p_see_schedule: { en: 'See schedule', es: 'Ver horario', pt: 'Ver cronograma', id: 'Lihat jadwal' },
+  p_hide_schedule: { en: 'Hide schedule', es: 'Ocultar horario', pt: 'Ocultar cronograma', id: 'Sembunyikan jadwal' },
+  p_reading_schedule: { en: 'Reading Schedule', es: 'Horario de Lectura', pt: 'Cronograma de Leitura', id: 'Jadwal Bacaan' },
+  p_daily_schedule: { en: 'Daily Schedule', es: 'Horario Diario', pt: 'Cronograma Di\u00e1rio', id: 'Jadwal Harian' },
+  p_ch: { en: 'Ch', es: 'Cap', pt: 'Cap', id: 'Psl' },
+  p_save_plans: { en: 'Save', es: 'Guardar', pt: 'Salvar', id: 'Simpan' },
+  p_plans_count: { en: 'Plan(s)', es: 'Plan(es)', pt: 'Plano(s)', id: 'Rencana' },
+  p_day_streak: { en: 'Day Streak', es: 'Racha de D\u00edas', pt: 'Sequ\u00eancia de Dias', id: 'Hari Beruntun' },
+  p_start_streak: { en: 'Start Your Streak', es: 'Comienza Tu Racha', pt: 'Comece Sua Sequ\u00eancia', id: 'Mulai Beruntunmu' },
+  p_keep_going: { en: 'Keep going!', es: 'Sigue adelante!', pt: 'Continue!', id: 'Terus!' },
+  p_read_for: { en: "You've read for", es: 'Has le\u00eddo por', pt: 'Voc\u00ea leu por', id: 'Kamu sudah membaca selama' },
+  p_days_in_row: { en: 'day(s) in a row.', es: 'd\u00eda(s) seguido(s).', pt: 'dia(s) seguido(s).', id: 'hari berturut-turut.' },
+  p_complete_to_start: { en: 'Complete a plan day to start your reading streak.', es: 'Completa un d\u00eda del plan para comenzar tu racha.', pt: 'Complete um dia do plano para come\u00e7ar sua sequ\u00eancia.', id: 'Selesaikan satu hari rencana untuk memulai beruntunmu.' },
+  p_recommended: { en: 'RECOMMENDED FOR YOU', es: 'RECOMENDADO PARA TI', pt: 'RECOMENDADO PARA VOC\u00ca', id: 'DIREKOMENDASIKAN UNTUKMU' },
+  p_faith_pathway: { en: '30-Day Faith Pathway', es: 'Camino de Fe de 30 D\u00edas', pt: 'Caminho de F\u00e9 de 30 Dias', id: 'Jalur Iman 30 Hari' },
+  p_faith_desc: { en: 'Perfect for new believers \u2014 a guided journey through faith foundations.', es: 'Perfecto para nuevos creyentes \u2014 un viaje guiado por los fundamentos de la fe.', pt: 'Perfeito para novos crentes \u2014 uma jornada guiada pelos fundamentos da f\u00e9.', id: 'Sempurna untuk orang percaya baru \u2014 perjalanan terpandu melalui dasar-dasar iman.' },
+  p_start_faith: { en: 'Start Faith Pathway', es: 'Comenzar Camino de Fe', pt: 'Iniciar Caminho de F\u00e9', id: 'Mulai Jalur Iman' },
+  p_plans_and_more: { en: 'Plans & More', es: 'Planes y M\u00e1s', pt: 'Planos e Mais', id: 'Rencana & Lainnya' },
+  p_plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devocional e comunidade', id: 'Rencana bacaan, renungan, dan komunitasmu' },
+
+  // HOME SCREEN - Additional
+  h_welcome: { en: 'Welcome, friend', es: 'Bienvenido, amigo', pt: 'Bem-vindo, amigo', id: 'Selamat datang, teman' },
+  h_font_size: { en: 'FONT SIZE', es: 'TAMA\u00d1O DE FUENTE', pt: 'TAMANHO DA FONTE', id: 'UKURAN FONT' },
+  h_created_developed: { en: 'Created & Developed by', es: 'Creado y Desarrollado por', pt: 'Criado e Desenvolvido por', id: 'Dibuat & Dikembangkan oleh' },
+  h_day_label: { en: 'DAY', es: 'D\u00cdA', pt: 'DIA', id: 'HARI' },
+
+  // SETTINGS - Additional
+  s_language: { en: 'LANGUAGE', es: 'IDIOMA', pt: 'IDIOMA', id: 'BAHASA' },
+  s_daily_reading: { en: 'DAILY READING', es: 'LECTURA DIARIA', pt: 'LEITURA DI\u00c1RIA', id: 'BACAAN HARIAN' },
+  s_media: { en: 'MEDIA', es: 'MEDIOS', pt: 'M\u00cdDIA', id: 'MEDIA' },
+  s_font_size: { en: 'FONT SIZE', es: 'TAMA\u00d1O DE FUENTE', pt: 'TAMANHO DA FONTE', id: 'UKURAN FONT' },
 };
 
 export function t(key: string, lang?: string): string {
