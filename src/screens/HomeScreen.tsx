@@ -2750,30 +2750,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
-{sundaySermon && (
-        {/* Sermon Notes Banner */}
-        <div
-                    onClick={() => onNavigate?.('sermon-notes')}
-          style={{
-            margin: '12px 20px 0',
-            padding: '14px 20px',
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-            borderRadius: '12px',
-            border: '1px solid rgba(200, 168, 78, 0.3)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '11px', letterSpacing: '2px', color: '#C8A84E', textTransform: 'uppercase' }}>Today's Sermon</div>
-            <div style={{ fontSize: '17px', fontWeight: 700, color: '#FFFFFF', marginTop: '2px' }}>TAKE IT OFF</div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>Ephesians 4:22–24</div>
-          </div>
-          <div style={{ color: '#C8A84E', fontSize: '24px' }}>→</div>
-        </div>
-        )}
+        {/* Sermon Notes Banner - disabled */}
 
         {/* Date Navigation */}
         <div style={{
