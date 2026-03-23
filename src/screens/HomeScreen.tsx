@@ -1310,7 +1310,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 letterSpacing: '-0.02em',
               }}>
                 Daily Word
-              </h1>
+              /h1>
               {/* Persona + Campus dropdowns — compact row under title */}
               <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
                 {/* Persona dropdown trigger */}
@@ -1345,6 +1345,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                             onClick={() => {
                               if (!isActive) {
                                 saveSetup({ persona: p, source: setup?.source || 'header' });
+                              onNavigate?.('plans');
                               }
                               setShowHeaderPersona(false);
                             }}
