@@ -434,6 +434,9 @@ function ModalSelectionBar({
   onNoteSelected: (text: string) => void;
   onAskAI: (text: string) => void;
 }) {
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+
   const [selectedText, setSelectedText] = useState('');
   const [copied, setCopied] = useState(false);
   const [listening, setListening] = useState(false);
@@ -626,6 +629,9 @@ function ScriptureModal({
 
   // Expand single-verse refs to whole chapter for study context
   const chapterRef = expandToChapter(passage);
+
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
 
   const [scriptureText, setScriptureText] = useState('');
   const [loadingText, setLoadingText] = useState(true);
@@ -1084,6 +1090,9 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
 }) {
   const passages = getTodaysPassages();
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
   // Available for future modal-save integration
@@ -1223,6 +1232,9 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
 export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, setup, requireEmail } = useUser();
   const { selection } = useScriptureSelection();
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+
   const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
