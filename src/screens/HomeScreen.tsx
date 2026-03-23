@@ -2749,6 +2749,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           );
         })()}
 
+{sundaySermon && (
         {/* Sermon Notes Banner */}
         <div
                     onClick={() => onNavigate?.('sermon-notes')}
@@ -2771,6 +2772,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
           </div>
           <div style={{ color: '#C8A84E', fontSize: '24px' }}>→</div>
         </div>
+        )}
 
         {/* Date Navigation */}
         <div style={{
