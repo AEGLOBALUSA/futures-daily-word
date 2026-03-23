@@ -411,6 +411,9 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 // ── Main Component ─────────────────────────────────────────────────────────────
 export function MessagesScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, requireEmail, setup } = useUser();
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+
   const [activeTab, setActiveTab] = useState<'pastor' | 'notes' | 'prayer'>('pastor');
 
   return (
