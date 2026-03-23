@@ -80,7 +80,7 @@ function VideoRecorderModal({ onClose }: { onClose: () => void }) {
       .catch(err => {
         if (!active) return;
         if (err.name === 'NotAllowedError') {
-          setError('{t('j_camera_denied', lang)}');
+          setError(t('j_camera_denied', lang));
         } else {
           setError(t('j_camera_error', lang) + ' ' + err.message);
         }
@@ -794,7 +794,7 @@ function ScriptureModal({
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
                     color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0,
                   }}>
-                    {isBookChapter ? 'Reading' : {t('j_todays_devotional', lang)}}
+                    {isBookChapter ? t('j_reading', lang) : t('j_todays_devotional', lang)}
                   </p>
                   <button
                     onClick={() => {
