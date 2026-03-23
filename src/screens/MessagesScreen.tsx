@@ -8,6 +8,7 @@ import { PrayerGlobe } from '../components/PrayerGlobe';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
 import { ListenButton } from '../components/ListenButton';
+import { t, getLang } from '../utils/i18n';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SermonNote {
@@ -41,7 +42,7 @@ const CAMPUS_LABELS: Record<string, string> = {
   'br-rio': 'Futures Rio', 'other': 'Non-Futures Church',
 };
 
-// ── Prayer Wall API ────────────────────────────────────────────────────────────
+// ── {t("prayer_wall", lang)} API ────────────────────────────────────────────────────────────
 const API = '/.netlify/functions/prayer-wall';
 
 async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<Prayer[]> {
@@ -84,7 +85,7 @@ async function prayForIt(id: string): Promise<boolean> {
   }
 }
 
-// ── Pastor's Corner Panel ────────────────────────────────────────────────────
+// ── {t("pastors_corner", lang)} Panel ────────────────────────────────────────────────────
 interface CampusItem { id: string; type: string; title: string; content: string; author: string; date: string; }
 
 function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: any }) {
@@ -92,6 +93,8 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
   const isPastor = setup?.persona === 'pastor_leader' || setup?.persona === 'pastor';
   const [items, setItems] = useState<CampusItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
   const [showPostForm, setShowPostForm] = useState(false);
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
@@ -152,7 +155,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
       <div style={{ padding: '32px 24px', textAlign: 'center' }}>
         <MessageSquare size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
         <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-          Select your campus in Settings to see updates from your pastor.
+          {t("select_campus_settings", lang)}
         </p>
       </div>
     );
@@ -412,7 +415,7 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="screen-container">
-      <ScreenHeader title="Campus" onBack={onBack} />
+      <ScreenHeader title={t("campus_title", lang)} onBack={onBack} />
       {/* Tab switcher */}
       <div style={{ padding: '24px 24px 0' }}>
         <h1 style={{
@@ -435,7 +438,7 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
               fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
               transition: 'all 0.2s ease',
             }}>
-              {tab === 'pastor' ? "Pastor's Corner" : tab === 'notes' ? 'Sermons' : 'Prayer Wall'}
+              {tab === 'pastor' ? t("pastors_corner", lang) : tab === 'notes' ? t("sermons", lang) : t("prayer_wall", lang)}
             </button>
           ))}
         </div>
