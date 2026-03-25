@@ -141,15 +141,24 @@ function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
 // ── API calls ──
 
 async function apiCall(action: string, payload: Record<string, unknown>) {
+  const { authHeaders, setSessionToken } = await import('./sessionToken');
   const resp = await fetch('/api/user-sync', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ action, ...payload }),
   });
+  if (resp.status === 401) {
+    throw new Error('AUTH_FAILED');
+  }
   if (!resp.ok && resp.status !== 404) {
     throw new Error(`Sync API error: ${resp.status}`);
   }
-  return resp.json();
+  const data = await resp.json();
+  // Store migration token if provided
+  if (data.sessionToken) {
+    setSessionToken(data.sessionToken);
+  }
+  return data;
 }
 
 /** Pull all cloud data for a user */

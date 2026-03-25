@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { PERSONA_MIGRATION } from '../utils/persona-config';
 import { setCampus as setAnalyticsCampus } from '../utils/analytics';
 import { syncOnStartup } from '../utils/cloudSync';
+import { authHeaders, setSessionToken, clearSessionToken } from '../utils/sessionToken';
 
 export interface UserProfile {
   email: string;
@@ -99,18 +100,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Heartbeat
     fetch('/api/user-profile', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ action: 'heartbeat', email: userProfile.email, persona, lang, campus: userProfile.campus }),
+    }).then(r => {
+      if (r.status === 401) { clearSessionToken(); return null; }
+      return r.json();
+    }).then(data => {
+      if (data?.sessionToken) setSessionToken(data.sessionToken);
     }).catch(() => {});
 
     // Sync profile from server
     fetch('/api/user-profile', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ action: 'get', email: userProfile.email }),
     })
-      .then(r => r.json())
+      .then(r => {
+        if (r.status === 401) { clearSessionToken(); return null; }
+        return r.json();
+      })
       .then(data => {
+        if (!data) return;
+        if (data.sessionToken) setSessionToken(data.sessionToken);
         if (data.profile) {
           const server = data.profile;
           const merged: UserProfile = {
@@ -165,7 +176,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (profile.email) {
       fetch('/api/user-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({
           action: 'update',
           email: profile.email,
@@ -176,6 +187,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
           city: profile.city,
           campus: profile.campus,
         }),
+      }).then(r => {
+        if (r.status === 401) { clearSessionToken(); return null; }
+        return r.json();
+      }).then(data => {
+        if (data?.sessionToken) setSessionToken(data.sessionToken);
       }).catch(() => {});
     }
   }, []);

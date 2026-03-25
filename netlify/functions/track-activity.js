@@ -1,4 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
+const { authenticateRequest, issueToken } = require("./lib/auth");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -36,7 +37,7 @@ exports.handler = async (event) => {
   const headers = {
     "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Content-Type": "application/json"
   };
 
@@ -60,15 +61,29 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { email, events } = body;
+    const { events } = body;
+    const db = getSupabase();
 
-    if (!email || !events || !Array.isArray(events) || events.length === 0) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "Email and events array required" }) };
+    // Authenticate via session token
+    let email = await authenticateRequest(event, db);
+    let migrationToken = null;
+
+    if (!email) {
+      // Migration: allow body.email if profile exists
+      const bodyEmail = (body.email || "").toLowerCase().trim();
+      if (!bodyEmail) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
+      if (!existing) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      migrationToken = await issueToken(db, bodyEmail);
+      email = bodyEmail;
+    }
+
+    if (!events || !Array.isArray(events) || events.length === 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Events array required" }) };
     }
     // Cap at 50 events per request to prevent abuse
     if (events.length > 50) events.length = 50;
 
-    const db = getSupabase();
     const cleanEmail = email.toLowerCase().trim();
 
     // Whitelist valid event types to prevent analytics pollution
@@ -102,7 +117,7 @@ exports.handler = async (event) => {
       .update({ last_active_at: new Date().toISOString() })
       .eq("email", cleanEmail);
 
-    return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true, ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
   } catch (err) {
     console.error("Track activity error:", err);
     return { statusCode: 500, headers, body: JSON.stringify({ error: "Server error" }) };

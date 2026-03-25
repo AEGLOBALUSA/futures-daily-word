@@ -42,11 +42,18 @@ export async function trackActivity(
 ): Promise<void> {
   if (!TRACKED_EVENTS.includes(eventType)) return;
   try {
-    await fetch('/api/track-activity', {
+    const { authHeaders, setSessionToken } = await import('./sessionToken');
+    const resp = await fetch('/api/track-activity', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ email, events: [{ type: eventType, detail: detail.slice(0, 500) }] }),
     });
+    if (resp.ok) {
+      try {
+        const data = await resp.json();
+        if (data.sessionToken) setSessionToken(data.sessionToken);
+      } catch { /* response parsing optional */ }
+    }
   } catch {
     // Non-critical, silently fail
   }

@@ -12,11 +12,12 @@
  */
 
 const { createClient } = require("@supabase/supabase-js");
+const { authenticateRequest, issueToken } = require("./lib/auth");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
   "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com",
+  "https://www.futuresdailyword.com"
 ];
 
 function sanitize(str, maxLen = 200) {
@@ -143,7 +144,7 @@ exports.handler = async (event) => {
   const headers = {
     "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Content-Type": "application/json"
   };
 
@@ -163,13 +164,25 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body || "{}");
     const { action } = body;
-    const email = sanitize(body.email, 254).toLowerCase();
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid email required" }) };
-    }
-
     const db = getSupabase();
+
+    // Authenticate via session token
+    let email = await authenticateRequest(event, db);
+    let migrationToken = null;
+
+    if (!email) {
+      // Migration: existing user without token
+      const bodyEmail = sanitize(body.email, 254).toLowerCase();
+      if (!bodyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bodyEmail)) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      }
+      const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
+      if (!existing) {
+        return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      }
+      migrationToken = await issueToken(db, bodyEmail);
+      email = bodyEmail;
+    }
 
     // ── PULL: fetch all cloud data for user ──
     if (action === "pull") {
@@ -192,6 +205,7 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({
           success: true,
+          ...(migrationToken ? { sessionToken: migrationToken } : {}),
           data: {
             journal: data.journal || [],
             streak: data.streak || {},
@@ -236,7 +250,8 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({
           success: true,
-          syncVersion: data?.sync_version || 1
+          syncVersion: data?.sync_version || 1,
+          ...(migrationToken ? { sessionToken: migrationToken } : {})
         })
       };
     }
@@ -287,7 +302,8 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           success: true,
           journal: merged,
-          syncVersion: data?.sync_version || 1
+          syncVersion: data?.sync_version || 1,
+          ...(migrationToken ? { sessionToken: migrationToken } : {})
         })
       };
     }

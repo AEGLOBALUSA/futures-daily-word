@@ -8,6 +8,7 @@ import { X, Loader2, CheckCircle } from 'lucide-react';
 import { CAMPUSES } from '../data/tokens';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
+import { setSessionToken } from '../utils/sessionToken';
 
 const PERSONAS = ALL_PERSONAS.map(id => ({
   id,
@@ -79,6 +80,9 @@ export function EmailGate() {
           if (getData.profile) {
             profile = { ...profile, ...getData.profile, email: trimEmail };
           }
+          if (getData.sessionToken) {
+            setSessionToken(getData.sessionToken);
+          }
         }
       } catch { /* continue to register */ }
 
@@ -87,7 +91,7 @@ export function EmailGate() {
       const regLast = lastName.trim() || profile.lastName;
       const regCampus = campus || profile.campus || '';
 
-      await fetch('/api/user-profile', {
+      const regRes = await fetch('/api/user-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,6 +104,12 @@ export function EmailGate() {
           lang: localStorage.getItem('dw_lang') || 'en',
         }),
       });
+      try {
+        const regData = await regRes.json();
+        if (regData.sessionToken) {
+          setSessionToken(regData.sessionToken);
+        }
+      } catch { /* registration response parsing optional */ }
 
       // Build final profile
       profile.firstName = regFirst || profile.firstName;

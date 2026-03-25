@@ -1,4 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
+const { authenticateRequest, issueToken } = require("./lib/auth");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -42,7 +43,7 @@ exports.handler = async (event) => {
   const headers = {
     "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Content-Type": "application/json"
   };
 
@@ -106,22 +107,34 @@ exports.handler = async (event) => {
 
       if (error) throw error;
 
+      // Issue a session token on registration
+      const sessionToken = await issueToken(db, data.email);
+
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: true,
           message: "Profile saved",
-          profile: { firstName: data.first_name, lastName: data.last_name, email: data.email }
+          profile: { firstName: data.first_name, lastName: data.last_name, email: data.email },
+          sessionToken
         })
       };
     }
 
     // ── Update ──
     if (action === "update") {
-      const email = sanitize(body.email, 254).toLowerCase();
+      let email = await authenticateRequest(event, db);
+      let migrationToken = null;
+
       if (!email) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
+        // Migration: existing user without token
+        const bodyEmail = sanitize(body.email, 254).toLowerCase();
+        if (!bodyEmail) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+        const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
+        if (!existing) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+        migrationToken = await issueToken(db, bodyEmail);
+        email = bodyEmail;
       }
 
       const updates = { last_active_at: new Date().toISOString() };
@@ -153,14 +166,21 @@ exports.handler = async (event) => {
         return { statusCode: 404, headers, body: JSON.stringify({ error: "Profile not found" }) };
       }
 
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Profile updated" }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Profile updated", ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
     }
 
     // ── Heartbeat ──
     if (action === "heartbeat") {
-      const email = sanitize(body.email, 254).toLowerCase();
+      let email = await authenticateRequest(event, db);
+      let migrationToken = null;
+
       if (!email) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
+        const bodyEmail = sanitize(body.email, 254).toLowerCase();
+        if (!bodyEmail) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+        const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
+        if (!existing) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+        migrationToken = await issueToken(db, bodyEmail);
+        email = bodyEmail;
       }
 
       const updates = { last_active_at: new Date().toISOString() };
@@ -169,17 +189,33 @@ exports.handler = async (event) => {
       if (body.campus) updates.campus = sanitize(body.campus, 100);
 
       await db.from("profiles").update(updates).eq("email", email);
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
     }
 
     // ── Get ──
     if (action === "get") {
-      const email = sanitize(body.email, 254).toLowerCase();
+      let email = await authenticateRequest(event, db);
+      let migrationToken = null;
+
       if (!email) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
+        // Migration / pre-registration lookup: allow by body.email
+        const bodyEmail = sanitize(body.email, 254).toLowerCase();
+        if (!bodyEmail) return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
+
+        const { data: existing, error: lookupErr } = await db.from("profiles")
+          .select("email")
+          .eq("email", bodyEmail)
+          .single();
+
+        if (lookupErr || !existing) {
+          return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
+        }
+
+        // Issue migration token for existing user
+        migrationToken = await issueToken(db, bodyEmail);
+        email = bodyEmail;
       }
 
-      // Only select fields needed by the frontend — don't expose phone, church, city unnecessarily
       const { data, error } = await db.from("profiles")
         .select("first_name, last_name, email, phone, church, city, campus, persona, lang, push_enabled, registered_at, last_active_at")
         .eq("email", email).single();
@@ -187,7 +223,6 @@ exports.handler = async (event) => {
         return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
       }
 
-      // Map DB columns back to camelCase for frontend compatibility
       const profile = {
         firstName: data.first_name,
         lastName: data.last_name,
@@ -203,7 +238,7 @@ exports.handler = async (event) => {
         lastActiveAt: data.last_active_at
       };
 
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, profile }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, profile, ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
     }
 
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid action" }) };
