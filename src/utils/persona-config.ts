@@ -309,7 +309,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       wordStudies: true,
       adminTools: true,
       comfortCard: true,
-      faithPathway: true,
+      faithPathway: false,
       bookCards: ['grace-and-truth', 'no-more-fear'],
     },
     plans: {

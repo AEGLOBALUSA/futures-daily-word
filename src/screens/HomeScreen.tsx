@@ -408,7 +408,7 @@ interface ReadingSlot {
   currentChapter: number;
 }
 
-export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId) => void; onOpenAI?: () => void }) {
+export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab: TabId) => void; onOpenAI?: () => void; onBack?: () => void }) {
   const { userProfile, setup, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
 
   // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
@@ -1332,6 +1332,19 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         {/* Header — compact, sits above the centered hero */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Back button — only shown when there's navigation history */}
+            {onBack && (
+              <button
+                onClick={onBack}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '4px 0', display: 'flex', alignItems: 'center', gap: 2,
+                  color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)',
+                }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+            )}
             {/* {t('bible_ai')} button — burnished gold + glass */}
             <button
               onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}

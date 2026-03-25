@@ -118,7 +118,7 @@ function AppContent() {
   }, [selection?.text]);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} />,
+    home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} />,
     messages: <MessagesScreen onBack={goBack} />,
     plans: <PlansScreen onBack={goBack} />,
