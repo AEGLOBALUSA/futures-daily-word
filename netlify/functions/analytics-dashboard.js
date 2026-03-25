@@ -33,11 +33,13 @@ exports.handler = async (event) => {
   const CS = ["paradise","adelaide-city","salisbury","south","clare-valley","mount-barker",
     "victor-harbor","copper-coast","gwinnett","kennesaw","alpharetta","futuros-duluth",
     "futuros-kennesaw","futuros-grayson","franklin","solo","cemani","bali","samarinda","langowan","rio"];
-  const ok = CS.some(c => {
+  // Accept: campus pastor codes (SHA-256), master secret, or admin PIN
+  const ADMIN_PIN = "8385";
+  const ok = code === ADMIN_PIN || code === secret.toUpperCase() || CS.some(c => {
     const expected = crypto.createHash("sha256").update(c + ":" + secret).digest("hex").slice(0, 8).toUpperCase();
     return expected === code;
   });
-  if (!ok && code !== secret.toUpperCase()) {
+  if (!ok) {
     return { statusCode: 403, headers: h, body: '{"error":"Bad code"}' };
   }
 

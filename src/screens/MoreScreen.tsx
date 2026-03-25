@@ -761,7 +761,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </Card>
         </div>
 
-        {/* Admin — Poll Results */}
+        {/* Admin — Pastor tools (persona-gated) */}
         {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor') && (
           <div style={{ marginBottom: 20 }}>
             <p style={{
@@ -783,23 +783,35 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 <BarChart3 size={18} style={iconStyle} />
                 <span style={{ flex: 1 }}>Poll Results</span>
               </div>
-              <div style={{ height: 1, background: 'var(--dw-border, #e5e5e5)' }} />
-              <div
-                style={rowStyle}
-                onClick={() => {
-                  const code = prompt('Enter admin code:');
-                  if (code) {
-                    setPollAdminCode(code.trim().toUpperCase());
-                    setShowAnalytics(true);
-                  }
-                }}
-              >
-                <BarChart3 size={18} style={iconStyle} />
-                <span style={{ flex: 1 }}>App Analytics</span>
-              </div>
             </Card>
           </div>
         )}
+
+        {/* Administrator — Analytics (PIN-protected, any user) */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{
+            fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
+          }}>ADMINISTRATOR</p>
+          <Card>
+            <div
+              style={rowStyle}
+              onClick={() => {
+                const pin = prompt('Enter administrator PIN:');
+                if (pin && pin.trim() === '8385') {
+                  setPollAdminCode(pin.trim());
+                  setShowAnalytics(true);
+                } else if (pin) {
+                  alert('Incorrect PIN');
+                }
+              }}
+            >
+              <BarChart3 size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>App Analytics</span>
+            </div>
+          </Card>
+        </div>
 
         {/* Version */}
         <p style={{

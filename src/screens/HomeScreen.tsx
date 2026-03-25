@@ -1164,22 +1164,23 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
       }
       if (src) {
         AP.resetForChain(); // clear any stale stop flag before chaining
-        await AP.playUrl(HERO_KEY, src);
-        // Wait for this chapter to finish — only resolve on idle AFTER playing starts
-        await new Promise<void>(resolve => {
-          let started = false;
-          let unsub: (() => void) | undefined;
-          unsub = AP.onStateChange((st) => {
-            if (st === 'playing') started = true;
-            if (started && st === 'idle') {
-              unsub?.();
+        // Register the "wait for end" listener BEFORE starting playback
+        // so we never miss the idle transition
+        const waitForEnd = new Promise<void>(resolve => {
+          let sawPlaying = false;
+          const unsub = AP.onStateChange((st) => {
+            // Ignore the immediate callback — only track transitions
+            if (st === 'playing' || st === 'loading') sawPlaying = true;
+            if (sawPlaying && st === 'idle') {
+              unsub();
               if (AP.wasStopRequested()) heroQueueActiveRef.current = false;
               resolve();
             }
           });
-          // Safety: if playUrl already finished (very short audio), check state now
-          if (AP.getState() === 'idle' && started) { unsub?.(); resolve(); }
         });
+        await AP.playUrl(HERO_KEY, src);
+        // Now wait for this chapter's audio to finish
+        await waitForEnd;
         if (heroQueueActiveRef.current) {
           playChapterAtIndex(index + 1);
         }
@@ -1224,11 +1225,12 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     } catch { setAudioError(true); }
   };
 
-  // Skip to a specific chapter (tapped on slider)
+  // Skip to a specific chapter (tapped on chapter label or slider)
   const handleHeroSkipTo = (index: number) => {
     AP.unlock();
     setAudioError(false);
-    if (audioPlaying || audioPaused) AP.stop();
+    // Use resetForChain (not stop) so we don't kill the queue flag
+    if (audioPlaying || audioPaused) AP.resetForChain();
     heroQueueActiveRef.current = true;
     playChapterAtIndex(index).catch(() => setAudioError(true));
   };

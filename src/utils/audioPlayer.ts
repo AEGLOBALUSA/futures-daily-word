@@ -344,8 +344,9 @@ export async function playUrl(key: string, blobUrl: string): Promise<void> {
 
   const audio = getAudio();
 
+  // If user taps the same key while playing, toggle off (user-initiated stop)
   if (state === 'playing' && currentPassage === key) { stop(); return; }
-  // Use resetForChain instead of stop to avoid killing sequential playback queues
+  // For any other non-idle state, reset without killing queues
   if (state !== 'idle') resetForChain();
 
   setState('loading', key);
