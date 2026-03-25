@@ -98,8 +98,11 @@ exports.handler = async (event) => {
     }
 
     // NLT API accepts plain references like "1 Corinthians 13" or "John 3:16-17"
-    const API_KEY = process.env.NLT_API_KEY || '';
-    const keyParam = API_KEY ? `&key=${API_KEY}` : '';
+    const API_KEY = process.env.NLT_API_KEY;
+    if (!API_KEY) {
+      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'NLT API key not configured' }) };
+    }
+    const keyParam = `&key=${API_KEY}`;
     const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(passage)}&version=${version}${keyParam}`;
 
     const controller = new AbortController();

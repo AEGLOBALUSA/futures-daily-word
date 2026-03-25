@@ -56,8 +56,10 @@ exports.handler = async (event) => {
     }
 
     // Generate unique path: campus-id/timestamp-filename
+    // Strip path traversal sequences and directory separators before sanitizing
     const ext = fileName.split(".").pop() || "mp4";
-    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
+    const baseName = fileName.replace(/\.\./g, '').replace(/[/\\]/g, '');
+    const safeName = baseName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
     const ts = Date.now();
     const path = `${campusId}/${ts}-${safeName}`;
 

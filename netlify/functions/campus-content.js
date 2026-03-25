@@ -23,6 +23,27 @@ function validateCampusCode(campusId, code) {
   return code.toUpperCase() === expected;
 }
 
+// Rate limit failed auth attempts per IP
+const authFails = {};
+function checkAuthRate(ip, max = 10) {
+  const now = Date.now();
+  if (!authFails[ip]) authFails[ip] = [];
+  authFails[ip] = authFails[ip].filter(t => now - t < 300000); // 5-min window
+  if (authFails[ip].length >= max) return true;
+  return false;
+}
+function recordAuthFail(ip) {
+  if (!authFails[ip]) authFails[ip] = [];
+  authFails[ip].push(Date.now());
+  // Cleanup old IPs
+  if (Object.keys(authFails).length > 200) {
+    const now = Date.now();
+    for (const k of Object.keys(authFails)) {
+      if (authFails[k].every(t => now - t >= 300000)) delete authFails[k];
+    }
+  }
+}
+
 let supabase;
 function getSupabase() {
   if (!supabase) supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
@@ -86,8 +107,15 @@ exports.handler = async (event) => {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid content type" }) };
       }
 
+      // Rate limit failed auth attempts
+      const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+      if (checkAuthRate(clientIP)) {
+        return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many failed attempts. Try again later." }) };
+      }
+
       // Require valid pastor code for the campus
       if (!validateCampusCode(campus, code)) {
+        recordAuthFail(clientIP);
         return { statusCode: 403, headers, body: JSON.stringify({ error: "Invalid or missing pastor code" }) };
       }
 

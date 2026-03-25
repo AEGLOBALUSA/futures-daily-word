@@ -59,10 +59,7 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Text too long (max 25000 chars)' }) };
     }
 
-    const voice = voiceId || 'Lucia'; // Lucia = Spain Spanish female (professional)
-    const ttsEngine = engine || 'neural'; // neural for best quality
-
-    // Auto-detect language from voice ID
+    // Auto-detect language from voice ID — whitelist valid voices
     const VOICE_LANG = {
       // English voices
       'Matthew': 'en-US', 'Joanna': 'en-US', 'Amy': 'en-GB', 'Brian': 'en-GB', 'Ruth': 'en-US', 'Stephen': 'en-US', 'Gregory': 'en-US', 'Danielle': 'en-US',
@@ -73,7 +70,10 @@ exports.handler = async (event) => {
       // Indonesian voices
       'Andika': 'id-ID'
     };
-    const langCode = VOICE_LANG[voice] || (voice.match(/^(Lucia|Lupe|Pedro|Mia|Sergio)$/) ? 'es-ES' : voice.match(/^(Camila|Vitoria|Thiago)$/) ? 'pt-BR' : 'en-US');
+    // Only allow whitelisted voices — reject unknown voiceIds
+    const voice = VOICE_LANG[voiceId] ? voiceId : 'Lucia';
+    const ttsEngine = engine === 'standard' ? 'standard' : 'neural';
+    const langCode = VOICE_LANG[voice];
 
     const client = new PollyClient({
       region,

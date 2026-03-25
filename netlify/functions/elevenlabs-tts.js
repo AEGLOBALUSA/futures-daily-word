@@ -70,8 +70,11 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Text too long (max ' + MAX_TEXT_LENGTH + ' chars)' }) };
     }
 
-    const voice = voiceId || 'JBFqnCBsd6RMkjVDRZzb';
-    const model = modelId || 'eleven_multilingual_v2';
+    // Whitelist valid ElevenLabs voice IDs (alphanumeric only)
+    const ALLOWED_VOICES = ['JBFqnCBsd6RMkjVDRZzb', 'EXAVITQu4vr4xnSDxMaL', '21m00Tcm4TlvDq8ikWAM', 'AZnzlk1XvdvUeBnXmlld', 'MF3mGyEYCl7XYWbV9V6O'];
+    const voice = voiceId && ALLOWED_VOICES.includes(voiceId) ? voiceId : 'JBFqnCBsd6RMkjVDRZzb';
+    const ALLOWED_MODELS = ['eleven_multilingual_v2', 'eleven_monolingual_v1', 'eleven_turbo_v2'];
+    const model = modelId && ALLOWED_MODELS.includes(modelId) ? modelId : 'eleven_multilingual_v2';
 
     // Split text into chunks at sentence boundaries
     const chunks = [];
