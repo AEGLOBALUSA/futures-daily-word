@@ -39,7 +39,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { action, subscription, timezone, preferredHour } = body;
+    const { action, subscription, timezone, preferredHour, lang } = body;
     const db = getSupabase();
 
     if (action === "subscribe") {
@@ -53,7 +53,8 @@ exports.handler = async (event) => {
         subscription: subscription,
         timezone: timezone || "America/New_York",
         preferred_hour: preferredHour !== undefined ? preferredHour : 7,
-        active: true
+        active: true,
+        ...(lang ? { lang } : {}),
       };
 
       // Upsert — if same endpoint already exists, update it
@@ -83,6 +84,7 @@ exports.handler = async (event) => {
       const updates = {};
       if (timezone) updates.timezone = timezone;
       if (preferredHour !== undefined) updates.preferred_hour = preferredHour;
+      if (lang) updates.lang = lang;
 
       if (Object.keys(updates).length > 0) {
         await db.from("push_subscriptions").update(updates).eq("endpoint_hash", endpointHash);

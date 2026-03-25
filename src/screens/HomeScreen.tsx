@@ -476,7 +476,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const personaConfig = useMemo(() => getPersonaConfig(setup?.persona), [setup?.persona]);
   const pf = personaConfig.features; // shorthand
   const greetingText = useMemo(
-    () => getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count),
+    () => getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count, getLang()),
     [personaConfig.persona, userProfile?.firstName],
   );
 
@@ -1491,7 +1491,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
                     }}
                   >
-                    {PERSONA_CONFIGS[personaConfig.persona]?.label || 'Select Path'}
+                    {(() => { const _pc = PERSONA_CONFIGS[personaConfig.persona]; const _l = getLang(); return (_l === 'id' && _pc?.labelId) ? _pc.labelId : _pc?.label || 'Select Path'; })()}
                     <ChevronDown size={10} style={{ opacity: 0.6 }} />
                   </button>
                   {showHeaderPersona && (

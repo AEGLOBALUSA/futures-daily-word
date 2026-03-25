@@ -2,6 +2,7 @@
  * Push notification subscription management.
  * Subscribes via Web Push API and registers with /api/subscribe-push.
  */
+import { getLang } from './i18n';
 
 const VAPID_PUBLIC_KEY = 'BDqMPaClvGsMmHFaQlEenSflT6NqmOcLYBrFRrVrRJae7Py08WLdQxhfSdkzSRaWCbLqJrdKKz8TnmqT6DqF5J4';
 
@@ -48,6 +49,7 @@ export async function subscribePush(email: string): Promise<boolean> {
       body: JSON.stringify({
         email,
         subscription: subscription.toJSON(),
+        lang: getLang(),
       }),
     });
 

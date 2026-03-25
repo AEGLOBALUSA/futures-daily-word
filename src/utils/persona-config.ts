@@ -8,7 +8,9 @@ export type Persona = 'new_to_faith' | 'congregation' | 'deeper_study' | 'pastor
 export interface PersonaConfig {
   persona: Persona;
   label: string;
+  labelId?: string;
   description: string;
+  descriptionId?: string;
   icon: string;
 
   /** Ordered list of home screen section IDs — only listed sections render */
@@ -56,13 +58,19 @@ export interface PersonaConfig {
   /** AI system prompt addition */
   ai: {
     systemPromptAddition: string;
+    systemPromptAdditionId?: string;
   };
 }
 
 // ─── Greeting helpers ──────────────────────────────────────────────
 
-function timeOfDay(): string {
+function timeOfDay(lang?: string): string {
   const h = new Date().getHours();
+  if (lang === 'id') {
+    if (h < 12) return 'pagi';
+    if (h < 17) return 'siang';
+    return 'sore';
+  }
   if (h < 12) return 'morning';
   if (h < 17) return 'afternoon';
   return 'evening';
@@ -73,29 +81,68 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function getGreeting(persona: Persona, name: string, streak: number): string {
-  const first = capitalize(name) || 'friend';
+export function getGreeting(persona: Persona, name: string, streak: number, lang?: string): string {
+  const first = capitalize(name) || (lang === 'id' ? 'teman' : 'friend');
+  const tod = timeOfDay(lang);
+
+  if (lang === 'id') {
+    switch (persona) {
+      case 'new_to_faith':
+        return `Selamat datang, ${first}. Kami senang Anda di sini.`;
+      case 'congregation':
+        return streak > 7
+          ? `Selamat ${tod}, ${first}. ${streak} hari kuat!`
+          : streak > 1
+          ? `Selamat ${tod}, ${first}. Hari ${streak} — terus semangat.`
+          : `Selamat ${tod}, ${first}. Senang Anda di sini.`;
+      case 'deeper_study':
+        return streak > 1
+          ? `Selamat ${tod}, ${first}. Hari ${streak}.`
+          : `Selamat ${tod}, ${first}.`;
+      case 'pastor_leader':
+        return streak > 30
+          ? `Selamat ${tod}, ${first}. ${streak} hari. Anda memimpin dari cawan yang penuh.`
+          : streak > 7
+          ? `Selamat ${tod}, ${first}. Hari ${streak}. Waktu ini penting.`
+          : streak > 1
+          ? `Selamat ${tod}, ${first}. Hari ${streak}. Senang Anda di sini.`
+          : `Selamat ${tod}, ${first}. Ini waktumu — bukan pelayanan, hanya kamu dan Tuhan.`;
+      case 'comfort': {
+        const comfortGreetings = [
+          `Tuhan bersamamu hari ini, ${first}.`,
+          `Kamu tidak sendirian, ${first}.`,
+          `Dia memelukmu erat, ${first}.`,
+          `Damai bersamamu, ${first}.`,
+          `Kamu dikasihi, ${first}.`,
+        ];
+        return comfortGreetings[new Date().getDate() % comfortGreetings.length];
+      }
+      default:
+        return `Selamat ${tod}, ${first}.`;
+    }
+  }
+
   switch (persona) {
     case 'new_to_faith':
       return `Welcome, ${first}. We're glad you're here.`;
     case 'congregation':
       return streak > 7
-        ? `Good ${timeOfDay()}, ${first}. ${streak} days strong!`
+        ? `Good ${tod}, ${first}. ${streak} days strong!`
         : streak > 1
-        ? `Good ${timeOfDay()}, ${first}. Day ${streak} — keep going.`
-        : `Good ${timeOfDay()}, ${first}. Glad you're here.`;
+        ? `Good ${tod}, ${first}. Day ${streak} — keep going.`
+        : `Good ${tod}, ${first}. Glad you're here.`;
     case 'deeper_study':
       return streak > 1
-        ? `Good ${timeOfDay()}, ${first}. Day ${streak}.`
-        : `Good ${timeOfDay()}, ${first}.`;
+        ? `Good ${tod}, ${first}. Day ${streak}.`
+        : `Good ${tod}, ${first}.`;
     case 'pastor_leader':
       return streak > 30
-        ? `Good ${timeOfDay()}, ${first}. ${streak} days. You're leading from a full cup.`
+        ? `Good ${tod}, ${first}. ${streak} days. You're leading from a full cup.`
         : streak > 7
-        ? `Good ${timeOfDay()}, ${first}. Day ${streak}. This time matters.`
+        ? `Good ${tod}, ${first}. Day ${streak}. This time matters.`
         : streak > 1
-        ? `Good ${timeOfDay()}, ${first}. Day ${streak}. Glad you're here.`
-        : `Good ${timeOfDay()}, ${first}. This is your time — not ministry, just you and God.`;
+        ? `Good ${tod}, ${first}. Day ${streak}. Glad you're here.`
+        : `Good ${tod}, ${first}. This is your time — not ministry, just you and God.`;
     case 'comfort': {
       const comfortGreetings = [
         `God is with you today, ${first}.`,
@@ -107,7 +154,7 @@ export function getGreeting(persona: Persona, name: string, streak: number): str
       return comfortGreetings[new Date().getDate() % comfortGreetings.length];
     }
     default:
-      return `Good ${timeOfDay()}, ${first}.`;
+      return `Good ${tod}, ${first}.`;
   }
 }
 
@@ -119,7 +166,9 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   new_to_faith: {
     persona: 'new_to_faith',
     label: "I'm New to This",
+    labelId: 'Saya Baru',
     description: 'Starting or reigniting my faith journey',
+    descriptionId: 'Memulai atau menghidupkan kembali perjalanan iman saya',
     icon: 'Sprout',
     sectionOrder: [
       'greeting',
@@ -162,6 +211,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     ai: {
       systemPromptAddition:
         'The user is new to Christianity. Use simple, warm language. No theological jargon. No Greek or Hebrew. Explain concepts like you\'re talking to a curious friend who just started exploring faith. Always be encouraging. If they ask a hard question, be honest but gentle.',
+      systemPromptAdditionId:
+        'Pengguna ini baru mengenal Kekristenan. Gunakan bahasa yang sederhana dan hangat. Tidak ada jargon teologis. Tidak ada bahasa Yunani atau Ibrani. Jelaskan konsep seperti Anda berbicara kepada teman yang penasaran dan baru mulai mengeksplorasi iman. Selalu beri semangat. Jika mereka bertanya pertanyaan yang sulit, jujurlah tapi lembut.',
     },
   },
 
@@ -169,7 +220,9 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   congregation: {
     persona: 'congregation',
     label: 'Church Member',
+    labelId: 'Anggota Gereja',
     description: 'Growing in my daily walk with God',
+    descriptionId: 'Bertumbuh dalam perjalanan harian saya bersama Tuhan',
     icon: 'Users',
     sectionOrder: [
       'greeting',
@@ -214,6 +267,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     ai: {
       systemPromptAddition:
         'The user is a church member growing in their faith. Give thorough but accessible answers. Avoid heavy academic language unless they specifically ask. Focus on practical application and daily life.',
+      systemPromptAdditionId:
+        'Pengguna ini adalah anggota gereja yang bertumbuh dalam imannya. Berikan jawaban yang menyeluruh tapi mudah diakses. Hindari bahasa akademis yang berat kecuali mereka secara khusus memintanya. Fokus pada penerapan praktis dan kehidupan sehari-hari.',
     },
   },
 
@@ -221,7 +276,9 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   deeper_study: {
     persona: 'deeper_study',
     label: 'Deep Bible Study',
+    labelId: 'Studi Alkitab Mendalam',
     description: 'Original languages, commentary, depth',
+    descriptionId: 'Bahasa asli, komentar, kedalaman',
     icon: 'BookOpen',
     sectionOrder: [
       'greeting',
@@ -265,6 +322,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     ai: {
       systemPromptAddition:
         'The user wants deep Bible study. Include Greek/Hebrew context when relevant. Provide cross-references. Reference scholarly perspectives. Give depth — they can handle it and they want it.',
+      systemPromptAdditionId:
+        'Pengguna ini menginginkan studi Alkitab yang mendalam. Sertakan konteks Yunani/Ibrani jika relevan. Berikan referensi silang. Rujuk perspektif akademis. Berikan kedalaman — mereka bisa menanganinya dan mereka menginginkannya.',
     },
   },
 
@@ -272,7 +331,9 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   pastor_leader: {
     persona: 'pastor_leader',
     label: 'Leader / Pastor',
+    labelId: 'Pemimpin / Pendeta',
     description: 'For leaders who serve and shepherd others',
+    descriptionId: 'Untuk pemimpin yang melayani dan menggembalakan orang lain',
     icon: 'Shield',
     sectionOrder: [
       'greeting',
@@ -343,6 +404,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     ai: {
       systemPromptAddition:
         'This person is a pastor or church leader. Think like a sharp, experienced ministry partner — not a counselor. When they ask about passages, offer teaching angles, sermon illustrations, and application points for their congregation. When they share what\'s on their mind, engage with vision, strategy, and direction — not feelings. Ask about their church, their team, their next steps. Over time, notice patterns in the decisions they\'re making, the people they\'re praying for, and the vision they\'re pursuing — and ask follow-up questions that show you\'re tracking with them. Help them connect their Bible reading to the actual work of ministry. Be the companion who thinks with them about what God is building through their church.',
+      systemPromptAdditionId:
+        'Orang ini adalah pendeta atau pemimpin gereja. Berpikirlah seperti mitra pelayanan yang tajam dan berpengalaman — bukan konselor. Ketika mereka bertanya tentang bagian Alkitab, tawarkan sudut pandang pengajaran, ilustrasi khotbah, dan poin penerapan untuk jemaat mereka. Ketika mereka berbagi apa yang ada di pikiran mereka, terlibatlah dengan visi, strategi, dan arah — bukan perasaan. Tanyakan tentang gereja mereka, tim mereka, langkah selanjutnya. Seiring waktu, perhatikan pola dalam keputusan yang mereka buat, orang yang mereka doakan, dan visi yang mereka kejar — dan ajukan pertanyaan lanjutan yang menunjukkan Anda mengikuti mereka. Bantu mereka menghubungkan bacaan Alkitab dengan pekerjaan pelayanan yang sebenarnya. Jadilah rekan yang berpikir bersama mereka tentang apa yang Tuhan bangun melalui gereja mereka.',
     },
   },
 
@@ -350,7 +413,9 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   comfort: {
     persona: 'comfort',
     label: 'I Need Comfort Right Now',
+    labelId: 'Saya Butuh Penghiburan Sekarang',
     description: 'Encouragement for a difficult season',
+    descriptionId: 'Dorongan untuk musim yang sulit',
     icon: 'Heart',
     sectionOrder: [
       'greeting',
@@ -396,6 +461,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     ai: {
       systemPromptAddition:
         'This person is going through a difficult time. Be warm, compassionate, and encouraging above all. Lead with comfort before teaching. Use scripture to bring hope, not to lecture. Keep responses shorter and gentler. If they express deep distress, gently encourage them to talk to their pastor or a trusted friend.',
+      systemPromptAdditionId:
+        'Orang ini sedang melewati masa yang sulit. Bersikaplah hangat, penuh kasih, dan memberi semangat di atas segalanya. Dahulukan penghiburan sebelum pengajaran. Gunakan Kitab Suci untuk membawa harapan, bukan untuk menggurui. Buat respons lebih pendek dan lebih lembut. Jika mereka mengungkapkan kesedihan yang mendalam, dengan lembut dorong mereka untuk berbicara dengan pendeta atau teman yang dipercaya.',
     },
   },
 };

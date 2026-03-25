@@ -41,13 +41,37 @@ const QUICK_PROMPTS = (lang: string) => [
   t('quick_god', lang),
 ]
 
-const SELECTION_PROMPTS = (text: string) => [
-  `Explain the meaning of: "${text.substring(0, 60)}${text.length > 60 ? '…' : ''}"`,
-  `What is the original Greek or Hebrew meaning here?`,
-  `How does this passage apply to daily life?`,
-  `What is the theological significance of this text?`,
-  `Connect this verse to the broader narrative of Scripture`,
-]
+const SELECTION_PROMPTS = (text: string, lang: string) => {
+  const snippet = `"${text.substring(0, 60)}${text.length > 60 ? '…' : ''}"`;
+  if (lang === 'id') return [
+    `Jelaskan arti dari: ${snippet}`,
+    `Apa arti asli dalam bahasa Yunani atau Ibrani di sini?`,
+    `Bagaimana bagian ini berlaku dalam kehidupan sehari-hari?`,
+    `Apa signifikansi teologis dari teks ini?`,
+    `Hubungkan ayat ini dengan narasi Kitab Suci yang lebih luas`,
+  ];
+  if (lang === 'es') return [
+    `Explica el significado de: ${snippet}`,
+    `¿Cuál es el significado original en griego o hebreo aquí?`,
+    `¿Cómo se aplica este pasaje a la vida diaria?`,
+    `¿Cuál es el significado teológico de este texto?`,
+    `Conecta este versículo con la narrativa más amplia de las Escrituras`,
+  ];
+  if (lang === 'pt') return [
+    `Explique o significado de: ${snippet}`,
+    `Qual é o significado original em grego ou hebraico aqui?`,
+    `Como esta passagem se aplica à vida diária?`,
+    `Qual é o significado teológico deste texto?`,
+    `Conecte este versículo à narrativa mais ampla das Escrituras`,
+  ];
+  return [
+    `Explain the meaning of: ${snippet}`,
+    `What is the original Greek or Hebrew meaning here?`,
+    `How does this passage apply to daily life?`,
+    `What is the theological significance of this text?`,
+    `Connect this verse to the broader narrative of Scripture`,
+  ];
+}
 
 interface BibleAIProps {
   isOpen: boolean
@@ -121,21 +145,27 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
   // Generate follow-up suggestions from the last AI response
   function generateFollowUps(aiResponse: string): string[] {
     const suggestions: string[] = []
+    const isId = lang === 'id';
     // Context-aware follow-ups based on what the AI talked about
-    if (aiResponse.includes('Greek') || aiResponse.includes('Hebrew') || aiResponse.includes('original')) {
-      suggestions.push('What other words in this passage have interesting original meanings?')
+    if (aiResponse.includes('Greek') || aiResponse.includes('Hebrew') || aiResponse.includes('original') || aiResponse.includes('Yunani') || aiResponse.includes('Ibrani') || aiResponse.includes('asli')) {
+      suggestions.push(isId ? 'Kata-kata lain apa dalam bagian ini yang memiliki arti asli yang menarik?' : 'What other words in this passage have interesting original meanings?')
     }
-    if (aiResponse.includes('context') || aiResponse.includes('audience') || aiResponse.includes('written')) {
-      suggestions.push('How does the historical context change how we read this?')
+    if (aiResponse.includes('context') || aiResponse.includes('audience') || aiResponse.includes('written') || aiResponse.includes('konteks') || aiResponse.includes('sejarah')) {
+      suggestions.push(isId ? 'Bagaimana konteks sejarah mengubah cara kita membaca ini?' : 'How does the historical context change how we read this?')
     }
-    if (aiResponse.includes('apply') || aiResponse.includes('practical') || aiResponse.includes('life')) {
-      suggestions.push('Give me a specific way to apply this today')
+    if (aiResponse.includes('apply') || aiResponse.includes('practical') || aiResponse.includes('life') || aiResponse.includes('terapkan') || aiResponse.includes('praktis') || aiResponse.includes('hidup')) {
+      suggestions.push(isId ? 'Berikan saya cara spesifik untuk menerapkan ini hari ini' : 'Give me a specific way to apply this today')
     }
-    if (aiResponse.includes('cross-reference') || aiResponse.includes('other passage') || aiResponse.includes('also says')) {
-      suggestions.push('What other passages connect to this theme?')
+    if (aiResponse.includes('cross-reference') || aiResponse.includes('other passage') || aiResponse.includes('also says') || aiResponse.includes('referensi silang') || aiResponse.includes('bagian lain')) {
+      suggestions.push(isId ? 'Bagian lain apa yang terhubung dengan tema ini?' : 'What other passages connect to this theme?')
     }
     // Always offer these general ones if we don't have enough
-    const general = [
+    const general = isId ? [
+      'Dalami lebih lanjut — apa yang saya lewatkan?',
+      'Bagaimana Anda menjelaskan ini kepada seseorang yang baru mengenal iman?',
+      'Apa arti ini untuk kehidupan sehari-hari saya?',
+      'Apakah ada referensi silang yang harus saya lihat?',
+    ] : [
       'Go deeper on this — what am I missing?',
       'How would you explain this to someone new to faith?',
       'What does this mean for my daily life?',
@@ -167,9 +197,21 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     const personaSetup = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}'); } catch { return {}; } })();
     const personaConfig = getPersonaConfig(personaSetup.persona);
 
+    const baseSystemPrompt = lang === 'id'
+      ? 'Kamu adalah asisten studi Alkitab untuk Futures Church Daily Word. Kamu membantu orang memahami Kitab Suci, mengeksplorasi bahasa asli, menemukan penerapan dalam kehidupan sehari-hari, dan mendalami iman mereka. Bersikaplah hangat, pastoral, dan penuh wawasan. Jawab dalam bahasa Indonesia. Buat respons yang jelas dan mudah dicerna — targetkan 2-4 paragraf pendek kecuali jawaban yang lebih panjang benar-benar diperlukan.'
+      : lang === 'es'
+      ? 'Eres un asistente de estudio bíblico para Futures Church Daily Word. Ayudas a las personas a entender las Escrituras, explorar idiomas originales, encontrar aplicación para la vida diaria y profundizar en su fe. Sé cálido, pastoral y perspicaz. Responde en español. Mantén las respuestas claras y fáciles de entender — apunta a 2-4 párrafos cortos a menos que una respuesta más larga sea realmente necesaria.'
+      : lang === 'pt'
+      ? 'Você é um assistente de estudo bíblico para Futures Church Daily Word. Você ajuda as pessoas a entender as Escrituras, explorar idiomas originais, encontrar aplicação para a vida diária e aprofundar sua fé. Seja caloroso, pastoral e perspicaz. Responda em português. Mantenha as respostas claras e fáceis de entender — mire em 2-4 parágrafos curtos, a menos que uma resposta mais longa seja realmente necessária.'
+      : 'You are a Bible study assistant for Futures Church Daily Word. You help people understand scripture, explore original languages, find application for daily life, and go deeper in their faith. Be warm, pastoral, and insightful. Keep responses clear and digestible — aim for 2-4 short paragraphs unless a longer answer is truly needed.';
+
+    const personaAI = lang === 'id' && personaConfig.ai.systemPromptAdditionId
+      ? personaConfig.ai.systemPromptAdditionId
+      : personaConfig.ai.systemPromptAddition;
+
     const systemParts: string[] = [
-      'You are a Bible study assistant for Futures Church Daily Word. You help people understand scripture, explore original languages, find application for daily life, and go deeper in their faith. Be warm, pastoral, and insightful. Keep responses clear and digestible — aim for 2-4 short paragraphs unless a longer answer is truly needed.',
-      personaConfig.ai.systemPromptAddition,
+      baseSystemPrompt,
+      personaAI,
     ]
     // Include user's personal context if they've shared it
     const userStory = typeof localStorage !== 'undefined' ? localStorage.getItem('dw_user_story') : null;
@@ -251,7 +293,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     }
   }
 
-  const promptsToShow = selectedText ? SELECTION_PROMPTS(selectedText) : QUICK_PROMPTS(lang)
+  const promptsToShow = selectedText ? SELECTION_PROMPTS(selectedText, lang) : QUICK_PROMPTS(lang)
 
   return (
     <>

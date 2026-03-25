@@ -1,12 +1,13 @@
 import { getGreeting } from '../utils/persona-config';
 import { useHome } from './HomeContext';
 import { useState, useEffect } from 'react';
+import { getLang } from '../utils/i18n';
 
 const MILESTONE_STREAKS = [7, 14, 21, 30, 40, 50, 60, 75, 100, 150, 200, 300, 365];
 
 export function GreetingSection() {
   const { personaConfig, userProfile, streakCount } = useHome();
-  const greetingText = getGreeting(personaConfig.persona, userProfile?.firstName || '', streakCount);
+  const greetingText = getGreeting(personaConfig.persona, userProfile?.firstName || '', streakCount, getLang());
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
 
   useEffect(() => {

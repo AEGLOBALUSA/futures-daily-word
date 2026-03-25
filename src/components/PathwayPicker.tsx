@@ -153,7 +153,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
                   margin: 0,
                   lineHeight: 1.3,
                 }}>
-                  {config.label}
+                  {getLang() === 'id' && config.labelId ? config.labelId : config.label}
                 </p>
                 <p style={{
                   fontSize: 13,
@@ -162,7 +162,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
                   margin: '2px 0 0',
                   lineHeight: 1.4,
                 }}>
-                  {config.description}
+                  {getLang() === 'id' && config.descriptionId ? config.descriptionId : config.description}
                 </p>
               </div>
             </button>
