@@ -201,6 +201,13 @@ function buildPayload(passage, lang) {
 }
 
 exports.handler = async (event) => {
+  // Auth check — only authorized callers (cron job) can trigger push sends
+    const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+          return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
+    }
+  
   if (!VAPID_PUBLIC || !VAPID_PRIVATE || !VAPID_EMAIL) {
     return { statusCode: 500, body: JSON.stringify({ error: "VAPID keys not configured" }) };
   }
