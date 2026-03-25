@@ -11,7 +11,7 @@ const verseCache = new Map<string, string>();
 // In-flight request deduplication: prevents duplicate network calls for the same passage
 const inFlight = new Map<string, Promise<string>>();
 
-export type TranslationCode = 'KJV' | 'NKJV' | 'NIV' | 'ESV' | 'NLT' | 'AMP' | 'NASB' | 'WEB' | 'RVR' | 'ARA' | 'NVI';
+export type TranslationCode = 'KJV' | 'NKJV' | 'NIV' | 'ESV' | 'NLT' | 'AMP' | 'NASB' | 'WEB' | 'RVR' | 'ARA' | 'NVI' | 'RV1960' | 'TB';
 
 /**
  * Fetch passage text from the appropriate API endpoint.
@@ -59,7 +59,7 @@ async function _doFetch(passage: string, translation: TranslationCode, cacheKey:
         text = getWEBBuiltIn(passage);
         break;
       default:
-        // NKJV, NIV, AMP, NASB, RVR, ARA, NVI → Bolls.Life API
+        // NKJV, NIV, AMP, NASB, RV1960, ARA, NVI, TB → Bolls.Life API
         text = await fetchBolls(passage, translation);
         break;
     }

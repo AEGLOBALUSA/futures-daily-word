@@ -20,7 +20,15 @@ import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 
-const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
+const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB', 'RV1960', 'NVI', 'ARA', 'TB'];
+
+// Default Bible translation for each language
+const LANG_DEFAULT_TRANSLATION: Record<string, TranslationCode> = {
+  en: 'ESV',
+  es: 'RV1960',
+  pt: 'ARA',
+  id: 'TB',
+};
 
 const PERSONAS = ALL_PERSONAS.map(id => ({
   id,
@@ -133,6 +141,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const handleLangSelect = (val: string) => {
     localStorage.setItem('dw_lang', val);
+    // Auto-switch Bible translation to match language
+    const defaultTranslation = LANG_DEFAULT_TRANSLATION[val];
+    if (defaultTranslation) {
+      localStorage.setItem('dw_translation', defaultTranslation);
+      localStorage.removeItem('dw_translation_manual'); // clear manual override flag
+    }
     track('language_change', val);
     window.location.reload();
   };

@@ -561,6 +561,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const [pastorOnboardStep, setPastorOnboardStep] = useState<number>(() => {
     try {
       if (localStorage.getItem('dw_pastor_onboard_completed')) return -2; // fully done, never show
+      // If user already has active plans, skip onboarding entirely
+      const ap = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      if (Object.keys(ap).length > 0) return -2;
       return localStorage.getItem('dw_pastor_onboard_dismissed') ? -1 : 0;
     } catch { return 0; }
   });
@@ -1566,7 +1569,14 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                             onClick={() => {
                               setAppLanguage(lang.code);
                               localStorage.setItem('dw_lang', lang.code);
+                              // Auto-switch Bible translation to match language
+                              const langTranslations: Record<string, string> = { en: 'ESV', es: 'RV1960', pt: 'ARA', id: 'TB' };
+                              if (langTranslations[lang.code]) {
+                                localStorage.setItem('dw_translation', langTranslations[lang.code]);
+                                localStorage.removeItem('dw_translation_manual');
+                              }
                               setShowHeaderLanguage(false);
+                              window.location.reload();
                             }}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
