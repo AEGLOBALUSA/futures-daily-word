@@ -126,15 +126,23 @@ export function unlock(): void {
 
 export function stop(): void {
   const audio = getAudio();
-    stopRequested = true;
+  stopRequested = true;
   try { audio.pause(); } catch {}
   setState('idle');
 }
 
 export function wasStopRequested(): boolean {
-    const val = stopRequested;
-      stopRequested = false;
-        return val;
+  const val = stopRequested;
+  stopRequested = false;
+  return val;
+}
+
+/** Reset without marking as user-stop — used internally for chaining playback */
+export function resetForChain(): void {
+  const audio = getAudio();
+  try { audio.pause(); } catch {}
+  stopRequested = false;
+  setState('idle');
 }
 
 /* ------------------------------------------------------------------ */
@@ -337,7 +345,8 @@ export async function playUrl(key: string, blobUrl: string): Promise<void> {
   const audio = getAudio();
 
   if (state === 'playing' && currentPassage === key) { stop(); return; }
-  if (state !== 'idle') stop();
+  // Use resetForChain instead of stop to avoid killing sequential playback queues
+  if (state !== 'idle') resetForChain();
 
   setState('loading', key);
   audio.src = blobUrl;

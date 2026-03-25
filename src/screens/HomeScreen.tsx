@@ -1163,13 +1163,22 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
         }
       }
       if (src) {
+        AP.resetForChain(); // clear any stale stop flag before chaining
         await AP.playUrl(HERO_KEY, src);
-        // Wait for this chapter to finish (idle = ended, not paused)
+        // Wait for this chapter to finish — only resolve on idle AFTER playing starts
         await new Promise<void>(resolve => {
+          let started = false;
           let unsub: (() => void) | undefined;
           unsub = AP.onStateChange((st) => {
-            if (st === 'idle') { unsub?.(); if (AP.wasStopRequested()) heroQueueActiveRef.current = false; resolve(); }
+            if (st === 'playing') started = true;
+            if (started && st === 'idle') {
+              unsub?.();
+              if (AP.wasStopRequested()) heroQueueActiveRef.current = false;
+              resolve();
+            }
           });
+          // Safety: if playUrl already finished (very short audio), check state now
+          if (AP.getState() === 'idle' && started) { unsub?.(); resolve(); }
         });
         if (heroQueueActiveRef.current) {
           playChapterAtIndex(index + 1);
