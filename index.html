@@ -47,7 +47,7 @@
       // One-time cache reset — keyed by version. Clears stale app caches only,
       // preserves offline Bible (fdw-bible-v1) and font cache (fdw-fonts-v1).
       (function(){
-        var V='v57';
+        var V='v58';
         if(localStorage.getItem('fdw_nuked')===V) return;
         var KEEP=['fdw-bible-v1','fdw-fonts-v1'];
         if('serviceWorker' in navigator){

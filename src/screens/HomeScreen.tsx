@@ -1108,62 +1108,68 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroKey]);
 
-  // Play all today's chapters one by one (sequential queue)
+  // ── Hero multi-chapter sequential playback with chapter tracking ──
   const heroQueueRef = useRef<string[]>([]);
   const heroQueueActiveRef = useRef(false);
-  const [allPassagesSelected, setAllPassagesSelected] = useState(false);
+  const [heroChapterIndex, setHeroChapterIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dw_hero_chapter_idx');
+      return saved ? parseInt(saved, 10) : 0;
+    } catch { return 0; }
+  });
+  const [audioPaused, setAudioPaused] = useState(false);
+  const heroChapterIndexRef = useRef(heroChapterIndex);
 
-  const handleSelectAllListen = useCallback(() => {
-    AP.unlock();
-    if (allPassagesSelected && AP.isPlaying(HERO_KEY)) {
-      AP.stop();
-      heroQueueRef.current = [];
+  useEffect(() => {
+    heroChapterIndexRef.current = heroChapterIndex;
+    try { localStorage.setItem('dw_hero_chapter_idx', String(heroChapterIndex)); } catch {}
+  }, [heroChapterIndex]);
+
+  useEffect(() => {
+    return AP.onStateChange((st) => {
+      setAudioPaused(st === 'paused');
+    });
+  }, []);
+
+  const playChapterAtIndex = async (index: number) => {
+    if (index < 0 || index >= heroChapterRefs.length) {
       heroQueueActiveRef.current = false;
-      setAllPassagesSelected(false);
       return;
     }
-    setAllPassagesSelected(true);
-    setExpandedPassages(new Set(heroChapterRefs));
-    heroQueueRef.current = [...heroChapterRefs];
-    heroQueueActiveRef.current = true;
-    playNextInQueue();
-  }, [allPassagesSelected, heroChapterRefs, playNextInQueue]);
-
-  async function playNextInQueue() {
-    if (!heroQueueActiveRef.current || heroQueueRef.current.length === 0) {
-      heroQueueActiveRef.current = false;
-      return;
-    }
-    const ref = heroQueueRef.current.shift()!;
+    setHeroChapterIndex(index);
+    const ref = heroChapterRefs[index];
     const cacheKey = HERO_KEY + ref;
     try {
       let src = audioSrcCache.current.get(cacheKey);
       if (!src) {
-        // Fetch the text for this chapter, then get audio
-        const text = await fetchPassage(ref, translation).catch(() => '');
+        // Always fetch ESV text for audio, regardless of selected translation
+        const text = await fetchPassage(ref, 'ESV').catch(() => '');
         if (text) {
-          src = await AP.fetchAudioSrc(text, translation, ref) ?? undefined;
+          src = await AP.fetchAudioSrc(text, 'ESV', ref) ?? undefined;
           if (src) audioSrcCache.current.set(cacheKey, src);
         }
       }
       if (src) {
         await AP.playUrl(HERO_KEY, src);
-        // Wait for this chapter to finish playing before starting next
+        // Wait for this chapter to finish (idle = ended, not paused)
         await new Promise<void>(resolve => {
           let unsub: (() => void) | undefined;
           unsub = AP.onStateChange((st) => {
             if (st === 'idle') { unsub?.(); if (AP.wasStopRequested()) heroQueueActiveRef.current = false; resolve(); }
           });
         });
-        // Play next chapter
-        if (heroQueueActiveRef.current) playNextInQueue();
+        if (heroQueueActiveRef.current) {
+          playChapterAtIndex(index + 1);
+        }
       } else {
-        // Skip this chapter, try next
-        if (heroQueueActiveRef.current) playNextInQueue();
+        if (heroQueueActiveRef.current) {
+          playChapterAtIndex(index + 1);
+        }
       }
     } catch {
-      // Skip on error, try next
-      if (heroQueueActiveRef.current) playNextInQueue();
+      if (heroQueueActiveRef.current) {
+        playChapterAtIndex(index + 1);
+      }
     }
   };
 
@@ -1171,24 +1177,38 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     AP.unlock(); // must be synchronous in tap handler
     setAudioError(false);
 
-    // Toggle off if already playing
-    if (AP.isPlaying(HERO_KEY)) {
-      AP.stop();
-      heroQueueRef.current = [];
-      heroQueueActiveRef.current = false;
+    // If paused, resume
+    if (AP.isPaused(HERO_KEY)) {
+      AP.resume();
       return;
     }
-    if (audioPlaying) AP.stop();
 
+    // Toggle pause if playing
+    if (AP.isPlaying(HERO_KEY)) {
+      AP.pause();
+      return;
+    }
+
+    if (audioPlaying) AP.stop();
     if (heroChapterRefs.length === 0) return;
 
-    // Queue all chapters for sequential playback
-    heroQueueRef.current = [...heroChapterRefs];
+    // Start from saved chapter index (or 0 if out of range)
+    const startIdx = heroChapterIndexRef.current < heroChapterRefs.length
+      ? heroChapterIndexRef.current : 0;
     heroQueueActiveRef.current = true;
 
     try {
-      await playNextInQueue();
+      await playChapterAtIndex(startIdx);
     } catch { setAudioError(true); }
+  };
+
+  // Skip to a specific chapter (tapped on slider)
+  const handleHeroSkipTo = (index: number) => {
+    AP.unlock();
+    setAudioError(false);
+    if (audioPlaying || audioPaused) AP.stop();
+    heroQueueActiveRef.current = true;
+    playChapterAtIndex(index).catch(() => setAudioError(true));
   };
 
   /** Render scripture text with tappable words when Gk/Heb mode is active */
@@ -1572,6 +1592,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
           const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
           const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
+          const isPausedHero = audioPaused && audioCurrentPassage === HERO_KEY;
           const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
 
           return (
@@ -1912,6 +1933,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
             : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
           const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
           const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
+          const isPausedHero = audioPaused && audioCurrentPassage === HERO_KEY;
           const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
 
           return (
@@ -2022,7 +2044,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
                     fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
                   }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : t('listen_now')}
+                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : isPausedHero ? 'Paused' : t('listen_now')}
                   </p>
 
                   <p style={{
@@ -2030,7 +2052,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontFamily: 'var(--font-sans)', textAlign: 'center',
                     maxWidth: '88%', lineHeight: 1.4,
                   }}>
-                    {allLabels.join(' · ')}
+                    {(isPlayingHero || isPausedHero) && allLabels.length > 1
+                      ? allLabels[heroChapterIndex] || allLabels.join(' · ')
+                      : allLabels.join(' · ')}
                   </p>
                   <p style={{
                     fontSize: 10, opacity: 0.4, margin: '5px 0 0',
@@ -2041,6 +2065,63 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   </p>
                 </div>
 
+                {/* ── Chapter slider — YouTube-style chapter markers ── */}
+                {allLabels.length > 1 && (
+                  <div style={{ padding: '0 16px 8px' }}>
+                    {/* Progress bar background */}
+                    <div style={{
+                      display: 'flex', gap: 3, height: 4, borderRadius: 2,
+                      overflow: 'hidden', margin: '0 4px 8px',
+                    }}>
+                      {allLabels.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={(e) => { e.stopPropagation(); handleHeroSkipTo(i); }}
+                          style={{
+                            flex: 1, height: '100%', border: 'none', padding: 0,
+                            cursor: 'pointer', borderRadius: 2,
+                            background: i < heroChapterIndex
+                              ? 'rgba(255,255,255,0.7)'
+                              : i === heroChapterIndex && (isPlayingHero || audioPaused)
+                              ? 'rgba(255,255,255,0.9)'
+                              : 'rgba(255,255,255,0.18)',
+                            transition: 'background 0.3s ease',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {/* Chapter labels — scrollable row */}
+                    <div style={{
+                      display: 'flex', gap: 6, overflowX: 'auto',
+                      scrollbarWidth: 'none', padding: '0 2px',
+                    }}>
+                      {allLabels.map((label, i) => (
+                        <button
+                          key={i}
+                          onClick={(e) => { e.stopPropagation(); handleHeroSkipTo(i); }}
+                          style={{
+                            flexShrink: 0, padding: '4px 10px',
+                            borderRadius: 12, border: 'none', cursor: 'pointer',
+                            fontSize: 10, fontWeight: 600,
+                            fontFamily: 'var(--font-sans)',
+                            letterSpacing: '0.02em',
+                            background: i === heroChapterIndex
+                              ? 'rgba(255,255,255,0.22)'
+                              : 'rgba(255,255,255,0.06)',
+                            color: i === heroChapterIndex
+                              ? 'rgba(255,255,255,0.95)'
+                              : 'rgba(255,255,255,0.45)',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {label.replace(/^\d+\s*/, '').length > 18
+                            ? label.replace(/^\d+\s*/, '').slice(0, 16) + '…'
+                            : label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Error message */}
                 {audioError && audioCurrentPassage === HERO_KEY && (

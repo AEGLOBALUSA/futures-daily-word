@@ -9,7 +9,7 @@
  * (Bible Brain + API.Bible disabled until API keys are approved)
  */
 
-type PlaybackState = 'idle' | 'loading' | 'playing';
+type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused';
 type StateListener = (state: PlaybackState, passage?: string) => void;
 
 let audioEl: HTMLAudioElement | null = null;
@@ -44,8 +44,14 @@ export function isPlaying(passage?: string): boolean {
   return state === 'playing' && currentPassage === passage;
 }
 
+export function isPaused(passage?: string): boolean {
+  if (!passage) return state === 'paused';
+  return state === 'paused' && currentPassage === passage;
+}
+
 export function isLoading(): boolean { return state === 'loading'; }
 export function getCurrentPassage(): string | null { return currentPassage; }
+export function getState(): PlaybackState { return state; }
 
 /* ------------------------------------------------------------------ */
 /*  Audio element singleton                                            */
@@ -57,7 +63,7 @@ function getAudio(): HTMLAudioElement {
     audioEl.preload = 'auto';
     audioEl.setAttribute('playsinline', '');
     audioEl.addEventListener('ended', () => {
-      if (state === 'playing') setState('idle');
+      if (state === 'playing' || state === 'paused') setState('idle');
     });
   }
   return audioEl;
@@ -129,6 +135,44 @@ export function wasStopRequested(): boolean {
     const val = stopRequested;
       stopRequested = false;
         return val;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pause / Resume — keeps position and passage key intact             */
+/* ------------------------------------------------------------------ */
+
+export function pause(): void {
+  if (state !== 'playing') return;
+  const audio = getAudio();
+  try { audio.pause(); } catch {}
+  setState('paused', currentPassage);
+}
+
+export async function resume(): Promise<void> {
+  if (state !== 'paused' || !audioEl) return;
+  try {
+    await audioEl.play();
+    setState('playing', currentPassage);
+  } catch (err) {
+    console.error('[AudioPlayer] resume failed', err);
+    setState('idle');
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Current time / duration — for progress tracking                    */
+/* ------------------------------------------------------------------ */
+
+export function getCurrentTime(): number {
+  return audioEl?.currentTime ?? 0;
+}
+
+export function getDuration(): number {
+  return audioEl?.duration ?? 0;
+}
+
+export function seekTo(time: number): void {
+  if (audioEl) audioEl.currentTime = time;
 }
 
 /* ------------------------------------------------------------------ */

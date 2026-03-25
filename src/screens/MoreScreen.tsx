@@ -558,7 +558,10 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             MEDIA
           </h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={rowStyle}>
+            <div
+              style={{ ...rowStyle, cursor: campusData?.videoUrl ? 'pointer' : 'default' }}
+              onClick={() => campusData?.videoUrl && window.open(campusData.videoUrl, '_blank')}
+            >
               <Link size={18} style={iconStyle} />
               <div style={{ flex: 1 }}>
                 <span style={{ display: 'block', fontWeight: 500 }}>Church Stream</span>
@@ -733,13 +736,19 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>ABOUT</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={rowStyle}>
+            <div
+              style={{ ...rowStyle, cursor: 'pointer' }}
+              onClick={() => window.open('https://futuresdailyword.com', '_blank')}
+            >
               <Info size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>{t("about_daily_word", lang)}</span>
               <span style={valStyle}>v2.1</span>
             </div>
             <div style={dividerStyle} />
-            <div style={rowStyle}>
+            <div
+              style={{ ...rowStyle, cursor: 'pointer' }}
+              onClick={() => window.open('https://futuresdailyword.com/privacy', '_blank')}
+            >
               <Shield size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>{t("privacy_policy", lang)}</span>
             </div>

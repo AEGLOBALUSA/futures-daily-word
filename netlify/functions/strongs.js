@@ -32,7 +32,7 @@ export const handler = async (event) => {
   const num = (params.num || '').toUpperCase();
   const testament = (params.testament || 'NT').toUpperCase();
 
-  const ALLOWED_ORIGINS = ["https://futuresdailyword.com", "https://www.futuresdailyword.com", "http://localhost:5173", "http://localhost:4173"];
+  const ALLOWED_ORIGINS = ["https://futuresdailyword.com", "https://www.futuresdailyword.com", "https://futures-daily-word.netlify.app"];
   const origin = event.headers?.origin || event.headers?.Origin || "";
   const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   const headers = {

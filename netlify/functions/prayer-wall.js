@@ -3,8 +3,7 @@ const { createClient } = require("@supabase/supabase-js");
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
   "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com",
-  "http://localhost:8888"
+  "https://www.futuresdailyword.com"
 ];
 
 // 21 Futures campuses (8 AU + 7 US + 5 ID + 1 BR) + Non-Futures

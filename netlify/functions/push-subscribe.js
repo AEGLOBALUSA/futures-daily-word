@@ -4,9 +4,7 @@ const crypto = require("crypto");
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
   "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com",
-  "http://localhost:8888",
-  "http://localhost:3000"
+  "https://www.futuresdailyword.com"
 ];
 
 let supabase;

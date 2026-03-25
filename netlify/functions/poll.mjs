@@ -5,8 +5,7 @@ import crypto from "crypto";
 const ALLOWED_ORIGINS = [
   "https://futuresdailyword.com",
   "https://www.futuresdailyword.com",
-  "http://localhost:5173",
-  "http://localhost:4173",
+  "https://futures-daily-word.netlify.app",
 ];
 
 function getCorsHeaders(origin) {
