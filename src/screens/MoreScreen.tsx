@@ -20,7 +20,13 @@ import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 
-const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB', 'RV1960', 'NVI', 'ARA', 'TB'];
+// Bible translations filtered by selected language
+const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
+  en: ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'],
+  es: ['RV1960', 'NVI'],
+  pt: ['ARA'],
+  id: ['TB'],
+};
 
 // Default Bible translation for each language
 const LANG_DEFAULT_TRANSLATION: Record<string, TranslationCode> = {
@@ -406,7 +412,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {TRANSLATIONS.map(t => (
+              {(LANG_TRANSLATIONS[lang] || LANG_TRANSLATIONS['en']).map(t => (
                 <button
                   key={t}
                   onClick={() => handleTranslationSelect(t)}
