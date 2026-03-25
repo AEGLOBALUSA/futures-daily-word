@@ -34,7 +34,7 @@ exports.handler = async (event) => {
     "victor-harbor","copper-coast","gwinnett","kennesaw","alpharetta","futuros-duluth",
     "futuros-kennesaw","futuros-grayson","franklin","solo","cemani","bali","samarinda","langowan","rio"];
   // Accept: campus pastor codes (SHA-256), master secret, or admin PIN
-  const ADMIN_PIN = "8385";
+  const ADMIN_PIN = process.env.ADMIN_PIN || "";
   const ok = code === ADMIN_PIN || code === secret.toUpperCase() || CS.some(c => {
     const expected = crypto.createHash("sha256").update(c + ":" + secret).digest("hex").slice(0, 8).toUpperCase();
     return expected === code;
