@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, BookOpen, Headphones, Check, ChevronRight } from 'lucide-react';
 import { PLAN_CATALOGUE } from '../data/plans';
+import { getLang, tField } from '../utils/i18n';
 
 interface Props {
   onComplete: (chaptersPerDay: number, planIds: string[]) => void;
@@ -49,6 +50,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [chapters, setChapters] = useState(2);
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
+  const lang = getLang();
 
   const persona = (() => {
     try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; }
@@ -237,7 +239,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                          {plan.title}
+                          {tField(plan, 'title', lang)}
                         </p>
                         <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
                           {plan.totalDays} days · {plan.category}
@@ -285,7 +287,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                              {plan.title}
+                              {tField(plan, 'title', lang)}
                             </p>
                             <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
                               {plan.totalDays} days · {plan.category}

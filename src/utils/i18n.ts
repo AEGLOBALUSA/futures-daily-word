@@ -346,3 +346,13 @@ export function useTranslation() {
   const lang = getLang();
   return (key: string) => UI[key]?.[lang] || UI[key]?.['en'] || key;
 }
+
+/**
+ * Return a translated field from a data object (plan, devotion, etc.).
+ * E.g. tField(plan, 'title', 'es') looks for plan.titleEs, falls back to plan.title.
+ */
+export function tField(obj: any, field: string, lang: string): string {
+  if (lang === 'en') return obj[field] || '';
+  const langField = field + lang.charAt(0).toUpperCase() + lang.slice(1);
+  return obj[langField] || obj[field] || '';
+}

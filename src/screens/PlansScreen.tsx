@@ -12,7 +12,7 @@ import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Vide
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
-import { t, getLang } from '../utils/i18n';
+import { t, getLang, tField } from '../utils/i18n';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -539,12 +539,12 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           {devotion && persona === 'congregation' && (
             <Card style={{ marginBottom: 24, borderLeft: '3px solid var(--dw-accent)' }}>
               <h2 className="text-section-header" style={{ marginBottom: 8 }}>{t('p_devotion_of_day', lang)}</h2>
-              <p className="text-card-title" style={{ marginBottom: 8 }}>{devotion.title}</p>
+              <p className="text-card-title" style={{ marginBottom: 8 }}>{tField(devotion, 'title', lang)}</p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
                 {devotion.verse}
               </p>
               <p style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.6, marginBottom: 12, fontFamily: 'var(--font-serif-text)' }}>
-                {devotion.body}
+                {tField(devotion, 'body', lang)}
               </p>
               <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
                 — {devotion.author}
@@ -607,7 +607,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                   const pct = plan.totalDays > 0 ? (completedCount / plan.totalDays) * 100 : 0;
                   return (
                     <Card key={plan.id} style={{ cursor: 'pointer' }} onClick={() => setShowPlanDetail(true)}>
-                      <p className="text-card-title" style={{ marginBottom: 8 }}>{plan.title}</p>
+                      <p className="text-card-title" style={{ marginBottom: 8 }}>{tField(plan, 'title', lang)}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ flex: 1, height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{
@@ -864,7 +864,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                           }}>
                             {plan.category}
                           </span>
-                          <p className="text-card-title" style={{ marginTop: 8 }}>{plan.title}</p>
+                          <p className="text-card-title" style={{ marginTop: 8 }}>{tField(plan, 'title', lang)}</p>
                         </div>
                         {isComplete ? (
                           <CheckCircle size={22} style={{ color: '#93C5FD', flexShrink: 0 }} />
@@ -1085,9 +1085,9 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                             </div>
                           )}
 
-                          <p className="text-card-title" style={{ marginTop: 0, paddingRight: 80, marginBottom: 6 }}>{plan.title}</p>
+                          <p className="text-card-title" style={{ marginTop: 0, paddingRight: 80, marginBottom: 6 }}>{tField(plan, 'title', lang)}</p>
                           <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
-                            {plan.description}
+                            {tField(plan, 'description', lang)}
                           </p>
 
                           {/* Progress bar for active plans */}

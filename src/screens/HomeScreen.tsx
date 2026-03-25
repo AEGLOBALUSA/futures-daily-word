@@ -36,6 +36,7 @@ import { type SermonData } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
 // import { isSundayWindow } from '../utils/sunday';
 import { schedulePush } from '../utils/cloudSync';
+import { tField } from '../utils/i18n';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
@@ -913,7 +914,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         const dn = calcPlanDay(prog.startedAt, plan.totalDays);
         const dp = plan.passages[dn - 1];
         const dev = plan.devotionals?.[dn - 1];
-        if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: plan.title, passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
+        if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: tField(plan, 'title', lang), passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
       }
       // Filter out A&J plan for personas that shouldn't see it
       const AJ_ONLY_PERSONAS = ['congregation', 'new_to_faith', 'new_returning'];
@@ -2591,8 +2592,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     <button key={plan.id} onClick={() => { startPlanFromHome(plan.id); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } window.location.reload(); }} style={{
                       padding: '12px 14px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
-                      <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{plan.title}</p>
-                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>{plan.description.slice(0, 80)}…</p>
+                      <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{tField(plan, 'title', lang)}</p>
+                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>{tField(plan, 'description', lang).slice(0, 80)}…</p>
                     </button>
                   ))}
                   <button onClick={() => { onNavigate?.('plans'); }} style={{
@@ -2796,10 +2797,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     <BookOpen size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                        {plan.title}
+                        {tField(plan, 'title', lang)}
                       </p>
                       <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
-                        {plan.totalDays} days · {plan.description.slice(0, 60)}{plan.description.length > 60 ? '…' : ''}
+                        {plan.totalDays} days · {tField(plan, 'description', lang).slice(0, 60)}{tField(plan, 'description', lang).length > 60 ? '…' : ''}
                       </p>
                     </div>
                     <Plus size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
@@ -3018,15 +3019,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
           onClick={() => {
             trackBehavior('devotion_tapped', 'ashley-jane');
-            setSelection({ text: `${todaysDevotion.title}\n\n${todaysDevotion.body}`, verseRefs: [todaysDevotion.verse || ''], source: 'tap' });
+            setSelection({ text: `${tField(todaysDevotion, 'title', lang)}\n\n${tField(todaysDevotion, 'body', lang)}`, verseRefs: [todaysDevotion.verse || ''], source: 'tap' });
           }}
         >
           <h2 className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</h2>
-          <p className="text-card-title" style={{ marginBottom: 6 }}>{todaysDevotion.title}</p>
+          <p className="text-card-title" style={{ marginBottom: 6 }}>{tField(todaysDevotion, 'title', lang)}</p>
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
             {todaysDevotion.verse}
           </p>
-          <p className="text-devotion" style={{ fontSize: scriptureFontSize + 2 }}>{todaysDevotion.body}</p>
+          <p className="text-devotion" style={{ fontSize: scriptureFontSize + 2 }}>{tField(todaysDevotion, 'body', lang)}</p>
           <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
             — {todaysDevotion.author}
           </p>
@@ -3064,8 +3065,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               <button onClick={(e) => {
                 e.stopPropagation();
                 shareContent({
-                  title: `Daily Word — ${todaysDevotion.title}`,
-                  text: `${todaysDevotion.title}\n\n${todaysDevotion.body.substring(0, 200)}...\n\n— Futures Daily Word`,
+                  title: `Daily Word — ${tField(todaysDevotion, 'title', lang)}`,
+                  text: `${tField(todaysDevotion, 'title', lang)}\n\n${tField(todaysDevotion, 'body', lang).substring(0, 200)}...\n\n— Futures Daily Word`,
                   url: 'https://futuresdailyword.com'
                 });
               }} style={{
@@ -3077,7 +3078,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               }}>
                 <Share2 size={14} /> Share
               </button>
-              <ListenButton text={`${todaysDevotion.title}. ${todaysDevotion.body}`} size="md" label="Listen" />
+              <ListenButton text={`${tField(todaysDevotion, 'title', lang)}. ${tField(todaysDevotion, 'body', lang)}`} size="md" label="Listen" />
             </div>
           </div>
           {/* Community reaction counts */}
@@ -3244,17 +3245,17 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       fontSize: 17, fontWeight: 700, color: 'var(--dw-text-primary)',
                       fontFamily: 'var(--font-serif)', marginBottom: 10, lineHeight: 1.4,
                     }}>
-                      {devotion.title}
+                      {tField(devotion, 'title', lang)}
                     </p>
                     <p style={{
                       fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)',
                       fontFamily: 'var(--font-serif-text, Georgia, serif)',
                       margin: '0 0 16px',
                     }}>
-                      {devotion.body}
+                      {tField(devotion, 'body', lang)}
                     </p>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
-                      <ListenButton text={`${devotion.title}. ${devotion.body}`} size="md" label="Listen" />
+                      <ListenButton text={`${tField(devotion, 'title', lang)}. ${tField(devotion, 'body', lang)}`} size="md" label="Listen" />
                     </div>
                     <button
                       onClick={() => setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more')}
@@ -4536,10 +4537,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             <Card style={{ marginBottom: 16, border: '1px solid rgba(154,123,46,0.25)', background: 'rgba(154,123,46,0.05)' }}>
               <h2 className="text-section-header" style={{ marginBottom: 8, color: 'var(--dw-accent)' }}>{t('reading_plan')}</h2>
               <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
-                {featured.title}
+                {tField(featured, 'title', lang)}
               </p>
               <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                {featured.totalDays} days · {featured.description?.slice(0, 80) || 'Build a consistent reading habit'}
+                {featured.totalDays} days · {tField(featured, 'description', lang).slice(0, 80) || 'Build a consistent reading habit'}
               </p>
               <button
                 onClick={() => {
@@ -4667,7 +4668,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', flex: 1, paddingRight: 8 }}>
-                          {plan.title}
+                          {tField(plan, 'title', lang)}
                         </span>
                         <span style={{
                           fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : '#2563EB',
@@ -4699,7 +4700,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           fontSize: 15, fontWeight: 700, color: 'var(--dw-text-primary)',
                           fontFamily: 'var(--font-serif)', margin: '0 0 4px',
                         }}>
-                          You finished {plan.title}!
+                          You finished {tField(plan, 'title', lang)}!
                         </p>
                         <p style={{
                           fontSize: 13, color: 'var(--dw-text-secondary)',
@@ -4850,7 +4851,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         >
                           <div style={{ flex: 1, paddingRight: 10 }}>
                             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0, marginBottom: 2 }}>
-                              {plan.title}
+                              {tField(plan, 'title', lang)}
                             </p>
                             <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
                               {plan.totalDays} {plan.bookId ? 'chapters' : 'days'}
