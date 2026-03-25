@@ -924,8 +924,21 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
   // ── Hero full-passage state (always ESV for real human audio) ──────────────
   // heroFullText removed — audio now fetches per-chapter on demand
   const [heroLoading, setHeroLoading] = useState(false);
+  const [allPassagesSelected, setAllPassagesSelected] = useState(false);
   const [planTick, setPlanTick] = useState(0); // increment to force plan list re-render
   const HERO_KEY = '__hero__';
+
+  const handleSelectAllListen = () => {
+    const next = !allPassagesSelected;
+    setAllPassagesSelected(next);
+    if (next && heroChapterRefs.length > 0) {
+      // Start playing all passages from the beginning
+      handleHeroListen();
+    } else {
+      // Stop playback
+      if (audioPlaying) stopAudio();
+    }
+  };
 
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
@@ -1659,13 +1672,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   >
                     {isLoadingHero
                       ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
-                      : isPlayingHero
+                      : isPlayingHero && !isPausedHero
                       ? <Pause size={32} />
                       : <Play size={32} style={{ marginLeft: 4 }} />
                     }
                   </button>
                   <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : t('listen_now')}
+                    {isLoadingHero ? 'Loading…' : isPlayingHero && !isPausedHero ? 'Now Playing' : isPausedHero ? 'Paused' : t('listen_now')}
                   </p>
                   <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
                     {allLabels.join(' · ')}
