@@ -330,6 +330,8 @@ const UI: Translations = {
 
   // ── FONT SIZE CONTROLS ──
   font_size_label: { en: 'Font Size', es: 'Tama\u00f1o de Fuente', pt: 'Tamanho da Fonte', id: 'Ukuran Font' },
+  language_label: { en: 'LANGUAGE', es: 'IDIOMA', pt: 'IDIOMA', id: 'BAHASA' },
+  sermon_notes_title: { en: 'Sermon Notes', es: 'Notas del Serm\u00f3n', pt: 'Notas do Serm\u00e3o', id: 'Catatan Khotbah' },
 
   // ── MESSAGES SCREEN ──
   publish: { en: 'Publish', es: 'Publicar', pt: 'Publicar', id: 'Terbitkan' },

@@ -102,7 +102,11 @@ exports.handler = async (event) => {
     const keyParam = API_KEY ? `&key=${API_KEY}` : '';
     const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(passage)}&version=${version}${keyParam}`;
 
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
     const html = await response.text();
 
     if (!response.ok) {

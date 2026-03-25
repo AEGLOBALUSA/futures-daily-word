@@ -201,6 +201,10 @@ function buildPayload(passage, lang) {
 }
 
 exports.handler = async (event) => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE || !VAPID_EMAIL) {
+    return { statusCode: 500, body: JSON.stringify({ error: "VAPID keys not configured" }) };
+  }
+
   const db = getSupabase();
   const passage = getTodaysPassage();
 

@@ -27,7 +27,7 @@ const COMMON_OT = {
   H1288: { word: 'בָּרַךְ', tr: 'barak', def: 'to bless, kneel', full: 'To bestow favour, prosperity, or divine power. God blesses humans (Genesis 1:28); humans bless God (Psalm 103:1) meaning to praise or honour him. Source of "Baruch" (blessed).', usage: 'Used 330 times in OT' },
 };
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const num = (params.num || '').toUpperCase();
   const testament = (params.testament || 'NT').toUpperCase();

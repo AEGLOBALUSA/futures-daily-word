@@ -65,6 +65,10 @@ exports.handler = async (event) => {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
   }
 
+  if (!event.body) {
+    return { statusCode: 400, headers, body: '{"error":"Missing request body"}' };
+  }
+
   try {
     const body = JSON.parse(event.body);
     const { action } = body;

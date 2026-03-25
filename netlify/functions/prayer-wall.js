@@ -127,19 +127,9 @@ exports.handler = async (event) => {
         const id = body.id;
         if (!id) return { statusCode: 400, headers, body: JSON.stringify({ error: "Prayer ID required" }) };
 
-        // Atomic increment — avoids race condition from read-then-write
+        // Atomic increment via RPC
         const { error } = await db.rpc("increment_prayer_count", { prayer_id: id });
-        if (error) {
-          // Fallback if RPC doesn't exist yet: use raw SQL increment
-          const { error: fallbackErr } = await db.from("prayers")
-            .update({ prayer_count: db.raw ? db.raw("prayer_count + 1") : 1 })
-            .eq("id", id);
-          if (fallbackErr) {
-            // Last resort: read-then-write (not atomic but works)
-            const { data } = await db.from("prayers").select("prayer_count").eq("id", id).single();
-            await db.from("prayers").update({ prayer_count: (data?.prayer_count || 0) + 1 }).eq("id", id);
-          }
-        }
+        if (error) throw error;
 
         return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
       }

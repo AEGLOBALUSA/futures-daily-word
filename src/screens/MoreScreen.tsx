@@ -412,19 +412,19 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {(LANG_TRANSLATIONS[lang] || LANG_TRANSLATIONS['en']).map(t => (
+              {(LANG_TRANSLATIONS[lang] || LANG_TRANSLATIONS['en']).map(tr => (
                 <button
-                  key={t}
-                  onClick={() => handleTranslationSelect(t)}
+                  key={tr}
+                  onClick={() => handleTranslationSelect(tr)}
                   style={{
-                    background: t === translation ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                    color: t === translation ? '#fff' : 'var(--dw-text-secondary)',
+                    background: tr === translation ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: tr === translation ? '#fff' : 'var(--dw-text-secondary)',
                     border: 'none', borderRadius: 10,
                     padding: '10px 18px', fontSize: 14, fontWeight: 600,
                     cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 44,
                   }}
                 >
-                  {t}
+                  {tr}
                 </button>
               ))}
             </div>
@@ -491,7 +491,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Type size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            FONT SIZE
+            {t("font_size", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -520,7 +520,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Languages size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            LANGUAGE
+            {t("language_label", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>

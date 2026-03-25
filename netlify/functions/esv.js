@@ -72,11 +72,17 @@ exports.handler = async (event) => {
       'indent-declares': '0'
     });
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     const response = await fetch(`https://api.esv.org/v3/passage/text/?${params}`, {
       headers: {
         'Authorization': `Token ${API_KEY}`
-      }
+      },
+      signal: controller.signal
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       return {
