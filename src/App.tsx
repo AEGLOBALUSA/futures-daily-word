@@ -62,7 +62,8 @@ function AppContent() {
   const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
 
-  // Track app open
+  // Track app open — intentionally fires once on mount with initial persona
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     track('app_open', setup?.persona || 'none');
   }, []);
@@ -115,7 +116,7 @@ function AppContent() {
     if (selection?.text && selection.source === 'range') {
       setShowBibleAI(true);
     }
-  }, [selection?.text]);
+  }, [selection?.text, selection?.source]);
 
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,

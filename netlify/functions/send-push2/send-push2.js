@@ -23,7 +23,10 @@ exports.handler = async (event) => {
   try {
     const vapidPublic = process.env.VAPID_PUBLIC_KEY;
     const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
-    const vapidEmail = process.env.VAPID_EMAIL || 'mailto:ae@futures.global';
+    const vapidEmail = process.env.VAPID_EMAIL;
+    if (!vapidEmail) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'VAPID_EMAIL not configured' }) };
+    }
     const siteID = process.env.NETLIFY_SITE_ID || '';
     const token = process.env.BLOB_TOKEN || '';
 

@@ -53,8 +53,8 @@ exports.handler = async (event) => {
     return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
   }
 
-  // Reject requests not from our app
-  if (!ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+  // Reject requests not from our app (exact match to prevent origin spoofing)
+  if (!ALLOWED_ORIGINS.includes(origin)) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
   }
 
