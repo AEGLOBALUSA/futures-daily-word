@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Sprout, Users, BookOpen, Shield, Heart } from 'lucide-react';
 import type { Persona } from '../utils/persona-config';
 import { PERSONA_CONFIGS, ALL_PERSONAS } from '../utils/persona-config';
+import { t, getLang } from '../utils/i18n';
 
 const ICONS: Record<string, React.FC<{ size?: number; color?: string }>> = {
   Sprout,
@@ -31,6 +32,7 @@ interface Props {
 
 export function PathwayPicker({ onSelect, currentPersona }: Props) {
   const isRevisit = !!currentPersona;
+  const lang = getLang();
   const [selected, setSelected] = useState<Persona | null>(null);
   const [animatingOut, setAnimatingOut] = useState(false);
 
@@ -80,7 +82,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
           margin: '0 0 8px',
           lineHeight: 1.2,
         }}>
-          {isRevisit ? 'Still the right fit?' : 'Welcome to Daily Word'}
+          {isRevisit ? t('still_right_fit', lang) : t('welcome_daily_word', lang)}
         </h1>
         <p style={{
           fontSize: 15,
@@ -90,8 +92,8 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
           lineHeight: 1.5,
         }}>
           {isRevisit
-            ? <>Your journey may have changed.<br />Tap to update, or keep going.</>
-            : <>Everyone's journey is different.<br />Where are you?</>
+            ? <>{t('journey_changed', lang)}</>
+            : <>{t('everyones_different', lang)}</>
           }
         </p>
       </div>

@@ -269,9 +269,9 @@ function getDailyWord() {
 
 // ── Emoji Reaction (micro-commitment after reading) ─────────────────────────
 const REACTIONS = [
-  { emoji: '❤️', label: 'Touched my heart' },
-  { emoji: '🤔', label: 'Made me think' },
-  { emoji: '🙏', label: 'I needed this' },
+  { emoji: '❤️', labelKey: 'reaction_heart' },
+  { emoji: '🤔', labelKey: 'reaction_thinking' },
+  { emoji: '🙏', labelKey: 'reaction_prayer' },
 ];
 function getTodayReaction(): string | null {
   try {
@@ -515,6 +515,38 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
     'esv_human': { en: "ESV \u00b7 Human Reader", es: "ESV \u00b7 Lector humano", pt: "ESV \u00b7 Leitor humano", id: "ESV \u00b7 Pembaca" },
     'day_label': { en: "DAY", es: "DÍA", pt: "DIA", id: "HARI" },
     'of_label': { en: "OF", es: "DE", pt: "DE", id: "DARI" },
+    'now_playing': { en: 'Now Playing', es: 'Reproduciendo', pt: 'Reproduzindo', id: 'Sedang Diputar' },
+    'paused_label': { en: 'Paused', es: 'Pausado', pt: 'Pausado', id: 'Dijeda' },
+    'loading_label': { en: 'Loading\u2026', es: 'Cargando\u2026', pt: 'Carregando\u2026', id: 'Memuat\u2026' },
+    'stop_all': { en: 'Stop All', es: 'Detener Todo', pt: 'Parar Tudo', id: 'Hentikan Semua' },
+    'select_all_passages': { en: 'Select All', es: 'Seleccionar Todo', pt: 'Selecionar Tudo', id: 'Pilih Semua' },
+    'passages_word': { en: 'Passages', es: 'Pasajes', pt: 'Passagens', id: 'Bagian' },
+    'close_label': { en: 'Close', es: 'Cerrar', pt: 'Fechar', id: 'Tutup' },
+    'esv_human_reader': { en: 'ESV \u00b7 Human Reader', es: 'ESV \u00b7 Lector Humano', pt: 'ESV \u00b7 Leitor Humano', id: 'ESV \u00b7 Pembaca Manusia' },
+    'audio_unavailable': { en: 'Audio unavailable \u2014 tap Read to follow along', es: 'Audio no disponible \u2014 toca Leer para seguir', pt: '\u00c1udio indispon\u00edvel \u2014 toque Ler para acompanhar', id: 'Audio tidak tersedia \u2014 ketuk Baca untuk mengikuti' },
+    'reaction_heart': { en: 'Touched my heart', es: 'Toc\u00f3 mi coraz\u00f3n', pt: 'Tocou meu cora\u00e7\u00e3o', id: 'Menyentuh hatiku' },
+    'reaction_thinking': { en: 'Made me think', es: 'Me hizo pensar', pt: 'Me fez pensar', id: 'Membuatku berpikir' },
+    'reaction_prayer': { en: 'I needed this', es: 'Necesitaba esto', pt: 'Eu precisava disso', id: 'Aku membutuhkan ini' },
+    'days_this_week': { en: 'days this week', es: 'd\u00edas esta semana', pt: 'dias esta semana', id: 'hari minggu ini' },
+    'day_streak': { en: 'day streak', es: 'd\u00edas seguidos', pt: 'dias seguidos', id: 'hari beruntun' },
+    'setup_personal_time': { en: 'Personal time in the Word', es: 'Tiempo personal en la Palabra', pt: 'Tempo pessoal na Palavra', id: 'Waktu pribadi dalam Firman' },
+    'setup_personal_desc': { en: 'Not for a sermon \u2014 just me and God', es: 'No para un serm\u00f3n \u2014 solo yo y Dios', pt: 'N\u00e3o para um serm\u00e3o \u2014 s\u00f3 eu e Deus', id: 'Bukan untuk khotbah \u2014 hanya aku dan Tuhan' },
+    'setup_deep_study': { en: 'Deep study with full tools', es: 'Estudio profundo con todas las herramientas', pt: 'Estudo profundo com todas as ferramentas', id: 'Studi mendalam dengan semua alat' },
+    'setup_deep_desc': { en: 'Commentary, Greek/Hebrew, cross-references', es: 'Comentario, griego/hebreo, referencias cruzadas', pt: 'Coment\u00e1rio, grego/hebraico, refer\u00eancias cruzadas', id: 'Komentar, Yunani/Ibrani, referensi silang' },
+    'setup_rhythm': { en: 'A reading rhythm I can stick to', es: 'Un ritmo de lectura que puedo mantener', pt: 'Um ritmo de leitura que posso manter', id: 'Ritme membaca yang bisa kupertahankan' },
+    'setup_rhythm_desc': { en: 'Consistent daily plan, right pace for my schedule', es: 'Plan diario constante, ritmo adecuado para mi horario', pt: 'Plano di\u00e1rio consistente, ritmo certo para minha agenda', id: 'Rencana harian konsisten, kecepatan tepat untuk jadwalku' },
+    'setup_read_ahead': { en: "Read ahead of what I'm preaching", es: 'Leer antes de lo que voy a predicar', pt: 'Ler adiante do que vou pregar', id: 'Membaca lebih dulu dari yang akan kukhotbahkan' },
+    'setup_read_ahead_desc': { en: 'Gospels, Acts, Letters \u2014 stay in the text', es: 'Evangelios, Hechos, Cartas \u2014 mantente en el texto', pt: 'Evangelhos, Atos, Cartas \u2014 fique no texto', id: 'Injil, Kisah, Surat \u2014 tetap dalam teks' },
+    'chapters_1': { en: '1 chapter a day', es: '1 cap\u00edtulo al d\u00eda', pt: '1 cap\u00edtulo por dia', id: '1 pasal per hari' },
+    'chapters_1_desc': { en: 'A gentle pace', es: 'Un ritmo suave', pt: 'Um ritmo suave', id: 'Kecepatan lembut' },
+    'chapters_2': { en: '2 chapters a day', es: '2 cap\u00edtulos al d\u00eda', pt: '2 cap\u00edtulos por dia', id: '2 pasal per hari' },
+    'chapters_2_desc': { en: 'A steady rhythm', es: 'Un ritmo constante', pt: 'Um ritmo constante', id: 'Ritme yang stabil' },
+    'chapters_3': { en: '3 chapters a day', es: '3 cap\u00edtulos al d\u00eda', pt: '3 cap\u00edtulos por dia', id: '3 pasal per hari' },
+    'chapters_3_desc': { en: 'Deeper immersion', es: 'Inmersi\u00f3n m\u00e1s profunda', pt: 'Imers\u00e3o mais profunda', id: 'Pendalaman lebih' },
+    'your_notes_placeholder': { en: 'Your notes...', es: 'Tus notas...', pt: 'Suas notas...', id: 'Catatanmu...' },
+    'search_books': { en: 'Search books...', es: 'Buscar libros...', pt: 'Buscar livros...', id: 'Cari buku...' },
+    'ask_about_passage': { en: 'Ask about this passage\u2026', es: 'Pregunta sobre este pasaje\u2026', pt: 'Pergunte sobre esta passagem\u2026', id: 'Tanyakan tentang bagian ini\u2026' },
+    'read_btn': { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
   };
   const t = (key: string): string => UI_STRINGS[key]?.[appLanguage] || UI_STRINGS[key]?.['en'] || key;
 
@@ -1689,13 +1721,13 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }
                   </button>
                   <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero && !isPausedHero ? 'Now Playing' : isPausedHero ? 'Paused' : t('listen_now')}
+                    {isLoadingHero ? t('loading_label') : isPlayingHero && !isPausedHero ? t('now_playing') : isPausedHero ? t('paused_label') : t('listen_now')}
                   </p>
                   <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
                     {allLabels.join(' · ')}
                   </p>
                   <p style={{ fontSize: 10, opacity: 0.4, margin: '5px 0 0', fontFamily: 'var(--font-sans)', textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    ESV · Human Reader
+                    {t('esv_human_reader')}
                   </p>
                   {heroChapterRefs.length > 1 && (
                     <button
@@ -1713,7 +1745,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                         letterSpacing: '0.02em',
                       }}
                     >
-                      {allPassagesSelected ? 'Stop All' : 'Select All ' + heroChapterRefs.length + ' Passages'}
+                      {allPassagesSelected ? t('stop_all') : t('select_all_passages') + ' ' + heroChapterRefs.length + ' ' + t('passages_word')}
                     </button>
                   )}
                 </div>
@@ -1865,7 +1897,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
 
                   {/* ── Always-open note area under every section ── */}
                   <textarea
-                    placeholder="Your notes..."
+                    placeholder={t('your_notes_placeholder')}
                     value={inlineNotes[idx] || ''}
                     onChange={e => {
                       updateInlineNote(idx, e.target.value);
@@ -2068,7 +2100,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
                     fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
                   }}>
-                    {isLoadingHero ? 'Loading…' : isPlayingHero ? 'Now Playing' : isPausedHero ? 'Paused' : t('listen_now')}
+                    {isLoadingHero ? t('loading_label') : isPlayingHero ? t('now_playing') : isPausedHero ? t('paused_label') : t('listen_now')}
                   </p>
 
                   <p style={{
@@ -2085,7 +2117,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontFamily: 'var(--font-sans)', textAlign: 'center',
                     letterSpacing: '0.08em', textTransform: 'uppercase',
                   }}>
-                    ESV · Human Reader
+                    {t('esv_human_reader')}
                   </p>
                 </div>
 
@@ -2153,7 +2185,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     fontSize: 11, color: 'rgba(255,180,180,0.9)', textAlign: 'center',
                     fontFamily: 'var(--font-sans)', margin: '0 20px 10px',
                   }}>
-                    Audio unavailable — tap Read to follow along
+                    {t('audio_unavailable')}
                   </p>
                 )}
 
@@ -2179,7 +2211,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                     }}
                   >
                     <BookOpen size={13} />
-                    {expandedPassages.has(heroChapterRefs[0] || '') ? 'Close' : 'Read'}
+                    {expandedPassages.has(heroChapterRefs[0] || '') ? t('close_label') : t('read_btn')}
                   </button>
 
                   {/* Translation picker — horizontal scrollable pills */}
@@ -2356,10 +2388,10 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { id: 'personal', label: 'Personal time in the Word', sub: 'Not for a sermon — just me and God', next: 10 },
-                    { id: 'depth', label: 'Deep study with full tools', sub: 'Commentary, Greek/Hebrew, cross-references', next: 11 },
-                    { id: 'rhythm', label: 'A reading rhythm I can stick to', sub: 'Consistent daily plan, right pace for my schedule', next: 12 },
-                    { id: 'prep', label: 'Read ahead of what I\'m preaching', sub: 'Gospels, Acts, Letters — stay in the text', next: 13 },
+                    { id: 'personal', label: t('setup_personal_time'), sub: t('setup_personal_desc'), next: 10 },
+                    { id: 'depth', label: t('setup_deep_study'), sub: t('setup_deep_desc'), next: 11 },
+                    { id: 'rhythm', label: t('setup_rhythm'), sub: t('setup_rhythm_desc'), next: 12 },
+                    { id: 'prep', label: t('setup_read_ahead'), sub: t('setup_read_ahead_desc'), next: 13 },
                   ].map(opt => (
                     <button key={opt.id} onClick={() => setPastorOnboardStep(opt.next)} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
@@ -2982,7 +3014,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 20 }}>{todayReaction}</span>
                   <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)' }}>
-                    {REACTIONS.find(r => r.emoji === todayReaction)?.label}
+                    {t(REACTIONS.find(r => r.emoji === todayReaction)?.labelKey || '')}
                   </span>
                 </div>
               ) : (
@@ -3262,9 +3294,9 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 260, margin: '0 auto' }}>
                     {[
-                      { n: 1, label: '1 chapter a day', sub: 'A gentle pace' },
-                      { n: 2, label: '2 chapters a day', sub: 'A steady rhythm' },
-                      { n: 3, label: '3 chapters a day', sub: 'Deeper immersion' },
+                      { n: 1, label: t('chapters_1'), sub: t('chapters_1_desc') },
+                      { n: 2, label: t('chapters_2'), sub: t('chapters_2_desc') },
+                      { n: 3, label: t('chapters_3'), sub: t('chapters_3_desc') },
                     ].map(opt => (
                       <button
                         key={opt.n}
@@ -4203,7 +4235,7 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
                 <Search size={16} style={{ color: 'var(--dw-text-muted)', flexShrink: 0 }} />
                 <input
                   type="text"
-                  placeholder="Search books..."
+                  placeholder={t('search_books')}
                   value={bookPickerSearch}
                   onChange={e => setBookPickerSearch(e.target.value)}
                   autoFocus
@@ -4389,8 +4421,8 @@ export function HomeScreen({ onNavigate, onOpenAI }: { onNavigate?: (tab: TabId)
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
               <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
                 {[
-                  { value: weekReview.daysRead, label: 'days this week' },
-                  { value: weekReview.streak, label: 'day streak' },
+                  { value: weekReview.daysRead, label: t('days_this_week') },
+                  { value: weekReview.streak, label: t('day_streak') },
                 ].map(({ value, label }) => (
                   <div key={label} style={{
                     flex: 1, background: 'var(--dw-surface)', borderRadius: 12, padding: '12px 10px', textAlign: 'center',

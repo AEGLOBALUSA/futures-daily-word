@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
+import { t, getLang } from '../utils/i18n';
 
 interface StrongsEntry {
   word: string;
@@ -12,6 +13,7 @@ interface StrongsEntry {
 
 export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) => void }) {
   const { activePopupWord, setActivePopupWord } = useScriptureSelection();
+  const lang = getLang();
   const [entry, setEntry] = useState<StrongsEntry | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -77,7 +79,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
         </span>
 
         {loading ? (
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14 }}>Looking up…</p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14 }}>{t('looking_up', lang)}</p>
         ) : entry ? (
           <>
             {/* Original word */}

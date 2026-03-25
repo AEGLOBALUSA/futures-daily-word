@@ -228,6 +228,113 @@ const UI: Translations = {
   s_daily_reading: { en: 'DAILY READING', es: 'LECTURA DIARIA', pt: 'LEITURA DI\u00c1RIA', id: 'BACAAN HARIAN' },
   s_media: { en: 'MEDIA', es: 'MEDIOS', pt: 'M\u00cdDIA', id: 'MEDIA' },
   s_font_size: { en: 'FONT SIZE', es: 'TAMA\u00d1O DE FUENTE', pt: 'TAMANHO DA FONTE', id: 'UKURAN FONT' },
+
+  // ── HERO BUTTON STATES ──
+  now_playing: { en: 'Now Playing', es: 'Reproduciendo', pt: 'Reproduzindo', id: 'Sedang Diputar' },
+  paused_label: { en: 'Paused', es: 'Pausado', pt: 'Pausado', id: 'Dijeda' },
+  loading_label: { en: 'Loading\u2026', es: 'Cargando\u2026', pt: 'Carregando\u2026', id: 'Memuat\u2026' },
+  stop_all: { en: 'Stop All', es: 'Detener Todo', pt: 'Parar Tudo', id: 'Hentikan Semua' },
+  select_all_passages: { en: 'Select All', es: 'Seleccionar Todo', pt: 'Selecionar Tudo', id: 'Pilih Semua' },
+  passages_word: { en: 'Passages', es: 'Pasajes', pt: 'Passagens', id: 'Bagian' },
+  close_label: { en: 'Close', es: 'Cerrar', pt: 'Fechar', id: 'Tutup' },
+  esv_human_reader: { en: 'ESV \u00b7 Human Reader', es: 'ESV \u00b7 Lector Humano', pt: 'ESV \u00b7 Leitor Humano', id: 'ESV \u00b7 Pembaca Manusia' },
+  audio_unavailable: { en: 'Audio unavailable \u2014 tap Read to follow along', es: 'Audio no disponible \u2014 toca Leer para seguir', pt: '\u00c1udio indispon\u00edvel \u2014 toque Ler para acompanhar', id: 'Audio tidak tersedia \u2014 ketuk Baca untuk mengikuti' },
+
+  // ── EMOJI REACTIONS ──
+  reaction_heart: { en: 'Touched my heart', es: 'Toc\u00f3 mi coraz\u00f3n', pt: 'Tocou meu cora\u00e7\u00e3o', id: 'Menyentuh hatiku' },
+  reaction_thinking: { en: 'Made me think', es: 'Me hizo pensar', pt: 'Me fez pensar', id: 'Membuatku berpikir' },
+  reaction_prayer: { en: 'I needed this', es: 'Necesitaba esto', pt: 'Eu precisava disso', id: 'Aku membutuhkan ini' },
+
+  // ── WEEKLY STATS ──
+  days_this_week: { en: 'days this week', es: 'd\u00edas esta semana', pt: 'dias esta semana', id: 'hari minggu ini' },
+  day_streak: { en: 'day streak', es: 'd\u00edas seguidos', pt: 'dias seguidos', id: 'hari beruntun' },
+
+  // ── FONT SIZES ──
+  font_small: { en: 'Small', es: 'Peque\u00f1o', pt: 'Pequeno', id: 'Kecil' },
+  font_medium: { en: 'Medium', es: 'Mediano', pt: 'M\u00e9dio', id: 'Sedang' },
+  font_large: { en: 'Large', es: 'Grande', pt: 'Grande', id: 'Besar' },
+
+  // ── ADMIN ──
+  administrator: { en: 'ADMINISTRATOR', es: 'ADMINISTRADOR', pt: 'ADMINISTRADOR', id: 'ADMINISTRATOR' },
+  app_analytics: { en: 'App Analytics', es: 'Anal\u00edticas de la App', pt: 'An\u00e1lises do App', id: 'Analitik Aplikasi' },
+  enter_admin_pin: { en: 'Enter administrator PIN:', es: 'Ingresa el PIN de administrador:', pt: 'Digite o PIN de administrador:', id: 'Masukkan PIN administrator:' },
+  incorrect_pin: { en: 'Incorrect PIN', es: 'PIN incorrecto', pt: 'PIN incorreto', id: 'PIN salah' },
+  enter_admin_code: { en: 'Enter admin code:', es: 'Ingresa c\u00f3digo de admin:', pt: 'Digite c\u00f3digo de admin:', id: 'Masukkan kode admin:' },
+  poll_results: { en: 'Poll Results', es: 'Resultados de Encuesta', pt: 'Resultados da Enquete', id: 'Hasil Polling' },
+  admin_label: { en: 'ADMIN', es: 'ADMIN', pt: 'ADMIN', id: 'ADMIN' },
+
+  // ── MESSAGE TYPES ──
+  msg_announcement: { en: 'Announcement', es: 'Anuncio', pt: 'An\u00fancio', id: 'Pengumuman' },
+  msg_sermon_note: { en: 'Sermon Note', es: 'Nota del Serm\u00f3n', pt: 'Nota do Serm\u00e3o', id: 'Catatan Khotbah' },
+  msg_essay: { en: 'Essay', es: 'Ensayo', pt: 'Ensaio', id: 'Esai' },
+  msg_note: { en: 'Note', es: 'Nota', pt: 'Nota', id: 'Catatan' },
+  msg_prayer_point: { en: 'Prayer Point', es: 'Punto de Oraci\u00f3n', pt: 'Ponto de Ora\u00e7\u00e3o', id: 'Pokok Doa' },
+  msg_video: { en: 'Video', es: 'Video', pt: 'V\u00eddeo', id: 'Video' },
+
+  // ── PLACEHOLDERS ──
+  write_message_placeholder: { en: 'Write your message to the campus...', es: 'Escribe tu mensaje al campus...', pt: 'Escreva sua mensagem para o campus...', id: 'Tulis pesanmu untuk kampus...' },
+  enter_pastor_code_placeholder: { en: 'Enter your pastor code to publish', es: 'Ingresa tu c\u00f3digo de pastor para publicar', pt: 'Digite seu c\u00f3digo de pastor para publicar', id: 'Masukkan kode pastormu untuk menerbitkan' },
+  your_notes_placeholder: { en: 'Your notes...', es: 'Tus notas...', pt: 'Suas notas...', id: 'Catatanmu...' },
+  search_books: { en: 'Search books...', es: 'Buscar libros...', pt: 'Buscar livros...', id: 'Cari buku...' },
+  write_reflection_placeholder: { en: 'Write your reflection, prayer, or observation...', es: 'Escribe tu reflexi\u00f3n, oraci\u00f3n u observaci\u00f3n...', pt: 'Escreva sua reflex\u00e3o, ora\u00e7\u00e3o ou observa\u00e7\u00e3o...', id: 'Tulis refleksi, doa, atau pengamatanmu...' },
+  ask_passage_placeholder: { en: 'Ask anything about this passage...', es: 'Pregunta lo que quieras sobre este pasaje...', pt: 'Pergunte qualquer coisa sobre esta passagem...', id: 'Tanyakan apa saja tentang bagian ini...' },
+  ask_bible_placeholder: { en: 'e.g. What does Romans 8:28 mean?', es: 'Ej. \u00bfQu\u00e9 significa Romanos 8:28?', pt: 'Ex. O que significa Romanos 8:28?', id: 'Mis. Apa arti Roma 8:28?' },
+  personal_media_placeholder: { en: 'Paste Spotify, YouTube, or podcast link...', es: 'Pega enlace de Spotify, YouTube o podcast...', pt: 'Cole link do Spotify, YouTube ou podcast...', id: 'Tempel tautan Spotify, YouTube, atau podcast...' },
+  my_season_placeholder: { en: "E.g. I'm walking through grief...", es: 'Ej. Estoy pasando por un duelo...', pt: 'Ex. Estou passando por um luto...', id: 'Mis. Saya sedang melewati duka...' },
+  title_placeholder: { en: 'Title', es: 'T\u00edtulo', pt: 'T\u00edtulo', id: 'Judul' },
+  pray_placeholder: { en: 'What would you like your church family to pray for?', es: '\u00bfPor qu\u00e9 te gustar\u00eda que tu familia de la iglesia ore?', pt: 'Pelo que voc\u00ea gostaria que sua fam\u00edlia da igreja orasse?', id: 'Apa yang ingin kamu minta doakan oleh keluarga gerejamu?' },
+
+  // ── TOASTS / FEEDBACK ──
+  copied_toast: { en: 'Copied!', es: '\u00a1Copiado!', pt: 'Copiado!', id: 'Disalin!' },
+  copy_label: { en: 'Copy', es: 'Copiar', pt: 'Copiar', id: 'Salin' },
+  ask_ai_label: { en: 'Ask AI', es: 'Preguntar IA', pt: 'Perguntar IA', id: 'Tanya AI' },
+  failed_to_copy: { en: 'Failed to copy', es: 'Error al copiar', pt: 'Falha ao copiar', id: 'Gagal menyalin' },
+  saved_to_notes: { en: 'Saved to Notes!', es: '\u00a1Guardado en Notas!', pt: 'Salvo nas Notas!', id: 'Tersimpan di Catatan!' },
+  failed_to_save: { en: 'Failed to save', es: 'Error al guardar', pt: 'Falha ao salvar', id: 'Gagal menyimpan' },
+  save_to_notes_btn: { en: 'Save to Notes', es: 'Guardar en Notas', pt: 'Salvar nas Notas', id: 'Simpan ke Catatan' },
+  saved_label: { en: 'Saved!', es: '\u00a1Guardado!', pt: 'Salvo!', id: 'Tersimpan!' },
+
+  // ── EMAILGATE ──
+  first_name_label: { en: 'First name', es: 'Nombre', pt: 'Nome', id: 'Nama depan' },
+  last_name_label: { en: 'Last name', es: 'Apellido', pt: 'Sobrenome', id: 'Nama belakang' },
+  email_address_label: { en: 'Email address', es: 'Correo electr\u00f3nico', pt: 'Endere\u00e7o de e-mail', id: 'Alamat email' },
+  select_campus_optional: { en: 'Select campus (optional)', es: 'Seleccionar sede (opcional)', pt: 'Selecionar campus (opcional)', id: 'Pilih kampus (opsional)' },
+
+  // ── PATHWAY PICKER ──
+  welcome_daily_word: { en: 'Welcome to Daily Word', es: 'Bienvenido a Palabra Diaria', pt: 'Bem-vindo ao Palavra Di\u00e1ria', id: 'Selamat datang di Firman Harian' },
+  still_right_fit: { en: 'Still the right fit?', es: '\u00bfA\u00fan es lo correcto?', pt: 'Ainda \u00e9 a escolha certa?', id: 'Masih cocok?' },
+  journey_changed: { en: "Your journey may have changed. Tap to update, or keep going.", es: 'Tu camino puede haber cambiado. Toca para actualizar o contin\u00faa.', pt: 'Sua jornada pode ter mudado. Toque para atualizar ou continue.', id: 'Perjalananmu mungkin sudah berubah. Ketuk untuk memperbarui atau lanjutkan.' },
+  everyones_different: { en: "Everyone's journey is different. Where are you?", es: 'El camino de cada uno es diferente. \u00bfD\u00f3nde est\u00e1s?', pt: 'A jornada de cada um \u00e9 diferente. Onde voc\u00ea est\u00e1?', id: 'Perjalanan setiap orang berbeda. Di mana kamu?' },
+
+  // ── GREEK HEBREW ──
+  looking_up: { en: 'Looking up\u2026', es: 'Buscando\u2026', pt: 'Buscando\u2026', id: 'Mencari\u2026' },
+  hebrew_label: { en: 'Hebrew', es: 'Hebreo', pt: 'Hebraico', id: 'Ibrani' },
+
+  // ── ONBOARDING PERSONAS (Setup wizard) ──
+  setup_personal_time: { en: 'Personal time in the Word', es: 'Tiempo personal en la Palabra', pt: 'Tempo pessoal na Palavra', id: 'Waktu pribadi dalam Firman' },
+  setup_personal_desc: { en: 'Not for a sermon \u2014 just me and God', es: 'No para un serm\u00f3n \u2014 solo yo y Dios', pt: 'N\u00e3o para um serm\u00e3o \u2014 s\u00f3 eu e Deus', id: 'Bukan untuk khotbah \u2014 hanya aku dan Tuhan' },
+  setup_deep_study: { en: 'Deep study with full tools', es: 'Estudio profundo con todas las herramientas', pt: 'Estudo profundo com todas as ferramentas', id: 'Studi mendalam dengan semua alat' },
+  setup_deep_desc: { en: 'Commentary, Greek/Hebrew, cross-references', es: 'Comentario, griego/hebreo, referencias cruzadas', pt: 'Coment\u00e1rio, grego/hebraico, refer\u00eancias cruzadas', id: 'Komentar, Yunani/Ibrani, referensi silang' },
+  setup_rhythm: { en: 'A reading rhythm I can stick to', es: 'Un ritmo de lectura que puedo mantener', pt: 'Um ritmo de leitura que posso manter', id: 'Ritme membaca yang bisa kupertahankan' },
+  setup_rhythm_desc: { en: 'Consistent daily plan, right pace for my schedule', es: 'Plan diario constante, ritmo adecuado para mi horario', pt: 'Plano di\u00e1rio consistente, ritmo certo para minha agenda', id: 'Rencana harian konsisten, kecepatan tepat untuk jadwalku' },
+  setup_read_ahead: { en: "Read ahead of what I'm preaching", es: 'Leer antes de lo que voy a predicar', pt: 'Ler adiante do que vou pregar', id: 'Membaca lebih dulu dari yang akan kukhotbahkan' },
+  setup_read_ahead_desc: { en: 'Gospels, Acts, Letters \u2014 stay in the text', es: 'Evangelios, Hechos, Cartas \u2014 mantente en el texto', pt: 'Evangelhos, Atos, Cartas \u2014 fique no texto', id: 'Injil, Kisah, Surat \u2014 tetap dalam teks' },
+
+  // ── CHAPTERS PER DAY ──
+  chapters_1: { en: '1 chapter a day', es: '1 cap\u00edtulo al d\u00eda', pt: '1 cap\u00edtulo por dia', id: '1 pasal per hari' },
+  chapters_1_desc: { en: 'A gentle pace', es: 'Un ritmo suave', pt: 'Um ritmo suave', id: 'Kecepatan lembut' },
+  chapters_2: { en: '2 chapters a day', es: '2 cap\u00edtulos al d\u00eda', pt: '2 cap\u00edtulos por dia', id: '2 pasal per hari' },
+  chapters_2_desc: { en: 'A steady rhythm', es: 'Un ritmo constante', pt: 'Um ritmo constante', id: 'Ritme yang stabil' },
+  chapters_3: { en: '3 chapters a day', es: '3 cap\u00edtulos al d\u00eda', pt: '3 cap\u00edtulos por dia', id: '3 pasal per hari' },
+  chapters_3_desc: { en: 'Deeper immersion', es: 'Inmersi\u00f3n m\u00e1s profunda', pt: 'Imers\u00e3o mais profunda', id: 'Pendalaman lebih' },
+
+  // ── FONT SIZE CONTROLS ──
+  font_size_label: { en: 'Font Size', es: 'Tama\u00f1o de Fuente', pt: 'Tamanho da Fonte', id: 'Ukuran Font' },
+
+  // ── MESSAGES SCREEN ──
+  publish: { en: 'Publish', es: 'Publicar', pt: 'Publicar', id: 'Terbitkan' },
+  write_notes: { en: 'Write your notes...', es: 'Escribe tus notas...', pt: 'Escreva suas notas...', id: 'Tulis catatanmu...' },
+  ask_about_passage: { en: 'Ask about this passage\u2026', es: 'Pregunta sobre este pasaje\u2026', pt: 'Pergunte sobre esta passagem\u2026', id: 'Tanyakan tentang bagian ini\u2026' },
 };
 
 export function t(key: string, lang?: string): string {

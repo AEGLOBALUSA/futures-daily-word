@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Plus, Minus } from 'lucide-react';
+import { t, getLang } from '../utils/i18n';
 
 interface FontSizeControlsProps {
   fontSize: number;
@@ -16,6 +17,7 @@ export const FontSizeControls = memo(function FontSizeControls({
   onIncrease,
   onDecrease,
 }: FontSizeControlsProps) {
+  const lang = getLang();
   const atMin = fontSize <= min;
   const atMax = fontSize >= max;
 
@@ -25,7 +27,7 @@ export const FontSizeControls = memo(function FontSizeControls({
         fontSize: 10, fontWeight: 600, color: 'var(--dw-text-faint)',
         fontFamily: 'var(--font-sans)', letterSpacing: '0.06em', textTransform: 'uppercase',
       }}>
-        Font Size
+        {t('font_size_label', lang)}
       </span>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
       <button

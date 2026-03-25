@@ -3,6 +3,7 @@ import { X, Check, BookOpen, MessageSquare } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { COMMENTARY } from '../data/commentary';
 import { trackBehavior } from '../utils/behavior';
+import { t, getLang } from '../utils/i18n';
 
 interface VerseNoteDrawerProps {
   open: boolean;
@@ -62,6 +63,7 @@ function sortSources(commentaries: { source: string; text: string }[]) {
 
 export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
   const { selection } = useScriptureSelection();
+  const lang = getLang();
   const [tab, setTab] = useState<'note' | 'commentary'>('note');
   const [note, setNote] = useState('');
   const [saved, setSaved] = useState(false);
@@ -236,7 +238,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
               ref={textareaRef}
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder="Write your reflection, prayer, or observation..."
+              placeholder={t('write_reflection_placeholder', lang)}
               style={{
                 margin: '0 20px',
                 padding: '12px',
@@ -268,7 +270,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
                   transition: 'background 0.2s',
                 }}
               >
-                {saved ? <><Check size={16} /> Saved to Notes</> : 'Save to Notes'}
+                {saved ? <><Check size={16} /> {t('saved_to_notes', lang)}</> : t('save_to_notes_btn', lang)}
               </button>
             </div>
           </>

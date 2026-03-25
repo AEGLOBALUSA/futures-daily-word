@@ -224,9 +224,9 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
   async function copyToClipboard(text: string) {
     try {
       await navigator.clipboard.writeText(text)
-      showToast('Copied!')
+      showToast(t('copied_toast', lang))
     } catch {
-      showToast('Failed to copy')
+      showToast(t('failed_to_copy', lang))
     }
   }
 
@@ -245,9 +245,9 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
       localStorage.setItem('dw_journal', JSON.stringify(journal));
         try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       window.dispatchEvent(new Event('dw-journal-updated'))
-      showToast('Saved to Notes!')
+      showToast(t('saved_to_notes', lang))
     } catch {
-      showToast('Failed to save')
+      showToast(t('failed_to_save', lang))
     }
   }
 
@@ -477,7 +477,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={selectedText ? 'Ask anything about this passage...' : 'e.g. What does Romans 8:28 mean?'}
+                  placeholder={selectedText ? t('ask_passage_placeholder', lang) : t('ask_bible_placeholder', lang)}
                   rows={3}
                   style={{
                     width: '100%',
@@ -555,7 +555,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                   textAlign: 'left',
                 }}
               >
-                <span style={{ fontSize: 20 }}>Hebrew</span>
+                <span style={{ fontSize: 20 }}>{t('hebrew_label', lang)}</span>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)', display: 'block' }}>
                     {t("greek_hebrew", lang)}
@@ -781,7 +781,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about this passage…"
+            placeholder={t('ask_about_passage', lang)}
             rows={1}
             style={{
               flex: 1,

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2 } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import * as AP from '../utils/audioPlayer';
+import { t, getLang } from '../utils/i18n';
 
 interface HighlightToolbarProps {
   onOpenNotes: () => void;
@@ -11,6 +12,7 @@ interface HighlightToolbarProps {
 
 export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }: HighlightToolbarProps) {
   const { selection, setSelection, clearHighlights, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
+  const lang = getLang();
   const [copied, setCopied] = useState(false);
   const [listening, setListening] = useState(false);
   const listenAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -119,7 +121,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
       }}>
         {btn(handleCopy,
           copied ? <Check size={16} color="#2563EB" /> : <Copy size={16} />,
-          copied ? 'Copied!' : 'Copy'
+          copied ? t('copied_toast', lang) : t('copy_label', lang)
         )}
         {btn(handleListen, <Volume2 size={16} />, listening ? 'Stop' : 'Listen', listening)}
         {btn(handleShare, <Share2 size={16} />, 'Share')}
@@ -164,7 +166,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
             fontFamily: 'var(--font-sans)',
             letterSpacing: '0.05em',
             position: 'relative',
-          }}>Ask AI</span>
+          }}>{t('ask_ai_label', lang)}</span>
         </button>
 
         <button aria-label="Close"

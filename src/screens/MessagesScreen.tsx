@@ -163,12 +163,12 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 
   // Type config: label, color, icon emoji
   const typeConfig: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-    announcement: { label: 'Announcement', color: '#D97706', bg: 'rgba(217,119,6,0.10)', icon: '' },
-    sermon_note:  { label: 'Sermon Note',  color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', icon: '' },
-    essay:        { label: 'Essay',         color: '#2563EB', bg: 'rgba(37,99,235,0.10)', icon: '' },
-    note:         { label: 'Note',          color: 'var(--dw-text-muted)', bg: 'var(--dw-surface-hover)', icon: '' },
-    prayer_point: { label: 'Prayer Point',  color: '#059669', bg: 'rgba(5,150,105,0.10)', icon: '' },
-    video:        { label: 'Video',         color: '#DC2626', bg: 'rgba(220,38,38,0.10)', icon: '' },
+    announcement: { label: t('msg_announcement', lang), color: '#D97706', bg: 'rgba(217,119,6,0.10)', icon: '' },
+    sermon_note:  { label: t('msg_sermon_note', lang),  color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', icon: '' },
+    essay:        { label: t('msg_essay', lang),         color: '#2563EB', bg: 'rgba(37,99,235,0.10)', icon: '' },
+    note:         { label: t('msg_note', lang),          color: 'var(--dw-text-muted)', bg: 'var(--dw-surface-hover)', icon: '' },
+    prayer_point: { label: t('msg_prayer_point', lang),  color: '#059669', bg: 'rgba(5,150,105,0.10)', icon: '' },
+    video:        { label: t('msg_video', lang),         color: '#DC2626', bg: 'rgba(220,38,38,0.10)', icon: '' },
   };
 
   return (
@@ -242,7 +242,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
           <input
             value={postTitle}
             onChange={e => setPostTitle(e.target.value)}
-            placeholder="Title"
+            placeholder={t('title_placeholder', lang)}
             style={{
               width: '100%', padding: '12px 14px', borderRadius: 12,
               border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
@@ -254,7 +254,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
           <textarea
             value={postContent}
             onChange={e => setPostContent(e.target.value)}
-            placeholder="Write your message to the campus..."
+            placeholder={t('write_message_placeholder', lang)}
             rows={5}
             style={{
               width: '100%', padding: '12px 14px', borderRadius: 12,
@@ -267,7 +267,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
           <input
             value={pastorCode}
             onChange={e => setPastorCode(e.target.value)}
-            placeholder="Enter your pastor code to publish"
+            placeholder={t('enter_pastor_code_placeholder', lang)}
             type="password"
             style={{
               width: '100%', padding: '12px 14px', borderRadius: 12,
@@ -565,7 +565,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
             transition: 'all 0.2s ease',
           }}>
             {saved ? <CheckCircle size={13} /> : <Save size={13} />}
-            {saved ? 'Saved!' : 'Save to Notes'}
+            {saved ? t('saved_label', getLang()) : t('save_to_notes_btn', getLang())}
           </button>
           <button onClick={handleShare} style={{
             display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
@@ -659,7 +659,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                         value={inlineNotes[pointNoteKey] || ''}
                         onChange={e => { updateNote(pointNoteKey, e.target.value); autoResize(e.target); }}
                         onFocus={e => autoResize(e.target)}
-                        placeholder="Your notes..."
+                        placeholder={t('your_notes_placeholder', getLang())}
                         style={{
                           width: '100%', minHeight: 100, marginTop: 10,
                           background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
@@ -705,7 +705,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
               value={inlineNotes[i] || ''}
               onChange={e => { updateNote(i, e.target.value); autoResize(e.target); }}
               onFocus={e => autoResize(e.target)}
-              placeholder="Your notes..."
+              placeholder={t('your_notes_placeholder', getLang())}
               style={{
                 width: '100%', minHeight: 100, marginTop: 16,
                 background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
@@ -740,7 +740,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
           transition: 'all 0.2s ease',
         }}>
           {saved ? <CheckCircle size={18} /> : <Save size={18} />}
-          {saved ? 'Saved to Notes!' : 'Save to Notes'}
+          {saved ? t('saved_label', getLang()) : t('save_to_notes_btn', getLang())}
         </button>
         <button onClick={handleShare} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -864,7 +864,7 @@ function SermonNotesPanel({
               }}
             />
           ))}
-          <textarea placeholder="Write your notes..." value={formData.content}
+          <textarea placeholder={t('write_notes', getLang())} value={formData.content}
             onChange={e => setFormData({ ...formData, content: e.target.value })}
             style={{
               width: '100%', minHeight: 120, background: 'var(--dw-surface)',
@@ -1070,7 +1070,7 @@ function PrayerWallPanel({
         <Card style={{ marginBottom: 16 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10 }}>SHARE A PRAYER REQUEST</h2>
           <textarea
-            placeholder="What would you like your church family to pray for?"
+            placeholder={t('pray_placeholder', getLang())}
             value={prayerText}
             onChange={e => setPrayerText(e.target.value)}
             style={{

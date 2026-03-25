@@ -7,6 +7,7 @@ import { useUser } from '../contexts/UserContext';
 import { X, Loader2, CheckCircle } from 'lucide-react';
 import { CAMPUSES } from '../data/tokens';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
+import { t, getLang } from '../utils/i18n';
 
 const PERSONAS = ALL_PERSONAS.map(id => ({
   id,
@@ -16,6 +17,7 @@ const PERSONAS = ALL_PERSONAS.map(id => ({
 
 export function EmailGate() {
   const { showEmailGate, setShowEmailGate, saveProfile, saveSetup, emailGateCallback } = useUser();
+  const lang = getLang();
 
   const [step, setStep] = useState<'persona' | 'email' | 'done'>('persona');
   const [persona, setPersona] = useState('');
@@ -231,14 +233,14 @@ export function EmailGate() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
                   type="text"
-                  placeholder="First name"
+                  placeholder={t('first_name_label', lang)}
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   style={inputStyle}
                 />
                 <input
                   type="text"
-                  placeholder="Last name"
+                  placeholder={t('last_name_label', lang)}
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   style={inputStyle}
@@ -247,7 +249,7 @@ export function EmailGate() {
 
               <input
                 type="email"
-                placeholder="Email address"
+                placeholder={t('email_address_label', lang)}
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
                 style={inputStyle}
@@ -258,7 +260,7 @@ export function EmailGate() {
                 onChange={e => setCampus(e.target.value)}
                 style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
               >
-                <option value="">Select campus (optional)</option>
+                <option value="">{t('select_campus_optional', lang)}</option>
                 {CAMPUSES.map(c => (
                   <option key={c.id} value={c.id}>{c.name} — {c.city}</option>
                 ))}

@@ -30,9 +30,9 @@ const PERSONAS = ALL_PERSONAS.map(id => ({
 
 // Font sizes in absolute pixels — matches HomeScreen's dw_font_size (default 15, range 13-32)
 const FONT_SIZES = [
-  { value: 13, label: 'Small' },
-  { value: 15, label: 'Medium' },
-  { value: 20, label: 'Large' },
+  { value: 13, labelKey: 'font_small' },
+  { value: 15, labelKey: 'font_medium' },
+  { value: 20, labelKey: 'font_large' },
 ];
 
 const LANGUAGES = [
@@ -345,7 +345,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             <textarea
               value={userStory}
               onChange={e => setUserStory(e.target.value)}
-              placeholder={"E.g. I'm walking through grief after losing my father. I lead a small group studying Paul's letters. I'm preparing a sermon series on prayer. I'm new to Christianity and want to understand the Gospels…"}
+              placeholder={t('my_season_placeholder', lang)}
               style={{
                 width: '100%', minHeight: 120,
                 padding: '14px 16px',
@@ -489,7 +489,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     textAlign: 'center',
                   }}
                 >
-                  {fs.label}
+                  {t(fs.labelKey, lang)}
                 </button>
               ))}
             </div>
@@ -585,7 +585,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               </div>
               <input
                 type="url"
-                placeholder="Paste Spotify, YouTube, or podcast link..."
+                placeholder={t('personal_media_placeholder', lang)}
                 value={personalMediaUrl}
                 onChange={e => handlePersonalMediaUrlChange(e.target.value)}
                 style={{
@@ -768,12 +768,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
               letterSpacing: '0.1em', textTransform: 'uppercase',
               color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
-            }}>ADMIN</p>
+            }}>{t('admin_label', lang)}</p>
             <Card>
               <div
                 style={rowStyle}
                 onClick={() => {
-                  const code = prompt('Enter admin code:');
+                  const code = prompt(t('enter_admin_code', lang));
                   if (code) {
                     setPollAdminCode(code.trim().toUpperCase());
                     setShowPollDashboard(true);
@@ -781,7 +781,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 }}
               >
                 <BarChart3 size={18} style={iconStyle} />
-                <span style={{ flex: 1 }}>Poll Results</span>
+                <span style={{ flex: 1 }}>{t('poll_results', lang)}</span>
               </div>
             </Card>
           </div>
@@ -793,22 +793,22 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
             letterSpacing: '0.1em', textTransform: 'uppercase',
             color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
-          }}>ADMINISTRATOR</p>
+          }}>{t('administrator', lang)}</p>
           <Card>
             <div
               style={rowStyle}
               onClick={() => {
-                const pin = prompt('Enter administrator PIN:');
+                const pin = prompt(t('enter_admin_pin', lang));
                 if (pin && pin.trim() === '8385') {
                   setPollAdminCode(pin.trim());
                   setShowAnalytics(true);
                 } else if (pin) {
-                  alert('Incorrect PIN');
+                  alert(t('incorrect_pin', lang));
                 }
               }}
             >
               <BarChart3 size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>App Analytics</span>
+              <span style={{ flex: 1 }}>{t('app_analytics', lang)}</span>
             </div>
           </Card>
         </div>
