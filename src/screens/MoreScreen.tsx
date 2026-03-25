@@ -16,6 +16,7 @@ import {
   BookOpen, Link, Music, BarChart3
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
+import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 
@@ -51,6 +52,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [downloadingKJV, setDownloadingKJV] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showPollDashboard, setShowPollDashboard] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [pollAdminCode, setPollAdminCode] = useState('');
 
   const displayName = userProfile?.firstName
@@ -182,6 +184,10 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   if (showPollDashboard) {
     return <PollDashboard pastorCode={pollAdminCode} onClose={() => setShowPollDashboard(false)} />;
+  }
+
+  if (showAnalytics) {
+    return <AnalyticsDashboard pastorCode={pollAdminCode} onClose={() => setShowAnalytics(false)} />;
   }
 
   return (
@@ -776,6 +782,20 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               >
                 <BarChart3 size={18} style={iconStyle} />
                 <span style={{ flex: 1 }}>Poll Results</span>
+              </div>
+              <div style={{ height: 1, background: 'var(--dw-border, #e5e5e5)' }} />
+              <div
+                style={rowStyle}
+                onClick={() => {
+                  const code = prompt('Enter admin code:');
+                  if (code) {
+                    setPollAdminCode(code.trim().toUpperCase());
+                    setShowAnalytics(true);
+                  }
+                }}
+              >
+                <BarChart3 size={18} style={iconStyle} />
+                <span style={{ flex: 1 }}>App Analytics</span>
               </div>
             </Card>
           </div>
