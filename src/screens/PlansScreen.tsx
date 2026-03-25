@@ -55,6 +55,24 @@ function getBookPlans(): Record<string, BookPlan> {
   catch { return {}; }
 }
 
+/** Fetch the language-specific book JSON, falling back to the English version on 404 */
+async function fetchBookJson(jsonFile: string): Promise<Response> {
+  const lang = getLang();
+  if (lang !== 'en') {
+    const localizedUrl = jsonFile.replace('.json', `_${lang}.json`);
+    const resp = await fetch(localizedUrl);
+    if (resp.ok) return resp;
+    // Fallback to original English file
+  }
+  return fetch(jsonFile);
+}
+
+/** Return the language-aware book JSON path (for storing in localStorage) */
+function localizedBookJsonFile(jsonFile: string): string {
+  const lang = getLang();
+  return lang !== 'en' ? jsonFile.replace('.json', `_${lang}.json`) : jsonFile;
+}
+
 function saveBookToday(bookId: string, data: { title: string; paragraphs: string[]; chapterIndex: number; bookTitle: string; bookAuthor: string }) {
   try { localStorage.setItem(`dw_book_today_${bookId}`, JSON.stringify(data)); } catch {}
 }
@@ -124,11 +142,11 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     if (!book.jsonFile) return;
     setStartingBook(book.id);
     try {
-      const resp = await fetch(book.jsonFile);
+      const resp = await fetchBookJson(book.jsonFile);
       const data = await resp.json();
       const chapters = data.chapters as Array<{ title: string; paragraphs: string[] }>;
       const plan: BookPlan = {
-        jsonFile: book.jsonFile,
+        jsonFile: localizedBookJsonFile(book.jsonFile),
         title: book.title,
         author: book.author,
         currentChapter: 0,
@@ -151,7 +169,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     const nextChapter = plan.currentChapter + 1;
     if (nextChapter >= plan.totalChapters) return;
     try {
-      const resp = await fetch(plan.jsonFile);
+      const resp = await fetchBookJson(plan.jsonFile);
       const data = await resp.json();
       const chapters = data.chapters as Array<{ title: string; paragraphs: string[] }>;
       const ch = chapters[nextChapter];
