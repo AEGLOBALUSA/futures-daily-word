@@ -160,10 +160,25 @@ exports.handler = async (event) => {
     return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
   }
 
+  // JWT auth — verify caller is the user they claim to be
+  const authHeader = event.headers.authorization || event.headers.Authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+  }
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: "Invalid token" }) };
+  }
+
   try {
     const body = JSON.parse(event.body || "{}");
     const { action } = body;
-    const email = sanitize(body.email, 254).toLowerCase();
+    const email = sanitize(user.email, 254).toLowerCase();
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid email required" }) };
