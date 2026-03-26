@@ -1313,7 +1313,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     AP.unlock(); // must be synchronous in tap handler
 
     // Ignore taps while audio is loading — prevents duplicate requests
-    if (AP.isLoading()) return;
+    if (AP.isLoading() || heroLoading) return;
 
     setAudioError(false);
 
@@ -1336,6 +1336,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     if (audioPlaying) AP.stop();
     if (heroChapterRefs.length === 0) return;
 
+    // Show loading IMMEDIATELY so user sees feedback on tap
+    setHeroLoading(true);
+
     // Start from saved chapter index (or 0 if out of range)
     const startIdx = heroChapterIndexRef.current < heroChapterRefs.length
       ? heroChapterIndexRef.current : 0;
@@ -1344,6 +1347,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     try {
       await playChapterAtIndex(startIdx);
     } catch { setAudioError(true); }
+    setHeroLoading(false);
   };
 
   // Select a chapter without starting audio (tapped on chapter pill or slider when idle)
