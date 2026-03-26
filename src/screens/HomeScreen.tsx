@@ -1212,18 +1212,18 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef]);
   const heroKey = heroChapterRefs.join('|');
 
-  // Pre-load all today's chapter texts (for read view and audio)
+  // Pre-load today's chapter texts in background (for read view)
+  // Does NOT set heroLoading — that's only for audio loading feedback
   useEffect(() => {
     if (!heroKey) return;
-    setHeroLoading(true);
-    Promise.all(heroChapterRefs.map(ref => fetchPassage(ref, translation).catch(() => '')))
-      .finally(() => setHeroLoading(false));
+    heroChapterRefs.forEach(ref => fetchPassage(ref, translation).catch(() => ''));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroKey]);
 
   // ── Hero multi-chapter sequential playback with chapter tracking ──
   const heroQueueRef = useRef<string[]>([]);
   const heroQueueActiveRef = useRef(false);
+  const heroChainVersionRef = useRef(0); // version counter to kill stale chains
   const [heroChapterIndex, setHeroChapterIndex] = useState(() => {
     try {
       const saved = localStorage.getItem('dw_hero_chapter_idx');
@@ -1244,32 +1244,36 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     });
   }, []);
 
-  const playChapterAtIndex = async (index: number) => {
+  const playChapterAtIndex = async (index: number, chainVersion?: number) => {
+    // Capture the chain version — if it changes, this chain is stale
+    const myVersion = chainVersion ?? heroChainVersionRef.current;
+
     if (index < 0 || index >= heroChapterRefs.length) {
       heroQueueActiveRef.current = false;
       return;
     }
+    // Bail if a newer chain has started
+    if (myVersion !== heroChainVersionRef.current) return;
+
     setHeroChapterIndex(index);
     const ref = heroChapterRefs[index];
     const cacheKey = HERO_KEY + ref;
     try {
       let src = audioSrcCache.current.get(cacheKey);
       if (!src) {
-        // Always fetch ESV text for audio, regardless of selected translation
         const text = await fetchPassage(ref, 'ESV').catch(() => '');
+        if (myVersion !== heroChainVersionRef.current) return; // stale check after async
         if (text) {
           src = await AP.fetchAudioSrc(text, 'ESV', ref) ?? undefined;
           if (src) audioSrcCache.current.set(cacheKey, src);
         }
       }
+      if (myVersion !== heroChainVersionRef.current) return; // stale check after fetch
       if (src) {
-        AP.resetForChain(); // clear any stale stop flag before chaining
-        // Register the "wait for end" listener BEFORE starting playback
-        // so we never miss the idle transition
+        AP.resetForChain();
         const waitForEnd = new Promise<void>(resolve => {
           let sawPlaying = false;
           const unsub = AP.onStateChange((st) => {
-            // Ignore the immediate callback — only track transitions
             if (st === 'playing' || st === 'loading') sawPlaying = true;
             if (sawPlaying && st === 'idle') {
               unsub();
@@ -1279,19 +1283,19 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           });
         });
         await AP.playUrl(HERO_KEY, src);
-        // Now wait for this chapter's audio to finish
         await waitForEnd;
-        if (heroQueueActiveRef.current) {
-          playChapterAtIndex(index + 1);
+        // Only advance if this chain is still the active one
+        if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
+          playChapterAtIndex(index + 1, myVersion);
         }
       } else {
-        if (heroQueueActiveRef.current) {
-          playChapterAtIndex(index + 1);
+        if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
+          playChapterAtIndex(index + 1, myVersion);
         }
       }
     } catch {
-      if (heroQueueActiveRef.current) {
-        playChapterAtIndex(index + 1);
+      if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
+        playChapterAtIndex(index + 1, myVersion);
       }
     }
   };
@@ -1326,13 +1330,16 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     // Show loading IMMEDIATELY so user sees feedback on tap
     setHeroLoading(true);
 
+    // Bump version to kill any stale chains
+    const newVersion = ++heroChainVersionRef.current;
+
     // Start from saved chapter index (or 0 if out of range)
     const startIdx = heroChapterIndexRef.current < heroChapterRefs.length
       ? heroChapterIndexRef.current : 0;
     heroQueueActiveRef.current = true;
 
     try {
-      await playChapterAtIndex(startIdx);
+      await playChapterAtIndex(startIdx, newVersion);
     } catch { setAudioError(true); }
     setHeroLoading(false);
   };
@@ -1346,9 +1353,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const handleHeroSkipTo = (index: number) => {
     AP.unlock();
     setAudioError(false);
-    if (audioPlaying || audioPaused) AP.resetForChain();
+    if (audioPlaying || audioPaused) AP.stop();
+    // Bump version to kill any stale chains
+    const newVersion = ++heroChainVersionRef.current;
     heroQueueActiveRef.current = true;
-    playChapterAtIndex(index).catch(() => setAudioError(true));
+    setHeroLoading(true);
+    playChapterAtIndex(index, newVersion).catch(() => setAudioError(true)).finally(() => setHeroLoading(false));
   };
 
   /** Render scripture text with tappable words when Gk/Heb mode is active */
@@ -2369,19 +2379,19 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleRead(heroChapterRefs[0] || '')}
+                      onClick={() => handleRead(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '')}
                       style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '12px 8px', minHeight: 44,
                         background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: expandedPassages.has(heroChapterRefs[0] || '') ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
+                        color: expandedPassages.has(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
                         fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
                         letterSpacing: '0.03em', transition: 'color 0.2s ease',
                         borderRight: '1px solid rgba(255,255,255,0.1)',
                       }}
                     >
                       <BookOpen size={13} />
-                      {expandedPassages.has(heroChapterRefs[0] || '') ? t('hide_reading') : t('read_btn')}
+                      {expandedPassages.has(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? t('hide_reading') : t('read_btn')}
                     </button>
                   )}
                   {/* Restart button — resets to chapter 1 and replays */}
@@ -2390,11 +2400,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       e.stopPropagation();
                       AP.unlock();
                       if (audioPlaying || audioPaused) AP.stop();
-                      heroQueueActiveRef.current = false;
+                      const rv = ++heroChainVersionRef.current;
                       setHeroChapterIndex(0);
                       setHeroLoading(true);
                       heroQueueActiveRef.current = true;
-                      playChapterAtIndex(0).catch(() => setAudioError(true)).finally(() => setHeroLoading(false));
+                      playChapterAtIndex(0, rv).catch(() => setAudioError(true)).finally(() => setHeroLoading(false));
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
