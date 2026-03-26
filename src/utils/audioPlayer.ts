@@ -20,18 +20,16 @@ let currentPassage: string | null = null;
 let state: PlaybackState = 'idle';
 const listeners = new Set<StateListener>();
 let stopRequested = false;
-let _currentBlobUrl: string | null = null;
 
 /**
- * Track the current blob URL.
- * NOTE: We intentionally do NOT revoke blob URLs here because callers
- * (HomeScreen, PlansScreen, etc.) cache them in audioSrcCache Maps.
- * Revoking a cached URL causes silent playback failures when the user
- * replays a passage. Blob URLs are lightweight references — the browser
+ * Blob cleanup placeholder — intentionally a no-op.
+ * We do NOT revoke blob URLs because callers (HomeScreen, PlansScreen, etc.)
+ * cache them in audioSrcCache Maps. Revoking a cached URL causes silent
+ * playback failures when the user replays a passage. The browser
  * garbage-collects the backing data on page unload.
  */
 function revokeCurrentBlob() {
-  _currentBlobUrl = null;
+  // no-op: see comment above
 }
 
 /* ------------------------------------------------------------------ */
@@ -344,7 +342,6 @@ export async function play(
   // ── STEP 5: Swap in real audio and play on the already-unlocked element ──
   const audio = getAudio();
   revokeCurrentBlob();
-  _currentBlobUrl = blobUrl;
   audio.src = blobUrl;
 
   try {
@@ -395,8 +392,7 @@ export async function playUrl(key: string, blobUrl: string): Promise<void> {
   if (state !== 'idle') resetForChain();
 
   setState('loading', key);
-  revokeCurrentBlob(); // Free previous blob before setting new one
-  _currentBlobUrl = blobUrl;
+  revokeCurrentBlob();
   audio.src = blobUrl;
 
   try {
