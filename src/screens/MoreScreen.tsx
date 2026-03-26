@@ -13,7 +13,7 @@ import { LibraryScreen } from './LibraryScreen';
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
   Download, Languages, MapPin, Heart, ChevronDown,
-  BookOpen, Link, Music, BarChart3
+  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
@@ -86,6 +86,10 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     return localStorage.getItem('dw_user_story') || '';
   });
   const [storySaved, setStorySaved] = useState(false);
+  const [bugCategory, setBugCategory] = useState<string>('other');
+  const [bugMessage, setBugMessage] = useState('');
+  const [bugSubmitting, setBugSubmitting] = useState(false);
+  const [bugSubmitted, setBugSubmitted] = useState(false);
   const [pendingPersona, setPendingPersona] = useState<string | null>(null);
   const [personaSaved, setPersonaSaved] = useState(false);
   const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
@@ -778,6 +782,123 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               <Shield size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>{t("privacy_policy", lang)}</span>
             </div>
+          </Card>
+        </div>
+
+        {/* ── REPORT A BUG ── */}
+        <div style={{ marginBottom: 24 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <MessageSquareWarning size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            REPORT A BUG
+          </h2>
+          <Card style={{ padding: 16 }}>
+            {bugSubmitted ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
+                  Thank you!
+                </p>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  Your report has been received.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 14, lineHeight: 1.5 }}>
+                  Found something not working? Let us know and we'll fix it.
+                </p>
+
+                {/* Category pills */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {(['audio', 'display', 'navigation', 'other'] as const).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setBugCategory(cat)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 20,
+                        fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.03em', textTransform: 'capitalize',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        border: bugCategory === cat ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
+                        background: bugCategory === cat ? 'var(--dw-accent-bg)' : 'transparent',
+                        color: bugCategory === cat ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+                        minHeight: 32,
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Message */}
+                <textarea
+                  value={bugMessage}
+                  onChange={e => setBugMessage(e.target.value.slice(0, 600))}
+                  placeholder="Describe what happened..."
+                  style={{
+                    width: '100%', minHeight: 100, padding: '14px 16px',
+                    resize: 'none', outline: 'none',
+                    border: '1px solid var(--dw-border)',
+                    borderRadius: 10,
+                    background: 'var(--dw-surface)',
+                    color: 'var(--dw-text-primary)',
+                    fontSize: 14, lineHeight: 1.6,
+                    fontFamily: 'var(--font-sans)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)' }}>
+                    {bugMessage.length} / 600
+                  </span>
+                  <button
+                    disabled={bugSubmitting || !bugMessage.trim()}
+                    onClick={async () => {
+                      if (!bugMessage.trim() || bugSubmitting) return;
+                      setBugSubmitting(true);
+                      try {
+                        const profile = (() => { try { return JSON.parse(localStorage.getItem('dw_profile') || '{}'); } catch { return {}; } })();
+                        await fetch('/api/bug-report', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            category: bugCategory,
+                            message: bugMessage.trim(),
+                            email: profile.email || null,
+                            persona: setup?.persona || null,
+                            campus: userProfile?.campus || null,
+                            lang,
+                            userAgent: navigator.userAgent,
+                            screenSize: `${window.innerWidth}x${window.innerHeight}`,
+                          }),
+                        });
+                        setBugSubmitted(true);
+                        setBugMessage('');
+                        setBugCategory('other');
+                        setTimeout(() => setBugSubmitted(false), 5000);
+                      } catch {
+                        // Silent fail — user sees no change, can retry
+                      }
+                      setBugSubmitting(false);
+                    }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '8px 18px', borderRadius: 10,
+                      fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                      cursor: bugSubmitting || !bugMessage.trim() ? 'default' : 'pointer',
+                      border: 'none',
+                      background: !bugMessage.trim() ? 'var(--dw-surface-hover)' : 'var(--dw-accent)',
+                      color: !bugMessage.trim() ? 'var(--dw-text-faint)' : '#fff',
+                      opacity: bugSubmitting ? 0.6 : 1,
+                      transition: 'all 0.15s',
+                      minHeight: 36,
+                    }}
+                  >
+                    <Send size={13} />
+                    {bugSubmitting ? 'Sending...' : 'Send Report'}
+                  </button>
+                </div>
+              </>
+            )}
           </Card>
         </div>
 
