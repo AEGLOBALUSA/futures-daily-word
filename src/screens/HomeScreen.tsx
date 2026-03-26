@@ -732,9 +732,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   }, [readingSlots, loadedFirstSlotPassage]);
 
   // Auto-show setup modal for new users after EmailGate closes
+  // Skip for pastor/leader personas — they don't need onboarding help
   useEffect(() => {
     if (showEmailGate) return; // EmailGate still open
     if (!setup) return; // No persona yet (truly first visit)
+    if (setup.persona === 'pastor_leader' || setup.persona === 'pastor') return; // Pastors don't need this
     if (localStorage.getItem('dw_setup_dismissed')) return; // Already dismissed
     const ap = (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
     if (Object.keys(ap).length > 0) return; // Already has plans
@@ -894,9 +896,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   }, []);
 
   // Setup prompt: show on day 2+ if user has no reading slots & no active plans
+  // Skip for pastor/leader personas
   useEffect(() => {
     const alreadyDismissed = localStorage.getItem('dw_setup_dismissed');
     if (alreadyDismissed) return;
+    const persona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona; } catch { return ''; } })();
+    if (persona === 'pastor_leader' || persona === 'pastor') return;
     // Check if this is truly a return visit (not first open)
     const firstOpen = localStorage.getItem('dw_first_open');
     const today = new Date().toISOString().slice(0, 10);
