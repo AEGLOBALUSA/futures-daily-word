@@ -1035,21 +1035,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // ── Hero full-passage state (always ESV for real human audio) ──────────────
   // heroFullText removed — audio now fetches per-chapter on demand
   const [heroLoading, setHeroLoading] = useState(false);
-  const [allPassagesSelected, setAllPassagesSelected] = useState(false);
   const [planTick, setPlanTick] = useState(0); // increment to force plan list re-render
   const HERO_KEY = '__hero__';
-
-  const handleSelectAllListen = () => {
-    const next = !allPassagesSelected;
-    setAllPassagesSelected(next);
-    if (next && heroChapterRefs.length > 0) {
-      // Start playing all passages from the beginning
-      handleHeroListen();
-    } else {
-      // Stop playback
-      if (audioPlaying) stopAudio();
-    }
-  };
 
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
