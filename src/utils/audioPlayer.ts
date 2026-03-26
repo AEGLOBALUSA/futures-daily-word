@@ -20,7 +20,7 @@ let currentPassage: string | null = null;
 let state: PlaybackState = 'idle';
 const listeners = new Set<StateListener>();
 let stopRequested = false;
-let currentBlobUrl: string | null = null;
+let __currentBlobUrl: string | null = null;
 
 /**
  * Track the current blob URL.
@@ -31,7 +31,7 @@ let currentBlobUrl: string | null = null;
  * garbage-collects the backing data on page unload.
  */
 function revokeCurrentBlob() {
-  currentBlobUrl = null;
+  _currentBlobUrl = null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -344,7 +344,7 @@ export async function play(
   // ── STEP 5: Swap in real audio and play on the already-unlocked element ──
   const audio = getAudio();
   revokeCurrentBlob();
-  currentBlobUrl = blobUrl;
+  _currentBlobUrl = blobUrl;
   audio.src = blobUrl;
 
   try {
@@ -396,7 +396,7 @@ export async function playUrl(key: string, blobUrl: string): Promise<void> {
 
   setState('loading', key);
   revokeCurrentBlob(); // Free previous blob before setting new one
-  currentBlobUrl = blobUrl;
+  _currentBlobUrl = blobUrl;
   audio.src = blobUrl;
 
   try {
