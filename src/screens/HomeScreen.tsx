@@ -1311,6 +1311,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
   const handleHeroListen = async () => {
     AP.unlock(); // must be synchronous in tap handler
+
+    // Ignore taps while audio is loading — prevents duplicate requests
+    if (AP.isLoading()) return;
+
     setAudioError(false);
 
     // If paused, resume — optimistic UI update for instant response
@@ -1342,11 +1346,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     } catch { setAudioError(true); }
   };
 
-  // Skip to a specific chapter (tapped on chapter label or slider)
+  // Select a chapter without starting audio (tapped on chapter pill or slider when idle)
+  const handleHeroSelect = (index: number) => {
+    setHeroChapterIndex(index);
+  };
+
+  // Skip to a specific chapter AND play it (only used when audio is already active)
   const handleHeroSkipTo = (index: number) => {
     AP.unlock();
     setAudioError(false);
-    // Use resetForChain (not stop) so we don't kill the queue flag
     if (audioPlaying || audioPaused) AP.resetForChain();
     heroQueueActiveRef.current = true;
     playChapterAtIndex(index).catch(() => setAudioError(true));
@@ -1851,7 +1859,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     <input
                       className="hero-range-slider"
                       type="range" min={0} max={allLabels.length - 1} value={heroChapterIndex}
-                      onChange={(e) => { const idx = parseInt(e.target.value, 10); if (idx !== heroChapterIndex) handleHeroSkipTo(idx); }}
+                      onChange={(e) => { const idx = parseInt(e.target.value, 10); if (idx !== heroChapterIndex) { (audioPlaying || audioPaused) ? handleHeroSkipTo(idx) : handleHeroSelect(idx); } }}
                       style={{
                         background: `linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) 100%)`,
                       }}
@@ -1862,7 +1870,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   </p>
                   <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', padding: '0 2px', WebkitOverflowScrolling: 'touch' }}>
                     {allLabels.map((label, i) => (
-                      <button key={i} onClick={(e) => { e.stopPropagation(); handleHeroSkipTo(i); }}
+                      <button key={i} onClick={(e) => { e.stopPropagation(); (audioPlaying || audioPaused) ? handleHeroSkipTo(i) : handleHeroSelect(i); }}
                         style={{
                           flexShrink: 0, padding: '8px 14px', borderRadius: 16, cursor: 'pointer',
                           fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
@@ -2282,7 +2290,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         value={heroChapterIndex}
                         onChange={(e) => {
                           const idx = parseInt(e.target.value, 10);
-                          if (idx !== heroChapterIndex) handleHeroSkipTo(idx);
+                          if (idx !== heroChapterIndex) { (audioPlaying || audioPaused) ? handleHeroSkipTo(idx) : handleHeroSelect(idx); }
                         }}
                         style={{
                           background: `linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) 100%)`,
@@ -2306,18 +2314,19 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       {allLabels.map((label, i) => (
                         <button
                           key={i}
-                          onClick={(e) => { e.stopPropagation(); handleHeroSkipTo(i); }}
+                          onClick={(e) => { e.stopPropagation(); (audioPlaying || audioPaused) ? handleHeroSkipTo(i) : handleHeroSelect(i); }}
                           style={{
-                            flexShrink: 0, padding: '8px 14px',
+                            flexShrink: 0, padding: '10px 16px',
+                            minHeight: 44,
                             borderRadius: 16, cursor: 'pointer',
                             fontSize: 12, fontWeight: 700,
                             fontFamily: 'var(--font-sans)',
                             letterSpacing: '0.02em',
                             border: i === heroChapterIndex
-                              ? '2px solid rgba(255,255,255,0.6)'
+                              ? '2px solid rgba(255,255,255,0.7)'
                               : '1.5px solid rgba(255,255,255,0.15)',
                             background: i === heroChapterIndex
-                              ? 'rgba(255,255,255,0.22)'
+                              ? 'rgba(255,255,255,0.25)'
                               : 'rgba(255,255,255,0.04)',
                             color: i === heroChapterIndex
                               ? 'rgba(255,255,255,0.95)'

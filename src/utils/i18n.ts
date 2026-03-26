@@ -235,7 +235,7 @@ const UI: Translations = {
   // ── HERO BUTTON STATES ──
   now_playing: { en: 'Now Playing', es: 'Reproduciendo', pt: 'Reproduzindo', id: 'Sedang Diputar' },
   paused_label: { en: 'Paused', es: 'Pausado', pt: 'Pausado', id: 'Dijeda' },
-  loading_label: { en: 'Loading\u2026', es: 'Cargando\u2026', pt: 'Carregando\u2026', id: 'Memuat\u2026' },
+  loading_label: { en: 'Preparing audio \u2014 please wait\u2026', es: 'Preparando audio \u2014 espere\u2026', pt: 'Preparando \u00e1udio \u2014 aguarde\u2026', id: 'Menyiapkan audio \u2014 harap tunggu\u2026' },
   stop_all: { en: 'Stop All', es: 'Detener Todo', pt: 'Parar Tudo', id: 'Hentikan Semua' },
   select_all_passages: { en: 'Select All', es: 'Seleccionar Todo', pt: 'Selecionar Tudo', id: 'Pilih Semua' },
   passages_word: { en: 'Passages', es: 'Pasajes', pt: 'Passagens', id: 'Bagian' },
