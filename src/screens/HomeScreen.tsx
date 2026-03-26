@@ -1213,11 +1213,20 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
   // Pre-load today's chapter texts in background (for read view)
   // Does NOT set heroLoading — that's only for audio loading feedback
+  // Pre-load ALL chapter texts immediately so Read shows content instantly
   useEffect(() => {
     if (!heroKey) return;
-    heroChapterRefs.forEach(ref => fetchPassage(ref, translation).catch(() => ''));
+    heroChapterRefs.forEach(ref => {
+      const key = `${ref}_${translation}`;
+      if (passageTexts[key]) return; // already loaded
+      fetchPassage(ref, translation)
+        .then(text => {
+          if (text) setPassageTexts(prev => ({ ...prev, [key]: text }));
+        })
+        .catch(() => {});
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heroKey]);
+  }, [heroKey, translation]);
 
   // ── Hero multi-chapter sequential playback with chapter tracking ──
   const heroQueueRef = useRef<string[]>([]);
