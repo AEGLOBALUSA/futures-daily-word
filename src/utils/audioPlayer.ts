@@ -20,7 +20,7 @@ let currentPassage: string | null = null;
 let state: PlaybackState = 'idle';
 const listeners = new Set<StateListener>();
 let stopRequested = false;
-let __currentBlobUrl: string | null = null;
+let _currentBlobUrl: string | null = null;
 
 /**
  * Track the current blob URL.
