@@ -12,7 +12,7 @@
  */
 
 const { createClient } = require("@supabase/supabase-js");
-const { authenticateRequest, issueToken } = require("./lib/auth");
+const { authenticateRequest, migrateRequest } = require("./lib/auth");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -171,17 +171,12 @@ exports.handler = async (event) => {
     let migrationToken = null;
 
     if (!email) {
-      // Migration: existing user without token
-      const bodyEmail = sanitize(body.email, 254).toLowerCase();
-      if (!bodyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bodyEmail)) {
+      const migration = await migrateRequest(event, db, sanitize(body.email, 254));
+      if (!migration) {
         return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
       }
-      const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
-      if (!existing) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-      }
-      migrationToken = await issueToken(db, bodyEmail);
-      email = bodyEmail;
+      email = migration.email;
+      migrationToken = migration.token;
     }
 
     // ── PULL: fetch all cloud data for user ──

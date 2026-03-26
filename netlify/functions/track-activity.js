@@ -1,5 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
-const { authenticateRequest, issueToken } = require("./lib/auth");
+const { authenticateRequest, migrateRequest } = require("./lib/auth");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -69,13 +69,10 @@ exports.handler = async (event) => {
     let migrationToken = null;
 
     if (!email) {
-      // Migration: allow body.email if profile exists
-      const bodyEmail = (body.email || "").toLowerCase().trim();
-      if (!bodyEmail) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-      const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
-      if (!existing) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-      migrationToken = await issueToken(db, bodyEmail);
-      email = bodyEmail;
+      const migration = await migrateRequest(event, db, body.email);
+      if (!migration) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      email = migration.email;
+      migrationToken = migration.token;
     }
 
     if (!events || !Array.isArray(events) || events.length === 0) {

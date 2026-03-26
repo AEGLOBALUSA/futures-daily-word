@@ -384,7 +384,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               borderTop: '1px solid var(--dw-border)',
             }}>
               <span style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)' }}>
-                {userStory.length} / 600 " + t("characters", lang)
+                {userStory.length} / 600 {t("characters", lang)}
               </span>
               <button
                 onClick={() => handleUserStorySave(userStory.slice(0, 600))}

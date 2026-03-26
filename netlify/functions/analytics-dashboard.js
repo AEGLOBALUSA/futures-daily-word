@@ -34,10 +34,15 @@ exports.handler = async (event) => {
     "victor-harbor","copper-coast","gwinnett","kennesaw","alpharetta","futuros-duluth",
     "futuros-kennesaw","futuros-grayson","franklin","solo","cemani","bali","samarinda","langowan","rio"];
   // Accept: campus pastor codes (SHA-256), master secret, or admin PIN
+  // Use constant-time comparison to prevent timing attacks
   const ADMIN_PIN = process.env.ADMIN_PIN || "";
-  const ok = code === ADMIN_PIN || code === secret.toUpperCase() || CS.some(c => {
+  const safeEq = (a, b) => {
+    if (!a || !b || a.length !== b.length) return false;
+    try { return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)); } catch { return false; }
+  };
+  const ok = safeEq(code, ADMIN_PIN) || safeEq(code, secret.toUpperCase()) || CS.some(c => {
     const expected = crypto.createHash("sha256").update(c + ":" + secret).digest("hex").slice(0, 8).toUpperCase();
-    return expected === code;
+    return safeEq(expected, code);
   });
   if (!ok) {
     return { statusCode: 403, headers: h, body: '{"error":"Bad code"}' };

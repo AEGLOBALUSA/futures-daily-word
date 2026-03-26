@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { Volume2, Loader2, Square } from 'lucide-react';
+import { t, getLang } from '../utils/i18n';
 import * as AP from '../utils/audioPlayer';
 
 interface Props {
@@ -64,7 +65,8 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
 
   const accentColor = color || 'var(--dw-accent)';
   const iconSize = size === 'lg' ? 16 : size === 'md' ? 14 : 13;
-  const displayLabel = label || (playing ? 'Stop' : 'Listen');
+  const lang = getLang();
+  const displayLabel = label || (playing ? t('stop', lang) : t('listen_now', lang));
 
   if (size === 'lg') {
     return (

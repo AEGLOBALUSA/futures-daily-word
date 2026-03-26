@@ -21,11 +21,12 @@ function generateCode(campusId) {
   return crypto.createHash("sha256").update(campusId + ":" + PASTOR_SECRET).digest("hex").slice(0, 8).toUpperCase();
 }
 
-// Validate a code against a campus
+// Validate a code against a campus (constant-time comparison)
 function validateCode(campusId, code) {
   if (!PASTOR_SECRET || !code) return false;
   const expected = generateCode(campusId);
-  return expected && code.toUpperCase() === expected;
+  if (!expected || expected.length !== code.toUpperCase().length) return false;
+  try { return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(code.toUpperCase())); } catch { return false; }
 }
 
 function sanitize(str, maxLen = 5000) {
@@ -104,7 +105,9 @@ exports.handler = async (event) => {
   // ── Action: list-codes ── Admin only: list all campus codes (requires master secret directly)
   if (action === "list-codes") {
     const { masterSecret } = body;
-    if (!masterSecret || masterSecret !== PASTOR_SECRET) return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
+    const secretMatch = masterSecret && PASTOR_SECRET && masterSecret.length === PASTOR_SECRET.length &&
+      crypto.timingSafeEqual(Buffer.from(masterSecret), Buffer.from(PASTOR_SECRET));
+    if (!secretMatch) return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
 
     const CAMPUSES = {
       "au-paradise": "Futures Paradise", "au-adelaide-city": "Futures Adelaide City",

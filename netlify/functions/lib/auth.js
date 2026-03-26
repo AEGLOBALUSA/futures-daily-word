@@ -10,6 +10,30 @@
 
 const crypto = require("crypto");
 
+// Migration rate limiter — prevent brute-force token issuance via email enumeration
+const migrationHits = {};
+function checkMigrationRate(ip, maxPerMin = 5) {
+  const now = Date.now();
+  if (!migrationHits[ip]) migrationHits[ip] = [];
+  migrationHits[ip] = migrationHits[ip].filter(t => now - t < 60000);
+  if (migrationHits[ip].length >= maxPerMin) return true;
+  migrationHits[ip].push(now);
+  // Cleanup old entries
+  if (Object.keys(migrationHits).length > 200) {
+    for (const k of Object.keys(migrationHits)) {
+      if (migrationHits[k].every(t => now - t >= 60000)) delete migrationHits[k];
+    }
+  }
+  return false;
+}
+
+/** Constant-time string comparison to prevent timing attacks */
+function safeCompare(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
 /** SHA-256 hash a raw token string → hex */
 function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
@@ -57,25 +81,62 @@ async function authenticateRequest(event, db) {
 async function issueToken(db, email) {
   const { raw, hash } = generateToken();
 
-  // Get current hashes
-  const { data } = await db
+  // Get current hashes — verify email exists first
+  const { data, error } = await db
     .from("profiles")
     .select("session_token_hashes")
     .eq("email", email)
     .single();
 
-  let hashes = Array.isArray(data?.session_token_hashes) ? [...data.session_token_hashes] : [];
+  if (error || !data) {
+    throw new Error("Cannot issue token: profile not found for " + email);
+  }
+
+  let hashes = Array.isArray(data.session_token_hashes) ? [...data.session_token_hashes] : [];
   hashes.push(hash);
 
   // Cap at 5 tokens (oldest first — keep the 5 most recent)
   if (hashes.length > 5) hashes = hashes.slice(-5);
 
-  await db
+  const { error: updateErr } = await db
     .from("profiles")
     .update({ session_token_hashes: hashes })
     .eq("email", email);
 
+  if (updateErr) {
+    throw new Error("Failed to store token: " + updateErr.message);
+  }
+
   return raw;
 }
 
-module.exports = { hashToken, generateToken, authenticateRequest, issueToken };
+/**
+ * Migration helper: validates email exists and issues token, with rate limiting.
+ * Returns { email, token } or null if rate-limited/invalid.
+ */
+async function migrateRequest(event, db, bodyEmail) {
+  const ip = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  if (checkMigrationRate(ip)) return null; // Rate limited
+
+  if (!bodyEmail || typeof bodyEmail !== "string") return null;
+  const email = bodyEmail.toLowerCase().trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+
+  // Verify the email exists in profiles
+  const { data: existing, error } = await db
+    .from("profiles")
+    .select("email")
+    .eq("email", email)
+    .single();
+
+  if (error || !existing) return null;
+
+  try {
+    const token = await issueToken(db, email);
+    return { email, token };
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { hashToken, generateToken, authenticateRequest, issueToken, migrateRequest, safeCompare, checkMigrationRate };

@@ -1,5 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
-const { authenticateRequest, issueToken } = require("./lib/auth");
+const { authenticateRequest, issueToken, migrateRequest } = require("./lib/auth");
 
 const ALLOWED_ORIGINS = [
   "https://futures-daily-word.netlify.app",
@@ -128,13 +128,10 @@ exports.handler = async (event) => {
       let migrationToken = null;
 
       if (!email) {
-        // Migration: existing user without token
-        const bodyEmail = sanitize(body.email, 254).toLowerCase();
-        if (!bodyEmail) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-        const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
-        if (!existing) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-        migrationToken = await issueToken(db, bodyEmail);
-        email = bodyEmail;
+        const migration = await migrateRequest(event, db, sanitize(body.email, 254));
+        if (!migration) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+        email = migration.email;
+        migrationToken = migration.token;
       }
 
       const updates = { last_active_at: new Date().toISOString() };
@@ -175,12 +172,10 @@ exports.handler = async (event) => {
       let migrationToken = null;
 
       if (!email) {
-        const bodyEmail = sanitize(body.email, 254).toLowerCase();
-        if (!bodyEmail) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-        const { data: existing } = await db.from("profiles").select("email").eq("email", bodyEmail).single();
-        if (!existing) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-        migrationToken = await issueToken(db, bodyEmail);
-        email = bodyEmail;
+        const migration = await migrateRequest(event, db, sanitize(body.email, 254));
+        if (!migration) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+        email = migration.email;
+        migrationToken = migration.token;
       }
 
       const updates = { last_active_at: new Date().toISOString() };
@@ -198,22 +193,14 @@ exports.handler = async (event) => {
       let migrationToken = null;
 
       if (!email) {
-        // Migration / pre-registration lookup: allow by body.email
-        const bodyEmail = sanitize(body.email, 254).toLowerCase();
-        if (!bodyEmail) return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
-
-        const { data: existing, error: lookupErr } = await db.from("profiles")
-          .select("email")
-          .eq("email", bodyEmail)
-          .single();
-
-        if (lookupErr || !existing) {
+        // Migration / pre-registration lookup (rate-limited)
+        const migration = await migrateRequest(event, db, sanitize(body.email, 254));
+        if (!migration) {
+          // Could be rate-limited or email doesn't exist — return 404 to avoid enumeration
           return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
         }
-
-        // Issue migration token for existing user
-        migrationToken = await issueToken(db, bodyEmail);
-        email = bodyEmail;
+        email = migration.email;
+        migrationToken = migration.token;
       }
 
       const { data, error } = await db.from("profiles")
