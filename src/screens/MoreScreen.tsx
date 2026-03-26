@@ -819,11 +819,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               style={rowStyle}
               onClick={() => {
                 const pin = prompt(t('enter_admin_pin', lang));
-                if (pin && pin.trim() === '8385') {
+                if (pin && pin.trim()) {
                   setPollAdminCode(pin.trim());
                   setShowAnalytics(true);
-                } else if (pin) {
-                  alert(t('incorrect_pin', lang));
                 }
               }}
             >
