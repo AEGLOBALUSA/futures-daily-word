@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getPersonaConfig } from '../utils/persona-config';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -51,7 +51,13 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
   const [sectionContent, setSectionContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [audioActive, setAudioActive] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Track audio state from global player so UI updates when playback ends
+  useEffect(() => {
+    return AP.onStateChange((st, key) => {
+      if (key === 'library-read') setAudioActive(st === 'playing' || st === 'loading');
+    });
+  }, []);
 
   // Fetch essay TOC when selected
   useEffect(() => {
@@ -93,17 +99,15 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
 
   const handleBack = () => {
     if (essaySection !== null) {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-      setAudioActive(false);
+      AP.stop();
       setEssaySection(null);
       setSectionContent('');
     } else if (activeItem) {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-      setAudioActive(false);
+      AP.stop();
       setActiveItem(null);
       setEssayTOC(null);
     } else if (onBack) {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      AP.stop();
       setAudioActive(false);
       onBack();
     }

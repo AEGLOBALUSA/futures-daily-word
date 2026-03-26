@@ -1,6 +1,6 @@
 import { trackBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
@@ -191,7 +191,6 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
   const [bookChapter, setBookChapter] = useState<number | null>(null);
   const [bookLoading, setBookLoading] = useState(false);
   const [bookAudioActive, setBookAudioActive] = useState(false);
-  const bookAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Essay reader state
   const [activeEssay, setActiveEssay] = useState<string | null>(null);
@@ -200,7 +199,6 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
   const [sectionContent, setSectionContent] = useState<string>('');
   const [essayLoading, setEssayLoading] = useState(false);
   const [essayAudioActive, setEssayAudioActive] = useState(false);
-  const essayAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Persona-based plan suggestions
   const persona = (() => {
@@ -221,11 +219,11 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     } catch { setBookAudioActive(false); }
   };
 
-  // Track book audio state from global player
+  // Track book/essay audio state from global player (include loading for UI feedback)
   useEffect(() => {
     return AP.onStateChange((st, key) => {
-      if (key === 'book-chapter') setBookAudioActive(st === 'playing');
-      if (key === 'essay-section') setEssayAudioActive(st === 'playing');
+      if (key === 'book-chapter') setBookAudioActive(st === 'playing' || st === 'loading');
+      if (key === 'essay-section') setEssayAudioActive(st === 'playing' || st === 'loading');
     });
   }, []);
 
@@ -403,7 +401,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           {/* Reader header */}
           <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <button
-              onClick={() => { if (bookChapter !== null) { if (bookAudioRef.current) { bookAudioRef.current.pause(); bookAudioRef.current = null; } setBookAudioActive(false); setBookChapter(null); } else { if (bookAudioRef.current) { bookAudioRef.current.pause(); bookAudioRef.current = null; } setBookAudioActive(false); setActiveBook(null); } }}
+              onClick={() => { AP.stop(); if (bookChapter !== null) { setBookChapter(null); } else { setActiveBook(null); } }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >
               <ChevronLeft size={18} />
@@ -479,8 +477,9 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <button
               onClick={() => {
-                if (essaySection !== null) { if (essayAudioRef.current) { essayAudioRef.current.pause(); essayAudioRef.current = null; } setEssayAudioActive(false); setEssaySection(null); setSectionContent(''); }
-                else { if (essayAudioRef.current) { essayAudioRef.current.pause(); essayAudioRef.current = null; } setEssayAudioActive(false); setActiveEssay(null); }
+                AP.stop();
+                if (essaySection !== null) { setEssaySection(null); setSectionContent(''); }
+                else { setActiveEssay(null); }
               }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >

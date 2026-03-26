@@ -877,9 +877,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     }
   };
 
-  // Clean up audio on unmount
+  // Clean up audio on unmount — also kill hero chain to prevent orphan playback
   useEffect(() => {
-    return () => { AP.stop(); };
+    return () => { heroQueueActiveRef.current = false; AP.stop(); };
   }, []);
 
   // Record today as a reading day + handle streak freeze + milestone
@@ -1049,6 +1049,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
   /** Play audio for a passage using the global AudioPlayer */
   const handleAudio = async (passage: string) => {
+    // iOS FIX: unlock audio session synchronously within the tap gesture
+    AP.unlock();
+
     // Toggle off if already playing this passage
     if (AP.isPlaying(passage)) {
       AP.stop();
@@ -1292,15 +1295,22 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       if (src) {
         AP.resetForChain();
         const waitForEnd = new Promise<void>(resolve => {
-          let sawPlaying = false;
+          let sawActive = false;
+          let resolved = false;
+          const done = () => { if (!resolved) { resolved = true; unsub(); resolve(); } };
           const unsub = AP.onStateChange((st) => {
-            if (st === 'playing' || st === 'loading') sawPlaying = true;
-            if (sawPlaying && st === 'idle') {
-              unsub();
+            if (st === 'playing' || st === 'loading') sawActive = true;
+            if (sawActive && st === 'idle') {
               if (AP.wasStopRequested()) heroQueueActiveRef.current = false;
-              resolve();
+              done();
+            }
+            // Safety: if chain was killed externally, resolve immediately
+            if (!heroQueueActiveRef.current || myVersion !== heroChainVersionRef.current) {
+              done();
             }
           });
+          // Safety timeout: if promise never resolves (e.g., race between reset and play), bail
+          setTimeout(done, 10 * 60 * 1000); // 10 min max per chapter
         });
         await AP.playUrl(HERO_KEY, src);
         await waitForEnd;

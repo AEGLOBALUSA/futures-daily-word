@@ -22,12 +22,16 @@ const listeners = new Set<StateListener>();
 let stopRequested = false;
 let currentBlobUrl: string | null = null;
 
-/** Revoke the previous blob URL to prevent memory leaks */
+/**
+ * Track the current blob URL.
+ * NOTE: We intentionally do NOT revoke blob URLs here because callers
+ * (HomeScreen, PlansScreen, etc.) cache them in audioSrcCache Maps.
+ * Revoking a cached URL causes silent playback failures when the user
+ * replays a passage. Blob URLs are lightweight references — the browser
+ * garbage-collects the backing data on page unload.
+ */
 function revokeCurrentBlob() {
-  if (currentBlobUrl) {
-    try { URL.revokeObjectURL(currentBlobUrl); } catch {}
-    currentBlobUrl = null;
-  }
+  currentBlobUrl = null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -173,10 +177,30 @@ export async function resume(): Promise<void> {
     await audioEl.play();
     setState('playing', currentPassage);
   } catch {
-    // iOS retry: re-unlock and try once more (iOS can lose audio session on long pause)
+    // iOS retry: re-unlock then restore the original audio source and position.
+    // unlock() replaces audio.src with a silence blob, so we must save/restore.
+    const savedSrc = audioEl.src;
+    const savedTime = audioEl.currentTime;
+    unlocked = false;
     unlock();
     if (unlockPromise) { try { await unlockPromise; } catch {} }
     try {
+      // Restore the original audio and seek back to where we were
+      audioEl.src = savedSrc;
+      audioEl.currentTime = savedTime;
+      await new Promise<void>((resolve, reject) => {
+        const onReady = () => { cleanup(); resolve(); };
+        const onError = () => { cleanup(); reject(new Error('reload failed')); };
+        const cleanup = () => {
+          audioEl!.removeEventListener('canplaythrough', onReady);
+          audioEl!.removeEventListener('error', onError);
+          clearTimeout(timer);
+        };
+        audioEl!.addEventListener('canplaythrough', onReady, { once: true });
+        audioEl!.addEventListener('error', onError, { once: true });
+        audioEl!.load();
+        const timer = setTimeout(onReady, 3000);
+      });
       await audioEl.play();
       setState('playing', currentPassage);
     } catch (err) {
