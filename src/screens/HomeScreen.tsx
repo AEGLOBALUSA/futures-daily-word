@@ -1818,12 +1818,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     onClick={() => handleHeroListen()}
                     style={{
                       width: 88, height: 88, borderRadius: '50%',
-                      background: isPlayingHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)',
-                      border: '2px solid rgba(255,255,255,0.35)',
+                      background: isLoadingHero ? 'rgba(255,180,50,0.25)' : isPlayingHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)',
+                      border: isLoadingHero ? '2px solid rgba(255,180,50,0.6)' : '2px solid rgba(255,255,255,0.35)',
                       boxShadow: isPlayingHero
                         ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
                         : '0 10px 32px rgba(0,0,0,0.35)',
-                      animation: isPlayingHero ? 'heroRingPulse 2.2s ease-in-out infinite' : 'heroIdlePulse 3.5s ease-in-out infinite',
+                      animation: isLoadingHero ? 'heroLoadPulse 1.2s ease-in-out infinite' : isPlayingHero ? 'heroRingPulse 2.2s ease-in-out infinite' : 'heroIdlePulse 3.5s ease-in-out infinite',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', color: '#fff',
                       transition: 'box-shadow 0.4s ease, background 0.2s ease',
