@@ -576,14 +576,14 @@ sup {
 .hero-range-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #fff;
-  border: 2px solid rgba(255,255,255,0.5);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 0 4px rgba(255,255,255,0.15);
+  border: 3px solid rgba(255,255,255,0.8);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.6), 0 0 0 6px rgba(255,255,255,0.2);
   cursor: pointer;
-  margin-top: -8px;
+  margin-top: -10px;
 }
 .hero-range-slider::-webkit-slider-runnable-track {
   height: 12px;
@@ -591,12 +591,12 @@ sup {
   background: transparent; /* gradient set via inline style */
 }
 .hero-range-slider::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #fff;
-  border: 2px solid rgba(255,255,255,0.5);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  border: 3px solid rgba(255,255,255,0.8);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.6), 0 0 0 6px rgba(255,255,255,0.2);
   cursor: pointer;
 }
 .hero-range-slider::-moz-range-track {

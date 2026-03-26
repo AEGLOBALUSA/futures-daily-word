@@ -1874,9 +1874,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         style={{
                           flexShrink: 0, padding: '8px 14px', borderRadius: 16, cursor: 'pointer',
                           fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
-                          border: i === heroChapterIndex ? '2px solid rgba(255,255,255,0.6)' : '1.5px solid rgba(255,255,255,0.15)',
-                          background: i === heroChapterIndex ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.04)',
-                          color: i === heroChapterIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+                          border: i === heroChapterIndex ? '2px solid rgba(255,255,255,0.9)' : '1.5px solid rgba(255,255,255,0.15)',
+                          background: i === heroChapterIndex ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.04)',
+                          color: i === heroChapterIndex ? '#fff' : 'rgba(255,255,255,0.4)',
                           transition: 'all 0.2s ease',
                         }}
                       >{label}</button>
@@ -2127,8 +2127,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           onDecrease={handleFontDecrease}
         />
 
-        {/* ── Hero Listen Button ── always shown; plays all today's passages in ESV */}
-        {(() => {
+        {/* ── Hero Listen Button ── shown when NOT on sermon tab (sermon tab has its own hero) */}
+        {!(sundaySermon && homeTab === 'sermon') && (() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
           const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot || primaryPassage;
@@ -2323,13 +2323,13 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                             fontFamily: 'var(--font-sans)',
                             letterSpacing: '0.02em',
                             border: i === heroChapterIndex
-                              ? '2px solid rgba(255,255,255,0.7)'
+                              ? '2px solid rgba(255,255,255,0.9)'
                               : '1.5px solid rgba(255,255,255,0.15)',
                             background: i === heroChapterIndex
-                              ? 'rgba(255,255,255,0.25)'
+                              ? 'rgba(255,255,255,0.35)'
                               : 'rgba(255,255,255,0.04)',
                             color: i === heroChapterIndex
-                              ? 'rgba(255,255,255,0.95)'
+                              ? '#fff'
                               : 'rgba(255,255,255,0.45)',
                             transition: 'all 0.2s ease',
                           }}
