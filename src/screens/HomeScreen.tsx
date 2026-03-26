@@ -2506,6 +2506,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 </div>
 
                 {/* ── Expanded scripture text — calm reading surface, visually distinct from hero ── */}
+                {/* NOTE: Uses hardcoded colors (no CSS vars) because iOS Safari can fail to
+                    apply inline var() styles, causing text to inherit the parent's color:#fff
+                    and become invisible against the light background. */}
                 {(() => {
                   const readRef = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '';
                   const isReadExpanded = readRef && expandedPassages.has(readRef);
@@ -2518,8 +2521,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       overflowY: 'auto',
                       padding: '28px 28px 80px',
                       WebkitOverflowScrolling: 'touch',
-                      background: 'var(--dw-scripture-bg, #FDFAF5)',
-                      borderTop: '1px solid var(--dw-scripture-border, rgba(180,160,120,0.18))',
+                      background: '#1C1A16',
+                      borderTop: '1px solid rgba(160,140,110,0.15)',
                       borderBottomLeftRadius: 24,
                       borderBottomRightRadius: 24,
                     }}>
@@ -2532,7 +2535,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       <p style={{
                         fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
                         textTransform: 'uppercase',
-                        color: 'var(--dw-scripture-label, #A0856A)',
+                        color: '#A09080',
                         fontFamily: 'var(--font-sans)', marginBottom: 20, marginTop: 4,
                       }}>
                         {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {translation}</span>
@@ -2540,7 +2543,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       {readText ? (
                         <div style={{
                           fontSize: 19, lineHeight: 2.05,
-                          color: 'var(--dw-scripture-text, #2C2417)',
+                          color: '#E8E2D8',
                           fontFamily: 'var(--font-serif)',
                           whiteSpace: 'pre-wrap',
                         }}>
@@ -2548,8 +2551,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
-                          <Loader2 size={20} style={{ color: 'var(--dw-scripture-label, #A0856A)', animation: 'spin 1s linear infinite' }} />
-                          <span style={{ color: 'var(--dw-scripture-label, #A0856A)', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
+                          <Loader2 size={20} style={{ color: '#A09080', animation: 'spin 1s linear infinite' }} />
+                          <span style={{ color: '#A09080', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
                         </div>
                       )}
                     </div>
