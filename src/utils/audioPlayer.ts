@@ -20,6 +20,15 @@ let currentPassage: string | null = null;
 let state: PlaybackState = 'idle';
 const listeners = new Set<StateListener>();
 let stopRequested = false;
+let currentBlobUrl: string | null = null;
+
+/** Revoke the previous blob URL to prevent memory leaks */
+function revokeCurrentBlob() {
+  if (currentBlobUrl) {
+    try { URL.revokeObjectURL(currentBlobUrl); } catch {}
+    currentBlobUrl = null;
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /*  State helpers                                                      */
@@ -128,6 +137,7 @@ export function stop(): void {
   const audio = getAudio();
   stopRequested = true;
   try { audio.pause(); } catch {}
+  revokeCurrentBlob();
   setState('idle');
 }
 
@@ -141,6 +151,7 @@ export function wasStopRequested(): boolean {
 export function resetForChain(): void {
   const audio = getAudio();
   try { audio.pause(); } catch {}
+  revokeCurrentBlob();
   stopRequested = false;
   setState('idle');
 }
@@ -300,6 +311,8 @@ export async function play(
 
   // ── STEP 5: Swap in real audio and play on the already-unlocked element ──
   const audio = getAudio();
+  revokeCurrentBlob();
+  currentBlobUrl = blobUrl;
   audio.src = blobUrl;
 
   try {
@@ -350,6 +363,8 @@ export async function playUrl(key: string, blobUrl: string): Promise<void> {
   if (state !== 'idle') resetForChain();
 
   setState('loading', key);
+  revokeCurrentBlob(); // Free previous blob before setting new one
+  currentBlobUrl = blobUrl;
   audio.src = blobUrl;
 
   try {

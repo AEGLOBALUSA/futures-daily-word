@@ -98,6 +98,9 @@ const UI: Translations = {
   prayer: { en: 'Prayer', es: 'Oraci\u00f3n', pt: 'Ora\u00e7\u00e3o', id: 'Doa' },
   no_passages: { en: 'No passages scheduled for today', es: 'No hay pasajes programados para hoy', pt: 'Nenhuma passagem programada para hoje', id: 'Tidak ada bagian yang dijadwalkan untuk hari ini' },
   add_reading_plan_cta: { en: 'Add a reading plan in Plans & More', es: 'A\u00f1ade un plan de lectura en Planes y m\u00e1s', pt: 'Adicione um plano de leitura em Planos e mais', id: 'Tambahkan rencana baca di Rencana & Lainnya' },
+  plan_start_error: { en: 'Could not load this book. Please try again.', es: 'No se pudo cargar este libro.', pt: 'Erro ao carregar o livro.', id: 'Tidak dapat memuat buku ini.' },
+  network_error: { en: 'Connection error. Please check your internet.', es: 'Error de conexion.', pt: 'Erro de conexao.', id: 'Kesalahan koneksi.' },
+  stop: { en: 'Stop', es: 'Parar', pt: 'Parar', id: 'Berhenti' },
 
   // ââ CAMPUS / MESSAGES SCREEN ââ
   campus_title: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },

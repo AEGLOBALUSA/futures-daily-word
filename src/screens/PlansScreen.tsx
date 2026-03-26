@@ -158,7 +158,10 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
       try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       saveBookToday(book.id, { title: chapters[0].title, paragraphs: chapters[0].paragraphs, chapterIndex: 0, bookTitle: book.title, bookAuthor: book.author });
       setBookPlans(updated);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to start book plan:', err);
+      alert(t('plan_start_error', getLang()));
+    }
     setStartingBook(null);
   };
 
