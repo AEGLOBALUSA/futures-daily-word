@@ -1827,11 +1827,16 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     }
                   </button>
                   <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
-                    {isLoadingHero ? t('loading_label') : isPlayingHero && !isPausedHero ? t('now_playing') : isPausedHero ? t('paused_label') : t('listen_now')}
+                    {isLoadingHero ? t('loading_label')
+                      : (isPlayingHero || isPausedHero) && allLabels.length > 1
+                      ? (isPausedHero ? t('paused_label') + ' — ' : '') + (allLabels[heroChapterIndex] || allLabels[0])
+                      : isPlayingHero ? allLabels[heroChapterIndex] || t('now_playing')
+                      : isPausedHero ? t('paused_label')
+                      : t('listen_now')}
                   </p>
                   <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
                     {(isPlayingHero || isPausedHero) && allLabels.length > 1
-                      ? allLabels[heroChapterIndex] || allLabels.join(' · ')
+                      ? `${heroChapterIndex + 1} of ${allLabels.length}`
                       : allLabels.join(' · ')}
                   </p>
                   <p style={{ fontSize: 10, opacity: 0.4, margin: '5px 0 0', fontFamily: 'var(--font-sans)', textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
@@ -2238,7 +2243,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
                     fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
                   }}>
-                    {isLoadingHero ? t('loading_label') : isPlayingHero ? t('now_playing') : isPausedHero ? t('paused_label') : t('listen_now')}
+                    {isLoadingHero ? t('loading_label')
+                      : (isPlayingHero || isPausedHero) && allLabels.length > 1
+                      ? (isPausedHero ? t('paused_label') + ' — ' : '') + (allLabels[heroChapterIndex] || allLabels[0])
+                      : isPlayingHero ? allLabels[heroChapterIndex] || t('now_playing')
+                      : isPausedHero ? t('paused_label')
+                      : t('listen_now')}
                   </p>
 
                   <p style={{
@@ -2247,7 +2257,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     maxWidth: '88%', lineHeight: 1.4,
                   }}>
                     {(isPlayingHero || isPausedHero) && allLabels.length > 1
-                      ? allLabels[heroChapterIndex] || allLabels.join(' · ')
+                      ? `${heroChapterIndex + 1} of ${allLabels.length}`
                       : allLabels.join(' · ')}
                   </p>
                   <p style={{
