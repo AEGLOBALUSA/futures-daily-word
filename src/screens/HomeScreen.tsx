@@ -2505,8 +2505,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   )}
                 </div>
 
-                {/* Compare translation selector (shown when compare mode active) */}
-                {/* ── Expanded scripture text — full reading panel inside hero card ── */}
+                {/* ── Expanded scripture text — calm reading surface, visually distinct from hero ── */}
                 {(() => {
                   const readRef = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '';
                   const isReadExpanded = readRef && expandedPassages.has(readRef);
@@ -2515,21 +2514,33 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   if (!isReadExpanded) return null;
                   return (
                     <div style={{
+                      position: 'relative',
                       overflowY: 'auto',
-                      padding: '20px 24px 80px',
-                      borderTop: '2px solid rgba(255,255,255,0.15)',
+                      padding: '28px 28px 80px',
                       WebkitOverflowScrolling: 'touch',
+                      background: 'var(--dw-scripture-bg, #FDFAF5)',
+                      borderTop: '1px solid var(--dw-scripture-border, rgba(180,160,120,0.18))',
+                      borderBottomLeftRadius: 24,
+                      borderBottomRightRadius: 24,
                     }}>
+                      {/* Subtle top edge: thin warm accent line connecting to hero */}
+                      <div style={{
+                        position: 'absolute', top: 0, left: 24, right: 24, height: 2,
+                        background: 'linear-gradient(90deg, transparent, rgba(168,120,60,0.25), transparent)',
+                        borderRadius: 2,
+                      }} />
                       <p style={{
-                        fontSize: 16, fontWeight: 800, letterSpacing: '0.06em',
-                        textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)',
-                        fontFamily: 'var(--font-sans)', marginBottom: 16,
+                        fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        color: 'var(--dw-scripture-label, #A0856A)',
+                        fontFamily: 'var(--font-sans)', marginBottom: 20, marginTop: 4,
                       }}>
-                        {readRef} ({translation})
+                        {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {translation}</span>
                       </p>
                       {readText ? (
                         <div style={{
-                          fontSize: 19, lineHeight: 2.0, color: 'rgba(255,255,255,0.92)',
+                          fontSize: 19, lineHeight: 2.05,
+                          color: 'var(--dw-scripture-text, #2C2417)',
                           fontFamily: 'var(--font-serif)',
                           whiteSpace: 'pre-wrap',
                         }}>
@@ -2537,8 +2548,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
-                          <Loader2 size={20} style={{ color: 'rgba(255,255,255,0.6)', animation: 'spin 1s linear infinite' }} />
-                          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
+                          <Loader2 size={20} style={{ color: 'var(--dw-scripture-label, #A0856A)', animation: 'spin 1s linear infinite' }} />
+                          <span style={{ color: 'var(--dw-scripture-label, #A0856A)', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
                         </div>
                       )}
                     </div>

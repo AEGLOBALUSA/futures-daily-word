@@ -28,6 +28,12 @@
   --dw-border: #333333;
   --dw-border-subtle: #252525;
 
+  /* Scripture reading surface — warm, calm, distinct from hero */
+  --dw-scripture-bg: #1C1A16;
+  --dw-scripture-text: #E8E2D8;
+  --dw-scripture-label: #A09080;
+  --dw-scripture-border: rgba(160,140,110,0.15);
+
   --font-serif: 'DM Serif Display', 'Georgia', serif;
   --font-serif-text: 'DM Serif Text', 'Georgia', serif;
   --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -61,6 +67,12 @@
   --dw-text-christ: #A8323B;
   --dw-border: #ECEAE7;
   --dw-border-subtle: #F3F1EF;
+
+  /* Scripture reading surface — warm parchment feel */
+  --dw-scripture-bg: #FAF7F2;
+  --dw-scripture-text: #2C2417;
+  --dw-scripture-label: #A0856A;
+  --dw-scripture-border: rgba(180,160,120,0.18);
 
   color-scheme: light;
 }
