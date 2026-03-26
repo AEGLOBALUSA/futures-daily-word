@@ -45,17 +45,17 @@ const CAMPUS_LABELS: Record<string, string> = {
 // ── {t("prayer_wall", lang)} API ────────────────────────────────────────────────────────────
 const API = '/.netlify/functions/prayer-wall';
 
-async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<Prayer[]> {
+async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<{ prayers: Prayer[]; error: boolean }> {
   try {
     const url = filter === 'my-campus' && campus
       ? `${API}?filter=my-campus&campus=${encodeURIComponent(campus)}`
       : `${API}?filter=all`;
     const res = await fetch(url);
-    if (!res.ok) return [];
-    const { prayers } = await res.json();
-    return prayers || [];
+    if (!res.ok) return { prayers: [], error: true };
+    const data = await res.json();
+    return { prayers: data.prayers || [], error: false };
   } catch {
-    return [];
+    return { prayers: [], error: true };
   }
 }
 
@@ -980,6 +980,7 @@ function PrayerWallPanel({
 }) {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [prayerError, setPrayerError] = useState(false);
   const [filter, setFilter] = useState<'all' | 'my-campus'>('all');
   const [showForm, setShowForm] = useState(false);
   const [prayerText, setPrayerText] = useState('');
@@ -994,8 +995,10 @@ function PrayerWallPanel({
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetchPrayers(filter, campus);
-    setPrayers(data);
+    setPrayerError(false);
+    const result = await fetchPrayers(filter, campus);
+    setPrayers(result.prayers);
+    setPrayerError(result.error);
     setLoading(false);
   }, [filter, campus]);
 
@@ -1127,6 +1130,15 @@ function PrayerWallPanel({
           <Loader2 size={18} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
           <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading prayer wall…</span>
         </div>
+      ) : prayerError ? (
+        <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+            Could not load prayers. Check your connection.
+          </p>
+          <button onClick={load} style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, background: 'var(--dw-accent)', color: '#fff', border: 'none', fontSize: 13, fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>
+            Try Again
+          </button>
+        </Card>
       ) : prayers.length === 0 ? (
         <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
           <HandHeart size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
