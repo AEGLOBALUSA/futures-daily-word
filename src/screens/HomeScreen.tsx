@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { FontSizeControls } from '../components/FontSizeControls';
-import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
@@ -2332,27 +2332,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   </div>
                 )}
 
-                {/* ── Stop button — visible when audio is active ── */}
-                {(isPlayingHero || isPausedHero) && (
-                  <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; setHeroChapterIndex(0); }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '7px 20px', borderRadius: 20,
-                        background: 'rgba(255,255,255,0.12)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        color: 'rgba(255,255,255,0.8)', cursor: 'pointer',
-                        fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      <Square size={12} fill="currentColor" />
-                      Stop
-                    </button>
-                  </div>
-                )}
-
                 {/* Error message */}
                 {audioError && audioCurrentPassage === HERO_KEY && (
                   <p style={{
@@ -2366,26 +2345,69 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 {/* Hairline divider */}
                 <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '0 20px' }} />
 
-                {/* Footer: Read + Translation picker */}
+                {/* Footer: Stop/Read + Restart + Translation picker */}
                 <div style={{
                   display: 'flex', alignItems: 'center',
                   padding: '2px 8px 2px',
                 }}>
-                  {/* Read button */}
+                  {/* Stop or Read button — context-aware */}
+                  {(isPlayingHero || isPausedHero) ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; setHeroChapterIndex(0); }}
+                      style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        padding: '12px 8px', minHeight: 44,
+                        background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: 'rgba(255,255,255,0.8)',
+                        fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+                        letterSpacing: '0.03em',
+                        borderRight: '1px solid rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      <Square size={12} fill="currentColor" />
+                      Stop
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleRead(heroChapterRefs[0] || '')}
+                      style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        padding: '12px 8px', minHeight: 44,
+                        background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: expandedPassages.has(heroChapterRefs[0] || '') ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
+                        fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+                        letterSpacing: '0.03em', transition: 'color 0.2s ease',
+                        borderRight: '1px solid rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      <BookOpen size={13} />
+                      {expandedPassages.has(heroChapterRefs[0] || '') ? t('hide_reading') : t('read_btn')}
+                    </button>
+                  )}
+                  {/* Restart button — resets to chapter 1 and replays */}
                   <button
-                    onClick={() => handleRead(heroChapterRefs[0] || '')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      AP.unlock();
+                      if (audioPlaying || audioPaused) AP.stop();
+                      heroQueueActiveRef.current = false;
+                      setHeroChapterIndex(0);
+                      setHeroLoading(true);
+                      heroQueueActiveRef.current = true;
+                      playChapterAtIndex(0).catch(() => setAudioError(true)).finally(() => setHeroLoading(false));
+                    }}
                     style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      padding: '12px 8px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      padding: '12px 10px', minHeight: 44,
                       background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: expandedPassages.has(heroChapterRefs[0] || '') ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
-                      fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
-                      letterSpacing: '0.03em', transition: 'color 0.2s ease',
+                      color: 'rgba(255,255,255,0.55)',
+                      fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600,
+                      letterSpacing: '0.03em',
                       borderRight: '1px solid rgba(255,255,255,0.1)',
                     }}
                   >
-                    <BookOpen size={13} />
-                    {expandedPassages.has(heroChapterRefs[0] || '') ? t('hide_reading') : t('read_btn')}
+                    <RotateCcw size={13} />
+                    Restart
                   </button>
 
                   {/* Translation picker — horizontal scrollable pills */}
