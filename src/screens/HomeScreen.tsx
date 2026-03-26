@@ -849,8 +849,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       setExpandedPassages(new Set());
       return;
     }
-    // Close everything else, stop any playing audio, open this one
-    if (audioPlaying) stopAudio();
+    // Open this passage — audio keeps playing so user can listen + read together
     setExpandedPassages(new Set([passage]));
     loadPassage(passage);
     trackBehavior('passage_read', passage);
@@ -1236,6 +1235,18 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   useEffect(() => {
     heroChapterIndexRef.current = heroChapterIndex;
     try { localStorage.setItem('dw_hero_chapter_idx', String(heroChapterIndex)); } catch {}
+  }, [heroChapterIndex]);
+
+  // Auto-follow: when audio advances to next chapter, update the Read text panel too
+  useEffect(() => {
+    if (expandedPassages.size > 0 && heroChapterRefs[heroChapterIndex]) {
+      const newRef = heroChapterRefs[heroChapterIndex];
+      if (!expandedPassages.has(newRef)) {
+        setExpandedPassages(new Set([newRef]));
+        loadPassage(newRef);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroChapterIndex]);
 
   useEffect(() => {
@@ -2476,6 +2487,45 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 </div>
 
                 {/* Compare translation selector (shown when compare mode active) */}
+                {/* ── Expanded scripture text — full reading panel inside hero card ── */}
+                {(() => {
+                  const readRef = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '';
+                  const isReadExpanded = readRef && expandedPassages.has(readRef);
+                  const readKey = `${readRef}_${translation}`;
+                  const readText = passageTexts[readKey];
+                  if (!isReadExpanded) return null;
+                  return (
+                    <div style={{
+                      overflowY: 'auto',
+                      padding: '20px 24px 80px',
+                      borderTop: '2px solid rgba(255,255,255,0.15)',
+                      WebkitOverflowScrolling: 'touch',
+                    }}>
+                      <p style={{
+                        fontSize: 16, fontWeight: 800, letterSpacing: '0.06em',
+                        textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)',
+                        fontFamily: 'var(--font-sans)', marginBottom: 16,
+                      }}>
+                        {readRef} ({translation})
+                      </p>
+                      {readText ? (
+                        <div style={{
+                          fontSize: 19, lineHeight: 2.0, color: 'rgba(255,255,255,0.92)',
+                          fontFamily: 'var(--font-serif)',
+                          whiteSpace: 'pre-wrap',
+                        }}>
+                          {renderScripture(readText, readRef)}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
+                          <Loader2 size={20} style={{ color: 'rgba(255,255,255,0.6)', animation: 'spin 1s linear infinite' }} />
+                          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {compareMode && personaConfig.features.greekHebrew === 'full' && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 5,
