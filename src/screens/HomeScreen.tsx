@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { FontSizeControls } from '../components/FontSizeControls';
-import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
@@ -1313,14 +1313,18 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     AP.unlock(); // must be synchronous in tap handler
     setAudioError(false);
 
-    // If paused, resume
+    // If paused, resume — optimistic UI update for instant response
     if (AP.isPaused(HERO_KEY)) {
+      setAudioPaused(false);
+      setAudioPlaying(true);
       AP.resume();
       return;
     }
 
-    // Toggle pause if playing
+    // Toggle pause if playing — optimistic UI update
     if (AP.isPlaying(HERO_KEY)) {
+      setAudioPaused(true);
+      setAudioPlaying(false);
       AP.pause();
       return;
     }
@@ -1798,9 +1802,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '22px 20px 20px' }}>
                   <button
+                    className="hero-play-btn"
                     onClick={() => handleHeroListen()}
                     style={{
-                      width: 78, height: 78, borderRadius: '50%',
+                      width: 88, height: 88, borderRadius: '50%',
                       background: isPlayingHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)',
                       border: '2px solid rgba(255,255,255,0.35)',
                       boxShadow: isPlayingHero
@@ -1825,32 +1830,63 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     {isLoadingHero ? t('loading_label') : isPlayingHero && !isPausedHero ? t('now_playing') : isPausedHero ? t('paused_label') : t('listen_now')}
                   </p>
                   <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
-                    {allLabels.join(' · ')}
+                    {(isPlayingHero || isPausedHero) && allLabels.length > 1
+                      ? allLabels[heroChapterIndex] || allLabels.join(' · ')
+                      : allLabels.join(' · ')}
                   </p>
                   <p style={{ fontSize: 10, opacity: 0.4, margin: '5px 0 0', fontFamily: 'var(--font-sans)', textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                     {t('esv_human_reader')}
                   </p>
-                  {heroChapterRefs.length > 1 && (
-                    <button
-                      onClick={handleSelectAllListen}
-                      style={{
-                        marginTop: 12,
-                        background: allPassagesSelected ? 'var(--dw-accent, #C8A864)' : 'transparent',
-                        border: '1.5px solid rgba(255,255,255,0.4)',
-                        color: '#fff',
-                        borderRadius: 20,
-                        padding: '8px 18px',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        letterSpacing: '0.02em',
-                      }}
-                    >
-                      {allPassagesSelected ? t('stop_all') : t('select_all_passages') + ' ' + heroChapterRefs.length + ' ' + t('passages_word')}
-                    </button>
-                  )}
                 </div>
               </div>
+              {/* Chapter navigator — slider + pills (sermon tab) */}
+              {allLabels.length > 1 && (
+                <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '0 16px 12px' }}>
+                  <div style={{ padding: '0 4px', margin: '0 0 6px' }}>
+                    <input
+                      className="hero-range-slider"
+                      type="range" min={0} max={allLabels.length - 1} value={heroChapterIndex}
+                      onChange={(e) => { const idx = parseInt(e.target.value, 10); if (idx !== heroChapterIndex) handleHeroSkipTo(idx); }}
+                      style={{
+                        background: `linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) 100%)`,
+                      }}
+                    />
+                  </div>
+                  <p style={{ fontSize: 10, fontWeight: 600, textAlign: 'center', opacity: 0.5, fontFamily: 'var(--font-sans)', margin: '0 0 8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    {`Chapter ${heroChapterIndex + 1} of ${allLabels.length}`}
+                  </p>
+                  <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', padding: '0 2px', WebkitOverflowScrolling: 'touch' }}>
+                    {allLabels.map((label, i) => (
+                      <button key={i} onClick={(e) => { e.stopPropagation(); handleHeroSkipTo(i); }}
+                        style={{
+                          flexShrink: 0, padding: '8px 14px', borderRadius: 16, cursor: 'pointer',
+                          fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
+                          border: i === heroChapterIndex ? '2px solid rgba(255,255,255,0.6)' : '1.5px solid rgba(255,255,255,0.15)',
+                          background: i === heroChapterIndex ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.04)',
+                          color: i === heroChapterIndex ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.45)',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >{label}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Stop button (sermon tab) */}
+              {(isPlayingHero || isPausedHero) && (
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', paddingBottom: 10 }}>
+                  <button onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; setHeroChapterIndex(0); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '7px 20px', borderRadius: 20,
+                      background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                      color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                      fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
+                    }}
+                  >
+                    <Square size={12} fill="currentColor" />
+                    Stop
+                  </button>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -2167,9 +2203,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   padding: '22px 20px 20px',
                 }}>
                   <button
+                    className="hero-play-btn"
                     onClick={() => handleHeroListen()}
                     style={{
-                      width: 78, height: 78, borderRadius: '50%',
+                      width: 88, height: 88, borderRadius: '50%',
                       background: isPlayingHero
                         ? 'rgba(255,255,255,0.22)'
                         : 'rgba(255,255,255,0.16)',
@@ -2222,61 +2259,87 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   </p>
                 </div>
 
-                {/* ── Chapter slider — YouTube-style chapter markers ── */}
+                {/* ── Chapter navigator — large slider + tappable chapter pills ── */}
                 {allLabels.length > 1 && (
-                  <div style={{ padding: '0 16px 8px' }}>
-                    {/* Progress bar background */}
-                    <div style={{
-                      display: 'flex', gap: 3, height: 4, borderRadius: 2,
-                      overflow: 'hidden', margin: '0 4px 8px',
-                    }}>
-                      {allLabels.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={(e) => { e.stopPropagation(); handleHeroSkipTo(i); }}
-                          style={{
-                            flex: 1, height: '100%', border: 'none', padding: 0,
-                            cursor: 'pointer', borderRadius: 2,
-                            background: i < heroChapterIndex
-                              ? 'rgba(255,255,255,0.7)'
-                              : i === heroChapterIndex && (isPlayingHero || audioPaused)
-                              ? 'rgba(255,255,255,0.9)'
-                              : 'rgba(255,255,255,0.18)',
-                            transition: 'background 0.3s ease',
-                          }}
-                        />
-                      ))}
+                  <div style={{ padding: '0 16px 12px' }}>
+                    {/* Range slider — thick, touch-friendly, draggable */}
+                    <div style={{ padding: '0 4px', margin: '0 0 6px' }}>
+                      <input
+                        className="hero-range-slider"
+                        type="range"
+                        min={0}
+                        max={allLabels.length - 1}
+                        value={heroChapterIndex}
+                        onChange={(e) => {
+                          const idx = parseInt(e.target.value, 10);
+                          if (idx !== heroChapterIndex) handleHeroSkipTo(idx);
+                        }}
+                        style={{
+                          background: `linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) 100%)`,
+                        }}
+                      />
                     </div>
-                    {/* Chapter labels — scrollable row */}
+                    {/* Chapter counter */}
+                    <p style={{
+                      fontSize: 10, fontWeight: 600, textAlign: 'center',
+                      opacity: 0.5, fontFamily: 'var(--font-sans)', margin: '0 0 8px',
+                      letterSpacing: '0.08em', textTransform: 'uppercase',
+                    }}>
+                      {`Chapter ${heroChapterIndex + 1} of ${allLabels.length}`}
+                    </p>
+                    {/* Chapter pills — large, tappable */}
                     <div style={{
                       display: 'flex', gap: 6, overflowX: 'auto',
                       scrollbarWidth: 'none', padding: '0 2px',
+                      WebkitOverflowScrolling: 'touch',
                     }}>
                       {allLabels.map((label, i) => (
                         <button
                           key={i}
                           onClick={(e) => { e.stopPropagation(); handleHeroSkipTo(i); }}
                           style={{
-                            flexShrink: 0, padding: '4px 10px',
-                            borderRadius: 12, border: 'none', cursor: 'pointer',
-                            fontSize: 10, fontWeight: 600,
+                            flexShrink: 0, padding: '8px 14px',
+                            borderRadius: 16, cursor: 'pointer',
+                            fontSize: 12, fontWeight: 700,
                             fontFamily: 'var(--font-sans)',
                             letterSpacing: '0.02em',
+                            border: i === heroChapterIndex
+                              ? '2px solid rgba(255,255,255,0.6)'
+                              : '1.5px solid rgba(255,255,255,0.15)',
                             background: i === heroChapterIndex
                               ? 'rgba(255,255,255,0.22)'
-                              : 'rgba(255,255,255,0.06)',
+                              : 'rgba(255,255,255,0.04)',
                             color: i === heroChapterIndex
                               ? 'rgba(255,255,255,0.95)'
                               : 'rgba(255,255,255,0.45)',
                             transition: 'all 0.2s ease',
                           }}
                         >
-                          {label.replace(/^\d+\s*/, '').length > 18
-                            ? label.replace(/^\d+\s*/, '').slice(0, 16) + '…'
-                            : label}
+                          {label}
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* ── Stop button — visible when audio is active ── */}
+                {(isPlayingHero || isPausedHero) && (
+                  <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; setHeroChapterIndex(0); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '7px 20px', borderRadius: 20,
+                        background: 'rgba(255,255,255,0.12)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: 'rgba(255,255,255,0.8)', cursor: 'pointer',
+                        fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      <Square size={12} fill="currentColor" />
+                      Stop
+                    </button>
                   </div>
                 )}
 
@@ -2312,7 +2375,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     }}
                   >
                     <BookOpen size={13} />
-                    {expandedPassages.has(heroChapterRefs[0] || '') ? t('close_label') : t('read_btn')}
+                    {expandedPassages.has(heroChapterRefs[0] || '') ? t('hide_reading') : t('read_btn')}
                   </button>
 
                   {/* Translation picker — horizontal scrollable pills */}
@@ -5048,6 +5111,36 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           100% { left: 160%; opacity: 0; }
         }
         @keyframes scaleIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Hero slider thumb — large, touch-friendly */
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #fff;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+          cursor: pointer;
+          margin-top: -7px;
+        }
+        input[type="range"]::-moz-range-thumb {
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #fff;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+          cursor: pointer;
+          border: none;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+          height: 8px;
+          border-radius: 4px;
+        }
+        input[type="range"]::-moz-range-track {
+          height: 8px;
+          border-radius: 4px;
+        }
 
         /* Hero card: dramatic colour wave — crimson ↔ near-black rolling through stops */
         @keyframes heroColorWave {

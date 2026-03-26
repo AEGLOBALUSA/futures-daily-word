@@ -172,9 +172,17 @@ export async function resume(): Promise<void> {
   try {
     await audioEl.play();
     setState('playing', currentPassage);
-  } catch (err) {
-    console.error('[AudioPlayer] resume failed', err);
-    setState('idle');
+  } catch {
+    // iOS retry: re-unlock and try once more (iOS can lose audio session on long pause)
+    unlock();
+    if (unlockPromise) { try { await unlockPromise; } catch {} }
+    try {
+      await audioEl.play();
+      setState('playing', currentPassage);
+    } catch (err) {
+      console.error('[AudioPlayer] resume failed after retry', err);
+      setState('idle');
+    }
   }
 }
 
@@ -381,7 +389,7 @@ export async function playUrl(key: string, blobUrl: string): Promise<void> {
       audio.load();
       const timer = setTimeout(onReady, 3000);
     });
-    if (currentPassage !== key) return;
+    if (currentPassage !== key) { setState('idle'); return; }
     await audio.play();
     unlocked = true;
     setState('playing', key);

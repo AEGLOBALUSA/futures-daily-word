@@ -240,6 +240,7 @@ const UI: Translations = {
   select_all_passages: { en: 'Select All', es: 'Seleccionar Todo', pt: 'Selecionar Tudo', id: 'Pilih Semua' },
   passages_word: { en: 'Passages', es: 'Pasajes', pt: 'Passagens', id: 'Bagian' },
   close_label: { en: 'Close', es: 'Cerrar', pt: 'Fechar', id: 'Tutup' },
+  hide_reading: { en: 'Hide', es: 'Ocultar', pt: 'Ocultar', id: 'Sembunyikan' },
   esv_human_reader: { en: 'ESV \u00b7 Human Reader', es: 'ESV \u00b7 Lector Humano', pt: 'ESV \u00b7 Leitor Humano', id: 'ESV \u00b7 Pembaca Manusia' },
   audio_unavailable: { en: 'Audio unavailable \u2014 tap Read to follow along', es: 'Audio no disponible \u2014 toca Leer para seguir', pt: '\u00c1udio indispon\u00edvel \u2014 toque Ler para acompanhar', id: 'Audio tidak tersedia \u2014 ketuk Baca untuk mengikuti' },
 
