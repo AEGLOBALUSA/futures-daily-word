@@ -44,6 +44,19 @@
       <p>Please enable JavaScript to use the Futures Daily Word app.</p>
     </noscript>
     <script>
+      // ?reset — nuke everything and reload fresh
+      (function(){
+        if(location.search.indexOf('reset')===-1) return;
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(s){s.unregister();});});
+        }
+        if('caches' in window){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c);});});}
+        localStorage.clear(); sessionStorage.clear();
+        history.replaceState(null,'',location.pathname);
+        setTimeout(function(){location.reload(true);},300);
+      })();
+    </script>
+    <script>
       // One-time cache reset — keyed by version. Clears stale app caches only,
       // preserves offline Bible (fdw-bible-v1) and font cache (fdw-fonts-v1).
       (function(){
