@@ -2287,20 +2287,20 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         })()}
 
         {/* ── Browse Plans link — always visible for plan_scripture personas ── */}
-        {personaConfig.sectionOrder.includes('plan_scripture') && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-            <button
-              onClick={() => onNavigate?.('plans')}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600,
-                fontFamily: 'var(--font-sans)', padding: '4px 0',
-              }}
-            >
-              Browse Plans →
-            </button>
-          </div>
-        )}
+        {/* ── Choose Your Plan — prominent CTA ── */}
+        <button
+          onClick={() => onNavigate?.('plans')}
+          style={{
+            display: 'block', width: '100%', marginBottom: 16,
+            background: '#2563EB', border: 'none', borderRadius: 12,
+            padding: '14px 20px', cursor: 'pointer',
+            color: '#FFFFFF', fontSize: 16, fontWeight: 700,
+            fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
+            textAlign: 'center',
+          }}
+        >
+          Choose Your Plan
+        </button>
 
         {/* ── Pastor/Study Onboarding — RIGHT after the hero, before everything else ── */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
@@ -2697,109 +2697,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           }}
         />
 
-        {/* ── Start Your Journey — inline plan picker for users with no plans ── */}
-        {(() => {
-          const activePlans: Record<string, unknown> = (() => {
-            try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; }
-          })();
-          const hasPlans = Object.keys(activePlans).length > 0;
-          if (hasPlans) return null;
-
-          // Use persona config to filter plans
-          const featuredCats = personaConfig.plans.featuredCategories;
-          const recommendedPlans = personaConfig.plans.showFullCatalog
-            ? PLAN_CATALOGUE.slice(0, 4)
-            : PLAN_CATALOGUE.filter(p => featuredCats.includes(p.category)).slice(0, 4);
-          if (recommendedPlans.length === 0) return null;
-
-          return (
-            <div style={{
-              background: 'var(--dw-surface)',
-              border: '2px solid var(--dw-accent)',
-              borderRadius: 16,
-              padding: '20px 18px',
-              marginBottom: 20,
-            }}>
-              <p style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 19,
-                color: 'var(--dw-text-primary)',
-                marginBottom: 4,
-                textAlign: 'center',
-              }}>
-                Start Your Journey
-              </p>
-              <p style={{
-                fontSize: 13,
-                color: 'var(--dw-text-muted)',
-                fontFamily: 'var(--font-sans)',
-                marginBottom: 16,
-                textAlign: 'center',
-              }}>
-                Pick a plan to begin your daily reading
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {recommendedPlans.map(plan => (
-                  <button
-                    key={plan.id}
-                    onClick={() => {
-                      const existing: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
-                        (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
-                      existing[plan.id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
-                      localStorage.setItem('dw_activeplans', JSON.stringify(existing));
-                      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-                      localStorage.setItem('dw_setup_dismissed', '1');
-                      window.location.reload();
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '14px 16px',
-                      background: 'var(--dw-canvas)',
-                      border: '1px solid var(--dw-border)',
-                      borderRadius: 12,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      width: '100%',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <BookOpen size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                        {tField(plan, 'title', lang)}
-                      </p>
-                      <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
-                        {plan.totalDays} days · {tField(plan, 'description', lang).slice(0, 60)}{tField(plan, 'description', lang).length > 60 ? '…' : ''}
-                      </p>
-                    </div>
-                    <Plus size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-                  </button>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setShowSetupModal(true)}
-                style={{
-                  width: '100%',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--dw-accent)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-sans)',
-                  cursor: 'pointer',
-                  padding: '12px 0 0',
-                  textAlign: 'center',
-                }}
-              >
-                Browse all plans →
-              </button>
-            </div>
-          );
-        })()}
+        {/* Start Your Journey — removed; "Choose Your Plan" button at top handles this */}
 
           {/* Scroll invitation — not an arrow, just a breath */}
           <div style={{

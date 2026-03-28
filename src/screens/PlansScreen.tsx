@@ -6,7 +6,6 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { getPersonaConfig } from '../utils/persona-config';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause } from 'lucide-react';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
@@ -359,7 +358,6 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
   const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
 
   // Persona-based plan filtering + ordering
-  const personaConfig = getPersonaConfig(persona);
   const PERSONA_PRIORITY: Record<string, string[]> = {
     new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
     congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30', 'prayer-life', 'acts-28'],
@@ -373,10 +371,8 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     difficult: ['psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
   };
   const priorityIds = PERSONA_PRIORITY[persona] || [];
-  // For personas with showFullCatalog: false, ONLY show their priority plans
-  const catalogBase = personaConfig.plans.showFullCatalog
-    ? PLAN_CATALOGUE
-    : PLAN_CATALOGUE.filter(p => priorityIds.includes(p.id));
+  // Always show every plan — priority plans are sorted to the top
+  const catalogBase = PLAN_CATALOGUE;
   const browsePlans = [...catalogBase].sort((a, b) => {
     const ai = priorityIds.indexOf(a.id);
     const bi = priorityIds.indexOf(b.id);
