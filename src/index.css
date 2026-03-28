@@ -518,6 +518,15 @@ sup {
 
 /* ====== EXCEPTIONS: keep white text on dark backgrounds ====== */
 
+/* MASTER CLASS: Any element with .dw-btn-dark ALWAYS gets white text.
+   This beats every other rule because class + root + !important = max specificity. */
+:root[data-theme="light"] .dw-btn-dark,
+:root[data-theme="light"] .dw-btn-dark *,
+:root .dw-btn-dark,
+.dw-btn-dark {
+  color: #FFFFFF !important;
+}
+
 /* Hero card (red gradient) */
 :root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] *:not(svg):not(path) {
   color: #FFFFFF !important;

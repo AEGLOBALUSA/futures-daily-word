@@ -2341,6 +2341,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
         {/* ── Choose Your Plan — prominent CTA ── */}
         <button
+          className="dw-btn-dark"
           onClick={() => onNavigate?.('plans')}
           style={{
             display: 'block', width: '100%', marginBottom: 16,
@@ -2371,6 +2372,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   {isPastor ? "Ready when you are. Let's set up your reading." : "Whenever you're ready to set up your reading, we're here."}
                 </p>
                 <button
+                  className="dw-btn-dark"
                   onClick={() => setPastorOnboardStep(0)}
                   style={{ background: 'var(--dw-accent)', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)' }}
                 >
@@ -2394,7 +2396,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   You've got commentary, Greek/Hebrew tools, word studies, and sermon prep built in. First, let's get the right reading plan locked in.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <button onClick={() => setPastorOnboardStep(1)} style={{
+                  <button className="dw-btn-dark" onClick={() => setPastorOnboardStep(1)} style={{
                     padding: '16px 18px', borderRadius: 14, background: 'var(--dw-accent)', border: 'none',
                     cursor: 'pointer', textAlign: 'left',
                   }}>
@@ -2580,7 +2582,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 16px', lineHeight: 1.5 }}>Pick a reading plan and you'll get full commentary, word studies, and Greek/Hebrew tools alongside every passage.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <button onClick={() => setPastorOnboardStep(2)} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--dw-accent)', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  <button className="dw-btn-dark" onClick={() => setPastorOnboardStep(2)} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--dw-accent)', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                     <p style={{ fontWeight: 600, fontSize: 15, color: '#fff', fontFamily: 'var(--font-sans)', margin: 0 }}>Help me choose a plan</p>
                     <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>We'll recommend one based on your pace</p>
                   </button>
@@ -2993,6 +2995,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       Which words brought you the most peace?
                     </p>
                     <button
+                      className="dw-btn-dark"
                       onClick={() => {
                         setComfortChaptersServed(prev => prev + 1);
                         setComfortPostRead('devotion');
@@ -3048,6 +3051,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       <ListenButton text={`${tField(devotion, 'title', lang)}. ${tField(devotion, 'body', lang)}`} size="md" label="Listen" />
                     </div>
                     <button
+                      className="dw-btn-dark"
                       onClick={() => setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more')}
                       style={{
                         width: '100%', padding: '12px 16px', borderRadius: 10,
@@ -3070,6 +3074,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   </p>
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                     <button
+                      className="dw-btn-dark"
                       onClick={() => {
                         setComfortChapterIndex(prev => (prev + 1) % COMFORT_CHAPTERS.length);
                         setComfortPostRead(null);
@@ -3130,6 +3135,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       </button>
                     ))}
                     <button
+                      className="dw-btn-dark"
                       onClick={() => {
                         setComfortChapterIndex(prev => (prev + 1) % COMFORT_CHAPTERS.length);
                         setComfortPostRead(null);
@@ -3445,6 +3451,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               </p>
               <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                 <button
+                  className="dw-btn-dark"
                   onClick={() => {
                     try {
                       localStorage.setItem('dw_journal_prefill', JSON.stringify({
@@ -3790,6 +3797,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 Choose a plan and everything on this page syncs to your daily reading.
               </p>
               <button
+                className="dw-btn-dark"
                 onClick={() => onNavigate?.('plans')}
                 style={{ padding: '12px 24px', borderRadius: 12, background: 'var(--dw-accent)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
               >
@@ -4138,6 +4146,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           {showReadingSetup && !showBookPicker && (
             <Card style={{ marginTop: 12, textAlign: 'center', padding: '16px 12px' }}>
               <button
+                className="dw-btn-dark"
                 onClick={() => setShowBookPicker(true)}
                 style={{
                   width: '100%',
@@ -4491,6 +4500,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         </p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button
+                            className="dw-btn-dark"
                             onClick={() => onNavigate?.('plans')}
                             style={{
                               flex: 1, background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
@@ -4812,6 +4822,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               {showMilestone >= 30 ? '"His mercies are new every morning." — Lam. 3:23' : showMilestone >= 7 ? '"Blessed is the one who reads." — Rev. 1:3' : '"Draw near to God and he will draw near to you." — James 4:8'}
             </p>
             <button
+              className="dw-btn-dark"
               onClick={() => setShowMilestone(null)}
               style={{
                 background: '#FF9500', border: 'none', borderRadius: 12,
