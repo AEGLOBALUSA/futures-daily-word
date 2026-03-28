@@ -5,33 +5,33 @@
    Red + Black + White
    ============================================ */
 
-/* ---------- Dark Mode (Default) ---------- */
+/* ---------- Dark Mode (Default) — Warm Charcoal ---------- */
 :root {
-  --dw-canvas: #0A0A0A;
-  --dw-surface: #1A1A1A;
-  --dw-surface-hover: #222222;
-  --dw-surface-active: #2A2A2A;
-  --dw-card: #1E1D1B;
-  --dw-charcoal: #1E1D1B;
-  --dw-charcoal-deep: #151413;
-  --dw-charcoal-light: #2C2A27;
+  --dw-canvas: #0F0D0B;
+  --dw-surface: #1A1816;
+  --dw-surface-hover: #23201D;
+  --dw-surface-active: #2B2824;
+  --dw-card: #1E1C19;
+  --dw-charcoal: #1E1C19;
+  --dw-charcoal-deep: #14120F;
+  --dw-charcoal-light: #2C2A25;
   --dw-accent: #DC535D;
   --dw-accent-hover: #C94048;
   --dw-accent-active: #B5363E;
   --dw-accent-bg: rgba(220, 83, 93, 0.12);
-  --dw-text: #FFFFFF;
-  --dw-text-primary: #FFFFFF;
-  --dw-text-secondary: #FFFFFF;
-  --dw-text-muted: #FFFFFF;
-  --dw-text-faint: #D4D0CC;
+  --dw-text: #F2EDE5;
+  --dw-text-primary: #F2EDE5;
+  --dw-text-secondary: #C4BCB2;
+  --dw-text-muted: #8A827A;
+  --dw-text-faint: #5C564F;
   --dw-text-christ: #DC535D;
-  --dw-border: #333333;
-  --dw-border-subtle: #252525;
+  --dw-border: #2E2A25;
+  --dw-border-subtle: #231F1B;
 
   /* Scripture reading surface — warm, calm, distinct from hero */
-  --dw-scripture-bg: #1C1A16;
+  --dw-scripture-bg: #1A1710;
   --dw-scripture-text: #E8E2D8;
-  --dw-scripture-label: #A09080;
+  --dw-scripture-label: #9A8C7A;
   --dw-scripture-border: rgba(160,140,110,0.15);
 
   --font-serif: 'DM Serif Display', 'Georgia', serif;
