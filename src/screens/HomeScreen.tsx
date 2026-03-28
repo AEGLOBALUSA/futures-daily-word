@@ -329,26 +329,6 @@ function getDailyWord() {
   return DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
 }
 
-// ── Emoji Reaction (micro-commitment after reading) ─────────────────────────
-const REACTIONS = [
-  { emoji: '❤️', labelKey: 'reaction_heart' },
-  { emoji: '🤔', labelKey: 'reaction_thinking' },
-  { emoji: '🙏', labelKey: 'reaction_prayer' },
-];
-function getTodayReaction(): string | null {
-  try {
-    const data = JSON.parse(localStorage.getItem('dw_reactions') || '{}');
-    return data[new Date().toISOString().slice(0, 10)] || null;
-  } catch { return null; }
-}
-function saveTodayReaction(emoji: string) {
-  try {
-    const data = JSON.parse(localStorage.getItem('dw_reactions') || '{}');
-    data[new Date().toISOString().slice(0, 10)] = emoji;
-    localStorage.setItem('dw_reactions', JSON.stringify(data));
-      try { const _p = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_p.email) schedulePush(_p.email); } catch {}
-  } catch { /* empty */ }
-}
 
 // ── Campus community count (deterministic per campus + date) ─────────────────
 function getCampusReaderCount(campusId: string): number {
@@ -686,7 +666,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
   const dailyWord = getDailyWord();
   // Emoji reaction
-  const [todayReaction, setTodayReaction] = useState<string | null>(() => getTodayReaction());
   // Weekly review
   const [weekReview] = useState(() => getWeekReviewData());
   const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
@@ -799,15 +778,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const calendarDevotion = getTodaysDevotion(dayOffset);
   const quote = QUOTES[quoteIndex];
 
-  // Primary passage: always driven by active plan — no calendar fallback
-  const primaryPassage = todaysPlanPassages[0]?.passage || '';
-  const commentarySources = COMMENTARY as Record<string, Record<string, string>>;
-  const allCommentaries: { source: string; text: string }[] = [];
-  for (const [source, entries] of Object.entries(commentarySources)) {
-    if (entries[primaryPassage]) {
-      allCommentaries.push({ source, text: entries[primaryPassage] });
-    }
-  }
   // Fetch a single passage on demand (tap to read)
   const loadPassage = useCallback((passage: string) => {
     const key = `${passage}_${translation}`;
@@ -999,6 +969,16 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       return filtered;
     } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; titleId?: string; author: string; body: string; bodyId?: string } }>; }
   })();
+
+  // Primary passage: always driven by active plan — no calendar fallback
+  const primaryPassage = todaysPlanPassages[0]?.passage || '';
+  const commentarySources = COMMENTARY as Record<string, Record<string, string>>;
+  const allCommentaries: { source: string; text: string }[] = [];
+  for (const [source, entries] of Object.entries(commentarySources)) {
+    if (entries[primaryPassage]) {
+      allCommentaries.push({ source, text: entries[primaryPassage] });
+    }
+  }
 
   // If the user has an active Ashley-Jane plan, sync the devotion to that plan's day
   // instead of using the calendar-based rotation (which doesn't match the hero reading)
