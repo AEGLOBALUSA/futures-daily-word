@@ -2345,11 +2345,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           onClick={() => onNavigate?.('plans')}
           style={{
             display: 'block', width: '100%', marginBottom: 16,
-            background: '#2563EB', border: 'none', borderRadius: 12,
-            padding: '14px 20px', cursor: 'pointer',
-            color: '#FFFFFF', fontSize: 16, fontWeight: 700,
-            fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
+            background: 'var(--dw-accent)', border: 'none', borderRadius: 14,
+            padding: '16px 20px', cursor: 'pointer',
+            color: '#FFFFFF', fontSize: 15, fontWeight: 700,
+            fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
             textAlign: 'center',
+            boxShadow: '0 2px 12px rgba(168,50,59,0.25)',
           }}
         >
           Choose Your Plan
@@ -2696,8 +2697,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           <div style={{ marginBottom: 20, overflowX: 'auto', display: 'flex', gap: 12, scrollbarWidth: 'none' }}>
             {pf.bookCards.map((bookId: string) => {
               const bookInfo: Record<string, { title: string; description: string; color: string; planId?: string }> = {
-                'grace-and-truth': { title: 'Grace & Truth', description: 'Biblical foundations for living', color: '#5E3D6B' },
-                'no-more-fear': { title: 'No More Fear', description: 'Living boldly in faith', color: '#2B5E4E', planId: 'book-no-more-fear' },
+                'grace-and-truth': { title: 'Grace & Truth', description: 'Biblical foundations for living', color: '#2E2A25' },
+                'no-more-fear': { title: 'No More Fear', description: 'Living boldly in faith', color: '#6B1A22', planId: 'book-no-more-fear' },
               };
               const info = bookInfo[bookId] || { title: bookId, description: '', color: '#6B1A22' };
 
@@ -2721,12 +2722,13 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   }}
                   style={{
                     minWidth: 180,
-                    background: `linear-gradient(135deg, ${info.color}, ${info.color}CC)`,
-                    borderRadius: 16,
-                    padding: '20px 16px',
+                    background: info.color,
+                    borderRadius: 14,
+                    padding: '20px 18px',
                     color: '#fff',
                     cursor: 'pointer',
                     flexShrink: 0,
+                    border: '1px solid rgba(255,255,255,0.06)',
                   }}
                 >
                   <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>

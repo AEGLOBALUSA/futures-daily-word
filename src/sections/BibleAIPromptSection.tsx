@@ -50,9 +50,9 @@ export function BibleAIPromptSection({ onOpenAI, persona }: { onOpenAI: () => vo
       onClick={onOpenAI}
       style={{
         width: '100%',
-        padding: '16px 18px',
-        background: 'linear-gradient(135deg, rgba(200,146,14,0.12) 0%, rgba(200,146,14,0.04) 100%)',
-        border: '1px solid rgba(200,146,14,0.25)',
+        padding: '18px 20px',
+        background: 'var(--dw-surface)',
+        border: '1px solid var(--dw-border)',
         borderRadius: 14,
         cursor: 'pointer',
         textAlign: 'left',
@@ -66,20 +66,20 @@ export function BibleAIPromptSection({ onOpenAI, persona }: { onOpenAI: () => vo
             fontSize: 9,
             fontWeight: 800,
             letterSpacing: '0.08em',
-            padding: '2px 6px',
-            borderRadius: 5,
-            background: 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)',
+            padding: '3px 8px',
+            borderRadius: 6,
+            background: 'var(--dw-accent)',
             color: '#fff',
             fontFamily: 'var(--font-sans)',
           }}
         >
-          BIBLE AI
+          AI
         </span>
         <span
           style={{
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 600,
-            color: 'var(--dw-text)',
+            color: 'var(--dw-text-primary)',
             fontFamily: 'var(--font-sans)',
           }}
         >
@@ -92,7 +92,7 @@ export function BibleAIPromptSection({ onOpenAI, persona }: { onOpenAI: () => vo
           color: 'var(--dw-text-muted)',
           fontFamily: 'var(--font-sans)',
           margin: 0,
-          lineHeight: 1.45,
+          lineHeight: 1.5,
         }}
       >
         {msg.subtitle}
