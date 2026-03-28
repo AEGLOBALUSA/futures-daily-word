@@ -799,8 +799,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const calendarDevotion = getTodaysDevotion(dayOffset);
   const quote = QUOTES[quoteIndex];
 
-  // Find commentary for today's primary passage — collect ALL sources
-  const primaryPassage = passages[0]?.passage || '';
+  // Primary passage: always driven by active plan — no calendar fallback
+  const primaryPassage = todaysPlanPassages[0]?.passage || '';
   const commentarySources = COMMENTARY as Record<string, Record<string, string>>;
   const allCommentaries: { source: string; text: string }[] = [];
   for (const [source, entries] of Object.entries(commentarySources)) {
@@ -1210,12 +1210,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         .slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length))
         .map(s => `${s.book} ${s.currentChapter}`),
     ];
-    const unique = refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
-    // Fallback: if no plan/slot refs, use today's daily passages so Listen always works
-    if (unique.length === 0 && passages.length > 0) {
-      return passages.map(p => p.passage).filter(Boolean);
-    }
-    return unique;
+    return refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
   }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef]);
   const heroKey = heroChapterRefs.join('|');
 
@@ -1802,12 +1797,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         {sundaySermon && homeTab === 'sermon' && (() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
-          const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot || primaryPassage;
+          const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot;
           if (!hasAnyPassage) return null;
 
           const allLabels = heroChapterRefs.length > 0
             ? heroChapterRefs
-            : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
+            : [firstPlan ? expandChapterRef(firstPlan.passage) : `${firstSlot!.book} ${firstSlot!.currentChapter}`];
           const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
           const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
           const isPausedHero = audioPaused && audioCurrentPassage === HERO_KEY;
@@ -2210,12 +2205,51 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         {!(sundaySermon && homeTab === 'sermon') && (() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
-          const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot || primaryPassage;
-          if (!hasAnyPassage) return null;
+          const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot;
+
+          // No active plan or slot — show a "Start a Plan" prompt in the hero card
+          if (!hasAnyPassage) return (
+            <div key="hero-no-plan" style={{
+              position: 'relative', borderRadius: 24, overflow: 'hidden',
+              marginBottom: 20,
+              boxShadow: '0 24px 64px rgba(168,50,59,0.22), 0 6px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
+              border: '1px solid rgba(255,255,255,0.13)',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(145deg, #FF3B52 0%, #D42F44 12%, #8B1A26 28%, #3A0810 48%, #6B1A22 62%, #B83040 78%, #E84858 92%, #D42F44 100%)',
+                backgroundSize: '350% 350%', animation: 'heroColorWave 5s ease infinite',
+              }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)' }} />
+              <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.55, fontFamily: 'var(--font-sans)', margin: '0 0 16px' }}>
+                  Daily Word
+                </p>
+                <p style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 8px', lineHeight: 1.3 }}>
+                  Choose your reading plan
+                </p>
+                <p style={{ fontSize: 14, opacity: 0.72, fontFamily: 'var(--font-sans)', margin: '0 0 22px', lineHeight: 1.5 }}>
+                  Pick a plan and everything here syncs to your daily reading.
+                </p>
+                <button
+                  onClick={() => onNavigate?.('plans')}
+                  style={{
+                    padding: '14px 28px', borderRadius: 14, border: '2px solid rgba(255,255,255,0.9)',
+                    background: 'rgba(255,255,255,0.18)', color: '#fff', cursor: 'pointer',
+                    fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)',
+                    backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  Browse Plans
+                </button>
+              </div>
+            </div>
+          );
 
           const allLabels = heroChapterRefs.length > 0
             ? heroChapterRefs
-            : [firstPlan ? expandChapterRef(firstPlan.passage) : firstSlot ? `${firstSlot.book} ${firstSlot.currentChapter}` : primaryPassage || ''];
+            : [firstPlan ? expandChapterRef(firstPlan.passage) : `${firstSlot!.book} ${firstSlot!.currentChapter}`];
           const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
           const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
           const isPausedHero = audioPaused && audioCurrentPassage === HERO_KEY;
