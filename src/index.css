@@ -534,54 +534,88 @@ sup {
   color: #FFFFFF !important;
 }
 
-/* Charcoal/dark background elements */
-:root[data-theme="light"] [style*="charcoal-deep"] *,
+/* ── MASTER RULE: Any element or button with a dark/colored background gets white text ── */
+
+/* Charcoal backgrounds */
 :root[data-theme="light"] [style*="charcoal-deep"],
-:root[data-theme="light"] [style*="var(--dw-charcoal"] *,
-:root[data-theme="light"] [style*="var(--dw-charcoal"] {
+:root[data-theme="light"] [style*="charcoal-deep"] *,
+:root[data-theme="light"] [style*="var(--dw-charcoal"],
+:root[data-theme="light"] [style*="var(--dw-charcoal"] * {
   color: #FFFFFF !important;
 }
 
-/* Accent/primary buttons */
-:root[data-theme="light"] .dw-btn-primary {
-  color: #FFFFFF !important;
-}
+/* Accent red backgrounds — buttons AND divs */
+:root[data-theme="light"] .dw-btn-primary,
 :root[data-theme="light"] button[style*="var(--dw-accent)"],
+:root[data-theme="light"] div[style*="var(--dw-accent)"],
+:root[data-theme="light"] div[style*="var(--dw-accent)"] *,
 :root[data-theme="light"] button[style*="DC535D"],
 :root[data-theme="light"] button[style*="dc535d"],
 :root[data-theme="light"] button[style*="A8323B"],
-:root[data-theme="light"] button[style*="a8323b"] {
+:root[data-theme="light"] button[style*="a8323b"],
+:root[data-theme="light"] button[style*="#8C2830"],
+:root[data-theme="light"] div[style*="#8C2830"],
+:root[data-theme="light"] div[style*="#8C2830"] * {
   color: #FFFFFF !important;
 }
-/* FIX: accent-bg buttons need dark accent text, not white —
-   the rule above accidentally matches var(--dw-accent-bg) via substring */
+
+/* Cobalt/blue backgrounds — all shades */
+:root[data-theme="light"] button[style*="#2563EB"],
+:root[data-theme="light"] button[style*="#2563eb"],
+:root[data-theme="light"] div[style*="#2563eb"] *,
+:root[data-theme="light"] div[style*="#2563EB"] *,
+:root[data-theme="light"] button[style*="#1e40af"],
+:root[data-theme="light"] div[style*="#1e40af"],
+:root[data-theme="light"] div[style*="#1e40af"] *,
+:root[data-theme="light"] button[style*="#3b82f6"],
+:root[data-theme="light"] div[style*="#3b82f6"],
+:root[data-theme="light"] div[style*="#3b82f6"] *,
+:root[data-theme="light"] button[style*="#5C6BC0"],
+:root[data-theme="light"] button[style*="#5c6bc0"],
+:root[data-theme="light"] button[style*="#4A5AB0"],
+:root[data-theme="light"] button[style*="#4a5ab0"] {
+  color: #FFFFFF !important;
+}
+
+/* Dark grey/slate backgrounds */
+:root[data-theme="light"] div[style*="#2c3e50"],
+:root[data-theme="light"] div[style*="#2c3e50"] *,
+:root[data-theme="light"] div[style*="#34495e"],
+:root[data-theme="light"] div[style*="#34495e"] * {
+  color: #FFFFFF !important;
+}
+
+/* Orange/amber buttons */
+:root[data-theme="light"] button[style*="#FF9500"],
+:root[data-theme="light"] button[style*="#ff9500"] {
+  color: #FFFFFF !important;
+}
+
+/* Any gradient background — white text by default */
+:root[data-theme="light"] [style*="linear-gradient"],
+:root[data-theme="light"] [style*="linear-gradient"] * {
+  color: #FFFFFF !important;
+}
+
+/* ── CORRECTIONS: elements that look dark but need dark text, not white ── */
+
+/* accent-bg is nearly transparent — NOT a dark background */
 :root[data-theme="light"] button[style*="var(--dw-accent-bg)"] {
   color: var(--dw-accent) !important;
 }
 
-/* Cobalt blue buttons (Choose Your Plan, etc.) */
-:root[data-theme="light"] button[style*="#2563EB"],
-:root[data-theme="light"] button[style*="#2563eb"] {
-  color: #FFFFFF !important;
+/* Transparent/ghost buttons that use accent as TEXT color */
+:root[data-theme="light"] button[style*="background: none"][style*="var(--dw-accent)"],
+:root[data-theme="light"] button[style*="background:none"][style*="var(--dw-accent)"],
+:root[data-theme="light"] button[style*="background: transparent"][style*="var(--dw-accent)"] {
+  color: var(--dw-accent) !important;
 }
 
-/* Gold gradient buttons - dark text */
-:root[data-theme="light"] button[style*="linear-gradient"] {
-  color: #1A1714 !important;
-}
-
-/* FIX: Translation pill buttons — unselected pills need a visible border in light mode */
+/* Translation pill buttons — unselected need visible border + dark text */
 :root[data-theme="light"] button[style*="border: 1.5px solid var(--dw-border)"],
 :root[data-theme="light"] button[style*="border:1.5px solid var(--dw-border)"] {
   border-color: #A0908A !important;
   color: var(--dw-text-secondary) !important;
-}
-
-/* FIX: Buttons with transparent bg that use accent as TEXT color (not background) */
-/* "Browse all plans" link and similar accent-colored text buttons */
-:root[data-theme="light"] button[style*="background: none"][style*="var(--dw-accent)"],
-:root[data-theme="light"] button[style*="background:none"][style*="var(--dw-accent)"] {
-     color: var(--dw-accent) !important;
 }
 
 /* FIX: Ensure accent-background buttons and their children keep white text */
