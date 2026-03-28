@@ -559,6 +559,12 @@ sup {
   color: var(--dw-accent) !important;
 }
 
+/* Cobalt blue buttons (Choose Your Plan, etc.) */
+:root[data-theme="light"] button[style*="#2563EB"],
+:root[data-theme="light"] button[style*="#2563eb"] {
+  color: #FFFFFF !important;
+}
+
 /* Gold gradient buttons - dark text */
 :root[data-theme="light"] button[style*="linear-gradient"] {
   color: #1A1714 !important;
