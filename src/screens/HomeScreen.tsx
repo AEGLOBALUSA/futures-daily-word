@@ -3,7 +3,7 @@ import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { FontSizeControls } from '../components/FontSizeControls';
 import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw } from 'lucide-react';
-import { getDailyPassages, getDateString, getDailyQuoteIndex, getTodaysDevotion, getDayNumber } from '../utils/daily-passages';
+import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -33,7 +33,6 @@ import { getPersonaConfig, getGreeting, ALL_PERSONAS, PERSONA_CONFIGS } from '..
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
-import { type SermonData } from '../data/sermons';
 import type { TabId } from '../components/TabBar';
 // import { isSundayWindow } from '../utils/sunday';
 import { schedulePush } from '../utils/cloudSync';
@@ -366,8 +365,6 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
   } catch { return null; }
 }
 
-/** Sunday sermon shortcut — show during Sunday service window (Sat 11:40 PM → Sun 4 PM) */
-function getSundaySermon(): SermonData | null { return null; /* sermon banner disabled */ }
 
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
@@ -461,22 +458,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     [personaConfig.persona, userProfile?.firstName],
   );
 
-  // ── Sunday sermon tab — takes over the home screen during the window ──
-  const sundaySermon = getSundaySermon();
-  const [homeTab, setHomeTab] = useState<'word' | 'sermon'>(() => sundaySermon ? 'sermon' : 'word');
-  const [inlineNotes, setInlineNotes] = useState<Record<number, string>>(() => {
-    if (!sundaySermon) return {};
-    try { return JSON.parse(localStorage.getItem(`dw_sermon_inline_${sundaySermon.id}`) || '{}'); } catch { return {}; }
-  });
-
-
-  const updateInlineNote = (idx: number, text: string) => {
-    if (!sundaySermon) return;
-    const next = { ...inlineNotes, [idx]: text };
-    if (!text.trim()) delete next[idx];
-    setInlineNotes(next);
-    localStorage.setItem(`dw_sermon_inline_${sundaySermon.id}`, JSON.stringify(next));
-  };
 
   const [dayOffset, setDayOffset] = useState(0);
   const [translation, setTranslation] = useState<TranslationCode>(() => {
@@ -775,7 +756,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const passages = getDailyPassages(dayOffset);
   const dateStr = getDateString(dayOffset);
   const quoteIndex = getDailyQuoteIndex(dayOffset, QUOTES.length);
-  const calendarDevotion = getTodaysDevotion(dayOffset);
   const quote = QUOTES[quoteIndex];
 
   // Fetch a single passage on demand (tap to read)
@@ -931,15 +911,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathwayData, pathwayProgress, translation]);
 
-  // Auto-load devotion-connected scripture for congregation persona
-  useEffect(() => {
-    if (!personaConfig.sectionOrder.includes('devotion_scripture')) return;
-    const devVerse = todaysDevotion?.verse || ''; // e.g. "2 Timothy 1"
-    if (!devVerse) return;
-    loadPassage(devVerse);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calendarDevotion.verse, translation]);
-
   // Auto-load comfort scripture chapter
   useEffect(() => {
     if (!personaConfig.sectionOrder.includes('comfort_scripture')) return;
@@ -987,6 +958,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const todaysDevotion = planDevotion
     ? { title: planDevotion.title, titleId: (planDevotion as Record<string, string>).titleId || '', body: planDevotion.body, bodyId: (planDevotion as Record<string, string>).bodyId || '', verse: planVerse, author: planDevotion.author, source: 'ashley-jane' as const }
     : null;
+
+  // Auto-load devotion-connected scripture for congregation persona
+  useEffect(() => {
+    if (!personaConfig.sectionOrder.includes('devotion_scripture')) return;
+    const devVerse = todaysDevotion?.verse || ''; // e.g. "2 Timothy 1"
+    if (!devVerse) return;
+    loadPassage(devVerse);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todaysDevotion?.verse, translation]);
 
   // Preload audio for plan passages in the background once text is available
   useEffect(() => {
@@ -1435,14 +1415,14 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         />
       )}
       <div style={{ padding: '0 24px 0' }}>
-        {/* ── Hero viewport ── fills visible screen (compact when sermon tab active) */}
+        {/* ── Hero viewport ── fills visible screen */}
         <div style={{
-          minHeight: (sundaySermon && homeTab === 'sermon') ? 'auto' : 'calc(100svh - 80px)',
+          minHeight: 'calc(100svh - 80px)',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: (sundaySermon && homeTab === 'sermon') ? 'flex-start' : 'center',
+          justifyContent: 'center',
           paddingTop: 20,
-          paddingBottom: (sundaySermon && homeTab === 'sermon') ? 16 : 64,
+          paddingBottom: 64,
           position: 'relative',
         }}>
 
@@ -1773,369 +1753,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           </div>
         </div>
 
-        {/* ── Hero Listen Button — the hero, sits directly under Daily Word header ── */}
-        {sundaySermon && homeTab === 'sermon' && (() => {
-          const firstPlan = todaysPlanPassages[0];
-          const firstSlot = readingSlots[0];
-          const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot;
-          if (!hasAnyPassage) return null;
-
-          const allLabels = heroChapterRefs.length > 0
-            ? heroChapterRefs
-            : [firstPlan ? expandChapterRef(firstPlan.passage) : `${firstSlot!.book} ${firstSlot!.currentChapter}`];
-          const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
-          const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
-          const isPausedHero = audioPaused && audioCurrentPassage === HERO_KEY;
-          const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
-
-          return (
-            <div
-              key="hero-listen-sermon-tab"
-              style={{
-                position: 'relative',
-                borderRadius: 24,
-                overflow: 'hidden',
-                marginTop: 16,
-                marginBottom: 20,
-                boxShadow: '0 24px 64px rgba(168,50,59,0.22), 0 6px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
-                border: '1px solid rgba(255,255,255,0.13)',
-              }}
-            >
-              {/* Animated wave gradient */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(145deg, #FF3B52 0%, #D42F44 12%, #8B1A26 28%, #3A0810 48%, #6B1A22 62%, #B83040 78%, #E84858 92%, #D42F44 100%)',
-                backgroundSize: '350% 350%',
-                animation: 'heroColorWave 5s ease infinite',
-              }} />
-              {/* Glass highlight */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)',
-              }} />
-              {/* Shimmer sweep */}
-              <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 24 }}>
-                <div style={{
-                  position: 'absolute', top: '-60%', bottom: '-60%', width: '55%',
-                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.18) 48%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.18) 52%, rgba(255,255,255,0.04) 70%, transparent 100%)',
-                  animation: 'heroShimmerSweep 3.5s ease-in-out infinite',
-                  animationDelay: '0.8s',
-                }} />
-              </div>
-              {/* Content */}
-              <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 0' }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.55, fontFamily: 'var(--font-sans)', margin: 0 }}>
-                    {planLabel || "Today's Reading"}
-                  </p>
-                  <p style={{ fontSize: 10, fontWeight: 500, opacity: 0.45, fontFamily: 'var(--font-sans)', margin: 0, letterSpacing: '0.04em' }}>
-                    {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '22px 20px 20px' }}>
-                  <div style={{ position: 'relative', marginBottom: 16, flexShrink: 0, width: 104, height: 104, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {/* Animated equalizer ring around button when playing */}
-                    {isPlayingHero && !isPausedHero && (
-                      <div style={{
-                        position: 'absolute', inset: 0, borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        animation: 'heroRingPulse 2.2s ease-in-out infinite',
-                      }}>
-                        <div style={{
-                          position: 'absolute', inset: 0, borderRadius: '50%',
-                          border: '2px solid rgba(255,255,255,0.15)',
-                          animation: 'heroEqRing 1.5s ease-in-out infinite',
-                        }} />
-                      </div>
-                    )}
-                    <button
-                      className="hero-play-btn"
-                      onClick={() => handleHeroListen()}
-                      style={{
-                        width: 88, height: 88, borderRadius: '50%',
-                        background: isLoadingHero ? 'rgba(255,180,50,0.25)'
-                          : isPlayingHero ? 'rgba(255,255,255,0.22)'
-                          : isPausedHero ? 'rgba(255,255,255,0.18)'
-                          : 'rgba(255,255,255,0.16)',
-                        border: isLoadingHero ? '2px solid rgba(255,180,50,0.6)' : '2px solid rgba(255,255,255,0.35)',
-                        boxShadow: isPlayingHero
-                          ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
-                          : isPausedHero
-                          ? '0 0 0 10px rgba(255,255,255,0.05), 0 10px 32px rgba(0,0,0,0.35)'
-                          : '0 10px 32px rgba(0,0,0,0.35)',
-                        animation: isLoadingHero ? 'heroLoadPulse 1.2s ease-in-out infinite'
-                          : isPlayingHero ? 'none'
-                          : isPausedHero ? 'heroPausedPulse 3s ease-in-out infinite'
-                          : 'heroIdlePulse 3.5s ease-in-out infinite',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: '#fff',
-                        transition: 'box-shadow 0.4s ease, background 0.2s ease',
-                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                        flexShrink: 0, position: 'relative', zIndex: 1,
-                      }}
-                    >
-                      {isLoadingHero
-                        ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
-                        : isPlayingHero && !isPausedHero
-                        ? <Pause size={34} style={{ opacity: 0.95 }} />
-                        : <Play size={32} style={{ marginLeft: 4 }} />
-                      }
-                    </button>
-                    {/* Small equalizer bars below button when playing */}
-                    {isPlayingHero && !isPausedHero && (
-                      <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>
-                        <AudioWave bars={5} height={10} color="rgba(255,255,255,0.6)" />
-                      </div>
-                    )}
-                  </div>
-                  <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
-                    {isLoadingHero ? t('loading_label')
-                      : (isPlayingHero || isPausedHero) && allLabels.length > 1
-                      ? (isPausedHero ? t('paused_label') + ' — ' : '') + (allLabels[heroChapterIndex] || allLabels[0])
-                      : isPlayingHero ? allLabels[heroChapterIndex] || t('now_playing')
-                      : isPausedHero ? t('paused_label')
-                      : t('listen_now')}
-                  </p>
-                  <p style={{ fontSize: 13, opacity: 0.68, margin: 0, fontFamily: 'var(--font-sans)', textAlign: 'center', maxWidth: '88%', lineHeight: 1.4 }}>
-                    {(isPlayingHero || isPausedHero) && allLabels.length > 1
-                      ? `${heroChapterIndex + 1} of ${allLabels.length}`
-                      : allLabels.join(' · ')}
-                  </p>
-                  <p style={{ fontSize: 10, opacity: 0.4, margin: '5px 0 0', fontFamily: 'var(--font-sans)', textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    {t('esv_human_reader')}
-                  </p>
-                </div>
-              </div>
-              {/* Chapter navigator — slider + pills (sermon tab) */}
-              {allLabels.length > 1 && (
-                <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '0 16px 12px' }}>
-                  <div style={{ padding: '0 4px', margin: '0 0 6px' }}>
-                    <input
-                      className="hero-range-slider"
-                      type="range" min={0} max={allLabels.length - 1} value={heroChapterIndex}
-                      onChange={(e) => { const idx = parseInt(e.target.value, 10); if (idx !== heroChapterIndex) { (audioPlaying || audioPaused) ? handleHeroSkipTo(idx) : handleHeroSelect(idx); } }}
-                      style={{
-                        background: `linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) 100%)`,
-                      }}
-                    />
-                  </div>
-                  <p style={{ fontSize: 10, fontWeight: 600, textAlign: 'center', opacity: 0.5, fontFamily: 'var(--font-sans)', margin: '0 0 8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                    {`Chapter ${heroChapterIndex + 1} of ${allLabels.length}`}
-                  </p>
-                  <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', padding: '0 2px', WebkitOverflowScrolling: 'touch' }}>
-                    {allLabels.map((label, i) => (
-                      <button key={i} onClick={(e) => { e.stopPropagation(); (audioPlaying || audioPaused) ? handleHeroSkipTo(i) : handleHeroSelect(i); }}
-                        style={{
-                          flexShrink: 0, padding: '8px 14px', borderRadius: 16, cursor: 'pointer',
-                          fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
-                          border: i === heroChapterIndex ? '2px solid rgba(255,255,255,0.9)' : '1.5px solid rgba(255,255,255,0.15)',
-                          background: i === heroChapterIndex ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.04)',
-                          color: i === heroChapterIndex ? '#fff' : 'rgba(255,255,255,0.4)',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >{label}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Stop button (sermon tab) */}
-              {(isPlayingHero || isPausedHero) && (
-                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'center', paddingBottom: 10 }}>
-                  <button onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; setHeroChapterIndex(0); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6, padding: '7px 20px', borderRadius: 20,
-                      background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
-                      color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                      fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
-                    }}
-                  >
-                    <Square size={12} fill="currentColor" />
-                    Stop
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ── Sunday Service Banner — prominent link to interactive sermon notes ── */}
-        {sundaySermon && (
-          <button
-            onClick={() => onNavigate?.('messages')}
-            style={{
-              width: '100%', minHeight: 64, marginBottom: 20,
-              background: 'linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%)',
-              border: 'none', borderRadius: 16, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-              padding: '16px 20px',
-              boxShadow: '0 4px 16px rgba(123,31,162,0.3)',
-            }}
-          >
-            <BookOpen size={22} color="#fff" />
-            <div style={{ textAlign: 'left' }}>
-              <p style={{ color: '#fff', fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.2 }}>
-                {t('sunday_service')}
-              </p>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>
-                {t('tap_notes')}
-              </p>
-            </div>
-          </button>
-        )}
-
-        {/* ── Sunday Sermon Tab Bar ── */}
-        {sundaySermon && (
-          <div style={{
-            display: 'flex', gap: 0, marginBottom: 20,
-            background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
-            border: '1px solid var(--dw-border)',
-          }}>
-            {([['sermon', 'Sermon Notes'], ['word', 'Daily Word']] as const).map(([key, label]) => (
-              <button key={key} onClick={() => setHomeTab(key)} style={{
-                flex: 1, padding: '11px 0',
-                background: 'transparent',
-                color: homeTab === key ? '#fff' : 'var(--dw-text-muted)',
-                border: 'none', borderRadius: 9, cursor: 'pointer',
-                fontSize: 14, fontWeight: homeTab === key ? 700 : 500, fontFamily: 'var(--font-sans)',
-                transition: 'all 0.2s ease',
-              }}>
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ── Sunday Sermon View (full inline when tab active) ── */}
-        {sundaySermon && homeTab === 'sermon' && (() => {
-          const sermon = sundaySermon;
-          return (
-            <div style={{ paddingBottom: 120 }}>
-              {/* Key verse banner */}
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(154,123,46,0.10) 0%, rgba(107,26,34,0.06) 100%)',
-                border: '1px solid rgba(154,123,46,0.25)',
-                borderRadius: 14, padding: '20px 18px', marginBottom: 28,
-              }}>
-                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'var(--dw-accent)', marginBottom: 8, textTransform: 'uppercase' as const }}>
-                  {sermon.series || 'This Week'}
-                </p>
-                <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 600, color: 'var(--dw-text)', lineHeight: 1.3, marginBottom: 8 }}>
-                  {sermon.title}
-                </p>
-                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-muted)', marginBottom: 12 }}>
-                  {sermon.speaker}
-                </p>
-                <p style={{ fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 15, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.7 }}>
-                  {sermon.keyVerseText}
-                </p>
-                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, marginTop: 6 }}>
-                  {sermon.keyVerse}
-                </p>
-                <div style={{ marginTop: 12 }}>
-                  <ListenButton text={sermon.plainText} size="lg" label="Listen to Sermon" />
-                </div>
-              </div>
-
-              {/* Sermon sections */}
-              {sermon.sections.map((section, idx) => (
-                <div key={idx} style={{ marginBottom: 36 }}>
-                  {section.heading && (
-                    <h2 style={{
-                      fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 600,
-                      color: 'var(--dw-text)', marginBottom: 12, lineHeight: 1.3,
-                    }}>
-                      {section.heading}
-                    </h2>
-                  )}
-
-                  {section.body && (
-                    <p style={{
-                      fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 16,
-                      color: 'var(--dw-text-secondary)', lineHeight: 1.85, marginBottom: 14,
-                      whiteSpace: 'pre-line',
-                    }}>
-                      {section.body}
-                    </p>
-                  )}
-
-                  {section.points && section.points.length > 0 && (
-                    <div style={{ marginBottom: 14 }}>
-                      {section.points.map((point, pi) => (
-                        <div key={pi} style={{
-                          display: 'flex', gap: 12, marginBottom: 10,
-                          paddingLeft: 4, borderLeft: '3px solid #9A7B2E',
-                          paddingTop: 2, paddingBottom: 2,
-                        }}>
-                          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, color: 'var(--dw-accent)', minWidth: 18 }}>
-                            {pi + 1}.
-                          </span>
-                          <span style={{ fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.7 }}>
-                            {point}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {section.scripture && (
-                    <div style={{
-                      borderLeft: '3px solid #9A7B2E',
-                      background: 'rgba(154,123,46,0.04)',
-                      padding: '14px 16px', borderRadius: '0 10px 10px 0',
-                      marginBottom: 14,
-                    }}>
-                      <p style={{
-                        fontFamily: 'var(--font-serif-text, var(--font-serif))', fontSize: 15,
-                        fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.75,
-                        whiteSpace: 'pre-line',
-                      }}>
-                        {section.scripture}
-                      </p>
-                      {section.scriptureRef && (
-                        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, marginTop: 8 }}>
-                          {section.scriptureRef}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ── Always-open note area under every section ── */}
-                  <textarea
-                    placeholder={t('your_notes_placeholder')}
-                    value={inlineNotes[idx] || ''}
-                    onChange={e => {
-                      updateInlineNote(idx, e.target.value);
-                      e.target.style.height = 'auto';
-                      e.target.style.height = Math.max(e.target.scrollHeight, 100) + 'px';
-                    }}
-                    onFocus={e => {
-                      e.target.style.height = 'auto';
-                      e.target.style.height = Math.max(e.target.scrollHeight, 100) + 'px';
-                    }}
-                    style={{
-                      width: '100%', minHeight: 100, marginTop: 14,
-                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                      borderRadius: 12, padding: '14px 16px',
-                      color: 'var(--dw-text-primary)', fontSize: 15,
-                      fontFamily: 'var(--font-sans)', outline: 'none',
-                      resize: 'none', boxSizing: 'border-box',
-                      lineHeight: 1.7,
-                    }}
-                  />
-
-                  {/* Section divider */}
-                  {idx < sermon.sections.length - 1 && (
-                    <div style={{ borderBottom: '1px solid var(--dw-border)', marginTop: 32, opacity: 0.5 }} />
-                  )}
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-
-        {/* ── Regular Daily Word content (hidden when sermon tab active) ── */}
-        {(!sundaySermon || homeTab === 'word') && (<>
-
         {/* ── Persona Greeting with Search Button ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>
           <p style={{
@@ -2181,8 +1798,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           onDecrease={handleFontDecrease}
         />
 
-        {/* ── Hero Listen Button ── shown when NOT on sermon tab (sermon tab has its own hero) */}
-        {!(sundaySermon && homeTab === 'sermon') && (() => {
+        {(() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
           const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot;
@@ -5231,7 +4847,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         {/* Bottom spacing */}
         <div style={{ height: 24 }} />
 
-        </>)}
         {/* ── End conditional Daily Word content ── */}
 
         </div>{/* end hero viewport */}
