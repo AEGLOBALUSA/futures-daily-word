@@ -2696,8 +2696,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           <div style={{ marginBottom: 20, overflowX: 'auto', display: 'flex', gap: 12, scrollbarWidth: 'none' }}>
             {pf.bookCards.map((bookId: string) => {
               const bookInfo: Record<string, { title: string; description: string; color: string; planId?: string }> = {
-                'grace-and-truth': { title: 'Grace & Truth', description: 'Biblical foundations for living', color: '#6B4C8A' },
-                'no-more-fear': { title: 'No More Fear', description: 'Living boldly in faith', color: '#2E6B5A', planId: 'book-no-more-fear' },
+                'grace-and-truth': { title: 'Grace & Truth', description: 'Biblical foundations for living', color: '#5E3D6B' },
+                'no-more-fear': { title: 'No More Fear', description: 'Living boldly in faith', color: '#2B5E4E', planId: 'book-no-more-fear' },
               };
               const info = bookInfo[bookId] || { title: bookId, description: '', color: '#6B1A22' };
 
@@ -2708,6 +2708,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               return (
                 <div
                   key={bookId}
+                  className="dw-dark-surface"
                   onClick={() => {
                     if (info.planId && !isActive) {
                       startPlanFromHome(info.planId);
@@ -2922,8 +2923,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)',
                         letterSpacing: '0.04em', cursor: 'pointer',
                         transition: 'all 0.15s ease',
-                        border: t === translation ? '1.5px solid #5C6BC0' : '1.5px solid var(--dw-border)',
-                        background: t === translation ? '#5C6BC0' : 'transparent',
+                        border: t === translation ? '1.5px solid #5B7085' : '1.5px solid var(--dw-border)',
+                        background: t === translation ? '#5B7085' : 'transparent',
                         color: t === translation ? '#fff' : 'var(--dw-text-muted)',
                       }}
                     >
@@ -2941,7 +2942,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     onClick={() => handleListen(comfortPassage)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 6,
-                      background: comfortIsPlaying ? '#4A5AB0' : '#5C6BC0',
+                      background: comfortIsPlaying ? '#4A6070' : '#5B7085',
                       border: 'none', borderRadius: 10, padding: '8px 14px',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       color: '#fff', fontFamily: 'var(--font-sans)',
@@ -2960,7 +2961,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 {/* Scripture text — auto-loaded */}
                 {comfortIsLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-                    <Loader2 size={14} style={{ color: '#5C6BC0', animation: 'spin 1s linear infinite' }} />
+                    <Loader2 size={14} style={{ color: '#5B7085', animation: 'spin 1s linear infinite' }} />
                     <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading…</span>
                   </div>
                 ) : comfortText ? (
@@ -2975,9 +2976,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   <button
                     onClick={() => loadPassage(comfortPassage)}
                     style={{
-                      background: 'rgba(92,107,192,0.1)', border: '1px solid #5C6BC0',
+                      background: 'rgba(92,107,192,0.1)', border: '1px solid #5B7085',
                       borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
-                      cursor: 'pointer', color: '#5C6BC0', fontFamily: 'var(--font-sans)',
+                      cursor: 'pointer', color: '#5B7085', fontFamily: 'var(--font-sans)',
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}
                   >
@@ -3004,7 +3005,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         setComfortPostRead('devotion');
                       }}
                       style={{
-                        background: '#5C6BC0', border: 'none', borderRadius: 10,
+                        background: '#5B7085', border: 'none', borderRadius: 10,
                         padding: '10px 20px', fontSize: 14, fontWeight: 600,
                         cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
@@ -3032,7 +3033,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   }}>
                     <p style={{
                       fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                      textTransform: 'uppercase', color: '#5C6BC0',
+                      textTransform: 'uppercase', color: '#5B7085',
                       fontFamily: 'var(--font-sans)', marginBottom: 10,
                     }}>
                       A THOUGHT FROM THIS CHAPTER
@@ -3058,7 +3059,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       onClick={() => setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more')}
                       style={{
                         width: '100%', padding: '12px 16px', borderRadius: 10,
-                        background: '#5C6BC0', border: 'none',
+                        background: '#5B7085', border: 'none',
                         fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
@@ -3084,7 +3085,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       }}
                       style={{
                         padding: '10px 20px', borderRadius: 10,
-                        background: '#5C6BC0', border: 'none',
+                        background: '#5B7085', border: 'none',
                         fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
@@ -3145,7 +3146,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       }}
                       style={{
                         padding: '10px 16px', borderRadius: 10,
-                        background: '#5C6BC0', border: 'none',
+                        background: '#5B7085', border: 'none',
                         fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
