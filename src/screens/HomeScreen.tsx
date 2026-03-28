@@ -2287,7 +2287,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         })()}
 
         {/* ── Date Navigation — directly under hero so users connect the two ── */}
-        <div style={{
+        <div className="dw-dark-surface" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -2646,6 +2646,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       {/* Blue Faith Pathway Banner for New Christians */}
       {pf.faithPathway && pathwayProgress.enrolled && pathwayData && (
         <div
+          className="dw-dark-surface"
           onClick={() => {
             const el = document.getElementById('pathway-lesson-card');
             if (el) {
@@ -2794,6 +2795,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           if (completed >= totalDays) {
             return (
               <div
+                className="dw-dark-surface"
                 onClick={() => onNavigate?.('plans')}
                 style={{
                   background: 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
@@ -2829,6 +2831,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
           return (
             <div
+              className="dw-dark-surface"
               onClick={() => {
                 // Mark the current day as complete, advance to next
                 if (today) {
@@ -3436,7 +3439,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           const todayPrompt = prompts[promptIdx];
 
           return (
-            <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, var(--dw-charcoal), var(--dw-charcoal-deep))' }}>
+            <Card className="dw-dark-surface" style={{ marginBottom: 16, background: 'linear-gradient(135deg, var(--dw-charcoal), var(--dw-charcoal-deep))' }}>
               <p style={{
                 fontSize: 11, fontWeight: 700, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
                 textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
@@ -3696,7 +3699,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           const count = getCampusReaderCount(userProfile.campus!);
           const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
           return (
-            <div style={{
+            <div className="dw-dark-surface" style={{
               display: 'flex', alignItems: 'center', gap: 8,
               marginBottom: 16, padding: '10px 14px',
               background: 'var(--dw-charcoal)', borderRadius: 12,
@@ -3725,7 +3728,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           if (slotsOnlyMode && visibleSlots.length === 0) return null;
           return (
           <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
+          <div className="dw-dark-surface" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
             <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', margin: 0 }}>{slotsOnlyMode ? 'ADDITIONAL READING' : "TODAY'S CHAPTERS"}</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={() => {

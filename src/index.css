@@ -472,62 +472,34 @@ sup {
 }
 
 /* ============================================
-   NUCLEAR LIGHT MODE TEXT OVERRIDE
-   Forces dark text on light backgrounds.
-   Fixes white-on-white "whited out" panels on iOS.
+   LIGHT MODE CONTRAST SYSTEM
+   Two-class approach: no nuclear overrides.
+   CSS variables handle light surfaces automatically.
+   .dw-dark-surface / .dw-btn-dark force white text on dark elements.
    ============================================ */
 
-/* Catch-all: dark text in light mode */
-:root[data-theme="light"] *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
-  color: var(--dw-text-primary) !important;
-}
-
-/* Override inline color styles */
-:root[data-theme="light"] [style*="color"] {
-  color: var(--dw-text-primary) !important;
-}
-:root[data-theme="light"] [style*="rgba"] {
-  color: var(--dw-text-primary) !important;
-}
-:root[data-theme="light"] [style*="rgb("] {
-  color: var(--dw-text-primary) !important;
-}
-
-/* Muted/secondary text */
-:root[data-theme="light"] .text-section-header {
-  color: var(--dw-text-muted) !important;
-}
-
-/* Buttons, inputs */
-:root[data-theme="light"] button,
-:root[data-theme="light"] input,
-:root[data-theme="light"] textarea,
-:root[data-theme="light"] select {
-  color: var(--dw-text-primary) !important;
-}
-
-/* Placeholder */
+/* ── Light mode: inherit from variables (body already sets color) ── */
+/* Only override specific elements that iOS Safari renders incorrectly */
 :root[data-theme="light"] ::placeholder {
   color: var(--dw-text-faint) !important;
 }
 
-/* Links */
-:root[data-theme="light"] a {
-  color: var(--dw-text-primary) !important;
-}
-
-/* ====== EXCEPTIONS: keep white text on dark backgrounds ====== */
-
-/* MASTER CLASS: Any element with .dw-btn-dark ALWAYS gets white text.
-   This beats every other rule because class + root + !important = max specificity. */
-:root[data-theme="light"] .dw-btn-dark,
-:root[data-theme="light"] .dw-btn-dark *,
-:root .dw-btn-dark,
-.dw-btn-dark {
+/* ── WHITE TEXT on dark surfaces ── */
+/* .dw-btn-dark = individual buttons with a dark/colored background */
+/* .dw-dark-surface = containers with dark backgrounds; all children get white */
+.dw-btn-dark,
+.dw-btn-dark *,
+.dw-dark-surface,
+.dw-dark-surface * {
   color: #FFFFFF !important;
 }
 
-/* Hero card (red gradient) */
+/* Class-based primary button */
+:root[data-theme="light"] .dw-btn-primary {
+  color: #FFFFFF !important;
+}
+
+/* Hero card — uses inline border-radius: 24px + overflow: hidden */
 :root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] *:not(svg):not(path) {
   color: #FFFFFF !important;
 }
@@ -541,100 +513,6 @@ sup {
 :root[data-theme="light"] .tab-bar-item.active,
 :root[data-theme="light"] .tab-bar-item.active * {
   color: #FFFFFF !important;
-}
-
-/* ── MASTER RULE: Any element or button with a dark/colored background gets white text ── */
-
-/* Charcoal backgrounds */
-:root[data-theme="light"] [style*="charcoal-deep"],
-:root[data-theme="light"] [style*="charcoal-deep"] *,
-:root[data-theme="light"] [style*="var(--dw-charcoal"],
-:root[data-theme="light"] [style*="var(--dw-charcoal"] * {
-  color: #FFFFFF !important;
-}
-
-/* Accent red backgrounds — buttons AND divs */
-:root[data-theme="light"] .dw-btn-primary,
-:root[data-theme="light"] button[style*="var(--dw-accent)"],
-:root[data-theme="light"] div[style*="var(--dw-accent)"],
-:root[data-theme="light"] div[style*="var(--dw-accent)"] *,
-:root[data-theme="light"] button[style*="DC535D"],
-:root[data-theme="light"] button[style*="dc535d"],
-:root[data-theme="light"] button[style*="A8323B"],
-:root[data-theme="light"] button[style*="a8323b"],
-:root[data-theme="light"] button[style*="#8C2830"],
-:root[data-theme="light"] div[style*="#8C2830"],
-:root[data-theme="light"] div[style*="#8C2830"] * {
-  color: #FFFFFF !important;
-}
-
-/* Cobalt/blue backgrounds — all shades */
-:root[data-theme="light"] button[style*="#2563EB"],
-:root[data-theme="light"] button[style*="#2563eb"],
-:root[data-theme="light"] div[style*="#2563eb"] *,
-:root[data-theme="light"] div[style*="#2563EB"] *,
-:root[data-theme="light"] button[style*="#1e40af"],
-:root[data-theme="light"] div[style*="#1e40af"],
-:root[data-theme="light"] div[style*="#1e40af"] *,
-:root[data-theme="light"] button[style*="#3b82f6"],
-:root[data-theme="light"] div[style*="#3b82f6"],
-:root[data-theme="light"] div[style*="#3b82f6"] *,
-:root[data-theme="light"] button[style*="#5C6BC0"],
-:root[data-theme="light"] button[style*="#5c6bc0"],
-:root[data-theme="light"] button[style*="#4A5AB0"],
-:root[data-theme="light"] button[style*="#4a5ab0"] {
-  color: #FFFFFF !important;
-}
-
-/* Dark grey/slate backgrounds */
-:root[data-theme="light"] div[style*="#2c3e50"],
-:root[data-theme="light"] div[style*="#2c3e50"] *,
-:root[data-theme="light"] div[style*="#34495e"],
-:root[data-theme="light"] div[style*="#34495e"] * {
-  color: #FFFFFF !important;
-}
-
-/* Orange/amber buttons */
-:root[data-theme="light"] button[style*="#FF9500"],
-:root[data-theme="light"] button[style*="#ff9500"] {
-  color: #FFFFFF !important;
-}
-
-/* Any gradient background — white text by default */
-:root[data-theme="light"] [style*="linear-gradient"],
-:root[data-theme="light"] [style*="linear-gradient"] * {
-  color: #FFFFFF !important;
-}
-
-/* ── CORRECTIONS: elements that look dark but need dark text, not white ── */
-
-/* accent-bg is nearly transparent — NOT a dark background */
-:root[data-theme="light"] button[style*="var(--dw-accent-bg)"] {
-  color: var(--dw-accent) !important;
-}
-
-/* Transparent/ghost buttons that use accent as TEXT color */
-:root[data-theme="light"] button[style*="background: none"][style*="var(--dw-accent)"],
-:root[data-theme="light"] button[style*="background:none"][style*="var(--dw-accent)"],
-:root[data-theme="light"] button[style*="background: transparent"][style*="var(--dw-accent)"] {
-  color: var(--dw-accent) !important;
-}
-
-/* Translation pill buttons — unselected need visible border + dark text */
-:root[data-theme="light"] button[style*="border: 1.5px solid var(--dw-border)"],
-:root[data-theme="light"] button[style*="border:1.5px solid var(--dw-border)"] {
-  border-color: #A0908A !important;
-  color: var(--dw-text-secondary) !important;
-}
-
-/* FIX: Ensure accent-background buttons and their children keep white text */
-:root[data-theme="light"] button[style*="background: var(--dw-accent)"],
-:root[data-theme="light"] button[style*="background:var(--dw-accent)"] {
-     color: #FFFFFF !important;
-}
-:root[data-theme="light"] button[style*="background: var(--dw-accent)"] *,
-:root[data-theme="light"] button[style*="background:var(--dw-accent)"] * {
-     color: #FFFFFF !important;
 }
 
 /* ── Hero Range Slider — iOS Safari requires explicit pseudo-element CSS ── */
