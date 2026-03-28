@@ -1139,27 +1139,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     } catch {}
   };
 
-  const removePlanFromHome = (planId: string) => {
-    try {
-      const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-      delete existing[planId];
-      localStorage.setItem('dw_activeplans', JSON.stringify(existing));
-      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-
-      // Also clean up book plan data if applicable
-      const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
-      if (planDef?.bookId) {
-        const bookPlans: Record<string, unknown> =
-          (() => { try { return JSON.parse(localStorage.getItem('dw_book_plans') || '{}'); } catch { return {}; } })();
-        delete bookPlans[planDef.bookId];
-        localStorage.setItem('dw_book_plans', JSON.stringify(bookPlans));
-        try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-        localStorage.removeItem(`dw_book_today_${planDef.bookId}`);
-      }
-
-      setPlanTick(t => t + 1); // trigger re-render
-    } catch {}
-  };
 
   // ── Hero chapter refs — all today's passages expanded to full chapter level (memoized) ──
   const expandChapterRef = useCallback((ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim(), []);
@@ -2306,6 +2285,22 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             </div>
           );
         })()}
+
+        {/* ── Browse Plans link — always visible for plan_scripture personas ── */}
+        {personaConfig.sectionOrder.includes('plan_scripture') && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+            <button
+              onClick={() => onNavigate?.('plans')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600,
+                fontFamily: 'var(--font-sans)', padding: '4px 0',
+              }}
+            >
+              Browse Plans →
+            </button>
+          </div>
+        )}
 
         {/* ── Pastor/Study Onboarding — RIGHT after the hero, before everything else ── */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (() => {

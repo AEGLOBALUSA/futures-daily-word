@@ -553,6 +553,11 @@ sup {
 :root[data-theme="light"] button[style*="a8323b"] {
   color: #FFFFFF !important;
 }
+/* FIX: accent-bg buttons need dark accent text, not white —
+   the rule above accidentally matches var(--dw-accent-bg) via substring */
+:root[data-theme="light"] button[style*="var(--dw-accent-bg)"] {
+  color: var(--dw-accent) !important;
+}
 
 /* Gold gradient buttons - dark text */
 :root[data-theme="light"] button[style*="linear-gradient"] {
