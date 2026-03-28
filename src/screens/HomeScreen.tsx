@@ -13,6 +13,7 @@ import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
 import { useUser } from '../contexts/UserContext';
 import { HighlightToolbar } from '../components/HighlightToolbar';
+import { AudioWave } from '../components/AudioWave';
 import { VerseNoteDrawer } from '../components/VerseNoteDrawer';
 import { GreekHebrewPopup } from '../components/GreekHebrewPopup';
 import { ScripturePassage } from '../components/ScripturePassage';
@@ -608,6 +609,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     'search_books': { en: 'Search books...', es: 'Buscar libros...', pt: 'Buscar livros...', id: 'Cari buku...' },
     'ask_about_passage': { en: 'Ask about this passage\u2026', es: 'Pregunta sobre este pasaje\u2026', pt: 'Pergunte sobre esta passagem\u2026', id: 'Tanyakan tentang bagian ini\u2026' },
     'read_btn': { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
+    'hide_reading': { en: 'Hide', es: 'Ocultar', pt: 'Ocultar', id: 'Sembunyikan' },
   };
   const t = (key: string): string => UI_STRINGS[key]?.[appLanguage] || UI_STRINGS[key]?.['en'] || key;
 
@@ -794,7 +796,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const passages = getDailyPassages(dayOffset);
   const dateStr = getDateString(dayOffset);
   const quoteIndex = getDailyQuoteIndex(dayOffset, QUOTES.length);
-  const todaysDevotion = getTodaysDevotion(dayOffset);
+  const calendarDevotion = getTodaysDevotion(dayOffset);
   const quote = QUOTES[quoteIndex];
 
   // Find commentary for today's primary passage — collect ALL sources
@@ -882,6 +884,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     return () => { heroQueueActiveRef.current = false; AP.stop(); };
   }, []);
 
+
   // Record today as a reading day + handle streak freeze + milestone
   useEffect(() => {
     const result = recordStreakToday();
@@ -961,11 +964,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // Auto-load devotion-connected scripture for congregation persona
   useEffect(() => {
     if (!personaConfig.sectionOrder.includes('devotion_scripture')) return;
-    const devVerse = todaysDevotion.verse; // e.g. "2 Timothy 1"
+    const devVerse = todaysDevotion?.verse || ''; // e.g. "2 Timothy 1"
     if (!devVerse) return;
     loadPassage(devVerse);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todaysDevotion.verse, translation]);
+  }, [calendarDevotion.verse, translation]);
 
   // Auto-load comfort scripture chapter
   useEffect(() => {
@@ -979,26 +982,31 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
         JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-      const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }> = [];
+      const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; titleId?: string; author: string; body: string; bodyId?: string } }> = [];
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
-        // Book plans (bookId set) are handled by the dw_book_plans system — skip here
-        if (plan.bookId) continue;
+        // Include book plans — their passages should drive the hero button too
         const dn = calcPlanDay(prog.startedAt, plan.totalDays);
         const dp = plan.passages[dn - 1];
         const dev = plan.devotionals?.[dn - 1];
         if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: tField(plan, 'title', lang), passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
       }
-      // Filter out A&J plan for personas that shouldn't see it
-      const AJ_ONLY_PERSONAS = ['congregation', 'new_to_faith', 'new_returning'];
-      const currentPersona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; } })();
-      const filtered = AJ_ONLY_PERSONAS.includes(currentPersona) ? out : out.filter(p => p.planId !== 'ashley-jane-daily-word');
+      // Show all explicitly activated plans regardless of persona
+      const filtered = out;
       // Persist today's plan passages so Study Notes tab can read them
       try { localStorage.setItem('dw_todays_plan_passages', JSON.stringify(filtered)); } catch {}
       return filtered;
-    } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }>; }
+    } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; titleId?: string; author: string; body: string; bodyId?: string } }>; }
   })();
+
+  // If the user has an active Ashley-Jane plan, sync the devotion to that plan's day
+  // instead of using the calendar-based rotation (which doesn't match the hero reading)
+  const planDevotion = todaysPlanPassages.find(p => p.devotional)?.devotional;
+  const planVerse = todaysPlanPassages[0]?.passage || '';
+  const todaysDevotion = planDevotion
+    ? { title: planDevotion.title, titleId: (planDevotion as Record<string, string>).titleId || '', body: planDevotion.body, bodyId: (planDevotion as Record<string, string>).bodyId || '', verse: planVerse, author: planDevotion.author, source: 'ashley-jane' as const }
+    : null;
 
   // Preload audio for plan passages in the background once text is available
   useEffect(() => {
@@ -1126,16 +1134,13 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
         JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-      const bp: Record<string, { currentChapter: number; totalChapters: number }> =
-        JSON.parse(localStorage.getItem('dw_book_plans') || '{}');
       return Object.entries(ap).map(([pid, prog]) => {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) return null;
-        const completedCount = plan.bookId && bp[plan.bookId]
-          ? bp[plan.bookId].currentChapter + 1
-          : prog.completedDays.length;
-        return { plan, completedCount };
-      }).filter(Boolean) as { plan: typeof PLAN_CATALOGUE[0]; completedCount: number }[];
+        // Use calendar-based day to match hero display (not completion count)
+        const dayNum = calcPlanDay(prog.startedAt, plan.totalDays);
+        return { plan, dayNum };
+      }).filter(Boolean) as { plan: typeof PLAN_CATALOGUE[0]; dayNum: number }[];
     } catch { return []; }
   })();
 
@@ -1390,6 +1395,19 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     setHeroLoading(true);
     playChapterAtIndex(index, newVersion).catch(() => setAudioError(true)).finally(() => setHeroLoading(false));
   };
+
+  // Spacebar toggles play/pause on hero audio
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      handleHeroListen();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleHeroListen]);
 
   /** Render scripture text with tappable words when Gk/Heb mode is active */
   const renderScripture = (text: string, passage: string) => {
@@ -1840,31 +1858,61 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '22px 20px 20px' }}>
-                  <button
-                    className="hero-play-btn"
-                    onClick={() => handleHeroListen()}
-                    style={{
-                      width: 88, height: 88, borderRadius: '50%',
-                      background: isLoadingHero ? 'rgba(255,180,50,0.25)' : isPlayingHero ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.16)',
-                      border: isLoadingHero ? '2px solid rgba(255,180,50,0.6)' : '2px solid rgba(255,255,255,0.35)',
-                      boxShadow: isPlayingHero
-                        ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
-                        : '0 10px 32px rgba(0,0,0,0.35)',
-                      animation: isLoadingHero ? 'heroLoadPulse 1.2s ease-in-out infinite' : isPlayingHero ? 'heroRingPulse 2.2s ease-in-out infinite' : 'heroIdlePulse 3.5s ease-in-out infinite',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', color: '#fff',
-                      transition: 'box-shadow 0.4s ease, background 0.2s ease',
-                      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                      marginBottom: 16, flexShrink: 0,
-                    }}
-                  >
-                    {isLoadingHero
-                      ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
-                      : isPlayingHero && !isPausedHero
-                      ? <Pause size={32} />
-                      : <Play size={32} style={{ marginLeft: 4 }} />
-                    }
-                  </button>
+                  <div style={{ position: 'relative', marginBottom: 16, flexShrink: 0, width: 104, height: 104, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Animated equalizer ring around button when playing */}
+                    {isPlayingHero && !isPausedHero && (
+                      <div style={{
+                        position: 'absolute', inset: 0, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'heroRingPulse 2.2s ease-in-out infinite',
+                      }}>
+                        <div style={{
+                          position: 'absolute', inset: 0, borderRadius: '50%',
+                          border: '2px solid rgba(255,255,255,0.15)',
+                          animation: 'heroEqRing 1.5s ease-in-out infinite',
+                        }} />
+                      </div>
+                    )}
+                    <button
+                      className="hero-play-btn"
+                      onClick={() => handleHeroListen()}
+                      style={{
+                        width: 88, height: 88, borderRadius: '50%',
+                        background: isLoadingHero ? 'rgba(255,180,50,0.25)'
+                          : isPlayingHero ? 'rgba(255,255,255,0.22)'
+                          : isPausedHero ? 'rgba(255,255,255,0.18)'
+                          : 'rgba(255,255,255,0.16)',
+                        border: isLoadingHero ? '2px solid rgba(255,180,50,0.6)' : '2px solid rgba(255,255,255,0.35)',
+                        boxShadow: isPlayingHero
+                          ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
+                          : isPausedHero
+                          ? '0 0 0 10px rgba(255,255,255,0.05), 0 10px 32px rgba(0,0,0,0.35)'
+                          : '0 10px 32px rgba(0,0,0,0.35)',
+                        animation: isLoadingHero ? 'heroLoadPulse 1.2s ease-in-out infinite'
+                          : isPlayingHero ? 'none'
+                          : isPausedHero ? 'heroPausedPulse 3s ease-in-out infinite'
+                          : 'heroIdlePulse 3.5s ease-in-out infinite',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', color: '#fff',
+                        transition: 'box-shadow 0.4s ease, background 0.2s ease',
+                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                        flexShrink: 0, position: 'relative', zIndex: 1,
+                      }}
+                    >
+                      {isLoadingHero
+                        ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                        : isPlayingHero && !isPausedHero
+                        ? <Pause size={34} style={{ opacity: 0.95 }} />
+                        : <Play size={32} style={{ marginLeft: 4 }} />
+                      }
+                    </button>
+                    {/* Small equalizer bars below button when playing */}
+                    {isPlayingHero && !isPausedHero && (
+                      <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>
+                        <AudioWave bars={5} height={10} color="rgba(255,255,255,0.6)" />
+                      </div>
+                    )}
+                  </div>
                   <p style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px', fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center' }}>
                     {isLoadingHero ? t('loading_label')
                       : (isPlayingHero || isPausedHero) && allLabels.length > 1
@@ -2246,37 +2294,62 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   padding: '22px 20px 20px',
                 }}>
-                  <button
-                    className="hero-play-btn"
-                    onClick={() => handleHeroListen()}
-                    style={{
-                      width: 88, height: 88, borderRadius: '50%',
-                      background: isPlayingHero
-                        ? 'rgba(255,255,255,0.22)'
-                        : 'rgba(255,255,255,0.16)',
-                      border: '2px solid rgba(255,255,255,0.35)',
-                      boxShadow: isPlayingHero
-                        ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
-                        : '0 10px 32px rgba(0,0,0,0.35)',
-                      animation: isPlayingHero
-                        ? 'heroRingPulse 2.2s ease-in-out infinite'
-                        : 'heroIdlePulse 3.5s ease-in-out infinite',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', color: '#fff',
-                      transition: 'box-shadow 0.4s ease, background 0.2s ease',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      marginBottom: 16,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {isLoadingHero
-                      ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
-                      : isPlayingHero
-                      ? <Pause size={32} />
-                      : <Play size={32} style={{ marginLeft: 4 }} />
-                    }
-                  </button>
+                  <div style={{ position: 'relative', marginBottom: 16, flexShrink: 0, width: 104, height: 104, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Animated equalizer ring around button when playing */}
+                    {isPlayingHero && !isPausedHero && (
+                      <div style={{
+                        position: 'absolute', inset: 0, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'heroRingPulse 2.2s ease-in-out infinite',
+                      }}>
+                        <div style={{
+                          position: 'absolute', inset: 0, borderRadius: '50%',
+                          border: '2px solid rgba(255,255,255,0.15)',
+                          animation: 'heroEqRing 1.5s ease-in-out infinite',
+                        }} />
+                      </div>
+                    )}
+                    <button
+                      className="hero-play-btn"
+                      onClick={() => handleHeroListen()}
+                      style={{
+                        width: 88, height: 88, borderRadius: '50%',
+                        background: isLoadingHero ? 'rgba(255,180,50,0.25)'
+                          : isPlayingHero ? 'rgba(255,255,255,0.22)'
+                          : isPausedHero ? 'rgba(255,255,255,0.18)'
+                          : 'rgba(255,255,255,0.16)',
+                        border: isLoadingHero ? '2px solid rgba(255,180,50,0.6)' : '2px solid rgba(255,255,255,0.35)',
+                        boxShadow: isPlayingHero
+                          ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
+                          : isPausedHero
+                          ? '0 0 0 10px rgba(255,255,255,0.05), 0 10px 32px rgba(0,0,0,0.35)'
+                          : '0 10px 32px rgba(0,0,0,0.35)',
+                        animation: isLoadingHero ? 'heroLoadPulse 1.2s ease-in-out infinite'
+                          : isPlayingHero ? 'none'
+                          : isPausedHero ? 'heroPausedPulse 3s ease-in-out infinite'
+                          : 'heroIdlePulse 3.5s ease-in-out infinite',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', color: '#fff',
+                        transition: 'box-shadow 0.4s ease, background 0.2s ease',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        flexShrink: 0, position: 'relative', zIndex: 1,
+                      }}
+                    >
+                      {isLoadingHero
+                        ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                        : isPlayingHero && !isPausedHero
+                        ? <Pause size={34} style={{ opacity: 0.95 }} />
+                        : <Play size={32} style={{ marginLeft: 4 }} />
+                      }
+                    </button>
+                    {/* Small equalizer bars below button when playing */}
+                    {isPlayingHero && !isPausedHero && (
+                      <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>
+                        <AudioWave bars={5} height={10} color="rgba(255,255,255,0.6)" />
+                      </div>
+                    )}
+                  </div>
 
                   <p style={{
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
@@ -2519,12 +2592,13 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     <div style={{
                       position: 'relative',
                       overflowY: 'auto',
-                      padding: '28px 28px 80px',
+                      padding: '28px 28px 40px',
                       WebkitOverflowScrolling: 'touch',
                       background: '#1C1A16',
                       borderTop: '1px solid rgba(160,140,110,0.15)',
                       borderBottomLeftRadius: 24,
                       borderBottomRightRadius: 24,
+                      maxHeight: '60vh',
                     }}>
                       {/* Subtle top edge: thin warm accent line connecting to hero */}
                       <div style={{
@@ -2542,12 +2616,20 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       </p>
                       {readText ? (
                         <div style={{
-                          fontSize: 19, lineHeight: 2.05,
-                          color: '#E8E2D8',
-                          fontFamily: 'var(--font-serif)',
-                          whiteSpace: 'pre-wrap',
+                          // Force dark-mode colors so ScripturePassage is readable against #1C1A16 bg
+                          // even when the app is in light mode
+                          ['--dw-text-secondary' as any]: '#E8E2D8',
+                          ['--dw-text-muted' as any]: '#A09080',
+                          ['--dw-border' as any]: 'rgba(160,140,110,0.2)',
+                          ['--dw-surface-raised' as any]: 'rgba(255,255,255,0.06)',
                         }}>
-                          {renderScripture(readText, readRef)}
+                          <ScripturePassage
+                            text={readText}
+                            passageRef={readRef}
+                            renderScripture={renderScripture}
+                            greekHebrewMode={greekHebrewMode}
+                            fontSize={19}
+                          />
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
@@ -3279,87 +3361,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
         {/* Listen bar removed — hero card handles audio. Scripture search moved to Study tab. */}
 
-        {/* Devotion of the Day — A&J devotionals, single source, with emoji reactions merged in */}
-        {personaConfig.sectionOrder.includes('devotion') && <Card
-          style={{ marginBottom: 16, cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-          onClick={() => {
-            trackBehavior('devotion_tapped', 'ashley-jane');
-            setSelection({ text: `${tField(todaysDevotion, 'title', lang)}\n\n${tField(todaysDevotion, 'body', lang)}`, verseRefs: [todaysDevotion.verse || ''], source: 'tap' });
-          }}
-        >
-          <h2 className="text-section-header" style={{ marginBottom: 8 }}>DEVOTION OF THE DAY</h2>
-          <p className="text-card-title" style={{ marginBottom: 6 }}>{tField(todaysDevotion, 'title', lang)}</p>
-          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-            {todaysDevotion.verse}
-          </p>
-          <p className="text-devotion" style={{ fontSize: scriptureFontSize + 2 }}>{tField(todaysDevotion, 'body', lang)}</p>
-          <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: 'var(--font-sans)' }}>
-            — {todaysDevotion.author}
-          </p>
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            {/* Emoji reactions — inline on devotion */}
-            {dayOffset === 0 && (
-              todayReaction ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 20 }}>{todayReaction}</span>
-                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)' }}>
-                    {t(REACTIONS.find(r => r.emoji === todayReaction)?.labelKey || '')}
-                  </span>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {REACTIONS.map(({ emoji }) => (
-                    <button key={emoji} onClick={(e) => {
-                      e.stopPropagation();
-                      saveTodayReaction(emoji);
-                      setTodayReaction(emoji);
-                      trackBehavior('reaction', emoji);
-                    }} style={{
-                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                      borderRadius: 10, padding: '6px 10px', cursor: 'pointer', fontSize: 18,
-                      transition: 'all 0.15s ease',
-                    }}>
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )
-            )}
-            {!dayOffset && <div />}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={(e) => {
-                e.stopPropagation();
-                shareContent({
-                  title: `Daily Word — ${tField(todaysDevotion, 'title', lang)}`,
-                  text: `${tField(todaysDevotion, 'title', lang)}\n\n${tField(todaysDevotion, 'body', lang).substring(0, 200)}...\n\n— Futures Daily Word`,
-                  url: 'https://futuresdailyword.com'
-                });
-              }} style={{
-                display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px',
-                background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 500,
-                color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
-                transition: 'all 0.15s ease',
-              }}>
-                <Share2 size={14} /> Share
-              </button>
-              <ListenButton text={`${tField(todaysDevotion, 'title', lang)}. ${tField(todaysDevotion, 'body', lang)}`} size="md" label="Listen" />
-            </div>
-          </div>
-          {/* Community reaction counts */}
-          {dayOffset === 0 && (() => {
-            const daySeed = new Date().toDateString();
-            const hash = Array.from(daySeed).reduce((a, c) => a + c.charCodeAt(0), 0);
-            const heartCount = 12 + (hash % 30);
-            const thinkCount = 5 + (hash % 15);
-            const prayCount = 20 + (hash % 40);
-            return (
-              <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 8, marginBottom: 0 }}>
-                ❤️ {heartCount} · 🤔 {thinkCount} · 🙏 {prayCount}
-              </p>
-            );
-          })()}
-        </Card>}
+        {/* Devotion of the Day removed from home page */}
 
         {/* ── Comfort Scripture — auto-served, no decisions required ── */}
         {personaConfig.sectionOrder.includes('comfort_scripture') && (() => {
@@ -3420,7 +3422,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     {comfortIsLoadingAudio ? (
                       <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
                     ) : comfortIsPlaying ? (
-                      <><Pause size={14} /> Pause</>
+                      <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
                     ) : (
                       <><Headphones size={14} /> Listen</>
                     )}
@@ -3646,9 +3648,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           );
         })()}
 
-        {/* ── Devotion-Connected Scripture Reading (congregation) ── */}
-        {personaConfig.sectionOrder.includes('devotion_scripture') && todaysDevotion.verse && (() => {
-          const devPassage = todaysDevotion.verse; // e.g. "2 Timothy 1"
+        {/* ── Today's Reading — shows plan chapters when active, else devotion scripture ── */}
+        {personaConfig.sectionOrder.includes('devotion_scripture') && (todaysPlanPassages.length > 0 || todaysDevotion?.verse) && (() => {
+          const hasPlanPassages = todaysPlanPassages.length > 0;
+          const devPassage = hasPlanPassages ? todaysPlanPassages[0].passage : (todaysDevotion?.verse || ''); // e.g. "Genesis 37" or "2 Timothy 1"
           const isComfort = personaConfig.persona === 'comfort';
           const devScriptureTranslations: TranslationCode[] = isComfort
             ? ['ESV', 'NIV', 'NLT']
@@ -3666,7 +3669,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   {isComfort ? "TODAY'S SCRIPTURE" : t('todays_reading')}
                 </h2>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  {isComfort ? 'Read at your own pace' : 'From today\'s devotion'}
+                  {hasPlanPassages ? `Day ${todaysPlanPassages[0].dayNum} · ${todaysPlanPassages[0].planTitle}` : (isComfort ? 'Read at your own pace' : 'From today\'s devotion')}
                 </span>
               </div>
 
@@ -3712,7 +3715,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   {isLoadingAudio ? (
                     <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
                   ) : isPlayingThis ? (
-                    <><Pause size={14} /> Pause</>
+                    <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
                   ) : (
                     <><Headphones size={14} /> Listen</>
                   )}
@@ -3830,7 +3833,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         {isLoadingAudio ? (
                           <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
                         ) : isPlayingThis ? (
-                          <><Pause size={14} /> Pause</>
+                          <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
                         ) : (
                           <><Headphones size={14} /> Listen</>
                         )}
@@ -4117,7 +4120,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         {isLoadingAudio ? (
                           <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
                         ) : isPlayingThis ? (
-                          <><Pause size={14} /> Pause</>
+                          <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
                         ) : (
                           <><Headphones size={14} /> Listen</>
                         )}
@@ -4299,7 +4302,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     {isLoadingThis ? (
                       <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading audio…</>
                     ) : isPlayingThis ? (
-                      <><Pause size={16} /> Pause</>
+                      <><AudioWave height={16} color="#fff" /> <Pause size={16} /> Pause</>
                     ) : (
                       <><Headphones size={16} /> Listen</>
                     )}
@@ -4428,7 +4431,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         {isLoadingThis ? (
                           <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
                         ) : isPlayingThis ? (
-                          <><Pause size={16} /> Pause</>
+                          <><AudioWave height={14} color="#fff" /> <Pause size={16} /> Pause</>
                         ) : (
                           <><Headphones size={16} /> Listen</>
                         )}
@@ -4919,9 +4922,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           <div style={{ marginBottom: 20 }}>
             <h2 className="text-section-header" style={{ marginBottom: 10 }}>YOUR ACTIVE PLANS</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {homeActivePlans.map(({ plan, completedCount }) => {
-                const pct = Math.min((completedCount / plan.totalDays) * 100, 100);
-                const isComplete = completedCount >= plan.totalDays;
+              {homeActivePlans.map(({ plan, dayNum }) => {
+                const pct = Math.min((dayNum / plan.totalDays) * 100, 100);
+                const isComplete = dayNum >= plan.totalDays;
                 return (
                   <div key={plan.id}>
                     <div style={{
@@ -4940,7 +4943,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)',
                           padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
                         }}>
-                          {isComplete ? '✓ Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${completedCount} / ${plan.totalDays}`}
+                          {isComplete ? '✓ Complete' : `${plan.bookId ? 'Ch' : 'Day'} ${dayNum} / ${plan.totalDays}`}
                         </span>
                       </div>
                       <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
@@ -5301,6 +5304,22 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         @keyframes heroRingPulse {
           0%, 100% { box-shadow: 0 0 0 10px rgba(255,255,255,0.07), 0 0 0 22px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4); }
           50% { box-shadow: 0 0 0 16px rgba(255,255,255,0.1), 0 0 0 30px rgba(255,255,255,0.04), 0 10px 32px rgba(0,0,0,0.4); }
+        }
+        /* Paused state: gentle breathing glow so user sees audio is paused, not stopped */
+        @keyframes heroPausedPulse {
+          0%, 100% {
+            box-shadow: 0 0 0 8px rgba(255,255,255,0.04), 0 10px 32px rgba(0,0,0,0.35);
+            border-color: rgba(255,255,255,0.3);
+          }
+          50% {
+            box-shadow: 0 0 0 12px rgba(255,255,255,0.08), 0 10px 32px rgba(0,0,0,0.35);
+            border-color: rgba(255,255,255,0.5);
+          }
+        }
+        /* Equalizer ring expansion around play button when audio is active */
+        @keyframes heroEqRing {
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50% { transform: scale(1.06); opacity: 0.8; }
         }
         /* Streak badge glow pulse for milestones */
         @keyframes streakGlow {
