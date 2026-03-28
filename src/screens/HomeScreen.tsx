@@ -2632,7 +2632,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
               {pathwayProgress.currentDay === 1 ? 'Just getting started' : `${pathwayProgress.completedDays?.length || 0} days completed`}
             </span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>Continue \u2192</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>Continue →</span>
           </div>
         </div>
       )}
@@ -4448,39 +4448,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           </Card>
         )}
 
-        {/* Featured Plan Invite */}
-        {(() => {
-          const activePlanIds = Object.keys((() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })());
-          const featured = PLAN_CATALOGUE.find(p => !activePlanIds.includes(p.id) && (p as { featured?: boolean }).featured !== false);
-          if (!featured) return null;
-          return (
-            <Card style={{ marginBottom: 16, border: '1px solid rgba(154,123,46,0.25)', background: 'rgba(154,123,46,0.05)' }}>
-              <h2 className="text-section-header" style={{ marginBottom: 8, color: 'var(--dw-accent)' }}>{t('reading_plan')}</h2>
-              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
-                {tField(featured, 'title', lang)}
-              </p>
-              <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                {featured.totalDays} days · {tField(featured, 'description', lang).slice(0, 80) || 'Build a consistent reading habit'}
-              </p>
-              <button
-                onClick={() => {
-                  const existing: Record<string, unknown> = (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
-                  existing[featured.id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
-                  localStorage.setItem('dw_activeplans', JSON.stringify(existing));
-                  try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-                  window.location.reload();
-                }}
-                style={{
-                  background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
-                  padding: '9px 20px', color: '#fff', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 40,
-                }}
-              >
-                {t('start_plan')}
-              </button>
-            </Card>
-          );
-        })()}
+        {/* Featured Plan Invite — removed; Plans tab is the right place to browse */}
 
         {/* 6. Campus Section — persona-gated */}
         {pf.campusCount !== 'hidden' && <Card style={{ marginBottom: 16 }}>
@@ -4735,73 +4703,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           );
         })()}
 
-                {/* ── Reading Plans Discovery ── */}
-        {(() => {
-          const activePlanIds = homeActivePlans.map(a => a.plan.id);
-          const categories = Array.from(new Set(PLAN_CATALOGUE.map(p => p.category)));
-          return (
-            <div style={{ marginBottom: 20 }}>
-              <h2 className="text-section-header" style={{ marginBottom: 12 }}>{t('reading_plans')}</h2>
-              {categories.map(cat => (
-                <div key={cat} style={{ marginBottom: 16 }}>
-                  <p style={{
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                    color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8,
-                  }}>{cat}</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {PLAN_CATALOGUE.filter(p => p.category === cat).map(plan => {
-                      const isActive = activePlanIds.includes(plan.id);
-                      return (
-                        <div
-                          key={plan.id}
-                          onClick={() => {
-                            if (isActive) {
-                              removePlanFromHome(plan.id);
-                            } else {
-                              startPlanFromHome(plan.id);
-                            }
-                          }}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            background: isActive ? 'rgba(37,99,235,0.07)' : 'var(--dw-card)',
-                            border: isActive ? '1px solid rgba(37,99,235,0.4)' : '1px solid var(--dw-border)',
-                            borderRadius: 10, padding: '10px 12px', cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          <div style={{ flex: 1, paddingRight: 10 }}>
-                            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0, marginBottom: 2 }}>
-                              {tField(plan, 'title', lang)}
-                            </p>
-                            <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                              {plan.totalDays} {plan.bookId ? 'chapters' : 'days'}
-                            </p>
-                          </div>
-                          <div style={{
-                            minWidth: 28, height: 28, borderRadius: '50%',
-                            background: isActive ? '#2563EB' : 'var(--dw-accent)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
-                          }}>
-                            {isActive ? (
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            ) : (
-                              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                <path d="M5 1v8M1 5h8" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
+        {/* Reading Plans Discovery — removed; full plan list lives on Plans tab */}
 
         {/* Campus Overview — pastor_leader persona only (leaders, connect group leaders, campus pastors) */}
         {personaConfig.persona === 'pastor_leader' && (() => {

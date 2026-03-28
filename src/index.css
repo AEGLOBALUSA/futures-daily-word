@@ -559,6 +559,13 @@ sup {
   color: #1A1714 !important;
 }
 
+/* FIX: Translation pill buttons — unselected pills need a visible border in light mode */
+:root[data-theme="light"] button[style*="border: 1.5px solid var(--dw-border)"],
+:root[data-theme="light"] button[style*="border:1.5px solid var(--dw-border)"] {
+  border-color: #A0908A !important;
+  color: var(--dw-text-secondary) !important;
+}
+
 /* FIX: Buttons with transparent bg that use accent as TEXT color (not background) */
 /* "Browse all plans" link and similar accent-colored text buttons */
 :root[data-theme="light"] button[style*="background: none"][style*="var(--dw-accent)"],
