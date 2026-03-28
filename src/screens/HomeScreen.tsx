@@ -2286,7 +2286,59 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           );
         })()}
 
-        {/* ── Browse Plans link — always visible for plan_scripture personas ── */}
+        {/* ── Date Navigation — directly under hero so users connect the two ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+          margin: '0 0 16px',
+          background: 'var(--dw-charcoal-deep)',
+          borderRadius: 14,
+          padding: '14px 8px',
+        }}>
+          <button
+            onClick={() => setDayOffset(d => d - 1)}
+            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            aria-label={t('previous_day')}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', marginBottom: 4 }}>{t('todays_reading')}</p>
+            <p style={{ color: '#fff', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+              {dateStr}
+            </p>
+            {todaysPlanPassages.length > 0 && (
+              <p style={{ color: '#fff', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
+                {(() => {
+                  const seen = new Set<string>();
+                  const plans: { title: string; dayNum: number; passages: string[] }[] = [];
+                  todaysPlanPassages.forEach(p => {
+                    if (seen.has(p.planId)) {
+                      plans[plans.length - 1].passages.push(p.passage);
+                    } else {
+                      seen.add(p.planId);
+                      plans.push({ title: p.planTitle, dayNum: p.dayNum, passages: [p.passage] });
+                    }
+                  });
+                  return plans.map(p =>
+                    `Day ${p.dayNum} of ${p.title} · ${p.passages.join(', ')}`
+                  ).join(' | ');
+                })()}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setDayOffset(d => d + 1)}
+            disabled={dayOffset >= 30}
+            style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'rgba(255,255,255,0.3)' : '#fff', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            aria-label={t('next_day')}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
         {/* ── Choose Your Plan — prominent CTA ── */}
         <button
           onClick={() => onNavigate?.('plans')}
@@ -2828,59 +2880,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
         {/* Sermon Notes Banner - disabled */}
 
-        {/* Date Navigation */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          margin: '20px 0',
-          background: 'var(--dw-charcoal-deep)',
-          borderRadius: 14,
-          padding: '14px 8px',
-        }}>
-          <button
-            onClick={() => setDayOffset(d => d - 1)}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label={t('previous_day')}
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', marginBottom: 4 }}>{t('todays_reading')}</p>
-            <p style={{ color: '#fff', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-              {dateStr}
-            </p>
-            {todaysPlanPassages.length > 0 && (
-              <p style={{ color: '#fff', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
-                {(() => {
-                  // Deduplicate by planId so each plan shows once
-                  const seen = new Set<string>();
-                  const plans: { title: string; dayNum: number; passages: string[] }[] = [];
-                  todaysPlanPassages.forEach(p => {
-                    if (seen.has(p.planId)) {
-                      plans[plans.length - 1].passages.push(p.passage);
-                    } else {
-                      seen.add(p.planId);
-                      plans.push({ title: p.planTitle, dayNum: p.dayNum, passages: [p.passage] });
-                    }
-                  });
-                  return plans.map(p =>
-                    `Day ${p.dayNum} of ${p.title} · ${p.passages.join(', ')}`
-                  ).join(' | ');
-                })()}
-              </p>
-            )}
-          </div>
-          <button
-            onClick={() => setDayOffset(d => d + 1)}
-            disabled={dayOffset >= 30}
-            style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'rgba(255,255,255,0.3)' : '#fff', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label={t('next_day')}
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
+        {/* Date Navigation moved to directly under hero card */}
 
         {/* Listen bar removed — hero card handles audio. Scripture search moved to Study tab. */}
 
