@@ -8,11 +8,12 @@ import { t, getLang } from '../utils/i18n';
 interface VerseNoteDrawerProps {
   open: boolean;
   onClose: () => void;
+  planContext?: string; // e.g. "Grace and Favor Revolution — Day 7"
 }
 
 const JOURNAL_KEY = 'dw_journal';
 
-function saveToJournal(verseRef: string, highlightedText: string, note: string) {
+function saveToJournal(verseRef: string, highlightedText: string, note: string, planContext?: string) {
   try {
     const existing = JSON.parse(localStorage.getItem(JOURNAL_KEY) || '[]');
     existing.unshift({
@@ -21,9 +22,10 @@ function saveToJournal(verseRef: string, highlightedText: string, note: string) 
       type: 'saved',
       title: verseRef || 'Scripture Note',
       body: note,
-      tags: ['scripture'],
+      tags: planContext ? ['scripture', 'plan-note'] : ['scripture'],
       verseRef,
       highlightedText,
+      planContext, // e.g. "Grace and Favor Revolution — Day 7"
     });
     localStorage.setItem(JOURNAL_KEY, JSON.stringify(existing.slice(0, 500)));
     // Notify JournalScreen to refresh its entries
@@ -61,7 +63,7 @@ function sortSources(commentaries: { source: string; text: string }[]) {
   });
 }
 
-export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
+export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerProps) {
   const { selection } = useScriptureSelection();
   const lang = getLang();
   const [tab, setTab] = useState<'note' | 'commentary'>('note');
@@ -93,7 +95,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
     if (!selection || !note.trim()) return;
     const ref = selection.verseRefs[0] || '';
     trackBehavior('note_created', ref);
-    saveToJournal(ref, selection.text, note);
+    saveToJournal(ref, selection.text, note, planContext);
     setSaved(true);
     setTimeout(() => {
       onClose();
@@ -144,7 +146,7 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '6px 20px 10px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {passage && (
               <span style={{
                 fontSize: 11, fontWeight: 700, color: 'var(--dw-accent)',
@@ -152,6 +154,11 @@ export function VerseNoteDrawer({ open, onClose }: VerseNoteDrawerProps) {
                 fontFamily: 'var(--font-sans)',
               }}>
                 {passage}
+              </span>
+            )}
+            {planContext && (
+              <span style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                {planContext}
               </span>
             )}
           </div>

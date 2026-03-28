@@ -5,7 +5,8 @@ import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause } from 'lucide-react';
+import { AudioWave } from '../components/AudioWave';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -28,6 +29,7 @@ interface JournalEntry {
   /** Set when this entry was created from a scripture note */
   verseRef?: string;
   highlightedText?: string;
+  planContext?: string; // e.g. "Grace and Favor Revolution — Day 7"
 }
 
 /* ââ localStorage helpers ââ */
@@ -541,7 +543,7 @@ function ModalSelectionBar({
         display: 'flex', overflow: 'hidden', maxWidth: '100%',
       }}>
         {tbBtn(handleCopy, copied ? <Check size={15} color="#2563EB" /> : <Copy size={15} />, copied ? t('j_copied', lang) : t('j_copy', lang))}
-        {tbBtn(handleListen, <Volume2 size={15} />, listening ? t('j_stop', lang) : t('j_listen', lang), listening)}
+        {tbBtn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={13} /></> : <Volume2 size={15} />, listening ? t('j_pause', lang) || 'Pause' : t('j_listen', lang), listening)}
         {tbBtn(handleShare, <Share2 size={15} />, t('j_share', lang))}
         {tbBtn(() => { onNoteSelected(selectedText); dismiss(); }, <BookOpen size={15} />, t('j_note', lang))}
 
@@ -1779,13 +1781,18 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
                   {entry.date}
                 </p>
 
-                {/* Title row â scripture notes show verse ref with icon */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                {/* Title row — scripture notes show verse ref with icon */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: (entry as any).planContext ? 4 : 8 }}>
                   {entry.verseRef && (
                     <BookOpen size={13} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
                   )}
                   <p className="text-card-title" style={{ margin: 0 }}>{entry.title}</p>
                 </div>
+                {(entry as any).planContext && (
+                  <p style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.02em' }}>
+                    {(entry as any).planContext}
+                  </p>
+                )}
 
                 {/* Highlighted scripture quote */}
                 {entry.highlightedText && (

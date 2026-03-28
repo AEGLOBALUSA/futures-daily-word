@@ -3814,9 +3814,19 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
 
         {/* 3. TODAY'S CHAPTERS — gated by sectionOrder */}
-        {personaConfig.sectionOrder.includes('scripture') && <div style={{ marginBottom: 16 }}>
+        {personaConfig.sectionOrder.includes('scripture') && (() => {
+          // When plan_scripture is also present (pastor/study personas), that section already
+          // shows plan passages with deep tools. Here we only show manually-added reading slots
+          // to avoid duplication. If there are no slots in that case, skip the section entirely.
+          const hasPlanScripture = personaConfig.sectionOrder.includes('plan_scripture');
+          const hasPlanPassages = todaysPlanPassages.length > 0;
+          const slotsOnlyMode = hasPlanScripture && hasPlanPassages;
+          const visibleSlots = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
+          if (slotsOnlyMode && visibleSlots.length === 0) return null;
+          return (
+          <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', margin: 0 }}>TODAY'S CHAPTERS</p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', margin: 0 }}>{slotsOnlyMode ? 'ADDITIONAL READING' : "TODAY'S CHAPTERS"}</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={() => {
                 // All visible passages = plan passages + reading slot passages
@@ -3879,14 +3889,24 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           </div>
 
           {readingSlots.length === 0 && todaysPlanPassages.length === 0 ? (
-            <Card style={{ textAlign: 'center', padding: '24px 16px' }}>
-              <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-                No reading slots yet. Add a book or start a reading plan to get started.
+            <Card style={{ textAlign: 'center', padding: '28px 20px' }}>
+              <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-serif)', marginBottom: 8 }}>
+                No reading plan active
               </p>
+              <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 16, lineHeight: 1.5 }}>
+                Choose a plan and everything on this page syncs to your daily reading.
+              </p>
+              <button
+                onClick={() => onNavigate?.('plans')}
+                style={{ padding: '12px 24px', borderRadius: 12, background: 'var(--dw-accent)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+              >
+                Browse Plans
+              </button>
             </Card>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {todaysPlanPassages.map(({ planId, planTitle, passage, dayNum }) => {
+              {/* Plan passages — hidden in slotsOnlyMode (plan_scripture section shows them with deep tools) */}
+              {!slotsOnlyMode && todaysPlanPassages.map(({ planId, planTitle, passage, dayNum }) => {
         const tKey = passage + '_' + translation;
         const txt = passageTexts[tKey];
         return (
@@ -4249,7 +4269,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               </button>
             </Card>
           )}
-        </div>}
+        </div>
+          );
+        })()}
 
 
 
@@ -5007,7 +5029,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           </div>
         </div>
       )}
-      <VerseNoteDrawer open={showNoteDrawer} onClose={() => setShowNoteDrawer(false)} />
+      <VerseNoteDrawer
+        open={showNoteDrawer}
+        onClose={() => setShowNoteDrawer(false)}
+        planContext={todaysPlanPassages.length > 0 ? `${todaysPlanPassages[0].planTitle} — Day ${todaysPlanPassages[0].dayNum}` : undefined}
+      />
       {/* Global highlight toolbar — appears for ANY selected text (persona-gated) */}
       {pf.highlighting !== 'none' && (
         <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />

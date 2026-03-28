@@ -173,7 +173,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     sectionOrder: [
       'greeting',
       'hero_audio',
-      'plan_scripture',
       'scripture',
       'ai_prompt',
       'faith_pathway',
@@ -228,11 +227,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     sectionOrder: [
       'greeting',
       'hero_audio',
-      'plan_scripture',
       'scripture',
       'poll_banner',
-      'devotion',
-      'devotion_scripture',
       'ai_prompt',
       'campus_count',
     ],
@@ -416,7 +412,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'greeting',
       'comfort_verse_banner',
       'hero_audio',
-      'plan_scripture',
       'scripture',
       'comfort_scripture',
       'ai_prompt',
