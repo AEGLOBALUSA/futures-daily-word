@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2 } from 'lucide-react';
+import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2, Pause } from 'lucide-react';
+import { AudioWave } from './AudioWave';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import * as AP from '../utils/audioPlayer';
 import { t, getLang } from '../utils/i18n';
@@ -123,7 +124,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
           copied ? <Check size={16} color="#2563EB" /> : <Copy size={16} />,
           copied ? t('copied_toast', lang) : t('copy_label', lang)
         )}
-        {btn(handleListen, <Volume2 size={16} />, listening ? 'Stop' : 'Listen', listening)}
+        {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? 'Pause' : 'Listen', listening)}
         {btn(handleShare, <Share2 size={16} />, 'Share')}
         {btn(onOpenNotes, <BookOpen size={16} />, 'Note')}
         {!basicMode && btn(

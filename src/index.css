@@ -463,9 +463,11 @@ sup {
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* === LIGHT MODE: Ensure dark text on light backgrounds === */
-:root[data-theme="light"] button[style*="var(--dw-accent)"],
-:root[data-theme="light"] [style*="background"][style*="var(--dw-accent)"] {
+/* === LIGHT MODE: Ensure white text on accent-background elements === */
+:root[data-theme="light"] [style*="background: var(--dw-accent)"],
+:root[data-theme="light"] [style*="background:var(--dw-accent)"],
+:root[data-theme="light"] [style*="background-color: var(--dw-accent)"],
+:root[data-theme="light"] [style*="background-color:var(--dw-accent)"] {
   color: #FFFFFF !important;
 }
 

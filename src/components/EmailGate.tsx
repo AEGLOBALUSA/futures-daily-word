@@ -239,7 +239,7 @@ export function EmailGate() {
               Sync across devices and join your campus community.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} onKeyDown={e => { if (e.key === 'Enter' && !saving) handleSubmit(); }}>
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
                   type="text"

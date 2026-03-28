@@ -2,12 +2,15 @@
  * Reusable listen button — drop next to any text block to add audio playback.
  * Uses the global AudioPlayer (single Audio element, iOS-safe).
  *
+ * Play/Pause toggle in one button with animated equalizer wave when playing.
+ *
  * Usage:
  * <ListenButton text="The Lord is my shepherd..." />
  * <ListenButton text={longText} size="lg" label="Listen to all" />
  */
 import { useState, useEffect, useRef } from 'react';
-import { Volume2, Loader2, Square } from 'lucide-react';
+import { Headphones, Pause, Loader2 } from 'lucide-react';
+import { AudioWave } from './AudioWave';
 import { t, getLang } from '../utils/i18n';
 import * as AP from '../utils/audioPlayer';
 
@@ -53,9 +56,6 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
 
     const activeTranslation = translation || localStorage.getItem('dw_translation') || 'ESV';
 
-    // ── iOS FIX: play() now handles unlock → fetch → play in one call ──
-    // unlock() is called synchronously inside play() within this tap gesture,
-    // BEFORE any network fetch. This keeps iOS Safari happy.
     try {
       await AP.play(keyRef.current, text.slice(0, 20000), activeTranslation, passageRef);
     } catch {
@@ -64,9 +64,9 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
   };
 
   const accentColor = color || 'var(--dw-accent)';
-  const iconSize = size === 'lg' ? 16 : size === 'md' ? 14 : 13;
   const lang = getLang();
-  const displayLabel = label || (playing ? t('stop', lang) : t('listen_now', lang));
+  const idleLabel = label || t('listen_now', lang);
+  const playingLabel = label ? label : t('pause', lang) || 'Pause';
 
   if (size === 'lg') {
     return (
@@ -80,27 +80,25 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
           gap: 10,
           padding: '16px 20px',
           background: playing ? accentColor : 'transparent',
-          border: `1.5px solid ${playing ? accentColor : 'var(--dw-border)'}`,
+          border: `1.5px solid ${playing || loading ? accentColor : 'var(--dw-border)'}`,
           borderRadius: 14,
           cursor: 'pointer',
-          color: playing ? '#fff' : 'var(--dw-text-primary)',
+          color: playing || loading ? '#fff' : 'var(--dw-text-primary)',
           fontSize: 16,
           fontWeight: 600,
           fontFamily: 'var(--font-sans)',
           transition: 'all 0.15s',
           minHeight: 52,
           boxShadow: 'none',
-          opacity: playing ? 0.85 : 1,
         }}
       >
         {loading ? (
-          <Loader2 size={iconSize} style={{ animation: 'spin 1s linear infinite' }} />
+          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
         ) : playing ? (
-          <Square size={iconSize} fill="currentColor" />
+          <><AudioWave height={16} /> <Pause size={16} /> {playingLabel}</>
         ) : (
-          <Volume2 size={iconSize} />
+          <><Headphones size={16} /> {idleLabel}</>
         )}
-        {displayLabel}
       </button>
     );
   }
@@ -114,11 +112,11 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
           alignItems: 'center',
           gap: 5,
           padding: '6px 12px',
-          background: playing ? accentColor : 'transparent',
-          border: `1px solid ${playing ? accentColor : 'var(--dw-border)'}`,
+          background: playing || loading ? accentColor : 'var(--dw-surface, #f5f5f5)',
+          border: `1px solid ${playing || loading ? accentColor : 'var(--dw-text-muted, #888)'}`,
           borderRadius: 999,
           cursor: 'pointer',
-          color: playing ? '#fff' : accentColor,
+          color: playing || loading ? '#fff' : 'var(--dw-text-primary, #333)',
           fontSize: 12,
           fontWeight: 500,
           fontFamily: 'var(--font-sans)',
@@ -128,13 +126,12 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
         }}
       >
         {loading ? (
-          <Loader2 size={iconSize} style={{ animation: 'spin 1s linear infinite' }} />
+          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
         ) : playing ? (
-          <Square size={iconSize - 2} fill="currentColor" />
+          <><AudioWave height={12} /> <Pause size={12} /></>
         ) : (
-          <Volume2 size={iconSize} />
+          <><Headphones size={14} /> {idleLabel}</>
         )}
-        {displayLabel}
       </button>
     );
   }
@@ -143,7 +140,7 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
   return (
     <button aria-label="Toggle audio"
       onClick={handleClick}
-      title={playing ? 'Stop listening' : 'Listen'}
+      title={playing ? 'Pause' : 'Listen'}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -151,23 +148,22 @@ export function ListenButton({ text, passageRef, translation, size = 'sm', label
         width: 28,
         height: 28,
         padding: 0,
-        background: playing ? accentColor : 'transparent',
+        background: playing || loading ? accentColor : 'transparent',
         border: 'none',
         borderRadius: '50%',
         cursor: 'pointer',
-        color: playing ? '#fff' : 'var(--dw-text-muted)',
+        color: playing || loading ? '#fff' : 'var(--dw-text-muted)',
         transition: 'all 0.15s',
         flexShrink: 0,
       }}
     >
       {loading ? (
-        <Loader2 size={iconSize} style={{ animation: 'spin 1s linear infinite' }} />
+        <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
       ) : playing ? (
-        <Square size={10} fill="currentColor" />
+        <AudioWave bars={3} height={12} />
       ) : (
-        <Volume2 size={iconSize} />
+        <Headphones size={13} />
       )}
     </button>
   );
 }
-

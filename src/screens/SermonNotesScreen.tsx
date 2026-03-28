@@ -1,10 +1,12 @@
 import { ArrowLeft } from 'lucide-react';
+import { t, getLang } from '../utils/i18n';
 
 interface SermonNotesScreenProps {
   onBack: () => void;
 }
 
 export function SermonNotesScreen({ onBack }: SermonNotesScreenProps) {
+  const lang = getLang();
   return (
     <div style={{
       minHeight: '100vh',
@@ -38,7 +40,7 @@ export function SermonNotesScreen({ onBack }: SermonNotesScreenProps) {
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Sermon Notes</h1>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>{t('sermon_notes_title', lang)}</h1>
       </div>
 
       {/* Hero */}

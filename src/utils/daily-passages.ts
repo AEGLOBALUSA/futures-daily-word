@@ -22,8 +22,10 @@ export interface DailyPassage {
 export function getDayNumber(dayOffset = 0): number {
   const now = new Date();
   now.setDate(now.getDate() + dayOffset);
-  // Day number since Unix epoch
-  return Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+  // Day number based on LOCAL date (not UTC) so it matches the user's calendar day
+  // Using Date.UTC with local components gives a stable day count without timezone skew
+  const localDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.floor(localDay / (1000 * 60 * 60 * 24));
 }
 
 /**

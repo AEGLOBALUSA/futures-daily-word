@@ -4,6 +4,7 @@ import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2, Headphones, Pause } from 'lucide-react';
 import { StopAllAudio } from '../components/StopAllAudio';
+import { AudioWave } from '../components/AudioWave';
 import * as AP from '../utils/audioPlayer';
 
 /* ── Essay TOC + section types ── */
@@ -246,7 +247,7 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
                     display: 'flex', alignItems: 'center', gap: 5, minHeight: 36, flexShrink: 0,
                   }}
                 >
-                  {audioActive ? <><Pause size={13} /> Stop</> : <><Headphones size={13} /> Listen</>}
+                  {audioActive ? <><AudioWave height={12} /> <Pause size={13} /> Pause</> : <><Headphones size={13} /> Listen</>}
                 </button>
               )}
             </div>
