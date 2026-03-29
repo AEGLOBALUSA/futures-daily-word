@@ -52,8 +52,8 @@ function ScreenLoader() {
 }
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<TabId>(SERMON_DEEP_LINK ? 'journal' : 'home');
-  const tabHistoryRef = useRef<TabId[]>([SERMON_DEEP_LINK ? 'journal' : 'home']);
+  const [activeTab, setActiveTab] = useState<TabId>(SERMON_DEEP_LINK ? 'sermon-notes' : 'home');
+  const tabHistoryRef = useRef<TabId[]>([SERMON_DEEP_LINK ? 'sermon-notes' : 'home']);
   const [showBibleAI, setShowBibleAI] = useState(false);
 
   // Track tab navigation history
@@ -132,7 +132,7 @@ function AppContent() {
     messages: <MessagesScreen onBack={goBack} />,
     plans: <PlansScreen onBack={goBack} />,
     more: <MoreScreen onBack={goBack} />,
-    'sermon-notes': <SermonNotesScreen onBack={goBack} />,
+    'sermon-notes': <SermonNotesScreen onBack={() => navigateTab('home')} />,
   };
 
   // Full-screen pathway picker — renders INSTEAD of app when needed
