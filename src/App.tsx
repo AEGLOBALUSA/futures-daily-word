@@ -68,11 +68,24 @@ function AppContent() {
     track('app_open', setup?.persona || 'none');
   }, []);
 
-  // Sunday QR deep link — bypass onboarding and go straight to sermon notes
+  // Deep link: ?sermon=1 or ?sunday=1 → go straight to sermon notes tab
+  const [sermonDeepLink, setSermonDeepLink] = useState(false);
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isSermonLink = params.get('sermon') === '1';
     if (isSundayDeepLink()) {
       activateSundayGuest();
-      setTimeout(() => setActiveTab('messages'), 100);
+      setSermonDeepLink(true);
+      setTimeout(() => setActiveTab('journal'), 100);
+    } else if (isSermonLink) {
+      setSermonDeepLink(true);
+      // Clean up URL param
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('sermon');
+        window.history.replaceState({}, '', url.toString());
+      } catch { /* ignore */ }
+      setTimeout(() => setActiveTab('journal'), 100);
     }
   }, []);
 
@@ -120,7 +133,7 @@ function AppContent() {
 
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
-    journal: <JournalScreen onBack={goBack} />,
+    journal: <JournalScreen onBack={goBack} initialTab={sermonDeepLink ? 'sermon' : undefined} />,
     messages: <MessagesScreen onBack={goBack} />,
     plans: <PlansScreen onBack={goBack} />,
     more: <MoreScreen onBack={goBack} />,

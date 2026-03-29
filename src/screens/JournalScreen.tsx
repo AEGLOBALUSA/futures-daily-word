@@ -1404,13 +1404,13 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   );
 }
 
-export function JournalScreen({ onBack }: { onBack?: () => void }) {
+export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; initialTab?: 'today' | 'saved' | 'prayer' | 'sermon' }) {
   const { userProfile, setup, requireEmail } = useUser();
   const { selection } = useScriptureSelection();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
 
-  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer' | 'sermon'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer' | 'sermon'>(initialTab || 'today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
