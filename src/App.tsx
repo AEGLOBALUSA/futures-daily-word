@@ -10,9 +10,25 @@ import { PathwayPicker } from './components/PathwayPicker';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import type { TabId } from './components/TabBar';
 import type { Persona } from './utils/persona-config';
-import { isSundayWindow, isSundayDeepLink, activateSundayGuest, isSundayGuest } from './utils/sunday';
+import { isSundayWindow, activateSundayGuest, isSundayGuest } from './utils/sunday';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
 import { track } from './utils/analytics';
+
+// ── Pre-render deep link setup — must run before any React component initializes ──
+const SERMON_DEEP_LINK = (() => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sermon') === '1' || params.get('sunday') === '1') {
+      activateSundayGuest(); // sets persona + pathway in localStorage synchronously
+      const url = new URL(window.location.href);
+      url.searchParams.delete('sermon');
+      url.searchParams.delete('sunday');
+      window.history.replaceState({}, '', url.toString());
+      return true;
+    }
+  } catch { /* ignore */ }
+  return false;
+})();
 
 // ── Lazy-loaded screens — only downloaded when the user navigates to them ──
 const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
@@ -68,25 +84,10 @@ function AppContent() {
     track('app_open', setup?.persona || 'none');
   }, []);
 
-  // Deep link: ?sermon=1 or ?sunday=1 → go straight to sermon notes tab
-  const [sermonDeepLink, setSermonDeepLink] = useState(false);
+  // Navigate to journal/sermon tab on deep link (after mount)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const isSermonLink = params.get('sermon') === '1';
-    if (isSundayDeepLink()) {
-      activateSundayGuest();
-      setSermonDeepLink(true);
-      setTimeout(() => setActiveTab('journal'), 100);
-    } else if (isSermonLink) {
-      activateSundayGuest(); // bypass onboarding for first-time visitors
-      setSermonDeepLink(true);
-      // Clean up URL param
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('sermon');
-        window.history.replaceState({}, '', url.toString());
-      } catch { /* ignore */ }
-      setTimeout(() => setActiveTab('journal'), 100);
+    if (SERMON_DEEP_LINK) {
+      setActiveTab('journal');
     }
   }, []);
 
@@ -96,12 +97,7 @@ function AppContent() {
   // Once a persona is chosen, never show again automatically
   // Users can still change persona from the More/Settings screen
   const [showPathway, setShowPathway] = useState(() => {
-    if (sundayGuest || isSundayWindow()) return false; // no gate during service
-    // Skip onboarding for ?sermon=1 deep links
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('sermon') === '1') return false;
-    } catch { /* ignore */ }
+    if (sundayGuest || SERMON_DEEP_LINK || isSundayWindow()) return false;
     const v7Done = localStorage.getItem('dw_v7_pathway_done');
     if (!setup?.persona || !v7Done) return true;
     return false;
@@ -139,7 +135,7 @@ function AppContent() {
 
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
-    journal: <JournalScreen onBack={goBack} initialTab={sermonDeepLink ? 'sermon' : undefined} />,
+    journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : undefined} />,
     messages: <MessagesScreen onBack={goBack} />,
     plans: <PlansScreen onBack={goBack} />,
     more: <MoreScreen onBack={goBack} />,
