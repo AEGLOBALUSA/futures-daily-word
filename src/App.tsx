@@ -52,8 +52,8 @@ function ScreenLoader() {
 }
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<TabId>('home');
-  const tabHistoryRef = useRef<TabId[]>(['home']);
+  const [activeTab, setActiveTab] = useState<TabId>(SERMON_DEEP_LINK ? 'journal' : 'home');
+  const tabHistoryRef = useRef<TabId[]>([SERMON_DEEP_LINK ? 'journal' : 'home']);
   const [showBibleAI, setShowBibleAI] = useState(false);
 
   // Track tab navigation history
@@ -82,13 +82,6 @@ function AppContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     track('app_open', setup?.persona || 'none');
-  }, []);
-
-  // Navigate to journal/sermon tab on deep link (after mount)
-  useEffect(() => {
-    if (SERMON_DEEP_LINK) {
-      setActiveTab('journal');
-    }
   }, []);
 
   const sundayGuest = isSundayGuest();
