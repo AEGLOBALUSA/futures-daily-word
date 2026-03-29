@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 
@@ -172,11 +172,19 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
               case 'blank': {
                 const blankId = `blank-${section.num}-${blankCounter++}`;
                 return (
-                  <p key={i} style={{ fontSize: 15, lineHeight: 1.75, margin: '0 0 12px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                    {item.before}{' '}
+                  <div key={i} style={{ margin: '0 0 12px' }}>
+                    {item.before && (
+                      <p style={{ fontSize: 15, lineHeight: 1.75, margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+                        {item.before}
+                      </p>
+                    )}
                     <BlankInput id={blankId} responses={responses} onChange={updateResponse} />
-                    {item.after && ` ${item.after}`}
-                  </p>
+                    {item.after && (
+                      <p style={{ fontSize: 15, lineHeight: 1.75, margin: '4px 0 0', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+                        {item.after}
+                      </p>
+                    )}
+                  </div>
                 );
               }
               case 'quote':
@@ -215,16 +223,18 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
         {sermon.responsePrompts.map((prompt, i) => (
           <div key={i} style={{ marginBottom: 16 }}>
             <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 8px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>{prompt}</p>
-            <textarea
+            <AutoTextarea
               value={responses[`resp-${i}`] || ''}
-              onChange={e => updateResponse(`resp-${i}`, e.target.value)}
+              onChange={val => updateResponse(`resp-${i}`, val)}
               placeholder="Write your thoughts here..."
+              minRows={3}
               style={{
-                width: '100%', minHeight: 80, padding: '12px 14px',
+                width: '100%', padding: '12px 14px',
                 background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
                 borderRadius: 10, color: 'var(--dw-text-primary)',
                 fontSize: 14, fontFamily: 'var(--font-sans)', lineHeight: 1.6,
-                resize: 'vertical', outline: 'none',
+                resize: 'none', outline: 'none', overflow: 'hidden',
+                boxSizing: 'border-box',
               }}
             />
           </div>
@@ -282,26 +292,67 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
   );
 }
 
-/* ── Blank input component ── */
+/* ── Auto-expanding textarea (reusable) ── */
+function AutoTextarea({ value, onChange, placeholder, minRows, style }: {
+  value: string; onChange: (val: string) => void; placeholder?: string; minRows?: number; style?: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const autoResize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, []);
+  useEffect(() => { autoResize(); }, [value, autoResize]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={e => { onChange(e.target.value); autoResize(); }}
+      placeholder={placeholder}
+      rows={minRows || 1}
+      style={style}
+    />
+  );
+}
+
+/* ── Auto-expanding blank textarea component ── */
 function BlankInput({ id, responses, onChange }: { id: string; responses: Record<string, string>; onChange: (id: string, val: string) => void }) {
   const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, []);
+
+  useEffect(() => { autoResize(); }, [responses[id], autoResize]);
+
   return (
-    <input
-      type="text"
+    <textarea
+      ref={ref}
       value={responses[id] || ''}
-      onChange={e => onChange(id, e.target.value)}
+      onChange={e => { onChange(id, e.target.value); autoResize(); }}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      placeholder="________"
+      placeholder="Write your notes here..."
+      rows={1}
       style={{
-        display: 'inline-block',
+        display: 'block',
+        width: '100%',
         border: 'none',
         borderBottom: `2px solid ${focused ? 'var(--dw-accent)' : 'var(--dw-border)'}`,
         background: 'transparent',
-        width: 160, marginLeft: 4, padding: '2px 4px',
+        padding: '6px 4px',
         fontSize: 15, fontFamily: 'var(--font-sans)', fontWeight: 600,
-        color: 'var(--dw-accent)', outline: 'none',
+        color: 'var(--dw-text-primary)', outline: 'none',
         transition: 'border-color 0.2s',
+        resize: 'none',
+        overflow: 'hidden',
+        lineHeight: 1.6,
+        boxSizing: 'border-box',
       }}
     />
   );

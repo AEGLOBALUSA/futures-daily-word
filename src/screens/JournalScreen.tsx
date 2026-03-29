@@ -51,6 +51,34 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+/* ── Auto-expanding textarea ── */
+function AutoExpandTextarea({ value, onChange, placeholder, style, innerRef }: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  style?: React.CSSProperties;
+  innerRef?: React.RefObject<HTMLTextAreaElement | null>;
+}) {
+  const fallbackRef = useRef<HTMLTextAreaElement>(null);
+  const ref = innerRef || fallbackRef;
+  const autoResize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, [ref]);
+  useEffect(() => { autoResize(); }, [value, autoResize]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={e => { onChange(e); autoResize(); }}
+      placeholder={placeholder}
+      style={style}
+    />
+  );
+}
+
 /* ââ Video Recorder Modal ââ */
 function VideoRecorderModal({ onClose }: { onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -998,8 +1026,8 @@ function ScriptureModal({
                 </p>
               </div>
               <div style={{ padding: '12px 18px 16px' }}>
-                <textarea
-                  ref={textareaRef}
+                <AutoExpandTextarea
+                  innerRef={textareaRef}
                   value={draftNote}
                   onChange={e => setDraftNote(e.target.value)}
                   placeholder={devotional
@@ -1010,9 +1038,10 @@ function ScriptureModal({
                     border: 'none', outline: 'none',
                     background: 'transparent',
                     fontSize: 15, lineHeight: 1.7,
-                    color: 'var(--dw-text)',
+                    color: 'var(--dw-text-primary)',
                     fontFamily: 'var(--font-serif-text)',
                     boxSizing: 'border-box',
+                    overflow: 'hidden',
                   }}
                 />
               </div>
@@ -1631,14 +1660,15 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
               </p>
             </div>
           )}
-          <textarea
+          <AutoExpandTextarea
             placeholder={editingEntry.type === 'sermon' ? t('j_write_sermon', lang) : editingEntry.type === 'prayer' ? t('j_write_prayer', lang) : editingEntry.type === 'teaching-notes' ? t('j_sermon_prep', lang) : t('j_write_thoughts', lang)}
             value={editingEntry.body}
             onChange={e => setEditingEntry({ ...editingEntry, body: e.target.value })}
             style={{
               width: '100%', minHeight: 300, background: 'none', border: 'none',
-              outline: 'none', color: 'var(--dw-text-secondary)', fontSize: 15,
+              outline: 'none', color: 'var(--dw-text-primary)', fontSize: 15,
               lineHeight: 1.8, fontFamily: 'var(--font-sans)', resize: 'none',
+              overflow: 'hidden',
             }}
           />
 
