@@ -1086,6 +1086,149 @@ function ScriptureModal({
   );
 }
 
+/* ── Grouped Notes List — groups scripture notes by plan, keeps others chronological ── */
+function GroupedNotesList({ entries, onOpen, lang }: { entries: JournalEntry[]; onOpen: (e: JournalEntry) => void; lang: string }) {
+  // Split into plan-based scripture notes and everything else
+  const planGroups: Record<string, JournalEntry[]> = {};
+  const generalNotes: JournalEntry[] = [];
+
+  for (const entry of entries) {
+    const ctx = (entry as any).planContext as string | undefined;
+    if (ctx && entry.verseRef) {
+      // Extract just the plan name (strip " — Day 7" etc.)
+      const planName = ctx.replace(/\s*[—–-]\s*(Day|Hari|Día|Dia)\s*\d+$/i, '').trim();
+      if (!planGroups[planName]) planGroups[planName] = [];
+      planGroups[planName].push(entry);
+    } else {
+      generalNotes.push(entry);
+    }
+  }
+
+  const planNames = Object.keys(planGroups);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Plan-grouped scripture notes */}
+      {planNames.map(planName => (
+        <div key={planName}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10,
+          }}>
+            <BookOpen size={14} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+            <p style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', margin: 0,
+            }}>
+              {planName}
+            </p>
+            <span style={{
+              fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)',
+              fontFamily: 'var(--font-sans)', background: 'var(--dw-surface)',
+              padding: '2px 8px', borderRadius: 999,
+            }}>
+              {planGroups[planName].length} {planGroups[planName].length === 1 ? 'note' : 'notes'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {planGroups[planName].map(entry => (
+              <NoteCard key={entry.id} entry={entry} onOpen={onOpen} compact />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* General / non-plan notes */}
+      {generalNotes.length > 0 && planNames.length > 0 && (
+        <p style={{
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0',
+        }}>
+          {t('j_general_notes', lang)}
+        </p>
+      )}
+      {generalNotes.map(entry => (
+        <NoteCard key={entry.id} entry={entry} onOpen={onOpen} />
+      ))}
+    </div>
+  );
+}
+
+function NoteCard({ entry, onOpen, compact }: { entry: JournalEntry; onOpen: (e: JournalEntry) => void; compact?: boolean }) {
+  return (
+    <Card onClick={() => onOpen(entry)}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: compact ? 4 : 6 }}>
+        <p style={{
+          color: 'var(--dw-text-muted)', fontSize: 11, fontWeight: 500,
+          letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0,
+          fontFamily: 'var(--font-sans)',
+        }}>
+          {entry.date}
+        </p>
+        {compact && (entry as any).planContext && (
+          <span style={{ fontSize: 10, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)' }}>
+            {(entry as any).planContext.replace(/^.*?[—–-]\s*/, '')}
+          </span>
+        )}
+      </div>
+
+      {/* Title row — scripture notes show verse ref with icon */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: !compact && (entry as any).planContext ? 4 : 8 }}>
+        {entry.verseRef && (
+          <BookOpen size={13} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+        )}
+        <p className="text-card-title" style={{ margin: 0 }}>{entry.title}</p>
+      </div>
+      {!compact && (entry as any).planContext && (
+        <p style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.02em' }}>
+          {(entry as any).planContext}
+        </p>
+      )}
+
+      {/* Highlighted scripture quote */}
+      {entry.highlightedText && (
+        <div style={{
+          padding: '8px 12px',
+          background: 'rgba(154,123,46,0.1)',
+          borderLeft: '3px solid var(--dw-accent)',
+          borderRadius: '0 6px 6px 0',
+          marginBottom: 10,
+        }}>
+          <p style={{
+            fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.5,
+            fontStyle: 'italic', fontFamily: 'var(--font-serif-text)',
+            overflow: 'hidden', textOverflow: 'ellipsis',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          }}>
+            "{entry.highlightedText}"
+          </p>
+        </div>
+      )}
+
+      <p style={{
+        color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.5,
+        fontFamily: 'var(--font-sans)',
+        overflow: 'hidden', textOverflow: 'ellipsis',
+        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+      }}>
+        {entry.body}
+      </p>
+      {entry.tags.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+          {entry.tags.map(tag => (
+            <span key={tag} style={{
+              background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
+              fontSize: 11, padding: '3px 10px', borderRadius: 999,
+              fontFamily: 'var(--font-sans)', fontWeight: 500,
+            }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   allEntries: JournalEntry[];
   onSave: (entry: JournalEntry) => void;
@@ -1777,74 +1920,7 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
             </button>
           </Card>
         ) : activeTab !== 'today' && activeTab !== 'sermon' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {filteredEntries.map(entry => (
-              <Card key={entry.id} onClick={() => openEntry(entry)}>
-                <p style={{
-                  color: 'var(--dw-text-muted)', fontSize: 11, fontWeight: 500,
-                  letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 6,
-                  fontFamily: 'var(--font-sans)',
-                }}>
-                  {entry.date}
-                </p>
-
-                {/* Title row — scripture notes show verse ref with icon */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: (entry as any).planContext ? 4 : 8 }}>
-                  {entry.verseRef && (
-                    <BookOpen size={13} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-                  )}
-                  <p className="text-card-title" style={{ margin: 0 }}>{entry.title}</p>
-                </div>
-                {(entry as any).planContext && (
-                  <p style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.02em' }}>
-                    {(entry as any).planContext}
-                  </p>
-                )}
-
-                {/* Highlighted scripture quote */}
-                {entry.highlightedText && (
-                  <div style={{
-                    padding: '8px 12px',
-                    background: 'rgba(154,123,46,0.1)',
-                    borderLeft: '3px solid var(--dw-accent)',
-                    borderRadius: '0 6px 6px 0',
-                    marginBottom: 10,
-                  }}>
-                    <p style={{
-                      fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.5,
-                      fontStyle: 'italic', fontFamily: 'var(--font-serif-text)',
-                      overflow: 'hidden', textOverflow: 'ellipsis',
-                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    }}>
-                      "{entry.highlightedText}"
-                    </p>
-                  </div>
-                )}
-
-                <p style={{
-                  color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.5,
-                  fontFamily: 'var(--font-sans)',
-                  overflow: 'hidden', textOverflow: 'ellipsis',
-                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                }}>
-                  {entry.body}
-                </p>
-                {entry.tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                    {entry.tags.map(tag => (
-                      <span key={tag} style={{
-                        background: 'var(--dw-accent-bg)', color: 'var(--dw-accent)',
-                        fontSize: 11, padding: '3px 10px', borderRadius: 999,
-                        fontFamily: 'var(--font-sans)', fontWeight: 500,
-                      }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            ))}
-          </div>
+          <GroupedNotesList entries={filteredEntries} onOpen={openEntry} lang={lang} />
         )}
       </div>
 

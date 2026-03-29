@@ -172,6 +172,7 @@ const UI: Translations = {
   j_continue_reading: { en: 'Continue Reading', es: 'Continuar Leyendo', pt: 'Continuar Lendo', id: 'Lanjut Membaca' },
   j_no_prayers: { en: 'No prayers yet', es: 'Sin oraciones a\u00fan', pt: 'Nenhuma ora\u00e7\u00e3o ainda', id: 'Belum ada doa' },
   j_no_notes: { en: 'No notes yet', es: 'Sin notas a\u00fan', pt: 'Nenhuma nota ainda', id: 'Belum ada catatan' },
+  j_general_notes: { en: 'Other Notes', es: 'Otras notas', pt: 'Outras notas', id: 'Catatan Lainnya' },
   j_create_first: { en: 'Create Your First Entry', es: 'Crea Tu Primera Entrada', pt: 'Crie Sua Primeira Entrada', id: 'Buat Entri Pertamamu' },
   j_showing_full_chapter: { en: 'showing full chapter', es: 'mostrando cap\u00edtulo completo', pt: 'mostrando cap\u00edtulo completo', id: 'menampilkan pasal lengkap' },
   j_listen_all: { en: 'Listen to all content', es: 'Escuchar todo el contenido', pt: 'Ouvir todo o conte\u00fado', id: 'Dengarkan semua konten' },
