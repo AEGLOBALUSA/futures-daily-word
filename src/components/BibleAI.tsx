@@ -808,15 +808,16 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           )}
         </div>
 
-        {/* Input bar */}
+        {/* Input bar — prominent */}
         <div style={{
-          padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px)) 12px',
-          borderTop: '1px solid var(--dw-border, #E8E6E0)',
+          padding: '14px 14px calc(14px + env(safe-area-inset-bottom, 0px)) 14px',
+          borderTop: '2px solid var(--dw-accent, #C8920E)',
           display: 'flex',
-          gap: 8,
+          gap: 10,
           alignItems: 'flex-end',
           flexShrink: 0,
-          background: 'var(--dw-canvas, #FAFAF8)',
+          background: 'linear-gradient(180deg, var(--dw-surface, #F0EDE6) 0%, var(--dw-canvas, #FAFAF8) 100%)',
+          boxShadow: '0 -4px 16px rgba(0,0,0,0.08)',
         }}>
           <textarea
             ref={inputRef}
@@ -828,16 +829,17 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
             style={{
               flex: 1,
               resize: 'none',
-              border: '1px solid var(--dw-border, #E8E6E0)',
-              borderRadius: 12,
-              padding: '10px 14px',
-              fontSize: 14,
+              border: '2px solid var(--dw-border, #E8E6E0)',
+              borderRadius: 14,
+              padding: '12px 16px',
+              fontSize: 15,
               fontFamily: 'var(--font-sans)',
-              background: 'var(--dw-card, #F5F3EF)',
+              background: 'var(--dw-canvas, #FAFAF8)',
               color: 'var(--dw-text)',
               outline: 'none',
               maxHeight: 100,
               overflowY: 'auto',
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
             }}
           />
           <button aria-label="Send message"
@@ -851,8 +853,8 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
             }}
             disabled={!loading && !input.trim()}
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               borderRadius: '50%',
               background: loading
                 ? 'var(--dw-accent)'
@@ -866,12 +868,13 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
               cursor: loading || input.trim() ? 'pointer' : 'default',
               flexShrink: 0,
               transition: 'background 0.2s',
+              boxShadow: input.trim() ? '0 2px 10px rgba(140,95,5,0.35)' : 'none',
             }}
           >
             {loading ? (
               <div style={{ width: 14, height: 14, borderRadius: 2, background: '#fff' }} />
             ) : (
-              <Send size={17} color={input.trim() ? '#fff' : 'var(--dw-text-muted)'} />
+              <Send size={18} color={input.trim() ? '#fff' : 'var(--dw-text-muted)'} />
             )}
           </button>
         </div>
