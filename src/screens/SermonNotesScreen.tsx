@@ -42,6 +42,9 @@ function saveSermonResponses(sermonId: string, r: Record<string, string>) {
   localStorage.setItem(`dw_sermon_${sermonId}`, JSON.stringify(r));
 }
 
+const SERMON_BLUE = '#2563EB';
+const SERMON_BLUE_BG = 'rgba(37, 99, 235, 0.08)';
+
 export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) {
   const lang = getLang();
   const [sermon, setSermon] = useState<SermonJson | null>(null);
@@ -73,7 +76,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-        <Loader2 size={24} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
+        <Loader2 size={24} style={{ color: SERMON_BLUE, animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
@@ -109,11 +112,11 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
         background: 'linear-gradient(135deg, var(--dw-charcoal-deep) 0%, var(--dw-charcoal) 50%, var(--dw-charcoal-light) 100%)',
         padding: '32px 24px',
         textAlign: 'center',
-        borderBottom: '3px solid var(--dw-accent)',
+        borderBottom: `3px solid ${SERMON_BLUE}`,
         borderRadius: embedded ? 14 : 0,
         marginBottom: 20,
       }}>
-        <p style={{ fontSize: 13, letterSpacing: '2px', color: 'var(--dw-accent)', marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
+        <p style={{ fontSize: 13, letterSpacing: '2px', color: SERMON_BLUE, marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
           {sermon.series || 'Futures Church'} &bull; {dateStr}
         </p>
         <h2 style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px 0', letterSpacing: '-0.5px', fontFamily: 'var(--font-serif)' }}>
@@ -131,14 +134,14 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
       <div style={{
         margin: '0 0 24px',
         padding: 20,
-        background: 'var(--dw-accent-bg)',
-        borderLeft: '4px solid var(--dw-accent)',
+        background: SERMON_BLUE_BG,
+        borderLeft: `4px solid ${SERMON_BLUE}`,
         borderRadius: '0 12px 12px 0',
       }}>
         <p style={{ fontSize: 15, lineHeight: 1.7, fontStyle: 'italic', color: 'var(--dw-text-primary)', margin: '0 0 8px 0', fontFamily: 'var(--font-serif-text)' }}>
           &ldquo;{sermon.keyVerseText}&rdquo;
         </p>
-        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--dw-accent)', margin: 0, fontFamily: 'var(--font-sans)' }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
           — {sermon.keyVerse}
         </p>
       </div>
@@ -148,7 +151,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
         <div key={section.num} style={{ marginBottom: 28 }}>
           <h3 style={{
             fontSize: 18, fontWeight: 700, margin: '28px 0 12px 0',
-            color: 'var(--dw-accent)', fontFamily: 'var(--font-serif)',
+            color: SERMON_BLUE, fontFamily: 'var(--font-serif)',
           }}>
             {section.num}. &nbsp;{section.title}
           </h3>
@@ -161,7 +164,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
               case 'bullet':
                 return (
                   <div key={i} style={{ display: 'flex', gap: 10, margin: '0 0 8px', paddingLeft: 4 }}>
-                    <span style={{ color: 'var(--dw-accent)', fontWeight: 700, flexShrink: 0 }}>&bull;</span>
+                    <span style={{ color: SERMON_BLUE, fontWeight: 700, flexShrink: 0 }}>&bull;</span>
                     <span style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>{item.value}</span>
                   </div>
                 );
@@ -191,14 +194,14 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
                 return (
                   <div key={i} style={{
                     margin: '12px 0', padding: 16,
-                    background: 'var(--dw-accent-bg)',
-                    borderLeft: '3px solid var(--dw-accent)',
+                    background: SERMON_BLUE_BG,
+                    borderLeft: `3px solid ${SERMON_BLUE}`,
                     borderRadius: '0 8px 8px 0',
                   }}>
                     <p style={{ fontSize: 14, lineHeight: 1.7, fontStyle: 'italic', margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif-text)' }}>
                       &ldquo;{item.text}&rdquo;
                     </p>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--dw-accent)', margin: 0, fontFamily: 'var(--font-sans)' }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
                       — {item.ref}
                     </p>
                   </div>
@@ -213,11 +216,11 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
       {/* My Response */}
       <div style={{
         margin: '32px 0', padding: 24,
-        background: 'var(--dw-accent-bg)',
+        background: SERMON_BLUE_BG,
         borderRadius: 16,
         border: '1px solid var(--dw-border)',
       }}>
-        <h3 style={{ fontSize: 18, fontWeight: 800, textAlign: 'center', margin: '0 0 24px', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', letterSpacing: '0.08em' }}>
+        <h3 style={{ fontSize: 18, fontWeight: 800, textAlign: 'center', margin: '0 0 24px', color: SERMON_BLUE, fontFamily: 'var(--font-sans)', letterSpacing: '0.08em' }}>
           MY RESPONSE
         </h3>
         {sermon.responsePrompts.map((prompt, i) => (
@@ -247,7 +250,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
                   type="checkbox"
                   checked={responses[`commit-${i}`] === '1'}
                   onChange={e => updateResponse(`commit-${i}`, e.target.checked ? '1' : '')}
-                  style={{ width: 20, height: 20, accentColor: 'var(--dw-accent)' }}
+                  style={{ width: 20, height: 20, accentColor: SERMON_BLUE }}
                 />
                 {c}
               </label>
@@ -343,7 +346,7 @@ function BlankInput({ id, responses, onChange }: { id: string; responses: Record
         display: 'block',
         width: '100%',
         border: 'none',
-        borderBottom: `2px solid ${focused ? 'var(--dw-accent)' : 'var(--dw-border)'}`,
+        borderBottom: `2px solid ${focused ? SERMON_BLUE : 'var(--dw-border)'}`,
         background: 'transparent',
         padding: '6px 4px',
         fontSize: 15, fontFamily: 'var(--font-sans)', fontWeight: 600,

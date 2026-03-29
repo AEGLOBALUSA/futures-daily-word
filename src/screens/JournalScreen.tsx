@@ -1771,24 +1771,30 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
           display: 'flex', gap: 4, background: 'var(--dw-surface)',
           borderRadius: 12, padding: 4, marginBottom: 24,
         }}>
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              style={{
-                flex: 1,
-                background: activeTab === id ? 'var(--dw-accent)' : 'transparent',
-                color: activeTab === id ? '#fff' : 'var(--dw-text-muted)',
-                border: 'none', borderRadius: 8, padding: '10px 0',
-                fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                minHeight: 44, fontFamily: 'var(--font-sans)',
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              <Icon size={14} /> {label}
-            </button>
-          ))}
+          {tabs.map(({ id, label, icon: Icon }) => {
+            const isSermon = id === 'sermon';
+            const isActive = activeTab === id;
+            const shouldPulse = isSermon && !isActive;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={shouldPulse ? 'sermon-tab-pulse' : undefined}
+                style={{
+                  flex: 1,
+                  background: isActive ? (isSermon ? '#2563EB' : 'var(--dw-accent)') : 'transparent',
+                  color: isActive ? '#fff' : shouldPulse ? '#2563EB' : 'var(--dw-text-muted)',
+                  border: 'none', borderRadius: 8, padding: '10px 0',
+                  fontSize: 12, fontWeight: shouldPulse ? 700 : 500, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  minHeight: 44, fontFamily: 'var(--font-sans)',
+                  transition: 'all var(--transition-fast)',
+                }}
+              >
+                <Icon size={14} /> {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Active plans strip â show active plans at top of Study tab */}
