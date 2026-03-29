@@ -147,7 +147,9 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
       </div>
 
       {/* Sections */}
-      {sermon.sections.map((section) => (
+      {sermon.sections.map((section) => {
+        let sectionBlankIndex = 0;
+        return (
         <div key={section.num} style={{ marginBottom: 28 }}>
           <h3 style={{
             fontSize: 18, fontWeight: 700, margin: '28px 0 12px 0',
@@ -174,6 +176,8 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
                 return <p key={i} style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>{item.value}</p>;
               case 'blank': {
                 const blankId = `blank-${section.num}-${blankCounter++}`;
+                const isFirst = sectionBlankIndex === 0;
+                sectionBlankIndex++;
                 return (
                   <div key={i} style={{ margin: '0 0 12px' }}>
                     {item.before && (
@@ -181,7 +185,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
                         {item.before}
                       </p>
                     )}
-                    <BlankInput id={blankId} responses={responses} onChange={updateResponse} />
+                    <BlankInput id={blankId} responses={responses} onChange={updateResponse} placeholder={isFirst ? 'Write your notes...' : undefined} />
                     {item.after && (
                       <p style={{ fontSize: 15, lineHeight: 1.75, margin: '4px 0 0', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
                         {item.after}
@@ -211,7 +215,8 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
             }
           })}
         </div>
-      ))}
+        );
+      })}
 
       {/* My Response */}
       <div style={{
@@ -320,7 +325,7 @@ function AutoTextarea({ value, onChange, placeholder, minRows, style }: {
 }
 
 /* ── Auto-expanding blank textarea component ── */
-function BlankInput({ id, responses, onChange }: { id: string; responses: Record<string, string>; onChange: (id: string, val: string) => void }) {
+function BlankInput({ id, responses, onChange, placeholder }: { id: string; responses: Record<string, string>; onChange: (id: string, val: string) => void; placeholder?: string }) {
   const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -340,7 +345,7 @@ function BlankInput({ id, responses, onChange }: { id: string; responses: Record
       onChange={e => { onChange(id, e.target.value); autoResize(); }}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      placeholder="Write your notes here..."
+      placeholder={placeholder || ''}
       rows={1}
       style={{
         display: 'block',
