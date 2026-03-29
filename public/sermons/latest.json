@@ -5,11 +5,11 @@
   "date": "2026-04-05",
   "speaker": "Pastor Ashley Evans",
   "keyVerse": "",
-  "keyVerseText": "It started with worship — full, unbridled, irreversible, all-in worship. And it ended with a resurrection and a revelation that transformed generations.",
+  "keyVerseText": "It started with worship \u2014 full, unbridled, irreversible, all-in worship. And it ended with a resurrection and a revelation that transformed generations.",
   "sections": [
     {
       "num": "1",
-      "title": "The Broken Jar",
+      "title": "Worship Precedes What God Is About to Do",
       "content": [
         { "type": "blank", "before": "" },
         { "type": "blank", "before": "" },
@@ -18,7 +18,7 @@
     },
     {
       "num": "2",
-      "title": "The Crowd's Coats",
+      "title": "A Mary Started It. A Mary Ignites the Finish.",
       "content": [
         { "type": "blank", "before": "" },
         { "type": "blank", "before": "" },
@@ -27,7 +27,7 @@
     },
     {
       "num": "3",
-      "title": "Irreversible vs Retrievable Worship",
+      "title": "The Broken Jar",
       "content": [
         { "type": "blank", "before": "" },
         { "type": "blank", "before": "" },
@@ -36,7 +36,25 @@
     },
     {
       "num": "4",
-      "title": "Monday\u2013Friday: Jesus Ties Up Every Loose End",
+      "title": "The Crowd\u2019s Coats",
+      "content": [
+        { "type": "blank", "before": "" },
+        { "type": "blank", "before": "" },
+        { "type": "blank", "before": "" }
+      ]
+    },
+    {
+      "num": "5",
+      "title": "Irreversible vs Retrievable Worship",
+      "content": [
+        { "type": "blank", "before": "" },
+        { "type": "blank", "before": "" },
+        { "type": "blank", "before": "" }
+      ]
+    },
+    {
+      "num": "6",
+      "title": "Monday\u2013Friday \u2014 Jesus Ties Up Every Loose End. And So Should We.",
       "content": [
         { "type": "bullet", "value": "Monday \u2014 Dead religion" },
         { "type": "blank", "before": "" },
@@ -51,7 +69,7 @@
       ]
     },
     {
-      "num": "5",
+      "num": "7",
       "title": "The Resurrection Almost Everyone Missed",
       "content": [
         { "type": "subhead", "value": "Seven Things That Caused People to Miss It" },
@@ -72,7 +90,7 @@
       ]
     },
     {
-      "num": "6",
+      "num": "8",
       "title": "Mary Saw Him First",
       "content": [
         { "type": "blank", "before": "" },
@@ -81,7 +99,7 @@
       ]
     },
     {
-      "num": "7",
+      "num": "9",
       "title": "How You Worship Determines What You See",
       "content": [
         { "type": "blank", "before": "" },
@@ -90,7 +108,7 @@
       ]
     },
     {
-      "num": "8",
+      "num": "10",
       "title": "This Week: Prepare for Your Resurrection",
       "content": [
         { "type": "bullet", "value": "Your Monday \u2014 Deal with the dead things" },
@@ -101,12 +119,12 @@
         { "type": "blank", "before": "" },
         { "type": "bullet", "value": "Your Thursday \u2014 Serve and bring your people" },
         { "type": "blank", "before": "" },
-        { "type": "bullet", "value": "Your Friday \u2014 Give yourself to see others live" },
+        { "type": "bullet", "value": "Your Friday \u2014 Give" },
         { "type": "blank", "before": "" }
       ]
     },
     {
-      "num": "9",
+      "num": "11",
       "title": "Break the Jar",
       "content": [
         { "type": "blank", "before": "" },
