@@ -274,11 +274,9 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
   if (embedded) return content;
 
   return (
-    <div style={{
-      minHeight: '100vh',
+    <div className="screen-container" style={{
       background: 'var(--dw-canvas)',
       color: 'var(--dw-text)',
-      padding: '0 0 100px 0',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', padding: '16px 20px',
