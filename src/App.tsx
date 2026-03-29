@@ -148,7 +148,7 @@ function AppContent() {
         </Suspense>
       </ErrorBoundary>
       <TabBar activeTab={activeTab} onTabChange={navigateTab} />
-      {!sundayGuest && <EmailGate />}
+      {!sundayGuest && !SERMON_DEEP_LINK && <EmailGate />}
       <BibleAI
         isOpen={showBibleAI}
         onClose={() => setShowBibleAI(false)}
