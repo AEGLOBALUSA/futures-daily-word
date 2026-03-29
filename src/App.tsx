@@ -78,6 +78,7 @@ function AppContent() {
       setSermonDeepLink(true);
       setTimeout(() => setActiveTab('journal'), 100);
     } else if (isSermonLink) {
+      activateSundayGuest(); // bypass onboarding for first-time visitors
       setSermonDeepLink(true);
       // Clean up URL param
       try {
@@ -96,6 +97,11 @@ function AppContent() {
   // Users can still change persona from the More/Settings screen
   const [showPathway, setShowPathway] = useState(() => {
     if (sundayGuest || isSundayWindow()) return false; // no gate during service
+    // Skip onboarding for ?sermon=1 deep links
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('sermon') === '1') return false;
+    } catch { /* ignore */ }
     const v7Done = localStorage.getItem('dw_v7_pathway_done');
     if (!setup?.persona || !v7Done) return true;
     return false;
