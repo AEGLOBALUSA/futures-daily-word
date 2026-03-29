@@ -20,6 +20,8 @@ const SERMON_DEEP_LINK = (() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('sermon') === '1' || params.get('sunday') === '1') {
       activateSundayGuest(); // sets persona + pathway in localStorage synchronously
+      // Also set skip flag so EmailGate never triggers for this session
+      localStorage.setItem('dw_email_gate_skipped', 'sermon');
       const url = new URL(window.location.href);
       url.searchParams.delete('sermon');
       url.searchParams.delete('sunday');
