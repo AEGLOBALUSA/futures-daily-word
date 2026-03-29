@@ -5,7 +5,8 @@ import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause, FileText } from 'lucide-react';
+import { SermonNotesScreen } from './SermonNotesScreen';
 import { AudioWave } from '../components/AudioWave';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -1237,7 +1238,7 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
 
-  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer'>('today');
+  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer' | 'sermon'>('today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -1295,12 +1296,13 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
   const allowedEntryTypes = personaConfig.journal.entryTypes;
   const allTabs = [
     { id: 'today' as const, label: 'Today', icon: BookOpen },
+    { id: 'sermon' as const, label: 'Sermon', icon: FileText },
     { id: 'saved' as const, label: 'All Notes', icon: Bookmark },
     { id: 'prayer' as const, label: t('prayer', lang), icon: Heart },
   ];
-  // Show all 3 tabs for every persona (prayer shows if persona has 'prayer' in entryTypes)
+  // Show tabs: Today + Sermon always visible, others persona-gated
   const tabs = allTabs.filter(t =>
-    t.id === 'today' || t.id === 'saved' || allowedEntryTypes.includes(t.id)
+    t.id === 'today' || t.id === 'saved' || t.id === 'sermon' || allowedEntryTypes.includes(t.id)
   );
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
@@ -1758,8 +1760,13 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
           <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
 
+        {/* Sermon Notes — embedded */}
+        {activeTab === 'sermon' && (
+          <SermonNotesScreen onBack={() => setActiveTab('today')} embedded />
+        )}
+
         {/* Entries */}
-        {activeTab !== 'today' && filteredEntries.length === 0 ? (
+        {activeTab !== 'today' && activeTab !== 'sermon' && filteredEntries.length === 0 ? (
           <Card style={{ textAlign: 'center', padding: '40px 16px' }}>
             <PenLine size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
@@ -1769,7 +1776,7 @@ export function JournalScreen({ onBack }: { onBack?: () => void }) {
               {t('j_create_first', lang)}
             </button>
           </Card>
-        ) : activeTab !== 'today' && (
+        ) : activeTab !== 'today' && activeTab !== 'sermon' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filteredEntries.map(entry => (
               <Card key={entry.id} onClick={() => openEntry(entry)}>
