@@ -74,7 +74,10 @@ function getAudio(): HTMLAudioElement {
     audioEl.preload = 'auto';
     audioEl.setAttribute('playsinline', '');
     audioEl.addEventListener('ended', () => {
-      if (state === 'playing' || state === 'paused') setState('idle');
+      if (state === 'playing' || state === 'paused') {
+        const key = currentPassage;
+        setState('idle', key);
+      }
     });
   }
   return audioEl;
@@ -367,7 +370,7 @@ export async function play(
     setState('playing', key);
   } catch (err) {
     console.error('[AudioPlayer]', err);
-    if (currentPassage === key) setState('idle');
+    if (currentPassage === key) setState('idle', key);
   }
 }
 
@@ -415,6 +418,6 @@ export async function playUrl(key: string, blobUrl: string): Promise<void> {
     setState('playing', key);
   } catch (err) {
     console.error('[AudioPlayer]', err);
-    setState('idle');
+    setState('idle', key);
   }
 }
