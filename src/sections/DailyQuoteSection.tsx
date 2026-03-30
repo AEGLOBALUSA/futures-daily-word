@@ -1,6 +1,5 @@
 import { QUOTES } from '../data/quotes';
 import { getDailyQuoteIndex } from '../utils/daily-passages';
-import { ListenButton } from '../components/ListenButton';
 import { useHome } from './HomeContext';
 
 export function DailyQuoteSection() {
@@ -41,7 +40,6 @@ export function DailyQuoteSection() {
       }}>
         &mdash; {quote.author}
       </p>
-      <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
     </div>
   );
 }

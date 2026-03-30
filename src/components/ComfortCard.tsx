@@ -5,7 +5,6 @@
  */
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
-import { ListenButton } from './ListenButton';
 
 const COMFORT_SCRIPTURES = [
   { ref: 'Psalm 23:4', text: 'Even though I walk through the darkest valley, I will fear no evil, for you are with me; your rod and your staff, they comfort me.' },
@@ -88,11 +87,6 @@ export function ComfortCard() {
 
       {/* Buttons */}
       <div style={{ display: 'flex', gap: 10 }}>
-        <ListenButton
-          text={`${scripture.ref}. ${scripture.text}`}
-          size="md"
-          label="Listen"
-        />
         <button
           onClick={() => setShowPrayer(!showPrayer)}
           style={{
@@ -134,9 +128,6 @@ export function ComfortCard() {
           }}>
             {prayer}
           </p>
-          <div style={{ marginTop: 10 }}>
-            <ListenButton text={prayer} size="sm" label="Listen to prayer" />
-          </div>
         </div>
       )}
 

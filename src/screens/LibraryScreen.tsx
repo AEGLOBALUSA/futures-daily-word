@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { getPersonaConfig } from '../utils/persona-config';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2, Headphones, Pause } from 'lucide-react';
-import { StopAllAudio } from '../components/StopAllAudio';
-import { AudioWave } from '../components/AudioWave';
-import * as AP from '../utils/audioPlayer';
+import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2 } from 'lucide-react';
 
 /* ── Essay TOC + section types ── */
 interface EssaySection { title: string; file: string; }
@@ -51,14 +48,6 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
   const [essaySection, setEssaySection] = useState<number | null>(null);
   const [sectionContent, setSectionContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [audioActive, setAudioActive] = useState(false);
-
-  // Track audio state from global player so UI updates when playback ends
-  useEffect(() => {
-    return AP.onStateChange((st, key) => {
-      if (key === 'library-read') setAudioActive(st === 'playing' || st === 'loading');
-    });
-  }, []);
 
   // Fetch essay TOC when selected
   useEffect(() => {
@@ -87,29 +76,15 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
       .finally(() => setLoading(false));
   }, [essaySection, essayTOC]);
 
-  const readText = async (text: string) => {
-    AP.unlock();
-    if (audioActive) { AP.stop(); setAudioActive(false); return; }
-    setAudioActive(true);
-    try {
-      const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
-      if (src) { await AP.playUrl('library-read', src); }
-      else { setAudioActive(false); }
-    } catch { setAudioActive(false); }
-  };
 
   const handleBack = () => {
     if (essaySection !== null) {
-      AP.stop();
       setEssaySection(null);
       setSectionContent('');
     } else if (activeItem) {
-      AP.stop();
       setActiveItem(null);
       setEssayTOC(null);
     } else if (onBack) {
-      AP.stop();
-      setAudioActive(false);
       onBack();
     }
   };
@@ -236,20 +211,6 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0 }}>
                 {essayTOC?.sections[essaySection]?.title || 'Section'}
               </h2>
-              {sectionContent && (
-                <button
-                  onClick={() => readText(sectionContent)}
-                  style={{
-                    background: audioActive ? 'var(--dw-accent)' : 'var(--dw-accent-bg)',
-                    border: '1px solid var(--dw-accent)', borderRadius: 999,
-                    padding: '6px 14px', color: audioActive ? '#fff' : 'var(--dw-accent)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                    display: 'flex', alignItems: 'center', gap: 5, minHeight: 36, flexShrink: 0,
-                  }}
-                >
-                  {audioActive ? <><AudioWave height={12} /> <Pause size={13} /> Pause</> : <><Headphones size={13} /> Listen</>}
-                </button>
-              )}
             </div>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '20px 0' }}>
@@ -314,7 +275,6 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
         <div style={{ height: 24 }} />
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <StopAllAudio />
     </div>
   );
 }

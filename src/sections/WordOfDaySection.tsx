@@ -1,5 +1,4 @@
 import { Card } from '../components/Card';
-import { ListenButton } from '../components/ListenButton';
 import { useHome } from './HomeContext';
 
 const DAILY_WORDS = [
@@ -85,9 +84,6 @@ export function WordOfDaySection() {
         </div>
       )}
 
-      <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-        <ListenButton text={`${dailyWord.word}. ${dailyWord.meaning}. ${dailyWord.verse}`} size="sm" />
-      </div>
     </Card>
   );
 }

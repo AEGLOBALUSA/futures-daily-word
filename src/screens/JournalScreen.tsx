@@ -878,9 +878,6 @@ function ScriptureModal({
                     {para}
                   </p>
                 ))}
-                <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
-                  <ListenButton text={`${devotional.title}. ${devotional.body}`} size="md" label={t('j_listen', lang)} />
-                </div>
               </div>
             </div>
           )}

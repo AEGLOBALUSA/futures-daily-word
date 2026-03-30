@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Card } from '../components/Card';
-import { ListenButton } from '../components/ListenButton';
 import { useHome } from './HomeContext';
 
 const WEEK_REVIEW_QUESTIONS = [
@@ -70,9 +69,6 @@ export function WeeklyReviewSection() {
       <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
         {weekReview.question}
       </p>
-      <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-        <ListenButton text={weekReview.question} size="sm" />
-      </div>
     </Card>
   );
 }

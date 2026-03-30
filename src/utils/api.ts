@@ -171,17 +171,12 @@ function audioCacheSet(key: string, url: string) {
   audioCache.set(key, url);
 }
 
-// Translations that have native human-read audio via Bible Brain / API.Bible
-const NATIVE_AUDIO_TRANSLATIONS = new Set(['KJV', 'NKJV', 'NLT', 'NIV', 'AMP', 'NASB', 'ESV', 'WEB']);
-
 /**
  * Fetch audio for a passage.
  * Priority:
  *   1. ESV.org native audio (ESV only)
- *   2. Bible Brain — human-read audio (KJV, NKJV, NLT, NIV, AMP, NASB)
- *   3. API.Bible — human-read audio (KJV, WEB fallback)
- *   4. ElevenLabs AI voice (any translation — $$$)
- *   5. AWS Polly neural voice (cheapest fallback)
+ *   2. ElevenLabs AI voice (primary TTS for all translations)
+ *   3. AWS Polly neural voice (cheapest fallback)
  *
  * Audio responses are cached in-memory so replaying doesn't re-fetch.
  */
@@ -218,21 +213,9 @@ async function _doFetchAudio(
     if (url) { audioCacheSet(cacheKey, url); return url; }
   }
 
-  // ── 2. Bible Brain — native human-read audio (Faith Comes By Hearing) ──
-  if (passageRef && NATIVE_AUDIO_TRANSLATIONS.has(translation)) {
-    const url = await _tryBibleBrainAudio(passageRef, translation);
-    if (url) { audioCacheSet(cacheKey, url); return url; }
-  }
-
-  // ── 3. API.Bible — native audio (WEB only on free tier) ──
-  if (passageRef && translation === 'WEB') {
-    const url = await _tryApiBibleAudio(passageRef, translation);
-    if (url) { audioCacheSet(cacheKey, url); return url; }
-  }
-
   if (!cleanText) return null;
 
-  // ── 4. ElevenLabs AI voice (primary TTS — costs money) ──
+  // ── 2. ElevenLabs AI voice (primary TTS for all translations) ──
   try {
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
@@ -249,7 +232,7 @@ async function _doFetchAudio(
     }
   } catch { /* continue to Polly */ }
 
-  // ── 5. AWS Polly neural voice (cheapest fallback) ──
+  // ── 3. AWS Polly neural voice (cheapest fallback) ──
   try {
     const lang = localStorage.getItem('dw_lang') || 'en';
     const voiceId = lang === 'es' ? 'Lucia' : lang === 'pt' ? 'Camila' : lang === 'id' ? 'Andika' : 'Matthew';
@@ -289,34 +272,6 @@ async function _tryESVAudio(passageRef: string): Promise<string | null> {
       }
     }
   } catch { /* no ESV audio */ }
-  return null;
-}
-
-// ── Helper: Bible Brain (FCBH) native audio ──
-async function _tryBibleBrainAudio(passageRef: string, translation: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `/api/biblebrain-audio?passage=${encodeURIComponent(passageRef)}&translation=${encodeURIComponent(translation)}`
-    );
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 1000) return URL.createObjectURL(blob);
-    }
-  } catch { /* Bible Brain unavailable */ }
-  return null;
-}
-
-// ── Helper: API.Bible native audio ──
-async function _tryApiBibleAudio(passageRef: string, translation: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `/api/apibible-audio?passage=${encodeURIComponent(passageRef)}&translation=${encodeURIComponent(translation)}`
-    );
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 1000) return URL.createObjectURL(blob);
-    }
-  } catch { /* API.Bible unavailable */ }
   return null;
 }
 

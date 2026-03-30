@@ -7,7 +7,6 @@ import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, Chevr
 import { PrayerGlobe } from '../components/PrayerGlobe';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
-import { ListenButton } from '../components/ListenButton';
 import { t, getLang } from '../utils/i18n';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -600,10 +599,6 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
         </p>
       </div>
 
-      {/* Listen */}
-      <div style={{ margin: '0 24px 36px' }}>
-        <ListenButton text={sermon.plainText} size="lg" label="Listen to sermon notes" />
-      </div>
 
       {/* ── Sections with generous note areas ── */}
       <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>

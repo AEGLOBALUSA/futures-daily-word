@@ -22,7 +22,6 @@ import { BibleSearch } from '../components/BibleSearch';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { SetupPromptModal } from '../components/SetupPromptModal';
-import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
 import { FeedbackPoll } from '../components/FeedbackPoll';
 // audioManager replaced by audioPlayer (AP) imported above
@@ -3054,7 +3053,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       {tField(devotion, 'body', lang)}
                     </p>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
-                      <ListenButton text={`${tField(devotion, 'title', lang)}. ${tField(devotion, 'body', lang)}`} size="md" label="Listen" />
                     </div>
                     <button
                       className="dw-btn-dark"
@@ -3597,7 +3595,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   }}>
                     <Share2 size={14} /> Share
                   </button>
-                  {dayLesson && <ListenButton text={`Day ${currentDay}. ${dayTitle}. ${dayLesson}`} size="md" label="Listen" />}
                 </div>
               </div>
 
@@ -4216,7 +4213,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           }}>
             — {quote.author}
           </p>
-          <ListenButton text={`${quote.text}. ${quote.author}`} size="sm" />
         </div>
 
         {/* ── Daily Word of the Day — persona-gated ── */}
@@ -4245,9 +4241,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
             {dailyWord.verse}
           </p>
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-            <ListenButton text={`${dailyWord.word}. ${dailyWord.meaning}. ${dailyWord.verse}`} size="sm" />
-          </div>
         </Card>
         )}
 
@@ -4287,9 +4280,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
                 {weekReview.question}
               </p>
-              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-                <ListenButton text={weekReview.question} size="sm" />
-              </div>
             </Card>
           );
         })()}
