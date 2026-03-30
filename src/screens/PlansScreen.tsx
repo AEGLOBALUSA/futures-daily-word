@@ -137,7 +137,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   // plansView removed — single unified view, no tabs
   const [activePlans, setActivePlans] = useState<Record<string, PlanProgress>>(getActivePlans);
   const [streak, setStreak] = useState(getStreak);

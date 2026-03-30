@@ -1,6 +1,12 @@
 // Bolls Bible API proxy for NKJV, AMP, and other translations
 // Endpoint: https://bolls.life/get-text/<translation>/<book>/<chapter>/
 
+// In-memory passage cache — shared across warm invocations of this function instance.
+// Bible text is immutable, so caching is safe. Caps at 200 entries to bound memory.
+const passageCache = new Map();
+const CACHE_MAX = 200;
+const CACHE_TTL = 3600000; // 1 hour
+
 const ALLOWED_ORIGINS = [
   'https://futures-daily-word.netlify.app',
   'https://www.futures-daily-word.netlify.app',
@@ -119,6 +125,17 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Check server-side cache first
+    const cacheKey = `${q.trim().toLowerCase()}_${v}`;
+    const cached = passageCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600', 'X-Cache': 'HIT' },
+        body: cached.body
+      };
+    }
+
     let allPassageTexts = [];
 
     for (const parsed of parsedRefs) {
@@ -160,11 +177,19 @@ exports.handler = async (event) => {
     }
 
     const passageText = allPassageTexts.join('\n\n');
+    const responseBody = JSON.stringify({ canonical: q, passages: [passageText] });
+
+    // Store in cache (evict oldest if full)
+    if (passageCache.size >= CACHE_MAX) {
+      const oldest = passageCache.keys().next().value;
+      passageCache.delete(oldest);
+    }
+    passageCache.set(cacheKey, { body: responseBody, ts: Date.now() });
 
     return {
       statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
-      body: JSON.stringify({ canonical: q, passages: [passageText] })
+      body: responseBody
     };
   } catch (err) {
     const isTimeout = err.name === 'AbortError';

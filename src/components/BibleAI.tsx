@@ -84,7 +84,7 @@ interface BibleAIProps {
 export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText }: BibleAIProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)

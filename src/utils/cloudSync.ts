@@ -222,7 +222,6 @@ export async function syncOnStartup(email: string) {
     if (!cloud) {
       // First time user — upload everything as initial backup
       await pushToCloud(email);
-      console.log('[CloudSync] Initial backup complete');
       return;
     }
 
@@ -245,7 +244,6 @@ export async function syncOnStartup(email: string) {
     window.dispatchEvent(new Event('dw-cloud-sync'));
     window.dispatchEvent(new Event('dw-journal-updated'));
 
-    console.log('[CloudSync] Sync complete, version:', lastSyncVersion);
   } catch (err) {
     console.warn('[CloudSync] Sync failed, using localStorage:', err);
   }

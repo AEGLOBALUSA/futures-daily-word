@@ -5,8 +5,18 @@
  * Fallback chain: requested → KJV offline → WEB built-in.
  */
 
-// Verse cache: keyed by passageName_TRANSLATION
+// Verse cache: keyed by passageName_TRANSLATION. Bounded to prevent memory leaks.
+const VERSE_CACHE_MAX = 500;
 const verseCache = new Map<string, string>();
+
+function verseCacheSet(key: string, value: string) {
+  if (verseCache.size >= VERSE_CACHE_MAX) {
+    // Evict oldest entry (first inserted)
+    const oldest = verseCache.keys().next().value;
+    if (oldest !== undefined) verseCache.delete(oldest);
+  }
+  verseCache.set(key, value);
+}
 
 // In-flight request deduplication: prevents duplicate network calls for the same passage
 const inFlight = new Map<string, Promise<string>>();
@@ -64,7 +74,7 @@ async function _doFetch(passage: string, translation: TranslationCode, cacheKey:
         break;
     }
 
-    verseCache.set(cacheKey, text);
+    verseCacheSet(cacheKey, text);
     return text;
   } catch (err) {
     console.warn(`Failed to fetch ${passage} in ${translation}, falling back`, err);
@@ -130,7 +140,7 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
     try {
       const kjv = await fetchKJV(passage);
       if (kjv) {
-        verseCache.set(`${passage}_KJV`, kjv);
+        verseCacheSet(`${passage}_KJV`, kjv);
         return kjv;
       }
     } catch {
@@ -141,8 +151,25 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
 }
 
 // ── Audio cache: keyed by passageRef_translation → blob URL ──
+// Bounded to prevent memory leaks from accumulated blob URLs.
+const AUDIO_CACHE_MAX = 100;
 const audioCache = new Map<string, string>();
 const audioInFlight = new Map<string, Promise<string | null>>();
+
+function audioCacheSet(key: string, url: string) {
+  if (audioCache.size >= AUDIO_CACHE_MAX) {
+    // Evict oldest entry and revoke its blob URL to free memory
+    const oldest = audioCache.keys().next().value;
+    if (oldest !== undefined) {
+      const oldUrl = audioCache.get(oldest);
+      if (oldUrl?.startsWith('blob:')) {
+        try { URL.revokeObjectURL(oldUrl); } catch {}
+      }
+      audioCache.delete(oldest);
+    }
+  }
+  audioCache.set(key, url);
+}
 
 // Translations that have native human-read audio via Bible Brain / API.Bible
 const NATIVE_AUDIO_TRANSLATIONS = new Set(['KJV', 'NKJV', 'NLT', 'NIV', 'AMP', 'NASB', 'ESV', 'WEB']);
@@ -188,19 +215,19 @@ async function _doFetchAudio(
   // ── 1. ESV native human-read audio (esv.org) ──
   if (translation === 'ESV' && passageRef) {
     const url = await _tryESVAudio(passageRef);
-    if (url) { audioCache.set(cacheKey, url); return url; }
+    if (url) { audioCacheSet(cacheKey, url); return url; }
   }
 
   // ── 2. Bible Brain — native human-read audio (Faith Comes By Hearing) ──
   if (passageRef && NATIVE_AUDIO_TRANSLATIONS.has(translation)) {
     const url = await _tryBibleBrainAudio(passageRef, translation);
-    if (url) { audioCache.set(cacheKey, url); return url; }
+    if (url) { audioCacheSet(cacheKey, url); return url; }
   }
 
   // ── 3. API.Bible — native audio (WEB only on free tier) ──
   if (passageRef && translation === 'WEB') {
     const url = await _tryApiBibleAudio(passageRef, translation);
-    if (url) { audioCache.set(cacheKey, url); return url; }
+    if (url) { audioCacheSet(cacheKey, url); return url; }
   }
 
   if (!cleanText) return null;
@@ -216,7 +243,7 @@ async function _doFetchAudio(
       const blob = await res.blob();
       if (blob.size > 500) {
         const url = URL.createObjectURL(blob);
-        audioCache.set(cacheKey, url);
+        audioCacheSet(cacheKey, url);
         return url;
       }
     }
@@ -235,7 +262,7 @@ async function _doFetchAudio(
       const blob = await res.blob();
       if (blob.size > 500) {
         const url = URL.createObjectURL(blob);
-        audioCache.set(cacheKey, url);
+        audioCacheSet(cacheKey, url);
         return url;
       }
     }

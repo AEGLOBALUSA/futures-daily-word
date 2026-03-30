@@ -24,7 +24,6 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register(`/sw.js?v=${SW_VERSION}`, { scope: '/' })
       .then((reg) => {
-        console.log('SW registered:', reg.scope);
         // If a new SW is waiting, tell it to activate immediately
         if (reg.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -50,7 +49,7 @@ if ('serviceWorker' in navigator) {
   // Listen for gentle SW_UPDATED message — reload only on next natural navigation
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data?.type === 'SW_UPDATED') {
-      console.log('New version available — will apply on next page load');
+      // New version available — will apply on next page load
     }
   });
 

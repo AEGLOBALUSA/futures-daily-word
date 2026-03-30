@@ -1,5 +1,19 @@
 const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly');
 
+// In-memory TTS cache — keyed by text+voice hash. Bible passages are identical across
+// users on the same day, so this prevents duplicate API calls within a warm instance.
+const ttsCache = new Map();
+const TTS_CACHE_MAX = 30;
+const TTS_CACHE_TTL = 3600000; // 1 hour
+
+function hashText(text) {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+  }
+  return hash.toString(36);
+}
+
 const ALLOWED_ORIGINS = [
   'https://futures-daily-word.netlify.app',
   'https://www.futures-daily-word.netlify.app',
@@ -75,6 +89,18 @@ exports.handler = async (event) => {
     const ttsEngine = engine === 'standard' ? 'standard' : 'neural';
     const langCode = VOICE_LANG[voice];
 
+    // Check TTS cache — same passage text + voice produces identical audio
+    const cacheKey = `${hashText(text)}_${voice}_${ttsEngine}`;
+    const cached = ttsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < TTS_CACHE_TTL) {
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400', 'X-Cache': 'HIT' },
+        body: cached.body,
+        isBase64Encoded: true
+      };
+    }
+
     const client = new PollyClient({
       region,
       credentials: {
@@ -138,6 +164,14 @@ exports.handler = async (event) => {
 
     // Concatenate MP3 buffers
     const combined = Buffer.concat(audioBuffers);
+    const base64Body = combined.toString('base64');
+
+    // Store in TTS cache (evict oldest if full)
+    if (ttsCache.size >= TTS_CACHE_MAX) {
+      const oldest = ttsCache.keys().next().value;
+      ttsCache.delete(oldest);
+    }
+    ttsCache.set(cacheKey, { body: base64Body, ts: Date.now() });
 
     return {
       statusCode: 200,
@@ -146,7 +180,7 @@ exports.handler = async (event) => {
         'Content-Type': 'audio/mpeg',
         'Cache-Control': 'public, max-age=86400'
       },
-      body: combined.toString('base64'),
+      body: base64Body,
       isBase64Encoded: true
     };
   } catch (err) {

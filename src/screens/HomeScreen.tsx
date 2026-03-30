@@ -36,7 +36,7 @@ import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
 // import { isSundayWindow } from '../utils/sunday';
 import { schedulePush } from '../utils/cloudSync';
-import { tField, getLang } from '../utils/i18n';
+import { tField, getLang, setLangPref } from '../utils/i18n';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
@@ -903,7 +903,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     const currentDay = pathwayProgress.currentDay || 1;
     const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
     if (!dayData) return;
-    const reading = (dayData as any).reading;
+    const reading = dayData.reading;
     if (!reading) return;
     // Use full chapter as the reading (e.g., "Ephesians 2" instead of "Ephesians 2:8-9")
     const fullChapter = `${reading.book} ${reading.chapter}`;
@@ -1641,7 +1641,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                             key={lang.code}
                             onClick={() => {
                               setAppLanguage(lang.code);
-                              localStorage.setItem('dw_lang', lang.code);
+                              setLangPref(lang.code);
                               // Auto-switch Bible translation to match language
                               const langTranslations: Record<string, string> = { en: 'ESV', es: 'RV1960', pt: 'ARA', id: 'TB' };
                               if (langTranslations[lang.code]) {

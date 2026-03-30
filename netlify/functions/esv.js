@@ -5,6 +5,12 @@ const ALLOWED_ORIGINS = [
   'https://www.futuresdailyword.com'
 ];
 
+// In-memory passage cache — shared across warm invocations of this function instance.
+// Bible text is immutable, so caching is safe. Caps at 200 entries to bound memory.
+const passageCache = new Map();
+const CACHE_MAX = 200;
+const CACHE_TTL = 3600000; // 1 hour
+
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
@@ -60,6 +66,17 @@ exports.handler = async (event) => {
       };
     }
 
+    // Check server-side cache first
+    const cacheKey = passage.trim().toLowerCase();
+    const cached = passageCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600', 'X-Cache': 'HIT' },
+        body: cached.body
+      };
+    }
+
     const params = new URLSearchParams({
       q: passage,
       'include-headings': 'false',
@@ -93,11 +110,19 @@ exports.handler = async (event) => {
     }
 
     const data = await response.json();
+    const responseBody = JSON.stringify(data);
+
+    // Store in cache (evict oldest if full)
+    if (passageCache.size >= CACHE_MAX) {
+      const oldest = passageCache.keys().next().value;
+      passageCache.delete(oldest);
+    }
+    passageCache.set(cacheKey, { body: responseBody, ts: Date.now() });
 
     return {
       statusCode: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+      body: responseBody
     };
   } catch (err) {
     return {

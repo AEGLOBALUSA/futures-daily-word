@@ -94,7 +94,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
   const [items, setItems] = useState<CampusItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   const [showPostForm, setShowPostForm] = useState(false);
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
@@ -412,7 +412,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 export function MessagesScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, requireEmail, setup } = useUser();
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
   const [activeTab, setActiveTab] = useState<'pastor' | 'notes' | 'prayer'>('pastor');
 

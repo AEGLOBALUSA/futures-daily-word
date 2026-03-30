@@ -30,6 +30,20 @@ async function fetchWithTimeout(url, opts, timeoutMs = 15000) {
 const MAX_TEXT_LENGTH = 25000; // ~5 minutes of audio max
 const MAX_CHARS_PER_CHUNK = 4800;
 
+// In-memory TTS cache — keyed by text hash. Bible passages are identical across users
+// on the same day, so this prevents duplicate API calls (and costs) within a warm instance.
+const ttsCache = new Map();
+const TTS_CACHE_MAX = 30; // ~30 passages × ~150KB = ~4.5MB max memory
+const TTS_CACHE_TTL = 3600000; // 1 hour
+
+function hashText(text) {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+  }
+  return hash.toString(36);
+}
+
 exports.handler = async (event) => {
   const origin = event.headers?.origin || event.headers?.Origin || '';
   const corsHeaders = getCorsHeaders(origin);
@@ -73,6 +87,18 @@ exports.handler = async (event) => {
     // Whitelist valid ElevenLabs voice IDs (alphanumeric only)
     const ALLOWED_VOICES = ['JBFqnCBsd6RMkjVDRZzb', 'EXAVITQu4vr4xnSDxMaL', '21m00Tcm4TlvDq8ikWAM', 'AZnzlk1XvdvUeBnXmlld', 'MF3mGyEYCl7XYWbV9V6O'];
     const voice = voiceId && ALLOWED_VOICES.includes(voiceId) ? voiceId : 'JBFqnCBsd6RMkjVDRZzb';
+
+    // Check TTS cache — same passage text produces identical audio
+    const cacheKey = `${hashText(text)}_${voice}`;
+    const cached = ttsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < TTS_CACHE_TTL) {
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=604800', 'X-Cache': 'HIT' },
+        body: cached.body,
+        isBase64Encoded: true
+      };
+    }
     const ALLOWED_MODELS = ['eleven_multilingual_v2', 'eleven_monolingual_v1', 'eleven_turbo_v2'];
     const model = modelId && ALLOWED_MODELS.includes(modelId) ? modelId : 'eleven_multilingual_v2';
 
@@ -127,11 +153,19 @@ exports.handler = async (event) => {
     }
 
     const combined = Buffer.concat(audioBuffers);
+    const base64Body = combined.toString('base64');
+
+    // Store in TTS cache (evict oldest if full)
+    if (ttsCache.size >= TTS_CACHE_MAX) {
+      const oldest = ttsCache.keys().next().value;
+      ttsCache.delete(oldest);
+    }
+    ttsCache.set(cacheKey, { body: base64Body, ts: Date.now() });
 
     return {
       statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=604800' },
-      body: combined.toString('base64'),
+      body: base64Body,
       isBase64Encoded: true
     };
   } catch (err) {

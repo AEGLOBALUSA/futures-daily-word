@@ -38,13 +38,14 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // Also poll localStorage for same-tab updates
+  // Listen for same-tab language changes
   useEffect(() => {
-    const interval = setInterval(() => {
+    const h = () => {
       const current = localStorage.getItem('dw_lang') || 'en';
       setLang(prev => prev !== current ? current : prev);
-    }, 500);
-    return () => clearInterval(interval);
+    };
+    window.addEventListener('dw-lang-changed', h);
+    return () => window.removeEventListener('dw-lang-changed', h);
   }, []);
 
   const label = (id: string) => TAB_LABELS[id]?.[lang] || TAB_LABELS[id]?.['en'] || id;

@@ -18,7 +18,7 @@ import {
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
-import { t, getLang } from '../utils/i18n';
+import { t, getLang, setLangPref } from '../utils/i18n';
 
 // Bible translations filtered by selected language
 const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
@@ -59,7 +59,7 @@ const LANGUAGES = [
 export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
@@ -150,7 +150,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   };
 
   const handleLangSelect = (val: string) => {
-    localStorage.setItem('dw_lang', val);
+    setLangPref(val);
     // Auto-switch Bible translation to match language
     const defaultTranslation = LANG_DEFAULT_TRANSLATION[val];
     if (defaultTranslation) {

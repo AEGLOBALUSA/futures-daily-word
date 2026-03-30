@@ -92,7 +92,7 @@ function VideoRecorderModal({ onClose }: { onClose: () => void }) {
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -466,7 +466,7 @@ function ModalSelectionBar({
   onAskAI: (text: string) => void;
 }) {
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
   const [selectedText, setSelectedText] = useState('');
   const [copied, setCopied] = useState(false);
@@ -662,7 +662,7 @@ function ScriptureModal({
   const chapterRef = expandToChapter(passage);
 
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
   const [scriptureText, setScriptureText] = useState('');
   const [loadingText, setLoadingText] = useState(true);
@@ -759,7 +759,7 @@ function ScriptureModal({
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
                   color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 3,
                 }}>
-                  {planTitle}{dayNum ? ` Â· ${t('j_chapter', lang)} ${dayNum}` : ''}
+                  {planTitle}{dayNum ? ` · ${t('j_chapter', lang)} ${dayNum}` : ''}
                 </p>
               )}
               <p style={{
@@ -770,7 +770,7 @@ function ScriptureModal({
               </p>
               {!isBookChapter && chapterRef !== passage && (
                 <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
-                  {t('j_key_verse', lang)} {passage} Â· {t('j_showing_full_chapter', lang)} Â· {translation}
+                  {t('j_key_verse', lang)} {passage} · {t('j_showing_full_chapter', lang)} · {translation}
                 </p>
               )}
               {!isBookChapter && chapterRef === passage && (
@@ -977,7 +977,7 @@ function ScriptureModal({
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
                   color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0,
                 }}>
-                  Scripture Â· {chapterRef} Â· {translation}
+                  Scripture · {chapterRef} · {translation}
                 </p>
               </div>
               <div style={{ padding: '16px 18px 18px' }}>
@@ -1266,7 +1266,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   const passages = getTodaysPassages();
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
@@ -1324,7 +1324,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                     color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4,
                   }}>
-                    {planTitle}{dayNum ? ` Â· ${t('p_day_of', lang)} ${dayNum}` : ''}
+                    {planTitle}{dayNum ? ` · ${t('p_day_of', lang)} ${dayNum}` : ''}
                   </p>
                 )}
                 {/* Devotional title preview */}
@@ -1408,7 +1408,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   const { userProfile, setup, requireEmail } = useUser();
   const { selection } = useScriptureSelection();
   const [lang, setLang] = useState(getLang());
-  useEffect(() => { const id = setInterval(() => setLang(getLang()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
   const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer' | 'sermon'>(initialTab || 'today');
   const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
@@ -1837,7 +1837,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
                         }} />
                       </div>
                       <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                        Day {completed} of {plan.totalDays} Â· {pct}%
+                        Day {completed} of {plan.totalDays} · {pct}%
                       </p>
                     </div>
                   );
@@ -1899,7 +1899,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
                     borderRadius: 12, padding: '14px 16px', marginBottom: 16,
                   }}>
                     <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
-                      UP NEXT Â· DAY {nextDay}
+                      UP NEXT · DAY {nextDay}
                     </p>
                     <p style={{ fontSize: 15, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)' }}>
                       {nextPassage}

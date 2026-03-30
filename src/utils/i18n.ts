@@ -5,6 +5,12 @@ export function getLang(): string {
   try { return localStorage.getItem('dw_lang') || 'en'; } catch { return 'en'; }
 }
 
+/** Write language preference and dispatch event so listeners can react */
+export function setLangPref(lang: string): void {
+  try { localStorage.setItem('dw_lang', lang); } catch {}
+  window.dispatchEvent(new Event('dw-lang-changed'));
+}
+
 type LangMap = Record<string, string>;
 type Translations = Record<string, LangMap>;
 
