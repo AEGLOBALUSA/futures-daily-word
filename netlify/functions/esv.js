@@ -1,9 +1,4 @@
-const ALLOWED_ORIGINS = [
-  'https://futures-daily-word.netlify.app',
-  'https://www.futures-daily-word.netlify.app',
-  'https://futuresdailyword.com',
-  'https://www.futuresdailyword.com'
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 // In-memory passage cache — shared across warm invocations of this function instance.
 // Bible text is immutable, so caching is safe. Caps at 200 entries to bound memory.

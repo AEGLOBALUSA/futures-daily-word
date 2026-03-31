@@ -1,11 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { authenticateRequest, issueToken, migrateRequest } = require("./lib/auth");
 
-const ALLOWED_ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com"
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 // Sanitize string input — strip control chars, cap length
 function sanitize(str, maxLen = 200) {

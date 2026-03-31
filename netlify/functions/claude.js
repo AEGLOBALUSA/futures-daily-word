@@ -3,12 +3,7 @@
  * Proxies requests from the BibleAI frontend to the Anthropic Messages API.
  */
 
-const ALLOWED_ORIGINS = [
-  'https://futures-daily-word.netlify.app',
-  'https://www.futures-daily-word.netlify.app',
-  'https://futuresdailyword.com',
-  'https://www.futuresdailyword.com'
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 // In-memory rate limiting (per function instance)
 const rateLimits = {};

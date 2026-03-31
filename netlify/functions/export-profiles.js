@@ -116,13 +116,25 @@ exports.handler = async (event) => {
     if (format === "json") {
       const includeLog = event.queryStringParameters && event.queryStringParameters.log === "true";
       if (includeLog) {
-        for (const p of enriched) {
-          const { data: logs } = await db.from("activity_events")
-            .select("event_type, detail, created_at")
-            .eq("email", p.email)
-            .order("created_at", { ascending: false })
-            .limit(100);
-          p.activityLog = (logs || []).map(l => ({ type: l.event_type, detail: l.detail, ts: l.created_at }));
+        // Cap log enrichment to 50 profiles to prevent N+1 timeout under load
+        const logProfiles = enriched.slice(0, 50);
+        const logEmails = logProfiles.map(p => p.email);
+        // Batch query: fetch all activity logs for capped set in one query
+        const { data: allLogs } = await db.from("activity_events")
+          .select("email, event_type, detail, created_at")
+          .in("email", logEmails)
+          .order("created_at", { ascending: false })
+          .limit(5000);
+        // Group logs by email
+        const logsByEmail = {};
+        for (const l of (allLogs || [])) {
+          if (!logsByEmail[l.email]) logsByEmail[l.email] = [];
+          if (logsByEmail[l.email].length < 100) {
+            logsByEmail[l.email].push({ type: l.event_type, detail: l.detail, ts: l.created_at });
+          }
+        }
+        for (const p of logProfiles) {
+          p.activityLog = logsByEmail[p.email] || [];
         }
       }
       return {

@@ -14,12 +14,7 @@ function hashText(text) {
   return hash.toString(36);
 }
 
-const ALLOWED_ORIGINS = [
-  'https://futures-daily-word.netlify.app',
-  'https://www.futures-daily-word.netlify.app',
-  'https://futuresdailyword.com',
-  'https://www.futuresdailyword.com'
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];

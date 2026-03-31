@@ -7,12 +7,7 @@ const passageCache = new Map();
 const CACHE_MAX = 200;
 const CACHE_TTL = 3600000; // 1 hour
 
-const ALLOWED_ORIGINS = [
-  'https://futures-daily-word.netlify.app',
-  'https://www.futures-daily-word.netlify.app',
-  'https://futuresdailyword.com',
-  'https://www.futuresdailyword.com'
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 function getCorsHeaders(origin) {
   if (ALLOWED_ORIGINS.includes(origin)) {

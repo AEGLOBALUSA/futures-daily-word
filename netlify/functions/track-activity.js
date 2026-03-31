@@ -1,11 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { authenticateRequest, migrateRequest } = require("./lib/auth");
 
-const ALLOWED_ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com"
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 let supabase;
 function getSupabase() {

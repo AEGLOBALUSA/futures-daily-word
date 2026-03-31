@@ -19,11 +19,7 @@
 
 const { createClient } = require("@supabase/supabase-js");
 
-const ALLOWED_ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com"
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 const PCO_BASE = "https://api.planningcenteronline.com/people/v2";
 

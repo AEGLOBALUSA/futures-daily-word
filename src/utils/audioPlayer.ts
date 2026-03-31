@@ -268,22 +268,12 @@ export async function fetchAudioSrc(
 
   if (!cleanText) return null;
 
-  // 2) ElevenLabs TTS
-  try {
-    const res = await fetch('/api/elevenlabs-tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText.slice(0, 20000) }),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 500) return URL.createObjectURL(blob);
-    }
-  } catch { }
+  // Detect language for TTS priority ordering
+  const lang = localStorage.getItem('dw_lang') || 'en';
+  const useNativeVoiceFirst = lang === 'id' || lang === 'es' || lang === 'pt';
 
-  // 3) AWS Polly fallback
-  try {
-    const lang = localStorage.getItem('dw_lang') || 'en';
+  // Helper: Polly TTS with native voice for the user's language
+  const tryPolly = async (): Promise<string | null> => {
     const voiceId =
       lang === 'es' ? 'Lucia' :
       lang === 'pt' ? 'Camila' :
@@ -297,7 +287,30 @@ export async function fetchAudioSrc(
       const blob = await res.blob();
       if (blob.size > 500) return URL.createObjectURL(blob);
     }
-  } catch { }
+    return null;
+  };
+
+  // Helper: ElevenLabs TTS (multilingual model, English voice)
+  const tryElevenLabs = async (): Promise<string | null> => {
+    const res = await fetch('/api/elevenlabs-tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: cleanText.slice(0, 20000) }),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 500) return URL.createObjectURL(blob);
+    }
+    return null;
+  };
+
+  // Non-English: Polly native voice first (better accent, cheaper), ElevenLabs fallback
+  // English: ElevenLabs first (higher quality English), Polly fallback
+  const primary = useNativeVoiceFirst ? tryPolly : tryElevenLabs;
+  const fallback = useNativeVoiceFirst ? tryElevenLabs : tryPolly;
+
+  try { const url = await primary(); if (url) return url; } catch { }
+  try { const url = await fallback(); if (url) return url; } catch { }
 
   return null;
 }

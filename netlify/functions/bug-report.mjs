@@ -1,9 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Note: ESM import not possible from CJS lib/cors.js — keep canonical list inline
 const ALLOWED_ORIGINS = [
+  "https://futures-daily-word.netlify.app",
+  "https://www.futures-daily-word.netlify.app",
   "https://futuresdailyword.com",
   "https://www.futuresdailyword.com",
-  "https://futures-daily-word.netlify.app",
 ];
 
 function getCorsHeaders(origin) {

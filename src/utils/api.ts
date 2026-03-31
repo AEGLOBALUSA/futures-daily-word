@@ -215,26 +215,12 @@ async function _doFetchAudio(
 
   if (!cleanText) return null;
 
-  // ── 2. ElevenLabs AI voice (primary TTS for all translations) ──
-  try {
-    const res = await fetch('/api/elevenlabs-tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText.slice(0, 20000) }),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 500) {
-        const url = URL.createObjectURL(blob);
-        audioCacheSet(cacheKey, url);
-        return url;
-      }
-    }
-  } catch { /* continue to Polly */ }
+  // Detect language for TTS priority ordering
+  const lang = localStorage.getItem('dw_lang') || 'en';
+  const useNativeVoiceFirst = lang === 'id' || lang === 'es' || lang === 'pt';
 
-  // ── 3. AWS Polly neural voice (cheapest fallback) ──
-  try {
-    const lang = localStorage.getItem('dw_lang') || 'en';
+  // Helper: Polly TTS with native voice for the user's language
+  const tryPolly = async (): Promise<string | null> => {
     const voiceId = lang === 'es' ? 'Lucia' : lang === 'pt' ? 'Camila' : lang === 'id' ? 'Andika' : 'Matthew';
     const res = await fetch('/api/polly-tts', {
       method: 'POST',
@@ -243,12 +229,37 @@ async function _doFetchAudio(
     });
     if (res.ok) {
       const blob = await res.blob();
-      if (blob.size > 500) {
-        const url = URL.createObjectURL(blob);
-        audioCacheSet(cacheKey, url);
-        return url;
-      }
+      if (blob.size > 500) return URL.createObjectURL(blob);
     }
+    return null;
+  };
+
+  // Helper: ElevenLabs TTS (multilingual model, English voice)
+  const tryElevenLabs = async (): Promise<string | null> => {
+    const res = await fetch('/api/elevenlabs-tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: cleanText.slice(0, 20000) }),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 500) return URL.createObjectURL(blob);
+    }
+    return null;
+  };
+
+  // Non-English: Polly native voice first (better accent, cheaper), ElevenLabs fallback
+  // English: ElevenLabs first (higher quality English), Polly fallback
+  const primary = useNativeVoiceFirst ? tryPolly : tryElevenLabs;
+  const fallback = useNativeVoiceFirst ? tryElevenLabs : tryPolly;
+
+  try {
+    const url = await primary();
+    if (url) { audioCacheSet(cacheKey, url); return url; }
+  } catch { /* continue to fallback */ }
+  try {
+    const url = await fallback();
+    if (url) { audioCacheSet(cacheKey, url); return url; }
   } catch { /* no audio available */ }
 
   return null;

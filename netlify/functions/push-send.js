@@ -1,5 +1,6 @@
 const webpush = require("web-push");
 const { createClient } = require("@supabase/supabase-js");
+const crypto = require("crypto");
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
@@ -204,7 +205,11 @@ exports.handler = async (event) => {
   // Auth check — only authorized callers (cron job) can trigger push sends
     const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
     const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    // Use timing-safe comparison to prevent timing attacks on the cron secret
+    const isAuthed = cronSecret && bearerToken.length === cronSecret.length &&
+      crypto.timingSafeEqual(Buffer.from(bearerToken), Buffer.from(cronSecret));
+    if (!isAuthed) {
           return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
     }
   

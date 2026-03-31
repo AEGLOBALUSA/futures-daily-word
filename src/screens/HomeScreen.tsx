@@ -42,6 +42,22 @@ const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
 const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
 const COMFORT_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
 
+// Language-specific translation lists — non-English languages have their own available translations
+const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
+  es: ['RV1960', 'NVI'],
+  pt: ['ARA'],
+  id: ['TB'],
+};
+
+/** Return the appropriate translation list for the current language and persona */
+function getTranslationsForPersona(persona: string, lang: string): TranslationCode[] {
+  if (LANG_TRANSLATIONS[lang]) return LANG_TRANSLATIONS[lang];
+  if (persona === 'new_to_faith') return NEW_FAITH_TRANSLATIONS;
+  if (persona === 'congregation') return CONGREGATION_TRANSLATIONS;
+  if (persona === 'comfort') return COMFORT_TRANSLATIONS;
+  return TRANSLATIONS;
+}
+
 // ── Comfort reading rotation — curated chapters for difficult seasons ──
 const COMFORT_CHAPTERS = [
   'Psalm 23', 'Psalm 46', 'Psalm 91', 'Isaiah 40', 'John 14',
@@ -1218,14 +1234,14 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
     setHeroChapterIndex(index);
     const ref = heroChapterRefs[index];
-    const cacheKey = HERO_KEY + ref;
+    const cacheKey = HERO_KEY + ref + '_' + translation;
     try {
       let src = audioSrcCache.current.get(cacheKey);
       if (!src) {
-        const text = await fetchPassage(ref, 'ESV').catch(() => '');
+        const text = await fetchPassage(ref, translation).catch(() => '');
         if (myVersion !== heroChainVersionRef.current) return; // stale check after async
         if (text) {
-          src = await AP.fetchAudioSrc(text, 'ESV', ref) ?? undefined;
+          src = await AP.fetchAudioSrc(text, translation, ref) ?? undefined;
           if (src) audioSrcCache.current.set(cacheKey, src);
         }
       }
@@ -2137,9 +2153,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     overflowX: 'auto', padding: '10px 12px',
                     scrollbarWidth: 'none',
                   }}>
-                    {(personaConfig.persona === 'new_to_faith' ? NEW_FAITH_TRANSLATIONS
-                      : personaConfig.persona === 'congregation' ? CONGREGATION_TRANSLATIONS
-                      : TRANSLATIONS).map(t => (
+                    {getTranslationsForPersona(personaConfig.persona, appLanguage).map(t => (
                       <button
                         key={t}
                         onClick={() => handleTranslationChange(t)}
@@ -2257,7 +2271,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     borderTop: '1px solid rgba(255,255,255,0.1)',
                   }}>
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', marginRight: 4 }}>Compare:</span>
-                    {TRANSLATIONS.map(t => (
+                    {getTranslationsForPersona(personaConfig.persona, appLanguage).map(t => (
                       <button
                         key={`compare-${t}`}
                         onClick={() => setCompareTranslation(t)}
@@ -2915,7 +2929,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
                 {/* Translation picker — simple, 3 options */}
                 <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                  {COMFORT_TRANSLATIONS.map(t => (
+                  {getTranslationsForPersona('comfort', appLanguage).map(t => (
                     <button
                       key={t}
                       onClick={() => handleTranslationChange(t)}
@@ -3186,9 +3200,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           const hasPlanPassages = todaysPlanPassages.length > 0;
           const devPassage = hasPlanPassages ? todaysPlanPassages[0].passage : (todaysDevotion?.verse || ''); // e.g. "Genesis 37" or "2 Timothy 1"
           const isComfort = personaConfig.persona === 'comfort';
-          const devScriptureTranslations: TranslationCode[] = isComfort
-            ? ['ESV', 'NIV', 'NLT']
-            : ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
+          const devScriptureTranslations: TranslationCode[] = getTranslationsForPersona(
+            isComfort ? 'comfort' : personaConfig.persona, appLanguage
+          );
           const tKey = `${devPassage}_${translation}`;
           const passageText = passageTexts[tKey];
           const isLoading = loadingPassages.has(devPassage);
@@ -3611,9 +3625,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--dw-border)' }}>
                     <h2 className="text-section-header" style={{ marginBottom: 10 }}>{t('todays_reading')}</h2>
 
-                    {/* Translation picker — ESV, NIV, NLT only */}
+                    {/* Translation picker */}
                     <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                      {NEW_FAITH_TRANSLATIONS.map(t => (
+                      {getTranslationsForPersona('new_to_faith', appLanguage).map(t => (
                         <button
                           key={t}
                           onClick={() => handleTranslationChange(t)}

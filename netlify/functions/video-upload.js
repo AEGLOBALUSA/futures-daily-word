@@ -6,7 +6,7 @@ const PASTOR_SECRET = process.env.PASTOR_SECRET || "";
 const BUCKET = "campus-videos";
 const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
 
-const ALLOWED_ORIGINS = ["https://futuresdailyword.com", "https://www.futuresdailyword.com", "https://futures-daily-word.netlify.app"];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return { "Access-Control-Allow-Origin": allowed, "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Allow-Methods": "POST, OPTIONS" };

@@ -3,11 +3,7 @@ const crypto = require("crypto");
 
 const PASTOR_SECRET = process.env.PASTOR_SECRET || "";
 
-const ALLOWED_ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com"
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 function sanitize(str, maxLen = 2000) {
   if (typeof str !== "string") return "";

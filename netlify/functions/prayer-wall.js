@@ -1,10 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
 
-const ALLOWED_ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com"
-];
+const { ALLOWED_ORIGINS } = require('./lib/cors');
 
 // 21 Futures campuses (8 AU + 7 US + 5 ID + 1 BR) + Non-Futures
 const CAMPUSES={
