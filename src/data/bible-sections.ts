@@ -2,6 +2,7 @@ export interface BibleSection {
   label: string;
   labelEs?: string;
   labelPt?: string;
+  labelId?: string;
   emoji: string;
   passages: string[];
 }
@@ -11,6 +12,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
     label: 'Psalms',
     labelEs: 'Salmos',
     labelPt: 'Salmos',
+    labelId: 'Mazmur',
     emoji: '🎵',
     passages: [
       "Psalms 1", "Psalms 2", "Psalms 3", "Psalms 4", "Psalms 5", "Psalms 6", "Psalms 7", "Psalms 8", "Psalms 9", "Psalms 10",
@@ -34,6 +36,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
     label: 'Gospels',
     labelEs: 'Evangelios',
     labelPt: 'Evangelhos',
+    labelId: 'Injil',
     emoji: '✝️',
     passages: [
       "Matthew 1", "Matthew 2", "Matthew 3", "Matthew 4", "Matthew 5", "Matthew 6", "Matthew 7", "Matthew 8", "Matthew 9", "Matthew 10",
@@ -53,6 +56,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
     label: 'Acts',
     labelEs: 'Hechos',
     labelPt: 'Atos',
+    labelId: 'Kisah Para Rasul',
     emoji: '⚡',
     passages: [
       "Acts 1", "Acts 2", "Acts 3", "Acts 4", "Acts 5", "Acts 6", "Acts 7", "Acts 8", "Acts 9", "Acts 10",
@@ -64,6 +68,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
     label: 'Epistles',
     labelEs: 'Epístolas',
     labelPt: 'Epístolas',
+    labelId: 'Surat-surat',
     emoji: '✉️',
     passages: [
       "Romans 1", "Romans 2", "Romans 3", "Romans 4", "Romans 5", "Romans 6", "Romans 7", "Romans 8", "Romans 9", "Romans 10",
@@ -96,6 +101,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
   ot_history: {
     label: 'OT History',
     labelEs: 'Historia AT',
+    labelId: 'Sejarah PL',
     emoji: '📜',
     passages: [
       "Genesis 1", "Genesis 2", "Genesis 3", "Genesis 4", "Genesis 5", "Genesis 6", "Genesis 7", "Genesis 8", "Genesis 9", "Genesis 10",
@@ -155,6 +161,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
     label: 'Wisdom',
     labelEs: 'Sabiduría',
     labelPt: 'Sabedoria',
+    labelId: 'Hikmat',
     emoji: '💡',
     passages: [
       "Job 1", "Job 2", "Job 3", "Job 4", "Job 5", "Job 6", "Job 7", "Job 8", "Job 9", "Job 10",
@@ -175,6 +182,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
     label: 'Prophets',
     labelEs: 'Profetas',
     labelPt: 'Profetas',
+    labelId: 'Nabi-nabi',
     emoji: '📢',
     passages: [
       "Isaiah 1", "Isaiah 2", "Isaiah 3", "Isaiah 4", "Isaiah 5", "Isaiah 6", "Isaiah 7", "Isaiah 8", "Isaiah 9", "Isaiah 10",
@@ -218,6 +226,7 @@ export const BIBLE_SECTIONS: Record<string, BibleSection> = {
     label: 'Revelation',
     labelEs: 'Apocalipsis',
     labelPt: 'Apocalipse',
+    labelId: 'Wahyu',
     emoji: '🔥',
     passages: [
       "Revelation 1", "Revelation 2", "Revelation 3", "Revelation 4", "Revelation 5", "Revelation 6", "Revelation 7", "Revelation 8", "Revelation 9", "Revelation 10",

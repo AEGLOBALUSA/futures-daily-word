@@ -21,6 +21,7 @@ import { BibleAI } from '../components/BibleAI';
 import { BibleSearch } from '../components/BibleSearch';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
+import { displayPassage } from '../data/translations';
 import { SetupPromptModal } from '../components/SetupPromptModal';
 import { StopAllAudio } from '../components/StopAllAudio';
 import { FeedbackPoll } from '../components/FeedbackPoll';
@@ -1044,7 +1045,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
     const textKey = `${passage}_${translation}`;
     const text = passageTexts[textKey];
-    if (!text) return;
+    const isInvalidText = !text || text.length < 20
+      || text.includes('tidak tersedia')
+      || text === 'World English Bible text — loading...';
+    if (isInvalidText) { setAudioError(true); return; }
 
     setAudioError(false);
     trackBehavior('audio_played', passage);
@@ -3365,7 +3369,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     {/* Chapter heading + listen */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                        {passage}
+                        {displayPassage(passage, appLanguage)}
                       </p>
                       <button
                         onClick={() => handleListen(passage)}
@@ -3880,7 +3884,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               {/* ── Scripture content ── */}
               <div style={{ padding: '14px 18px 16px' }}>
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                  {passage}
+                  {displayPassage(passage, appLanguage)}
                 </div>
                 {txt ? (
                   <ScripturePassage
@@ -4606,7 +4610,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         width: '100%',
                       }}
                     >
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>{passage}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>{displayPassage(passage, appLanguage)}</span>
                       <span style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>Read →</span>
                     </button>
                   ))}
