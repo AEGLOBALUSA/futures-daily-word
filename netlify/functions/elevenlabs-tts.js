@@ -94,7 +94,7 @@ exports.handler = async (event) => {
         isBase64Encoded: true
       };
     }
-    const ALLOWED_MODELS = ['eleven_multilingual_v2', 'eleven_monolingual_v1', 'eleven_turbo_v2'];
+    const ALLOWED_MODELS = ['eleven_multilingual_v2', 'eleven_monolingual_v1', 'eleven_turbo_v2', 'eleven_turbo_v2_5'];
     const model = modelId && ALLOWED_MODELS.includes(modelId) ? modelId : 'eleven_multilingual_v2';
 
     // Split text into chunks at sentence boundaries

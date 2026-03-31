@@ -290,10 +290,10 @@ export async function fetchAudioSrc(
     return null;
   };
 
-  // Helper: ElevenLabs TTS — use turbo model for non-English to avoid Netlify timeout
+  // Helper: ElevenLabs TTS — use turbo_v2_5 (multilingual) for non-English to avoid Netlify timeout
   const tryElevenLabs = async (): Promise<string | null> => {
     const body: Record<string, string> = { text: cleanText.slice(0, 20000) };
-    if (useNativeVoiceFirst) body.modelId = 'eleven_turbo_v2';
+    if (useNativeVoiceFirst) body.modelId = 'eleven_turbo_v2_5';
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
