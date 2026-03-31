@@ -1,4 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
+const crypto = require("crypto");
 
 let supabase;
 function getSupabase() {
@@ -8,18 +9,46 @@ function getSupabase() {
   return supabase;
 }
 
+// Rate limiting: 1 request per minute per IP
+const exportRateLimits = {};
+function isExportRateLimited(ip) {
+  const now = Date.now();
+  const last = exportRateLimits[ip];
+  if (last && now - last < 60000) return true;
+  exportRateLimits[ip] = now;
+  // Cleanup old entries
+  for (const k of Object.keys(exportRateLimits)) {
+    if (now - exportRateLimits[k] > 120000) delete exportRateLimits[k];
+  }
+  return false;
+}
+
+// Constant-time string comparison to prevent timing attacks
+function safeEqual(a, b) {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 exports.handler = async (event) => {
   // Auth check — ONLY accept token via Authorization header (never query string — leaks in logs)
   const authHeader = event.headers.authorization || event.headers.Authorization || "";
   const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
   const secret = process.env.EXPORT_SECRET;
-  if (!secret || bearerToken !== secret) {
+  if (!secret || !safeEqual(bearerToken, secret)) {
     return { statusCode: 403, body: "Forbidden" };
   }
 
-  // Audit log
+  // Rate limit: 1 export per minute per IP
   const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  if (isExportRateLimited(clientIP)) {
+    return { statusCode: 429, body: "Too many requests. Try again in 1 minute." };
+  }
+
+  // Audit log
   console.log(`[AUDIT] Profile export by IP ${clientIP} at ${new Date().toISOString()}`);
 
   try {

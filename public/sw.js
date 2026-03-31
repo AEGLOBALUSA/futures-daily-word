@@ -174,7 +174,18 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/';
+  const raw = event.notification.data?.url || '/';
+  // Validate URL: only allow relative paths or our own domains
+  const ALLOWED_HOSTS = ['futuresdailyword.com', 'www.futuresdailyword.com', 'futures-daily-word.netlify.app'];
+  let url = '/';
+  if (raw.startsWith('/')) {
+    url = raw;
+  } else {
+    try {
+      const parsed = new URL(raw);
+      if (ALLOWED_HOSTS.includes(parsed.hostname)) url = parsed.pathname + parsed.search + parsed.hash;
+    } catch {}
+  }
   event.waitUntil(
     self.clients.matchAll({ type: 'window' }).then((clients) => {
       for (const client of clients) {

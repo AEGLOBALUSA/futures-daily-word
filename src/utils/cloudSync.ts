@@ -107,13 +107,21 @@ function applyCloudData(data: Record<string, unknown>) {
   }
 }
 
-/** Merge journal arrays by entry id — keep newest version of each entry */
+/** Track conflicts detected during merge for potential user notification */
+let lastMergeConflicts: Array<{ id: string; field: string; cloud: string; local: string }> = [];
+
+export function getLastMergeConflicts() { return lastMergeConflicts; }
+
+/** Merge journal arrays by entry id — keep newest version of each entry.
+ *  When both sides modified the same entry, compare updatedAt timestamps.
+ *  Conflicts (same timestamp, different content) are logged for UI notification. */
 function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
   const map = new Map<string, Record<string, unknown>>();
+  lastMergeConflicts = [];
 
   for (const entry of (cloud || [])) {
     const e = entry as Record<string, unknown>;
-    if (e && e.id) map.set(String(e.id), e);
+    if (e && e.id) map.set(String(e.id), { ...e, _source: 'cloud' });
   }
 
   for (const entry of (local || [])) {
@@ -125,13 +133,37 @@ function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
     } else {
       const existingTime = new Date(String(existing.updatedAt || existing.date || 0)).getTime();
       const localTime = new Date(String(e.updatedAt || e.date || 0)).getTime();
-      if (localTime >= existingTime) {
+      if (localTime > existingTime) {
         map.set(String(e.id), e);
+      } else if (localTime === existingTime) {
+        // Same timestamp — check if content actually differs
+        const cloudBody = String(existing.body || existing.text || '');
+        const localBody = String(e.body || e.text || '');
+        if (cloudBody !== localBody) {
+          // True conflict: keep the longer version (more content preserved)
+          lastMergeConflicts.push({
+            id: String(e.id),
+            field: 'body',
+            cloud: cloudBody.slice(0, 80),
+            local: localBody.slice(0, 80),
+          });
+          if (localBody.length >= cloudBody.length) {
+            map.set(String(e.id), e);
+          }
+          // else keep cloud version (already in map)
+        }
       }
+      // else cloud is newer — keep existing (already in map)
     }
   }
 
-  return Array.from(map.values()).sort((a, b) => {
+  // Strip internal _source marker
+  const result = Array.from(map.values()).map(e => {
+    const { _source, ...rest } = e;
+    return rest;
+  });
+
+  return result.sort((a, b) => {
     const aT = new Date(String(a.date || a.updatedAt || 0)).getTime();
     const bT = new Date(String(b.date || b.updatedAt || 0)).getTime();
     return bT - aT;
@@ -243,6 +275,13 @@ export async function syncOnStartup(email: string) {
     // Notify components that data may have changed
     window.dispatchEvent(new Event('dw-cloud-sync'));
     window.dispatchEvent(new Event('dw-journal-updated'));
+
+    // Notify if merge conflicts were detected
+    if (lastMergeConflicts.length > 0) {
+      window.dispatchEvent(new CustomEvent('dw-sync-conflicts', {
+        detail: { conflicts: lastMergeConflicts }
+      }));
+    }
 
   } catch (err) {
     console.warn('[CloudSync] Sync failed, using localStorage:', err);

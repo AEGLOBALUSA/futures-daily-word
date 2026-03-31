@@ -26,7 +26,11 @@ function generateCode(campusId) {
 function validateCode(campusId, code) {
   if (!PASTOR_SECRET || !code) return false;
   const expected = generateCode(campusId);
-  return expected && code.toUpperCase() === expected;
+  if (!expected) return false;
+  const a = Buffer.from(code.toUpperCase());
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
 }
 
 exports.handler = async (event) => {

@@ -117,8 +117,16 @@ exports.handler = async (event) => {
     );
 
     const data = await response.json();
+    if (!response.ok) {
+      console.error('[Claude] API error:', response.status, JSON.stringify(data));
+      return {
+        statusCode: response.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'AI service error' })
+      };
+    }
     return {
-      statusCode: response.status,
+      statusCode: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     };

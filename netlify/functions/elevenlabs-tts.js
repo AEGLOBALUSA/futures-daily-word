@@ -145,7 +145,8 @@ exports.handler = async (event) => {
 
       if (!response.ok) {
         const errText = await response.text();
-        return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify({ error: 'ElevenLabs API error', detail: errText }) };
+        console.error('[ElevenLabs] API error:', response.status, errText);
+        return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify({ error: 'Audio generation failed' }) };
       }
 
       const arrayBuffer = await response.arrayBuffer();
@@ -173,7 +174,7 @@ exports.handler = async (event) => {
     return {
       statusCode: isTimeout ? 504 : 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: isTimeout ? 'Audio generation timed out' : 'TTS proxy error', message: err.message })
+      body: JSON.stringify({ error: isTimeout ? 'Audio generation timed out' : 'Audio generation failed' })
     };
   }
 };

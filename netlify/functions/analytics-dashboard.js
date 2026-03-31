@@ -4,8 +4,7 @@ const crypto = require("crypto");
 const ORIGINS = [
   "https://futures-daily-word.netlify.app",
   "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com",
-  "http://localhost:5173"
+  "https://www.futuresdailyword.com"
 ];
 
 let sb;
