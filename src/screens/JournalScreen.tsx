@@ -383,9 +383,9 @@ const JOURNAL_PROMPTS = [
   'Write about a time you experienced God\'s faithfulness.',
   'What habit or pattern do you feel God is inviting you to break?',
   'Who has God placed in your life right now who needs encouragement?',
-  'What does rest look like for you â and are you taking it?',
+  'What does rest look like for you — and are you taking it?',
   'Write one thing you want to remember from this week\'s reading.',
-  'How would you describe your faith right now â honest, not polished?',
+  'How would you describe your faith right now — honest, not polished?',
   'What question do you want to ask God today?',
   'What does surrender look like in the area you\'re struggling with?',
   'Write about a door God has opened (or closed) in your life recently.',
@@ -415,7 +415,7 @@ interface TodayPassage {
 
 /** Strip :verse suffix so we always fetch the full chapter for context */
 function expandToChapter(ref: string): string {
-  // "2 Timothy 1:7" â "2 Timothy 1"   |   "John 3:16-21" â "John 3"
+  // "2 Timothy 1:7" → "2 Timothy 1"   |   "John 3:16-21" → "John 3"
   return ref.replace(/:\d+(-\d+)?$/, '').trim();
 }
 
@@ -477,7 +477,7 @@ function ModalSelectionBar({
     function onSelectionChange() {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) {
-        // Debounce the clear â mobile fires spurious empty-selection events
+        // Debounce the clear — mobile fires spurious empty-selection events
         if (clearTimer.current) clearTimeout(clearTimer.current);
         clearTimer.current = setTimeout(() => {
           const recheck = window.getSelection();
@@ -487,7 +487,7 @@ function ModalSelectionBar({
         }, 600);
         return;
       }
-      // Selection is non-empty â cancel any pending clear
+      // Selection is non-empty — cancel any pending clear
       if (clearTimer.current) { clearTimeout(clearTimer.current); clearTimer.current = null; }
       // Only show toolbar if selection is inside our modal container
       const range = sel.getRangeAt(0);
@@ -576,7 +576,7 @@ function ModalSelectionBar({
         {tbBtn(handleShare, <Share2 size={15} />, t('j_share', lang))}
         {tbBtn(() => { onNoteSelected(selectedText); dismiss(); }, <BookOpen size={15} />, t('j_note', lang))}
 
-        {/* Ask AI â burnished gold */}
+        {/* Ask AI — burnished gold */}
         <button
           onClick={() => { onAskAI(selectedText); dismiss(); }}
           style={{
@@ -618,15 +618,15 @@ function ModalSelectionBar({
 function getReflectionQuestions(title: string, isBookChapter?: boolean): string[] {
   // Derive a topic-anchored opening question from the title
   const topic = title.replace(/^(Day \d+:|Chapter \d+:)\s*/i, '').replace(/["'"]/g, '').trim();
-  const short = topic.length > 60 ? topic.slice(0, 57) + 'â¦' : topic;
+  const short = topic.length > 60 ? topic.slice(0, 57) + '…' : topic;
 
   const q1 = isBookChapter
-    ? `Which sentence from "${short}" are you still thinking about â and what does it stir in you?`
+    ? `Which sentence from "${short}" are you still thinking about — and what does it stir in you?`
     : `What one line from today's devotional about "${short}" hit you hardest, and why?`;
 
-  const q2 = `Where in your life right now does this truth most need to land? Be specific â what situation, relationship, or season are you bringing this into?`;
+  const q2 = `Where in your life right now does this truth most need to land? Be specific — what situation, relationship, or season are you bringing this into?`;
 
-  const q3 = `What's one concrete thing you'll do differently this week because of what you just read? Not a feeling â an action.`;
+  const q3 = `What's one concrete thing you'll do differently this week because of what you just read? Not a feeling — an action.`;
 
   return [q1, q2, q3];
 }
@@ -704,7 +704,7 @@ function ScriptureModal({
     const context = text
       ? text
       : devotional
-        ? `${devotional.title} â ${passage}\n\n${devotional.body.slice(0, 300)}â¦`
+        ? `${devotional.title} — ${passage}\n\n${devotional.body.slice(0, 300)}…`
         : `${passage}: ${scriptureText.slice(0, 300)}`;
     setSelection({ text: context, verseRefs: [passage], source: 'range' });
     onClose();
@@ -733,7 +733,7 @@ function ScriptureModal({
       {/* Backdrop */}
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
 
-      {/* Modal panel â full study sheet */}
+      {/* Modal panel — full study sheet */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         height: '94vh',
@@ -882,7 +882,7 @@ function ScriptureModal({
             </div>
           )}
 
-          {/* SECTION 1b: Reflection questions â shown whenever there's devotional content */}
+          {/* SECTION 1b: Reflection questions — shown whenever there's devotional content */}
           {devotional && (() => {
             const questions = getReflectionQuestions(devotional.title, isBookChapter);
             return (
@@ -946,7 +946,7 @@ function ScriptureModal({
                             fontFamily: 'var(--font-sans)',
                             textTransform: 'uppercase',
                           }}>
-                            Tap to answer in notes â
+                            Tap to answer in notes →
                           </span>
                         </div>
                       </button>
@@ -957,7 +957,7 @@ function ScriptureModal({
             );
           })()}
 
-          {/* SECTION 2: Scripture passage â hidden for book chapters */}
+          {/* SECTION 2: Scripture passage — hidden for book chapters */}
           {!isBookChapter && <div style={{ margin: '20px 18px 0' }}>
             <div style={{
               borderRadius: 16,
@@ -982,7 +982,7 @@ function ScriptureModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
                     <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
                     <span style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
-                      {t('j_loading', lang)} {chapterRef}â¦
+                      {t('j_loading', lang)} {chapterRef}…
                     </span>
                   </div>
                 ) : scriptureText ? (
@@ -1389,7 +1389,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
                   )}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  Tap to study â
+                  {t('j_tap_study', lang)}
                 </span>
               </div>
             </div>
@@ -1476,7 +1476,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
     if (activeTab === 'prayer') return e.type === 'prayer';
-    // "All Notes" shows everything: journal, saved, sermon, teaching notes â one list
+    // "All Notes" shows everything: journal, saved, sermon, teaching notes — one list
     if (activeTab === 'saved') return e.type !== 'prayer';
     return e.type === activeTab;
   }) : [];
@@ -1606,7 +1606,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
             {editingEntry.date}
           </p>
 
-          {/* Scripture context â shown for scripture notes */}
+          {/* Scripture context — shown for scripture notes */}
           {editingEntry.highlightedText && (
             <div style={{
               padding: '10px 14px',
@@ -1635,7 +1635,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
               fontFamily: 'var(--font-serif)', fontWeight: 400, marginBottom: 16,
             }}
           />
-          {/* Daily reflection prompt â shown for journal entries without existing body */}
+          {/* Daily reflection prompt — shown for journal entries without existing body */}
           {editingEntry.type === 'journal' && !editingEntry.body && !editingEntry.highlightedText && (
             <div
               onClick={() => setEditingEntry({ ...editingEntry, body: `${dailyPrompt}\n\n` })}
@@ -1653,7 +1653,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
                 {dailyPrompt}
               </p>
               <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', marginTop: 8, fontFamily: 'var(--font-sans)' }}>
-                Tap to start with this prompt â
+                Tap to start with this prompt →
               </p>
             </div>
           )}
@@ -1794,7 +1794,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           })}
         </div>
 
-        {/* Active plans strip â show active plans at top of Study tab */}
+        {/* Active plans strip — show active plans at top of Study tab */}
         {activeTab === 'today' && (() => {
           const planIds = Object.keys(activePlansData);
           const myPlans = PLAN_CATALOGUE.filter(p => planIds.includes(p.id));
@@ -1931,7 +1931,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           );
         })()}
 
-        {/* Today's passages â inline note-taking */}
+        {/* Today's passages — inline note-taking */}
         {activeTab === 'today' && (
           <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
@@ -1957,7 +1957,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
         )}
       </div>
 
-      {/* Bible AI â floating button + slide-up panel */}
+      {/* Bible AI — floating button + slide-up panel */}
       <BibleAI
         isOpen={showBibleAI}
         onClose={() => setShowBibleAI(false)}
@@ -1969,7 +1969,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
       {/* Video recorder modal */}
       {showRecorder && <VideoRecorderModal onClose={() => setShowRecorder(false)} />}
 
-      {/* Scripture study modal â lifted from TodayPanel so plan popup can also open it */}
+      {/* Scripture study modal — lifted from TodayPanel so plan popup can also open it */}
       {modalPassage && (
         <ScriptureModal
           passage={modalPassage.ref}
