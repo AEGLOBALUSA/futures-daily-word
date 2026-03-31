@@ -290,12 +290,14 @@ export async function fetchAudioSrc(
     return null;
   };
 
-  // Helper: ElevenLabs TTS (multilingual model, English voice)
+  // Helper: ElevenLabs TTS — use turbo model for non-English to avoid Netlify timeout
   const tryElevenLabs = async (): Promise<string | null> => {
+    const body: Record<string, string> = { text: cleanText.slice(0, 20000) };
+    if (useNativeVoiceFirst) body.modelId = 'eleven_turbo_v2';
     const res = await fetch('/api/elevenlabs-tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText.slice(0, 20000) }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       const blob = await res.blob();
