@@ -86,14 +86,14 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Messages array required' }) };
     }
 
-    if (body.messages.length > 20) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Too many messages (max 20)' }) };
+    if (body.messages.length > 42) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Too many messages (max 42)' }) };
     }
 
     const sanitized = {
       model: 'claude-3-haiku-20240307',
       max_tokens: Math.min(body.max_tokens || 600, 800),
-      messages: (body.messages || []).slice(-6),
+      messages: (body.messages || []).slice(-20),
     };
     if (body.system) sanitized.system = body.system;
 
