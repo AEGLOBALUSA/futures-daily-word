@@ -231,7 +231,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         body: JSON.stringify({
           messages: [...messages, userMsg],
           system: systemPrompt,
-          max_tokens: 1024,
+          max_tokens: 600,
         }),
         signal: controller.signal,
       })

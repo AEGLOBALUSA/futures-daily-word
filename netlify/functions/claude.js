@@ -8,7 +8,7 @@ const { ALLOWED_ORIGINS } = require('./lib/cors');
 // In-memory rate limiting (per function instance)
 const rateLimits = {};
 const RATE_LIMIT_WINDOW = 60000;
-const RATE_LIMIT_MAX = 15;
+const RATE_LIMIT_MAX = 10;
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -91,9 +91,9 @@ exports.handler = async (event) => {
     }
 
     const sanitized = {
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: Math.min(body.max_tokens || 1024, 2048),
-      messages: body.messages,
+      model: 'claude-3-haiku-20240307',
+      max_tokens: Math.min(body.max_tokens || 600, 800),
+      messages: (body.messages || []).slice(-6),
     };
     if (body.system) sanitized.system = body.system;
 
