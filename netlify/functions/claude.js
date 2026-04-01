@@ -91,7 +91,7 @@ exports.handler = async (event) => {
     }
 
     const sanitized = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: Math.min(body.max_tokens || 1024, 2048),
       messages: body.messages,
     };
