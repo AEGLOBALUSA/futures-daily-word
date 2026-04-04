@@ -955,6 +955,26 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </Card>
         </div>
 
+        {/* Data notice */}
+        <div style={{
+          textAlign: 'center',
+          padding: '16px 20px',
+          marginBottom: 16,
+          background: 'var(--dw-surface)',
+          borderRadius: 10,
+          border: '1px solid var(--dw-border-subtle)',
+        }}>
+          <p style={{
+            color: 'var(--dw-text-muted)',
+            fontSize: 12,
+            fontFamily: 'var(--font-sans)',
+            lineHeight: 1.5,
+          }}>
+            Your notes and reading progress are saved on this device only.
+            Clearing browser data will erase them.
+          </p>
+        </div>
+
         {/* Version */}
         <p style={{
           textAlign: 'center',

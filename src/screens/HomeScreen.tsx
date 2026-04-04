@@ -2584,29 +2584,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
         {/* Start Your Journey — removed; "Choose Your Plan" button at top handles this */}
 
-          {/* Scroll invitation — not an arrow, just a breath */}
-          <div style={{
-            position: 'absolute', bottom: 12, left: 0, right: 0,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-            pointerEvents: 'none',
-          }}>
-            <span style={{
-              fontSize: 10, fontWeight: 500, letterSpacing: '0.12em',
-              textTransform: 'uppercase', color: 'var(--dw-text-muted)',
-              fontFamily: 'var(--font-sans)', opacity: 1,
-            }}>
-              {t('todays_reflection')}
-            </span>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{
-                  width: 4, height: 4, borderRadius: '50%',
-                  background: 'var(--dw-text-muted)',
-                  opacity: 0.25 + i * 0.15,
-                }} />
-              ))}
-            </div>
-          </div>
         {/* Persona greeting + picker moved to Settings */}
 
         {/* -- FAITH PATHWAY CARD -- for new_returning persona */}
@@ -3556,8 +3533,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           if (slotsOnlyMode && visibleSlots.length === 0) return null;
           return (
           <div style={{ marginBottom: 16 }}>
-          <div className="dw-dark-surface" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-charcoal-deep)', borderRadius: 12, padding: '12px 16px' }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', margin: 0 }}>{slotsOnlyMode ? 'ADDITIONAL READING' : "TODAY'S CHAPTERS"}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border-subtle)', borderRadius: 12, padding: '12px 16px' }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--dw-text-muted)', margin: 0 }}>{slotsOnlyMode ? 'ADDITIONAL READING' : "TODAY'S CHAPTERS"}</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={() => {
                 // All visible passages = plan passages + reading slot passages
@@ -3580,7 +3557,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     source: 'select-all',
                   });
                 }
-              }} style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'#fff', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
+              }} style={{ background:'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
               <button onClick={() => {
                 const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
                 const passageRefs = [
@@ -3592,18 +3569,18 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   text: `Today's passages: ${passageRefs.join(', ')}\n\n— Futures Daily Word`,
                   url: 'https://futuresdailyword.com'
                 });
-              }} style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:8, padding:'4px 8px', fontSize:12, color:'#fff', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
+              }} style={{ background:'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:8, padding:'4px 8px', fontSize:12, color:'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
                 <Share2 size={12} /> Share
               </button>
             </div>
             <button
               onClick={() => setShowReadingSetup(!showReadingSetup)}
               style={{
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.25)',
+                background: 'var(--dw-accent-bg)',
+                border: '1px solid var(--dw-border)',
                 borderRadius: 8,
                 padding: '6px 12px',
-                color: '#fff',
+                color: 'var(--dw-accent)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
