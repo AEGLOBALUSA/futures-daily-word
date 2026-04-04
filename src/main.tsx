@@ -17,6 +17,23 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
+// Capture install prompt for PWA install banner
+let deferredPrompt: Event | null = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  window.dispatchEvent(new CustomEvent('pwa-install-available'));
+});
+
+// Expose install trigger for components
+(window as any).__pwaInstall = async () => {
+  if (!deferredPrompt) return false;
+  (deferredPrompt as any).prompt();
+  const result = await (deferredPrompt as any).userChoice;
+  deferredPrompt = null;
+  return result.outcome === 'accepted';
+};
+
 // Register service worker — version query forces cache bust on deploy
 const SW_VERSION = 'v65';
 if ('serviceWorker' in navigator) {

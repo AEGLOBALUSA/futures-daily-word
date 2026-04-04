@@ -21,6 +21,15 @@
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "shortcuts": [
+    {
+      "name": "Today's Reading",
+      "short_name": "Today",
+      "url": "/",
+      "description": "Open today's daily reading",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ],
   "screenshots": [],
   "related_applications": [],
   "prefer_related_applications": false
