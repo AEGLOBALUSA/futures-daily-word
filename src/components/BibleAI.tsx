@@ -479,14 +479,16 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                           localStorage.setItem('dw_ai_season_tip_dismissed', 'true');
                         }}
                         style={{
-                          background: 'none',
-                          border: 'none',
+                          background: 'rgba(212,180,76,0.15)',
+                          border: '1px solid rgba(212,180,76,0.3)',
+                          borderRadius: 8,
                           color: '#D4B44C',
                           cursor: 'pointer',
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 600,
-                          padding: 0,
+                          padding: '6px 14px',
                           fontFamily: 'var(--font-sans)',
+                          marginTop: 4,
                         }}
                       >
                         {t("got_it", lang)}

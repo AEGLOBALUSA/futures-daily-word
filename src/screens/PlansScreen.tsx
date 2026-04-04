@@ -23,13 +23,13 @@ interface Book {
 }
 
 const BOOKS: Book[] = [
-  { id: 'from-scarcity', title: 'From Scarcity to Abundance', description: 'A guide to God\'s provision', author: 'Ps A', jsonFile: '/books/scarcity.json' },
-  { id: 'church', title: 'The Church Awakening', description: 'Understanding our purpose in faith', author: 'Ps A', jsonFile: '/books/church.json' },
-  { id: 'no-more-fear', title: 'No More Fear', description: 'Living boldly in faith', author: 'Ps A', jsonFile: '/books/no_more_fear.json' },
+  { id: 'from-scarcity', title: 'From Scarcity to Abundance', description: 'A guide to God\'s provision', author: 'Pastor Ashley', jsonFile: '/books/scarcity.json' },
+  { id: 'church', title: 'The Church Awakening', description: 'Understanding our purpose in faith', author: 'Pastor Ashley', jsonFile: '/books/church.json' },
+  { id: 'no-more-fear', title: 'No More Fear', description: 'Living boldly in faith', author: 'Pastor Ashley', jsonFile: '/books/no_more_fear.json' },
 ];
 
 const JANE_BOOKS: Book[] = [
-  { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Ps Jane', jsonFile: undefined },
+  { id: 'jane-book-1', title: 'Grace & Truth', description: 'Biblical foundations for living', author: 'Pastor Jane', jsonFile: undefined },
 ];
 
 /* ── localStorage helpers ── */
@@ -542,7 +542,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
             color: 'var(--dw-text-primary)',
             letterSpacing: '-0.02em', marginBottom: 4,
           }}>
-            Plans & More
+            {t('tab_plans', lang)}
           </h1>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 24, fontFamily: 'var(--font-sans)' }}>
             {t('p_plans_subtitle', lang)}
@@ -629,7 +629,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>READING PLANS</h2>
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 16, fontFamily: 'var(--font-sans)', paddingLeft: 4 }}>
-              Tap a plan to start it. Your active plan drives the hero button on the home screen.
+              Tap a plan to start it. Your chosen plan sets your daily reading.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {(() => {
@@ -693,9 +693,10 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                             <div style={{
                               position: 'absolute', top: 14, right: 14,
                               width: 22, height: 22, borderRadius: '50%',
-                              background: isSelected ? 'var(--dw-accent)' : 'var(--dw-border)',
+                              border: isSelected ? 'none' : '2px solid var(--dw-text-muted)',
+                              background: isSelected ? 'var(--dw-accent)' : 'transparent',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'background 0.15s', flexShrink: 0,
+                              transition: 'all 0.15s', flexShrink: 0,
                             }}>
                               {isSelected && (
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -892,7 +893,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
 
-          {/* Ps Jane's Books */}
+          {/* Pastor Jane's Books */}
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PS JANE'S BOOKS</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1154,9 +1155,10 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                             <div style={{
                               position: 'absolute', top: 14, right: 14,
                               width: 22, height: 22, borderRadius: '50%',
-                              background: isSelected ? 'var(--dw-accent)' : 'var(--dw-border)',
+                              border: isSelected ? 'none' : '2px solid var(--dw-text-muted)',
+                              background: isSelected ? 'var(--dw-accent)' : 'transparent',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'background 0.15s', flexShrink: 0,
+                              transition: 'all 0.15s', flexShrink: 0,
                             }}>
                               {isSelected && (
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

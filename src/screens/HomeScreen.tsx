@@ -865,7 +865,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
   // Setup prompt: show on day 2+ if user has no reading slots & no active plans
   // Skip for pastor/leader personas
+  // Guard: skip if Hook 1 (post-EmailGate) already triggered the modal
   useEffect(() => {
+    if (showSetupModal) return; // Already showing from Hook 1
     const alreadyDismissed = localStorage.getItem('dw_setup_dismissed');
     if (alreadyDismissed) return;
     const persona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona; } catch { return ''; } })();
@@ -886,7 +888,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     const timer = setTimeout(() => setShowSetupModal(true), 5000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showSetupModal]);
 
   // Reset expanded passages when day or translation changes
   useEffect(() => {
@@ -1144,7 +1146,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           bookPlans[planDef.bookId] = {
             jsonFile: planDef.bookJsonFile.replace('.json', `${_bLangSuffix}.json`),
             title: planDef.title,
-            author: 'Ps Ashley Evans',
+            author: 'Pastor Ashley Evans',
             currentChapter: 0,
             totalChapters: planDef.totalDays,
             startedAt: new Date().toISOString(),
@@ -1731,7 +1733,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     fontVariantNumeric: 'tabular-nums',
                     letterSpacing: '-0.03em',
                   }}>
-                    {streakCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>days</span>
+                    {streakCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>{streakCount === 1 ? 'day' : 'days'}</span>
                   </span>
                   {label && (
                     <span style={{
@@ -1787,15 +1789,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           )}
         </div>
 
-        {/* ── {t('font_size')} Controls ── */}
-        <FontSizeControls
-          fontSize={scriptureFontSize}
-          min={FONT_MIN}
-          max={FONT_MAX}
-          onIncrease={handleFontIncrease}
-          onDecrease={handleFontDecrease}
-        />
-
         {(() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
@@ -1816,9 +1809,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)' }} />
               <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.55, fontFamily: 'var(--font-sans)', margin: '0 0 16px' }}>
-                  Daily Word
-                </p>
+                <div style={{ height: 16 }} />
                 <p style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 8px', lineHeight: 1.3 }}>
                   Choose your reading plan
                 </p>
@@ -1828,11 +1819,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 <button
                   onClick={() => onNavigate?.('plans')}
                   style={{
-                    padding: '14px 28px', borderRadius: 14, border: '2px solid rgba(255,255,255,0.9)',
-                    background: 'rgba(255,255,255,0.18)', color: '#fff', cursor: 'pointer',
+                    padding: '14px 28px', borderRadius: 14, border: 'none',
+                    background: '#fff', color: 'var(--dw-accent, #C8920E)', cursor: 'pointer',
                     fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)',
-                    backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
                     letterSpacing: '0.02em',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   }}
                 >
                   Browse Plans
@@ -4671,20 +4662,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           );
         })()}
 
-        {/* Developer credit */}
-        <div style={{
-          textAlign: 'center',
-          padding: '24px 0 12px',
-          marginTop: 24,
-          borderTop: '1px solid var(--dw-border-subtle)',
-          opacity: 0.45,
-          fontSize: 11,
-          letterSpacing: 0.5,
-          color: 'var(--dw-text-muted)',
-        }}>
-          Created &amp; Developed by Ashley Evans for Futures Church
-        </div>
-
         {/* Bottom spacing */}
         <div style={{ height: 24 }} />
 
@@ -4881,8 +4858,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         }}
       />
       <StopAllAudio onStop={() => { heroQueueRef.current = []; heroQueueActiveRef.current = false; }} />
-      {/* Temp version tag — remove after audio confirmed working */}
-      <p style={{ textAlign: 'center', fontSize: 9, color: 'var(--dw-text-muted)', opacity: 0.4, margin: '20px 0 80px', fontFamily: 'var(--font-sans)' }}>v53</p>
+      <div style={{ height: 80 }} />
     </div>
   );
 }

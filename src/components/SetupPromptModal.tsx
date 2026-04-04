@@ -381,7 +381,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
             </button>
           )}
 
-          {step < 3 && (
+          {step === 1 && (
             <button
               onClick={onDismiss}
               style={{

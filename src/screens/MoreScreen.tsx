@@ -960,7 +960,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           fontFamily: 'var(--font-sans)',
           paddingBottom: 24,
         }}>
-          Futures Daily Word v2.1  -  Futures Church
+          Futures Daily Word v2.1 — Futures Church
+          <br />
+          Created & Developed by Ashley Evans
         </p>
       </div>
     </div>

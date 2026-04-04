@@ -3,7 +3,7 @@ import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
-import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2, Save, CheckCircle, MessageSquare } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2, Save, CheckCircle, MessageSquare, MapPin } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
@@ -152,9 +152,12 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
   if (!campus) {
     return (
       <div style={{ padding: '32px 24px', textAlign: 'center' }}>
-        <MessageSquare size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-        <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+        <MapPin size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
+        <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', lineHeight: 1.5 }}>
           {t("select_campus_settings", lang)}
+        </p>
+        <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 8 }}>
+          Tap the Settings tab below to choose your campus.
         </p>
       </div>
     );

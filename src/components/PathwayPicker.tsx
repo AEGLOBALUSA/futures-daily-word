@@ -195,14 +195,17 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
             marginTop: 16,
             background: 'none',
             border: 'none',
-            fontSize: 13,
-            color: 'var(--dw-text-muted, #999)',
+            fontSize: 14,
+            color: 'var(--dw-accent, #C8920E)',
             cursor: 'pointer',
             fontFamily: 'var(--font-sans, system-ui)',
-            padding: '8px 16px',
+            fontWeight: 600,
+            padding: '10px 20px',
+            textDecoration: 'underline',
+            textUnderlineOffset: '3px',
           }}
         >
-          Not sure? Start with Church Member
+          Not sure? Start with Church Member →
         </button>
       )}
     </div>
