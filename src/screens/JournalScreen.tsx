@@ -1288,7 +1288,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
           {t('no_passages', lang)}
         </p>
         <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-          Add a reading plan in Plans &amp; More
+          Tap the Plans tab to add a reading plan.
         </p>
       </Card>
     );
@@ -1779,10 +1779,10 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
                 className={shouldPulse ? 'sermon-tab-pulse' : undefined}
                 style={{
                   flex: 1,
-                  background: isActive ? (isSermon ? '#2563EB' : 'var(--dw-accent)') : 'transparent',
-                  color: isActive ? '#fff' : shouldPulse ? '#2563EB' : 'var(--dw-text-muted)',
+                  background: isActive ? 'var(--dw-accent)' : 'transparent',
+                  color: isActive ? '#fff' : 'var(--dw-text-muted)',
                   border: 'none', borderRadius: 8, padding: '10px 0',
-                  fontSize: 12, fontWeight: shouldPulse ? 700 : 500, cursor: 'pointer',
+                  fontSize: 12, fontWeight: isActive ? 600 : 500, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   minHeight: 44, fontFamily: 'var(--font-sans)',
                   transition: 'all var(--transition-fast)',

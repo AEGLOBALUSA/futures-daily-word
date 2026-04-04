@@ -655,6 +655,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                           style={{
                             background: isActive ? 'rgba(37,99,235,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
                             border: isActive ? '2px solid rgba(37,99,235,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                            borderLeft: !isActive ? `3px solid ${(() => { const _cc: Record<string, string> = { 'Featured': '#C8920E', 'Books': '#7B1FA2', 'Gospels & Acts': '#2196F3', 'New Testament': '#4CAF50', 'Wisdom': '#5C6BC0', 'Full Bible': '#DC535D' }; return _cc[cat] || 'var(--dw-accent)'; })()}` : undefined,
                             borderRadius: 14,
                             padding: '14px 16px',
                             cursor: 'pointer',
@@ -1114,6 +1115,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                           style={{
                             background: isActive ? 'rgba(37,99,235,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
                             border: isActive ? '2px solid rgba(37,99,235,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                            borderLeft: !isActive ? `3px solid ${(() => { const _cc: Record<string, string> = { 'Featured': '#C8920E', 'Books': '#7B1FA2', 'Gospels & Acts': '#2196F3', 'New Testament': '#4CAF50', 'Wisdom': '#5C6BC0', 'Full Bible': '#DC535D' }; return _cc[cat] || 'var(--dw-accent)'; })()}` : undefined,
                             borderRadius: 14,
                             padding: '14px 16px',
                             cursor: 'pointer',

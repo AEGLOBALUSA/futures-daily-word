@@ -663,14 +663,17 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               onClick={handlePushToggle}
               style={{
                 width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 background: pushSubscribed ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
                 color: pushSubscribed ? '#fff' : 'var(--dw-text-primary)',
-                border: 'none', borderRadius: 10,
-                padding: '14px 16px', fontSize: 14, fontWeight: 500,
+                border: pushSubscribed ? 'none' : '1px solid var(--dw-border)',
+                borderRadius: 10,
+                padding: '14px 16px', fontSize: 14, fontWeight: 600,
                 cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
-                textAlign: 'center',
+                textAlign: 'center', transition: 'all 0.2s ease',
               }}
             >
+              <Bell size={16} />
               {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : t("turn_on_push", lang)}
             </button>
           </Card>
@@ -882,15 +885,15 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     }}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '8px 18px', borderRadius: 10,
-                      fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                      padding: '12px 24px', borderRadius: 10,
+                      fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
                       cursor: bugSubmitting || !bugMessage.trim() ? 'default' : 'pointer',
                       border: 'none',
                       background: !bugMessage.trim() ? 'var(--dw-surface-hover)' : 'var(--dw-accent)',
                       color: !bugMessage.trim() ? 'var(--dw-text-faint)' : '#fff',
                       opacity: bugSubmitting ? 0.6 : 1,
                       transition: 'all 0.15s',
-                      minHeight: 36,
+                      minHeight: 44,
                     }}
                   >
                     <Send size={13} />

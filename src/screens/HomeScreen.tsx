@@ -504,9 +504,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassages, setExpandedPassages] = useState<Set<string>>(new Set());
   const [showCampusPicker, setShowCampusPicker] = useState(false);
-  const [showHeaderCampus, setShowHeaderCampus] = useState(false);
-  const [showHeaderPersona, setShowHeaderPersona] = useState(false);
-  const [showHeaderLanguage, setShowHeaderLanguage] = useState(false);
+  // Header dropdowns removed — settings now in Settings tab only
   const APP_LANGUAGES = [
     { code: 'en', label: 'English', flag: '🇺🇸' },
     { code: 'es', label: 'Español', flag: '🇪🇸' },
@@ -1407,13 +1405,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           onDismiss={handleSetupDismiss}
         />
       )}
-      {/* Click-away overlay for header dropdowns */}
-      {(showHeaderPersona || showHeaderCampus || showHeaderLanguage) && (
-        <div
-          onClick={() => { setShowHeaderPersona(false); setShowHeaderCampus(false); setShowHeaderLanguage(false); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 50 }}
-        />
-      )}
       <div style={{ padding: '0 24px 0' }}>
         {/* ── Hero viewport ── fills visible screen */}
         <div style={{
@@ -1499,197 +1490,25 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               }}>
                 Daily Word
               </h1>
-              {/* Persona + Campus dropdowns — compact row under title */}
+              {/* Compact context labels — settings changed via Settings tab */}
               <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
-                {/* Persona dropdown trigger */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    onClick={() => { setShowHeaderPersona(!showHeaderPersona); setShowHeaderCampus(false); setShowHeaderLanguage(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 3,
-                      background: 'none', border: 'none', padding: 0,
-                      cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                      color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
-                    }}
-                  >
-                    {(() => { const _pc = PERSONA_CONFIGS[personaConfig.persona]; const _l = getLang(); return (_l === 'id' && _pc?.labelId) ? _pc.labelId : _pc?.label || 'Select Path'; })()}
-                    <ChevronDown size={10} style={{ opacity: 0.6 }} />
-                  </button>
-                  {showHeaderPersona && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                      borderRadius: 10, padding: 4, zIndex: 100,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                      minWidth: 200,
+                <span style={{
+                  fontSize: 11, fontWeight: 600, color: 'var(--dw-accent)',
+                  fontFamily: 'var(--font-sans)',
+                }}>
+                  {(() => { const _pc = PERSONA_CONFIGS[personaConfig.persona]; const _l = getLang(); return (_l === 'id' && _pc?.labelId) ? _pc.labelId : _pc?.label || ''; })()}
+                </span>
+                {currentCampus && (
+                  <>
+                    <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>·</span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 500, color: 'var(--dw-text-muted)',
+                      fontFamily: 'var(--font-sans)',
                     }}>
-                      {ALL_PERSONAS.map(p => {
-                        const cfg = PERSONA_CONFIGS[p];
-                        const isActive = personaConfig.persona === p;
-                        return (
-                          <button
-                            key={p}
-                            onClick={() => {
-                              if (!isActive) {
-                                saveSetup({ persona: p, source: setup?.source || 'header' });
-                              onNavigate?.('plans');
-                              }
-                              setShowHeaderPersona(false);
-                            }}
-                            style={{
-                              display: 'block', width: '100%', textAlign: 'left',
-                              padding: '8px 12px', borderRadius: 8,
-                              background: isActive ? 'var(--dw-accent)' : 'transparent',
-                              color: isActive ? '#fff' : 'var(--dw-text-primary)',
-                              border: 'none', cursor: 'pointer',
-                              fontSize: 13, fontWeight: isActive ? 600 : 400,
-                              fontFamily: 'var(--font-sans)',
-                              transition: 'background 0.15s',
-                            }}
-                          >
-                            <span style={{ fontWeight: 600 }}>{cfg.label}</span>
-                            <span style={{
-                              display: 'block', fontSize: 11, marginTop: 1,
-                              color: isActive ? 'rgba(255,255,255,0.7)' : 'var(--dw-text-muted)',
-                            }}>
-                              {cfg.description}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>·</span>
-
-                {/* Campus dropdown trigger */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    onClick={() => { setShowHeaderCampus(!showHeaderCampus); setShowHeaderPersona(false); setShowHeaderLanguage(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 3,
-                      background: 'none', border: 'none', padding: 0,
-                      cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                      color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
-                    }}
-                  >
-                    📍 {currentCampus?.name?.replace('Futures ', '') || t('select_campus')}
-                    <ChevronDown size={10} style={{ opacity: 0.6 }} />
-                  </button>
-                  {showHeaderCampus && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, marginTop: 4,
-                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                      borderRadius: 10, padding: 4, zIndex: 100,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                      minWidth: 220, maxHeight: 320, overflowY: 'auto',
-                    }}>
-                      {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
-                        const regionCampuses = CAMPUSES.filter(c => c.region === region);
-                        if (regionCampuses.length === 0) return null;
-                        return (
-                          <div key={region}>
-                            <p style={{
-                              fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                              textTransform: 'uppercase', color: 'var(--dw-text-muted)',
-                              padding: '6px 12px 2px', margin: 0,
-                              fontFamily: 'var(--font-sans)',
-                            }}>
-                              {region}
-                            </p>
-                            {regionCampuses.map(c => {
-                              const isActive = userProfile?.campus === c.id;
-                              return (
-                                <button
-                                  key={c.id}
-                                  onClick={() => {
-                                    handleCampusSelect(c.id);
-                                    setShowHeaderCampus(false);
-                                  }}
-                                  style={{
-                                    display: 'block', width: '100%', textAlign: 'left',
-                                    padding: '7px 12px', borderRadius: 8,
-                                    background: isActive ? 'var(--dw-accent)' : 'transparent',
-                                    color: isActive ? '#fff' : 'var(--dw-text-primary)',
-                                    border: 'none', cursor: 'pointer',
-                                    fontSize: 13, fontWeight: isActive ? 600 : 400,
-                                    fontFamily: 'var(--font-sans)',
-                                  }}
-                                >
-                                  {c.name}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>·</span>
-
-                {/* Language dropdown trigger */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    onClick={() => { setShowHeaderLanguage(!showHeaderLanguage); setShowHeaderPersona(false); setShowHeaderCampus(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 3,
-                      background: 'none', border: 'none', padding: 0,
-                      cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                      color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
-                    }}
-                  >
-                    {APP_LANGUAGES.find(l => l.code === appLanguage)?.label || 'English'}
-                    <ChevronDown size={10} style={{ opacity: 0.6 }} />
-                  </button>
-                  {showHeaderLanguage && (
-                    <div style={{
-                      position: 'absolute', top: '100%', right: 0, marginTop: 4,
-                      background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                      borderRadius: 10, padding: 4, zIndex: 100,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                      minWidth: 160,
-                    }}>
-                      {APP_LANGUAGES.map(lang => {
-                        const isActive = lang.code === appLanguage;
-                        return (
-                          <button
-                            key={lang.code}
-                            onClick={() => {
-                              setAppLanguage(lang.code);
-                              setLangPref(lang.code);
-                              // Auto-switch Bible translation to match language
-                              const langTranslations: Record<string, string> = { en: 'ESV', es: 'RV1960', pt: 'ARA', id: 'TB' };
-                              if (langTranslations[lang.code]) {
-                                localStorage.setItem('dw_translation', langTranslations[lang.code]);
-                                localStorage.removeItem('dw_translation_manual');
-                              }
-                              setShowHeaderLanguage(false);
-                              window.location.reload();
-                            }}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
-                              padding: '8px 12px', borderRadius: 8,
-                              background: isActive ? 'var(--dw-accent)' : 'transparent',
-                              color: isActive ? '#fff' : 'var(--dw-text-primary)',
-                              border: 'none', cursor: 'pointer',
-                              fontSize: 13, fontWeight: isActive ? 600 : 400,
-                              fontFamily: 'var(--font-sans)',
-                            }}
-                          >
-                            <span style={{ fontSize: 16 }}>{lang.flag}</span>
-                            {lang.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                      📍 {currentCampus.name?.replace('Futures ', '')}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
