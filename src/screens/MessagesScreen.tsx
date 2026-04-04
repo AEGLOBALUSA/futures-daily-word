@@ -945,7 +945,7 @@ function SermonNotesPanel({
                   <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
                     {[
                       { fn: () => editNote(note), icon: <Pencil size={14} />, bg: 'var(--dw-accent-bg)', color: 'var(--dw-accent)' },
-                      { fn: () => deleteNote(note.id), icon: <Trash2 size={14} />, bg: 'var(--dw-border)', color: 'var(--dw-text-muted)' },
+                      { fn: () => { if (window.confirm('Delete this sermon note?')) deleteNote(note.id); }, icon: <Trash2 size={14} />, bg: 'var(--dw-border)', color: 'var(--dw-text-muted)' },
                     ].map(({ fn, icon, bg, color }, i) => (
                       <button key={i} onClick={fn} style={{
                         background: bg, border: 'none', borderRadius: 8, padding: '8px 12px',

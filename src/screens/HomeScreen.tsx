@@ -3721,7 +3721,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         </p>
                       </div>
                       <button
-                        onClick={() => removeReadingSlot(slot.id)}
+                        onClick={() => { if (window.confirm('Remove this reading slot?')) removeReadingSlot(slot.id); }}
                         style={{
                           background: 'none',
                           border: 'none',

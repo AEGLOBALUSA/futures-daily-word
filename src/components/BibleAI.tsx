@@ -225,6 +225,8 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     try {
       const controller = new AbortController()
       abortRef.current = controller
+      // Auto-timeout after 20 seconds
+      const timeout = setTimeout(() => controller.abort(), 20000)
       const res = await fetch('/.netlify/functions/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,13 +237,15 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         }),
         signal: controller.signal,
       })
+      clearTimeout(timeout)
       const data = await res.json()
       const reply = data?.content?.[0]?.text ?? data?.error ?? 'Sorry, something went wrong. Please try again.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
       setFollowUps(generateFollowUps(reply))
     } catch (err: unknown) {
       if ((err as Error)?.name === 'AbortError') {
-        // User cancelled — don't add error message
+        // Could be user cancel or timeout — show message if it was a timeout
+        setMessages(prev => [...prev, { role: 'assistant', content: 'The response took too long. Tap to try again.' }])
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }])
       }

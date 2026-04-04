@@ -1074,7 +1074,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                               </button>
                             )}
                             <button
-                              onClick={(e) => { e.stopPropagation(); resetPlan(plan.id); }}
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm('Remove this plan? Your progress will be lost.')) resetPlan(plan.id); }}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
                                 fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
