@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'; 
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { FontSizeControls } from '../components/FontSizeControls';
-import { ChevronLeft, ChevronRight, ChevronDown, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw } from 'lucide-react';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
@@ -29,14 +28,14 @@ import { FeedbackPoll } from '../components/FeedbackPoll';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { personalize } from '../utils/personalization';
-import { getPersonaConfig, getGreeting, ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
+import { getPersonaConfig, getGreeting, PERSONA_CONFIGS } from '../utils/persona-config';
 import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
 // import { isSundayWindow } from '../utils/sunday';
 import { schedulePush } from '../utils/cloudSync';
-import { tField, getLang, setLangPref } from '../utils/i18n';
+import { tField, getLang } from '../utils/i18n';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
@@ -482,20 +481,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // ── Font size control ──
   const FONT_MIN = 13;
   const FONT_MAX = 32;
-  const FONT_STEP = 1;
-  const [scriptureFontSize, setScriptureFontSize] = useState<number>(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [scriptureFontSize, _setScriptureFontSize] = useState<number>(() => {
     const saved = localStorage.getItem('dw_font_size');
     return saved ? Math.min(FONT_MAX, Math.max(FONT_MIN, parseInt(saved, 10))) : 15;
   });
-  const adjustFontSize = useCallback((delta: number) => {
-    setScriptureFontSize(prev => {
-      const next = Math.min(FONT_MAX, Math.max(FONT_MIN, prev + delta));
-      localStorage.setItem('dw_font_size', String(next));
-      return next;
-    });
-  }, []);
-  const handleFontIncrease = useCallback(() => adjustFontSize(FONT_STEP), [adjustFontSize]);
-  const handleFontDecrease = useCallback(() => adjustFontSize(-FONT_STEP), [adjustFontSize]);
 
   const [compareMode, setCompareMode] = useState(false);
   const [compareTranslation, setCompareTranslation] = useState<TranslationCode>('KJV');
@@ -504,16 +494,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassages, setExpandedPassages] = useState<Set<string>>(new Set());
   const [showCampusPicker, setShowCampusPicker] = useState(false);
-  // Header dropdowns removed — settings now in Settings tab only
-  const APP_LANGUAGES = [
-    { code: 'en', label: 'English', flag: '🇺🇸' },
-    { code: 'es', label: 'Español', flag: '🇪🇸' },
-    { code: 'id', label: 'Bahasa', flag: '🇮🇩' },
-    { code: 'pt', label: 'Português', flag: '🇧🇷' },
-  ] as const;
-  const [appLanguage, setAppLanguage] = useState(() => {
+  const appLanguage = (() => {
     try { return localStorage.getItem('dw_lang') || 'en'; } catch { return 'en'; }
-  });
+  })();
 
   // ── i18n: UI translations ──
   const UI_STRINGS: Record<string, Record<string, string>> = {
