@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
@@ -8,6 +8,7 @@ import { EmailGate } from './components/EmailGate';
 import { BibleAI } from './components/BibleAI';
 import { PathwayPicker } from './components/PathwayPicker';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { CookieConsent } from './components/CookieConsent';
 import type { TabId } from './components/TabBar';
 import type { Persona } from './utils/persona-config';
 import { isSundayWindow, activateSundayGuest, isSundayGuest } from './utils/sunday';
@@ -51,6 +52,26 @@ function ScreenLoader() {
       Loading…
     </div>
   );
+}
+
+/** Live region for screen reader announcements of audio state changes */
+function AudioAnnouncer() {
+  const [msg, setMsg] = useState('');
+  const announce = useCallback((text: string) => {
+    setMsg(''); // clear first so repeated announcements are detected
+    requestAnimationFrame(() => setMsg(text));
+  }, []);
+  useEffect(() => {
+    // Dynamic import to avoid pulling audioPlayer into initial bundle
+    import('./utils/audioPlayer').then(AP => {
+      return AP.onStateChange((st: string, passage?: string) => {
+        if (st === 'playing') announce(`Now playing ${passage || 'audio'}`);
+        else if (st === 'paused') announce('Audio paused');
+        else if (st === 'idle' && passage) announce('Audio stopped');
+      });
+    });
+  }, [announce]);
+  return <div role="status" aria-live="polite" className="sr-only">{msg}</div>;
 }
 
 function AppContent() {
@@ -144,9 +165,27 @@ function AppContent() {
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>
+      {/* Skip navigation link for keyboard/screen reader users */}
+      <a
+        href="#main-content"
+        className="skip-nav"
+        style={{
+          position: 'absolute', top: -100, left: 8, zIndex: 10000,
+          padding: '8px 16px', borderRadius: 8,
+          background: 'var(--dw-accent, #E84858)', color: '#fff',
+          fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
+          textDecoration: 'none', transition: 'top 0.2s',
+        }}
+        onFocus={(e) => { e.currentTarget.style.top = '8px'; }}
+        onBlur={(e) => { e.currentTarget.style.top = '-100px'; }}
+      >
+        Skip to content
+      </a>
       <ErrorBoundary label={activeTab}>
         <Suspense fallback={<ScreenLoader />}>
-          {screens[activeTab]}
+          <main id="main-content">
+            {screens[activeTab]}
+          </main>
         </Suspense>
       </ErrorBoundary>
       <TabBar activeTab={activeTab} onTabChange={navigateTab} />
@@ -157,6 +196,8 @@ function AppContent() {
         onOpen={() => setShowBibleAI(true)}
         selectedText={selection?.text}
       />
+      <CookieConsent />
+      <AudioAnnouncer />
     </div>
   );
 }

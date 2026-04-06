@@ -1803,6 +1803,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     <button
                       className="hero-play-btn"
                       onClick={() => handleHeroListen()}
+                      aria-label={
+                        isLoadingHero ? 'Loading audio'
+                          : isPlayingHero ? `Pause ${allLabels[heroChapterIndex] || 'audio'}`
+                          : isPausedHero ? `Resume ${allLabels[heroChapterIndex] || 'audio'}`
+                          : `Listen to ${allLabels.join(', ')}`
+                      }
                       style={{
                         width: 88, height: 88, borderRadius: '50%',
                         background: isLoadingHero ? 'rgba(255,180,50,0.25)'
@@ -1957,6 +1963,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   {/* Stop or Read button — context-aware */}
                   {(isPlayingHero || isPausedHero) ? (
                     <button
+                      aria-label="Stop audio playback"
                       onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; setHeroChapterIndex(0); }}
                       style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -1973,6 +1980,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     </button>
                   ) : (
                     <button
+                      aria-label={`Read ${heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || 'passage'}`}
                       onClick={() => handleRead(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '')}
                       style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,

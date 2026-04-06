@@ -20,6 +20,11 @@ export default defineConfig({
           }
         }
         // Copy root-level static files into dist
+        // Copy .well-known directory (security.txt)
+        const wellKnownSrc = resolve('public', '.well-known')
+        if (existsSync(wellKnownSrc)) {
+          cpSync(wellKnownSrc, resolve('dist', '.well-known'), { recursive: true })
+        }
         for (const file of ['robots.txt', 'sitemap.xml', 'manifest.json', '_redirects', '404.html', 'apple-touch-icon.png']) {
           const src = resolve(file)
           if (existsSync(src)) {

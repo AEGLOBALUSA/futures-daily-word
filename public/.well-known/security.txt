@@ -1,0 +1,8 @@
+# Security Contact for Futures Daily Word
+# https://futuresdailyword.com
+
+Contact: mailto:ae@futures.global
+Expires: 2027-04-06T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://futuresdailyword.com/.well-known/security.txt
+Policy: https://futuresdailyword.com/privacy

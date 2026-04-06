@@ -94,6 +94,34 @@
 }
 
 /* ============================================
+   Accessibility — focus indicators for keyboard users
+   ============================================ */
+
+/* Visible focus ring for keyboard navigation (not mouse clicks) */
+*:focus-visible {
+  outline: 2px solid var(--dw-accent, #E84858);
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse/touch — :focus-visible handles keyboard */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Screen-reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================
    FUTURES DAILY WORD v2 — Design Token System
    Red + Black + White
    ============================================ */

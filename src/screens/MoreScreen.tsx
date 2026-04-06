@@ -785,6 +785,47 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               <Shield size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>{t("privacy_policy", lang)}</span>
             </div>
+            <div style={dividerStyle} />
+            <div
+              style={{ ...rowStyle, cursor: 'pointer' }}
+              onClick={() => window.open('https://futuresdailyword.com/terms', '_blank')}
+            >
+              <Link size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>Terms of Service</span>
+            </div>
+          </Card>
+        </div>
+
+        {/* ── BIBLE TRANSLATION ATTRIBUTION ── */}
+        <div style={{ marginBottom: 24 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>SCRIPTURE ATTRIBUTION</h2>
+          <Card style={{ padding: 16 }}>
+            <div style={{ fontSize: 11, lineHeight: 1.6, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+              <p style={{ marginBottom: 8 }}>
+                Scripture quotations marked "ESV" are from the ESV<sup>&reg;</sup> Bible (The Holy Bible, English Standard Version<sup>&reg;</sup>),
+                copyright &copy; 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.
+                Audio provided by ESV.org.
+              </p>
+              <p style={{ marginBottom: 8 }}>
+                Scripture quotations marked "NLT" are taken from the Holy Bible, New Living Translation,
+                copyright &copy; 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers.
+              </p>
+              <p style={{ marginBottom: 8 }}>
+                Scripture quotations marked "NIV" are taken from the Holy Bible, New International Version<sup>&reg;</sup>, NIV<sup>&reg;</sup>.
+                Copyright &copy; 1973, 1978, 1984, 2011 by Biblica, Inc.&trade; Used by permission. All rights reserved worldwide.
+              </p>
+              <p style={{ marginBottom: 8 }}>
+                Scripture quotations marked "NKJV" are taken from the New King James Version<sup>&reg;</sup>.
+                Copyright &copy; 1982 by Thomas Nelson. Used by permission. All rights reserved.
+              </p>
+              <p style={{ marginBottom: 8 }}>
+                Scripture quotations marked "KJV" are from the King James Version, public domain.
+              </p>
+              <p style={{ marginBottom: 0 }}>
+                Audio narration powered by ESV.org (human reader), AWS Polly, and ElevenLabs.
+                Bible text provided via ESV API, API.Bible, and Bolls.Life.
+              </p>
+            </div>
           </Card>
         </div>
 
