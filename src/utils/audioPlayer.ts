@@ -225,6 +225,38 @@ export async function resume(): Promise<void> {
 }
 
 /* ------------------------------------------------------------------ */
+/*  waitForEnd — promise that resolves when current audio finishes     */
+/*                                                                     */
+/*  Uses the audio element's 'ended' event directly (most reliable).   */
+/*  Also resolves if stop() is called or an error occurs.              */
+/* ------------------------------------------------------------------ */
+
+export function waitForEnd(): Promise<'ended' | 'stopped' | 'error'> {
+  const audio = getAudio();
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = (reason: 'ended' | 'stopped' | 'error') => {
+      if (settled) return;
+      settled = true;
+      audio.removeEventListener('ended', onEnd);
+      audio.removeEventListener('error', onErr);
+      unsub();
+      resolve(reason);
+    };
+    const onEnd = () => finish('ended');
+    const onErr = () => finish('error');
+    audio.addEventListener('ended', onEnd);
+    audio.addEventListener('error', onErr);
+    // Also detect if stop() or resetForChain() transitions us to idle after playing
+    let sawActive = state === 'playing' || state === 'loading';
+    const unsub = onStateChange((st) => {
+      if (st === 'playing' || st === 'loading') sawActive = true;
+      if (sawActive && st === 'idle') finish(stopRequested ? 'stopped' : 'ended');
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /*  Current time / duration — for progress tracking                    */
 /* ------------------------------------------------------------------ */
 

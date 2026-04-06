@@ -1248,83 +1248,88 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   }, []);
 
   const playChapterAtIndex = async (index: number, chainVersion?: number) => {
-    // Capture the chain version — if it changes, this chain is stale
     const myVersion = chainVersion ?? heroChainVersionRef.current;
 
     if (index < 0 || index >= heroChapterRefs.length) {
       heroQueueActiveRef.current = false;
       return;
     }
-    // Bail if a newer chain has started
     if (myVersion !== heroChainVersionRef.current) return;
 
     setHeroChapterIndex(index);
     const ref = heroChapterRefs[index];
     const cacheKey = ref + '_' + translation;
+
     try {
+      // ── Fetch audio source (from cache or network) ──
       let src = audioSrcCache.current.get(cacheKey);
       if (!src) {
         const text = await fetchPassage(ref, translation).catch(() => '');
-        if (myVersion !== heroChainVersionRef.current) return; // stale check after async
+        if (myVersion !== heroChainVersionRef.current) return;
         if (text) {
           src = await AP.fetchAudioSrc(text, translation, ref) ?? undefined;
           if (src) audioSrcCache.current.set(cacheKey, src);
         }
       }
-      if (myVersion !== heroChainVersionRef.current) return; // stale check after fetch
-      if (src) {
-        // Pre-fetch next chapter audio in background to eliminate gap
-        if (index + 1 < heroChapterRefs.length) {
-          const nextRef = heroChapterRefs[index + 1];
-          const nextKey = nextRef + '_' + translation;
-          if (!audioSrcCache.current.has(nextKey)) {
-            fetchPassage(nextRef, translation)
-              .then(text => text ? AP.fetchAudioSrc(text, translation, nextRef) : null)
-              .then(url => { if (url) audioSrcCache.current.set(nextKey, url); })
-              .catch(() => {});
-          }
-        }
+      if (myVersion !== heroChainVersionRef.current) return;
 
-        AP.resetForChain();
-        const waitForEnd = new Promise<void>(resolve => {
-          let sawActive = false;
-          let resolved = false;
-          const done = () => { if (!resolved) { resolved = true; unsub(); resolve(); } };
-          const unsub = AP.onStateChange((st) => {
-            if (st === 'playing' || st === 'loading') sawActive = true;
-            if (sawActive && st === 'idle') {
-              if (AP.wasStopRequested()) heroQueueActiveRef.current = false;
-              done();
-            }
-            // Safety: if chain was killed externally, resolve immediately
-            if (!heroQueueActiveRef.current || myVersion !== heroChainVersionRef.current) {
-              done();
-            }
-          });
-          // Safety timeout: if promise never resolves (e.g., race between reset and play), bail
-          setTimeout(done, 10 * 60 * 1000); // 10 min max per chapter
-        });
-        await AP.playUrl(HERO_KEY, src);
-        await waitForEnd;
-        // Mark this passage's plan day as complete after listening
-        markPlanDayComplete(ref);
-        // Only advance if this chain is still the active one
+      if (!src) {
+        // No audio available — skip to next chapter
         if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
-          playChapterAtIndex(index + 1, myVersion);
+          await playChapterAtIndex(index + 1, myVersion);
         }
-      } else {
-        if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
-          playChapterAtIndex(index + 1, myVersion);
+        return;
+      }
+
+      // ── Pre-fetch next chapter in background ──
+      if (index + 1 < heroChapterRefs.length) {
+        const nextRef = heroChapterRefs[index + 1];
+        const nextKey = nextRef + '_' + translation;
+        if (!audioSrcCache.current.has(nextKey)) {
+          fetchPassage(nextRef, translation)
+            .then(text => text ? AP.fetchAudioSrc(text, translation, nextRef) : null)
+            .then(url => { if (url) audioSrcCache.current.set(nextKey, url); })
+            .catch(() => {});
         }
       }
-    } catch {
+
+      // ── Play this chapter ──
+      AP.resetForChain();
+      await AP.playUrl(HERO_KEY, src);
+
+      // After playUrl returns, audio is either playing or failed
+      if (AP.getState() !== 'playing') {
+        // playUrl failed — skip to next
+        if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
+          await playChapterAtIndex(index + 1, myVersion);
+        }
+        return;
+      }
+
+      // ── Wait for audio to finish (uses ended event + state listener) ──
+      const result = await AP.waitForEnd();
+
+      markPlanDayComplete(ref);
+
+      // If user stopped, don't advance
+      if (result === 'stopped' && AP.wasStopRequested()) {
+        heroQueueActiveRef.current = false;
+        return;
+      }
+
+      // Advance to next chapter
       if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
-        playChapterAtIndex(index + 1, myVersion);
+        await playChapterAtIndex(index + 1, myVersion);
+      }
+    } catch {
+      // On error, try next chapter
+      if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
+        await playChapterAtIndex(index + 1, myVersion);
       }
     }
   };
 
-  const handleHeroListen = async () => {
+  const handleHeroListen = () => {
     AP.unlock(); // must be synchronous in tap handler
 
     // Ignore taps while audio is loading — prevents duplicate requests
@@ -1362,10 +1367,16 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       ? heroChapterIndexRef.current : 0;
     heroQueueActiveRef.current = true;
 
-    try {
-      await playChapterAtIndex(startIdx, newVersion);
-    } catch { setAudioError(true); }
-    setHeroLoading(false);
+    // Fire and forget — the chain runs autonomously through all chapters
+    playChapterAtIndex(startIdx, newVersion).catch(() => setAudioError(true));
+
+    // Clear heroLoading once audio starts playing (or if it fails)
+    const unsub = AP.onStateChange((st) => {
+      if (st === 'playing' || (st === 'idle' && !AP.isLoading())) {
+        setHeroLoading(false);
+        unsub();
+      }
+    });
   };
 
   // Select a chapter without starting audio (tapped on chapter pill or slider when idle)
@@ -1382,7 +1393,13 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     const newVersion = ++heroChainVersionRef.current;
     heroQueueActiveRef.current = true;
     setHeroLoading(true);
-    playChapterAtIndex(index, newVersion).catch(() => setAudioError(true)).finally(() => setHeroLoading(false));
+    playChapterAtIndex(index, newVersion).catch(() => setAudioError(true));
+    const unsub = AP.onStateChange((st) => {
+      if (st === 'playing' || (st === 'idle' && !AP.isLoading())) {
+        setHeroLoading(false);
+        unsub();
+      }
+    });
   };
 
   // Spacebar toggles play/pause on hero audio
