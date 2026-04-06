@@ -220,6 +220,7 @@ exports.handler = async (event) => {
     if (action === "push") {
       const cleaned = validatePayload(body.data || {});
       cleaned.email = email;
+      cleaned.updated_at = new Date().toISOString();
 
       const { data, error } = await db
         .from("user_data")
@@ -269,7 +270,8 @@ exports.handler = async (event) => {
       const record = {
         ...otherData,
         email,
-        journal: merged
+        journal: merged,
+        updated_at: new Date().toISOString()
       };
 
       const { data, error } = await db

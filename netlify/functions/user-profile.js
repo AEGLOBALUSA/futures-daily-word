@@ -179,7 +179,11 @@ exports.handler = async (event) => {
       if (body.lang) updates.lang = sanitize(body.lang, 5);
       if (body.campus) updates.campus = sanitize(body.campus, 100);
 
-      await db.from("profiles").update(updates).eq("email", email);
+      const { error: hbError } = await db.from("profiles").update(updates).eq("email", email);
+      if (hbError) {
+        console.error("Heartbeat error:", hbError);
+        return { statusCode: 500, headers, body: JSON.stringify({ error: "Failed to update heartbeat" }) };
+      }
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
     }
 

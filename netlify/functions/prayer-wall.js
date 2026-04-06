@@ -123,9 +123,17 @@ exports.handler = async (event) => {
         const id = body.id;
         if (!id) return { statusCode: 400, headers, body: JSON.stringify({ error: "Prayer ID required" }) };
 
-        // Atomic increment via RPC
-        const { error } = await db.rpc("increment_prayer_count", { prayer_id: id });
-        if (error) throw error;
+        // Atomic increment via RPC — fallback to manual increment if RPC doesn't exist
+        try {
+          const { error } = await db.rpc("increment_prayer_count", { prayer_id: id });
+          if (error) throw error;
+        } catch {
+          // Fallback: read current count and increment manually
+          const { data: prayer } = await db.from("prayers").select("prayer_count").eq("id", id).single();
+          if (prayer) {
+            await db.from("prayers").update({ prayer_count: (prayer.prayer_count || 0) + 1 }).eq("id", id);
+          }
+        }
 
         return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
       }

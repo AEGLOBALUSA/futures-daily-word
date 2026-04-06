@@ -670,3 +670,13 @@ sup {
 .sermon-tab-pulse {
   animation: sermonPulse 2s ease-in-out infinite;
 }
+
+/* Respect users who prefer reduced motion — disables all animations globally,
+   including inline <style> blocks in TSX components. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

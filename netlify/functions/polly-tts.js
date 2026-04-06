@@ -80,7 +80,7 @@ exports.handler = async (event) => {
       'Andika': 'id-ID'
     };
     // Only allow whitelisted voices — reject unknown voiceIds
-    const voice = VOICE_LANG[voiceId] ? voiceId : 'Lucia';
+    const voice = VOICE_LANG[voiceId] ? voiceId : 'Matthew';
     const ttsEngine = engine === 'standard' ? 'standard' : 'neural';
     const langCode = VOICE_LANG[voice];
 

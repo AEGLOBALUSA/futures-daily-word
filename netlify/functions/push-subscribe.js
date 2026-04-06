@@ -29,7 +29,7 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers, body: "" };
   }
 
-  if (event.httpMethod !== "POST") {
+  if (event.httpMethod !== "POST" && event.httpMethod !== "DELETE") {
     return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 

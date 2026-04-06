@@ -808,7 +808,26 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     }
   }, [passageTexts]);
 
-  // Read: expand + load. Listen: expand + load + play audio when ready.
+  /** Mark the current plan day as completed for a given passage */
+  const markPlanDayComplete = (passage: string) => {
+    try {
+      const planEntry = todaysPlanPassages.find(p => p.passage === passage);
+      if (!planEntry) return;
+      const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
+        JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      const prog = ap[planEntry.planId];
+      if (!prog) return;
+      if (!Array.isArray(prog.completedDays)) prog.completedDays = [];
+      if (!prog.completedDays.includes(planEntry.dayNum)) {
+        prog.completedDays.push(planEntry.dayNum);
+        prog.lastDay = Math.max(prog.lastDay || 0, planEntry.dayNum);
+        localStorage.setItem('dw_activeplans', JSON.stringify(ap));
+        try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
+      }
+    } catch {}
+  };
+
+  // Read: expand + load + mark plan day complete. Listen: expand + load + play audio when ready.
   const handleRead = (passage: string) => {
     // If already open, close it (toggle)
     if (expandedPassages.has(passage)) {
@@ -820,6 +839,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     loadPassage(passage);
     trackBehavior('passage_read', passage);
     track('daily_reading', passage);
+    // Mark this plan day as completed
+    markPlanDayComplete(passage);
   };
 
   const handleListen = (passage: string) => {
@@ -945,9 +966,17 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         if (!plan) continue;
         // Include book plans — their passages should drive the hero button too
         const dn = calcPlanDay(prog.startedAt, plan.totalDays);
-        const dp = plan.passages[dn - 1];
-        const dev = plan.devotionals?.[dn - 1];
-        if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: tField(plan, 'title', lang), passage: p.trim(), dayNum: dn, devotional: i === 0 ? dev : undefined }));
+
+        // Respect chaptersPerDay: pull N consecutive passages starting from today's day
+        const numPassages = Math.max(1, chaptersPerDay);
+        for (let offset = 0; offset < numPassages; offset++) {
+          const dayIdx = dn - 1 + offset;
+          if (dayIdx >= plan.totalDays) break; // don't exceed plan length
+          const dp = plan.passages[dayIdx];
+          const dev = plan.devotionals?.[dayIdx];
+          const dayNum = dn + offset;
+          if (dp) dp.split(', ').forEach((p, i) => out.push({ planId: pid, planTitle: tField(plan, 'title', lang), passage: p.trim(), dayNum, devotional: i === 0 ? dev : undefined }));
+        }
       }
       // Show all explicitly activated plans regardless of persona
       const filtered = out;
@@ -1207,6 +1236,16 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     try { localStorage.setItem('dw_hero_chapter_idx', String(heroChapterIndex)); } catch {}
   }, [heroChapterIndex]);
 
+  // Reset chapter index when day or plan changes (heroKey reflects current passages)
+  const prevHeroKeyRef = useRef(heroKey);
+  useEffect(() => {
+    if (prevHeroKeyRef.current !== heroKey) {
+      prevHeroKeyRef.current = heroKey;
+      setHeroChapterIndex(0);
+      heroQueueActiveRef.current = false;
+    }
+  }, [heroKey]);
+
   // Auto-follow: when audio advances to next chapter, update the Read text panel too
   useEffect(() => {
     if (expandedPassages.size > 0 && heroChapterRefs[heroChapterIndex]) {
@@ -1238,7 +1277,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
     setHeroChapterIndex(index);
     const ref = heroChapterRefs[index];
-    const cacheKey = HERO_KEY + ref + '_' + translation;
+    const cacheKey = ref + '_' + translation;
     try {
       let src = audioSrcCache.current.get(cacheKey);
       if (!src) {
@@ -1251,6 +1290,18 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       }
       if (myVersion !== heroChainVersionRef.current) return; // stale check after fetch
       if (src) {
+        // Pre-fetch next chapter audio in background to eliminate gap
+        if (index + 1 < heroChapterRefs.length) {
+          const nextRef = heroChapterRefs[index + 1];
+          const nextKey = nextRef + '_' + translation;
+          if (!audioSrcCache.current.has(nextKey)) {
+            fetchPassage(nextRef, translation)
+              .then(text => text ? AP.fetchAudioSrc(text, translation, nextRef) : null)
+              .then(url => { if (url) audioSrcCache.current.set(nextKey, url); })
+              .catch(() => {});
+          }
+        }
+
         AP.resetForChain();
         const waitForEnd = new Promise<void>(resolve => {
           let sawActive = false;
@@ -1272,6 +1323,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         });
         await AP.playUrl(HERO_KEY, src);
         await waitForEnd;
+        // Mark this passage's plan day as complete after listening
+        markPlanDayComplete(ref);
         // Only advance if this chain is still the active one
         if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
           playChapterAtIndex(index + 1, myVersion);

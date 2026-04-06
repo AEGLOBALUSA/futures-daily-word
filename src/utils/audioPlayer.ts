@@ -9,6 +9,9 @@
  * (Bible Brain + API.Bible disabled until API keys are approved)
  */
 
+import { fetchAudio } from './api';
+import type { TranslationCode } from './api';
+
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused';
 type StateListener = (state: PlaybackState, passage?: string) => void;
 
@@ -160,11 +163,13 @@ export function wasStopRequested(): boolean {
   return val;
 }
 
-/** Reset without marking as user-stop — used internally for chaining playback */
+/** Reset without marking as user-stop — used internally for chaining playback.
+ *  Does NOT revoke blob URLs — the caller's audioSrcCache owns them for reuse. */
 export function resetForChain(): void {
   const audio = getAudio();
   try { audio.pause(); } catch {}
-  revokeCurrentBlob();
+  // Clear tracking ref but don't revoke — cache may still reference this URL
+  currentBlobUrl = null;
   stopRequested = false;
   setState('idle');
 }
@@ -236,7 +241,8 @@ export function seekTo(time: number): void {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Fetch audio source (unchanged API)                                 */
+/*  Fetch audio source — delegates to api.ts fetchAudio for unified   */
+/*  caching and deduplication.                                         */
 /* ------------------------------------------------------------------ */
 
 export async function fetchAudioSrc(
@@ -244,77 +250,7 @@ export async function fetchAudioSrc(
   translation: string,
   passageRef?: string
 ): Promise<string | null> {
-  const cleanText = text.replace(/\[\d+\]\s*/g, '');
-
-  // 1) ESV native audio
-  if (translation === 'ESV' && passageRef) {
-    try {
-      const res = await fetch(`/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
-      if (res.ok) {
-        const blob = await res.blob();
-        if (blob.size > 1000) return URL.createObjectURL(blob);
-      }
-      // Try first ref only if multi-ref
-      const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
-      if (refs.length > 1) {
-        const res2 = await fetch(`/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
-        if (res2.ok) {
-          const blob2 = await res2.blob();
-          if (blob2.size > 1000) return URL.createObjectURL(blob2);
-        }
-      }
-    } catch { }
-  }
-
-  if (!cleanText) return null;
-
-  // Detect language for TTS priority ordering
-  const lang = localStorage.getItem('dw_lang') || 'en';
-  const useNativeVoiceFirst = lang === 'id' || lang === 'es' || lang === 'pt';
-
-  // Helper: Polly TTS with native voice for the user's language
-  const tryPolly = async (): Promise<string | null> => {
-    const voiceId =
-      lang === 'es' ? 'Lucia' :
-      lang === 'pt' ? 'Camila' :
-      lang === 'id' ? 'Andika' : 'Matthew';
-    const res = await fetch('/api/polly-tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: cleanText.slice(0, 20000), voiceId, engine: 'neural' }),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 500) return URL.createObjectURL(blob);
-    }
-    return null;
-  };
-
-  // Helper: ElevenLabs TTS — use turbo_v2_5 (multilingual) for non-English to avoid Netlify timeout
-  const tryElevenLabs = async (): Promise<string | null> => {
-    const body: Record<string, string> = { text: cleanText.slice(0, 20000) };
-    if (useNativeVoiceFirst) body.modelId = 'eleven_turbo_v2_5';
-    const res = await fetch('/api/elevenlabs-tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 500) return URL.createObjectURL(blob);
-    }
-    return null;
-  };
-
-  // Non-English: Polly native voice first (better accent, cheaper), ElevenLabs fallback
-  // English: ElevenLabs first (higher quality English), Polly fallback
-  const primary = useNativeVoiceFirst ? tryPolly : tryElevenLabs;
-  const fallback = useNativeVoiceFirst ? tryElevenLabs : tryPolly;
-
-  try { const url = await primary(); if (url) return url; } catch { }
-  try { const url = await fallback(); if (url) return url; } catch { }
-
-  return null;
+  return fetchAudio(text, translation as TranslationCode, passageRef);
 }
 
 /* ------------------------------------------------------------------ */

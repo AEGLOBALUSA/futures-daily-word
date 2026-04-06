@@ -6,6 +6,7 @@
     <link rel="icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="canonical" href="https://futuresdailyword.com/" />
     <meta name="theme-color" content="#0A0A0A" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -28,6 +29,35 @@
     <!-- Fonts self-hosted in /fonts/ — no external CDN dependency -->
     <link rel="canonical" href="https://futuresdailyword.com/" />
     <link rel="manifest" href="/manifest.json" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "Futures Daily Word",
+          "url": "https://futuresdailyword.com/",
+          "publisher": {
+            "@type": "Organization",
+            "name": "Futures Church"
+          }
+        },
+        {
+          "@type": "WebApplication",
+          "name": "Futures Daily Word",
+          "url": "https://futuresdailyword.com/",
+          "applicationCategory": "LifestyleApplication",
+          "operatingSystem": "Any",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "description": "Your daily Bible reading companion from Futures Church. Read, listen, and study scripture every day."
+        }
+      ]
+    }
+    </script>
     <!-- Google Analytics (GA4) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0CGKS9P9Q"></script>
     <script>

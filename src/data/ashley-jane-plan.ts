@@ -994,46 +994,46 @@ Anda sudah terlalu jauh untuk kembali ke hidup yang kecil. Terlalu banyak yang s
 ];
 
 export const ASHLEY_JANE_PLAN_PASSAGES: string[] = [
-  '2 Timothy 1',
-  'Isaiah 41',
-  'Jeremiah 29',
-  'Philippians 4',
-  'Psalm 34',
-  'Hebrews 12',
-  'Joshua 1',
-  'Proverbs 4',
-  'Isaiah 43',
-  'Ephesians 3',
-  'Luke 10',
-  'Ephesians 6',
-  '1 John 4',
-  'Colossians 2',
-  '1 Peter 2',
-  'Ephesians 2',
-  'Romans 8',
-  'James 1',
-  'Matthew 5',
-  'Joshua 14',
-  'Psalm 139',
-  'John 15',
-  'Romans 8',
-  'Lamentations 3',
-  'Psalm 16',
-  'John 10',
-  'Deuteronomy 31',
-  'Ephesians 2',
-  'Philippians 1',
-  'Romans 8',
-  'Romans 5',
-  'John 10',
-  'John 19',
-  'Ephesians 2',
-  'John 7',
-  'Matthew 16',
-  '1 Corinthians 12',
-  'Ephesians 5',
-  'Galatians 6',
-  '1 John 4',
+  '2 Timothy 1',     // Day 1: Stir the gift — boldness over fear
+  'Isaiah 41',       // Day 2: Fear not, I am with you
+  'Jeremiah 29',     // Day 3: Plans to prosper you
+  'Philippians 4',   // Day 4: Rejoice, the Lord is near
+  'Psalm 34',        // Day 5: The Lord delivers from all fears
+  'Hebrews 12',      // Day 6: Run the race with endurance
+  'Joshua 1',        // Day 7: Be strong and courageous
+  'Proverbs 4',      // Day 8: Guard your heart
+  'Isaiah 43',       // Day 9: I have called you by name
+  'Ephesians 3',     // Day 10: Rooted in love
+  'Luke 10',         // Day 11: One thing is needed
+  'Ephesians 6',     // Day 12: Put on the full armor
+  '1 John 4',        // Day 13: Perfect love casts out fear
+  'Colossians 2',    // Day 14: Rooted and built up in Him
+  '1 Peter 2',       // Day 15: Living stones
+  'Ephesians 2',     // Day 16: Saved by grace through faith
+  'Romans 8',        // Day 17: Nothing can separate us
+  'James 1',         // Day 18: Count it all joy
+  'Matthew 5',       // Day 19: Blessed are the meek
+  'Joshua 14',       // Day 20: Give me this mountain
+  'Psalm 139',       // Day 21: Fearfully and wonderfully made
+  'John 15',         // Day 22: Abide in Me
+  'Psalm 91',        // Day 23: Under His wings (was Romans 8 dup)
+  'Lamentations 3',  // Day 24: His mercies are new
+  'Psalm 16',        // Day 25: Fullness of joy
+  'John 10',         // Day 26: The Good Shepherd
+  'Deuteronomy 31',  // Day 27: He will never forsake you
+  'Colossians 3',    // Day 28: Set your minds above (was Ephesians 2 dup)
+  'Philippians 1',   // Day 29: He who began a good work
+  'Isaiah 40',       // Day 30: They who wait on the Lord (was Romans 8 dup)
+  'Romans 5',        // Day 31: Suffering produces perseverance
+  'Psalm 27',        // Day 32: The Lord is my light (was John 10 dup)
+  'John 19',         // Day 33: It is finished
+  'Philippians 2',   // Day 34: Work out your salvation (was Ephesians 2 dup)
+  'John 7',          // Day 35: Rivers of living water
+  'Matthew 16',      // Day 36: You are the Christ
+  '1 Corinthians 12', // Day 37: One body, many parts
+  'Ephesians 5',     // Day 38: Walk in love
+  'Galatians 6',     // Day 39: Sow to the Spirit
+  '2 Corinthians 5', // Day 40: New creation (was 1 John 4 dup)
 ];
 
 // ─── Days 41–100 ─────────────────────────────────────────────────────────────
@@ -2602,69 +2602,69 @@ export const ALL_ASHLEY_JANE_DEVOTIONALS = [...ASHLEY_JANE_DEVOTIONALS, ...EXTRA
 export const ALL_ASHLEY_JANE_PASSAGES: string[] = [
   ...ASHLEY_JANE_PLAN_PASSAGES,
   // Days 41–50
-  'Romans 4',
-  'Hebrews 10',
-  'Romans 8',
-  '2 Corinthians 9',
-  'Romans 6',
-  'Matthew 11',
-  '2 Chronicles 20',
-  'Psalm 46',
-  'Proverbs 23',
-  'Hebrews 12',
+  'Romans 4',         // Day 41: Faith credited as righteousness
+  'Hebrews 10',       // Day 42: Draw near with confidence
+  'Titus 3',          // Day 43: Saved by His mercy (was Romans 8 dup)
+  '2 Corinthians 9',  // Day 44: Cheerful giver
+  'Romans 6',         // Day 45: Dead to sin, alive in Christ
+  'Matthew 11',       // Day 46: Come to Me, all who are weary
+  '2 Chronicles 20',  // Day 47: The battle belongs to the Lord
+  'Psalm 46',         // Day 48: Be still and know
+  'Proverbs 23',      // Day 49: Apply your heart to instruction
+  'Psalm 121',        // Day 50: He who watches over you (was Hebrews 12 dup)
   // Days 51–60
-  '1 Corinthians 12',
-  'Ephesians 1',
-  'Revelation 19',
-  'Colossians 1',
-  'Ephesians 3',
-  'Acts 2',
-  'Matthew 16',
-  'John 13',
-  'Romans 10',
-  'Acts 1',
+  'Colossians 1',     // Day 51: The firstborn over all creation (was 1 Cor 12 dup)
+  'Ephesians 1',      // Day 52: Blessed with every spiritual blessing
+  'Revelation 19',    // Day 53: King of kings
+  'Philippians 3',    // Day 54: Press on toward the goal (was Colossians 1 dup)
+  '1 Thessalonians 5', // Day 55: Pray without ceasing (was Ephesians 3 dup)
+  'Acts 2',           // Day 56: The Spirit poured out
+  'Hebrews 11',       // Day 57: By faith (was Matthew 16 dup)
+  'John 13',          // Day 58: Love one another
+  'Romans 10',        // Day 59: Beautiful feet — sharing the gospel
+  'Acts 1',           // Day 60: You will receive power
   // Days 61–70
-  'Matthew 22',
-  '2 Corinthians 4',
-  'Hebrews 10',
-  'Matthew 16',
-  'Isaiah 41',
-  'Philippians 3',
-  '2 Corinthians 10',
-  'Joshua 1',
-  'Mark 5',
-  'Acts 4',
+  'Matthew 22',       // Day 61: Love God and love your neighbor
+  '2 Corinthians 4',  // Day 62: Treasure in jars of clay
+  '1 Timothy 6',      // Day 63: Fight the good fight (was Hebrews 10 dup)
+  'Mark 8',           // Day 64: Deny yourself, take up your cross (was Matthew 16 dup)
+  'Psalm 103',        // Day 65: Bless the Lord, O my soul (was Isaiah 41 dup)
+  '2 Corinthians 10', // Day 66: Weapons of our warfare (was Philippians 3 dup — moved to 54)
+  'James 4',          // Day 67: Draw near to God (was 2 Cor 10 dup)
+  '1 Peter 1',        // Day 68: Born again to a living hope (was Joshua 1 dup)
+  'Mark 5',           // Day 69: The woman who touched His garment
+  'Acts 4',           // Day 70: Boldness in the Holy Spirit
   // Days 71–80
-  'Proverbs 4',
-  'Philippians 4',
-  'John 15',
-  'Matthew 11',
-  '1 Peter 5',
-  'Psalm 23',
-  'Romans 5',
-  '1 Kings 19',
-  'Matthew 18',
-  'Ephesians 3',
+  'Proverbs 3',       // Day 71: Trust in the Lord (was Proverbs 4 dup)
+  'Psalm 42',         // Day 72: Hope in God (was Philippians 4 dup)
+  '1 Corinthians 13', // Day 73: The greatest is love (was John 15 dup)
+  '2 Peter 1',        // Day 74: Add to your faith virtue (was Matthew 11 dup)
+  '1 Peter 5',        // Day 75: Cast your cares on Him
+  'Psalm 23',         // Day 76: The Lord is my shepherd
+  'Habakkuk 3',       // Day 77: Yet I will rejoice (was Romans 5 dup)
+  '1 Kings 19',       // Day 78: Still small voice
+  'Matthew 18',       // Day 79: Forgive seventy times seven
+  'Galatians 2',      // Day 80: I have been crucified with Christ (was Ephesians 3 dup)
   // Days 81–90
-  'Jeremiah 1',
-  'Psalm 37',
-  '1 Samuel 17',
-  'Matthew 13',
-  'Matthew 5',
-  'Psalm 133',
-  'Matthew 28',
-  'Philippians 4',
-  'Isaiah 55',
-  '1 Corinthians 15',
+  'Jeremiah 1',       // Day 81: Before you were born I knew you
+  'Psalm 37',         // Day 82: Delight yourself in the Lord
+  '1 Samuel 17',      // Day 83: David and Goliath
+  'Matthew 13',       // Day 84: The kingdom is like treasure
+  'Micah 6',          // Day 85: Do justice, love mercy (was Matthew 5 dup)
+  'Psalm 133',        // Day 86: How good — unity
+  'Matthew 28',       // Day 87: The Great Commission
+  'Isaiah 55',        // Day 88: My Word will not return void (was Philippians 4 dup)
+  'Joel 2',           // Day 89: I will pour out My Spirit (was Isaiah 55 dup — moved to 88)
+  '1 Corinthians 15', // Day 90: Death is swallowed up in victory
   // Days 91–100
-  'Isaiah 60',
-  'Ephesians 6',
-  'Psalm 46',
-  'Romans 12',
-  'Romans 8',
-  'Nehemiah 8',
-  'Luke 6',
-  'Revelation 1',
-  'Galatians 6',
-  '3 John 1',
+  'Isaiah 60',        // Day 91: Arise, shine
+  'Psalm 24',         // Day 92: Lift up your heads, O gates (was Ephesians 6 dup)
+  'Psalm 100',        // Day 93: Enter His gates with thanksgiving (was Psalm 46 dup)
+  'Romans 12',        // Day 94: Living sacrifice
+  'Revelation 21',    // Day 95: Behold, I make all things new (was Romans 8 dup)
+  'Nehemiah 8',       // Day 96: Joy of the Lord is your strength
+  'Luke 6',           // Day 97: A good measure, pressed down
+  'Revelation 1',     // Day 98: First and last
+  'Psalm 150',        // Day 99: Let everything praise the Lord (was Galatians 6 dup)
+  '3 John 1',         // Day 100: Walking in truth
 ];
