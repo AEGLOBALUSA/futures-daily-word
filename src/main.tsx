@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { flushSync } from './utils/cloudSync'
 
 // Apply saved theme or OS preference before React renders (avoids flash)
 const savedTheme = localStorage.getItem('theme');
@@ -10,6 +11,28 @@ if (savedTheme) {
   } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
     document.documentElement.setAttribute('data-theme', 'light');
     }
+
+// ── Global error handler — catches errors outside React error boundaries ──
+window.addEventListener('error', (event) => {
+  console.error('[Global]', event.error || event.message);
+});
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[Global] Unhandled promise rejection:', event.reason);
+});
+
+// ── Cloud sync flush — push pending data when user backgrounds or closes the app ──
+// visibilitychange fires reliably on tab switch, app switch, and before beforeunload
+function tryFlushSync() {
+  try {
+    const profile = JSON.parse(localStorage.getItem('dw_profile') || '{}');
+    if (profile.email) flushSync(profile.email);
+  } catch { /* silent */ }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') tryFlushSync();
+});
+window.addEventListener('pagehide', tryFlushSync);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

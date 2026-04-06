@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import sri from 'vite-plugin-sri-gen'
 import { cpSync, copyFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 
@@ -8,6 +9,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    sri({ algorithm: 'sha384' }),
     {
       name: 'copy-static-dirs',
       closeBundle() {
