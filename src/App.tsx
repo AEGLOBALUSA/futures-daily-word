@@ -183,7 +183,7 @@ function AppContent() {
       </a>
       <ErrorBoundary label={activeTab}>
         <Suspense fallback={<ScreenLoader />}>
-          <main id="main-content">
+          <main id="main-content" style={{ display: 'contents' }}>
             {screens[activeTab]}
           </main>
         </Suspense>
