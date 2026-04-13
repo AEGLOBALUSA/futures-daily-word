@@ -475,6 +475,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
 
   const [dayOffset, setDayOffset] = useState(0);
+  const [planDayOffset, setPlanDayOffset] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem('dw_plan_day_offset');
+      if (!raw) return 0;
+      const { offset, date } = JSON.parse(raw);
+      const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+      return date === today ? (offset ?? 0) : 0;
+    } catch { return 0; }
+  });
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
   });
@@ -900,6 +909,23 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     stopAudio();
   }, [dayOffset, translation]);
 
+  // Persist planDayOffset (date-keyed so it resets on a new calendar day)
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-CA');
+    try { localStorage.setItem('dw_plan_day_offset', JSON.stringify({ offset: planDayOffset, date: today })); } catch {}
+    if (planDayOffset !== 0) track('plan_day_manual_nav', String(planDayOffset));
+    stopAudio();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planDayOffset]);
+
+  // Telemetry: detect when a new calendar day begins (auto-rollover)
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-CA');
+    const lastSeen = localStorage.getItem('dw_last_open_date');
+    if (lastSeen && lastSeen !== today) track('plan_day_calendar_rollover', today);
+    try { localStorage.setItem('dw_last_open_date', today); } catch {}
+  }, []);
+
   useEffect(() => {
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
@@ -907,14 +933,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
-        const dn = calcPlanDay(prog.startedAt, plan.totalDays);
+        const rawDay = calcPlanDay(prog.startedAt, plan.totalDays);
+        const dn = Math.max(1, Math.min(rawDay + planDayOffset, plan.totalDays));
         const dp = plan.passages[dn - 1];
         if (!dp) continue;
         dp.split(', ').forEach(p => loadPassage(p.trim()));
       }
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [translation]);
+  }, [translation, planDayOffset]);
 
   // Auto-load faith pathway scripture reading for new_to_faith persona
   useEffect(() => {
@@ -948,7 +975,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
         // Include book plans — their passages should drive the hero button too
-        const dn = calcPlanDay(prog.startedAt, plan.totalDays);
+        const rawDay = calcPlanDay(prog.startedAt, plan.totalDays);
+        const dn = Math.max(1, Math.min(rawDay + planDayOffset, plan.totalDays));
 
         // Respect chaptersPerDay: pull N consecutive passages starting from today's day
         const numPassages = Math.max(1, chaptersPerDay);
@@ -1032,6 +1060,33 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const [heroLoading, setHeroLoading] = useState(false);
   const [planTick, setPlanTick] = useState(0); // increment to force plan list re-render
   const HERO_KEY = '__hero__';
+
+  // ── Hero day-navigation boundary checks ──────────────────────────────────
+  const hasActivePlans = todaysPlanPassages.length > 0;
+
+  const heroCanGoBack = useMemo(() => {
+    try {
+      const ap: Record<string, { startedAt: string }> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      return Object.entries(ap).some(([pid, prog]) => {
+        const plan = PLAN_CATALOGUE.find(p => p.id === pid);
+        if (!plan) return false;
+        return calcPlanDay(prog.startedAt, plan.totalDays) + planDayOffset > 1;
+      });
+    } catch { return false; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planDayOffset, planTick]);
+
+  const heroCanGoForward = useMemo(() => {
+    try {
+      const ap: Record<string, { startedAt: string }> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      return Object.entries(ap).some(([pid, prog]) => {
+        const plan = PLAN_CATALOGUE.find(p => p.id === pid);
+        if (!plan) return false;
+        return calcPlanDay(prog.startedAt, plan.totalDays) + planDayOffset < plan.totalDays;
+      });
+    } catch { return false; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planDayOffset, planTick]);
 
   const handleTranslationChange = (t: TranslationCode) => {
     setTranslation(t);
@@ -1760,10 +1815,58 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               {/* ── Content ── */}
               <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
 
+                {/* Back button — top-left of hero */}
+                {hasActivePlans && (
+                  <button
+                    onClick={() => setPlanDayOffset(d => d - 1)}
+                    disabled={!heroCanGoBack}
+                    aria-label="Previous day"
+                    style={{
+                      position: 'absolute', top: 10, left: 10, zIndex: 2,
+                      background: 'rgba(255,255,255,0.12)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 20, width: 36, height: 36,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: heroCanGoBack ? '#fff' : 'rgba(255,255,255,0.25)',
+                      cursor: heroCanGoBack ? 'pointer' : 'default',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      transition: 'opacity 0.2s',
+                      padding: 0,
+                    }}
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                )}
+
+                {/* Forward button — top-right of hero */}
+                {hasActivePlans && (
+                  <button
+                    onClick={() => setPlanDayOffset(d => d + 1)}
+                    disabled={!heroCanGoForward}
+                    aria-label="Next day"
+                    style={{
+                      position: 'absolute', top: 10, right: 10, zIndex: 2,
+                      background: 'rgba(255,255,255,0.12)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 20, width: 36, height: 36,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: heroCanGoForward ? '#fff' : 'rgba(255,255,255,0.25)',
+                      cursor: heroCanGoForward ? 'pointer' : 'default',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      transition: 'opacity 0.2s',
+                      padding: 0,
+                    }}
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                )}
+
                 {/* Top meta bar */}
                 <div style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '16px 20px 0',
+                  padding: hasActivePlans ? '16px 56px 0' : '16px 20px 0',
                 }}>
                   <p style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
@@ -1776,7 +1879,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     fontSize: 10, fontWeight: 500, opacity: 0.45,
                     fontFamily: 'var(--font-sans)', margin: 0, letterSpacing: '0.04em',
                   }}>
-                    {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {(() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + planDayOffset);
+                      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    })()}
                   </p>
                 </div>
 
