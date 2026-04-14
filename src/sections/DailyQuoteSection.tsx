@@ -18,7 +18,7 @@ export function DailyQuoteSection() {
         style={{
           fontFamily: 'var(--font-serif)',
           fontSize: 19,
-          fontStyle: 'italic',
+          fontStyle: 'normal',
           color: 'var(--dw-text-primary)',
           lineHeight: 1.8,
           cursor: 'pointer',

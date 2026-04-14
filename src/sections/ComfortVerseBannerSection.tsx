@@ -32,7 +32,7 @@ export function ComfortVerseBannerSection({ persona }: { persona: string }) {
     }}>
       <p style={{
         fontSize: 15,
-        fontStyle: 'italic',
+        fontStyle: 'normal',
         color: 'var(--dw-text)',
         fontFamily: 'var(--font-serif)',
         lineHeight: 1.55,

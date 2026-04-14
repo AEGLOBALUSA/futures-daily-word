@@ -126,7 +126,8 @@ export function ScripturePassage({
               lineHeight: 1.75,
               color: 'var(--dw-text-secondary)',
               whiteSpace: 'pre-wrap',
-              fontFamily: 'var(--font-serif-text, Georgia, serif)',
+              fontFamily: '"Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              fontWeight: 400,
               margin: '3px 0',
               padding: isSelected ? '2px 5px' : '2px 0',
               background: isSelected

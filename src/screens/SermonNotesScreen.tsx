@@ -138,7 +138,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
         borderLeft: `4px solid ${SERMON_BLUE}`,
         borderRadius: '0 12px 12px 0',
       }}>
-        <p style={{ fontSize: 15, lineHeight: 1.7, fontStyle: 'italic', color: 'var(--dw-text-primary)', margin: '0 0 8px 0', fontFamily: 'var(--font-serif-text)' }}>
+        <p style={{ fontSize: 15, lineHeight: 1.7, fontStyle: 'normal', color: 'var(--dw-text-primary)', margin: '0 0 8px 0', fontFamily: 'var(--font-serif-text)' }}>
           &ldquo;{sermon.keyVerseText}&rdquo;
         </p>
         <p style={{ fontSize: 13, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
@@ -202,7 +202,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
                     borderLeft: `3px solid ${SERMON_BLUE}`,
                     borderRadius: '0 8px 8px 0',
                   }}>
-                    <p style={{ fontSize: 14, lineHeight: 1.7, fontStyle: 'italic', margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif-text)' }}>
+                    <p style={{ fontSize: 14, lineHeight: 1.7, fontStyle: 'normal', margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif-text)' }}>
                       &ldquo;{item.text}&rdquo;
                     </p>
                     <p style={{ fontSize: 12, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
