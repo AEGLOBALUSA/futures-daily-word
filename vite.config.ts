@@ -25,7 +25,7 @@ export default defineConfig({
         if (existsSync(wellKnownSrc)) {
           cpSync(wellKnownSrc, resolve('dist', '.well-known'), { recursive: true })
         }
-        for (const file of ['robots.txt', 'sitemap.xml', 'manifest.json', '_redirects', '404.html', 'apple-touch-icon.png']) {
+        for (const file of ['robots.txt', 'sitemap.xml', 'manifest.json', '_redirects', '404.html']) {
           const src = resolve(file)
           if (existsSync(src)) {
             copyFileSync(src, resolve('dist', file))
