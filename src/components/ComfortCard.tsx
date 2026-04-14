@@ -69,7 +69,7 @@ export function ComfortCard() {
           lineHeight: 1.6,
           color: '#2C3E50',
           fontFamily: 'var(--font-serif-text, Georgia, serif)',
-          fontStyle: 'italic',
+          fontStyle: 'normal',
           margin: '0 0 6px',
         }}>
           "{scripture.text}"
