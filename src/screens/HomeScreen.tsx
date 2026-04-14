@@ -1815,58 +1815,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               {/* ── Content ── */}
               <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
 
-                {/* Back button — top-left of hero */}
-                {hasActivePlans && (
-                  <button
-                    onClick={() => setPlanDayOffset(d => d - 1)}
-                    disabled={!heroCanGoBack}
-                    aria-label="Previous day"
-                    style={{
-                      position: 'absolute', top: 10, left: 10, zIndex: 2,
-                      background: 'rgba(255,255,255,0.12)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: 20, width: 36, height: 36,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: heroCanGoBack ? '#fff' : 'rgba(255,255,255,0.25)',
-                      cursor: heroCanGoBack ? 'pointer' : 'default',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      transition: 'opacity 0.2s',
-                      padding: 0,
-                    }}
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                )}
-
-                {/* Forward button — top-right of hero */}
-                {hasActivePlans && (
-                  <button
-                    onClick={() => setPlanDayOffset(d => d + 1)}
-                    disabled={!heroCanGoForward}
-                    aria-label="Next day"
-                    style={{
-                      position: 'absolute', top: 10, right: 10, zIndex: 2,
-                      background: 'rgba(255,255,255,0.12)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: 20, width: 36, height: 36,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: heroCanGoForward ? '#fff' : 'rgba(255,255,255,0.25)',
-                      cursor: heroCanGoForward ? 'pointer' : 'default',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      transition: 'opacity 0.2s',
-                      padding: 0,
-                    }}
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                )}
-
                 {/* Top meta bar */}
                 <div style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: hasActivePlans ? '16px 56px 0' : '16px 20px 0',
+                  padding: '16px 20px 0',
                 }}>
                   <p style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
@@ -1887,12 +1839,33 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   </p>
                 </div>
 
-                {/* Big play button — centered */}
+                {/* Big play button — centered, flanked by plan-day nav buttons */}
                 <div style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   padding: '22px 20px 20px',
                 }}>
-                  <div style={{ position: 'relative', marginBottom: 16, flexShrink: 0, width: 104, height: 104, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
+                    {/* ◀ Back one plan day */}
+                    <button
+                      onClick={() => setPlanDayOffset(d => d - 1)}
+                      disabled={!hasActivePlans || !heroCanGoBack}
+                      aria-label="Previous day"
+                      style={{
+                        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                        background: (hasActivePlans && heroCanGoBack) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: '1.5px solid rgba(255,255,255,0.22)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: (hasActivePlans && heroCanGoBack) ? '#fff' : 'rgba(255,255,255,0.2)',
+                        cursor: (hasActivePlans && heroCanGoBack) ? 'pointer' : 'default',
+                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                        transition: 'background 0.2s, color 0.2s', padding: 0,
+                        boxShadow: (hasActivePlans && heroCanGoBack) ? '0 2px 12px rgba(0,0,0,0.3)' : 'none',
+                      }}
+                    >
+                      <ChevronLeft size={22} />
+                    </button>
+
+                  <div style={{ position: 'relative', flexShrink: 0, width: 104, height: 104, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {/* Animated equalizer ring around button when playing */}
                     {isPlayingHero && !isPausedHero && (
                       <div style={{
@@ -1954,6 +1927,27 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       </div>
                     )}
                   </div>
+
+                    {/* ▶ Forward one plan day */}
+                    <button
+                      onClick={() => setPlanDayOffset(d => d + 1)}
+                      disabled={!hasActivePlans || !heroCanGoForward}
+                      aria-label="Next day"
+                      style={{
+                        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                        background: (hasActivePlans && heroCanGoForward) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: '1.5px solid rgba(255,255,255,0.22)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: (hasActivePlans && heroCanGoForward) ? '#fff' : 'rgba(255,255,255,0.2)',
+                        cursor: (hasActivePlans && heroCanGoForward) ? 'pointer' : 'default',
+                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                        transition: 'background 0.2s, color 0.2s', padding: 0,
+                        boxShadow: (hasActivePlans && heroCanGoForward) ? '0 2px 12px rgba(0,0,0,0.3)' : 'none',
+                      }}
+                    >
+                      <ChevronRight size={22} />
+                    </button>
+                  </div>{/* end nav row */}
 
                   <p style={{
                     fontSize: 15, fontWeight: 700, margin: '0 0 6px',
