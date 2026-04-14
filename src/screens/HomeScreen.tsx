@@ -1744,6 +1744,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   Pick a plan and everything here syncs to your daily reading.
                 </p>
                 <button
+                  className="dw-hero-light-btn"
                   onClick={() => onNavigate?.('plans')}
                   style={{
                     padding: '14px 28px', borderRadius: 14, border: 'none',
