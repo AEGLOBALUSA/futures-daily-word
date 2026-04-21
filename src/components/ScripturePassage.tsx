@@ -31,24 +31,20 @@ export function ScripturePassage({
   greekHebrewMode = false,
   fontSize = 15,
 }: ScripturePassageProps) {
-  const { selection, setSelection } = useScriptureSelection();
+  const { selection, setSelection, highlights, toggleHighlight } = useScriptureSelection();
 
   const verses = useMemo(() => parseVerses(text), [text]);
 
-  // No useCallback — needs fresh `selection` on every tap to toggle correctly
+  // Tapping a verse toggles a persistent highlight (which also auto-creates
+  // a Notes entry via ScriptureSelectionContext) AND fires the toolbar.
+  // Mirrors ScriptureBlock's behavior so Home and Bible reader are consistent.
   const handleVerseTap = (verseNum: number, verseText: string) => {
     if (greekHebrewMode) return; // in Gk/Heb mode, word taps take priority
     const ref = verseNum > 0 ? `${passageRef}:${verseNum}` : passageRef;
-    // Toggle: if this verse is already selected, deselect it
-    const currentRef = selection?.verseRefs?.[0];
-    if (currentRef === ref) {
-      setSelection(null);
-      return;
-    }
-    setSelection({ text: verseText, verseRefs: [ref], source: 'tap' });
+    toggleHighlight(ref, verseText);
   };
 
-  // Determine if a specific verse is currently selected
+  // Determine if a specific verse is currently selected (Select All) or highlighted
   const selectedRef = selection?.verseRefs?.[0] || '';
   const isAllSelected =
     selection?.source === 'select-all' && selectedRef === passageRef;
@@ -114,8 +110,8 @@ export function ScripturePassage({
       {verses.map((v) => {
         const verseRef =
           v.verse > 0 ? `${passageRef}:${v.verse}` : passageRef;
-        const isSelected =
-          isAllSelected || (selectedRef === verseRef && !isAllSelected);
+        const isHighlighted = !!highlights[verseRef];
+        const isSelected = isAllSelected || isHighlighted;
 
         return (
           <p

@@ -13,6 +13,7 @@
 // ── localStorage keys that sync to the cloud ──
 const SYNC_KEYS = {
   journal:           'dw_journal',
+  highlights:        'dw_highlights',   // Fix 2: sync verse highlights across devices
   streak:            'dw_streak_v2',
   activePlans:       'dw_activeplans',
   bookPlans:         'dw_book_plans',
@@ -50,6 +51,7 @@ function readString(key: string): string {
 export function collectLocalData() {
   return {
     journal:           readJSON(SYNC_KEYS.journal, []) as unknown[],
+    highlights:        readJSON(SYNC_KEYS.highlights, {}) as Record<string, unknown>,
     streak:            readJSON(SYNC_KEYS.streak, {}) as Record<string, unknown>,
     activePlans:       readJSON(SYNC_KEYS.activePlans, []) as unknown[],
     bookPlans:         readJSON(SYNC_KEYS.bookPlans, {}) as Record<string, unknown>,
@@ -67,6 +69,7 @@ export function collectLocalData() {
 function applyCloudData(data: Record<string, unknown>) {
   const jsonFields: Array<[string, string]> = [
     ['journal',         SYNC_KEYS.journal],
+    ['highlights',      SYNC_KEYS.highlights],   // Fix 2
     ['streak',          SYNC_KEYS.streak],
     ['activePlans',     SYNC_KEYS.activePlans],
     ['bookPlans',       SYNC_KEYS.bookPlans],

@@ -13,21 +13,69 @@ interface VerseNoteDrawerProps {
 
 const JOURNAL_KEY = 'dw_journal';
 
-function saveToJournal(verseRef: string, highlightedText: string, note: string, planContext?: string) {
+// Mirror of the helper in ScriptureSelectionContext — same function so IDs match.
+// Used so a user writing a note on an already-highlighted verse upgrades the
+// existing auto-saved entry instead of creating a duplicate.
+function autoEntryId(verseKey: string, text: string): string {
+  const stamp = verseKey + '::' + text.slice(0, 40);
+  return 'hl_' + btoa(unescape(encodeURIComponent(stamp))).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+}
+
+interface SaveToJournalArgs {
+  verseRef: string;
+  highlightedText: string;
+  note: string;
+  planContext?: string;
+  commentarySource?: string;   // Fix 3: which commentary source they were reading
+  commentaryExcerpt?: string;  // Fix 3: the passage text captured with the note
+}
+
+function saveToJournal({ verseRef, highlightedText, note, planContext, commentarySource, commentaryExcerpt }: SaveToJournalArgs) {
   try {
     const existing = JSON.parse(localStorage.getItem(JOURNAL_KEY) || '[]');
-    existing.unshift({
-      id: Date.now().toString(),
-      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      type: 'saved',
-      title: verseRef || 'Scripture Note',
-      body: note,
-      tags: planContext ? ['scripture', 'plan-note'] : ['scripture'],
-      verseRef,
-      highlightedText,
-      planContext, // e.g. "Grace and Favor Revolution — Day 7"
-    });
-    localStorage.setItem(JOURNAL_KEY, JSON.stringify(existing.slice(0, 500)));
+    const autoId = autoEntryId(verseRef, highlightedText);
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const updatedAt = now.toISOString();
+
+    // If there's already an auto-saved entry for this highlight, upgrade it in place.
+    const autoIdx = existing.findIndex((e: { id?: string }) => e.id === autoId);
+    const baseTags = planContext ? ['scripture', 'plan-note'] : ['scripture'];
+    if (commentarySource) baseTags.push('commentary');
+
+    if (autoIdx !== -1) {
+      existing[autoIdx] = {
+        ...existing[autoIdx],
+        title: verseRef || existing[autoIdx].title || 'Scripture Note',
+        body: note,
+        tags: Array.from(new Set([...(existing[autoIdx].tags || []), ...baseTags])),
+        verseRef,
+        highlightedText,
+        planContext,
+        commentarySource,
+        commentaryExcerpt,
+        autoSaved: false,  // user wrote a note — no longer pure auto-save
+        updatedAt,
+      };
+    } else {
+      existing.unshift({
+        id: Date.now().toString(),
+        date: dateStr,
+        type: 'saved',
+        title: verseRef || 'Scripture Note',
+        body: note,
+        tags: baseTags,
+        verseRef,
+        highlightedText,
+        planContext,
+        commentarySource,
+        commentaryExcerpt,
+        autoSaved: false,
+        updatedAt,
+      });
+    }
+    // Raised from 500 to 5000 to match the cloud cap — avoid silently dropping a pastor's old notes.
+    localStorage.setItem(JOURNAL_KEY, JSON.stringify(existing.slice(0, 5000)));
     // Notify JournalScreen to refresh its entries
     window.dispatchEvent(new Event('dw-journal-updated'));
   } catch {}
@@ -95,7 +143,18 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
     if (!selection || !note.trim()) return;
     const ref = selection.verseRefs[0] || '';
     trackBehavior('note_created', ref);
-    saveToJournal(ref, selection.text, note, planContext);
+    // Fix 3: if the user was reading commentary while writing the note, capture that context too.
+    const activeCommentary = commentaries[selectedSourceIdx];
+    const commentarySource = activeCommentary && (tab === 'commentary' || commentaries.length > 0) ? activeCommentary.source : undefined;
+    const commentaryExcerpt = activeCommentary && (tab === 'commentary' || commentaries.length > 0) ? activeCommentary.text : undefined;
+    saveToJournal({
+      verseRef: ref,
+      highlightedText: selection.text,
+      note,
+      planContext,
+      commentarySource,
+      commentaryExcerpt,
+    });
     setSaved(true);
     setTimeout(() => {
       onClose();

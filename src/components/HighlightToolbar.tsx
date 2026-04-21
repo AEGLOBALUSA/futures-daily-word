@@ -12,7 +12,7 @@ interface HighlightToolbarProps {
 }
 
 export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }: HighlightToolbarProps) {
-  const { selection, setSelection, clearHighlights, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
+  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const lang = getLang();
   const [copied, setCopied] = useState(false);
   const [listening, setListening] = useState(false);
@@ -52,10 +52,12 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
   };
 
   const handleDismiss = () => {
+    // Close the toolbar only — do NOT clearHighlights(), which would wipe
+    // every highlight the user has ever made + delete every auto-saved
+    // Notes entry. The X button is for dismissing the toolbar, not a nuke.
     if (listenAudioRef.current) { listenAudioRef.current.pause(); listenAudioRef.current = null; }
     setListening(false);
     setSelection(null);
-    clearHighlights();
   };
 
   const btn = (onClick: () => void, icon: React.ReactNode, label: string, active = false) => (

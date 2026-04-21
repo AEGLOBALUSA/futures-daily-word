@@ -31,6 +31,14 @@ interface JournalEntry {
   verseRef?: string;
   highlightedText?: string;
   planContext?: string; // e.g. "Grace and Favor Revolution — Day 7"
+  /** Fix 3: which commentary source and text the user was reading when they saved the note */
+  commentarySource?: string;
+  commentaryExcerpt?: string;
+  /** Fix 1: true when the entry was created by a bare highlight (no user note yet) */
+  autoSaved?: boolean;
+  highlightColor?: 'gold' | 'sage';
+  /** ISO timestamp of last write — used by cloud merge */
+  updatedAt?: string;
 }
 
 /* ââ localStorage helpers ââ */

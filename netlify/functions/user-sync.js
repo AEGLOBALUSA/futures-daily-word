@@ -103,6 +103,12 @@ function validatePayload(data) {
     // Cap at 5000 entries to prevent abuse
     cleaned.journal = data.journal.slice(0, 5000);
   }
+  // Fix 2: sync highlights (verse color markers). Keyed by verseKey, so it's an object, not an array.
+  // Cap at ~2000 entries to avoid abuse — that's years of daily highlighting.
+  if (data.highlights && typeof data.highlights === "object" && !Array.isArray(data.highlights)) {
+    const entries = Object.entries(data.highlights).slice(0, 2000);
+    cleaned.highlights = Object.fromEntries(entries);
+  }
   if (Array.isArray(data.activePlans)) {
     cleaned.active_plans = data.activePlans.slice(0, 100);
   }
@@ -199,6 +205,7 @@ exports.handler = async (event) => {
           ...(migrationToken ? { sessionToken: migrationToken } : {}),
           data: {
             journal: data.journal || [],
+            highlights: data.highlights || {},  // Fix 2
             streak: data.streak || {},
             activePlans: data.active_plans || [],
             bookPlans: data.book_plans || {},
