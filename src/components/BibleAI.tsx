@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { trackBehavior } from '../utils/behavior'
 import { getPersonaConfig } from '../utils/persona-config'
-import { Send, ChevronDown, Copy, BookmarkPlus, RotateCcw } from 'lucide-react';
+import { Send, ChevronDown, ChevronLeft, Copy, Bookmark, BookmarkPlus, RotateCcw } from 'lucide-react';
 import { schedulePush } from '../utils/cloudSync'
+import { useScriptureSelection } from '../contexts/ScriptureSelectionContext'
 import { t, getLang } from '../utils/i18n';
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
@@ -82,18 +83,23 @@ interface BibleAIProps {
 }
 
 export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText }: BibleAIProps) {
+  const { selection } = useScriptureSelection()
   const [messages, setMessages] = useState<Message[]>([])
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [studySaved, setStudySaved] = useState(false)
   const [seasonTipDismissed, setSeasonTipDismissed] = useState<boolean>(() => {
     return localStorage.getItem('dw_ai_season_tip_dismissed') === 'true'
   })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const prefillProcessedRef = useRef(false)
+
+  // Reset the studySaved flag whenever the panel closes — a fresh open should be saveable again.
+  useEffect(() => { if (!isOpen) setStudySaved(false); }, [isOpen]);
 
   // Pre-populate input when selectedText changes and panel is open
   useEffect(() => {
@@ -139,6 +145,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     setInput('')
     setLoading(false)
     setFollowUps([])
+    setStudySaved(false)
     setTimeout(() => inputRef.current?.focus(), 300)
   }
 
@@ -191,6 +198,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     setInput('')
     const userMsg: Message = { role: 'user', content: msg }
     setMessages(prev => [...prev, userMsg])
+    setStudySaved(false) // a new turn means the previously-saved transcript is now stale
     setLoading(true)
 
     // Persona-aware system prompt
@@ -297,6 +305,61 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     }
   }
 
+  /** Format the entire AI conversation into a readable transcript for the journal entry body. */
+  function buildStudyTranscript(): string {
+    const youLabel = lang === 'es' ? 'Tú' : lang === 'pt' ? 'Você' : lang === 'id' ? 'Kamu' : 'You';
+    const aiLabel = t('bible_ai_label', lang);
+    const lines: string[] = [];
+    const verseRef = selection?.verseRefs?.[0] || '';
+    const verseText = selection?.text || selectedText || '';
+    if (verseRef) lines.push(verseRef);
+    if (verseText) lines.push(`"${verseText}"`);
+    if (verseRef || verseText) lines.push('');
+    for (const m of messages) {
+      lines.push(m.role === 'user' ? `${youLabel}:` : `${aiLabel}:`);
+      lines.push(m.content);
+      lines.push('');
+    }
+    return lines.join('\n').trim();
+  }
+
+  /** Save the full Bible AI conversation as a single journal entry, then auto-close. */
+  function saveStudyToJournal() {
+    if (loading || studySaved || messages.length === 0) return;
+    try {
+      const verseRef = selection?.verseRefs?.[0] || '';
+      const highlightedText = selection?.text || selectedText || '';
+      const baseLabel = t('bible_ai_label', lang);
+      const entry = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        updatedAt: new Date().toISOString(),
+        type: 'saved',
+        title: verseRef ? `${baseLabel}: ${verseRef}` : baseLabel,
+        body: buildStudyTranscript(),
+        verseRef: verseRef || undefined,
+        highlightedText: highlightedText || undefined,
+        tags: ['bible-ai', ...(verseRef ? ['scripture'] : [])],
+      };
+      const journal = JSON.parse(localStorage.getItem('dw_journal') || '[]');
+      journal.unshift(entry);
+      localStorage.setItem('dw_journal', JSON.stringify(journal));
+      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
+      window.dispatchEvent(new Event('dw-journal-updated'));
+      trackBehavior('note_created', `bible-ai:${verseRef || 'no-verse'}`);
+      setStudySaved(true);
+      showToast(t('saved_to_notes', lang));
+      setTimeout(() => onClose(), 1500);
+    } catch {
+      showToast(t('failed_to_save', lang));
+    }
+  }
+
+  /** Back exits without saving. Per spec: only the Save button persists; Back is the "leave unsaved" path. */
+  function handleBack() {
+    onClose();
+  }
+
   const promptsToShow = selectedText ? SELECTION_PROMPTS(selectedText, lang) : QUICK_PROMPTS(lang)
 
   return (
@@ -394,7 +457,30 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
           borderBottom: '1px solid var(--dw-border, #E8E6E0)',
           flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            {/* Back button — top-left, matches ScreenHeader pattern (ChevronLeft + label, accent color). Exits without saving. */}
+            <button
+              aria-label={t('back', lang)}
+              onClick={handleBack}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                color: 'var(--dw-accent)',
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: 'var(--font-sans)',
+                padding: '6px 6px 6px 0',
+                borderRadius: 8,
+                flexShrink: 0,
+              }}
+            >
+              <ChevronLeft size={20} />
+              {t('back', lang)}
+            </button>
             {/* Gold badge icon */}
             <div style={{
               width: 34, height: 34, borderRadius: 9, flexShrink: 0,
@@ -410,19 +496,43 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
               }} />
               <BibleAIBadge size="sm" />
             </div>
-            <div>
-              <span style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)', display: 'block', lineHeight: 1.2 }}>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 600, color: 'var(--dw-text)', display: 'block', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Bible AI
               </span>
               <span style={{
                 fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                 letterSpacing: '0.03em', display: 'block', marginTop: 1,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {t("ask_anything", lang)}
               </span>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Save Study — top-right, mirrors the Back button on the left for users who want to keep this study. */}
+            {messages.length > 0 && (
+              <button
+                onClick={saveStudyToJournal}
+                disabled={loading || studySaved}
+                aria-label={t('save_to_notes', lang)}
+                title={t('save_to_notes', lang)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 36, height: 32, padding: 0,
+                  borderRadius: 8, border: 'none',
+                  background: 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)',
+                  color: '#fff',
+                  cursor: (loading || studySaved) ? 'default' : 'pointer',
+                  opacity: (loading || studySaved) ? 0.55 : 1,
+                  boxShadow: '0 1px 4px rgba(140,95,5,0.35)',
+                  flexShrink: 0,
+                  transition: 'opacity 0.2s',
+                }}
+              >
+                <Bookmark size={15} />
+              </button>
+            )}
             {messages.length > 0 && (
               <button
                 onClick={resetChat}

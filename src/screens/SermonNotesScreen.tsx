@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 
 interface SermonNotesScreenProps {
@@ -138,7 +138,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
         borderLeft: `4px solid ${SERMON_BLUE}`,
         borderRadius: '0 12px 12px 0',
       }}>
-        <p style={{ fontSize: 15, lineHeight: 1.7, fontStyle: 'normal', color: 'var(--dw-text-primary)', margin: '0 0 8px 0', fontFamily: 'var(--font-serif-text)' }}>
+        <p style={{ fontSize: 15, lineHeight: 1.7, fontStyle: 'italic', color: 'var(--dw-text-primary)', margin: '0 0 8px 0', fontFamily: 'var(--font-serif-text)' }}>
           &ldquo;{sermon.keyVerseText}&rdquo;
         </p>
         <p style={{ fontSize: 13, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
@@ -202,7 +202,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
                     borderLeft: `3px solid ${SERMON_BLUE}`,
                     borderRadius: '0 8px 8px 0',
                   }}>
-                    <p style={{ fontSize: 14, lineHeight: 1.7, fontStyle: 'normal', margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif-text)' }}>
+                    <p style={{ fontSize: 14, lineHeight: 1.7, fontStyle: 'italic', margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif-text)' }}>
                       &ldquo;{item.text}&rdquo;
                     </p>
                     <p style={{ fontSize: 12, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
@@ -283,11 +283,13 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
         borderBottom: '1px solid var(--dw-border)',
         position: 'sticky', top: 0, background: 'var(--dw-canvas)', zIndex: 10,
       }}>
-        <button onClick={onBack} style={{
-          background: 'none', border: 'none', color: 'var(--dw-text)',
-          cursor: 'pointer', padding: 8, marginRight: 12, display: 'flex', alignItems: 'center',
+        <button aria-label={t('back', lang)} onClick={onBack} style={{
+          background: 'none', border: 'none', color: 'var(--dw-accent)',
+          cursor: 'pointer', padding: '6px 8px 6px 2px', marginRight: 8, display: 'flex', alignItems: 'center',
+          gap: 4, fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)', borderRadius: 8,
         }}>
-          <ArrowLeft size={24} />
+          <ChevronLeft size={20} />
+          {t('back', lang)}
         </button>
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, fontFamily: 'var(--font-serif)' }}>{t('sermon_notes_title', lang)}</h1>
       </div>

@@ -463,6 +463,7 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
 
 // ── Sermon Detail View (generous spacing, always-open note areas under every section) ──
 function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () => void }) {
+  const lang = getLang();
   // Inline notes per section — keyed by section index, persisted
   const storageKey = `dw_sermon_inline_${sermon.id}`;
   const [inlineNotes, setInlineNotes] = useState<Record<number, string>>(() => {
@@ -548,13 +549,13 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
     <div style={{ padding: '0 0 140px' }}>
       {/* Back + Share row */}
       <div style={{ padding: '0 24px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={onBack} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
+        <button aria-label={t('back', lang)} onClick={onBack} style={{
+          display: 'flex', alignItems: 'center', gap: 4,
           background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600,
-          fontFamily: 'var(--font-sans)', padding: '4px 0',
+          color: 'var(--dw-accent)', fontSize: 14, fontWeight: 600,
+          fontFamily: 'var(--font-sans)', padding: '6px 8px 6px 2px', borderRadius: 8,
         }}>
-          <ChevronLeft size={16} /> Back
+          <ChevronLeft size={20} /> {t('back', lang)}
         </button>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={handleSaveToJournal} disabled={saved} style={{
@@ -597,7 +598,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
 
       {/* ── Key Verse ── */}
       <div style={{ margin: '0 24px 36px', padding: '24px 20px', borderRadius: 16, background: 'var(--dw-card)', borderLeft: '4px solid var(--dw-accent)' }}>
-        <p style={{ fontSize: 19, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'normal', margin: 0 }}>
+        <p style={{ fontSize: 19, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
           {sermon.keyVerseText}
         </p>
       </div>
@@ -688,7 +689,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                   return verses.map((verse, v) => (
                     <p key={v} style={{
                       fontSize: 18, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
-                      color: 'var(--dw-text-primary)', fontStyle: 'normal',
+                      color: 'var(--dw-text-primary)', fontStyle: 'italic',
                       marginBottom: v < verses.length - 1 ? 14 : 0,
                     }}>
                       {verse}

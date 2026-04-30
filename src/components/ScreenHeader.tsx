@@ -1,4 +1,5 @@
 import { ChevronLeft } from 'lucide-react';
+import { t, getLang } from '../utils/i18n';
 
 interface Props {
   title: string;
@@ -7,6 +8,7 @@ interface Props {
 
 export function ScreenHeader({ title, onBack }: Props) {
   if (!onBack) return null;
+  const lang = getLang();
 
   return (
     <>
@@ -23,7 +25,7 @@ export function ScreenHeader({ title, onBack }: Props) {
       background: 'var(--dw-canvas)',
       borderBottom: '1px solid var(--dw-border)',
     }}>
-      <button aria-label="Go back"
+      <button aria-label={t('back', lang)}
         onClick={onBack}
         style={{
           background: 'none',
@@ -41,7 +43,7 @@ export function ScreenHeader({ title, onBack }: Props) {
         }}
       >
         <ChevronLeft size={20} />
-        Back
+        {t('back', lang)}
       </button>
       <span style={{
         fontSize: 16,

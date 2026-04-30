@@ -35,7 +35,7 @@ import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
 // import { isSundayWindow } from '../utils/sunday';
 import { schedulePush } from '../utils/cloudSync';
-import { tField, getLang } from '../utils/i18n';
+import { t as tI18n, tField, getLang } from '../utils/i18n';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
@@ -1528,17 +1528,19 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         {/* Header — compact, sits above the centered hero */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Back button — only shown when there's navigation history */}
+            {/* Back button — only shown when there's navigation history. Unified with ScreenHeader pattern. */}
             {onBack && (
               <button
+                aria-label={tI18n('back', lang)}
                 onClick={onBack}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '4px 0', display: 'flex', alignItems: 'center', gap: 2,
-                  color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)',
+                  padding: '6px 8px 6px 2px', display: 'flex', alignItems: 'center', gap: 4,
+                  color: 'var(--dw-accent)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                  borderRadius: 8,
                 }}
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={20} /> {tI18n('back', lang)}
               </button>
             )}
             {/* {t('bible_ai')} button — burnished gold + glass */}
@@ -1589,6 +1591,22 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               }}>{t('bible_ai')}</span>
             </button>
             <div>
+              {/* Localized full-date eyebrow above the Daily Word title — sits in the top-left header column,
+                  formatted via Intl.DateTimeFormat for the user's chosen language. */}
+              <span style={{
+                display: 'block',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--dw-accent)',
+                fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.04em',
+                marginBottom: 2,
+              }}>
+                {(() => {
+                  try { return new Intl.DateTimeFormat(lang, { dateStyle: 'long' }).format(new Date()); }
+                  catch { return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); }
+                })()}
+              </span>
               <h1 style={{
                 fontFamily: 'var(--font-serif)',
                 fontSize: 24,

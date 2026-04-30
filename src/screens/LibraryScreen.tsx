@@ -3,6 +3,7 @@ import { getPersonaConfig } from '../utils/persona-config';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2 } from 'lucide-react';
+import { t, getLang } from '../utils/i18n';
 
 /* ── Essay TOC + section types ── */
 interface EssaySection { title: string; file: string; }
@@ -127,10 +128,11 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           {(activeItem || onBack) ? (
             <button
+              aria-label={t('back', getLang())}
               onClick={handleBack}
-              style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, minHeight: 44 }}
+              style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, minHeight: 44 }}
             >
-              <ChevronLeft size={18} /> {activeItem ? 'Back' : 'Settings'}
+              <ChevronLeft size={20} /> {t('back', getLang())}
             </button>
           ) : (
             <h1 style={{
