@@ -9,6 +9,24 @@ function sanitize(str, maxLen = 200) {
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, maxLen);
 }
 
+// Map any incoming persona to one of the 5 canonical values so writes never
+// violate the profiles_persona_check constraint, regardless of client version.
+const CANONICAL_PERSONAS = ["congregation", "deeper_study", "pastor_leader", "comfort", "new_to_faith"];
+const PERSONA_ALIASES = {
+  deeper: "deeper_study",
+  pastor: "pastor_leader",
+  "church leader": "pastor_leader",
+  new_believer: "new_to_faith",
+  new_returning: "new_to_faith",
+  believer: "congregation",
+  difficult: "comfort",
+};
+function coercePersona(raw) {
+  const v = sanitize(raw || "", 50);
+  if (CANONICAL_PERSONAS.includes(v)) return v;
+  return PERSONA_ALIASES[v.toLowerCase()] || "congregation";
+}
+
 // Simple in-memory rate limit per IP (per function instance)
 const ipHits = {};
 function checkRateLimit(ip, maxPerMin = 30) {
@@ -89,7 +107,7 @@ exports.handler = async (event) => {
         church: sanitize(body.church || "", 200),
         city: sanitize(body.city || "", 100),
         campus: sanitize(body.campus || "", 100),
-        persona: sanitize(body.persona || "", 50),
+        persona: coercePersona(body.persona),
         lang: sanitize(body.lang || "en", 5),
         push_enabled: !!body.pushEnabled,
         last_active_at: new Date().toISOString()
@@ -147,6 +165,7 @@ exports.handler = async (event) => {
           updates[dbField] = sanitize(body[jsField], maxLen);
         }
       }
+      if (body.persona !== undefined) updates.persona = coercePersona(body.persona);
       if (body.pushEnabled !== undefined) updates.push_enabled = !!body.pushEnabled;
 
       const { data, error } = await db.from("profiles")
@@ -175,7 +194,7 @@ exports.handler = async (event) => {
       }
 
       const updates = { last_active_at: new Date().toISOString() };
-      if (body.persona) updates.persona = sanitize(body.persona, 50);
+      if (body.persona) updates.persona = coercePersona(body.persona);
       if (body.lang) updates.lang = sanitize(body.lang, 5);
       if (body.campus) updates.campus = sanitize(body.campus, 100);
 

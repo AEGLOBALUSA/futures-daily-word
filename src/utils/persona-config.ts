@@ -462,9 +462,12 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
 
 export const PERSONA_MIGRATION: Record<string, Persona> = {
   new_returning: 'new_to_faith',
+  new_believer: 'new_to_faith',
   pastor: 'pastor_leader',
+  'Church leader': 'pastor_leader',
   deeper: 'deeper_study',
   difficult: 'comfort',
+  believer: 'congregation',
   // New values map to themselves
   new_to_faith: 'new_to_faith',
   congregation: 'congregation',
