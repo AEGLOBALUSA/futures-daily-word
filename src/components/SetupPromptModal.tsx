@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Headphones, Check, ChevronRight } from 'lucide-react';
+import { X, Check, ChevronRight } from 'lucide-react';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { getLang, tField } from '../utils/i18n';
 
@@ -7,8 +7,6 @@ interface Props {
   onComplete: (chaptersPerDay: number, planIds: string[]) => void;
   onDismiss: () => void;
 }
-
-const CHAPTER_OPTIONS = [1, 2, 3, 4, 5];
 
 // Default featured plans (shown for all personas)
 const DEFAULT_FEATURED = [
@@ -33,7 +31,7 @@ const PERSONA_PLANS: Record<string, string[]> = {
   difficult: ['psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
 };
 
-// Persona-friendly label for plan step header
+// Persona-friendly header label
 const PERSONA_LABELS: Record<string, string> = {
   new_to_faith: 'Plans for your faith journey',
   congregation: 'Plans for your daily walk',
@@ -46,9 +44,15 @@ const PERSONA_LABELS: Record<string, string> = {
   difficult: 'Plans for your current season',
 };
 
+// Smart default reading volume by persona — set silently, adjustable later in Settings.
+// (Replaces the old "How much do you want to read?" onboarding step.)
+const PERSONA_CHAPTERS: Record<string, number> = {
+  deeper_study: 4, deeper: 4,
+  pastor_leader: 4, pastor: 4,
+  comfort: 1, difficult: 1,
+};
+
 export function SetupPromptModal({ onComplete, onDismiss }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [chapters, setChapters] = useState(2);
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
   const lang = getLang();
 
@@ -56,10 +60,13 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
     try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; }
   })();
 
+  // Reading volume is a smart default now, not an onboarding decision.
+  const chapters = PERSONA_CHAPTERS[persona] ?? 2;
+
   const featuredIds = PERSONA_PLANS[persona] || DEFAULT_FEATURED;
   const featuredPlans = featuredIds.map(id => PLAN_CATALOGUE.find(p => p.id === id)).filter(Boolean) as typeof PLAN_CATALOGUE;
   const otherPlans = PLAN_CATALOGUE.filter(p => !featuredIds.includes(p.id));
-  const planStepLabel = PERSONA_LABELS[persona] || 'Pick a reading plan';
+  const planLabel = PERSONA_LABELS[persona] || 'Pick a reading plan';
 
   const togglePlan = (id: string) => {
     setSelectedPlans(prev =>
@@ -109,7 +116,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
           }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase' }}>
-              {step === 1 ? 'Step 1 of 2' : 'Step 2 of 2'}
+              Start reading
             </span>
             <button
               onClick={onDismiss}
@@ -123,91 +130,69 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
             fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)',
             fontFamily: 'var(--font-sans)', margin: '0 0 4px',
           }}>
-            {step === 1 && 'How much do you want to read?'}
-            {step === 2 && planStepLabel}
+            {planLabel}
           </h2>
           <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 20px' }}>
-            {step === 1 && 'Choose how many chapters to read each day. You can change this anytime.'}
-            {step === 2 && 'A plan keeps you on track. Pick one or skip for now.'}
+            A plan keeps you on track. Pick one or skip for now.
           </p>
-
-          {/* Step indicators */}
-          {step < 3 && (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-              {[1, 2].map(s => (
-                <div key={s} style={{
-                  height: 3, flex: 1, borderRadius: 2,
-                  background: s <= step ? 'var(--dw-accent)' : 'var(--dw-border)',
-                  transition: 'background 0.3s',
-                }} />
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Scrollable content */}
+        {/* Scrollable content — plan picker */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+          {/* Featured */}
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--dw-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
+            {persona ? 'Recommended for you' : 'Popular'}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            {featuredPlans.map(plan => {
+              const active = selectedPlans.includes(plan.id);
+              return (
+                <button
+                  key={plan.id}
+                  onClick={() => togglePlan(plan.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 14px',
+                    background: active ? 'var(--dw-accent-bg)' : 'var(--dw-surface-hover)',
+                    border: active ? '1px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+                    borderRadius: 12,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s',
+                    width: '100%',
+                  }}
+                >
+                  <div style={{
+                    width: 24, height: 24, borderRadius: 6,
+                    background: active ? 'var(--dw-accent)' : 'var(--dw-border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, transition: 'all 0.15s',
+                  }}>
+                    {active && <Check size={14} color="#fff" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                      {tField(plan, 'title', lang)}
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
+                      {plan.totalDays} days · {plan.category}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-          {/* ── Step 1: Chapters per day ── */}
-          {step === 1 && (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 24 }}>
-                {CHAPTER_OPTIONS.map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setChapters(n)}
-                    style={{
-                      aspectRatio: '1',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: chapters === n ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                      border: chapters === n ? 'none' : '1px solid var(--dw-border)',
-                      borderRadius: 12,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                      gap: 2,
-                    }}
-                  >
-                    <span style={{ fontSize: 24, fontWeight: 700, color: chapters === n ? '#fff' : 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                      {n}
-                    </span>
-                    <span style={{ fontSize: 10, color: chapters === n ? 'rgba(255,255,255,0.75)' : 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', fontWeight: 500 }}>
-                      {n === 1 ? 'chapter' : 'chapters'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Time estimate */}
-              <div style={{
-                background: 'var(--dw-accent-bg)',
-                border: '1px solid var(--dw-accent)',
-                borderRadius: 10,
-                padding: '12px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                marginBottom: 8,
-              }}>
-                <Headphones size={16} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 500 }}>
-                  About {chapters * 4}–{chapters * 6} min to listen · {chapters * 3}–{chapters * 5} min to read
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 2: Pick a plan ── */}
-          {step === 2 && (
-            <div>
-              {/* Featured */}
+          {/* Other plans */}
+          {otherPlans.length > 0 && (
+            <>
               <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--dw-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
-                {persona ? 'Recommended for you' : 'Popular'}
+                More Plans
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                {featuredPlans.map(plan => {
+                {otherPlans.map(plan => {
                   const active = selectedPlans.includes(plan.id);
                   return (
                     <button
@@ -231,7 +216,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                         width: 24, height: 24, borderRadius: 6,
                         background: active ? 'var(--dw-accent)' : 'var(--dw-border)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0, transition: 'all 0.15s',
+                        flexShrink: 0,
                       }}>
                         {active && <Check size={14} color="#fff" />}
                       </div>
@@ -247,115 +232,34 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                   );
                 })}
               </div>
-
-              {/* Other plans */}
-              {otherPlans.length > 0 && (
-                <>
-                  <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--dw-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
-                    More Plans
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                    {otherPlans.map(plan => {
-                      const active = selectedPlans.includes(plan.id);
-                      return (
-                        <button
-                          key={plan.id}
-                          onClick={() => togglePlan(plan.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
-                            padding: '12px 14px',
-                            background: active ? 'var(--dw-accent-bg)' : 'var(--dw-surface-hover)',
-                            border: active ? '1px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                            borderRadius: 12,
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.15s',
-                            width: '100%',
-                          }}
-                        >
-                          <div style={{
-                            width: 24, height: 24, borderRadius: 6,
-                            background: active ? 'var(--dw-accent)' : 'var(--dw-border)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
-                          }}>
-                            {active && <Check size={14} color="#fff" />}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                              {tField(plan, 'title', lang)}
-                            </p>
-                            <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
-                              {plan.totalDays} days · {plan.category}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
+            </>
           )}
-
         </div>
 
         {/* Footer CTA */}
         <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-          {step === 1 && (
-            <button
-              onClick={() => setStep(2)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                gap: 8, background: 'var(--dw-accent)', border: 'none', borderRadius: 12,
-                padding: '14px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                color: '#fff', fontFamily: 'var(--font-sans)', minHeight: 50,
-              }}
-            >
-              Next <ChevronRight size={18} />
-            </button>
-          )}
-          {step === 2 && (
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setStep(1)}
-                style={{
-                  flex: 1, background: 'var(--dw-surface-hover)', border: '1px solid var(--dw-border)',
-                  borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 600,
-                  cursor: 'pointer', color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', minHeight: 50,
-                }}
-              >
-                Back
-              </button>
-              <button
-                onClick={handleDone}
-                style={{
-                  flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  gap: 8, background: 'var(--dw-accent)', border: 'none', borderRadius: 12,
-                  padding: '14px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                  color: '#fff', fontFamily: 'var(--font-sans)', minHeight: 50,
-                }}
-              >
-                {selectedPlans.length > 0 ? `Start ${selectedPlans.length} Plan${selectedPlans.length > 1 ? 's' : ''}` : 'Skip Plans'}
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          )}
-
-          {step === 1 && (
-            <button
-              onClick={onDismiss}
-              style={{
-                width: '100%', background: 'none', border: 'none', padding: '12px',
-                fontSize: 13, color: 'var(--dw-text-muted)', cursor: 'pointer',
-                fontFamily: 'var(--font-sans)', marginTop: 4,
-              }}
-            >
-              Skip for now
-            </button>
-          )}
+          <button
+            onClick={handleDone}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 8, background: 'var(--dw-accent)', border: 'none', borderRadius: 12,
+              padding: '14px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+              color: '#fff', fontFamily: 'var(--font-sans)', minHeight: 50,
+            }}
+          >
+            {selectedPlans.length > 0 ? `Start ${selectedPlans.length} Plan${selectedPlans.length > 1 ? 's' : ''}` : 'Skip Plans'}
+            <ChevronRight size={18} />
+          </button>
+          <button
+            onClick={onDismiss}
+            style={{
+              width: '100%', background: 'none', border: 'none', padding: '12px',
+              fontSize: 13, color: 'var(--dw-text-muted)', cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', marginTop: 4,
+            }}
+          >
+            Maybe later
+          </button>
         </div>
       </div>
     </div>
