@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, BookOpen, Headphones, Check, ChevronRight } from 'lucide-react';
+import { X, Headphones, Check, ChevronRight } from 'lucide-react';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { getLang, tField } from '../utils/i18n';
 
@@ -109,7 +109,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
           }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase' }}>
-              {step === 1 ? 'Step 1 of 2' : step === 2 ? 'Step 2 of 2' : 'All set'}
+              {step === 1 ? 'Step 1 of 2' : 'Step 2 of 2'}
             </span>
             <button
               onClick={onDismiss}
@@ -125,12 +125,10 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
           }}>
             {step === 1 && 'How much do you want to read?'}
             {step === 2 && planStepLabel}
-            {step === 3 && 'You\'re ready to go!'}
           </h2>
           <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 20px' }}>
             {step === 1 && 'Choose how many chapters to read each day. You can change this anytime.'}
             {step === 2 && 'A plan keeps you on track. Pick one or skip for now.'}
-            {step === 3 && 'Your daily reading is set up. Tap Listen to hear it now.'}
           </p>
 
           {/* Step indicators */}
@@ -302,28 +300,6 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
             </div>
           )}
 
-          {/* ── Step 3: Done ── */}
-          {step === 3 && (
-            <div style={{ textAlign: 'center', padding: '16px 0 8px' }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: 'var(--dw-accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px',
-              }}>
-                <BookOpen size={28} color="#fff" />
-              </div>
-              <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.6, marginBottom: 8 }}>
-                <strong>{chapters} chapter{chapters > 1 ? 's' : ''} per day</strong>
-                {selectedPlans.length > 0 && (
-                  <> · <strong>{selectedPlans.length} plan{selectedPlans.length > 1 ? 's' : ''} started</strong></>
-                )}
-              </p>
-              <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                Your reading will appear on the home screen every day.
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Footer CTA */}
@@ -354,7 +330,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                 Back
               </button>
               <button
-                onClick={() => setStep(3)}
+                onClick={handleDone}
                 style={{
                   flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   gap: 8, background: 'var(--dw-accent)', border: 'none', borderRadius: 12,
@@ -366,19 +342,6 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                 <ChevronRight size={18} />
               </button>
             </div>
-          )}
-          {step === 3 && (
-            <button
-              onClick={handleDone}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                gap: 8, background: 'var(--dw-accent)', border: 'none', borderRadius: 12,
-                padding: '14px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                color: '#fff', fontFamily: 'var(--font-sans)', minHeight: 50,
-              }}
-            >
-              <Headphones size={18} /> Let's Go
-            </button>
           )}
 
           {step === 1 && (
