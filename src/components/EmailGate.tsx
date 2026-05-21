@@ -2,7 +2,7 @@
  * Email gate modal — onboarding overlay for new users.
  * Three-step profile resolution: PCO lookup → Supabase recall → new registration.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { X, Loader2, CheckCircle } from 'lucide-react';
 import { CAMPUSES } from '../data/tokens';
@@ -16,12 +16,26 @@ const PERSONAS = ALL_PERSONAS.map(id => ({
   desc: PERSONA_CONFIGS[id].description,
 }));
 
+// Read the persona the user already chose, if any. The picker is first-run onboarding
+// ONLY — re-showing it on later write actions (New Entry, Add Prayer, change campus) was
+// silently overwriting dw_setup.persona on accidental taps.
+function readSetupPersona(): string {
+  try {
+    return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || '';
+  } catch {
+    return '';
+  }
+}
+
 export function EmailGate() {
   const { showEmailGate, setShowEmailGate, saveProfile, saveSetup, emailGateCallback } = useUser();
   const lang = getLang();
 
-  const [step, setStep] = useState<'persona' | 'email' | 'done'>('persona');
-  const [persona, setPersona] = useState('');
+  // Open straight to the email step if a persona already exists — never re-present the picker.
+  const [step, setStep] = useState<'persona' | 'email' | 'done'>(
+    readSetupPersona() ? 'email' : 'persona'
+  );
+  const [persona, setPersona] = useState(readSetupPersona());
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -29,6 +43,14 @@ export function EmailGate() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [_done, setDone] = useState(false);
+
+  // Each time the gate (re)opens for a user who already has a persona, skip past the
+  // picker. Guards the re-open case where this component stays mounted between opens.
+  useEffect(() => {
+    if (showEmailGate && readSetupPersona()) {
+      setStep('email');
+    }
+  }, [showEmailGate]);
 
   if (!showEmailGate) return null;
 
