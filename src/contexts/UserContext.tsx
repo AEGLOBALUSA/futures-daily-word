@@ -148,13 +148,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     syncOnStartup(userProfile.email).catch(() => {});
   }, [userProfile?.email]);
 
-  // Show email gate for first-time users (only once — respect skip)
-  useEffect(() => {
-    if (!setup) return;
-    if (userProfile?.email) return; // Already have email
-    if (localStorage.getItem('dw_email_gate_skipped')) return; // User chose to skip
-    setShowEmailGate(true);
-  }, [setup]);
+  // Email gate is DEFERRED to the first commit moment — it no longer auto-pops on
+  // first run. A guest lands on content and can read freely; the gate appears only
+  // when they take an action that needs an account (journal save, prayer, plan start,
+  // settings), each of which calls requireEmail() below.
 
   const requireEmail = useCallback((callback?: () => void) => {
     if (userProfile?.email) {
