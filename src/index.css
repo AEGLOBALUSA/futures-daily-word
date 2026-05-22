@@ -642,10 +642,10 @@ sup {
 :root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] *:not(svg):not(path) {
   color: #FFFFFF !important;
 }
-/* Exception: light-bg button inside hero card (e.g. "Browse Plans") */
+/* "Browse Plans" hero button — dark bg + white text, kept white in light mode too */
 :root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] .dw-hero-light-btn,
 :root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] .dw-hero-light-btn * {
-  color: var(--dw-accent) !important;
+  color: #FFFFFF !important;
 }
 
 /* Tab bar — light mode uses dark text on white background */

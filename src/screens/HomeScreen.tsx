@@ -463,7 +463,7 @@ interface ReadingSlot {
 }
 
 export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab: TabId) => void; onOpenAI?: () => void; onBack?: () => void }) {
-  const { userProfile, setup, saveProfile, saveSetup, requireEmail, showEmailGate } = useUser();
+  const { userProfile, setup, saveProfile, saveSetup, requireEmail } = useUser();
 
   // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
   const personaConfig = useMemo(() => getPersonaConfig(setup?.persona), [setup?.persona]);
@@ -699,18 +699,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     }
   }, [readingSlots, loadedFirstSlotPassage]);
 
-  // Auto-show setup modal for new users after EmailGate closes
-  // Skip for pastor/leader personas — they don't need onboarding help
-  useEffect(() => {
-    if (showEmailGate) return; // EmailGate still open
-    if (!setup) return; // No persona yet (truly first visit)
-    if (setup.persona === 'pastor_leader' || setup.persona === 'pastor') return; // Pastors don't need this
-    if (localStorage.getItem('dw_setup_dismissed')) return; // Already dismissed
-    const ap = (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })();
-    if (Object.keys(ap).length > 0) return; // Already has plans
-    const t = setTimeout(() => setShowSetupModal(true), 600);
-    return () => clearTimeout(t);
-  }, [showEmailGate, setup]);
+  // Plan/setup sheet is DEFERRED — it no longer auto-pops on first run. Plan
+  // selection now lives on the Home "Choose your reading plan" hero + the Plans tab.
 
   const savePathwayProgress = (p: PathwayProgress) => {
     setPathwayProgress(p);
@@ -874,32 +864,13 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Setup prompt: show on day 2+ if user has no reading slots & no active plans
-  // Skip for pastor/leader personas
-  // Guard: skip if Hook 1 (post-EmailGate) already triggered the modal
+  // Track first-open date (read by pathway-upgrades). The day-2 plan-modal nudge is
+  // deferred too — the Home hero + Plans tab are the plan entry points now.
   useEffect(() => {
-    if (showSetupModal) return; // Already showing from Hook 1
-    const alreadyDismissed = localStorage.getItem('dw_setup_dismissed');
-    if (alreadyDismissed) return;
-    const persona = (() => { try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona; } catch { return ''; } })();
-    if (persona === 'pastor_leader' || persona === 'pastor') return;
-    // Check if this is truly a return visit (not first open)
-    const firstOpen = localStorage.getItem('dw_first_open');
-    const today = new Date().toISOString().slice(0, 10);
-    if (!firstOpen) {
-      localStorage.setItem('dw_first_open', today);
-      return; // Don't show on very first open
+    if (!localStorage.getItem('dw_first_open')) {
+      localStorage.setItem('dw_first_open', new Date().toISOString().slice(0, 10));
     }
-    if (firstOpen === today) return; // Same day as first open — skip
-    const hasSlots = readingSlots.length > 0;
-    const hasPlans = Object.keys(
-      (() => { try { return JSON.parse(localStorage.getItem('dw_activeplans') || '{}'); } catch { return {}; } })()
-    ).length > 0;
-    if (hasSlots || hasPlans) return;
-    const timer = setTimeout(() => setShowSetupModal(true), 5000);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showSetupModal]);
+  }, []);
 
   // Reset expanded passages when day or translation changes
   useEffect(() => {
@@ -1765,11 +1736,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   className="dw-hero-light-btn"
                   onClick={() => onNavigate?.('plans')}
                   style={{
-                    padding: '14px 28px', borderRadius: 14, border: 'none',
-                    background: '#fff', color: 'var(--dw-accent, #C8920E)', cursor: 'pointer',
+                    padding: '14px 28px', borderRadius: 14,
+                    border: '1px solid rgba(255,255,255,0.4)',
+                    background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer',
                     fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)',
                     letterSpacing: '0.02em',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                   }}
                 >
                   Browse Plans
