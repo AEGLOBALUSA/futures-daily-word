@@ -244,6 +244,11 @@ exports.handler = async (event) => {
         };
       }
 
+      // Dual-write: mirror this user's data into the normalized tables. NON-FATAL —
+      // wrapped so a failure here can never block the user's save (JSONB is still source of truth).
+      try { await db.rpc("sync_user_data_to_normalized", { p_email: email }); }
+      catch (e) { console.error("normalized dual-write (push) failed:", e?.message || e); }
+
       return {
         statusCode: 200,
         headers,
@@ -295,6 +300,10 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: "Failed to merge data" })
         };
       }
+
+      // Dual-write: mirror into the normalized tables. NON-FATAL (never blocks the user's save).
+      try { await db.rpc("sync_user_data_to_normalized", { p_email: email }); }
+      catch (e) { console.error("normalized dual-write (merge) failed:", e?.message || e); }
 
       return {
         statusCode: 200,
