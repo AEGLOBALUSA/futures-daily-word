@@ -109,20 +109,33 @@ function AppContent() {
 
   const sundayGuest = isSundayGuest();
 
-  // Show PathwayPicker only on first run (no persona selected yet)
-  // Once a persona is chosen, never show again automatically
-  // Users can still change persona from the More/Settings screen
-  const [showPathway, setShowPathway] = useState(() => {
-    if (sundayGuest || SERMON_DEEP_LINK || isSundayWindow()) return false;
-    const v7Done = localStorage.getItem('dw_v7_pathway_done');
-    if (!setup?.persona || !v7Done) return true;
-    return false;
-  });
+  // Scripture-first onboarding: the persona picker is NO LONGER a full-screen tollgate.
+  // On first run we default to "congregation" so the user lands on content immediately,
+  // and surface the picker as an opt-in "Personalize" prompt they can take or dismiss.
+  const onboardingActive = !sundayGuest && !SERMON_DEEP_LINK && !isSundayWindow();
+  const [showPicker, setShowPicker] = useState(false);
+  const [showPersonalizeBanner, setShowPersonalizeBanner] = useState(
+    () => onboardingActive && !localStorage.getItem('dw_v7_pathway_done')
+  );
+
+  // Default an un-chosen persona to "congregation" so content renders without a gate.
+  useEffect(() => {
+    if (onboardingActive && !setup?.persona) {
+      saveSetup({ persona: 'congregation', source: 'default' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handlePathwaySelect(persona: Persona) {
-    saveSetup({ persona, source: setup?.source || '' });
+    saveSetup({ persona, source: 'onboarding' });
     localStorage.setItem('dw_v7_pathway_done', 'true');
-    setShowPathway(false);
+    setShowPicker(false);
+    setShowPersonalizeBanner(false);
+  }
+
+  function dismissPersonalize() {
+    localStorage.setItem('dw_v7_pathway_done', 'true');
+    setShowPersonalizeBanner(false);
   }
 
   useEffect(() => {
@@ -157,11 +170,6 @@ function AppContent() {
     more: <MoreScreen onBack={goBack} />,
     'sermon-notes': <SermonNotesScreen onBack={() => navigateTab('home')} />,
   };
-
-  // Full-screen pathway picker — renders INSTEAD of app when needed
-  if (showPathway) {
-    return <PathwayPicker onSelect={handlePathwaySelect} currentPersona={setup?.persona} />;
-  }
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>
@@ -198,6 +206,49 @@ function AppContent() {
       />
       <CookieConsent />
       <AudioAnnouncer />
+
+      {/* Opt-in persona picker — surfaced from the Personalize prompt, not a first-run gate */}
+      {showPicker && (
+        <PathwayPicker onSelect={handlePathwaySelect} currentPersona={setup?.persona || 'congregation'} />
+      )}
+
+      {/* Non-blocking "Personalize" prompt — replaces the old full-screen tollgate */}
+      {showPersonalizeBanner && !showPicker && (
+        <div style={{
+          position: 'fixed', left: '50%', transform: 'translateX(-50%)',
+          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+          width: 'min(440px, calc(100% - 24px))',
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 12px 10px 16px',
+          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+          borderRadius: 14, boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+          zIndex: 900, fontFamily: 'var(--font-sans)',
+        }}>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--dw-text-secondary)' }}>
+            Personalize your reading
+          </span>
+          <button
+            onClick={() => setShowPicker(true)}
+            style={{
+              background: 'var(--dw-accent)', color: '#fff', border: 'none',
+              borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0,
+            }}
+          >
+            Choose
+          </button>
+          <button
+            onClick={dismissPersonalize}
+            aria-label="Dismiss personalize prompt"
+            style={{
+              background: 'none', border: 'none', color: 'var(--dw-text-muted)',
+              cursor: 'pointer', padding: 4, display: 'flex', fontSize: 18, lineHeight: 1, flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
