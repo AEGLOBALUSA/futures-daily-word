@@ -7,7 +7,13 @@ const ALLOWED_ORIGINS = [
   'https://futures-daily-word.netlify.app',
   'https://www.futures-daily-word.netlify.app',
   'https://futuresdailyword.com',
-  'https://www.futuresdailyword.com'
+  'https://www.futuresdailyword.com',
+  // Church site origins — for when the app is embedded/proxied through the
+  // Futures Church site and makes cross-origin calls to the Daily Word backend.
+  'https://futures.church',
+  'https://www.futures.church',
+  'https://futures.global',
+  'https://www.futures.global'
 ];
 
 /**
