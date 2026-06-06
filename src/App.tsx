@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { ScriptureSelectionProvider, useScriptureSelection } from './contexts/ScriptureSelectionContext';
 import { TabBar } from './components/TabBar';
+import { SeamBar } from './components/Seam';
 import { EmailGate } from './components/EmailGate';
 import { BibleAI } from './components/BibleAI';
 import { PathwayPicker } from './components/PathwayPicker';
@@ -190,6 +191,7 @@ function AppContent() {
       >
         Skip to content
       </a>
+      <SeamBar />
       <ErrorBoundary label={activeTab}>
         <Suspense fallback={<ScreenLoader />}>
           <main id="main-content" style={{ display: 'contents' }}>

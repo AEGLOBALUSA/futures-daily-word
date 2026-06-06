@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { SeamFooter } from '../components/Seam';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
@@ -1017,6 +1018,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </p>
         </div>
 
+        {/* Futures Church family seam */}
+        <SeamFooter />
+
         {/* Version */}
         <p style={{
           textAlign: 'center',
@@ -1025,7 +1029,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           fontFamily: 'var(--font-sans)',
           paddingBottom: 24,
         }}>
-          Futures Daily Word v2.1 — Futures Church
+          Futures Daily Word v2.1
           <br />
           Created & Developed by Ashley Evans
         </p>
