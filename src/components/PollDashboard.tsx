@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, X, BarChart3, Loader2 } from 'lucide-react';
+import { API_BASE } from '../utils/api-base';
 
 interface PollResults {
   total: number;
@@ -55,7 +56,7 @@ export function PollDashboard({ pastorCode, onClose }: Props) {
   const fetchResults = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/poll?version=v1', {
+      const res = await fetch(`${API_BASE}/api/poll?version=v1`, {
         headers: { 'X-Pastor-Code': pastorCode },
       });
       if (!res.ok) {

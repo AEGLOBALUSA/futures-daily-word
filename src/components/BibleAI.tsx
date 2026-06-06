@@ -5,6 +5,7 @@ import { Send, ChevronDown, ChevronLeft, Copy, Bookmark, BookmarkPlus, RotateCcw
 import { schedulePush } from '../utils/cloudSync'
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext'
 import { t, getLang } from '../utils/i18n';
+import { API_BASE } from '../utils/api-base';
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -235,7 +236,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
       abortRef.current = controller
       // Auto-timeout after 20 seconds
       const timeout = setTimeout(() => controller.abort(), 20000)
-      const res = await fetch('/.netlify/functions/claude', {
+      const res = await fetch(`${API_BASE}/.netlify/functions/claude`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -9,6 +9,7 @@ import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push'
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
+import { API_BASE } from '../utils/api-base';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
@@ -901,7 +902,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                       setBugSubmitting(true);
                       try {
                         const profile = (() => { try { return JSON.parse(localStorage.getItem('dw_profile') || '{}'); } catch { return {}; } })();
-                        await fetch('/api/bug-report', {
+                        await fetch(`${API_BASE}/api/bug-report`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({

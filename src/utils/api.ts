@@ -4,6 +4,7 @@
  *         KJV → local offline, WEB → built-in constant.
  * Fallback chain: requested → KJV offline → WEB built-in.
  */
+import { API_BASE } from './api-base';
 
 // Verse cache: keyed by passageName_TRANSLATION. Bounded to prevent memory leaks.
 const VERSE_CACHE_MAX = 500;
@@ -83,21 +84,21 @@ async function _doFetch(passage: string, translation: TranslationCode, cacheKey:
 }
 
 async function fetchESV(passage: string): Promise<string> {
-  const res = await fetch(`/api/esv?q=${encodeURIComponent(passage)}`);
+  const res = await fetch(`${API_BASE}/api/esv?q=${encodeURIComponent(passage)}`);
   if (!res.ok) throw new Error(`ESV API error: ${res.status}`);
   const data = await res.json();
   return data.passages?.[0] || data.text || '';
 }
 
 async function fetchNLT(passage: string): Promise<string> {
-  const res = await fetch(`/api/nlt?q=${encodeURIComponent(passage)}`);
+  const res = await fetch(`${API_BASE}/api/nlt?q=${encodeURIComponent(passage)}`);
   if (!res.ok) throw new Error(`NLT API error: ${res.status}`);
   const data = await res.json();
   return data.text || data.passage || '';
 }
 
 async function fetchBolls(passage: string, translation: string): Promise<string> {
-  const res = await fetch(`/api/bolls?q=${encodeURIComponent(passage)}&v=${encodeURIComponent(translation)}`);
+  const res = await fetch(`${API_BASE}/api/bolls?q=${encodeURIComponent(passage)}&v=${encodeURIComponent(translation)}`);
   if (!res.ok) throw new Error(`Bolls API error: ${res.status}`);
   const data = await res.json();
   // Bolls function returns { passages: [text] }
@@ -222,7 +223,7 @@ async function _doFetchAudio(
   // Helper: Polly TTS with native voice for the user's language
   const tryPolly = async (): Promise<string | null> => {
     const voiceId = lang === 'es' ? 'Lucia' : lang === 'pt' ? 'Camila' : lang === 'id' ? 'Andika' : 'Matthew';
-    const res = await fetch('/api/polly-tts', {
+    const res = await fetch(`${API_BASE}/api/polly-tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: cleanText.slice(0, 20000), voiceId, engine: 'neural' }),
@@ -238,7 +239,7 @@ async function _doFetchAudio(
   const tryElevenLabs = async (): Promise<string | null> => {
     const body: Record<string, string> = { text: cleanText.slice(0, 20000) };
     if (useNativeVoiceFirst) body.modelId = 'eleven_turbo_v2_5';
-    const res = await fetch('/api/elevenlabs-tts', {
+    const res = await fetch(`${API_BASE}/api/elevenlabs-tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -270,7 +271,7 @@ async function _doFetchAudio(
 // ── Helper: ESV.org native audio ──
 async function _tryESVAudio(passageRef: string): Promise<string | null> {
   try {
-    const res = await fetch(`/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
+    const res = await fetch(`${API_BASE}/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
     if (res.ok) {
       const blob = await res.blob();
       if (blob.size > 1000) return URL.createObjectURL(blob);
@@ -278,7 +279,7 @@ async function _tryESVAudio(passageRef: string): Promise<string | null> {
     // Try first individual ref if combined failed
     const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
     if (refs.length > 1) {
-      const singleRes = await fetch(`/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
+      const singleRes = await fetch(`${API_BASE}/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
       if (singleRes.ok) {
         const blob = await singleRes.blob();
         if (blob.size > 1000) return URL.createObjectURL(blob);
