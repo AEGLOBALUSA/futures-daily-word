@@ -35,6 +35,22 @@ const SERMON_DEEP_LINK = (() => {
   return false;
 })();
 
+// ── Embedded mode — the app is being framed inside the Futures Church site
+// (futures.church/daily-word/app). Hide the app's own "part of Futures Church"
+// seam to avoid double chrome / a recursive return link. Detected via the
+// ?embed=1 flag the church iframe passes, or by being in a sub-frame at all. ──
+const IS_EMBEDDED = (() => {
+  try {
+    if (new URLSearchParams(window.location.search).get('embed') === '1') return true;
+    return window.self !== window.top; // true when running inside any iframe
+  } catch {
+    return true; // cross-origin access throws only when framed → treat as embedded
+  }
+})();
+if (typeof document !== 'undefined' && IS_EMBEDDED) {
+  document.documentElement.classList.add('dw-embedded');
+}
+
 // ── Lazy-loaded screens — only downloaded when the user navigates to them ──
 const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
 const JournalScreen = lazy(() => import('./screens/JournalScreen').then(m => ({ default: m.JournalScreen })));
@@ -191,7 +207,7 @@ function AppContent() {
       >
         Skip to content
       </a>
-      <SeamBar />
+      {!IS_EMBEDDED && <SeamBar />}
       <ErrorBoundary label={activeTab}>
         <Suspense fallback={<ScreenLoader />}>
           <main id="main-content" style={{ display: 'contents' }}>
