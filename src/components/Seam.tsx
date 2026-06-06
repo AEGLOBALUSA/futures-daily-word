@@ -7,11 +7,16 @@
  * The new church site is currently live at futures-church.netlify.app (its own
  * canonical URL). futures.church still redirects to the legacy site during the
  * cutover hold, and futures.global is a parked lander — so the return link
- * targets the working netlify.app URL for now.
- * TODO: switch to https://futures.church/daily-word once the domain cutover lands.
+ * defaults to the working netlify.app URL.
+ *
+ * CUTOVER: when futures.church goes live, no code change is needed — set
+ *   VITE_CHURCH_DAILY_WORD_URL=https://futures.church/daily-word
+ * in the Daily Word Netlify env and redeploy. See CUTOVER-RUNBOOK.md.
  */
 
-const CHURCH_DAILY_WORD_URL = 'https://futures-church.netlify.app/daily-word';
+const CHURCH_DAILY_WORD_URL =
+  import.meta.env.VITE_CHURCH_DAILY_WORD_URL ||
+  'https://futures-church.netlify.app/daily-word';
 
 /** Persistent top strip shown above every screen. */
 export function SeamBar() {

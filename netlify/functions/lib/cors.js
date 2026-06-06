@@ -10,10 +10,13 @@ const ALLOWED_ORIGINS = [
   'https://www.futuresdailyword.com',
   // Church site origins — for when the app is embedded/proxied through the
   // Futures Church site and makes cross-origin calls to the Daily Word backend.
+  // futures.church = post-cutover canonical; futures-church.netlify.app = the
+  // church site's current live origin during the cutover hold.
   'https://futures.church',
   'https://www.futures.church',
   'https://futures.global',
-  'https://www.futures.global'
+  'https://www.futures.global',
+  'https://futures-church.netlify.app'
 ];
 
 /**
