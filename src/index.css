@@ -446,6 +446,12 @@ h2.text-section-header {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Embedded inside the church site (iframe) — the seam bar is hidden, so drop
+   its top offset. The church page provides the surrounding chrome instead. */
+.dw-embedded .screen-container {
+  padding-top: var(--safe-top);
+}
+
 /* ---------- Red-Letter Scripture ---------- */
 .text-christ {
   color: var(--dw-text-christ);
