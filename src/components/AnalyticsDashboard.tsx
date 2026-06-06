@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, X, Activity, Users, Globe, Smartphone, TrendingUp, Loader2 } from 'lucide-react';
+import { API_BASE } from '../utils/api-base';
 
 interface OverviewData {
   totalUsers: number;
@@ -88,7 +89,7 @@ export function AnalyticsDashboard({ pastorCode, onClose }: Props) {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/analytics-dashboard', {
+      const res = await fetch(`${API_BASE}/api/analytics-dashboard`, {
         headers: { 'X-Pastor-Code': pastorCode },
       });
       if (!res.ok) throw new Error(res.status === 403 ? 'Invalid code' : 'Failed to load');

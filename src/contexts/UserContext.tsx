@@ -8,6 +8,7 @@ import { PERSONA_MIGRATION } from '../utils/persona-config';
 import { setCampus as setAnalyticsCampus } from '../utils/analytics';
 import { syncOnStartup } from '../utils/cloudSync';
 import { authHeaders, setSessionToken, clearSessionToken } from '../utils/sessionToken';
+import { API_BASE } from '../utils/api-base';
 
 export interface UserProfile {
   email: string;
@@ -98,7 +99,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const lang = localStorage.getItem('dw_lang') || 'en';
 
     // Heartbeat
-    fetch('/api/user-profile', {
+    fetch(`${API_BASE}/api/user-profile`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ action: 'heartbeat', email: userProfile.email, persona, lang, campus: userProfile.campus }),
@@ -110,7 +111,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
 
     // Sync profile from server
-    fetch('/api/user-profile', {
+    fetch(`${API_BASE}/api/user-profile`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ action: 'get', email: userProfile.email }),
@@ -174,7 +175,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     // Sync profile changes to server (non-blocking)
     if (profile.email) {
-      fetch('/api/user-profile', {
+      fetch(`${API_BASE}/api/user-profile`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({

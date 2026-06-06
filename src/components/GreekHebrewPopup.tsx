@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { t, getLang } from '../utils/i18n';
+import { API_BASE } from '../utils/api-base';
 
 interface StrongsEntry {
   word: string;
@@ -22,7 +23,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
     if (!activePopupWord) { setEntry(null); return; }
     setLoading(true);
     setExpanded(false);
-    fetch(`/.netlify/functions/strongs?num=${encodeURIComponent(activePopupWord.strongsNum)}&testament=${activePopupWord.testament}`)
+    fetch(`${API_BASE}/.netlify/functions/strongs?num=${encodeURIComponent(activePopupWord.strongsNum)}&testament=${activePopupWord.testament}`)
       .then(r => r.json())
       .then(d => setEntry(d))
       .catch(() => setEntry({

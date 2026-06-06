@@ -3,6 +3,7 @@
  * Subscribes via Web Push API and registers with /api/subscribe-push.
  */
 import { getLang } from './i18n';
+import { API_BASE } from './api-base';
 
 const VAPID_PUBLIC_KEY = 'BDqMPaClvGsMmHFaQlEenSflT6NqmOcLYBrFRrVrRJae7Py08WLdQxhfSdkzSRaWCbLqJrdKKz8TnmqT6DqF5J4';
 
@@ -43,7 +44,7 @@ export async function subscribePush(email: string): Promise<boolean> {
     }
 
     // Send subscription to server
-    const res = await fetch('/api/subscribe-push', {
+    const res = await fetch(`${API_BASE}/api/subscribe-push`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -13,6 +13,7 @@ import type { TabId } from './components/TabBar';
 import type { Persona } from './utils/persona-config';
 import { isSundayWindow, activateSundayGuest, isSundayGuest } from './utils/sunday';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
+import { API_BASE } from './utils/api-base';
 import { track } from './utils/analytics';
 
 // ── Pre-render deep link setup — must run before any React component initializes ──
@@ -129,7 +130,7 @@ function AppContent() {
     hideSplash();
     if (isNative() && userProfile?.email) {
       registerNativePush((token) => {
-        fetch('/api/subscribe-push', {
+        fetch(`${API_BASE}/api/subscribe-push`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

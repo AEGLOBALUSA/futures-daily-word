@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { X, Loader2, CheckCircle } from 'lucide-react';
 import { CAMPUSES } from '../data/tokens';
+import { API_BASE } from '../utils/api-base';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { setSessionToken } from '../utils/sessionToken';
@@ -53,7 +54,7 @@ export function EmailGate() {
       let profile = { firstName: '', lastName: '', email: trimEmail, phone: '', church: '', city: '', campus: '' };
 
       try {
-        const pcoRes = await fetch('/api/pco-sync', {
+        const pcoRes = await fetch(`${API_BASE}/api/pco-sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'sync', email: trimEmail }),
@@ -70,7 +71,7 @@ export function EmailGate() {
 
       // Step 2: Try Supabase recall
       try {
-        const getRes = await fetch('/api/user-profile', {
+        const getRes = await fetch(`${API_BASE}/api/user-profile`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'get', email: trimEmail }),
@@ -91,7 +92,7 @@ export function EmailGate() {
       const regLast = lastName.trim() || profile.lastName;
       const regCampus = campus || profile.campus || '';
 
-      const regRes = await fetch('/api/user-profile', {
+      const regRes = await fetch(`${API_BASE}/api/user-profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

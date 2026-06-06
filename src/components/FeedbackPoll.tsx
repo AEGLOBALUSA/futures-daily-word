@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { X, CheckCircle, MessageCircle } from 'lucide-react';
+import { API_BASE } from '../utils/api-base';
 
 // ── Poll configuration ──
 const POLL_VERSION = 'v1';
@@ -77,7 +78,7 @@ export function FeedbackPoll({ userCampus }: Props) {
     if (!q1 || q2.size === 0) return;
     setSubmitting(true);
     try {
-      await fetch('/api/poll', {
+      await fetch(`${API_BASE}/api/poll`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

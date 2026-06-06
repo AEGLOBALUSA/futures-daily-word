@@ -9,6 +9,7 @@
  *
  * All sync is non-blocking. If it fails, localStorage still works.
  */
+import { API_BASE } from './api-base';
 
 // ── localStorage keys that sync to the cloud ──
 const SYNC_KEYS = {
@@ -177,7 +178,7 @@ function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
 
 async function apiCall(action: string, payload: Record<string, unknown>) {
   const { authHeaders, setSessionToken } = await import('./sessionToken');
-  const resp = await fetch('/api/user-sync', {
+  const resp = await fetch(`${API_BASE}/api/user-sync`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ action, ...payload }),

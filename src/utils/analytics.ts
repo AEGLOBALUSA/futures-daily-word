@@ -2,6 +2,7 @@
  * Unified analytics — fires BOTH GA4 and Supabase activity tracking.
  * Import `track` from this module and call it on every meaningful user action.
  */
+import { API_BASE } from './api-base';
 
 declare global {
   interface Window {
@@ -43,7 +44,7 @@ export async function trackActivity(
   if (!TRACKED_EVENTS.includes(eventType)) return;
   try {
     const { authHeaders, setSessionToken } = await import('./sessionToken');
-    const resp = await fetch('/api/track-activity', {
+    const resp = await fetch(`${API_BASE}/api/track-activity`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ email, events: [{ type: eventType, detail: detail.slice(0, 500) }] }),

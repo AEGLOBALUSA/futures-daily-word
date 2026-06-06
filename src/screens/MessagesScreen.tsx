@@ -8,6 +8,7 @@ import { PrayerGlobe } from '../components/PrayerGlobe';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
 import { t, getLang } from '../utils/i18n';
+import { API_BASE } from '../utils/api-base';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SermonNote {
@@ -42,7 +43,7 @@ const CAMPUS_LABELS: Record<string, string> = {
 };
 
 // ── {t("prayer_wall", lang)} API ────────────────────────────────────────────────────────────
-const API = '/.netlify/functions/prayer-wall';
+const API = `${API_BASE}/.netlify/functions/prayer-wall`;
 
 async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<{ prayers: Prayer[]; error: boolean }> {
   try {
@@ -106,7 +107,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
   const fetchItems = useCallback(async () => {
     if (!campus) { setLoading(false); return; }
     try {
-      const res = await fetch(`/api/campus-content?campus=${encodeURIComponent(campus)}`);
+      const res = await fetch(`${API_BASE}/api/campus-content?campus=${encodeURIComponent(campus)}`);
       if (res.ok) {
         const data = await res.json();
         setItems(data.items || []);
@@ -121,7 +122,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
     if (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) return;
     setPosting(true);
     try {
-      const res = await fetch('/api/campus-content', {
+      const res = await fetch(`${API_BASE}/api/campus-content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
