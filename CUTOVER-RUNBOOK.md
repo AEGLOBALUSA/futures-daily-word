@@ -49,6 +49,17 @@ On the **`futures-church`** project → Domain management:
 - Set **`futures.church`** as the **primary** domain.
   (Netlify will then 301 `futures-church.netlify.app` → `futures.church`.)
 
+> ⚠️ **Do this AT cutover, not before.** We tried to pre-stage `futures.church`
+> as a non-primary alias during the hold and Netlify rejected it:
+> *"You cannot update domain aliases while primary custom domain is not set"* —
+> aliases require a primary custom domain first. And setting `futures.church` as
+> the primary now (with `force_ssl: true`) risks Netlify 301-ing the live
+> `futures-church.netlify.app` → `futures.church`, which still serves the
+> **legacy** site during the hold — breaking the only working church URL and the
+> Daily Word return link. So the attach is safe only once DNS is ready to flip
+> in the same sitting (steps 1→2 back-to-back).
+> Current state confirmed: `custom_domain: None`, `domain_aliases: []`.
+
 ### 2. Point DNS at Netlify (registrar / DNS host)
 - Switch `futures.church` DNS to Netlify (Netlify DNS, or apex `A`/`ALIAS` +
   `www` `CNAME` per Netlify's instructions).
