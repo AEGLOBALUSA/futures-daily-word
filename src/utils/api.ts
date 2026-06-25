@@ -295,3 +295,61 @@ async function _tryESVAudio(passageRef: string): Promise<string | null> {
 export function clearVerseCache(): void {
   verseCache.clear();
 }
+
+// ── AI commentary fallback ──────────────────────────────────────────────────
+// The curated commentary set (data/commentary.ts) only covers ~20 chapters. For
+// every other passage the Commentary tab used to dead-end on "No commentary
+// available". This generates a concise pastoral commentary via the Claude
+// function and caches it (in-memory + localStorage, 30-day TTL) so repeat opens
+// are instant and don't re-bill.
+const AI_COMMENTARY_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+const aiCommentaryInFlight = new Map<string, Promise<string>>();
+
+export async function fetchAICommentary(passageRef: string, lang: string = 'en'): Promise<string> {
+  const ref = passageRef.trim();
+  const cacheKey = `dw_ai_commentary_${ref}_${lang}`.replace(/\s+/g, '_');
+
+  // localStorage cache (survives reloads; the real cost-saver)
+  try {
+    const raw = localStorage.getItem(cacheKey);
+    if (raw) {
+      const cached = JSON.parse(raw);
+      if (cached?.text && Date.now() - cached.ts < AI_COMMENTARY_TTL) return cached.text;
+    }
+  } catch { /* ignore */ }
+
+  // Deduplicate concurrent requests for the same passage
+  if (aiCommentaryInFlight.has(cacheKey)) return aiCommentaryInFlight.get(cacheKey)!;
+
+  const request = (async () => {
+    const langName = lang === 'es' ? 'Spanish' : lang === 'pt' ? 'Portuguese' : lang === 'id' ? 'Indonesian' : 'English';
+    const system =
+      `You are a warm, trustworthy Bible commentator for Futures Church Daily Word. ` +
+      `Write a concise commentary on the passage the user names: explain its context and ` +
+      `meaning, surface one original-language or cross-reference insight where it helps, and ` +
+      `close with a sentence of application. 2-3 short paragraphs, pastoral and clear, no ` +
+      `headings or lists. Respond in ${langName}.`;
+    const res = await fetch(`${API_BASE}/.netlify/functions/claude`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: `Give commentary on ${ref}.` }],
+        system,
+        max_tokens: 500,
+      }),
+    });
+    if (!res.ok) throw new Error(`AI commentary error: ${res.status}`);
+    const data = await res.json();
+    const text: string = data?.content?.[0]?.text || '';
+    if (!text) throw new Error('Empty AI commentary');
+    try { localStorage.setItem(cacheKey, JSON.stringify({ text, ts: Date.now() })); } catch { /* quota */ }
+    return text;
+  })();
+
+  aiCommentaryInFlight.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    aiCommentaryInFlight.delete(cacheKey);
+  }
+}

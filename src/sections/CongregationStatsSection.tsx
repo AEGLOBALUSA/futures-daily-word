@@ -65,7 +65,7 @@ export function CongregationStatsSection() {
         <div style={{
           background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center',
         }}>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>
             {dailyCount}
           </p>
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>
@@ -75,7 +75,7 @@ export function CongregationStatsSection() {
         <div style={{
           background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center',
         }}>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>
             {weeklyActive}
           </p>
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>
@@ -85,7 +85,7 @@ export function CongregationStatsSection() {
         <div style={{
           background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center',
         }}>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#6B21A8', margin: 0 }}>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-purple)', margin: 0 }}>
             {prayerCount}
           </p>
           <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>
@@ -96,7 +96,7 @@ export function CongregationStatsSection() {
           background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         }}>
-          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: '#2563EB', fontWeight: 600, margin: 0 }}>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-info)', fontWeight: 600, margin: 0 }}>
             {campusName}
           </p>
         </div>

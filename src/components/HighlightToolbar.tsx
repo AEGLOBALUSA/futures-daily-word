@@ -123,7 +123,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
         pointerEvents: 'auto',
       }}>
         {btn(handleCopy,
-          copied ? <Check size={16} color="#2563EB" /> : <Copy size={16} />,
+          copied ? <Check size={16} color="var(--dw-success)" /> : <Copy size={16} />,
           copied ? t('copied_toast', lang) : t('copy_label', lang)
         )}
         {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? 'Pause' : 'Listen', listening)}

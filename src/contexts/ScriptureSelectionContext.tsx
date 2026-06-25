@@ -73,6 +73,7 @@ interface JournalEntryLike {
   autoSaved?: boolean;
   highlightColor?: 'gold' | 'sage';
   updatedAt?: string;
+  deleted?: boolean;
 }
 
 function readJournal(): JournalEntryLike[] {
@@ -93,7 +94,11 @@ function writeJournal(entries: JournalEntryLike[]) {
 function appendHighlightEntry(verseKey: string, text: string, color: 'gold' | 'sage', planContext?: string) {
   const id = autoEntryId(verseKey, text);
   const entries = readJournal();
-  if (entries.find(e => e.id === id)) return; // already saved — no duplicate
+  const existing = entries.find(e => e.id === id);
+  if (existing && !existing.deleted) return; // already saved — no duplicate
+  // If a tombstone exists for this id (the verse was highlighted, auto-saved,
+  // then deleted), drop it so re-highlighting revives a clean entry.
+  const base = existing ? entries.filter(e => e.id !== id) : entries;
   const now = new Date();
   const entry: JournalEntryLike = {
     id,
@@ -109,8 +114,8 @@ function appendHighlightEntry(verseKey: string, text: string, color: 'gold' | 's
     highlightColor: color,
     updatedAt: now.toISOString(),
   };
-  entries.unshift(entry);
-  writeJournal(entries);
+  base.unshift(entry);
+  writeJournal(base);
 }
 
 function removeHighlightEntryIfUntouched(verseKey: string, text: string) {
@@ -119,7 +124,10 @@ function removeHighlightEntryIfUntouched(verseKey: string, text: string) {
   const match = entries.find(e => e.id === id);
   // Only remove if we originally auto-saved it and the user never wrote a note on it.
   if (!match || !match.autoSaved || (match.body && match.body.trim())) return;
-  const next = entries.filter(e => e.id !== id);
+  // Tombstone rather than hard-delete so the cloud merge doesn't resurrect it.
+  const next = entries.map(e =>
+    e.id === id ? { ...e, deleted: true, body: '', title: '', updatedAt: new Date().toISOString() } : e
+  );
   writeJournal(next);
 }
 

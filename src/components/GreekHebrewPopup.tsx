@@ -39,7 +39,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
   if (!activePopupWord) return null;
 
   const langLabel = activePopupWord.testament === 'NT' ? 'Greek' : 'Hebrew';
-  const langColor = activePopupWord.testament === 'NT' ? '#2563EB' : '#9A7B2E';
+  const langColor = activePopupWord.testament === 'NT' ? 'var(--dw-info)' : 'var(--dw-gold)';
 
   return (
     <>

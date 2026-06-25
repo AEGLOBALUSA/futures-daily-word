@@ -7,6 +7,7 @@ import { SeamFooter } from '../components/Seam';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
+import { pushNow } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
@@ -165,6 +166,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const handleUserStorySave = (story: string) => {
     localStorage.setItem('dw_user_story', story);
+    pushNow(); // back up "My Season" to the cloud (it syncs via the misc bag)
     setUserStory(story);
     setStorySaved(true);
     setTimeout(() => setStorySaved(false), 2000);
@@ -306,9 +308,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     key={p.id}
                     onClick={() => handlePersonaSelect(p.id)}
                     style={{
-                      background: isActive ? 'var(--dw-accent)' : isPending ? '#9A7B2E' : 'var(--dw-surface-hover)',
+                      background: isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)',
                       color: isActive || isPending ? '#fff' : 'var(--dw-text-primary)',
-                      border: isPending ? '2px solid #9A7B2E' : 'none',
+                      border: isPending ? '2px solid var(--dw-gold)' : 'none',
                       borderRadius: 10,
                       padding: '12px 16px',
                       fontSize: 14,
@@ -333,7 +335,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 style={{
                   marginTop: 10, width: '100%',
                   padding: '12px 16px', borderRadius: 10,
-                  background: '#9A7B2E', border: 'none',
+                  background: 'var(--dw-gold)', border: 'none',
                   fontSize: 15, fontWeight: 700,
                   cursor: 'pointer', color: '#fff',
                   fontFamily: 'var(--font-sans)',
@@ -396,7 +398,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 onClick={() => handleUserStorySave(userStory.slice(0, 600))}
                 disabled={storySaved}
                 style={{
-                  background: storySaved ? '#2563EB' : 'var(--dw-accent)',
+                  background: storySaved ? 'var(--dw-success)' : 'var(--dw-accent)',
                   border: 'none', borderRadius: 8,
                   padding: '7px 16px', color: '#fff',
                   fontSize: 12, fontWeight: 600,

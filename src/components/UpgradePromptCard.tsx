@@ -58,7 +58,7 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
 
       <p style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-        textTransform: 'uppercase', color: '#2563EB',
+        textTransform: 'uppercase', color: 'var(--dw-info)',
         fontFamily: 'var(--font-sans)', marginBottom: 6,
       }}>
         {upgrade.label}

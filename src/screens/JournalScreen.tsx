@@ -39,13 +39,23 @@ interface JournalEntry {
   highlightColor?: 'gold' | 'sage';
   /** ISO timestamp of last write — used by cloud merge */
   updatedAt?: string;
+  /** Soft-delete tombstone — kept in storage so the deletion syncs across
+   *  devices instead of the entry being resurrected by the cloud merge.
+   *  Hidden from every view; only the merge layer reads it. */
+  deleted?: boolean;
 }
 
 /* ââ localStorage helpers ââ */
+/** Raw read — includes soft-delete tombstones. Use for read-modify-write. */
 function getEntries(): JournalEntry[] {
   try {
     return JSON.parse(localStorage.getItem('dw_journal') || '[]');
   } catch { return []; }
+}
+
+/** Visible entries only — tombstones stripped. Use for anything rendered. */
+function getVisibleEntries(): JournalEntry[] {
+  return getEntries().filter(e => !e.deleted);
 }
 
 function saveEntries(entries: JournalEntry[]) {
@@ -579,7 +589,7 @@ function ModalSelectionBar({
         boxShadow: '0 4px 28px rgba(0,0,0,0.28)', border: '1px solid var(--dw-border)',
         display: 'flex', overflow: 'hidden', maxWidth: '100%',
       }}>
-        {tbBtn(handleCopy, copied ? <Check size={15} color="#2563EB" /> : <Copy size={15} />, copied ? t('j_copied', lang) : t('j_copy', lang))}
+        {tbBtn(handleCopy, copied ? <Check size={15} color="var(--dw-success)" /> : <Copy size={15} />, copied ? t('j_copied', lang) : t('j_copy', lang))}
         {tbBtn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={13} /></> : <Volume2 size={15} />, listening ? t('j_pause', lang) || 'Pause' : t('j_listen', lang), listening)}
         {tbBtn(handleShare, <Share2 size={15} />, t('j_share', lang))}
         {tbBtn(() => { onNoteSelected(selectedText); dismiss(); }, <BookOpen size={15} />, t('j_note', lang))}
@@ -1098,8 +1108,8 @@ function ScriptureModal({
             disabled={!draftNote.trim() || noteSaved}
             style={{
               flex: 1, height: 48, borderRadius: 12,
-              background: noteSaved ? '#2563EB' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-surface)',
-              border: `1px solid ${noteSaved ? '#2563EB' : draftNote.trim() ? 'transparent' : 'var(--dw-border)'}`,
+              background: noteSaved ? 'var(--dw-success)' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-surface)',
+              border: `1px solid ${noteSaved ? 'var(--dw-success)' : draftNote.trim() ? 'transparent' : 'var(--dw-border)'}`,
               color: draftNote.trim() || noteSaved ? '#fff' : 'var(--dw-text-muted)',
               fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
               cursor: draftNote.trim() && !noteSaved ? 'pointer' : 'default',
@@ -1387,7 +1397,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
               }}>
                 <span style={{
                   fontSize: 12, fontWeight: 600,
-                  color: wasSaved ? '#2563EB' : 'var(--dw-accent)',
+                  color: wasSaved ? 'var(--dw-success)' : 'var(--dw-accent)',
                   fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 4,
                 }}>
                   {wasSaved ? (
@@ -1416,7 +1426,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
   const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer' | 'sermon'>(initialTab || 'today');
-  const [entries, setEntries] = useState<JournalEntry[]>(getEntries);
+  const [entries, setEntries] = useState<JournalEntry[]>(getVisibleEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
@@ -1444,7 +1454,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   // notes saved from HomeScreen's VerseNoteDrawer or BibleAI.
   useEffect(() => {
     const refresh = () => {
-      setEntries(getEntries());
+      setEntries(getVisibleEntries());
       setActivePlansData(getActivePlansData());
     };
     refresh(); // initial load
@@ -1494,7 +1504,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     const idx = all.findIndex(e => e.id === entry.id);
     if (idx >= 0) { all[idx] = entry; } else { all.unshift(entry); }
     saveEntries(all);
-    setEntries(all);
+    setEntries(all.filter(e => !e.deleted));
   }, []);
 
   const openNewEntry = useCallback(() => {
@@ -1529,7 +1539,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     trackBehavior('note_created');
     track('journal_save', editingEntry.type || 'journal');
     saveEntries(all);
-    setEntries(all);
+    setEntries(all.filter(e => !e.deleted));
     // Show "Saved!" confirmation before closing
     setEditorSaved(true);
     setTimeout(() => {
@@ -1540,9 +1550,16 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   }, [editingEntry]);
 
   const deleteEntry = useCallback((id: string) => {
-    const all = getEntries().filter(e => e.id !== id);
+    // Soft-delete: keep a tombstone (id + deleted flag + fresh updatedAt) so the
+    // cloud merge sees the deletion as the newest version and won't resurrect the
+    // entry from another device. saveEntries persists the tombstone + pushes it.
+    const all = getEntries().map(e =>
+      e.id === id
+        ? { ...e, deleted: true, body: '', title: '', updatedAt: new Date().toISOString() }
+        : e
+    );
     saveEntries(all);
-    setEntries(all);
+    setEntries(all.filter(e => !e.deleted));
     setShowEditor(false);
     setEditingEntry(null);
   }, []);
@@ -1595,7 +1612,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
               onClick={saveEntry}
               disabled={!editingEntry.title.trim() || editorSaved}
               style={{
-                background: editorSaved ? '#2563EB' : 'var(--dw-accent)', border: 'none', borderRadius: 8,
+                background: editorSaved ? 'var(--dw-success)' : 'var(--dw-accent)', border: 'none', borderRadius: 8,
                 padding: '6px 14px', color: '#fff', fontSize: 13, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4,
                 opacity: !editingEntry.title.trim() && !editorSaved ? 0.5 : 1,
@@ -1944,9 +1961,26 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
 
-        {/* Sermon Notes — embedded */}
+        {/* Sermon tab — the user's saved sermon notes (type:'sermon', e.g. from the
+            Messages sermon view) PLUS this week's structured fill-in. Previously the
+            tab only showed the fill-in, so free-form sermon notes were stranded under
+            "All Notes" and the tab named "Sermon" never showed them. */}
         {activeTab === 'sermon' && (
-          <SermonNotesScreen onBack={() => setActiveTab('today')} embedded />
+          <>
+            {(() => {
+              const sermonEntries = entries.filter(e => e.type === 'sermon');
+              if (sermonEntries.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 28 }}>
+                  <h2 className="text-section-header" style={{ margin: '0 0 12px', color: 'var(--dw-text-muted)' }}>
+                    {t('j_my_sermon_notes', lang)}
+                  </h2>
+                  <GroupedNotesList entries={sermonEntries} onOpen={openEntry} lang={lang} />
+                </div>
+              );
+            })()}
+            <SermonNotesScreen onBack={() => setActiveTab('today')} embedded />
+          </>
         )}
 
         {/* Entries */}
