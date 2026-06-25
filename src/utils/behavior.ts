@@ -15,6 +15,7 @@ export type BehaviorEventType =
   | 'plan_started'    // added a reading plan
   | 'plan_dropped'    // removed an active plan
   | 'greek_hebrew'    // tapped the Gk/Heb word tool
+  | 'commentary'      // opened commentary (curated or AI fallback) for a passage
 
 export interface BehaviorEvent {
   type: BehaviorEventType
@@ -98,7 +99,7 @@ export function getBehaviorProfile(): BehaviorProfile {
   const counts: Record<BehaviorEventType, number> = {
     reaction: 0, audio_played: 0, passage_read: 0, devotion_tapped: 0,
     ai_prompt: 0, note_created: 0, plan_started: 0, plan_dropped: 0,
-    greek_hebrew: 0,
+    greek_hebrew: 0, commentary: 0,
   }
   for (const e of recent) counts[e.type] = (counts[e.type] || 0) + 1
 

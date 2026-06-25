@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, X, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE } from '../utils/api-base';
 import { getLang } from '../utils/i18n';
+import { CANONICAL_BOOKS } from '../data/translations';
 
 interface BibleSearchProps {
   isOpen: boolean;
@@ -26,8 +27,11 @@ function parseHits(text: string): PassageHit[] {
     if (!m) continue;
     const ref = m[1].trim();
     const reason = m[2].trim();
-    // A reference should contain a digit (chapter/verse) and be short.
+    // A reference should contain a digit (chapter/verse), be short, AND name a real
+    // book of the Bible — guards against the model hallucinating a non-existent
+    // passage that would then render as a tappable, dead-end result.
     if (!/\d/.test(ref) || ref.length > 40) continue;
+    if (!CANONICAL_BOOKS.some(b => ref.startsWith(b))) continue;
     hits.push({ ref, reason });
     if (hits.length >= 8) break;
   }

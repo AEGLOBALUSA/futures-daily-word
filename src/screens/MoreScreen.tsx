@@ -7,7 +7,7 @@ import { SeamFooter } from '../components/Seam';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
-import { pushNow } from '../utils/cloudSync';
+import { pushNow, syncMisc, flushNow } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
@@ -154,6 +154,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const handleLangSelect = (val: string) => {
     setLangPref(val);
+    syncMisc('dw_lang', val); // stamp + back up so language follows the user cross-device
     // Auto-switch Bible translation to match language
     const defaultTranslation = LANG_DEFAULT_TRANSLATION[val];
     if (defaultTranslation) {
@@ -161,6 +162,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
       localStorage.removeItem('dw_translation_manual'); // clear manual override flag
     }
     track('language_change', val);
+    // Force an immediate (keepalive) push before the reload tears the page down —
+    // the debounced push would otherwise be cancelled and the change lost.
+    flushNow();
     window.location.reload();
   };
 
@@ -181,7 +185,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const handlePersonaSave = () => {
     if (!pendingPersona) return;
-    saveSetup({ persona: pendingPersona, source: setup?.source || 'settings' });
+    // A deliberate change in Settings is always a real choice — use a real-choice
+    // source (not the possibly-'default' prior source) so saveSetup stamps + syncs it.
+    saveSetup({ persona: pendingPersona, source: 'settings' });
     track('persona_change', pendingPersona);
     setPersonaSaved(true);
     setPendingPersona(null);
@@ -190,12 +196,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const handleChaptersPerDaySelect = (val: number) => {
     setChaptersPerDay(val);
-    localStorage.setItem('dw_chapters_per_day', String(val));
+    syncMisc('dw_chapters_per_day', String(val));
   };
 
   const handlePersonalMediaUrlChange = (url: string) => {
     setPersonalMediaUrl(url);
-    localStorage.setItem('dw_personal_media_url', url);
+    syncMisc('dw_personal_media_url', url);
   };
 
   const handleCampusSelect = (campusId: string) => {

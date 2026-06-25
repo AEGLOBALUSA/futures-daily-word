@@ -15,6 +15,7 @@ import { ListenButton } from '../components/ListenButton';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
+import { recordStreakToday } from '../utils/streak';
 import { getPersonaConfig } from '../utils/persona-config';
 // sermons moved to Campus tab
 import { BibleAI } from '../components/BibleAI';
@@ -762,7 +763,7 @@ function ScriptureModal({
       }}>
 
         {/* ââ Drag handle + header ââ */}
-        <div style={{ flexShrink: 0, background: 'var(--dw-charcoal-deep)' }}>
+        <div className="dw-dark-surface" style={{ flexShrink: 0, background: 'var(--dw-charcoal-deep)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 4 }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
           </div>
@@ -1464,11 +1465,13 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     };
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', refresh);
-    // Custom event fired when a note is saved from another screen
-    // Auto-switch to {t('j_my_notes', lang)} tab so the user sees their saved note immediately
-    const handleJournalUpdate = () => {
+    // Custom event fired when a note is saved from another screen → auto-switch to the
+    // All Notes tab so the user sees it. A sync-driven refresh (tagged source:'sync')
+    // must NOT switch tabs — that would yank the user off Sermon/Prayer mid-session.
+    const handleJournalUpdate = (e: Event) => {
       refresh();
-      setActiveTab('saved');
+      const fromSync = (e as CustomEvent).detail?.source === 'sync';
+      if (!fromSync) setActiveTab('saved');
     };
     window.addEventListener('dw-journal-updated', handleJournalUpdate);
     return () => {
@@ -1538,6 +1541,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     }
     trackBehavior('note_created');
     track('journal_save', editingEntry.type || 'journal');
+    recordStreakToday(); // journaling counts toward the daily streak, not just opening Home
     saveEntries(all);
     setEntries(all.filter(e => !e.deleted));
     // Show "Saved!" confirmation before closing

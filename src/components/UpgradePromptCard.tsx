@@ -77,7 +77,7 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
           onClick={handleUpgrade}
           style={{
             flex: 1,
-            background: '#2563EB',
+            background: 'var(--dw-plan)',
             border: 'none',
             borderRadius: 10,
             padding: '10px 16px',

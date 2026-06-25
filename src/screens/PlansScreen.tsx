@@ -10,6 +10,7 @@ import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Vide
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
+import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
 import { t, getLang, tField } from '../utils/i18n';
 
 interface BookChapter { title: string; paragraphs: string[]; }
@@ -86,34 +87,15 @@ function savePlans(plans: Record<string, PlanProgress>) {
   try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
 }
 
-// Uses dw_streak_v2 — same key as HomeScreen for consistent streak tracking
-function getStreak(): number {
-  try {
-    const data = JSON.parse(localStorage.getItem('dw_streak_v2') || '{}');
-    const today = new Date().toISOString().slice(0, 10);
-    if (data.lastDate === today) return data.count || 0;
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (data.lastDate === yesterday.toISOString().slice(0, 10)) return data.count || 0;
-    return 0;
-  } catch { return 0; }
-}
-
-function recordStreak() {
+// Streak now lives in one shared module (src/utils/streak.ts). This derives the
+// number shown on the Plans tab: the current count if the user read today or
+// yesterday, else 0 (a streak not yet broken but not yet continued today).
+function streakDisplay(): number {
+  const s = getStreakState();
   const today = new Date().toISOString().slice(0, 10);
-  try {
-    const data = JSON.parse(localStorage.getItem('dw_streak_v2') || '{"count":0,"lastDate":"","freezesAvailable":1,"lastFreezeWeek":""}');
-    if (data.lastDate === today) return;
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const count = data.lastDate === yesterday.toISOString().slice(0, 10) ? (data.count || 0) + 1 : 1;
-    // Preserve freezesAvailable and lastFreezeWeek from HomeScreen's richer structure
-    localStorage.setItem('dw_streak_v2', JSON.stringify({ ...data, lastDate: today, count }));
-    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-  } catch {
-    localStorage.setItem('dw_streak_v2', JSON.stringify({ lastDate: today, count: 1, freezesAvailable: 1, lastFreezeWeek: '' }));
-    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-  }
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  if (s.lastDate === today || s.lastDate === y.toISOString().slice(0, 10)) return s.count || 0;
+  return 0;
 }
 
 interface EssaySection { title: string; file: string; }
@@ -140,7 +122,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   // plansView removed — single unified view, no tabs
   const [activePlans, setActivePlans] = useState<Record<string, PlanProgress>>(getActivePlans);
-  const [streak, setStreak] = useState(getStreak);
+  const [streak, setStreak] = useState(streakDisplay);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [expandedBrowsePlan, setExpandedBrowsePlan] = useState<string | null>(null);
   const [selectedToStart, setSelectedToStart] = useState<string[]>([]);
@@ -284,8 +266,8 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     plans[planId] = plan;
     savePlans(plans);
     setActivePlans({ ...plans });
-    recordStreak();
-    setStreak(getStreak());
+    recordStreakToday();
+    setStreak(streakDisplay());
   }, []);
 
   // Manually set plan progress to a specific day
@@ -682,7 +664,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                           {isActive ? (
                             <div style={{
                               position: 'absolute', top: 14, right: 14,
-                              background: isConfirmingDeactivate ? '#c0392b' : '#2563EB',
+                              background: isConfirmingDeactivate ? '#c0392b' : 'var(--dw-plan)',
                               borderRadius: 999, padding: '2px 9px',
                               fontSize: 10, fontWeight: 700, color: '#fff',
                               fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
@@ -723,7 +705,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 </span>
                               </div>
                               <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 2 }} />
+                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: 'var(--dw-plan)', borderRadius: 2 }} />
                               </div>
                             </div>
                           )}
@@ -738,7 +720,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 </span>
                               </div>
                               <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 2 }} />
+                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: 'var(--dw-plan)', borderRadius: 2 }} />
                               </div>
                             </div>
                           )}
@@ -1023,7 +1005,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                             </span>
                           </div>
                           {isComplete ? (
-                            <CheckCircle size={18} style={{ color: '#93C5FD', flexShrink: 0, marginTop: 2 }} />
+                            <CheckCircle size={18} style={{ color: 'var(--dw-plan-light)', flexShrink: 0, marginTop: 2 }} />
                           ) : (
                             <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', marginTop: 2 }}>
                               {isBookPlan ? `Ch ${completedCount}/${totalItems}` : `Day ${calcPlanDay(progress.startedAt, totalItems)}/${totalItems}`}
@@ -1033,7 +1015,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                         <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
                           <div style={{
                             width: `${pct}%`, height: '100%',
-                            background: isComplete ? '#93C5FD' : '#2563EB',
+                            background: isComplete ? 'var(--dw-plan-light)' : 'var(--dw-plan)',
                             borderRadius: 2, transition: 'width 300ms ease',
                           }} />
                         </div>
@@ -1145,7 +1127,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                           {isActive ? (
                             <div style={{
                               position: 'absolute', top: 14, right: 14,
-                              background: isConfirmingDeactivate ? '#c0392b' : '#2563EB',
+                              background: isConfirmingDeactivate ? '#c0392b' : 'var(--dw-plan)',
                               borderRadius: 999, padding: '2px 9px',
                               fontSize: 10, fontWeight: 700, color: '#fff',
                               fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
@@ -1187,7 +1169,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 </span>
                               </div>
                               <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 2 }} />
+                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: 'var(--dw-plan)', borderRadius: 2 }} />
                               </div>
                             </div>
                           )}
@@ -1202,7 +1184,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 </span>
                               </div>
                               <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: '#2563EB', borderRadius: 2 }} />
+                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: 'var(--dw-plan)', borderRadius: 2 }} />
                               </div>
                             </div>
                           )}

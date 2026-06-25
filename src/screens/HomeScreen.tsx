@@ -34,7 +34,8 @@ import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
 // import { isSundayWindow } from '../utils/sunday';
-import { schedulePush } from '../utils/cloudSync';
+import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
+import { getStreak, recordStreakToday } from '../utils/streak';
 import { t as tI18n, tField, getLang } from '../utils/i18n';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
@@ -253,56 +254,8 @@ const COMFORT_DEVOTIONS: Record<string, { title: string; body: string; titleId: 
   },
 };
 
-// ── Streak helpers ──────────────────────────────────────────────
-function getStreak(): { count: number; freezesAvailable: number } {
-  try {
-    return JSON.parse(localStorage.getItem('dw_streak_v2') || '{"count":0,"lastDate":"","freezesAvailable":1,"lastFreezeWeek":""}');
-  } catch { return { count: 0, freezesAvailable: 1 }; }
-}
-
-function recordStreakToday(): { count: number; isNew: boolean; isMilestone: boolean } {
-  const today = new Date().toISOString().slice(0, 10);
-  const thisWeek = (() => { const d = new Date(); return `${d.getFullYear()}-W${Math.ceil(d.getDate()/7)}`; })();
-  try {
-    const raw = JSON.parse(localStorage.getItem('dw_streak_v2') || '{"count":0,"lastDate":"","freezesAvailable":1,"lastFreezeWeek":""}');
-    if (raw.lastDate === today) return { count: raw.count, isNew: false, isMilestone: false };
-
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    const yStr = yesterday.toISOString().slice(0, 10);
-    const dayBefore = new Date(); dayBefore.setDate(dayBefore.getDate() - 2);
-    const dbStr = dayBefore.toISOString().slice(0, 10);
-
-    // Replenish freeze weekly
-    const freezesAvailable = raw.lastFreezeWeek !== thisWeek ? 1 : (raw.freezesAvailable ?? 1);
-
-    let newCount: number;
-    if (raw.lastDate === yStr) {
-      // Consecutive day
-      newCount = (raw.count || 0) + 1;
-    } else if (raw.lastDate === dbStr && freezesAvailable > 0) {
-      // Missed one day — auto-apply freeze grace
-      newCount = (raw.count || 0) + 1;
-      const saved = { count: newCount, lastDate: today, freezesAvailable: freezesAvailable - 1, lastFreezeWeek: thisWeek };
-      localStorage.setItem('dw_streak_v2', JSON.stringify(saved));
-      try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-      const milestones = [7, 14, 30, 60, 100, 365];
-      return { count: newCount, isNew: true, isMilestone: milestones.includes(newCount) };
-    } else {
-      // Streak broken
-      newCount = 1;
-    }
-
-    const saved = { count: newCount, lastDate: today, freezesAvailable, lastFreezeWeek: raw.lastFreezeWeek || '' };
-    localStorage.setItem('dw_streak_v2', JSON.stringify(saved));
-    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-    const milestones = [7, 14, 30, 60, 100, 365];
-    return { count: newCount, isNew: true, isMilestone: milestones.includes(newCount) };
-  } catch {
-    localStorage.setItem('dw_streak_v2', JSON.stringify({ count: 1, lastDate: today, freezesAvailable: 1, lastFreezeWeek: thisWeek }));
-    try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
-    return { count: 1, isNew: true, isMilestone: false };
-  }
-}
+// Streak logic now lives in one shared module (src/utils/streak.ts) so Home and
+// Plans can't diverge. getStreak / recordStreakToday are imported at the top.
 
 // ── Daily Word of the Day ────────────────────────────────────────
 const DAILY_WORDS = [
@@ -710,7 +663,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
   const saveReadingSlots = (slots: ReadingSlot[]) => {
     setReadingSlots(slots);
-    try { localStorage.setItem('dw_reading_slots', JSON.stringify(slots)); } catch {}
+    syncMisc('dw_reading_slots', JSON.stringify(slots));
   };
 
   const addReadingSlot = (book: string) => {
@@ -1112,7 +1065,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const handleSetupComplete = (newChapters: number, planIds: string[]) => {
     // Save chapters per day
     setChaptersPerDay(newChapters);
-    localStorage.setItem('dw_chapters_per_day', String(newChapters));
+    syncMisc('dw_chapters_per_day', String(newChapters));
     // Start selected plans
     if (planIds.length > 0) {
       const existing: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
@@ -2639,7 +2592,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           style={{
             margin: '12px 0',
             padding: '20px',
-            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, var(--dw-plan-deep) 0%, var(--dw-plan) 50%, #2563eb 100%)',
             borderRadius: '16px',
             cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
@@ -2730,7 +2683,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         <UpgradePromptCard
           persona={setup?.persona || 'congregation'}
           onUpgrade={(newPersona) => {
-            saveSetup({ persona: newPersona, source: setup?.source || '' });
+            // Deliberate persona change → real-choice source so it stamps + syncs
+            // (the prior source could be 'default', which saveSetup would skip).
+            saveSetup({ persona: newPersona, source: 'upgrade' });
+            flushNow(); // push before the reload cancels the debounced push
             window.location.reload();
           }}
         />
@@ -2882,8 +2838,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)',
                         letterSpacing: '0.04em', cursor: 'pointer',
                         transition: 'all 0.15s ease',
-                        border: t === translation ? '1.5px solid #5B7085' : '1.5px solid var(--dw-border)',
-                        background: t === translation ? '#5B7085' : 'transparent',
+                        border: t === translation ? '1.5px solid var(--dw-slate-fill)' : '1.5px solid var(--dw-border)',
+                        background: t === translation ? 'var(--dw-slate-fill)' : 'transparent',
                         color: t === translation ? '#fff' : 'var(--dw-text-muted)',
                       }}
                     >
@@ -2901,7 +2857,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     onClick={() => handleListen(comfortPassage)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 6,
-                      background: comfortIsPlaying ? '#4A6070' : '#5B7085',
+                      background: comfortIsPlaying ? '#4A6070' : 'var(--dw-slate-fill)',
                       border: 'none', borderRadius: 10, padding: '8px 14px',
                       fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       color: '#fff', fontFamily: 'var(--font-sans)',
@@ -2935,7 +2891,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   <button
                     onClick={() => loadPassage(comfortPassage)}
                     style={{
-                      background: 'rgba(92,107,192,0.1)', border: '1px solid #5B7085',
+                      background: 'rgba(92,107,192,0.1)', border: '1px solid var(--dw-slate-fill)',
                       borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
                       cursor: 'pointer', color: 'var(--dw-slate)', fontFamily: 'var(--font-sans)',
                       display: 'flex', alignItems: 'center', gap: 6,
@@ -2964,7 +2920,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         setComfortPostRead('devotion');
                       }}
                       style={{
-                        background: '#5B7085', border: 'none', borderRadius: 10,
+                        background: 'var(--dw-slate-fill)', border: 'none', borderRadius: 10,
                         padding: '10px 20px', fontSize: 14, fontWeight: 600,
                         cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
@@ -3017,7 +2973,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       onClick={() => setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more')}
                       style={{
                         width: '100%', padding: '12px 16px', borderRadius: 10,
-                        background: '#5B7085', border: 'none',
+                        background: 'var(--dw-slate-fill)', border: 'none',
                         fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
@@ -3043,7 +2999,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       }}
                       style={{
                         padding: '10px 20px', borderRadius: 10,
-                        background: '#5B7085', border: 'none',
+                        background: 'var(--dw-slate-fill)', border: 'none',
                         fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
@@ -3083,7 +3039,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         key={opt.n}
                         onClick={() => {
                           setComfortDailyAmount(opt.n);
-                          try { localStorage.setItem('dw_comfort_daily', String(opt.n)); } catch {}
+                          syncMisc('dw_comfort_daily', String(opt.n));
                           setComfortPostRead('done');
                         }}
                         style={{
@@ -3104,7 +3060,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       }}
                       style={{
                         padding: '10px 16px', borderRadius: 10,
-                        background: '#5B7085', border: 'none',
+                        background: 'var(--dw-slate-fill)', border: 'none',
                         fontSize: 14, fontWeight: 600, cursor: 'pointer',
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
@@ -3242,7 +3198,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               )}
 
               {/* Reflection prompt */}
-              <div style={{
+              <div className={isComfort ? undefined : 'dw-dark-surface'} style={{
                 marginTop: 16, padding: '12px 14px',
                 background: isComfort ? 'linear-gradient(135deg, rgba(92,107,192,0.08) 0%, rgba(92,107,192,0.03) 100%)' : 'var(--dw-charcoal)',
                 borderRadius: 10,
@@ -4406,7 +4362,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     <div style={{
                       background: 'var(--dw-card)',
                       border: '1px solid rgba(37,99,235,0.3)',
-                      borderLeft: '3px solid #2563EB',
+                      borderLeft: '3px solid var(--dw-plan)',
                       borderRadius: 10,
                       padding: '10px 14px',
                     }}>
@@ -4415,7 +4371,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           {tField(plan, 'title', lang)}
                         </span>
                         <span style={{
-                          fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : 'var(--dw-info)',
+                          fontSize: 10, fontWeight: 700, color: isComplete ? 'var(--dw-plan-light)' : 'var(--dw-info)',
                           fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)',
                           padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
                         }}>
@@ -4425,7 +4381,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
                         <div style={{
                           width: `${pct}%`, height: '100%',
-                          background: isComplete ? '#93C5FD' : 'linear-gradient(90deg, #2563EB, #60A5FA)',
+                          background: isComplete ? 'var(--dw-plan-light)' : 'linear-gradient(90deg, var(--dw-plan), var(--dw-plan-light))',
                           borderRadius: 2, transition: 'width 400ms ease',
                         }} />
                       </div>

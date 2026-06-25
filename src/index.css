@@ -187,6 +187,13 @@
   --dw-info: #6EA0F0;    /* was hardcoded #2563EB blue */
   --dw-purple: #C58AE8;  /* was hardcoded #6B21A8 */
   --dw-slate: #9DB2C9;   /* was hardcoded #5B7085 */
+  /* Plans/Pathway accent — tokenised (was ~17 raw hardcoded iOS-blues). Kept
+     theme-stable for now because most are fills carrying white text; retune here
+     centrally if the Plans feature is ever rebranded into the red/gold family. */
+  --dw-plan: #2563EB;
+  --dw-plan-light: #93C5FD;
+  --dw-plan-deep: #1E40AF;
+  --dw-slate-fill: #5B7085;
   --dw-text: #F2EDE5;
   --dw-text-primary: #F2EDE5;
   --dw-text-secondary: #C4BCB2;
@@ -243,6 +250,10 @@
   --dw-info: #2563EB;
   --dw-purple: #6B21A8;
   --dw-slate: #5B7085;
+  --dw-plan: #2563EB;
+  --dw-plan-light: #93C5FD;
+  --dw-plan-deep: #1E40AF;
+  --dw-slate-fill: #5B7085;
   --dw-text: #1A1714;
   --dw-text-primary: #050505;
   --dw-text-secondary: #111111;
@@ -560,23 +571,10 @@ sup {
    "Contrast Fix Overrides" block above; fix leaks at the component, not here.
    ============================================ */
 
-/* === CONTRAST FIX: White text on dark charcoal backgrounds === */
-[style*="charcoal"] {
-  color: #fff !important;
-  }
-  [style*="charcoal"] * {
-    color: #fff !important;
-    }
-    [style*="charcoal"] svg path {
-      stroke: #fff !important;
-      }
-      [style*="charcoal"] svg polyline {
-        stroke: #fff !important;
-        }
-        [style*="charcoal"] svg line {
-          stroke: #fff !important;
-          }
-          
+/* (removed) the brittle [style*="charcoal"] substring override — replaced by the
+   explicit .dw-dark-surface class (below) applied to every charcoal-bg container.
+   lucide icons use stroke:currentColor, so the class's color:#fff also whitens them. */
+
 
 /* === CONTRAST FIX: Dark text on gold gradient buttons (dark mode) === */
 :root:not([data-theme="light"]) button[style*="linear-gradient"] {

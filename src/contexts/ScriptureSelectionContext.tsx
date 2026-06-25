@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { schedulePush } from '../utils/cloudSync';
+import { schedulePush, pushNow } from '../utils/cloudSync';
 
 export interface ScriptureHighlight {
   verseKey: string;
@@ -175,10 +175,23 @@ export function ScriptureSelectionProvider({ children }: { children: ReactNode }
   const clearHighlights = useCallback(() => {
     setHighlights({});
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
-    // Clear matching auto-saved, untouched journal entries too.
+    // Tombstone matching auto-saved, untouched journal entries (do NOT hard-delete —
+    // a plain removal would be resurrected by the cloud merge on another device, the
+    // exact bug the tombstone work fixed for the normal delete path).
     const entries = readJournal();
-    const remaining = entries.filter(e => !(e.autoSaved && (!e.body || !e.body.trim())));
-    if (remaining.length !== entries.length) writeJournal(remaining);
+    let changed = false;
+    const next = entries.map(e => {
+      if (e.autoSaved && (!e.body || !e.body.trim()) && !e.deleted) {
+        changed = true;
+        return { ...e, deleted: true, body: '', title: '', updatedAt: new Date().toISOString() };
+      }
+      return e;
+    });
+    // writeJournal dispatches dw-journal-updated + schedulePush (which also pushes the
+    // now-cleared highlights map); if there were no entries to tombstone, still push
+    // so the cleared highlights propagate instead of being restored from the cloud.
+    if (changed) writeJournal(next);
+    else pushNow();
   }, []);
 
   return (
