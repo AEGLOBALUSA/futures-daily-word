@@ -8,6 +8,7 @@ import { SeamBar } from './components/Seam';
 import { EmailGate } from './components/EmailGate';
 import { BibleAI } from './components/BibleAI';
 import { PathwayPicker } from './components/PathwayPicker';
+import { ScreenSkeleton } from './components/Skeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CookieConsent } from './components/CookieConsent';
 import type { TabId } from './components/TabBar';
@@ -59,17 +60,9 @@ const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ defa
 const MoreScreen = lazy(() => import('./screens/MoreScreen').then(m => ({ default: m.MoreScreen })));
 const SermonNotesScreen = lazy(() => import('./screens/SermonNotesScreen').then(m => ({ default: m.SermonNotesScreen })));
 
-/** Minimal loading spinner shown while a screen chunk downloads */
+/** Content-shaped skeleton shown while a screen chunk downloads */
 function ScreenLoader() {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '60vh', fontFamily: 'var(--font-sans)', color: 'var(--dw-text-muted)',
-      fontSize: 14,
-    }}>
-      Loading…
-    </div>
-  );
+  return <ScreenSkeleton />;
 }
 
 /** Live region for screen reader announcements of audio state changes */

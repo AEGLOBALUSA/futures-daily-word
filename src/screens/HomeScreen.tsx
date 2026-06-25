@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw } from 'lucide-react';
+import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
 import { fetchPassage } from '../utils/api';
@@ -2337,10 +2338,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
               {/* Scripture text */}
               {isLoading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-                  <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
-                </div>
+                <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
               ) : passageText ? (
                 <ScripturePassage
                   text={passageText}
@@ -2451,10 +2449,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
                     {/* Scripture text — with word-tap for Greek/Hebrew */}
                     {isLoading ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-                        <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
-                      </div>
+                      <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
                     ) : txt ? (
                       <>
                         <ScripturePassage
@@ -2777,10 +2772,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     fontSize={scriptureFontSize}
                   />
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
-                  </div>
+                  <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
                 )}
               </div>
               {/* Plan-level devotionals suppressed — single devotion shown in main card above */}
