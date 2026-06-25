@@ -171,7 +171,7 @@ function AppContent() {
     hideSplash();
     if (isNative() && userProfile?.email) {
       registerNativePush((token) => {
-        fetch(`${API_BASE}/api/subscribe-push`, {
+        fetch(`${API_BASE}/api/push-subscribe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

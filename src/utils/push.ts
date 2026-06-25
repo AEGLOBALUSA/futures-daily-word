@@ -43,13 +43,19 @@ export async function subscribePush(email: string): Promise<boolean> {
       });
     }
 
-    // Send subscription to server
-    const res = await fetch(`${API_BASE}/api/subscribe-push`, {
+    // Register with the server. The function is `push-subscribe` (NOT subscribe-push —
+    // that route 404'd, which is why subscriptions silently never persisted). It needs
+    // an explicit action, plus timezone + preferred hour so the daily cron can fire at
+    // the right local time.
+    const res = await fetch(`${API_BASE}/api/push-subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        action: 'subscribe',
         email,
         subscription: subscription.toJSON(),
+        timezone: getTimeZone(),
+        preferredHour: getPushHour(),
         lang: getLang(),
       }),
     });
@@ -70,6 +76,15 @@ export async function unsubscribePush(): Promise<void> {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
+      // Tell the server to stop sending BEFORE dropping the local subscription,
+      // otherwise the cron keeps trying to push to a dead endpoint.
+      try {
+        await fetch(`${API_BASE}/api/push-subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'unsubscribe', subscription: subscription.toJSON() }),
+        });
+      } catch { /* best-effort */ }
       await subscription.unsubscribe();
     }
     localStorage.removeItem('dw_push');
@@ -80,4 +95,40 @@ export async function unsubscribePush(): Promise<void> {
 
 export function isPushSubscribed(): boolean {
   return localStorage.getItem('dw_push') === 'subscribed';
+}
+
+const PUSH_HOUR_KEY = 'dw_push_hour';
+
+/** The user's preferred daily-reminder hour (0–23, local time). Defaults to 7am. */
+export function getPushHour(): number {
+  const h = parseInt(localStorage.getItem(PUSH_HOUR_KEY) || '7', 10);
+  return Number.isFinite(h) && h >= 0 && h <= 23 ? h : 7;
+}
+
+function getTimeZone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'; }
+  catch { return 'America/New_York'; }
+}
+
+/** Change the daily-reminder hour for an existing subscription (0–23, local time). */
+export async function updatePushTime(hour: number): Promise<boolean> {
+  try {
+    localStorage.setItem(PUSH_HOUR_KEY, String(hour));
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) return false;
+    const res = await fetch(`${API_BASE}/api/push-subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update',
+        subscription: subscription.toJSON(),
+        preferredHour: hour,
+        timezone: getTimeZone(),
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
