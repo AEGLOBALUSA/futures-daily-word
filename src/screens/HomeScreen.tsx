@@ -41,6 +41,7 @@ import { BIBLE_BOOKS, BOOK_CHAPTERS } from '../data/bible-books';
 import { ComfortSection } from '../components/ComfortSection';
 import { PastorStudyOnboarding } from '../components/PastorStudyOnboarding';
 import { NewBelieverLessonCard } from '../components/NewBelieverLessonCard';
+import { InlineReflection } from '../components/InlineReflection';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 import { t as tI18n, tField, getLang } from '../utils/i18n';
 
@@ -1846,6 +1847,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {translation}</span>
                       </p>
                       {readText ? (
+                        <>
                         <div style={{
                           // Force dark-mode colors so ScripturePassage is readable against #1C1A16 bg
                           // even when the app is in light mode
@@ -1862,6 +1864,17 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                             fontSize={19}
                           />
                         </div>
+                        {/* Read → reflect, in place: a one-tap journal capture right under the passage.
+                            key={readRef} remounts it per chapter so the panel (which stays mounted as
+                            the chapter auto-advances) never shows a stale 'Saved' state for a prior chapter. */}
+                        <InlineReflection
+                          key={readRef}
+                          tone="default"
+                          label="Reflect"
+                          prompt="What stood out to you in today's reading?"
+                          verseRef={readRef}
+                        />
+                        </>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
                           <Loader2 size={20} style={{ color: '#A09080', animation: 'spin 1s linear infinite' }} />
@@ -2350,22 +2363,18 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 </button>
               )}
 
-              {/* Reflection prompt */}
-              <div className={isComfort ? undefined : 'dw-dark-surface'} style={{
-                marginTop: 16, padding: '12px 14px',
-                background: isComfort ? 'linear-gradient(135deg, rgba(92,107,192,0.08) 0%, rgba(92,107,192,0.03) 100%)' : 'var(--dw-charcoal)',
-                borderRadius: 10,
-                border: isComfort ? '1px solid rgba(92,107,192,0.15)' : '1px solid rgba(255,255,255,0.06)',
-              }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {isComfort ? 'Sit with this' : 'Reflect'}
-                </p>
-                <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0, fontStyle: 'italic' }}>
-                  {isComfort
-                    ? 'Which words brought you the most peace today?'
-                    : 'What stood out to you in today\'s reading?'}
-                </p>
-              </div>
+              {/* Reflection prompt — now an inline one-tap journal capture */}
+              <InlineReflection
+                tone={isComfort ? 'comfort' : 'default'}
+                label={isComfort ? 'Sit with this' : 'Reflect'}
+                prompt={isComfort
+                  ? 'Which words brought you the most peace today?'
+                  : 'What stood out to you in today\'s reading?'}
+                verseRef={devPassage}
+              />
+              {/* NOTE: the enclosing section gates on the never-set 'devotion_scripture'
+                  key, so this is dead until that section is revived; the live reflection
+                  lives in the hero reading panel below. */}
             </Card>
           );
         })()}

@@ -738,6 +738,10 @@ button:not(:disabled):active,
   transform: scale(0.97);
 }
 
+/* Readable placeholder for the inline-reflection textarea on the dark charcoal card
+   (the .dw-dark-surface * white-text rule doesn't reach the ::placeholder pseudo). */
+.dw-reflect-dark::placeholder { color: rgba(255, 255, 255, 0.42); }
+
 /* Respect users who prefer reduced motion — disables all animations globally,
    including inline <style> blocks in TSX components. */
 @media (prefers-reduced-motion: reduce) {
