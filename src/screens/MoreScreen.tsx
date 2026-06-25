@@ -63,6 +63,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
+  // Bump to re-render in place after a translation/font change — the selected-state
+  // reads dw_translation / dw_font_size from localStorage per render (was a full reload).
+  const [, setSettingsRev] = useState(0);
 
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
@@ -144,12 +147,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     localStorage.setItem('dw_translation', t);
     localStorage.setItem('dw_translation_manual', 'true');
     track('translation_switch', t);
-    window.location.reload();
+    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_translation on return
   };
 
   const handleFontSelect = (val: number) => {
     localStorage.setItem('dw_font_size', String(val));
-    window.location.reload();
+    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_font_size on return
   };
 
   const handleLangSelect = (val: string) => {
@@ -162,10 +165,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
       localStorage.removeItem('dw_translation_manual'); // clear manual override flag
     }
     track('language_change', val);
-    // Force an immediate (keepalive) push before the reload tears the page down —
-    // the debounced push would otherwise be cancelled and the change lost.
+    // Back up the language choice immediately (cross-device). setLangPref already fired
+    // dw-lang-changed, which this screen listens for to re-translate in place — no reload.
     flushNow();
-    window.location.reload();
   };
 
   const handleUserStorySave = (story: string) => {
