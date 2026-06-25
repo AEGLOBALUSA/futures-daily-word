@@ -301,6 +301,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     try { return localStorage.getItem('dw_reading_done') === new Date().toISOString().slice(0, 10); } catch { return false; }
   });
   const [doneCelebration, setDoneCelebration] = useState<number | null>(null);
+  const [planFinish, setPlanFinish] = useState<{ title: string; days: number } | null>(null);
   const dailyWord = getDailyWord();
   // Emoji reaction
   // Weekly review
@@ -441,14 +442,17 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   }, [passageTexts]);
 
   /** Mark the current plan day as completed for a given passage */
-  const markPlanDayComplete = (passage: string) => {
+  // Marks the plan day complete and reports whether this completion FINISHED the whole
+  // plan (all days done) — once, via a finishedCelebrated guard — so the finish-line
+  // celebration fires exactly once.
+  const markPlanDayComplete = (passage: string): { planFinished: boolean; planTitle: string; planDays: number } | null => {
     try {
       const planEntry = todaysPlanPassages.find(p => p.passage === passage);
-      if (!planEntry) return;
-      const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
+      if (!planEntry) return null;
+      const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number; finishedCelebrated?: boolean }> =
         JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       const prog = ap[planEntry.planId];
-      if (!prog) return;
+      if (!prog) return null;
       if (!Array.isArray(prog.completedDays)) prog.completedDays = [];
       if (!prog.completedDays.includes(planEntry.dayNum)) {
         prog.completedDays.push(planEntry.dayNum);
@@ -456,7 +460,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         localStorage.setItem('dw_activeplans', JSON.stringify(ap));
         try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       }
-    } catch {}
+      const planDef = PLAN_CATALOGUE.find(p => p.id === planEntry.planId);
+      const total = planDef?.totalDays || 0;
+      if (total > 0 && prog.completedDays.length >= total && !prog.finishedCelebrated) {
+        prog.finishedCelebrated = true;
+        localStorage.setItem('dw_activeplans', JSON.stringify(ap));
+        return { planFinished: true, planTitle: planDef?.title || 'your plan', planDays: total };
+      }
+      return { planFinished: false, planTitle: planDef?.title || '', planDays: total };
+    } catch { return null; }
   };
 
   // Read: expand + load + mark plan day complete. Listen: expand + load + play audio when ready.
@@ -467,11 +479,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     const today = new Date().toISOString().slice(0, 10);
     if (localStorage.getItem('dw_reading_done') === today) { setReadDoneToday(true); return; }
     try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
-    markPlanDayComplete(passage);
+    const result = markPlanDayComplete(passage);
     recordStreakToday();
     setReadDoneToday(true);
-    setDoneCelebration(getStreak().count);
     hapticTap(18);
+    if (result?.planFinished) {
+      setPlanFinish({ title: result.planTitle, days: result.planDays });
+    } else {
+      setDoneCelebration(getStreak().count);
+    }
   };
 
   const handleRead = (passage: string) => {
@@ -1152,6 +1168,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     <div className="screen-container">
       {doneCelebration !== null && (
         <DoneCelebration streakCount={doneCelebration} onClose={() => setDoneCelebration(null)} />
+      )}
+      {planFinish !== null && (
+        <DoneCelebration streakCount={0} planFinish={planFinish} onClose={() => setPlanFinish(null)} />
       )}
       {showSetupModal && (
         <SetupPromptModal
