@@ -326,7 +326,7 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
                     {selection.verseRefs[0]}
                   </p>
                 )}
-                <p style={{ fontSize: 13, color: 'var(--dw-text)', lineHeight: 1.6, fontStyle: 'italic' }}>
+                <p style={{ fontSize: 13, color: 'var(--dw-text)', lineHeight: 1.6, fontStyle: 'normal' }}>
                   "{selection.text.slice(0, 200)}{selection.text.length > 200 ? '…' : ''}"
                 </p>
               </div>

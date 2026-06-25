@@ -742,7 +742,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                   textAlign: 'left',
                   fontSize: 13,
                   color: 'var(--dw-text)',
-                  fontStyle: 'italic',
+                  fontStyle: 'normal',
                   lineHeight: 1.5,
                 }}>
                   {selectedText.substring(0, 200)}{selectedText.length > 200 ? '…' : ''}

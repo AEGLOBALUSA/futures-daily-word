@@ -122,7 +122,7 @@ export function ComfortSection({
                 {comfortIsLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                     <Loader2 size={14} style={{ color: 'var(--dw-slate)', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading…</span>
+                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'normal', fontFamily: 'var(--font-sans)' }}>Loading…</span>
                   </div>
                 ) : comfortText ? (
                   <ScripturePassage
@@ -155,7 +155,7 @@ export function ComfortSection({
                     border: '1px solid rgba(92,107,192,0.12)',
                     textAlign: 'center',
                   }}>
-                    <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: '0 0 14px', fontStyle: 'italic' }}>
+                    <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: '0 0 14px', fontStyle: 'normal' }}>
                       Which words brought you the most peace?
                     </p>
                     <button
@@ -329,7 +329,7 @@ export function ComfortSection({
 
               {comfortPostRead === 'done' && (
                 <Card style={{ marginTop: 12, textAlign: 'center', padding: '16px' }}>
-                  <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'normal' }}>
                     {comfortDailyAmount > 0
                       ? `You're set for ${comfortDailyAmount} chapter${comfortDailyAmount > 1 ? 's' : ''} a day. We'll have something ready for you tomorrow.`
                       : 'God is with you. Come back whenever you need Him.'}

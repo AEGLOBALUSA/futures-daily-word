@@ -396,7 +396,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
                       <p style={{
                         fontSize: 12, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)',
                         marginTop: 12, paddingTop: 8, borderTop: '1px solid var(--dw-border-subtle)',
-                        fontStyle: 'italic',
+                        fontStyle: 'normal',
                       }}>
                         -- {item.author}
                       </p>
@@ -600,7 +600,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
 
       {/* ── Key Verse ── */}
       <div style={{ margin: '0 24px 36px', padding: '24px 20px', borderRadius: 16, background: 'var(--dw-card)', borderLeft: '4px solid var(--dw-accent)' }}>
-        <p style={{ fontSize: 19, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'italic', margin: 0 }}>
+        <p style={{ fontSize: 19, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'normal', margin: 0 }}>
           {sermon.keyVerseText}
         </p>
       </div>
@@ -691,7 +691,7 @@ function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () =
                   return verses.map((verse, v) => (
                     <p key={v} style={{
                       fontSize: 18, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
-                      color: 'var(--dw-text-primary)', fontStyle: 'italic',
+                      color: 'var(--dw-text-primary)', fontStyle: 'normal',
                       marginBottom: v < verses.length - 1 ? 14 : 0,
                     }}>
                       {verse}
@@ -1121,7 +1121,7 @@ function PrayerWallPanel({
         {prayers.length > 0 && (
           <p style={{
             textAlign: 'center', fontSize: 11, color: 'var(--dw-text-muted)',
-            fontFamily: 'var(--font-sans)', marginTop: 8, fontStyle: 'italic',
+            fontFamily: 'var(--font-sans)', marginTop: 8, fontStyle: 'normal',
           }}>
             {prayers.length} prayer request{prayers.length !== 1 ? 's' : ''} across the global church
           </p>

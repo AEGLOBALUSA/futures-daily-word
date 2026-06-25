@@ -1409,12 +1409,12 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             <div key="hero-no-plan" style={{
               position: 'relative', borderRadius: 24, overflow: 'hidden',
               marginBottom: 20,
-              boxShadow: '0 24px 64px rgba(168,50,59,0.22), 0 6px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
+              boxShadow: '0 20px 48px rgba(232,85,70,0.20), 0 6px 18px rgba(70,194,200,0.12), inset 0 1px 0 rgba(255,255,255,0.18)',
               border: '1px solid rgba(255,255,255,0.13)',
             }}>
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(145deg, #FF3B52 0%, #D42F44 12%, #8B1A26 28%, #3A0810 48%, #6B1A22 62%, #B83040 78%, #E84858 92%, #D42F44 100%)',
+                background: 'linear-gradient(150deg, #FF8A6B 0%, #FF6F61 25%, #F76A88 47%, #9B7BD0 68%, #46C2C8 100%)',
                 backgroundSize: '350% 350%', animation: 'heroColorWave 5s ease infinite',
               }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)' }} />
@@ -1460,14 +1460,14 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 borderRadius: 24,
                 overflow: 'hidden',
                 marginBottom: 20,
-                boxShadow: '0 24px 64px rgba(168,50,59,0.22), 0 6px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.14)',
+                boxShadow: '0 20px 48px rgba(232,85,70,0.20), 0 6px 18px rgba(70,194,200,0.12), inset 0 1px 0 rgba(255,255,255,0.18)',
                 border: '1px solid rgba(255,255,255,0.13)',
               }}
             >
               {/* ── Layer 1: animated wave gradient — deep crimson rolls through near-black ── */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(145deg, #FF3B52 0%, #D42F44 12%, #8B1A26 28%, #3A0810 48%, #6B1A22 62%, #B83040 78%, #E84858 92%, #D42F44 100%)',
+                background: 'linear-gradient(150deg, #FF8A6B 0%, #FF6F61 25%, #F76A88 47%, #9B7BD0 68%, #46C2C8 100%)',
                 backgroundSize: '350% 350%',
                 animation: 'heroColorWave 5s ease infinite',
               }} />
@@ -1877,8 +1877,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       overflowY: 'auto',
                       padding: '28px 28px 40px',
                       WebkitOverflowScrolling: 'touch',
-                      background: '#1C1A16',
-                      borderTop: '1px solid rgba(160,140,110,0.15)',
+                      background: '#FFFFFF',
+                      borderTop: '1px solid rgba(120,170,140,0.15)',
                       borderBottomLeftRadius: 24,
                       borderBottomRightRadius: 24,
                       maxHeight: '60vh',
@@ -1892,7 +1892,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       <p style={{
                         fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
                         textTransform: 'uppercase',
-                        color: '#A09080',
+                        color: '#5C8A6E',
                         fontFamily: 'var(--font-sans)', marginBottom: 20, marginTop: 4,
                       }}>
                         {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {translation}</span>
@@ -1902,9 +1902,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         <div style={{
                           // Force dark-mode colors so ScripturePassage is readable against #1C1A16 bg
                           // even when the app is in light mode
-                          ['--dw-text-secondary' as any]: '#E8E2D8',
-                          ['--dw-text-muted' as any]: '#A09080',
-                          ['--dw-border' as any]: 'rgba(160,140,110,0.2)',
+                          ['--dw-text-secondary' as any]: '#1F2A23',
+                          ['--dw-text-muted' as any]: '#5C8A6E',
+                          ['--dw-border' as any]: 'rgba(120,170,140,0.2)',
                           ['--dw-surface-raised' as any]: 'rgba(255,255,255,0.06)',
                         }}>
                           <ScripturePassage
@@ -1930,9 +1930,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           disabled={readDoneToday}
                           style={{
                             width: '100%', marginTop: 14, padding: '12px', borderRadius: 12,
-                            border: readDoneToday ? '1px solid rgba(160,140,110,0.3)' : 'none',
+                            border: readDoneToday ? '1px solid rgba(120,170,140,0.3)' : 'none',
                             background: readDoneToday ? 'transparent' : 'var(--dw-success)',
-                            color: readDoneToday ? '#A09080' : '#fff',
+                            color: readDoneToday ? '#5C8A6E' : '#fff',
                             fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
                             cursor: readDoneToday ? 'default' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -1943,8 +1943,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         </>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
-                          <Loader2 size={20} style={{ color: '#A09080', animation: 'spin 1s linear infinite' }} />
-                          <span style={{ color: '#A09080', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
+                          <Loader2 size={20} style={{ color: '#5C8A6E', animation: 'spin 1s linear infinite' }} />
+                          <span style={{ color: '#5C8A6E', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
                         </div>
                       )}
                     </div>
@@ -2924,7 +2924,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               })()}
               </>
                         ) : (
-                          <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'italic' }}>
+                          <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'normal' }}>
                             Loading...
                           </p>
                         )}
@@ -3395,7 +3395,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 )}
               </div>
               {insight && (
-                <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', lineHeight: 1.55, marginBottom: suggestedPassages.length ? 12 : 0, fontStyle: 'italic' }}>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', lineHeight: 1.55, marginBottom: suggestedPassages.length ? 12 : 0, fontStyle: 'normal' }}>
                   {insight}
                 </p>
               )}

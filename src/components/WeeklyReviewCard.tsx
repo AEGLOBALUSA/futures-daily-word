@@ -51,7 +51,7 @@ export function WeeklyReviewCard({ weekReview, onDismiss, t }: WeeklyReviewCardP
                   </div>
                 ))}
               </div>
-              <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
+              <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'normal', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
                 {weekReview.question}
               </p>
             </Card>

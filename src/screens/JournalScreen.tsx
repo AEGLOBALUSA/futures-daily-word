@@ -1018,7 +1018,7 @@ function ScriptureModal({
                     </div>
                   </>
                 ) : (
-                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', fontStyle: 'italic' }}>
+                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', fontStyle: 'normal' }}>
                     {t('j_load_error', lang)}
                   </p>
                 )}
@@ -1241,7 +1241,7 @@ function NoteCard({ entry, onOpen, compact }: { entry: JournalEntry; onOpen: (e:
         }}>
           <p style={{
             fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.5,
-            fontStyle: 'italic', fontFamily: 'var(--font-serif-text)',
+            fontStyle: 'normal', fontFamily: 'var(--font-serif-text)',
             overflow: 'hidden', textOverflow: 'ellipsis',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           }}>
@@ -1384,7 +1384,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
                 {existingNote && (
                   <p style={{
                     fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
-                    lineHeight: 1.5, fontStyle: 'italic',
+                    lineHeight: 1.5, fontStyle: 'normal',
                     display: '-webkit-box', overflow: 'hidden',
                     WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                   }}>
@@ -1648,7 +1648,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
               <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--dw-accent)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 {editingEntry.verseRef}
               </p>
-              <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontStyle: 'italic', fontFamily: 'var(--font-serif-text)' }}>
+              <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontStyle: 'normal', fontFamily: 'var(--font-serif-text)' }}>
                 "{editingEntry.highlightedText}"
               </p>
             </div>
@@ -1679,7 +1679,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
               <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6, fontFamily: 'var(--font-sans)' }}>
                 {t('j_todays_prompt', lang)}
               </p>
-              <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-serif-text)', fontStyle: 'italic', margin: 0 }}>
+              <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-serif-text)', fontStyle: 'normal', margin: 0 }}>
                 {dailyPrompt}
               </p>
               <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', marginTop: 8, fontFamily: 'var(--font-sans)' }}>
