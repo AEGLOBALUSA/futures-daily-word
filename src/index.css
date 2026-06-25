@@ -743,6 +743,16 @@ sup {
   .dw-screen-skeleton { opacity: 1; animation: none; }
 }
 
+/* Done-celebration card — gentle fade + pop (calm, not confetti) */
+@keyframes dwFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dwPopIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dw-done-card { animation: none !important; }
+}
+
 /* Loading pulse — amber glow while audio is preparing */
 @keyframes heroLoadPulse {
   0%   { background: rgba(255,180,50,0.25); border-color: rgba(255,180,50,0.6); box-shadow: 0 0 0 0 rgba(255,180,50,0.3), 0 10px 32px rgba(0,0,0,0.35); }
