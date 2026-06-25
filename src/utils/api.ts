@@ -120,7 +120,13 @@ async function fetchKJV(passage: string): Promise<string> {
       if (Array.isArray(data)) {
         return data.map((v: { text: string }) => v.text).join(' ');
       }
-      return data.text || JSON.stringify(data);
+      // Bundled KJV chapter files are object-shaped: { book, chapter, verses: string[] }
+      if (Array.isArray(data.verses)) {
+        return data.verses
+          .map((v: string | { text: string }) => (typeof v === 'string' ? v : v.text))
+          .join(' ');
+      }
+      return data.text || '';
     }
   } catch {
     // Fall through to API
