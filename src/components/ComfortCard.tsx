@@ -123,7 +123,7 @@ export function ComfortCard() {
             lineHeight: 1.7,
             color: '#37474F',
             fontFamily: 'var(--font-serif-text, Georgia, serif)',
-            fontStyle: 'italic',
+            fontStyle: 'normal',
             margin: 0,
           }}>
             {prayer}

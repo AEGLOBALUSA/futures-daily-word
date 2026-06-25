@@ -208,7 +208,7 @@ export function NewBelieverLessonCard({
                     {isLoading ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                         <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'normal', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
                       </div>
                     ) : passageText ? (
                       <ScripturePassage

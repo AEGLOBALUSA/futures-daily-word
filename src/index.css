@@ -173,10 +173,10 @@
   --dw-charcoal: #1E1C19;
   --dw-charcoal-deep: #14120F;
   --dw-charcoal-light: #2C2A25;
-  --dw-accent: #DC535D;
-  --dw-accent-hover: #C94048;
-  --dw-accent-active: #B5363E;
-  --dw-accent-bg: rgba(220, 83, 93, 0.12);
+  --dw-accent: #F2705F;
+  --dw-accent-hover: #E55C4B;
+  --dw-accent-active: #CF4C3C;
+  --dw-accent-bg: rgba(242, 112, 95, 0.14);
   /* Success / "saved" — a calm green that belongs to the red+gold family,
      replacing the old iOS-blue #2563EB confirm state. */
   --dw-success: #4A7C59;
@@ -199,7 +199,7 @@
   --dw-text-secondary: #C4BCB2;
   --dw-text-muted: #8A827A;
   --dw-text-faint: #888179; /* AA-readable on dark surfaces (>=4.5:1), kept at/below muted so the hierarchy holds */
-  --dw-text-christ: #DC535D;
+  --dw-text-christ: #F2705F;
   --dw-border: #2E2A25;
   --dw-border-subtle: #231F1B;
 
@@ -217,7 +217,7 @@
   --dw-gold-soft: rgba(200, 144, 107, 0.16);
 
   --font-serif: 'DM Serif Display', 'Georgia', serif;
-  --font-serif-text: 'DM Serif Text', 'Georgia', serif;
+  --font-serif-text: 'Georgia', 'Cambria', 'Times New Roman', serif; /* upright reading serif — the bundled "DM Serif Text" file is italic; italics are reserved now */
   --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   /* Shared chrome face with the church site (eyebrows, tab labels, buttons, seam) */
   --font-ui: 'Inter Tight', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -231,48 +231,48 @@
 
 /* ---------- Light Mode ---------- */
 [data-theme="light"] {
-  --dw-canvas: #FFFFFF;
-  --dw-surface: #FDFCFB;
-  --dw-surface-hover: #F8F6F4;
-  --dw-surface-active: #F2F0ED;
-  --dw-card: #F5F3EF;
-  --dw-charcoal: #2E2C29;
-  --dw-charcoal-deep: #1F1E1C;
-  --dw-charcoal-light: #3D3A36;
-  --dw-accent: #A8323B;
-  --dw-accent-hover: #8C2830;
-  --dw-accent-active: #711F27;
-  --dw-accent-bg: rgba(168, 50, 59, 0.05);
-  /* Success / "saved" — deepened for contrast on light surfaces. */
-  --dw-success: #3E6B4A;
-  --dw-success-hover: #335A3D;
-  /* Secondary accent TEXT tints — original (AA-on-white) values for light mode. */
-  --dw-info: #2563EB;
-  --dw-purple: #6B21A8;
-  --dw-slate: #5B7085;
-  --dw-plan: #2563EB;
-  --dw-plan-light: #93C5FD;
-  --dw-plan-deep: #1E40AF;
-  --dw-slate-fill: #5B7085;
-  --dw-text: #1A1714;
-  --dw-text-primary: #050505;
-  --dw-text-secondary: #111111;
-  --dw-text-muted: #4A4A4A;
-  --dw-text-faint: #666666; /* AA-readable on light surfaces (>=4.5:1) */
-  --dw-text-christ: #A8323B;
-  --dw-border: #ECEAE7;
-  --dw-border-subtle: #F3F1EF;
+  /* Fresh spring/summer vibe — airy, clean, inviting. Soft mint-white ground,
+     warm coral as the brand-evolved accent, fresh emerald + sky as supports. */
+  --dw-canvas: #F6FAF6;
+  --dw-surface: #FFFFFF;
+  --dw-surface-hover: #EEF4EE;
+  --dw-surface-active: #E4EDE5;
+  --dw-card: #FFFFFF;
+  --dw-charcoal: #FFFFFF;        /* "card" surface — light in the fresh theme */
+  --dw-charcoal-deep: #EEF4EE;
+  --dw-charcoal-light: #FFFFFF;
+  --dw-accent: #E85546;          /* fresh coral (the brand red, grown into summer) */
+  --dw-accent-hover: #D8463A;
+  --dw-accent-active: #C13C30;
+  --dw-accent-bg: rgba(232, 85, 70, 0.08);
+  --dw-success: #1F9165;         /* fresh emerald */
+  --dw-success-hover: #1A7D57;
+  --dw-info: #2589C4;            /* fresh sky */
+  --dw-purple: #8B5CF6;
+  --dw-slate: #5E7C8C;
+  --dw-plan: #2589C4;            /* plans → fresh sky (was iOS blue) */
+  --dw-plan-light: #A9DCF2;
+  --dw-plan-deep: #1E7CB0;
+  --dw-slate-fill: #5E7C8C;
+  --dw-text: #1B2A22;
+  --dw-text-primary: #14201A;
+  --dw-text-secondary: #33443A;
+  --dw-text-muted: #54635A;
+  --dw-text-faint: #66726A;      /* AA on the fresh ground (>=4.5:1) */
+  --dw-text-christ: #C9453A;     /* deeper coral for text/links (AA) */
+  --dw-border: #E4EDE4;
+  --dw-border-subtle: #F0F5F0;
 
-  /* Scripture reading surface — warm parchment feel */
-  --dw-scripture-bg: #FAF7F2;
-  --dw-scripture-text: #2C2417;
-  --dw-scripture-label: #A0856A;
-  --dw-scripture-border: rgba(180,160,120,0.18);
+  /* Scripture reading surface — clean, fresh */
+  --dw-scripture-bg: #FFFFFF;
+  --dw-scripture-text: #1F2A23;
+  --dw-scripture-label: #5C8A6E;
+  --dw-scripture-border: rgba(120,170,140,0.20);
 
-  /* Connective gold — deepened for contrast on light surfaces */
-  --dw-gold: #8A5A3C;
-  --dw-gold-deep: #6E4427;
-  --dw-gold-soft: rgba(138, 90, 60, 0.10);
+  /* Connective accent — sunny gold seam */
+  --dw-gold: #C98A2E;
+  --dw-gold-deep: #A06E22;
+  --dw-gold-soft: rgba(201, 138, 46, 0.12);
 
   color-scheme: light;
 }
@@ -508,26 +508,26 @@ h2.text-section-header {
    Forces all low-contrast text to white on dark backgrounds
    ============================================ */
 
-/* Bible version selector pills */
-.version-pill,
-[class*="version"] button,
-[class*="Version"] button {
+/* Bible version selector pills (dark mode only) */
+:root:not([data-theme="light"]) .version-pill,
+:root:not([data-theme="light"]) [class*="version"] button,
+:root:not([data-theme="light"]) [class*="Version"] button {
   color: #FFFFFF !important;
 }
 
-/* Plan card subtitles and meta text */
-[class*="plan"] [class*="subtitle"],
-[class*="plan"] [class*="meta"],
-[class*="plan"] [class*="desc"],
-[class*="card"] [class*="subtitle"],
-[class*="card"] [class*="meta"] {
+/* Plan card subtitles and meta text (dark mode only) */
+:root:not([data-theme="light"]) [class*="plan"] [class*="subtitle"],
+:root:not([data-theme="light"]) [class*="plan"] [class*="meta"],
+:root:not([data-theme="light"]) [class*="plan"] [class*="desc"],
+:root:not([data-theme="light"]) [class*="card"] [class*="subtitle"],
+:root:not([data-theme="light"]) [class*="card"] [class*="meta"] {
   color: #FFFFFF !important;
 }
 
-/* Verse numbers */
-.verse-number,
-[class*="verse-num"],
-sup {
+/* Verse numbers (dark mode only — light mode uses the gold token) */
+:root:not([data-theme="light"]) .verse-number,
+:root:not([data-theme="light"]) [class*="verse-num"],
+:root:not([data-theme="light"]) sup {
   color: #D4D0CC !important;
 }
 
@@ -632,11 +632,15 @@ sup {
 
 /* ── WHITE TEXT on dark surfaces ── */
 /* .dw-btn-dark = individual buttons with a dark/colored background */
-/* .dw-dark-surface = containers with dark backgrounds; all children get white */
+/* .dw-btn-dark = dark buttons keep white text in any theme. .dw-dark-surface containers
+   only force white in DARK mode; in the fresh light theme they're light cards with normal
+   (dark) text — a clean, Bible-app-style look. */
 .dw-btn-dark,
-.dw-btn-dark *,
-.dw-dark-surface,
-.dw-dark-surface * {
+.dw-btn-dark * {
+  color: #FFFFFF !important;
+}
+:root:not([data-theme="light"]) .dw-dark-surface,
+:root:not([data-theme="light"]) .dw-dark-surface * {
   color: #FFFFFF !important;
 }
 
@@ -645,10 +649,8 @@ sup {
   color: #FFFFFF !important;
 }
 
-/* Hero card — uses inline border-radius: 24px + overflow: hidden */
-:root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] *:not(svg):not(path) {
-  color: #FFFFFF !important;
-}
+/* Hero-card controls get white text from the hero content's own inline color:#fff —
+   no blanket override, so the light scripture panel inside keeps its dark text. */
 /* "Browse Plans" hero button — dark bg + white text, kept white in light mode too */
 :root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] .dw-hero-light-btn,
 :root[data-theme="light"] [style*="border-radius: 24px"][style*="overflow: hidden"] .dw-hero-light-btn * {
@@ -820,7 +822,7 @@ button:not(:disabled):active,
 .dw-seam-name {
   font-family: var(--font-ui);
   font-size: 12px;
-  font-style: italic;
+  font-style: normal;
   font-weight: 500;
   white-space: nowrap;
   padding-right: 2px;
@@ -844,7 +846,7 @@ button:not(:disabled):active,
   border-top: 1px solid var(--dw-border);
 }
 .dw-seam-foot-brand { font-family: var(--font-serif); font-size: 20px; font-weight: 400; letter-spacing: -0.01em; }
-.dw-seam-foot-accent { font-style: italic; }
+.dw-seam-foot-accent { font-style: normal; }
 .dw-seam-foot-sub { font-family: var(--font-ui); font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 6px; }
 .dw-seam-foot-link { font-family: var(--font-ui); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; }
 .dw-seam-foot-copy { font-family: var(--font-ui); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 18px; }

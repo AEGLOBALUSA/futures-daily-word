@@ -76,7 +76,7 @@ export function WordOfDaySection() {
               <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 4px', fontWeight: 500 }}>
                 Word Family
               </p>
-              <p style={{ fontSize: 12, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'italic' }}>
+              <p style={{ fontSize: 12, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'normal' }}>
                 {dailyWord.family}
               </p>
             </div>

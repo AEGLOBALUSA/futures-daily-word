@@ -35,7 +35,7 @@ export function PastoralReflectionSection({
               </p>
               <p style={{
                 fontSize: 16, lineHeight: 1.5, color: 'var(--dw-text-primary)',
-                fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'italic', margin: 0,
+                fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'normal', margin: 0,
               }}>
                 {todayPrompt}
               </p>

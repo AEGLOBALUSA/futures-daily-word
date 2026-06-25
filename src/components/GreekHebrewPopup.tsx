@@ -88,7 +88,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
               {entry.word}
             </p>
             {entry.transliteration && (
-              <p style={{ fontSize: 14, color: '#C47B2B', fontWeight: 600, marginBottom: 14, fontStyle: 'italic' }}>
+              <p style={{ fontSize: 14, color: '#C47B2B', fontWeight: 600, marginBottom: 14, fontStyle: 'normal' }}>
                 {entry.transliteration}
               </p>
             )}

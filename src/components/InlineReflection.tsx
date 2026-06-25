@@ -82,14 +82,14 @@ export function InlineReflection({
           aria-label={`${label}: ${prompt}`}
           style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, width: '100%' }}
         >
-          <span style={{ fontSize: 14, color: comfort ? '#37474F' : 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'italic', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 14, color: comfort ? '#37474F' : 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'normal', lineHeight: 1.5 }}>
             {prompt}
           </span>
           <ChevronRight size={16} style={{ color: comfort ? '#5C6BC0' : 'var(--dw-text-faint)', flexShrink: 0, marginTop: 2 }} />
         </button>
       ) : (
         <>
-          <p style={{ fontSize: 14, color: comfort ? '#37474F' : 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'italic', margin: '0 0 8px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: 14, color: comfort ? '#37474F' : 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'normal', margin: '0 0 8px', lineHeight: 1.5 }}>
             {prompt}
           </p>
           <textarea
