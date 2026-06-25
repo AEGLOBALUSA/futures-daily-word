@@ -119,12 +119,15 @@ export function ScripturePassage({
             onClick={() => handleVerseTap(v.verse, v.text)}
             style={{
               fontSize,
-              lineHeight: 1.75,
+              lineHeight: 1.85,
               color: 'var(--dw-text-secondary)',
               whiteSpace: 'pre-wrap',
-              fontFamily: '"Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              // A true reading serif (the app's scripture face) for calm, immersive
+              // reading — replaces the UI sans that made scripture feel like body copy.
+              fontFamily: 'var(--font-serif-text)',
               fontWeight: 400,
-              margin: '3px 0',
+              letterSpacing: '0.003em',
+              margin: '5px 0',
               padding: isSelected ? '2px 5px' : '2px 0',
               background: isSelected
                 ? 'rgba(154,123,46,0.35)'
@@ -139,8 +142,11 @@ export function ScripturePassage({
             {v.verse > 0 && (
               <span
                 style={{
+                  // Crisp sans numerals (real bold) against the serif verse body — a
+                  // classic premium-Bible pairing; DM Serif Text ships only weight 400.
+                  fontFamily: 'var(--font-sans)',
                   color: 'var(--dw-gold)',
-                  fontSize: Math.round(fontSize * 0.65),
+                  fontSize: Math.round(fontSize * 0.62),
                   fontWeight: 700,
                   marginRight: 5,
                   verticalAlign: 'super',

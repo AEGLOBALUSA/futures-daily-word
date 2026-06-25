@@ -9,6 +9,13 @@ import { LS } from './utils/storage'
 // Must read the SAME key ThemeContext writes (dw_dark = 'true'|'false'); the old
 // code read a never-written 'theme' key, so a returning user's saved theme was
 // ignored on first paint and flashed the wrong theme before React corrected it.
+// Reflect the saved UI language on <html lang> so screen readers announce content
+// in the right language (index.html hardcodes lang="en" but the app ships es/pt/id).
+try {
+  const lang = localStorage.getItem(LS.lang);
+  if (lang) document.documentElement.lang = lang;
+} catch { /* ignore */ }
+
 const savedDark = localStorage.getItem(LS.dark);
 if (savedDark !== null) {
   document.documentElement.setAttribute('data-theme', savedDark === 'true' ? 'dark' : 'light');

@@ -729,6 +729,15 @@ sup {
   animation: sermonPulse 2s ease-in-out infinite;
 }
 
+/* Tactile press feedback — a subtle scale-down on any interactive control gives
+   the app a responsive, native feel instead of flat web taps. Purely additive
+   (only an :active state, no transition override), so it can't break existing
+   button styles; reduced-motion users still get it (it's a press state, not motion). */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
+
 /* Respect users who prefer reduced motion — disables all animations globally,
    including inline <style> blocks in TSX components. */
 @media (prefers-reduced-motion: reduce) {
