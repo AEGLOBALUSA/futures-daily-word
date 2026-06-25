@@ -903,6 +903,24 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroChapterIndex]);
 
+  // Read-first: open today's current scripture so the Word is front-and-center on load
+  // (and after a day/translation change) instead of hidden behind a "Read" tap. Defined
+  // AFTER the reset-on-day/translation effect above and sharing its triggers, so it
+  // re-opens right after that effect clears. A manual collapse within the same
+  // day/translation sticks (none of these deps change then).
+  // markPlanDayComplete preserves the old "scripture shown → day done" semantics now that
+  // the Read tap is automatic; it's idempotent and only affects active-plan passages
+  // (reading slots no-op). NOTE: completion now fires on auto-open — owner may prefer a
+  // deliberate trigger (reflection save / explicit "Done"); see PR.
+  useEffect(() => {
+    const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
+    if (!ref) return;
+    setExpandedPassages(new Set([ref]));
+    loadPassage(ref);
+    markPlanDayComplete(ref);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroKey, dayOffset, translation]);
+
   useEffect(() => {
     return AP.onStateChange((st) => {
       setAudioPaused(st === 'paused');
