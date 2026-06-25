@@ -6,6 +6,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause, FileText } from 'lucide-react';
+import { EmptyState } from '../components/EmptyState';
 import { SermonNotesScreen } from './SermonNotesScreen';
 import { AudioWave } from '../components/AudioWave';
 import { fetchPassage } from '../utils/api';
@@ -1989,15 +1990,12 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
 
         {/* Entries */}
         {activeTab !== 'today' && activeTab !== 'sermon' && filteredEntries.length === 0 ? (
-          <Card style={{ textAlign: 'center', padding: '40px 16px' }}>
-            <PenLine size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-            <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-              {activeTab === 'prayer' ? t('j_no_prayers', lang) : t('j_no_notes', lang)}
-            </p>
-            <button className="dw-btn-primary" style={{ fontSize: 13 }} onClick={openNewEntry}>
-              {t('j_create_first', lang)}
-            </button>
-          </Card>
+          <EmptyState
+            icon={PenLine}
+            title={activeTab === 'prayer' ? t('j_no_prayers', lang) : t('j_no_notes', lang)}
+            actionLabel={t('j_create_first', lang)}
+            onAction={openNewEntry}
+          />
         ) : activeTab !== 'today' && activeTab !== 'sermon' && (
           <GroupedNotesList entries={filteredEntries} onOpen={openEntry} lang={lang} />
         )}

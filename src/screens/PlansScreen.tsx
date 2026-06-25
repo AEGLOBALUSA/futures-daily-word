@@ -6,7 +6,8 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar } from 'lucide-react';
+import { EmptyState } from '../components/EmptyState';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
@@ -570,14 +571,13 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('your_plans', lang)}</h2>
             {myPlans.length === 0 ? (
-              <Card style={{ textAlign: 'center', padding: '20px 16px' }}>
-                <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                  {t('no_active_plans', lang)}
-                </p>
-                <button className="dw-btn-primary" style={{ fontSize: 12, padding: '8px 16px' }} onClick={() => setShowPlanDetail(true)}>
-                  {t('browse_plans', lang)}
-                </button>
-              </Card>
+              <EmptyState
+                compact
+                icon={Calendar}
+                title={t('no_active_plans', lang)}
+                actionLabel={t('browse_plans', lang)}
+                onAction={() => setShowPlanDetail(true)}
+              />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {myPlans.slice(0, 2).map(plan => {
