@@ -570,7 +570,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                   <div style={{
                     background: 'rgba(154,123,46,0.10)',
                     border: '1px solid rgba(154,123,46,0.25)',
-                    borderLeft: '3px solid #9A7B2E',
+                    borderLeft: '3px solid var(--dw-gold)',
                     borderRadius: 8,
                     padding: '10px 12px',
                     marginBottom: 16,
@@ -735,7 +735,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                 <div style={{
                   background: 'rgba(154,123,46,0.10)',
                   border: '1px solid rgba(154,123,46,0.25)',
-                  borderLeft: '3px solid #9A7B2E',
+                  borderLeft: '3px solid var(--dw-gold)',
                   borderRadius: 8,
                   padding: '10px 14px',
                   marginBottom: 16,

@@ -21,9 +21,9 @@ export function WordOfDaySection() {
   const dailyWord = getDailyWord();
 
   return (
-    <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
+    <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid var(--dw-gold)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-        <h2 className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</h2>
+        <h2 className="text-section-header" style={{ color: 'var(--dw-gold)' }}>WORD OF THE DAY</h2>
         <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
           {dailyWord.lang}
         </span>
@@ -32,7 +32,7 @@ export function WordOfDaySection() {
         <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)', margin: 0 }}>
           {dailyWord.word}
         </p>
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#9A7B2E', margin: 0 }}>
+        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-gold)', margin: 0 }}>
           {dailyWord.original}
         </p>
       </div>
@@ -55,7 +55,7 @@ export function WordOfDaySection() {
                 <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 2px', fontWeight: 500 }}>
                   NT Appearances
                 </p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#9A7B2E', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-gold)', fontFamily: 'var(--font-sans)', margin: 0 }}>
                   {dailyWord.ntCount}x
                 </p>
               </div>
@@ -65,7 +65,7 @@ export function WordOfDaySection() {
                 <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 2px', fontWeight: 500 }}>
                   OT Appearances
                 </p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#9A7B2E', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--dw-gold)', fontFamily: 'var(--font-sans)', margin: 0 }}>
                   {dailyWord.otCount}x
                 </p>
               </div>

@@ -27,6 +27,58 @@ const SYNC_KEYS = {
   profilePic:        'dw_profile_pic',
 } as const;
 
+// ── The long tail of smaller per-user keys. These don't each deserve a DB
+// column, so they ride to the cloud inside a single `misc` JSONB bag (see the
+// `misc` column added by supabase-misc-column.sql + user-sync.js). Without this
+// they were lost on reinstall / a new device. Listed keys are synced verbatim;
+// listed prefixes sweep up dynamic per-id keys (sermon fill-ins, book pointers). ──
+const MISC_KEYS = [
+  'dw_sermon_notes',         // free-form sermon notes index (Messages sermon view)
+  'dw_user_story',           // "My Season" — the AI's personal context
+  'dw_reading_slots',        // reading cadence / scheduled slots
+  'dw_todays_plan_passages', // today's resolved plan passages
+  'dw_plan_day_offset',
+  'dw_chapters_per_day',
+  'dw_comfort_daily',
+  'dw_personal_media_url',
+  'dw_prayed_for',           // prayer-wall "prayed for" set
+] as const;
+const MISC_PREFIXES = ['dw_sermon_', 'dw_book_today_'];
+
+/** Collect the misc-bag keys (static list + dynamic prefixes) from localStorage. */
+function collectMisc(): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if ((MISC_KEYS as readonly string[]).includes(k) || MISC_PREFIXES.some(p => k.startsWith(p))) {
+        const v = localStorage.getItem(k);
+        if (v != null) out[k] = v;
+      }
+    }
+  } catch { /* ignore */ }
+  return out;
+}
+
+/** Restore the misc bag — FILL-ONLY. Several of these keys are user-authored
+ *  (dw_sermon_notes, dw_user_story, dw_prayed_for) and have no reliable per-change
+ *  cloud push, so a blind cloud-wins overwrite on startup could permanently lose a
+ *  fresh local edit that hadn't reached the cloud yet. We therefore only restore a
+ *  key when local is missing/empty — exactly the reinstall / new-device case this
+ *  bag exists for — and never clobber existing local content. */
+function applyMisc(misc: unknown) {
+  if (!misc || typeof misc !== 'object') return;
+  for (const [k, v] of Object.entries(misc as Record<string, unknown>)) {
+    if (typeof v !== 'string' || !v) continue;
+    const local = localStorage.getItem(k);
+    const localEmpty = local == null || local === '' || local === '[]' || local === '{}' || local === 'null';
+    if (localEmpty) {
+      try { localStorage.setItem(k, v); } catch { /* quota */ }
+    }
+  }
+}
+
 // Track the last known sync version from the server
 let lastSyncVersion = 0;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -63,13 +115,16 @@ export function collectLocalData() {
     translation:       readString(SYNC_KEYS.translation),
     translationManual: readString(SYNC_KEYS.translationManual),
     profilePic:        readString(SYNC_KEYS.profilePic),
+    misc:              collectMisc(),
   };
 }
 
-/** Write cloud data into localStorage (without overwriting non-empty local with empty cloud) */
+/** Write cloud data into localStorage (without overwriting non-empty local with empty cloud).
+ *  NOTE: the journal is deliberately NOT in this list. syncOnStartup merges the journal
+ *  (mergeJournals, tombstone-aware) and writes the merged result itself; applying the RAW
+ *  cloud journal here would clobber that merge and resurrect deleted (tombstoned) entries. */
 function applyCloudData(data: Record<string, unknown>) {
   const jsonFields: Array<[string, string]> = [
-    ['journal',         SYNC_KEYS.journal],
     ['highlights',      SYNC_KEYS.highlights],   // Fix 2
     ['streak',          SYNC_KEYS.streak],
     ['activePlans',     SYNC_KEYS.activePlans],
@@ -109,6 +164,9 @@ function applyCloudData(data: Record<string, unknown>) {
       localStorage.setItem(localKey, cloudVal);
     }
   }
+
+  // The misc bag (sermon fill-ins, "my season" story, reading cadence, etc.)
+  applyMisc(data.misc);
 }
 
 /** Track conflicts detected during merge for potential user notification */
@@ -118,7 +176,14 @@ export function getLastMergeConflicts() { return lastMergeConflicts; }
 
 /** Merge journal arrays by entry id — keep newest version of each entry.
  *  When both sides modified the same entry, compare updatedAt timestamps.
- *  Conflicts (same timestamp, different content) are logged for UI notification. */
+ *  Conflicts (same timestamp, different content) are logged for UI notification.
+ *
+ *  Soft-delete tombstones ({ id, deleted:true, updatedAt }) ride through the same
+ *  newest-wins path: a delete carries a fresh updatedAt, so it beats the older live
+ *  copy on every device and the entry stays deleted instead of being resurrected.
+ *  Tombstones are retained (so the deletion keeps propagating) but pruned after
+ *  TOMBSTONE_TTL_MS to stop the journal array growing unbounded. */
+const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
   const map = new Map<string, Record<string, unknown>>();
   lastMergeConflicts = [];
@@ -162,10 +227,17 @@ function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
   }
 
   // Strip internal _source marker
-  const result = Array.from(map.values()).map(e => {
-    const { _source, ...rest } = e;
-    return rest;
-  });
+  const result = Array.from(map.values())
+    .map(e => {
+      const { _source, ...rest } = e;
+      return rest;
+    })
+    // Prune tombstones whose deletion is old enough that every device has synced it.
+    .filter(e => {
+      if (!e.deleted) return true;
+      const t = new Date(String(e.updatedAt || 0)).getTime();
+      return !t || (Date.now() - t) < TOMBSTONE_TTL_MS;
+    });
 
   return result.sort((a, b) => {
     const aT = new Date(String(a.date || a.updatedAt || 0)).getTime();
@@ -226,6 +298,16 @@ export async function pushToCloud(email: string) {
   } finally {
     isSyncing = false;
   }
+}
+
+/** Convenience: schedule a debounced push for the signed-in user, if any.
+ *  Collapses the repeated "read dw_profile.email then schedulePush" boilerplate
+ *  so callers that mutate a synced key don't each re-implement it. */
+export function pushNow() {
+  try {
+    const email = (JSON.parse(localStorage.getItem('dw_profile') || '{}') || {}).email;
+    if (email) schedulePush(email);
+  } catch { /* ignore */ }
 }
 
 /**

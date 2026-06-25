@@ -8,6 +8,7 @@ import { PrayerGlobe } from '../components/PrayerGlobe';
 import { PRELOADED_SERMONS } from '../data/sermons';
 import type { SermonData } from '../data/sermons';
 import { t, getLang } from '../utils/i18n';
+import { pushNow } from '../utils/cloudSync';
 import { API_BASE } from '../utils/api-base';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -168,7 +169,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
   const typeConfig: Record<string, { label: string; color: string; bg: string; icon: string }> = {
     announcement: { label: t('msg_announcement', lang), color: '#D97706', bg: 'rgba(217,119,6,0.10)', icon: '' },
     sermon_note:  { label: t('msg_sermon_note', lang),  color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', icon: '' },
-    essay:        { label: t('msg_essay', lang),         color: '#2563EB', bg: 'rgba(37,99,235,0.10)', icon: '' },
+    essay:        { label: t('msg_essay', lang),         color: 'var(--dw-info)', bg: 'rgba(37,99,235,0.10)', icon: '' },
     note:         { label: t('msg_note', lang),          color: 'var(--dw-text-muted)', bg: 'var(--dw-surface-hover)', icon: '' },
     prayer_point: { label: t('msg_prayer_point', lang),  color: '#059669', bg: 'rgba(5,150,105,0.10)', icon: '' },
     video:        { label: t('msg_video', lang),         color: '#DC2626', bg: 'rgba(220,38,38,0.10)', icon: '' },
@@ -300,7 +301,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
         <div style={{
           textAlign: 'center', padding: '10px 16px', marginBottom: 14,
           background: 'rgba(37,99,235,0.08)', borderRadius: 10,
-          color: '#2563EB', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+          color: 'var(--dw-info)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
         }}>
           <CheckCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Published to your campus!
         </div>
@@ -803,6 +804,7 @@ function SermonNotesPanel({
     const updated = editingId ? notes.map(n => n.id === editingId ? newNote : n) : [newNote, ...notes];
     setNotes(updated);
     localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
+    pushNow(); // back up sermon notes to the cloud (misc bag)
     setFormData({ title: '', sermon: '', content: '' });
     setShowForm(false);
     setEditingId(null);
@@ -812,6 +814,7 @@ function SermonNotesPanel({
     const updated = notes.filter(n => n.id !== id);
     setNotes(updated);
     localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
+    pushNow();
   };
 
   const editNote = (note: SermonNote) => {
@@ -1030,6 +1033,7 @@ function PrayerWallPanel({
     const next = new Set(prayedFor).add(id);
     setPrayedFor(next);
     localStorage.setItem('dw_prayed_for', JSON.stringify([...next]));
+    pushNow(); // back up prayed-for set (misc bag)
     setPrayers(prev => prev.map(p => p.id === id ? { ...p, prayerCount: p.prayerCount + 1 } : p));
   };
 

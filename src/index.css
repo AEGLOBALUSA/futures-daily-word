@@ -177,6 +177,16 @@
   --dw-accent-hover: #C94048;
   --dw-accent-active: #B5363E;
   --dw-accent-bg: rgba(220, 83, 93, 0.12);
+  /* Success / "saved" — a calm green that belongs to the red+gold family,
+     replacing the old iOS-blue #2563EB confirm state. */
+  --dw-success: #4A7C59;
+  --dw-success-hover: #3E6B4A;
+  /* Secondary accent TEXT tints — brightened for dark mode so hardcoded
+     decorative labels stay legible now that the blanket white override is gone.
+     (Used for text only; solid fills keep their own hex.) */
+  --dw-info: #6EA0F0;    /* was hardcoded #2563EB blue */
+  --dw-purple: #C58AE8;  /* was hardcoded #6B21A8 */
+  --dw-slate: #9DB2C9;   /* was hardcoded #5B7085 */
   --dw-text: #F2EDE5;
   --dw-text-primary: #F2EDE5;
   --dw-text-secondary: #C4BCB2;
@@ -226,6 +236,13 @@
   --dw-accent-hover: #8C2830;
   --dw-accent-active: #711F27;
   --dw-accent-bg: rgba(168, 50, 59, 0.05);
+  /* Success / "saved" — deepened for contrast on light surfaces. */
+  --dw-success: #3E6B4A;
+  --dw-success-hover: #335A3D;
+  /* Secondary accent TEXT tints — original (AA-on-white) values for light mode. */
+  --dw-info: #2563EB;
+  --dw-purple: #6B21A8;
+  --dw-slate: #5B7085;
   --dw-text: #1A1714;
   --dw-text-primary: #050505;
   --dw-text-secondary: #111111;
@@ -533,63 +550,15 @@ sup {
 }
 
 /* ============================================
-   NUCLEAR DARK MODE TEXT OVERRIDE
-   Forces ALL text to bright white #FFFFFF
+   (removed) NUCLEAR DARK MODE TEXT OVERRIDE
+   The old block forced every element — and every inline color, including
+   var(--dw-text-secondary/muted/faint), the gold labels and the accent —
+   to pure #FFFFFF !important in dark mode. That flattened the entire text
+   hierarchy and erased the brand colour. The dark-mode tokens defined in
+   :root (above) are already AA-correct, so we let them render. Specific
+   hard-coded low-contrast inline values are still caught by the targeted
+   "Contrast Fix Overrides" block above; fix leaks at the component, not here.
    ============================================ */
-
-/* Ultimate catch-all: every element gets white text in dark mode */
-:root:not([data-theme="light"]) *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
-  color: #FFFFFF !important;
-}
-
-/* Override ALL inline color styles */
-:root:not([data-theme="light"]) [style] {
-  color: #FFFFFF !important;
-}
-
-/* Override ALL inline styles with any color format */
-:root:not([data-theme="light"]) [style*="color"] {
-  color: #FFFFFF !important;
-}
-:root:not([data-theme="light"]) [style*="rgba"] {
-  color: #FFFFFF !important;
-}
-:root:not([data-theme="light"]) [style*="rgb("] {
-  color: #FFFFFF !important;
-}
-:root:not([data-theme="light"]) [style*="#"] {
-  color: #FFFFFF !important;
-}
-
-/* Force opacity to 1 on anything dimmed */
-:root:not([data-theme="light"]) [style*="opacity"] {
-  opacity: 1 !important;
-}
-
-/* Button, input, form text */
-:root:not([data-theme="light"]) button,
-:root:not([data-theme="light"]) input,
-:root:not([data-theme="light"]) textarea,
-:root:not([data-theme="light"]) select {
-  color: #FFFFFF !important;
-}
-
-/* Placeholder text */
-:root:not([data-theme="light"]) ::placeholder {
-  color: rgba(255,255,255,0.7) !important;
-}
-
-/* Links */
-:root:not([data-theme="light"]) a {
-  color: #FFFFFF !important;
-}
-
-
-/* FONT SMOOTHING FIX: antialiased makes white text look gray on dark bg */
-:root:not([data-theme="light"]) * {
-  -webkit-font-smoothing: auto !important;
-  -moz-osx-font-smoothing: auto !important;
-}
 
 /* === CONTRAST FIX: White text on dark charcoal backgrounds === */
 [style*="charcoal"] {

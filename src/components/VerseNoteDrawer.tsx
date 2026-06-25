@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Check, BookOpen, MessageSquare } from 'lucide-react';
+import { X, Check, BookOpen, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { COMMENTARY } from '../data/commentary';
 import { trackBehavior } from '../utils/behavior';
+import { fetchAICommentary } from '../utils/api';
 import { t, getLang } from '../utils/i18n';
 
 interface VerseNoteDrawerProps {
@@ -55,6 +56,7 @@ function saveToJournal({ verseRef, highlightedText, note, planContext, commentar
         commentarySource,
         commentaryExcerpt,
         autoSaved: false,  // user wrote a note — no longer pure auto-save
+        deleted: false,    // writing a note revives a previously-deleted entry
         updatedAt,
       };
     } else {
@@ -120,6 +122,11 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
   const [selectedSourceIdx, setSelectedSourceIdx] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // AI commentary fallback — used when the curated set has no entry for this passage.
+  const [aiCommentary, setAiCommentary] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
+
   const passage = selection?.verseRefs[0] || '';
   const commentaries = passage ? sortSources(getCommentariesForRef(passage)) : [];
   const hasCommentary = commentaries.length > 0;
@@ -134,10 +141,27 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
     }
   }, [open]);
 
-  // Reset source idx when passage changes
+  // Reset source idx + AI state when passage changes
   useEffect(() => {
     setSelectedSourceIdx(0);
+    setAiCommentary('');
+    setAiError(false);
+    setAiLoading(false);
   }, [passage]);
+
+  // When the Commentary tab is open for a passage with no curated commentary,
+  // generate one with AI instead of dead-ending on the empty state.
+  useEffect(() => {
+    if (tab !== 'commentary' || hasCommentary || !passage) return;
+    if (aiCommentary || aiLoading || aiError) return;
+    let cancelled = false;
+    setAiLoading(true);
+    trackBehavior('greek_hebrew', `ai-commentary:${passage}`);
+    fetchAICommentary(normalizeRef(passage), lang)
+      .then(text => { if (!cancelled) { setAiCommentary(text); setAiLoading(false); } })
+      .catch(() => { if (!cancelled) { setAiError(true); setAiLoading(false); } });
+    return () => { cancelled = true; };
+  }, [tab, hasCommentary, passage, aiCommentary, aiLoading, aiError, lang]);
 
   const handleSave = () => {
     if (!selection || !note.trim()) return;
@@ -145,8 +169,15 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
     trackBehavior('note_created', ref);
     // Fix 3: if the user was reading commentary while writing the note, capture that context too.
     const activeCommentary = commentaries[selectedSourceIdx];
-    const commentarySource = activeCommentary && (tab === 'commentary' || commentaries.length > 0) ? activeCommentary.source : undefined;
-    const commentaryExcerpt = activeCommentary && (tab === 'commentary' || commentaries.length > 0) ? activeCommentary.text : undefined;
+    let commentarySource: string | undefined;
+    let commentaryExcerpt: string | undefined;
+    if (activeCommentary) {
+      commentarySource = activeCommentary.source;
+      commentaryExcerpt = activeCommentary.text;
+    } else if (aiCommentary) {
+      commentarySource = 'AI Insight';
+      commentaryExcerpt = aiCommentary;
+    }
     saveToJournal({
       verseRef: ref,
       highlightedText: selection.text,
@@ -251,15 +282,12 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
             style={{
               flex: 1, padding: '8px 0', borderRadius: 8, border: 'none',
               background: tab === 'commentary' ? 'var(--dw-canvas)' : 'transparent',
-              color: tab === 'commentary'
-                ? 'var(--dw-text)'
-                : hasCommentary ? 'var(--dw-text-muted)' : 'var(--dw-text-faint)',
-              fontSize: 12, fontWeight: 600, cursor: hasCommentary ? 'pointer' : 'default',
+              color: tab === 'commentary' ? 'var(--dw-text)' : 'var(--dw-text-muted)',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               boxShadow: tab === 'commentary' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
               transition: 'all 0.15s',
-              opacity: hasCommentary ? 1 : 0.45,
             }}
           >
             <BookOpen size={13} />
@@ -328,7 +356,7 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
                 disabled={!note.trim() || saved}
                 style={{
                   width: '100%', padding: '13px', borderRadius: 14,
-                  background: saved ? '#2563EB' : 'var(--dw-accent)',
+                  background: saved ? 'var(--dw-success)' : 'var(--dw-accent)',
                   color: '#fff', border: 'none', cursor: note.trim() ? 'pointer' : 'default',
                   fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', gap: 8,
@@ -346,14 +374,67 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
         {tab === 'commentary' && (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             {!hasCommentary ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center' }}>
-                <BookOpen size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-                <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-                  No commentary available for {normalizeRef(passage) || 'this passage'} yet
-                </p>
-                <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 6 }}>
-                  Try asking Bible AI for insight on this passage.
-                </p>
+              // No curated commentary → AI-generated fallback (loading / result / error)
+              <div style={{ padding: '4px 20px 24px' }}>
+                {aiLoading ? (
+                  <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                    <Loader2 size={26} style={{ color: 'var(--dw-gold)', marginBottom: 10, animation: 'spin 1s linear infinite' }} />
+                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+                      Drawing insight from {normalizeRef(passage) || 'this passage'}…
+                    </p>
+                  </div>
+                ) : aiCommentary ? (
+                  <>
+                    <p style={{
+                      fontSize: 10, fontWeight: 700, color: 'var(--dw-gold)',
+                      letterSpacing: '0.08em', textTransform: 'uppercase',
+                      fontFamily: 'var(--font-sans)', marginBottom: 10,
+                      display: 'flex', alignItems: 'center', gap: 5,
+                    }}>
+                      <Sparkles size={11} /> AI Insight
+                    </p>
+                    <div style={{
+                      background: 'var(--dw-card)',
+                      border: '1px solid var(--dw-border)',
+                      borderLeft: '3px solid var(--dw-gold)',
+                      borderRadius: '0 12px 12px 0',
+                      padding: '14px 16px',
+                    }}>
+                      <p style={{
+                        fontSize: 14, lineHeight: 1.75,
+                        color: 'var(--dw-text-secondary)',
+                        fontFamily: 'var(--font-serif)',
+                        margin: 0, whiteSpace: 'pre-line',
+                        WebkitUserSelect: 'text', userSelect: 'text',
+                      }}>
+                        {aiCommentary}
+                      </p>
+                    </div>
+                    <p style={{
+                      fontSize: 11, color: 'var(--dw-text-faint)',
+                      fontFamily: 'var(--font-sans)', marginTop: 10, textAlign: 'right',
+                    }}>
+                      {normalizeRef(passage)} · AI-generated, review with Scripture
+                    </p>
+                  </>
+                ) : (
+                  <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                    <BookOpen size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
+                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+                      Couldn't load commentary for {normalizeRef(passage) || 'this passage'} right now
+                    </p>
+                    <button
+                      onClick={() => { setAiError(false); }}
+                      style={{
+                        marginTop: 12, padding: '8px 16px', borderRadius: 10,
+                        background: 'var(--dw-gold)', color: '#fff', border: 'none',
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <>

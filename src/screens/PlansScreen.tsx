@@ -718,7 +718,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                                   Day {calcPlanDay(progress.startedAt, plan.totalDays)} of {plan.totalDays}
                                 </span>
-                                <span style={{ fontSize: 11, color: '#2563EB', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 11, color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                                   {Math.round((progress.completedDays.length / plan.totalDays) * 100)}%
                                 </span>
                               </div>
@@ -733,7 +733,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                                   Chapter {bookPlanData.currentChapter + 1} of {bookPlanData.totalChapters}
                                 </span>
-                                <span style={{ fontSize: 11, color: '#2563EB', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 11, color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                                   {Math.round(((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100)}%
                                 </span>
                               </div>
@@ -1018,7 +1018,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                           <div>
                             <p className="text-card-title" style={{ margin: '0 0 4px' }}>{tField(plan, 'title', lang)}</p>
-                            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#2563EB', fontFamily: 'var(--font-sans)', opacity: 0.8 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', opacity: 0.8 }}>
                               ↑ Driving home screen
                             </span>
                           </div>
@@ -1182,7 +1182,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                                   Day {calcPlanDay(progress.startedAt, plan.totalDays)} of {plan.totalDays}
                                 </span>
-                                <span style={{ fontSize: 11, color: '#2563EB', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 11, color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                                   {Math.round((progress.completedDays.length / plan.totalDays) * 100)}%
                                 </span>
                               </div>
@@ -1197,7 +1197,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                                   Chapter {bookPlanData.currentChapter + 1} of {bookPlanData.totalChapters}
                                 </span>
-                                <span style={{ fontSize: 11, color: '#2563EB', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 11, color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                                   {Math.round(((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100)}%
                                 </span>
                               </div>

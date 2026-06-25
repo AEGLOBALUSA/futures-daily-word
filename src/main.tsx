@@ -3,14 +3,18 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { flushSync } from './utils/cloudSync'
+import { LS } from './utils/storage'
 
-// Apply saved theme or OS preference before React renders (avoids flash)
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme) {
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-    document.documentElement.setAttribute('data-theme', 'light');
-    }
+// Apply saved theme or OS preference before React renders (avoids flash).
+// Must read the SAME key ThemeContext writes (dw_dark = 'true'|'false'); the old
+// code read a never-written 'theme' key, so a returning user's saved theme was
+// ignored on first paint and flashed the wrong theme before React corrected it.
+const savedDark = localStorage.getItem(LS.dark);
+if (savedDark !== null) {
+  document.documentElement.setAttribute('data-theme', savedDark === 'true' ? 'dark' : 'light');
+} else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+  document.documentElement.setAttribute('data-theme', 'light');
+}
 
 // ── Global error handler — catches errors outside React error boundaries ──
 window.addEventListener('error', (event) => {

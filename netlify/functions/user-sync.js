@@ -216,6 +216,7 @@ exports.handler = async (event) => {
             translation: data.translation || "",
             translationManual: data.translation_manual || "",
             profilePic: data.profile_pic || "",
+            misc: data.misc || {},
             syncVersion: data.sync_version || 1,
             updatedAt: data.updated_at
           }
@@ -242,6 +243,22 @@ exports.handler = async (event) => {
           headers,
           body: JSON.stringify({ error: "Failed to save data" })
         };
+      }
+
+      // Misc bag (sermon fill-ins, "my season" story, reading cadence, prayed-for set,
+      // book-today pointers). Written separately + NON-FATAL so a missing `misc` column
+      // (before supabase-misc-column.sql is applied) can never break the core save.
+      const miscIn = body.data && body.data.misc;
+      if (miscIn && typeof miscIn === "object" && !Array.isArray(miscIn)) {
+        try {
+          const misc = {};
+          for (const [k, v] of Object.entries(miscIn).slice(0, 300)) {
+            if (typeof k === "string" && k.length <= 100) {
+              misc[k] = typeof v === "string" ? v.slice(0, 20000) : v;
+            }
+          }
+          await db.from("user_data").update({ misc }).eq("email", email);
+        } catch (e) { console.error("misc sync (push) skipped:", e?.message || e); }
       }
 
       // Dual-write: mirror this user's data into the normalized tables. NON-FATAL —

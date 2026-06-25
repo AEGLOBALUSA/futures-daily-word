@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { LS } from '../utils/storage';
 
 type Theme = 'dark' | 'light';
 
@@ -17,14 +18,14 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('dw_dark');
+    const saved = localStorage.getItem(LS.dark);
     if (saved !== null) return saved === 'true' ? 'dark' : 'light';
     return 'dark';
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('dw_dark', String(theme === 'dark'));
+    localStorage.setItem(LS.dark, String(theme === 'dark'));
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#0F0F0F' : '#FAF9F7');
   }, [theme]);

@@ -42,7 +42,7 @@ function saveSermonResponses(sermonId: string, r: Record<string, string>) {
   localStorage.setItem(`dw_sermon_${sermonId}`, JSON.stringify(r));
 }
 
-const SERMON_BLUE = '#2563EB';
+const SERMON_BLUE = 'var(--dw-info)';
 const SERMON_BLUE_BG = 'rgba(37, 99, 235, 0.08)';
 
 export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) {

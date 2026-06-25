@@ -77,7 +77,7 @@ export function ScripturePassage({
               padding: '4px 12px',
               fontSize: 11,
               fontWeight: 600,
-              color: isAllSelected ? '#9A7B2E' : 'var(--dw-text-muted)',
+              color: isAllSelected ? 'var(--dw-gold)' : 'var(--dw-text-muted)',
               cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               letterSpacing: '0.03em',
@@ -95,7 +95,7 @@ export function ScripturePassage({
           style={{
             fontSize: 10,
             fontWeight: 700,
-            color: '#9A7B2E',
+            color: 'var(--dw-gold)',
             marginBottom: 6,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
@@ -139,7 +139,7 @@ export function ScripturePassage({
             {v.verse > 0 && (
               <span
                 style={{
-                  color: '#9A7B2E',
+                  color: 'var(--dw-gold)',
                   fontSize: Math.round(fontSize * 0.65),
                   fontWeight: 700,
                   marginRight: 5,

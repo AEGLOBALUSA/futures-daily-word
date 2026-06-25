@@ -96,6 +96,12 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>(SERMON_DEEP_LINK ? 'sermon-notes' : 'home');
   const tabHistoryRef = useRef<TabId[]>([SERMON_DEEP_LINK ? 'sermon-notes' : 'home']);
   const [showBibleAI, setShowBibleAI] = useState(false);
+  // Bumped when a cloud sync lands so the active screen remounts and re-reads the
+  // freshly merged localStorage (previously dw-cloud-sync had no listeners and
+  // screens showed stale, pre-sync state until the user force-navigated).
+  const [syncNonce, setSyncNonce] = useState(0);
+  // Count of journal entries that had cross-device edits, surfaced as a toast.
+  const [syncConflicts, setSyncConflicts] = useState(0);
 
   // Track tab navigation history
   const navigateTab = (tab: TabId) => {
@@ -104,18 +110,37 @@ function AppContent() {
     if (h[h.length - 1] !== tab) {
       h.push(tab);
       if (h.length > 20) h.splice(0, h.length - 20);
+      // Mirror into the History API so the browser/Android hardware back button
+      // pops a tab instead of exiting the app. The popstate effect below does the
+      // actual state update when an entry is popped.
+      try { window.history.pushState({ dwTab: tab }, ''); } catch { /* ignore */ }
     }
     setActiveTab(tab);
   };
 
-  // Go back to previous tab
+  // Go back to previous tab — delegate to history so in-app back and the
+  // browser/hardware back button share one code path (the popstate handler).
   const goBack = () => {
-    const h = tabHistoryRef.current;
-    if (h.length > 1) {
-      h.pop(); // remove current
-      setActiveTab(h[h.length - 1]);
+    if (tabHistoryRef.current.length > 1) {
+      try { window.history.back(); } catch { /* ignore */ }
     }
   };
+
+  // Bind tab history to the History API: seed a root entry, then translate each
+  // popstate (browser back, Android hardware back, back-swipe) into a tab pop.
+  useEffect(() => {
+    try { window.history.replaceState({ dwTab: tabHistoryRef.current[0], dwRoot: true }, ''); } catch { /* ignore */ }
+    const onPop = () => {
+      const h = tabHistoryRef.current;
+      if (h.length > 1) {
+        h.pop();
+        setActiveTab(h[h.length - 1]);
+      }
+      // At root → let the default happen (Capacitor exits / browser leaves).
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const { userProfile, setup, saveSetup } = useUser();
   const { selection } = useScriptureSelection();
 
@@ -180,6 +205,30 @@ function AppContent() {
     }
   }, [selection?.text, selection?.source]);
 
+  // Cloud sync landed — remount the active screen so its localStorage-seeded
+  // state re-reads the merged data, and toast if entries conflicted across devices.
+  useEffect(() => {
+    const onSync = () => {
+      // Don't remount while the user is typing — a remount would discard the
+      // in-progress note/sermon/search text. The sync data is already in
+      // localStorage; screens pick it up on next navigation (and the journal
+      // refreshes in place via dw-journal-updated regardless).
+      const ae = document.activeElement as HTMLElement | null;
+      const typing = !!ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
+      if (!typing) setSyncNonce(n => n + 1);
+    };
+    const onConflicts = (e: Event) => {
+      const n = (e as CustomEvent).detail?.conflicts?.length || 0;
+      if (n > 0) setSyncConflicts(n);
+    };
+    window.addEventListener('dw-cloud-sync', onSync);
+    window.addEventListener('dw-sync-conflicts', onConflicts as EventListener);
+    return () => {
+      window.removeEventListener('dw-cloud-sync', onSync);
+      window.removeEventListener('dw-sync-conflicts', onConflicts as EventListener);
+    };
+  }, []);
+
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : undefined} />,
@@ -210,7 +259,7 @@ function AppContent() {
       {!IS_EMBEDDED && <SeamBar />}
       <ErrorBoundary label={activeTab}>
         <Suspense fallback={<ScreenLoader />}>
-          <main id="main-content" style={{ display: 'contents' }}>
+          <main id="main-content" key={syncNonce} style={{ display: 'contents' }}>
             {screens[activeTab]}
           </main>
         </Suspense>
@@ -225,6 +274,40 @@ function AppContent() {
       />
       <CookieConsent />
       <AudioAnnouncer />
+
+      {/* Cross-device merge notice — fired by cloudSync when the same entry was
+          edited on two devices and we kept the newer/longer version. */}
+      {syncConflicts > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed', left: '50%', transform: 'translateX(-50%)',
+            top: 'calc(12px + env(safe-area-inset-top, 0px))',
+            width: 'min(440px, calc(100% - 24px))',
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 12px 10px 16px',
+            background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+            borderLeft: '3px solid var(--dw-gold)',
+            borderRadius: 14, boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+            zIndex: 950, fontFamily: 'var(--font-sans)',
+          }}
+        >
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--dw-text-secondary)' }}>
+            Synced across your devices — kept the newest version of {syncConflicts} note{syncConflicts > 1 ? 's' : ''}.
+          </span>
+          <button
+            onClick={() => setSyncConflicts(0)}
+            aria-label="Dismiss sync notice"
+            style={{
+              background: 'none', border: 'none', color: 'var(--dw-text-muted)',
+              cursor: 'pointer', padding: 4, display: 'flex', fontSize: 18, lineHeight: 1, flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Opt-in persona picker — surfaced from the Personalize prompt, not a first-run gate */}
       {showPicker && (

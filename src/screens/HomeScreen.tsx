@@ -1462,7 +1462,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           }}
           style={{
             cursor: 'pointer',
-            borderBottom: '1px dotted #9A7B2E',
+            borderBottom: '1px dotted var(--dw-gold)',
             paddingBottom: 1,
             borderRadius: 2,
             transition: 'background 0.15s',
@@ -2920,7 +2920,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 {/* Scripture text — auto-loaded */}
                 {comfortIsLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-                    <Loader2 size={14} style={{ color: '#5B7085', animation: 'spin 1s linear infinite' }} />
+                    <Loader2 size={14} style={{ color: 'var(--dw-slate)', animation: 'spin 1s linear infinite' }} />
                     <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading…</span>
                   </div>
                 ) : comfortText ? (
@@ -2937,7 +2937,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     style={{
                       background: 'rgba(92,107,192,0.1)', border: '1px solid #5B7085',
                       borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
-                      cursor: 'pointer', color: '#5B7085', fontFamily: 'var(--font-sans)',
+                      cursor: 'pointer', color: 'var(--dw-slate)', fontFamily: 'var(--font-sans)',
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}
                   >
@@ -2992,7 +2992,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   }}>
                     <p style={{
                       fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                      textTransform: 'uppercase', color: '#5B7085',
+                      textTransform: 'uppercase', color: 'var(--dw-slate)',
                       fontFamily: 'var(--font-sans)', marginBottom: 10,
                     }}>
                       A THOUGHT FROM THIS CHAPTER
@@ -3279,9 +3279,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     style={{
                       padding: '4px 10px', borderRadius: 16, fontSize: 11, fontWeight: 700,
                       fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', cursor: 'pointer',
-                      border: greekHebrewMode ? '1.5px solid #9A7B2E' : '1.5px solid var(--dw-border)',
+                      border: greekHebrewMode ? '1.5px solid var(--dw-gold)' : '1.5px solid var(--dw-border)',
                       background: greekHebrewMode ? 'rgba(154,123,46,0.2)' : 'transparent',
-                      color: greekHebrewMode ? '#9A7B2E' : 'var(--dw-text-muted)',
+                      color: greekHebrewMode ? 'var(--dw-gold)' : 'var(--dw-text-muted)',
                       transition: 'all 0.15s ease',
                     }}
                   >
@@ -4175,9 +4175,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
         {/* ── Daily Word of the Day — persona-gated ── */}
         {pf.wordOfDay !== 'hidden' && (
-        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid #9A7B2E' }}>
+        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid var(--dw-gold)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-            <h2 className="text-section-header" style={{ color: '#9A7B2E' }}>WORD OF THE DAY</h2>
+            <h2 className="text-section-header" style={{ color: 'var(--dw-gold)' }}>WORD OF THE DAY</h2>
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
               {dailyWord.lang}
             </span>
@@ -4186,7 +4186,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)', margin: 0 }}>
               {dailyWord.word}
             </p>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#9A7B2E', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-gold)', margin: 0 }}>
               {dailyWord.original}
             </p>
           </div>
@@ -4415,7 +4415,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           {tField(plan, 'title', lang)}
                         </span>
                         <span style={{
-                          fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : '#2563EB',
+                          fontSize: 10, fontWeight: 700, color: isComplete ? '#93C5FD' : 'var(--dw-info)',
                           fontFamily: 'var(--font-sans)', background: isComplete ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)',
                           padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap',
                         }}>
@@ -4506,10 +4506,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           return (
             <Card style={{ marginBottom: 16, border: '1px solid rgba(37,99,235,0.18)', background: 'rgba(37,99,235,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <h2 className="text-section-header" style={{ margin: 0, color: '#2563EB' }}>FOR YOU</h2>
+                <h2 className="text-section-header" style={{ margin: 0, color: 'var(--dw-info)' }}>FOR YOU</h2>
                 {signal && signal !== 'mixed' && (
                   <span style={{
-                    fontSize: 10, fontWeight: 600, color: '#2563EB',
+                    fontSize: 10, fontWeight: 600, color: 'var(--dw-info)',
                     background: 'rgba(37,99,235,0.12)', borderRadius: 20,
                     padding: '2px 8px', fontFamily: 'var(--font-sans)',
                   }}>
@@ -4524,7 +4524,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               )}
               {suggestedPassages.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: '#2563EB', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
                     SUGGESTED FOR TODAY
                   </p>
                   {suggestedPassages.map(passage => (
@@ -4551,7 +4551,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       }}
                     >
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>{displayPassage(passage, appLanguage)}</span>
-                      <span style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>Read →</span>
+                      <span style={{ fontSize: 12, color: 'var(--dw-info)', fontWeight: 600 }}>Read →</span>
                     </button>
                   ))}
                 </div>
@@ -4586,25 +4586,25 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               <p style={{
                 fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
                 letterSpacing: '0.12em', textTransform: 'uppercase',
-                color: '#2563EB', marginBottom: 12,
+                color: 'var(--dw-info)', marginBottom: 12,
               }}>
                 CAMPUS OVERVIEW
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>{dailyCount}</p>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>{dailyCount}</p>
                   <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>reading today</p>
                 </div>
                 <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#2563EB', margin: 0 }}>{weeklyActive}</p>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>{weeklyActive}</p>
                   <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>active this week</p>
                 </div>
                 <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: '#6B21A8', margin: 0 }}>{prayerCount}</p>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-purple)', margin: 0 }}>{prayerCount}</p>
                   <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>prayer requests</p>
                 </div>
                 <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: '#2563EB', fontWeight: 600, margin: 0 }}>{campusName}</p>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-info)', fontWeight: 600, margin: 0 }}>{campusName}</p>
                 </div>
               </div>
             </div>
