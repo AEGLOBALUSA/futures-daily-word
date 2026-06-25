@@ -1,16 +1,26 @@
 import { useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { Check, PartyPopper } from 'lucide-react';
 
 /**
  * A calm "you've read today's Word" moment, shown when the user deliberately marks
- * today's reading done. Auto-dismisses after a few seconds or on tap. Milestone days
- * are handled separately by the existing milestone modal — this is the everyday close.
+ * today's reading done. With `planFinish`, it becomes the bigger "you finished the whole
+ * plan" finish-line. Auto-dismisses or on tap. Streak milestones are handled separately
+ * by the existing milestone modal.
  */
-export function DoneCelebration({ streakCount, onClose }: { streakCount: number; onClose: () => void }) {
+export function DoneCelebration({
+  streakCount,
+  planFinish,
+  onClose,
+}: {
+  streakCount: number;
+  planFinish?: { title: string; days: number };
+  onClose: () => void;
+}) {
+  const isPlan = !!planFinish;
   useEffect(() => {
-    const t = setTimeout(onClose, 3600);
+    const t = setTimeout(onClose, isPlan ? 5200 : 3600);
     return () => clearTimeout(t);
-  }, [onClose]);
+  }, [onClose, isPlan]);
 
   const message =
     streakCount >= 2
@@ -61,11 +71,11 @@ export function DoneCelebration({ streakCount, onClose }: { streakCount: number;
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'var(--dw-success)',
-            boxShadow: '0 0 0 8px rgba(62,107,74,0.15)',
+            background: isPlan ? 'var(--dw-gold, #C8906B)' : 'var(--dw-success)',
+            boxShadow: isPlan ? '0 0 0 8px rgba(200,144,107,0.18)' : '0 0 0 8px rgba(62,107,74,0.15)',
           }}
         >
-          <Check size={32} color="#fff" strokeWidth={3} />
+          {isPlan ? <PartyPopper size={32} color="#fff" strokeWidth={2.4} /> : <Check size={32} color="#fff" strokeWidth={3} />}
         </div>
         <p
           style={{
@@ -76,7 +86,7 @@ export function DoneCelebration({ streakCount, onClose }: { streakCount: number;
             margin: '0 0 6px',
           }}
         >
-          Today&rsquo;s reading, done.
+          {isPlan ? 'Plan complete 🎉' : <>Today&rsquo;s reading, done.</>}
         </p>
         <p
           style={{
@@ -87,9 +97,11 @@ export function DoneCelebration({ streakCount, onClose }: { streakCount: number;
             lineHeight: 1.5,
           }}
         >
-          {message}
+          {planFinish
+            ? `${planFinish.title} — ${planFinish.days} days in the Word. You finished.`
+            : message}
         </p>
-        {streakCount >= 2 && (
+        {!isPlan && streakCount >= 2 && (
           <p
             style={{
               fontSize: 15,
