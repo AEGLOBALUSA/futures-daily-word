@@ -764,8 +764,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     }
     localStorage.setItem('dw_setup_dismissed', '1');
     setShowSetupModal(false);
-    // Force re-render of plan passages
-    window.location.reload();
+    // Re-render plan passages reactively — no full-page reload / white-flash
+    setPlanTick(t => t + 1);
   };
 
   const handleSetupDismiss = () => {
@@ -2071,9 +2071,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   className="dw-dark-surface"
                   onClick={() => {
                     if (info.planId && !isActive) {
-                      startPlanFromHome(info.planId);
-                      setPlanTick(t => t + 1);
-                      window.location.reload();
+                      startPlanFromHome(info.planId); // bumps planTick internally → reactive re-render
                     } else {
                       // No specific plan — go to Plans tab to browse
                       onNavigate?.('plans');
@@ -2112,8 +2110,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             // Deliberate persona change → real-choice source so it stamps + syncs
             // (the prior source could be 'default', which saveSetup would skip).
             saveSetup({ persona: newPersona, source: 'upgrade' });
-            flushNow(); // push before the reload cancels the debounced push
-            window.location.reload();
+            flushNow(); // back up the choice immediately; saveSetup updates context reactively (no reload)
           }}
         />
 

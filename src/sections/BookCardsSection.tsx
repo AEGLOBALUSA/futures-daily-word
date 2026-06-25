@@ -24,7 +24,6 @@ export function BookCardsSection() {
             onClick={() => {
               if (info.planId && !isActive && startPlanFromHome) {
                 startPlanFromHome(info.planId);
-                window.location.reload();
               }
             }}
             style={{
