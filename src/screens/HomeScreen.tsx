@@ -42,6 +42,10 @@ import { BIBLE_BOOKS, BOOK_CHAPTERS } from '../data/bible-books';
 import { ComfortSection } from '../components/ComfortSection';
 import { PastorStudyOnboarding } from '../components/PastorStudyOnboarding';
 import { NewBelieverLessonCard } from '../components/NewBelieverLessonCard';
+import { DailyWordCard } from '../components/DailyWordCard';
+import { CampusCountBadge } from '../components/CampusCountBadge';
+import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
+import { PastoralReflectionSection } from '../components/PastoralReflectionSection';
 import { InlineReflection } from '../components/InlineReflection';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 import { t as tI18n, tField, getLang } from '../utils/i18n';
@@ -72,18 +76,6 @@ function getTranslationsForPersona(persona: string, lang: string): TranslationCo
 // Plans can't diverge. getStreak / recordStreakToday are imported at the top.
 
 
-
-// ── Campus community count (deterministic per campus + date) ─────────────────
-function getCampusReaderCount(campusId: string): number {
-  if (!campusId) return 0;
-  const seed = campusId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const day = new Date().getDate() + new Date().getMonth() * 31;
-  const dow = new Date().getDay();
-  const base = (seed % 40) + 20;
-  const dayBonus = dow === 0 ? 18 : dow === 6 ? 10 : 0;
-  const variance = ((seed * day) % 14) - 7;
-  return Math.max(8, base + dayBonus + variance);
-}
 
 // ── Variable reward — rotate what leads home screen (day % 3) ───────────────
 // ── Weekly "Word in Review" — show on Sundays ────────────────────────────────
@@ -2504,66 +2496,16 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         })()}
 
         {/* ── Pastoral Reflection Prompt (pastor_leader) ── */}
-        {personaConfig.sectionOrder.includes('pastoral_prompt') && (() => {
-          const prompts = personaConfig.journal.prompts;
-          if (!prompts || prompts.length === 0) return null;
-          const promptIdx = getDayNumber(dayOffset) % prompts.length;
-          const todayPrompt = prompts[promptIdx];
-
-          return (
-            <Card className="dw-dark-surface" style={{ marginBottom: 16, background: 'linear-gradient(135deg, var(--dw-charcoal), var(--dw-charcoal-deep))' }}>
-              <p style={{
-                fontSize: 11, fontWeight: 700, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
-              }}>
-                Between You & God
-              </p>
-              <p style={{
-                fontSize: 16, lineHeight: 1.5, color: 'var(--dw-text-primary)',
-                fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'italic', margin: 0,
-              }}>
-                {todayPrompt}
-              </p>
-              <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                <button
-                  className="dw-btn-dark"
-                  onClick={() => {
-                    try {
-                      localStorage.setItem('dw_journal_prefill', JSON.stringify({
-                        prompt: todayPrompt,
-                        date: new Date().toISOString().slice(0, 10),
-                        type: 'pastoral-reflection',
-                      }));
-                    } catch {}
-                    onNavigate?.('journal');
-                  }}
-                  style={{
-                    padding: '8px 16px', borderRadius: 10,
-                    background: 'var(--dw-accent)', border: 'none',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                    color: '#fff', fontFamily: 'var(--font-sans)',
-                  }}
-                >
-                  Journal This
-                </button>
-                <button
-                  onClick={() => {
-                    setBibleAIContext(`I'm a pastor reflecting on my day. The prompt was: "${todayPrompt}" — I'd like to talk through what's on my heart.`);
-                    setShowBibleAI(true);
-                  }}
-                  style={{
-                    padding: '8px 16px', borderRadius: 10,
-                    background: 'transparent', border: '1px solid var(--dw-border)',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                    color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
-                  }}
-                >
-                  Talk It Through
-                </button>
-              </div>
-            </Card>
-          );
-        })()}
+        {personaConfig.sectionOrder.includes('pastoral_prompt') && (
+          <PastoralReflectionSection
+            personaConfig={personaConfig}
+            dayOffset={dayOffset}
+            getDayNumber={getDayNumber}
+            onNavigate={onNavigate}
+            setBibleAIContext={setBibleAIContext}
+            setShowBibleAI={setShowBibleAI}
+          />
+        )}
 
         {/* ── Plan-based lesson card for new_to_faith (extracted to <NewBelieverLessonCard>) ── */}
         {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (
@@ -2590,23 +2532,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         )}
 
         {/* ── Campus community count — persona-gated ── */}
-        {pf.campusCount !== 'hidden' && userProfile?.campus && (() => {
-          const count = getCampusReaderCount(userProfile.campus!);
-          const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
-          return (
-            <div className="dw-dark-surface" style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              marginBottom: 16, padding: '10px 14px',
-              background: 'var(--dw-charcoal)', borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              <span style={{ fontSize: 16 }}>🔥</span>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#fff', margin: 0 }}>
-                <strong style={{ color: '#fff' }}>{count} people</strong> at {campusName} are in the Word today
-              </p>
-            </div>
-          );
-        })()}
+        {pf.campusCount !== 'hidden' && userProfile?.campus && (
+          <CampusCountBadge userProfile={userProfile} />
+        )}
 
         {/* Translation selector removed — hero card has translation picker */}
 
@@ -3109,72 +3037,17 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
         {/* ── Daily Word of the Day — persona-gated ── */}
         {pf.wordOfDay !== 'hidden' && (
-        <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid var(--dw-gold)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-            <h2 className="text-section-header" style={{ color: 'var(--dw-gold)' }}>WORD OF THE DAY</h2>
-            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
-              {dailyWord.lang}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)', margin: 0 }}>
-              {dailyWord.word}
-            </p>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-gold)', margin: 0 }}>
-              {dailyWord.original}
-            </p>
-          </div>
-          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', marginBottom: 8, letterSpacing: '0.03em' }}>
-            /{dailyWord.pronunciation}/
-          </p>
-          <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, lineHeight: 1.6, color: 'var(--dw-text-secondary)', marginBottom: 8 }}>
-            {dailyWord.meaning}
-          </p>
-          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-accent)', fontWeight: 600 }}>
-            {dailyWord.verse}
-          </p>
-        </Card>
+          <DailyWordCard dailyWord={dailyWord} />
         )}
 
         {/* ── Weekly Word in Review (Sundays) — persona-gated ── */}
-        {pf.weeklyReview && weekReview && !weekReviewDismissed && (() => {
-          const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
-          return (
-            <Card style={{
-              marginBottom: 16,
-              background: 'linear-gradient(135deg, rgba(107,26,34,0.10) 0%, rgba(154,123,46,0.07) 100%)',
-              border: '1px solid rgba(154,123,46,0.25)',
-              position: 'relative',
-            }}>
-              <button onClick={() => {
-                localStorage.setItem('dw_week_review_dismissed', weekKey);
-                setWeekReviewDismissed(true);
-              }} style={{
-                position: 'absolute', top: 12, right: 12,
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
-              }}>×</button>
-              <h2 className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</h2>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
-              <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-                {[
-                  { value: weekReview.daysRead, label: t('days_this_week') },
-                  { value: weekReview.streak, label: t('day_streak') },
-                ].map(({ value, label }) => (
-                  <div key={label} style={{
-                    flex: 1, background: 'var(--dw-surface)', borderRadius: 12, padding: '12px 10px', textAlign: 'center',
-                  }}>
-                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 700, color: 'var(--dw-accent)', margin: 0 }}>{value}</p>
-                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-text-muted)', margin: '2px 0 0' }}>{label}</p>
-                  </div>
-                ))}
-              </div>
-              <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 14, fontStyle: 'italic', color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
-                {weekReview.question}
-              </p>
-            </Card>
-          );
-        })()}
+        {pf.weeklyReview && weekReview && !weekReviewDismissed && (
+          <WeeklyReviewCard
+            weekReview={weekReview}
+            onDismiss={() => setWeekReviewDismissed(true)}
+            t={t}
+          />
+        )}
 
         {/* 5. Commentary — persona-gated: hidden / collapsed / expanded */}
         {pf.commentary !== 'hidden' && allCommentaries.length > 0 && (
