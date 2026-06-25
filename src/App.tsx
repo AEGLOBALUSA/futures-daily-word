@@ -8,6 +8,8 @@ import { SeamBar } from './components/Seam';
 import { EmailGate } from './components/EmailGate';
 import { BibleAI } from './components/BibleAI';
 import { PathwayPicker } from './components/PathwayPicker';
+import { PushOptIn } from './components/PushOptIn';
+import { isPushSubscribed } from './utils/push';
 import { ScreenSkeleton } from './components/Skeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CookieConsent } from './components/CookieConsent';
@@ -167,6 +169,17 @@ function AppContent() {
     localStorage.setItem('dw_v7_pathway_done', 'true');
   }
 
+  // After the pathway pick, a one-time "want a daily nudge?" step — the high-intent moment
+  // to catch the notification opt-in, instead of burying it in Settings.
+  const [pushOnboarded, setPushOnboarded] = useState(() => {
+    try { return !!localStorage.getItem('dw_push_onboarded') || isPushSubscribed(); } catch { return false; }
+  });
+  const needsPushOnboarding = onboardingActive && !needsFirstRunPicker && !pushOnboarded;
+  function handlePushOnboardingDone() {
+    try { localStorage.setItem('dw_push_onboarded', '1'); } catch { /* quota */ }
+    setPushOnboarded(true);
+  }
+
   useEffect(() => {
     hideSplash();
     if (isNative() && userProfile?.email) {
@@ -299,6 +312,9 @@ function AppContent() {
           "Not sure? → Church Member" escape, so it's a moment, not a dead-end tollgate. */}
       {needsFirstRunPicker && (
         <PathwayPicker onSelect={handlePathwaySelect} />
+      )}
+      {!needsFirstRunPicker && needsPushOnboarding && (
+        <PushOptIn onDone={handlePushOnboardingDone} />
       )}
     </div>
   );
