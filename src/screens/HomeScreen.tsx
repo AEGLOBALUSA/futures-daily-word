@@ -36,6 +36,9 @@ import type { TabId } from '../components/TabBar';
 // import { isSundayWindow } from '../utils/sunday';
 import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
 import { getStreak, recordStreakToday } from '../utils/streak';
+import { getDailyWord } from '../data/daily-words';
+import { BIBLE_BOOKS, BOOK_CHAPTERS } from '../data/bible-books';
+import { ComfortSection } from '../components/ComfortSection';
 import { t as tI18n, tField, getLang } from '../utils/i18n';
 
 const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
@@ -59,242 +62,10 @@ function getTranslationsForPersona(persona: string, lang: string): TranslationCo
   return TRANSLATIONS;
 }
 
-// ── Comfort reading rotation — curated chapters for difficult seasons ──
-const COMFORT_CHAPTERS = [
-  'Psalm 23', 'Psalm 46', 'Psalm 91', 'Isaiah 40', 'John 14',
-  'Romans 8', 'Psalm 34', 'Isaiah 43', 'Matthew 11', 'Psalm 121',
-  '2 Corinthians 1', 'Philippians 4', 'Psalm 27', 'Psalm 62',
-  'Psalm 139', 'Isaiah 41', 'Lamentations 3', 'Psalm 42',
-  'Psalm 103', 'Psalm 16', 'Psalm 86', 'Isaiah 54', 'Psalm 30',
-  'Psalm 77', 'Psalm 116', 'Psalm 73', 'Psalm 40', 'John 16',
-  'Psalm 145', 'Revelation 21',
-];
-
-// ── Short comfort devotions keyed to each chapter ──
-const COMFORT_DEVOTIONS: Record<string, { title: string; body: string; titleId: string; bodyId: string }> = {
-  'Psalm 23': {
-    title: 'He Is With You Right Now',
-    body: 'David didn\'t write this psalm from a comfortable place. He wrote it as a man who had been hunted, betrayed, and brought low. And yet — "I will fear no evil, for You are with me." Notice he didn\'t say the valley disappeared. He said God was in it with him. Whatever you\'re walking through today, you\'re not walking alone. The Shepherd is right beside you. He\'s not watching from a distance. He\'s close.',
-    titleId: 'Dia Bersamamu Saat Ini',
-    bodyId: 'Daud tidak menulis mazmur ini dari tempat yang nyaman. Dia menulisnya sebagai seorang yang diburu, dikhianati, dan direndahkan. Namun — "Bahkan jika aku berjalan dalam lembah kekelaman, aku tidak takut bahaya, sebab Engkau besertaku." Perhatikan dia tidak bilang lembah itu menghilang. Dia bilang Tuhan ada di dalamnya bersamanya. Apa pun yang sedang kamu lalui hari ini, kamu tidak berjalan sendirian. Sang Gembala ada tepat di sampingmu. Dia tidak memperhatikan dari kejauhan. Dia dekat.',
-  },
-  'Psalm 46': {
-    title: 'Be Still and Know',
-    body: 'When everything around you feels like it\'s shaking — relationships, health, finances, the future — God says something simple: "Be still, and know that I am God." That\'s not a command to do nothing. It\'s an invitation to stop striving and trust that He is still in control. The mountains may fall into the sea. But He is your refuge. Right now, in this moment, you can exhale. He\'s got this.',
-    titleId: 'Diamlah dan Ketahuilah',
-    bodyId: 'Ketika semua yang ada di sekitarmu terasa goyah — hubungan, kesehatan, keuangan, masa depan — Tuhan berkata sesuatu yang sederhana: "Diamlah dan ketahuilah, bahwa Akulah Allah." Itu bukan perintah untuk tidak melakukan apa-apa. Itu undangan untuk berhenti berjuang dan percaya bahwa Dia masih memegang kendali. Gunung-gunung mungkin runtuh ke dalam laut. Tapi Dia adalah perlindunganmu. Saat ini, di momen ini, kamu bisa bernapas lega. Dia yang mengendalikan.',
-  },
-  'Psalm 91': {
-    title: 'Under His Wings',
-    body: 'There\'s a picture in this psalm that\'s easy to miss: "He will cover you with his feathers, and under his wings you will find refuge." Think about a mother bird pulling her young close during a storm. That\'s what God is doing with you. The storm may not stop. But you are sheltered. You are covered. He is your protection — not from every hard thing, but through every hard thing.',
-    titleId: 'Di Bawah Sayap-Nya',
-    bodyId: 'Ada sebuah gambaran dalam mazmur ini yang mudah terlewat: "Dengan kepak-Nya Ia akan menudungi engkau, dan di bawah sayap-Nya engkau akan berlindung." Bayangkan seekor induk burung menarik anaknya mendekat saat badai. Itulah yang Tuhan lakukan denganmu. Badai mungkin tidak berhenti. Tapi kamu terlindungi. Kamu tertutupi. Dia adalah perlindunganmu — bukan dari setiap hal yang sulit, tapi melewati setiap hal yang sulit.',
-  },
-  'Isaiah 40': {
-    title: 'New Strength Is Coming',
-    body: 'You\'re tired. Maybe not just physically — tired in your soul. Isaiah knew that feeling, and he wrote these words to people who felt forgotten by God: "Those who hope in the Lord will renew their strength." Not those who figure it out. Not those who push harder. Those who hope. That\'s all God is asking of you today. Keep hoping. Strength is on its way.',
-    titleId: 'Kekuatan Baru Sedang Datang',
-    bodyId: 'Kamu lelah. Mungkin bukan hanya secara fisik — lelah di jiwamu. Yesaya mengenal perasaan itu, dan dia menulis kata-kata ini untuk orang-orang yang merasa dilupakan Tuhan: "Orang-orang yang menanti-nantikan TUHAN mendapat kekuatan baru." Bukan mereka yang bisa menyelesaikan segalanya. Bukan mereka yang berjuang lebih keras. Mereka yang berharap. Hanya itu yang Tuhan minta darimu hari ini. Teruslah berharap. Kekuatan sedang dalam perjalanan.',
-  },
-  'John 14': {
-    title: 'Let Not Your Heart Be Troubled',
-    body: 'Jesus said these words on the hardest night of His life — the night before the cross. He looked at His friends and said, "Do not let your hearts be troubled. Trust in God; trust also in Me." He wasn\'t in denial about what was coming. He was anchored in something deeper. And He\'s offering you that same anchor today. Your circumstances may be heavy, but His peace is heavier.',
-    titleId: 'Jangan Gelisah Hatimu',
-    bodyId: 'Yesus mengucapkan kata-kata ini di malam tersulit dalam hidup-Nya — malam sebelum salib. Dia memandang sahabat-sahabat-Nya dan berkata, "Janganlah gelisah hatimu; percayalah kepada Allah, percayalah juga kepada-Ku." Dia tidak menyangkal apa yang akan datang. Dia berlabuh pada sesuatu yang lebih dalam. Dan Dia menawarkan jangkar yang sama kepadamu hari ini. Keadaanmu mungkin berat, tapi damai-Nya lebih berat lagi.',
-  },
-  'Romans 8': {
-    title: 'Nothing Can Separate You',
-    body: 'This chapter builds to one of the most powerful promises in all of Scripture: nothing — not trouble, not hardship, not danger, not the past, not the future — can separate you from the love of God. Read that again. Nothing. Whatever you\'re facing right now, it does not have the power to cut you off from His love. You are held. Completely.',
-    titleId: 'Tidak Ada yang Dapat Memisahkanmu',
-    bodyId: 'Pasal ini memuncak pada salah satu janji paling kuat di seluruh Kitab Suci: tidak ada — bukan kesusahan, bukan kesesakan, bukan bahaya, bukan masa lalu, bukan masa depan — yang dapat memisahkanmu dari kasih Allah. Baca lagi. Tidak ada. Apa pun yang kamu hadapi sekarang, itu tidak punya kuasa untuk memutusmu dari kasih-Nya. Kamu digenggam. Sepenuhnya.',
-  },
-  'Psalm 34': {
-    title: 'He Is Close to You',
-    body: '"The Lord is close to the brokenhearted." That\'s not a metaphor. It\'s a promise. When your heart is shattered, God doesn\'t stand at a distance and wait for you to pull yourself together. He draws near. He moves toward the pain. If you\'re in a season where everything feels broken, know this: God is closer to you right now than He\'s ever been.',
-    titleId: 'Dia Dekat Denganmu',
-    bodyId: '"TUHAN itu dekat kepada orang-orang yang patah hati." Itu bukan kiasan. Itu janji. Ketika hatimu hancur, Tuhan tidak berdiri dari kejauhan menunggu kamu memperbaiki dirimu sendiri. Dia mendekat. Dia bergerak menuju rasa sakit itu. Jika kamu berada di musim di mana segalanya terasa hancur, ketahuilah ini: Tuhan lebih dekat denganmu sekarang daripada sebelumnya.',
-  },
-  'Isaiah 43': {
-    title: 'You Will Not Be Overcome',
-    body: '"When you pass through the waters, I will be with you." God didn\'t say if — He said when. He knows the hard seasons come. But He promises that they will not overcome you. The fire will not burn you. The water will not sweep you away. He calls you by name and says, "You are mine." Today, let that truth settle into the deepest part of your heart.',
-    titleId: 'Kamu Tidak Akan Dikalahkan',
-    bodyId: '"Apabila engkau menyeberang melalui air, Aku akan menyertai engkau." Tuhan tidak berkata jika — Dia berkata apabila. Dia tahu musim-musim sulit akan datang. Tapi Dia berjanji bahwa itu tidak akan mengalahkanmu. Api tidak akan membakarmu. Air tidak akan menghanyutkanmu. Dia memanggilmu dengan nama dan berkata, "Engkau ini milik-Ku." Hari ini, biarkan kebenaran itu meresap ke bagian terdalam hatimu.',
-  },
-  'Matthew 11': {
-    title: 'Come and Rest',
-    body: 'Jesus looked at exhausted, burdened people and said: "Come to me." Not "figure it out." Not "try harder." Just — come. Bring the weight. Bring the weariness. Bring the questions you don\'t have answers for. He promises rest. Not a vacation from your problems, but a deep, soul-level rest that comes from being with the One who carries the world.',
-    titleId: 'Datanglah dan Beristirahatlah',
-    bodyId: 'Yesus memandang orang-orang yang kelelahan dan terbebani dan berkata: "Marilah kepada-Ku." Bukan "cari tahu sendiri." Bukan "berusaha lebih keras." Hanya — datanglah. Bawa bebannya. Bawa kelelahannya. Bawa pertanyaan-pertanyaan yang tidak kamu punya jawabannya. Dia menjanjikan perhentian. Bukan liburan dari masalahmu, tapi perhentian jiwa yang mendalam yang datang dari bersama Dia yang memikul dunia.',
-  },
-  'Psalm 121': {
-    title: 'Your Help Comes From God',
-    body: '"Where does my help come from? My help comes from the Lord." Sometimes the most powerful thing you can do is look up. Not at the mountain of problems in front of you — but at the God who made the mountains. He watches over you. He doesn\'t sleep. He doesn\'t get distracted. Right now, in your hardest moment, He is paying attention to you.',
-    titleId: 'Pertolonganmu Datang dari Tuhan',
-    bodyId: '"Dari manakah akan datang pertolonganku? Pertolonganku ialah dari TUHAN." Kadang hal paling berkuasa yang bisa kamu lakukan adalah mendongak ke atas. Bukan ke gunung masalah di depanmu — tapi ke Tuhan yang menciptakan gunung-gunung itu. Dia menjagamu. Dia tidak tidur. Dia tidak teralihkan. Saat ini, di momen terberatmu, Dia memperhatikanmu.',
-  },
-  '2 Corinthians 1': {
-    title: 'Comforted to Comfort Others',
-    body: 'Paul calls God "the Father of compassion and the God of all comfort." All comfort. Not some. Not comfort for the easy stuff. All of it — the grief, the confusion, the fear. And here\'s the beautiful part: the comfort God gives you in this season will become the comfort you give to someone else later. Your pain is not wasted. God will use it.',
-    titleId: 'Dihibur untuk Menghibur Orang Lain',
-    bodyId: 'Paulus menyebut Tuhan "Bapa segala kemurahan dan Allah segala penghiburan." Segala penghiburan. Bukan sebagian. Bukan penghiburan untuk hal-hal yang mudah. Semuanya — duka, kebingungan, ketakutan. Dan inilah bagian yang indah: penghiburan yang Tuhan berikan kepadamu di musim ini akan menjadi penghiburan yang kamu berikan kepada orang lain nantinya. Rasa sakitmu tidak sia-sia. Tuhan akan menggunakannya.',
-  },
-  'Philippians 4': {
-    title: 'His Peace Guards You',
-    body: '"The peace of God, which transcends all understanding, will guard your hearts and minds." This peace doesn\'t make sense. It shows up when the circumstances say you should be falling apart. It guards you — like a soldier standing watch over your heart. You don\'t have to manufacture it. Just bring your requests to God, with thanksgiving, and let His peace do what only it can do.',
-    titleId: 'Damai-Nya Menjagamu',
-    bodyId: '"Damai sejahtera Allah, yang melampaui segala akal, akan memelihara hati dan pikiranmu." Damai ini tidak masuk akal. Ia muncul ketika keadaan berkata kamu seharusnya hancur. Ia menjagamu — seperti prajurit yang berjaga atas hatimu. Kamu tidak harus menciptakannya sendiri. Cukup bawa permohonanmu kepada Tuhan, dengan ucapan syukur, dan biarkan damai-Nya melakukan apa yang hanya ia bisa lakukan.',
-  },
-  'Psalm 27': {
-    title: 'Wait for the Lord',
-    body: 'David ends this psalm with raw honesty and hard-won faith: "Wait for the Lord; be strong and take heart and wait for the Lord." Waiting is not passive. It\'s an act of trust. It says, "I believe God is working even when I can\'t see it." If you\'re in a waiting season, take heart. God has not forgotten you. He is working.',
-    titleId: 'Nantikanlah TUHAN',
-    bodyId: 'Daud mengakhiri mazmur ini dengan kejujuran mentah dan iman yang diperoleh dengan susah payah: "Nantikanlah TUHAN! Kuatkanlah dan teguhkanlah hatimu! Nantikanlah TUHAN!" Menanti bukan berarti pasif. Itu tindakan percaya. Itu berkata, "Aku percaya Tuhan sedang bekerja meskipun aku tidak bisa melihatnya." Jika kamu berada di musim menanti, kuatkanlah hatimu. Tuhan tidak melupakanmu. Dia sedang bekerja.',
-  },
-  'Psalm 62': {
-    title: 'Rest in God Alone',
-    body: '"Truly my soul finds rest in God; my salvation comes from Him." Not from the resolution of your circumstances. Not from other people coming through. From God alone. Today, let your soul settle. Stop reaching for the next solution and just rest in the One who already has the answer.',
-    titleId: 'Beristirahatlah dalam Tuhan Saja',
-    bodyId: '"Hanya pada Allah jiwaku tenang, dari pada-Nyalah keselamatanku." Bukan dari terselesaikannya keadaanmu. Bukan dari orang lain yang datang menolong. Dari Tuhan saja. Hari ini, biarkan jiwamu tenang. Berhenti meraih solusi berikutnya dan beristirahatlah dalam Dia yang sudah memiliki jawabannya.',
-  },
-  'Psalm 139': {
-    title: 'He Knows You Completely',
-    body: 'God knows when you sit down and when you rise. He knows your thoughts before you think them. He\'s familiar with all your ways. And knowing all of that — every fear, every doubt, every moment of weakness — He still says, "How precious are my thoughts about you." You are fully known and fully loved. There\'s nothing you can show Him that will make Him turn away.',
-    titleId: 'Dia Mengenalmu Sepenuhnya',
-    bodyId: 'Tuhan tahu kapan kamu duduk dan kapan kamu berdiri. Dia tahu pikiranmu sebelum kamu memikirkannya. Dia mengenal semua jalanmu. Dan mengetahui semua itu — setiap ketakutan, setiap keraguan, setiap momen kelemahan — Dia tetap berkata, "Betapa berharganya pikiran-Ku tentang engkau." Kamu sepenuhnya dikenal dan sepenuhnya dikasihi. Tidak ada yang bisa kamu tunjukkan kepada-Nya yang akan membuatnya berpaling.',
-  },
-  'Isaiah 41': {
-    title: 'Do Not Fear',
-    body: '"Do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you." This isn\'t God minimizing what you\'re going through. It\'s God stepping into it with you. He\'s not saying "don\'t feel afraid." He\'s saying "I\'m here, so you don\'t have to stay there." Let Him strengthen you today.',
-    titleId: 'Jangan Takut',
-    bodyId: '"Jangan takut, sebab Aku menyertai engkau, jangan bimbang, sebab Aku ini Allahmu; Aku akan meneguhkan, bahkan akan menolong engkau." Ini bukan Tuhan menyepelekan apa yang kamu alami. Ini Tuhan melangkah masuk ke dalamnya bersamamu. Dia tidak berkata "jangan merasa takut." Dia berkata "Aku di sini, jadi kamu tidak harus tinggal di sana." Biarkan Dia menguatkanmu hari ini.',
-  },
-  'Lamentations 3': {
-    title: 'New Mercies Every Morning',
-    body: 'Jeremiah wrote Lamentations in the middle of devastation — his city destroyed, his people scattered. And yet, right in the center of the darkest book in the Bible: "His mercies are new every morning; great is His faithfulness." Even in your darkest chapter, mercy shows up fresh. Tomorrow morning, it\'ll be there again. That\'s who God is.',
-    titleId: 'Belas Kasihan Baru Setiap Pagi',
-    bodyId: 'Yeremia menulis Ratapan di tengah kehancuran — kotanya dihancurkan, bangsanya tercerai-berai. Namun, tepat di tengah kitab tergelap dalam Alkitab: "Belas kasihan-Nya tidak habis-habisnya, tetapi ia baru setiap pagi; besar kesetiaan-Mu!" Bahkan di pasal tergelapmu, belas kasihan muncul segar. Besok pagi, ia akan ada di sana lagi. Itulah siapa Tuhan.',
-  },
-  'Psalm 42': {
-    title: 'Hope in God',
-    body: '"Why, my soul, are you downcast? Why so disturbed within me? Put your hope in God." The psalmist is talking to himself — preaching truth to his own discouraged heart. Sometimes that\'s exactly what you need to do. When your soul is low, remind it of what\'s true: God is still good. He is still faithful. And you will praise Him again.',
-    titleId: 'Berharaplah kepada Allah',
-    bodyId: '"Mengapa engkau tertekan, hai jiwaku, dan mengapa engkau gelisah di dalam diriku? Berharaplah kepada Allah!" Pemazmur sedang berbicara kepada dirinya sendiri — mengkhotbahkan kebenaran kepada hatinya sendiri yang putus asa. Kadang itulah tepatnya yang perlu kamu lakukan. Ketika jiwamu rendah, ingatkan ia tentang apa yang benar: Tuhan masih baik. Dia masih setia. Dan kamu akan memuji-Nya lagi.',
-  },
-  'Psalm 103': {
-    title: 'He Remembers You',
-    body: '"As a father has compassion on his children, so the Lord has compassion on those who fear Him. For He knows how we are formed; He remembers that we are dust." God doesn\'t expect you to be invincible. He knows you\'re human. He knows you\'re fragile. And He meets you there — with compassion, not criticism. Let yourself be held.',
-    titleId: 'Dia Mengingatmu',
-    bodyId: '"Seperti bapa sayang kepada anak-anaknya, demikian TUHAN sayang kepada orang-orang yang takut akan Dia. Sebab Dia tahu asal usul kita, Dia ingat bahwa kita ini debu." Tuhan tidak mengharapkanmu untuk tak terkalahkan. Dia tahu kamu manusia. Dia tahu kamu rapuh. Dan Dia menemuimu di sana — dengan belas kasihan, bukan kritik. Biarkan dirimu digenggam.',
-  },
-  'Psalm 16': {
-    title: 'Fullness of Joy',
-    body: '"You make known to me the path of life; You will fill me with joy in Your presence." Even when joy feels distant, it\'s still there — in His presence. You don\'t have to chase it or force it. Just come close to Him. Sit with Him in this chapter. Joy will find its way back to you in time.',
-    titleId: 'Sukacita yang Penuh',
-    bodyId: '"Engkau memberitahukan kepadaku jalan kehidupan; di hadapan-Mu ada sukacita berlimpah-limpah." Bahkan ketika sukacita terasa jauh, ia tetap ada — di hadirat-Nya. Kamu tidak harus mengejarnya atau memaksakannya. Cukup mendekat kepada-Nya. Duduk bersama-Nya di pasal ini. Sukacita akan menemukan jalannya kembali kepadamu pada waktunya.',
-  },
-  'Psalm 86': {
-    title: 'You Are a God of Compassion',
-    body: '"You, Lord, are a compassionate and gracious God, slow to anger, abounding in love and faithfulness." David didn\'t just know about God — he knew God. And this is who God is: compassionate when you\'re struggling, gracious when you fall short, faithful when everything feels uncertain. That\'s the God who\'s with you today.',
-    titleId: 'Engkau Allah yang Penyayang',
-    bodyId: '"Tetapi Engkau, Tuhan, Allah penyayang dan pengasih, panjang sabar dan berlimpah kasih dan setia." Daud tidak hanya tahu tentang Tuhan — dia mengenal Tuhan. Dan inilah siapa Tuhan: penyayang ketika kamu berjuang, pengasih ketika kamu gagal, setia ketika segalanya terasa tidak pasti. Itulah Tuhan yang bersamamu hari ini.',
-  },
-  'Isaiah 54': {
-    title: 'His Kindness Will Not Depart',
-    body: '"Though the mountains be shaken and the hills be removed, yet my unfailing love for you will not be shaken, nor my covenant of peace be removed." Everything around you can change. But His love won\'t. His peace won\'t. It\'s a covenant — a promise sealed by God Himself. Hold onto that today.',
-    titleId: 'Kasih Setia-Nya Tidak Akan Beranjak',
-    bodyId: '"Sebab biarpun gunung-gunung beranjak dan bukit-bukit bergoyang, tetapi kasih setia-Ku tidak akan beranjak dari padamu dan perjanjian damai-Ku tidak akan bergoyang." Segala sesuatu di sekitarmu bisa berubah. Tapi kasih-Nya tidak. Damai-Nya tidak. Itu perjanjian — janji yang dimeteraikan oleh Allah sendiri. Peganglah itu hari ini.',
-  },
-  'Psalm 30': {
-    title: 'Joy Comes in the Morning',
-    body: '"Weeping may stay for the night, but rejoicing comes in the morning." If you\'re in a nighttime season — the hard, dark, uncertain kind — hear this: morning is coming. This isn\'t forever. God has a morning planned for you. Weep if you need to. He catches every tear. But don\'t give up, because joy is on its way.',
-    titleId: 'Sukacita Datang di Pagi Hari',
-    bodyId: '"Pada waktu petang tangis menginap, tetapi pada waktu pagi terdengar sorak-sorai." Jika kamu berada di musim malam — yang sulit, gelap, penuh ketidakpastian — dengarlah ini: pagi sedang datang. Ini tidak selamanya. Tuhan sudah merencanakan pagi untukmu. Menangislah jika perlu. Dia menangkap setiap air matamu. Tapi jangan menyerah, karena sukacita sedang dalam perjalanan.',
-  },
-  'Psalm 77': {
-    title: 'Remember What God Has Done',
-    body: 'The psalmist was in crisis — sleepless, overwhelmed, wondering if God had forgotten him. And then he did one thing that changed everything: "I will remember the deeds of the Lord." When today feels impossible, look back. God has carried you before. He will carry you again.',
-    titleId: 'Ingatlah Apa yang Tuhan Telah Lakukan',
-    bodyId: 'Pemazmur sedang dalam krisis — tidak bisa tidur, kewalahan, bertanya-tanya apakah Tuhan telah melupakannya. Dan kemudian dia melakukan satu hal yang mengubah segalanya: "Aku hendak mengingat perbuatan-perbuatan TUHAN." Ketika hari ini terasa mustahil, lihatlah ke belakang. Tuhan pernah menggendongmu sebelumnya. Dia akan menggendongmu lagi.',
-  },
-  'Psalm 116': {
-    title: 'He Heard Your Cry',
-    body: '"I love the Lord, for He heard my voice; He heard my cry for mercy." God hears you. Not just the polished prayers — the desperate ones, the ones you pray through tears, the ones that are barely words at all. He hears every one of them. And He bends down to listen.',
-    titleId: 'Dia Mendengar Seruanmu',
-    bodyId: '"Aku mengasihi TUHAN, sebab Ia mendengarkan suaraku dan permohonanku." Tuhan mendengarmu. Bukan hanya doa yang rapi — yang putus asa, yang kamu doakan sambil menangis, yang hampir bukan kata-kata sama sekali. Dia mendengar setiap doamu. Dan Dia membungkuk untuk mendengarkan.',
-  },
-  'Psalm 73': {
-    title: 'God Is Your Strength',
-    body: '"My flesh and my heart may fail, but God is the strength of my heart and my portion forever." You don\'t have to be strong right now. You\'re allowed to feel weak. Because God is your strength — not a backup plan, but the main one. When your heart fails, His doesn\'t.',
-    titleId: 'Tuhan adalah Kekuatanmu',
-    bodyId: '"Sekalipun dagingku dan hatiku habis lenyap, gunung batuku dan bagianku tetaplah Allah selama-lamanya." Kamu tidak harus kuat sekarang. Kamu boleh merasa lemah. Karena Tuhan adalah kekuatanmu — bukan rencana cadangan, tapi rencana utama. Ketika hatimu gagal, hati-Nya tidak.',
-  },
-  'Psalm 40': {
-    title: 'He Lifted You Out',
-    body: '"He lifted me out of the slimy pit, out of the mud and mire; He set my feet on a rock and gave me a firm place to stand." If you feel stuck right now — in grief, in confusion, in hopelessness — know that God is a lifter. He reaches down into the pit. He doesn\'t wait for you to climb out on your own. He pulls you up.',
-    titleId: 'Dia Mengangkatmu Keluar',
-    bodyId: '"Ia mengangkat aku dari lobang kebinasaan, dari lumpur rawa; Ia menaruh kakiku di atas bukit batu, menjadikan langkahku tegap." Jika kamu merasa terjebak sekarang — dalam duka, dalam kebingungan, dalam keputusasaan — ketahuilah bahwa Tuhan adalah pengangkat. Dia menjangkau ke dalam lobang itu. Dia tidak menunggu kamu memanjat keluar sendiri. Dia menarikmu ke atas.',
-  },
-  'John 16': {
-    title: 'He Has Overcome',
-    body: '"In this world you will have trouble. But take heart! I have overcome the world." Jesus didn\'t promise a trouble-free life. He promised something better: His victory over every bit of it. Whatever you\'re facing has already been defeated. Take heart today. The one who overcame the world is fighting for you.',
-    titleId: 'Dia Telah Mengalahkan Dunia',
-    bodyId: '"Di dunia kamu menderita penganiayaan, tetapi kuatkanlah hatimu, Aku telah mengalahkan dunia." Yesus tidak menjanjikan hidup tanpa masalah. Dia menjanjikan sesuatu yang lebih baik: kemenangan-Nya atas setiap bagiannya. Apa pun yang kamu hadapi sudah dikalahkan. Kuatkan hatimu hari ini. Dia yang mengalahkan dunia sedang berjuang untukmu.',
-  },
-  'Psalm 145': {
-    title: 'He Upholds You',
-    body: '"The Lord upholds all who fall and lifts up all who are bowed down." If you\'re bowed down today — by grief, by worry, by the weight of it all — God is not standing over you asking why you fell. He\'s kneeling beside you, lifting you up. That\'s who He is. That\'s what He does.',
-    titleId: 'Dia Menopangmu',
-    bodyId: '"TUHAN menopang semua orang yang jatuh dan menegakkan semua orang yang tertunduk lesu." Jika kamu tertunduk hari ini — oleh duka, oleh kekhawatiran, oleh beban semuanya — Tuhan tidak berdiri di atasmu bertanya mengapa kamu jatuh. Dia berlutut di sampingmu, mengangkatmu. Itulah siapa Dia. Itulah yang Dia lakukan.',
-  },
-  'Revelation 21': {
-    title: 'Every Tear Will Be Wiped Away',
-    body: '"He will wipe every tear from their eyes. There will be no more death or mourning or crying or pain." This is where it\'s all heading. The story doesn\'t end in suffering — it ends in complete restoration. Every tear. Every loss. Every broken thing. God will make it new. Hold on to that hope. The best is still to come.',
-    titleId: 'Setiap Air Mata Akan Dihapus',
-    bodyId: '"Ia akan menghapus segala air mata dari mata mereka, dan maut tidak akan ada lagi; tidak akan ada lagi perkabungan, atau ratap tangis, atau dukacita." Inilah tujuan akhir semuanya. Cerita ini tidak berakhir dalam penderitaan — ia berakhir dalam pemulihan sempurna. Setiap air mata. Setiap kehilangan. Setiap hal yang rusak. Tuhan akan menjadikannya baru. Peganglah pengharapan itu. Yang terbaik masih akan datang.',
-  },
-};
 
 // Streak logic now lives in one shared module (src/utils/streak.ts) so Home and
 // Plans can't diverge. getStreak / recordStreakToday are imported at the top.
 
-// ── Daily Word of the Day ────────────────────────────────────────
-const DAILY_WORDS = [
-  { word: 'Agape', lang: 'Greek', pronunciation: 'ah-GAH-pay', meaning: 'Unconditional, self-giving love — the highest form of love in the New Testament', verse: 'John 3:16', original: 'ἀγάπη' },
-  { word: 'Shalom', lang: 'Hebrew', pronunciation: 'sha-LOME', meaning: 'Peace, wholeness, and completeness — far deeper than the absence of conflict', verse: 'Numbers 6:26', original: 'שָׁלוֹם' },
-  { word: 'Charis', lang: 'Greek', pronunciation: 'KAH-ris', meaning: 'Grace — unmerited divine favor freely given', verse: 'Ephesians 2:8', original: 'χάρις' },
-  { word: 'Hesed', lang: 'Hebrew', pronunciation: 'HEH-sed', meaning: 'Lovingkindness, steadfast covenant love and loyalty', verse: 'Psalm 136:1', original: 'חֶסֶד' },
-  { word: 'Logos', lang: 'Greek', pronunciation: 'LOH-gos', meaning: 'The Word — divine reason, wisdom, and the spoken expression of God', verse: 'John 1:1', original: 'λόγος' },
-  { word: 'Emunah', lang: 'Hebrew', pronunciation: 'eh-moo-NAH', meaning: 'Faith — steadfastness, firmness, trust that holds steady over time', verse: 'Habakkuk 2:4', original: 'אֱמוּנָה' },
-  { word: 'Kairos', lang: 'Greek', pronunciation: 'KAI-ros', meaning: 'The appointed time — a divinely orchestrated, perfect moment', verse: 'Ecclesiastes 3:1', original: 'καιρός' },
-  { word: 'Tsedaqah', lang: 'Hebrew', pronunciation: 'tseh-dah-KAH', meaning: 'Righteousness — living rightly in relationship with God and others', verse: 'Genesis 15:6', original: 'צְדָקָה' },
-  { word: 'Pneuma', lang: 'Greek', pronunciation: 'PNYOO-mah', meaning: 'Spirit, breath, wind — the animating presence of God', verse: 'John 4:24', original: 'πνεῦμα' },
-  { word: 'Racham', lang: 'Hebrew', pronunciation: 'rah-KHAM', meaning: 'Compassion — deep mercy from the womb; God\'s tender, motherly love', verse: 'Psalm 103:13', original: 'רַחַם' },
-  { word: 'Soteria', lang: 'Greek', pronunciation: 'so-tay-REE-ah', meaning: 'Salvation — deliverance, rescue, and restoration to wholeness', verse: 'Romans 1:16', original: 'σωτηρία' },
-  { word: 'Emet', lang: 'Hebrew', pronunciation: 'EH-met', meaning: 'Truth — reliable, dependable reality; what can be counted on absolutely', verse: 'John 14:6', original: 'אֱמֶת' },
-  { word: 'Ekklesia', lang: 'Greek', pronunciation: 'ek-klay-SEE-ah', meaning: 'Church — the called-out assembly, God\'s gathered community', verse: 'Matthew 16:18', original: 'ἐκκλησία' },
-  { word: 'Kabod', lang: 'Hebrew', pronunciation: 'kah-VODE', meaning: 'Glory — the weightiness and radiance of God\'s presence', verse: 'Exodus 33:18', original: 'כָּבוֹד' },
-  { word: 'Pistis', lang: 'Greek', pronunciation: 'PIS-tis', meaning: 'Faith, trust, confidence — active reliance on what God has promised', verse: 'Hebrews 11:1', original: 'πίστις' },
-  { word: 'Qadosh', lang: 'Hebrew', pronunciation: 'kah-DOSH', meaning: 'Holy — set apart, distinct, wholly other than anything created', verse: 'Isaiah 6:3', original: 'קָדוֹשׁ' },
-  { word: 'Parakletos', lang: 'Greek', pronunciation: 'pah-RAH-klay-tos', meaning: 'Comforter, Advocate, Helper — one called alongside to assist', verse: 'John 14:16', original: 'παράκλητος' },
-  { word: 'Ruach', lang: 'Hebrew', pronunciation: 'ROO-akh', meaning: 'Spirit, wind, breath — the living, moving presence of God', verse: 'Genesis 1:2', original: 'רוּחַ' },
-  { word: 'Zoe', lang: 'Greek', pronunciation: 'ZOH-ay', meaning: 'Life — the full, vibrant, eternal life that God alone gives', verse: 'John 10:10', original: 'ζωή' },
-  { word: 'Nephesh', lang: 'Hebrew', pronunciation: 'NEH-fesh', meaning: 'Soul, living being — the whole self; every part of who you are', verse: 'Psalm 23:3', original: 'נֶפֶשׁ' },
-  { word: 'Doxa', lang: 'Greek', pronunciation: 'DOH-ksa', meaning: 'Glory, honour, splendour — the revealed magnificence of God', verse: 'Romans 3:23', original: 'δόξα' },
-  { word: 'Berith', lang: 'Hebrew', pronunciation: 'beh-REET', meaning: 'Covenant — a binding, unbreakable promise; the foundation of God\'s relationship with his people', verse: 'Genesis 9:16', original: 'בְּרִית' },
-  { word: 'Telos', lang: 'Greek', pronunciation: 'TEL-os', meaning: 'End, purpose, completion — the goal toward which everything moves', verse: 'Romans 10:4', original: 'τέλος' },
-  { word: 'Dabar', lang: 'Hebrew', pronunciation: 'dah-VAR', meaning: 'Word, matter, thing — in Hebrew thought, a word is an event that accomplishes what it says', verse: 'Isaiah 55:11', original: 'דָּבָר' },
-  { word: 'Metanoia', lang: 'Greek', pronunciation: 'meh-tah-NOY-ah', meaning: 'Repentance — a profound change of mind, heart, and direction', verse: 'Matthew 3:2', original: 'μετάνοια' },
-  { word: 'Anavah', lang: 'Hebrew', pronunciation: 'ah-nah-VAH', meaning: 'Humility — lowliness before God; the posture of one who knows they depend entirely on Him', verse: 'Micah 6:8', original: 'עֲנָוָה' },
-  { word: 'Parousia', lang: 'Greek', pronunciation: 'pah-roo-SEE-ah', meaning: 'Presence, coming — the glorious return of Christ', verse: '1 Thessalonians 4:15', original: 'παρουσία' },
-  { word: 'Yeshuah', lang: 'Hebrew', pronunciation: 'yeh-SHOO-ah', meaning: 'Salvation, deliverance — the very name of Jesus means "God saves"', verse: 'Psalm 62:2', original: 'יְשׁוּעָה' },
-  { word: 'Dikaiosyne', lang: 'Greek', pronunciation: 'di-kai-oh-SOO-nay', meaning: 'Righteousness, justice — being right before God and living it out toward others', verse: 'Matthew 5:6', original: 'δικαιοσύνη' },
-  { word: 'Ahavah', lang: 'Hebrew', pronunciation: 'ah-hah-VAH', meaning: 'Love — deep, active, choosing love; not just feeling but commitment and action', verse: 'Deuteronomy 6:5', original: 'אַהֲבָה' },
-];
-
-function getDailyWord() {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  return DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
-}
 
 
 // ── Campus community count (deterministic per campus + date) ─────────────────
@@ -349,31 +120,6 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
 }
 
 
-/* -- Bible Books and Chapters -- */
-const BIBLE_BOOKS = [
-  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth',
-  '1 Samuel', '2 Samuel', '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah',
-  'Esther', 'Job', 'Psalms', 'Proverbs', 'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah',
-  'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah',
-  'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
-  'Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1 Corinthians', '2 Corinthians',
-  'Galatians', 'Ephesians', 'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians',
-  '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James', '1 Peter', '2 Peter',
-  '1 John', '2 John', '3 John', 'Jude', 'Revelation',
-];
-
-const BOOK_CHAPTERS: Record<string, number> = {
-  Genesis: 50, Exodus: 40, Leviticus: 27, Numbers: 36, Deuteronomy: 34, Joshua: 24, Judges: 21, Ruth: 4,
-  '1 Samuel': 31, '2 Samuel': 24, '1 Kings': 22, '2 Kings': 25, '1 Chronicles': 29, '2 Chronicles': 36,
-  Ezra: 10, Nehemiah: 13, Esther: 10, Job: 42, Psalms: 150, Proverbs: 31, Ecclesiastes: 12,
-  'Song of Solomon': 8, Isaiah: 66, Jeremiah: 52, Lamentations: 5, Ezekiel: 48, Daniel: 12,
-  Hosea: 14, Joel: 3, Amos: 9, Obadiah: 1, Jonah: 4, Micah: 7, Nahum: 3, Habakkuk: 3,
-  Zephaniah: 3, Haggai: 2, Zechariah: 14, Malachi: 4, Matthew: 28, Mark: 16, Luke: 24, John: 21,
-  Acts: 28, Romans: 16, '1 Corinthians': 16, '2 Corinthians': 13, Galatians: 6, Ephesians: 6,
-  Philippians: 4, Colossians: 4, '1 Thessalonians': 5, '2 Thessalonians': 3, '1 Timothy': 6,
-  '2 Timothy': 4, Titus: 3, Philemon: 1, Hebrews: 13, James: 5, '1 Peter': 5, '2 Peter': 3,
-  '1 John': 5, '2 John': 1, '3 John': 1, Jude: 1, Revelation: 22,
-};
 
 /* -- Faith Pathway types -- */
 interface PathwayDay {
@@ -551,19 +297,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     } catch { return 0; }
   });
 
-  // ── Comfort reading state ──
-  // comfortChapterIndex: which chapter in the rotation they're on today
-  // comfortChaptersServed: how many they've read so far in this session
-  // comfortPostRead: null = reading, 'ask_more' = finished chapter, 'ask_lock' = finished 2+, 'done' = done for today
-  // comfortDailyAmount: locked-in daily chapter count (persisted)
-  const [comfortChapterIndex, setComfortChapterIndex] = useState<number>(() => {
-    return Math.floor(Date.now() / 86400000) % COMFORT_CHAPTERS.length;
-  });
-  const [comfortChaptersServed, setComfortChaptersServed] = useState(0);
-  const [comfortPostRead, setComfortPostRead] = useState<null | 'devotion' | 'ask_more' | 'ask_lock' | 'done'>(null);
-  const [comfortDailyAmount, setComfortDailyAmount] = useState<number>(() => {
-    try { return parseInt(localStorage.getItem('dw_comfort_daily') || '0', 10) || 0; } catch { return 0; }
-  });
+  // Comfort reading state now lives in <ComfortSection> (src/components/ComfortSection.tsx).
   const [showBookPicker, setShowBookPicker] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [bookPickerSearch, setBookPickerSearch] = useState('');
@@ -882,13 +616,6 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathwayData, pathwayProgress, translation]);
 
-  // Auto-load comfort scripture chapter
-  useEffect(() => {
-    if (!personaConfig.sectionOrder.includes('comfort_scripture')) return;
-    const passage = COMFORT_CHAPTERS[comfortChapterIndex % COMFORT_CHAPTERS.length];
-    if (passage) loadPassage(passage);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comfortChapterIndex, translation]);
 
   const todaysPlanPassages = (() => {
     try {
@@ -2807,293 +2534,26 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
         {/* Devotion of the Day removed from home page */}
 
-        {/* ── Comfort Scripture — auto-served, no decisions required ── */}
-        {personaConfig.sectionOrder.includes('comfort_scripture') && (() => {
-          const comfortPassage = COMFORT_CHAPTERS[comfortChapterIndex % COMFORT_CHAPTERS.length];
-          const comfortTKey = `${comfortPassage}_${translation}`;
-          const comfortText = passageTexts[comfortTKey];
-          const comfortIsLoading = loadingPassages.has(comfortPassage);
-          const comfortIsPlaying = audioPlaying && audioCurrentPassage === comfortPassage;
-          const comfortIsLoadingAudio = audioLoading && audioCurrentPassage === comfortPassage;
-
-          return (
-            <div style={{ marginBottom: 16 }}>
-              {/* Current comfort chapter — auto-loaded */}
-              <Card style={{ marginBottom: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <h2 className="text-section-header" style={{ margin: 0 }}>A WORD FOR YOU TODAY</h2>
-                  <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                    Take your time
-                  </span>
-                </div>
-
-                {/* Translation picker — simple, 3 options */}
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                  {getTranslationsForPersona('comfort', appLanguage).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => handleTranslationChange(t)}
-                      style={{
-                        padding: '5px 12px', borderRadius: 20,
-                        fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)',
-                        letterSpacing: '0.04em', cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        border: t === translation ? '1.5px solid var(--dw-slate-fill)' : '1.5px solid var(--dw-border)',
-                        background: t === translation ? 'var(--dw-slate-fill)' : 'transparent',
-                        color: t === translation ? '#fff' : 'var(--dw-text-muted)',
-                      }}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Chapter heading + listen */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                    {comfortPassage}
-                  </p>
-                  <button
-                    onClick={() => handleListen(comfortPassage)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      background: comfortIsPlaying ? '#4A6070' : 'var(--dw-slate-fill)',
-                      border: 'none', borderRadius: 10, padding: '8px 14px',
-                      fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      color: '#fff', fontFamily: 'var(--font-sans)',
-                    }}
-                  >
-                    {comfortIsLoadingAudio ? (
-                      <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
-                    ) : comfortIsPlaying ? (
-                      <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
-                    ) : (
-                      <><Headphones size={14} /> Listen</>
-                    )}
-                  </button>
-                </div>
-
-                {/* Scripture text — auto-loaded */}
-                {comfortIsLoading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
-                    <Loader2 size={14} style={{ color: 'var(--dw-slate)', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'italic', fontFamily: 'var(--font-sans)' }}>Loading…</span>
-                  </div>
-                ) : comfortText ? (
-                  <ScripturePassage
-                    text={comfortText}
-                    passageRef={comfortPassage}
-                    renderScripture={renderScripture}
-                    greekHebrewMode={greekHebrewMode}
-                    fontSize={scriptureFontSize}
-                  />
-                ) : (
-                  <button
-                    onClick={() => loadPassage(comfortPassage)}
-                    style={{
-                      background: 'rgba(92,107,192,0.1)', border: '1px solid var(--dw-slate-fill)',
-                      borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
-                      cursor: 'pointer', color: 'var(--dw-slate)', fontFamily: 'var(--font-sans)',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                    }}
-                  >
-                    <BookOpen size={16} /> Read {comfortPassage}
-                  </button>
-                )}
-
-                {/* Sit with this — gentle reflection */}
-                {comfortText && comfortPostRead === null && (
-                  <div style={{
-                    marginTop: 16, padding: '14px 16px',
-                    background: 'linear-gradient(135deg, rgba(92,107,192,0.08) 0%, rgba(92,107,192,0.03) 100%)',
-                    borderRadius: 10,
-                    border: '1px solid rgba(92,107,192,0.12)',
-                    textAlign: 'center',
-                  }}>
-                    <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: '0 0 14px', fontStyle: 'italic' }}>
-                      Which words brought you the most peace?
-                    </p>
-                    <button
-                      className="dw-btn-dark"
-                      onClick={() => {
-                        setComfortChaptersServed(prev => prev + 1);
-                        setComfortPostRead('devotion');
-                      }}
-                      style={{
-                        background: 'var(--dw-slate-fill)', border: 'none', borderRadius: 10,
-                        padding: '10px 20px', fontSize: 14, fontWeight: 600,
-                        cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)',
-                      }}
-                    >
-                      I've finished reading
-                    </button>
-                  </div>
-                )}
-              </Card>
-
-              {/* Post-read devotion — encouraging reflection from the chapter */}
-              {comfortPostRead === 'devotion' && (() => {
-                const devotion = COMFORT_DEVOTIONS[comfortPassage];
-                if (!devotion) {
-                  // No devotion for this chapter, skip to ask_more
-                  setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more');
-                  return null;
-                }
-                return (
-                  <Card style={{
-                    marginTop: 12,
-                    padding: '20px 18px',
-                    background: 'linear-gradient(135deg, rgba(92,107,192,0.06) 0%, rgba(92,107,192,0.02) 100%)',
-                    border: '1px solid rgba(92,107,192,0.12)',
-                  }}>
-                    <p style={{
-                      fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                      textTransform: 'uppercase', color: 'var(--dw-slate)',
-                      fontFamily: 'var(--font-sans)', marginBottom: 10,
-                    }}>
-                      A THOUGHT FROM THIS CHAPTER
-                    </p>
-                    <p style={{
-                      fontSize: 17, fontWeight: 700, color: 'var(--dw-text-primary)',
-                      fontFamily: 'var(--font-serif)', marginBottom: 10, lineHeight: 1.4,
-                    }}>
-                      {tField(devotion, 'title', lang)}
-                    </p>
-                    <p style={{
-                      fontSize: 15, lineHeight: 1.75, color: 'var(--dw-text-secondary)',
-                      fontFamily: 'var(--font-serif-text, Georgia, serif)',
-                      margin: '0 0 16px',
-                    }}>
-                      {tField(devotion, 'body', lang)}
-                    </p>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
-                    </div>
-                    <button
-                      className="dw-btn-dark"
-                      onClick={() => setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more')}
-                      style={{
-                        width: '100%', padding: '12px 16px', borderRadius: 10,
-                        background: 'var(--dw-slate-fill)', border: 'none',
-                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                        color: '#fff', fontFamily: 'var(--font-sans)',
-                      }}
-                    >
-                      Continue
-                    </button>
-                  </Card>
-                );
-              })()}
-
-              {/* Post-read flow — gentle multiple choice */}
-              {comfortPostRead === 'ask_more' && (
-                <Card style={{ marginTop: 12, textAlign: 'center', padding: '20px 16px' }}>
-                  <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 14 }}>
-                    Would you like to read another passage from God's Word?
-                  </p>
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                    <button
-                      className="dw-btn-dark"
-                      onClick={() => {
-                        setComfortChapterIndex(prev => (prev + 1) % COMFORT_CHAPTERS.length);
-                        setComfortPostRead(null);
-                      }}
-                      style={{
-                        padding: '10px 20px', borderRadius: 10,
-                        background: 'var(--dw-slate-fill)', border: 'none',
-                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                        color: '#fff', fontFamily: 'var(--font-sans)',
-                      }}
-                    >
-                      Yes, keep going
-                    </button>
-                    <button
-                      onClick={() => setComfortPostRead('done')}
-                      style={{
-                        padding: '10px 20px', borderRadius: 10,
-                        background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                        color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
-                      }}
-                    >
-                      That's enough for today
-                    </button>
-                  </div>
-                </Card>
-              )}
-
-              {comfortPostRead === 'ask_lock' && (
-                <Card style={{ marginTop: 12, textAlign: 'center', padding: '20px 16px' }}>
-                  <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
-                    You're doing great.
-                  </p>
-                  <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 16, lineHeight: 1.5 }}>
-                    Would you like to set a daily reading amount so we can have something ready for you each day?
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 260, margin: '0 auto' }}>
-                    {[
-                      { n: 1, label: t('chapters_1'), sub: t('chapters_1_desc') },
-                      { n: 2, label: t('chapters_2'), sub: t('chapters_2_desc') },
-                      { n: 3, label: t('chapters_3'), sub: t('chapters_3_desc') },
-                    ].map(opt => (
-                      <button
-                        key={opt.n}
-                        onClick={() => {
-                          setComfortDailyAmount(opt.n);
-                          syncMisc('dw_comfort_daily', String(opt.n));
-                          setComfortPostRead('done');
-                        }}
-                        style={{
-                          padding: '12px 16px', borderRadius: 10,
-                          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                          cursor: 'pointer', textAlign: 'left',
-                        }}
-                      >
-                        <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{opt.label}</p>
-                        <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>{opt.sub}</p>
-                      </button>
-                    ))}
-                    <button
-                      className="dw-btn-dark"
-                      onClick={() => {
-                        setComfortChapterIndex(prev => (prev + 1) % COMFORT_CHAPTERS.length);
-                        setComfortPostRead(null);
-                      }}
-                      style={{
-                        padding: '10px 16px', borderRadius: 10,
-                        background: 'var(--dw-slate-fill)', border: 'none',
-                        fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                        color: '#fff', fontFamily: 'var(--font-sans)',
-                      }}
-                    >
-                      Just give me one more for now
-                    </button>
-                    <button
-                      onClick={() => setComfortPostRead('done')}
-                      style={{
-                        padding: '8px 16px', borderRadius: 10,
-                        background: 'transparent', border: 'none',
-                        fontSize: 13, cursor: 'pointer',
-                        color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
-                      }}
-                    >
-                      I'm good for today
-                    </button>
-                  </div>
-                </Card>
-              )}
-
-              {comfortPostRead === 'done' && (
-                <Card style={{ marginTop: 12, textAlign: 'center', padding: '16px' }}>
-                  <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'italic' }}>
-                    {comfortDailyAmount > 0
-                      ? `You're set for ${comfortDailyAmount} chapter${comfortDailyAmount > 1 ? 's' : ''} a day. We'll have something ready for you tomorrow.`
-                      : 'God is with you. Come back whenever you need Him.'}
-                  </p>
-                </Card>
-              )}
-            </div>
-          );
-        })()}
+        {/* ── Comfort Scripture — auto-served (extracted to <ComfortSection>) ── */}
+        {personaConfig.sectionOrder.includes('comfort_scripture') && (
+          <ComfortSection
+            translation={translation}
+            translations={getTranslationsForPersona('comfort', appLanguage)}
+            handleTranslationChange={handleTranslationChange}
+            lang={lang}
+            t={t}
+            passageTexts={passageTexts}
+            loadingPassages={loadingPassages}
+            loadPassage={loadPassage}
+            audioPlaying={audioPlaying}
+            audioLoading={audioLoading}
+            audioCurrentPassage={audioCurrentPassage}
+            handleListen={handleListen}
+            renderScripture={renderScripture}
+            greekHebrewMode={greekHebrewMode}
+            scriptureFontSize={scriptureFontSize}
+          />
+        )}
 
         {/* ── Today's Reading — shows plan chapters when active, else devotion scripture ── */}
         {personaConfig.sectionOrder.includes('devotion_scripture') && (todaysPlanPassages.length > 0 || todaysDevotion?.verse) && (() => {
