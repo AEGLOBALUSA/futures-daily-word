@@ -67,7 +67,7 @@ async function _doFetch(passage: string, translation: TranslationCode, cacheKey:
         text = await fetchKJV(passage);
         break;
       case 'WEB':
-        text = getWEBBuiltIn(passage);
+        text = await fetchWEB(passage);
         break;
       default:
         // NKJV, NIV, AMP, NASB, RV1960, ARA, NVI, TB → Bolls.Life API
@@ -135,9 +135,15 @@ async function fetchKJV(passage: string): Promise<string> {
   return fetchBolls(passage, 'KJV');
 }
 
-function getWEBBuiltIn(_passage: string): string {
-  // WEB is the fallback of last resort - return placeholder
-  // In production, this pulls from the built-in BIBLE_WEB constant in translations.ts
+// World English Bible (public domain). Fetched via Bolls, like the other non-ESV/NLT
+// translations, so selecting WEB shows real text instead of a placeholder. Only falls
+// back to the placeholder if the source is unreachable (e.g. offline). The bundled
+// offline reader is KJV (fetchKJV); bundling WEB for offline is a separate follow-up.
+async function fetchWEB(passage: string): Promise<string> {
+  try {
+    const t = await fetchBolls(passage, 'WEB');
+    if (t && t.trim()) return t;
+  } catch { /* offline / source down — fall through to placeholder */ }
   return 'World English Bible text — loading...';
 }
 
@@ -154,7 +160,7 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
       // Fall through
     }
   }
-  return getWEBBuiltIn(passage);
+  return fetchWEB(passage);
 }
 
 // ── Audio cache: keyed by passageRef_translation → blob URL ──
