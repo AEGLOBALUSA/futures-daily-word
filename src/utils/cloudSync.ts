@@ -42,17 +42,50 @@ const MISC_KEYS = [
   'dw_comfort_daily',
   'dw_personal_media_url',
   'dw_prayed_for',           // prayer-wall "prayed for" set
+  'dw_setup',                // persona / pathway — core personalization (newest-wins)
+  'dw_lang',                 // UI language preference (newest-wins)
 ] as const;
 const MISC_PREFIXES = ['dw_sermon_', 'dw_book_today_'];
 
-/** Collect the misc-bag keys (static list + dynamic prefixes) from localStorage. */
+// Per-key last-write timestamps so the bag can do newest-wins cross-device instead
+// of pure fill-only. Rides to the cloud as a regular misc key.
+const MISC_META_KEY = 'dw_misc_meta';
+
+// Free-text user content: ALWAYS fill-only (never clobber a local edit, even with a
+// newer cloud timestamp), because these aren't structured for a real merge.
+const AUTHORED_MISC = new Set(['dw_user_story', 'dw_sermon_notes', 'dw_prayed_for']);
+function isAuthored(k: string): boolean {
+  return AUTHORED_MISC.has(k) || k.startsWith('dw_sermon_');
+}
+
+function readMiscMeta(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(MISC_META_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch { return {}; }
+}
+
+/** Write a misc-bag key locally, stamp its update time, and schedule a cloud push.
+ *  Use this (instead of a bare localStorage.setItem) at every misc-key write site so
+ *  the key (a) reliably backs up and (b) participates in newest-wins cross-device. */
+export function syncMisc(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+    const meta = readMiscMeta();
+    meta[key] = Date.now();
+    localStorage.setItem(MISC_META_KEY, JSON.stringify(meta));
+  } catch { /* quota */ }
+  pushNow();
+}
+
+/** Collect the misc-bag keys (static list + dynamic prefixes) + the meta map. */
 function collectMisc(): Record<string, string> {
   const out: Record<string, string> = {};
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k) continue;
-      if ((MISC_KEYS as readonly string[]).includes(k) || MISC_PREFIXES.some(p => k.startsWith(p))) {
+      if (k === MISC_META_KEY || (MISC_KEYS as readonly string[]).includes(k) || MISC_PREFIXES.some(p => k.startsWith(p))) {
         const v = localStorage.getItem(k);
         if (v != null) out[k] = v;
       }
@@ -61,22 +94,40 @@ function collectMisc(): Record<string, string> {
   return out;
 }
 
-/** Restore the misc bag — FILL-ONLY. Several of these keys are user-authored
- *  (dw_sermon_notes, dw_user_story, dw_prayed_for) and have no reliable per-change
- *  cloud push, so a blind cloud-wins overwrite on startup could permanently lose a
- *  fresh local edit that hadn't reached the cloud yet. We therefore only restore a
- *  key when local is missing/empty — exactly the reinstall / new-device case this
- *  bag exists for — and never clobber existing local content. */
+/** Restore the misc bag.
+ *  - Empty/absent local key  → fill from cloud (the reinstall / new-device case).
+ *  - Free-text authored key  → never clobber existing local content (fill-only).
+ *  - Other keys with a NEWER cloud timestamp → cloud wins (cross-device update),
+ *    so e.g. persona/language/reading-cadence chosen on one device follow the user
+ *    without ever overwriting a fresher local edit (per-key updatedAt comparison). */
 function applyMisc(misc: unknown) {
   if (!misc || typeof misc !== 'object') return;
-  for (const [k, v] of Object.entries(misc as Record<string, unknown>)) {
+  const bag = misc as Record<string, unknown>;
+  let cloudMeta: Record<string, number> = {};
+  try { cloudMeta = bag[MISC_META_KEY] ? JSON.parse(String(bag[MISC_META_KEY])) : {}; } catch { /* ignore */ }
+  const localMeta = readMiscMeta();
+
+  for (const [k, v] of Object.entries(bag)) {
+    if (k === MISC_META_KEY) continue;
     if (typeof v !== 'string' || !v) continue;
     const local = localStorage.getItem(k);
     const localEmpty = local == null || local === '' || local === '[]' || local === '{}' || local === 'null';
     if (localEmpty) {
       try { localStorage.setItem(k, v); } catch { /* quota */ }
+      continue;
+    }
+    if (isAuthored(k)) continue;                 // never clobber free text
+    if ((cloudMeta[k] || 0) > (localMeta[k] || 0)) {
+      try { localStorage.setItem(k, v); } catch { /* quota */ }
     }
   }
+
+  // Merge meta (max timestamp per key) so future comparisons stay correct.
+  const merged: Record<string, number> = { ...localMeta };
+  for (const [k, t] of Object.entries(cloudMeta)) {
+    if ((merged[k] || 0) < (t as number)) merged[k] = t as number;
+  }
+  try { localStorage.setItem(MISC_META_KEY, JSON.stringify(merged)); } catch { /* quota */ }
 }
 
 // Track the last known sync version from the server
@@ -248,12 +299,19 @@ function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
 
 // ── API calls ──
 
-async function apiCall(action: string, payload: Record<string, unknown>) {
+async function apiCall(action: string, payload: Record<string, unknown>, opts?: { keepalive?: boolean }) {
   const { authHeaders, setSessionToken } = await import('./sessionToken');
+  const body = JSON.stringify({ action, ...payload });
+  // keepalive lets the request finish after the page is torn down (background/close/
+  // reload) — critical for the flush path — but the browser caps keepalive bodies at
+  // 64KB, so only use it when the payload is comfortably small; otherwise fall back to
+  // a normal best-effort fetch (which is what happened before anyway).
+  const keepalive = !!opts?.keepalive && body.length < 60000;
   const resp = await fetch(`${API_BASE}/api/user-sync`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ action, ...payload }),
+    body,
+    keepalive,
   });
   if (resp.status === 401) {
     throw new Error('AUTH_FAILED');
@@ -284,12 +342,12 @@ async function pullFromCloud(email: string) {
 }
 
 /** Push all local data to cloud */
-export async function pushToCloud(email: string) {
+export async function pushToCloud(email: string, opts?: { keepalive?: boolean }) {
   if (!email || isSyncing) return;
   isSyncing = true;
   try {
     const data = collectLocalData();
-    const result = await apiCall('push', { email, data });
+    const result = await apiCall('push', { email, data }, opts);
     if (result.success) {
       lastSyncVersion = result.syncVersion || lastSyncVersion;
     }
@@ -358,9 +416,11 @@ export async function syncOnStartup(email: string) {
     // Push the merged state back to cloud
     await pushToCloud(email);
 
-    // Notify components that data may have changed
+    // Notify components that data may have changed. Tag the journal event as
+    // sync-driven so JournalScreen refreshes in place WITHOUT yanking the user to
+    // the All Notes tab (that auto-switch is only wanted on a real user save).
     window.dispatchEvent(new Event('dw-cloud-sync'));
-    window.dispatchEvent(new Event('dw-journal-updated'));
+    window.dispatchEvent(new CustomEvent('dw-journal-updated', { detail: { source: 'sync' } }));
 
     // Notify if merge conflicts were detected
     if (lastMergeConflicts.length > 0) {
@@ -374,11 +434,20 @@ export async function syncOnStartup(email: string) {
   }
 }
 
-/** Force an immediate push (e.g., before user logs out) */
+/** Force an immediate push (e.g., before user logs out / on background / close).
+ *  Uses keepalive so the request survives page teardown. */
 export function flushSync(email: string) {
   if (pushTimer) {
     clearTimeout(pushTimer);
     pushTimer = null;
   }
-  return pushToCloud(email);
+  return pushToCloud(email, { keepalive: true });
+}
+
+/** Convenience: immediate keepalive flush for the signed-in user, if any. */
+export function flushNow() {
+  try {
+    const email = (JSON.parse(localStorage.getItem('dw_profile') || '{}') || {}).email;
+    if (email) flushSync(email);
+  } catch { /* ignore */ }
 }

@@ -4,6 +4,7 @@ import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { COMMENTARY } from '../data/commentary';
 import { trackBehavior } from '../utils/behavior';
 import { fetchAICommentary } from '../utils/api';
+import { pushNow } from '../utils/cloudSync';
 import { t, getLang } from '../utils/i18n';
 
 interface VerseNoteDrawerProps {
@@ -80,6 +81,10 @@ function saveToJournal({ verseRef, highlightedText, note, planContext, commentar
     localStorage.setItem(JOURNAL_KEY, JSON.stringify(existing.slice(0, 5000)));
     // Notify JournalScreen to refresh its entries
     window.dispatchEvent(new Event('dw-journal-updated'));
+    // Back the note up to the cloud (other journal writers already do this; the
+    // verse-note drawer previously didn't, so a note could be lost on reinstall
+    // before any other action triggered a push).
+    pushNow();
   } catch {}
 }
 
@@ -156,7 +161,7 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
     if (aiCommentary || aiLoading || aiError) return;
     let cancelled = false;
     setAiLoading(true);
-    trackBehavior('greek_hebrew', `ai-commentary:${passage}`);
+    trackBehavior('commentary', `ai:${passage}`);
     fetchAICommentary(normalizeRef(passage), lang)
       .then(text => { if (!cancelled) { setAiCommentary(text); setAiLoading(false); } })
       .catch(() => { if (!cancelled) { setAiError(true); setAiLoading(false); } });

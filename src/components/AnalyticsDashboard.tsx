@@ -349,14 +349,14 @@ export function AnalyticsDashboard({ pastorCode, onClose }: Props) {
                 {/* Cities */}
                 <div style={cardStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                    <Globe size={14} style={{ color: '#3B82F6' }} />
+                    <Globe size={14} style={{ color: 'var(--dw-plan)' }} />
                     <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, color: 'var(--dw-text, #111)' }}>
                       Top Cities
                     </span>
                   </div>
                   {data.cities.slice(0, 15).map(c => {
                     const max = data.cities[0]?.count || 1;
-                    return barRow(c.name, c.count, max, '#3B82F6');
+                    return barRow(c.name, c.count, max, 'var(--dw-plan)');
                   })}
                 </div>
 

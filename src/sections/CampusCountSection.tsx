@@ -21,7 +21,7 @@ export function CampusCountSection() {
   const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
 
   return (
-    <div style={{
+    <div className="dw-dark-surface" style={{
       display: 'flex', alignItems: 'center', gap: 8,
       marginBottom: 16, padding: '10px 14px',
       background: 'var(--dw-charcoal)', borderRadius: 12,

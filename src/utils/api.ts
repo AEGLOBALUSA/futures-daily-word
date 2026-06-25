@@ -303,7 +303,29 @@ export function clearVerseCache(): void {
 // function and caches it (in-memory + localStorage, 30-day TTL) so repeat opens
 // are instant and don't re-bill.
 const AI_COMMENTARY_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+const AI_COMMENTARY_MAX = 80; // cap stored entries so a heavy user can't exhaust quota
 const aiCommentaryInFlight = new Map<string, Promise<string>>();
+
+/** Evict the oldest dw_ai_commentary_* entries (and any expired ones) so the cache
+ *  stays bounded — localStorage has no automatic eviction. */
+function pruneAICommentaryCache() {
+  try {
+    const entries: Array<{ key: string; ts: number }> = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('dw_ai_commentary_')) continue;
+      let ts = 0;
+      try { ts = JSON.parse(localStorage.getItem(k) || '{}').ts || 0; } catch { /* treat as oldest */ }
+      if (ts && Date.now() - ts >= AI_COMMENTARY_TTL) { localStorage.removeItem(k); continue; }
+      entries.push({ key: k, ts });
+    }
+    if (entries.length >= AI_COMMENTARY_MAX) {
+      entries.sort((a, b) => a.ts - b.ts); // oldest first
+      const toEvict = entries.length - AI_COMMENTARY_MAX + 1; // make room for the new write
+      for (let i = 0; i < toEvict; i++) localStorage.removeItem(entries[i].key);
+    }
+  } catch { /* ignore */ }
+}
 
 export async function fetchAICommentary(passageRef: string, lang: string = 'en'): Promise<string> {
   const ref = passageRef.trim();
@@ -342,6 +364,7 @@ export async function fetchAICommentary(passageRef: string, lang: string = 'en')
     const data = await res.json();
     const text: string = data?.content?.[0]?.text || '';
     if (!text) throw new Error('Empty AI commentary');
+    pruneAICommentaryCache();
     try { localStorage.setItem(cacheKey, JSON.stringify({ text, ts: Date.now() })); } catch { /* quota */ }
     return text;
   })();

@@ -6,7 +6,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import type { ReactNode } from 'react';
 import { PERSONA_MIGRATION } from '../utils/persona-config';
 import { setCampus as setAnalyticsCampus } from '../utils/analytics';
-import { syncOnStartup } from '../utils/cloudSync';
+import { syncOnStartup, syncMisc } from '../utils/cloudSync';
 import { authHeaders, setSessionToken, clearSessionToken } from '../utils/sessionToken';
 import { API_BASE } from '../utils/api-base';
 
@@ -195,7 +195,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const saveSetup = useCallback((s: SetupState) => {
-    localStorage.setItem('dw_setup', JSON.stringify(s));
+    // A real user choice stamps + pushes so persona/pathway follows them to a new
+    // device (newest-wins). Auto-set sources (first-run default / sunday-guest)
+    // write locally only, so this device's default can't override a genuine choice
+    // the user made on another device.
+    if (s.source && s.source !== 'default' && s.source !== 'sunday-guest') {
+      syncMisc('dw_setup', JSON.stringify(s));
+    } else {
+      try { localStorage.setItem('dw_setup', JSON.stringify(s)); } catch { /* quota */ }
+    }
     setSetup(s);
   }, []);
 
