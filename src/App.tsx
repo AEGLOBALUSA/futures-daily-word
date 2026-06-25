@@ -149,14 +149,14 @@ function AppContent() {
   // On first run we default to "congregation" so the user lands on content immediately,
   // and surface the picker as an opt-in "Personalize" prompt they can take or dismiss.
   const onboardingActive = !sundayGuest && !SERMON_DEEP_LINK && !isSundayWindow();
-  const [showPicker, setShowPicker] = useState(false);
-  const [showPersonalizeBanner, setShowPersonalizeBanner] = useState(
-    () => onboardingActive && !localStorage.getItem('dw_v7_pathway_done')
-  );
+  // First launch (a real onboarding session that hasn't chosen a pathway yet) → show the
+  // PathwayPicker as a welcome moment, instead of silently defaulting + a dismissible banner.
+  const needsFirstRunPicker = onboardingActive && !localStorage.getItem('dw_v7_pathway_done');
 
-  // Default an un-chosen persona to "congregation" so content renders without a gate.
+  // Silently default to "congregation" only for sessions that DON'T get the picker
+  // (sunday-guest / sermon deep-link / Sunday window), so their content still renders.
   useEffect(() => {
-    if (onboardingActive && !setup?.persona) {
+    if (!needsFirstRunPicker && !setup?.persona) {
       saveSetup({ persona: 'congregation', source: 'default' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,13 +165,6 @@ function AppContent() {
   function handlePathwaySelect(persona: Persona) {
     saveSetup({ persona, source: 'onboarding' });
     localStorage.setItem('dw_v7_pathway_done', 'true');
-    setShowPicker(false);
-    setShowPersonalizeBanner(false);
-  }
-
-  function dismissPersonalize() {
-    localStorage.setItem('dw_v7_pathway_done', 'true');
-    setShowPersonalizeBanner(false);
   }
 
   useEffect(() => {
@@ -302,47 +295,10 @@ function AppContent() {
         </div>
       )}
 
-      {/* Opt-in persona picker — surfaced from the Personalize prompt, not a first-run gate */}
-      {showPicker && (
-        <PathwayPicker onSelect={handlePathwaySelect} currentPersona={setup?.persona || 'congregation'} />
-      )}
-
-      {/* Non-blocking "Personalize" prompt — replaces the old full-screen tollgate */}
-      {showPersonalizeBanner && !showPicker && (
-        <div style={{
-          position: 'fixed', left: '50%', transform: 'translateX(-50%)',
-          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
-          width: 'min(440px, calc(100% - 24px))',
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 12px 10px 16px',
-          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-          borderRadius: 14, boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
-          zIndex: 900, fontFamily: 'var(--font-sans)',
-        }}>
-          <span style={{ flex: 1, fontSize: 13, color: 'var(--dw-text-secondary)' }}>
-            Personalize your reading
-          </span>
-          <button
-            onClick={() => setShowPicker(true)}
-            style={{
-              background: 'var(--dw-accent)', color: '#fff', border: 'none',
-              borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'var(--font-sans)', flexShrink: 0,
-            }}
-          >
-            Choose
-          </button>
-          <button
-            onClick={dismissPersonalize}
-            aria-label="Dismiss personalize prompt"
-            style={{
-              background: 'none', border: 'none', color: 'var(--dw-text-muted)',
-              cursor: 'pointer', padding: 4, display: 'flex', fontSize: 18, lineHeight: 1, flexShrink: 0,
-            }}
-          >
-            ×
-          </button>
-        </div>
+      {/* First-run welcome gate — choose a reading pathway in one tap. The picker has a
+          "Not sure? → Church Member" escape, so it's a moment, not a dead-end tollgate. */}
+      {needsFirstRunPicker && (
+        <PathwayPicker onSelect={handlePathwaySelect} />
       )}
     </div>
   );
