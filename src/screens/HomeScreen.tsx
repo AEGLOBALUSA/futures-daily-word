@@ -47,6 +47,8 @@ import { CampusCountBadge } from '../components/CampusCountBadge';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { PastoralReflectionSection } from '../components/PastoralReflectionSection';
 import { InlineReflection } from '../components/InlineReflection';
+import { DoneCelebration } from '../components/DoneCelebration';
+import { hapticTap } from '../utils/haptics';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 import { t as tI18n, tField, getLang } from '../utils/i18n';
 
@@ -294,6 +296,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   }, []);
   const [streakCount, setStreakCount] = useState(() => getStreak().count);
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
+  // Deliberate "done" state for today's reading + the calm celebration card it triggers.
+  const [readDoneToday, setReadDoneToday] = useState(() => {
+    try { return localStorage.getItem('dw_reading_done') === new Date().toISOString().slice(0, 10); } catch { return false; }
+  });
+  const [doneCelebration, setDoneCelebration] = useState<number | null>(null);
   const dailyWord = getDailyWord();
   // Emoji reaction
   // Weekly review
@@ -453,6 +460,20 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   };
 
   // Read: expand + load + mark plan day complete. Listen: expand + load + play audio when ready.
+  // Deliberate completion: the user taps "Mark as read" → mark the plan day done, count
+  // the streak (idempotent — app-open already recorded today), and show a calm "done"
+  // celebration. Replaces auto-marking on open (focus-group: completion needs intent).
+  const handleMarkRead = (passage: string) => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem('dw_reading_done') === today) { setReadDoneToday(true); return; }
+    try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
+    markPlanDayComplete(passage);
+    recordStreakToday();
+    setReadDoneToday(true);
+    setDoneCelebration(getStreak().count);
+    hapticTap(18);
+  };
+
   const handleRead = (passage: string) => {
     // If already open, close it (toggle)
     if (expandedPassages.has(passage)) {
@@ -903,6 +924,21 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroChapterIndex]);
 
+  // Read-first: open today's current scripture so the Word is front-and-center on load
+  // (and after a day/translation change) instead of hidden behind a "Read" tap. Defined
+  // AFTER the reset-on-day/translation effect above and sharing its triggers, so it
+  // re-opens right after that effect clears. A manual collapse within the same
+  // day/translation sticks (none of these deps change then). Completion is now a
+  // DELIBERATE action ("Mark as read" → handleMarkRead), not a side effect of opening
+  // (focus-group: the "done" moment needs intent to feel earned + keep streaks honest).
+  useEffect(() => {
+    const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
+    if (!ref) return;
+    setExpandedPassages(new Set([ref]));
+    loadPassage(ref);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroKey, dayOffset, translation]);
+
   useEffect(() => {
     return AP.onStateChange((st) => {
       setAudioPaused(st === 'paused');
@@ -1114,6 +1150,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
 
   return (
     <div className="screen-container">
+      {doneCelebration !== null && (
+        <DoneCelebration streakCount={doneCelebration} onClose={() => setDoneCelebration(null)} />
+      )}
       {showSetupModal && (
         <SetupPromptModal
           onComplete={handleSetupComplete}
@@ -1867,6 +1906,21 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           prompt="What stood out to you in today's reading?"
                           verseRef={readRef}
                         />
+                        <button
+                          onClick={() => handleMarkRead(readRef)}
+                          disabled={readDoneToday}
+                          style={{
+                            width: '100%', marginTop: 14, padding: '12px', borderRadius: 12,
+                            border: readDoneToday ? '1px solid rgba(160,140,110,0.3)' : 'none',
+                            background: readDoneToday ? 'transparent' : 'var(--dw-success)',
+                            color: readDoneToday ? '#A09080' : '#fff',
+                            fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
+                            cursor: readDoneToday ? 'default' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          }}
+                        >
+                          {readDoneToday ? '✓ Read today' : 'Mark as read'}
+                        </button>
                         </>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
