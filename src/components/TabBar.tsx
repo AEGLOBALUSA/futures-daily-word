@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Home, PenLine, MessageCircle, Calendar, Settings } from 'lucide-react';
+import { hapticTap } from '../utils/haptics';
 
 export type TabId = 'home' | 'journal' | 'messages' | 'plans' | 'more' | 'sermon-notes';
 
@@ -56,8 +57,9 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
         <button
           key={id}
           className={`tab-bar-item ${activeTab === id ? 'active' : ''}`}
-          onClick={() => onTabChange(id)}
+          onClick={() => { if (id !== activeTab) hapticTap(); onTabChange(id); }}
           aria-label={label(id)}
+          aria-current={activeTab === id ? 'page' : undefined}
         >
           <Icon size={22} strokeWidth={activeTab === id ? 2.2 : 1.5} />
           <span>{label(id)}</span>
