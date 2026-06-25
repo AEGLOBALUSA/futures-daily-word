@@ -6,7 +6,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { SeamFooter } from '../components/Seam';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
-import { subscribePush, unsubscribePush, isPushSubscribed } from '../utils/push';
+import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, updatePushTime } from '../utils/push';
 import { pushNow, syncMisc, flushNow } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
@@ -59,6 +59,14 @@ const LANGUAGES = [
   { value: 'id', label: 'Bahasa Indonesia' },
 ];
 
+// 12-hour label for the daily-reminder hour picker (5am–10pm).
+function formatHour(h: number): string {
+  const period = h < 12 ? 'AM' : 'PM';
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}:00 ${period}`;
+}
+const REMINDER_HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 5 → 22
+
 export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
   const [lang, setLang] = useState(getLang());
@@ -69,6 +77,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
 
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
+  const [pushHour, setPushHour] = useState(() => getPushHour());
   const [downloadingKJV, setDownloadingKJV] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showPollDashboard, setShowPollDashboard] = useState(false);
@@ -688,6 +697,30 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               <Bell size={16} />
               {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : t("turn_on_push", lang)}
             </button>
+            {pushSubscribed && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--dw-border)' }}>
+                <label
+                  htmlFor="dw-reminder-hour"
+                  style={{ display: 'block', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}
+                >
+                  Daily reminder time
+                </label>
+                <select
+                  id="dw-reminder-hour"
+                  value={pushHour}
+                  onChange={(e) => { const h = parseInt(e.target.value, 10); setPushHour(h); updatePushTime(h); }}
+                  style={{
+                    width: '100%', padding: '12px', borderRadius: 10, fontSize: 14,
+                    fontFamily: 'var(--font-sans)', background: 'var(--dw-surface-hover)',
+                    color: 'var(--dw-text-primary)', border: '1px solid var(--dw-border)',
+                  }}
+                >
+                  {REMINDER_HOURS.map(h => (
+                    <option key={h} value={h}>{formatHour(h)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </Card>
         </div>
 

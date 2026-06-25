@@ -6,6 +6,11 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Daily reading reminders — runs hourly; push-send decides per-subscriber whether it's
+# their preferred local hour right now, so hourly covers every timezone.
+[functions."push-cron"]
+  schedule = "@hourly"
+
 # API function redirects - MUST come before SPA fallback
 [[redirects]]
   from = "/api/*"
