@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'; 
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { HeroPhotoCarousel } from '../components/HeroPhotoCarousel';
 import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw } from 'lucide-react';
 import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
@@ -1414,7 +1415,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             }}>
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'url(/images/hero-community.jpg) center 78% / cover no-repeat',
+                background: 'url(/images/hero-1.jpg) center 44% / cover no-repeat',
               }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(176deg, rgba(30,20,12,0.34) 0%, rgba(30,20,12,0.06) 24%, rgba(30,20,12,0.00) 44%, rgba(30,20,12,0.32) 70%, rgba(30,20,12,0.74) 100%)' }} />
               <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)' }}>
@@ -1467,8 +1468,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                    so it reads as an editorial image — not a wallpaper behind the UI. ── */}
               <div style={{
                 position: 'relative', width: '100%', aspectRatio: '16 / 10',
-                background: 'url(/images/hero-community.jpg) center 32% / cover no-repeat',
+                overflow: 'hidden', background: '#2A2218',
               }}>
+                <HeroPhotoCarousel />
                 {/* veil — a whisper at the top for the tag, clear through the faces,
                    warmer at the base for the caption */}
                 <div style={{
@@ -1481,7 +1483,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   position: 'absolute', top: 0, left: 0, right: 0,
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '13px 16px', color: '#fff',
-                  textShadow: '0 1px 8px rgba(20,12,6,0.6)',
+                  textShadow: '0 1px 8px rgba(20,12,6,0.6)', pointerEvents: 'none',
                 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.92, fontFamily: 'var(--font-sans)' }}>
                     {planLabel || t('todays_reading')}
@@ -1498,7 +1500,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 <div style={{
                   position: 'absolute', left: 0, right: 0, bottom: 0,
                   padding: '0 18px 15px', color: '#fff',
-                  textShadow: '0 1px 12px rgba(20,12,6,0.6)',
+                  textShadow: '0 1px 12px rgba(20,12,6,0.6)', pointerEvents: 'none',
                 }}>
                   <p style={{ fontSize: 27, fontWeight: 400, fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0, lineHeight: 1.08 }}>
                     {allLabels[0]}
