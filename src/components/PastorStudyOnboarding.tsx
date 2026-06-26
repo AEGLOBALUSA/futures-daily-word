@@ -136,9 +136,9 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick one. You can always change it later.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'psalms-30', label: 'Psalms', sub: '30 days. One Psalm a day.' },
+                    { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One chapter of each, daily.' },
                     { plan: 'gospel-john', label: 'Gospel of John', sub: '21 days. One chapter a day.' },
-                    { plan: 'wisdom-lit', label: 'Wisdom Literature', sub: 'Proverbs, Ecclesiastes, Job — 60 days.' },
+                    { plan: 'new-testament-90', label: 'New Testament', sub: 'The whole NT in 90 days.' },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
@@ -163,9 +163,9 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>You'll get full commentary, Greek/Hebrew tools, and word studies with all of these.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'nt-60', label: 'New Testament in 60 days', sub: 'Entire NT in 60 days. 4–5 chapters a day.' },
+                    { plan: 'new-testament-90', label: 'New Testament in 90 days', sub: 'Entire NT in 90 days. 3–4 chapters a day.' },
                     { plan: 'through-bible-year', label: 'Through the Bible in a year', sub: 'Genesis to Revelation. 365 days.' },
-                    { plan: 'wisdom-lit', label: 'Wisdom Literature', sub: 'Proverbs, Ecclesiastes, Song of Solomon, Job. 60 days.' },
+                    { plan: 'gospel-john', label: 'Gospel of John', sub: '21 days. One chapter a day.' },
                     { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One of each, daily.' },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
@@ -192,9 +192,9 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
                     { plan: 'gospel-john', label: '5–10 minutes', sub: 'Gospel of John — 1 chapter a day, 21 days.' },
-                    { plan: 'acts-28', label: '10–15 minutes', sub: 'Acts — 1 chapter a day, 28 days.' },
-                    { plan: 'gospels-acts', label: '15–20 minutes', sub: 'Gospels & Acts — 2 chapters a day.' },
-                    { plan: 'nt-60', label: '20+ minutes', sub: 'Entire New Testament in 60 days. 4–5 chapters a day.' },
+                    { plan: 'new-testament-90', label: '10–15 minutes', sub: 'New Testament in 90 days — about 3 chapters a day.' },
+                    { plan: 'psalms-proverbs', label: '15–20 minutes', sub: 'Psalms & Proverbs — a few chapters a day.' },
+                    { plan: 'through-bible-year', label: '20+ minutes', sub: 'Through the Bible in a year — 3–4 chapters a day.' },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
@@ -219,8 +219,8 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick the closest match. Full commentary, word studies, and cross-references come with every plan.</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'gospels-acts', label: 'Gospels & Acts', sub: 'Matthew through Acts. Life of Jesus, birth of the church.' },
-                    { plan: 'nt-60', label: 'Full New Testament', sub: 'Romans through Revelation. 60 days.' },
+                    { plan: 'new-testament-90', label: 'Full New Testament', sub: 'The whole NT in 90 days. Great for a sermon series.' },
+                    { plan: 'through-bible-year', label: 'Whole Bible', sub: 'Genesis to Revelation in a year.' },
                     { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One of each, daily. Good for a wisdom series.' },
                     { plan: 'book-church', label: 'The Church Awakening', sub: "Ps A's book on purpose and identity of the church." },
                   ].map(opt => (
