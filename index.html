@@ -29,8 +29,10 @@
     <!-- Fonts self-hosted in /fonts/ — no external CDN dependency -->
     <link rel="canonical" href="https://futuresdailyword.com/" />
     <link rel="manifest" href="/manifest.json" />
-    <!-- First hero carousel frame is the LCP image — fetch it early; the rest warm on idle -->
-    <link rel="preload" as="image" href="/images/hero-a.jpg" fetchpriority="high" />
+    <!-- First hero carousel frame is the LCP image — fetch it early; the rest warm on idle.
+         Absolute (Daily Word origin) so the preload also resolves when the app is proxied
+         at futures.church/daily-word, where a relative /images path hits the church's own assets. -->
+    <link rel="preload" as="image" href="https://futuresdailyword.com/images/hero-a.jpg" fetchpriority="high" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
