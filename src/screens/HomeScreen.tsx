@@ -1409,16 +1409,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             <div key="hero-no-plan" style={{
               position: 'relative', borderRadius: 24, overflow: 'hidden',
               marginBottom: 20,
-              boxShadow: '0 20px 48px rgba(232,85,70,0.20), 0 6px 18px rgba(70,194,200,0.12), inset 0 1px 0 rgba(255,255,255,0.18)',
-              border: '1px solid rgba(255,255,255,0.13)',
+              boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
+              border: '1px solid rgba(40,28,16,0.06)',
             }}>
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'linear-gradient(150deg, #FF8A6B 0%, #FF6F61 25%, #F76A88 47%, #9B7BD0 68%, #46C2C8 100%)',
-                backgroundSize: '350% 350%', animation: 'heroColorWave 5s ease infinite',
+                background: 'url(/images/hero-community.jpg) center 78% / cover no-repeat',
               }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)' }} />
-              <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(176deg, rgba(30,20,12,0.34) 0%, rgba(30,20,12,0.06) 24%, rgba(30,20,12,0.00) 44%, rgba(30,20,12,0.32) 70%, rgba(30,20,12,0.74) 100%)' }} />
+              <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)' }}>
                 <div style={{ height: 16 }} />
                 <p style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 8px', lineHeight: 1.3 }}>
                   Choose your reading plan
@@ -1460,208 +1459,140 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 borderRadius: 24,
                 overflow: 'hidden',
                 marginBottom: 20,
-                boxShadow: '0 20px 48px rgba(232,85,70,0.20), 0 6px 18px rgba(70,194,200,0.12), inset 0 1px 0 rgba(255,255,255,0.18)',
-                border: '1px solid rgba(255,255,255,0.13)',
+                boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
+                border: '1px solid rgba(40,28,16,0.06)',
               }}
             >
-              {/* ── Layer 1: animated wave gradient — deep crimson rolls through near-black ── */}
+              {/* ── Photo plate: a graded Futures community frame (Paradise), bounded
+                   so it reads as an editorial image — not a wallpaper behind the UI. ── */}
               <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(150deg, #FF8A6B 0%, #FF6F61 25%, #F76A88 47%, #9B7BD0 68%, #46C2C8 100%)',
-                backgroundSize: '350% 350%',
-                animation: 'heroColorWave 5s ease infinite',
-              }} />
-
-              {/* ── Layer 2: glass highlight top edge + depth at bottom ── */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 35%, rgba(0,0,0,0.0) 55%, rgba(0,0,0,0.22) 100%)',
-              }} />
-
-              {/* ── Layer 3: rolling shimmer sweep — wide bright band ── */}
-              <div style={{
-                position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 24,
+                position: 'relative', width: '100%', aspectRatio: '16 / 10',
+                background: 'url(/images/hero-community.jpg) center 32% / cover no-repeat',
               }}>
+                {/* veil — a whisper at the top for the tag, clear through the faces,
+                   warmer at the base for the caption */}
                 <div style={{
-                  position: 'absolute', top: '-60%', bottom: '-60%', width: '55%',
-                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.18) 48%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.18) 52%, rgba(255,255,255,0.04) 70%, transparent 100%)',
-                  animation: 'heroShimmerSweep 3.5s ease-in-out infinite',
-                  animationDelay: '0.8s',
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(180deg, rgba(26,17,9,0.34) 0%, rgba(26,17,9,0.04) 20%, rgba(26,17,9,0) 46%, rgba(26,17,9,0.12) 62%, rgba(26,17,9,0.68) 100%)',
+                  pointerEvents: 'none',
                 }} />
-                {/* Secondary slower sweep for layered depth */}
+                {/* top tag — section + date */}
                 <div style={{
-                  position: 'absolute', top: '-60%', bottom: '-60%', width: '30%',
-                  background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.08) 60%, transparent 100%)',
-                  animation: 'heroShimmerSweep 5.5s ease-in-out infinite',
-                  animationDelay: '2.4s',
-                }} />
-              </div>
-
-              {/* ── Content ── */}
-              <div style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
-
-                {/* Top meta bar */}
-                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0,
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '16px 20px 0',
+                  padding: '13px 16px', color: '#fff',
+                  textShadow: '0 1px 8px rgba(20,12,6,0.6)',
                 }}>
-                  <p style={{
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                    textTransform: 'uppercase', opacity: 0.55,
-                    fontFamily: 'var(--font-sans)', margin: 0,
-                  }}>
-                    {planLabel || "Today's Reading"}
-                  </p>
-                  <p style={{
-                    fontSize: 10, fontWeight: 500, opacity: 0.45,
-                    fontFamily: 'var(--font-sans)', margin: 0, letterSpacing: '0.04em',
-                  }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.92, fontFamily: 'var(--font-sans)' }}>
+                    {planLabel || t('todays_reading')}
+                  </span>
+                  <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.82, fontFamily: 'var(--font-sans)', letterSpacing: '0.04em' }}>
                     {(() => {
                       const d = new Date();
                       d.setDate(d.getDate() + planDayOffset);
                       return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                     })()}
+                  </span>
+                </div>
+                {/* bottom caption — passage title, magazine-style */}
+                <div style={{
+                  position: 'absolute', left: 0, right: 0, bottom: 0,
+                  padding: '0 18px 15px', color: '#fff',
+                  textShadow: '0 1px 12px rgba(20,12,6,0.6)',
+                }}>
+                  <p style={{ fontSize: 27, fontWeight: 400, fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0, lineHeight: 1.08 }}>
+                    {allLabels[0]}
+                  </p>
+                  <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.78, fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>
+                    {t('esv_human_reader')}
                   </p>
                 </div>
+              </div>
+
+              {/* ── Control deck — on cream, ink-on-light (editorial) ── */}
+              <div style={{ position: 'relative', zIndex: 1, background: 'var(--dw-card)', color: 'var(--dw-text-primary)' }}>
 
                 {/* Big play button — centered, flanked by plan-day nav buttons */}
                 <div style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  padding: '22px 20px 20px',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '14px 16px 8px',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
-                    {/* ◀ Back one plan day */}
+                  {/* ◀ Back one plan day (plans only) */}
+                  {hasActivePlans && (
                     <button
                       onClick={() => setPlanDayOffset(d => d - 1)}
-                      disabled={!hasActivePlans || !heroCanGoBack}
+                      disabled={!heroCanGoBack}
                       aria-label="Previous day"
                       style={{
-                        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                        background: (hasActivePlans && heroCanGoBack) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                        border: '1.5px solid rgba(255,255,255,0.22)',
+                        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', flexShrink: 0,
+                        background: 'var(--dw-surface-hover)',
+                        border: '1px solid var(--dw-border)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: (hasActivePlans && heroCanGoBack) ? '#fff' : 'rgba(255,255,255,0.2)',
-                        cursor: (hasActivePlans && heroCanGoBack) ? 'pointer' : 'default',
-                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                        color: heroCanGoBack ? 'var(--dw-text-secondary)' : 'var(--dw-text-faint)',
+                        cursor: heroCanGoBack ? 'pointer' : 'default',
                         transition: 'background 0.2s, color 0.2s', padding: 0,
-                        boxShadow: (hasActivePlans && heroCanGoBack) ? '0 2px 12px rgba(0,0,0,0.3)' : 'none',
                       }}
                     >
-                      <ChevronLeft size={22} />
+                      <ChevronLeft size={20} />
                     </button>
+                  )}
 
-                  <div style={{ position: 'relative', flexShrink: 0, width: 104, height: 104, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {/* Animated equalizer ring around button when playing */}
+                  {/* Listen / Pause — primary action */}
+                  <button
+                    className="hero-play-btn"
+                    onClick={() => handleHeroListen()}
+                    aria-label={
+                      isLoadingHero ? 'Loading audio'
+                        : isPlayingHero ? `Pause ${allLabels[heroChapterIndex] || 'audio'}`
+                        : isPausedHero ? `Resume ${allLabels[heroChapterIndex] || 'audio'}`
+                        : `Listen to ${allLabels.join(', ')}`
+                    }
+                    style={{
+                      flex: 1, minHeight: 52, borderRadius: 14,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      background: isLoadingHero ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
+                      color: '#fff', border: 'none', cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 700, letterSpacing: '0.01em',
+                      boxShadow: '0 6px 16px rgba(168,85,47,0.26)',
+                      transition: 'background 0.2s ease',
+                    }}
+                  >
+                    {isLoadingHero
+                      ? <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                      : isPlayingHero && !isPausedHero
+                      ? <Pause size={20} />
+                      : <Play size={20} style={{ marginLeft: 2 }} />
+                    }
+                    <span>
+                      {isLoadingHero ? t('loading_label')
+                        : isPlayingHero && !isPausedHero ? (allLabels[heroChapterIndex] || t('now_playing'))
+                        : isPausedHero ? t('paused_label')
+                        : t('listen_now')}
+                    </span>
                     {isPlayingHero && !isPausedHero && (
-                      <div style={{
-                        position: 'absolute', inset: 0, borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        animation: 'heroRingPulse 2.2s ease-in-out infinite',
-                      }}>
-                        <div style={{
-                          position: 'absolute', inset: 0, borderRadius: '50%',
-                          border: '2px solid rgba(255,255,255,0.15)',
-                          animation: 'heroEqRing 1.5s ease-in-out infinite',
-                        }} />
-                      </div>
+                      <AudioWave bars={4} height={10} color="rgba(255,255,255,0.85)" />
                     )}
-                    <button
-                      className="hero-play-btn"
-                      onClick={() => handleHeroListen()}
-                      aria-label={
-                        isLoadingHero ? 'Loading audio'
-                          : isPlayingHero ? `Pause ${allLabels[heroChapterIndex] || 'audio'}`
-                          : isPausedHero ? `Resume ${allLabels[heroChapterIndex] || 'audio'}`
-                          : `Listen to ${allLabels.join(', ')}`
-                      }
-                      style={{
-                        width: 88, height: 88, borderRadius: '50%',
-                        background: isLoadingHero ? 'rgba(255,180,50,0.25)'
-                          : isPlayingHero ? 'rgba(255,255,255,0.22)'
-                          : isPausedHero ? 'rgba(255,255,255,0.18)'
-                          : 'rgba(255,255,255,0.16)',
-                        border: isLoadingHero ? '2px solid rgba(255,180,50,0.6)' : '2px solid rgba(255,255,255,0.35)',
-                        boxShadow: isPlayingHero
-                          ? '0 0 0 14px rgba(255,255,255,0.07), 0 0 0 28px rgba(255,255,255,0.03), 0 10px 32px rgba(0,0,0,0.4)'
-                          : isPausedHero
-                          ? '0 0 0 10px rgba(255,255,255,0.05), 0 10px 32px rgba(0,0,0,0.35)'
-                          : '0 10px 32px rgba(0,0,0,0.35)',
-                        animation: isLoadingHero ? 'heroLoadPulse 1.2s ease-in-out infinite'
-                          : isPlayingHero ? 'none'
-                          : isPausedHero ? 'heroPausedPulse 3s ease-in-out infinite'
-                          : 'heroIdlePulse 3.5s ease-in-out infinite',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: '#fff',
-                        transition: 'box-shadow 0.4s ease, background 0.2s ease',
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        flexShrink: 0, position: 'relative', zIndex: 1,
-                      }}
-                    >
-                      {isLoadingHero
-                        ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
-                        : isPlayingHero && !isPausedHero
-                        ? <Pause size={34} style={{ opacity: 0.95 }} />
-                        : <Play size={32} style={{ marginLeft: 4 }} />
-                      }
-                    </button>
-                    {/* Small equalizer bars below button when playing */}
-                    {isPlayingHero && !isPausedHero && (
-                      <div style={{ position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>
-                        <AudioWave bars={5} height={10} color="rgba(255,255,255,0.6)" />
-                      </div>
-                    )}
-                  </div>
+                  </button>
 
-                    {/* ▶ Forward one plan day */}
+                  {/* ▶ Forward one plan day (plans only) */}
+                  {hasActivePlans && (
                     <button
                       onClick={() => setPlanDayOffset(d => d + 1)}
-                      disabled={!hasActivePlans || !heroCanGoForward}
+                      disabled={!heroCanGoForward}
                       aria-label="Next day"
                       style={{
-                        width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                        background: (hasActivePlans && heroCanGoForward) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                        border: '1.5px solid rgba(255,255,255,0.22)',
+                        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', flexShrink: 0,
+                        background: 'var(--dw-surface-hover)',
+                        border: '1px solid var(--dw-border)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: (hasActivePlans && heroCanGoForward) ? '#fff' : 'rgba(255,255,255,0.2)',
-                        cursor: (hasActivePlans && heroCanGoForward) ? 'pointer' : 'default',
-                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                        color: heroCanGoForward ? 'var(--dw-text-secondary)' : 'var(--dw-text-faint)',
+                        cursor: heroCanGoForward ? 'pointer' : 'default',
                         transition: 'background 0.2s, color 0.2s', padding: 0,
-                        boxShadow: (hasActivePlans && heroCanGoForward) ? '0 2px 12px rgba(0,0,0,0.3)' : 'none',
                       }}
                     >
-                      <ChevronRight size={22} />
+                      <ChevronRight size={20} />
                     </button>
-                  </div>{/* end nav row */}
-
-                  <p style={{
-                    fontSize: 15, fontWeight: 700, margin: '0 0 6px',
-                    fontFamily: 'var(--font-sans)', letterSpacing: '0.01em', textAlign: 'center',
-                  }}>
-                    {isLoadingHero ? t('loading_label')
-                      : (isPlayingHero || isPausedHero) && allLabels.length > 1
-                      ? (isPausedHero ? t('paused_label') + ' — ' : '') + (allLabels[heroChapterIndex] || allLabels[0])
-                      : isPlayingHero ? allLabels[heroChapterIndex] || t('now_playing')
-                      : isPausedHero ? t('paused_label')
-                      : t('listen_now')}
-                  </p>
-
-                  <p style={{
-                    fontSize: 13, opacity: 0.68, margin: 0,
-                    fontFamily: 'var(--font-sans)', textAlign: 'center',
-                    maxWidth: '88%', lineHeight: 1.4,
-                  }}>
-                    {(isPlayingHero || isPausedHero) && allLabels.length > 1
-                      ? `${heroChapterIndex + 1} of ${allLabels.length}`
-                      : allLabels.join(' · ')}
-                  </p>
-                  <p style={{
-                    fontSize: 10, opacity: 0.4, margin: '5px 0 0',
-                    fontFamily: 'var(--font-sans)', textAlign: 'center',
-                    letterSpacing: '0.08em', textTransform: 'uppercase',
-                  }}>
-                    {t('esv_human_reader')}
-                  </p>
+                  )}
                 </div>
 
                 {/* ── Chapter navigator — large slider + tappable chapter pills ── */}
@@ -1680,7 +1611,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           if (idx !== heroChapterIndex) { (audioPlaying || audioPaused) ? handleHeroSkipTo(idx) : handleHeroSelect(idx); }
                         }}
                         style={{
-                          background: `linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(255,255,255,0.18) 100%)`,
+                          background: `linear-gradient(to right, rgba(168,85,47,0.9) 0%, rgba(168,85,47,0.9) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(150,130,105,0.42) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(150,130,105,0.42) 100%)`,
                         }}
                       />
                     </div>
@@ -1710,14 +1641,14 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                             fontFamily: 'var(--font-sans)',
                             letterSpacing: '0.02em',
                             border: i === heroChapterIndex
-                              ? '2px solid rgba(255,255,255,0.9)'
-                              : '1.5px solid rgba(255,255,255,0.15)',
+                              ? '2px solid var(--dw-accent)'
+                              : '1.5px solid var(--dw-border)',
                             background: i === heroChapterIndex
-                              ? 'rgba(255,255,255,0.35)'
-                              : 'rgba(255,255,255,0.04)',
+                              ? 'rgba(168,85,47,0.15)'
+                              : 'transparent',
                             color: i === heroChapterIndex
-                              ? '#fff'
-                              : 'rgba(255,255,255,0.45)',
+                              ? 'var(--dw-accent)'
+                              : 'var(--dw-text-muted)',
                             transition: 'all 0.2s ease',
                           }}
                         >
@@ -1731,7 +1662,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 {/* Error message */}
                 {audioError && audioCurrentPassage === HERO_KEY && (
                   <p style={{
-                    fontSize: 11, color: 'rgba(255,180,180,0.9)', textAlign: 'center',
+                    fontSize: 11, color: '#B23A2E', textAlign: 'center',
                     fontFamily: 'var(--font-sans)', margin: '0 20px 10px',
                   }}>
                     {t('audio_unavailable')}
@@ -1739,7 +1670,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 )}
 
                 {/* Hairline divider */}
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '0 20px' }} />
+                <div style={{ height: 1, background: 'var(--dw-border)', margin: '0 20px' }} />
 
                 {/* Footer: Stop/Read + Restart + Translation picker */}
                 <div style={{
@@ -1755,10 +1686,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '12px 8px', minHeight: 44,
                         background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: 'rgba(255,255,255,0.8)',
+                        color: 'var(--dw-text-secondary)',
                         fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
                         letterSpacing: '0.03em',
-                        borderRight: '1px solid rgba(255,255,255,0.1)',
+                        borderRight: '1px solid var(--dw-border)',
                       }}
                     >
                       <Square size={12} fill="currentColor" />
@@ -1772,10 +1703,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '12px 8px', minHeight: 44,
                         background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: expandedPassages.has(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.6)',
+                        color: expandedPassages.has(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-text-primary)' : 'var(--dw-text-muted)',
                         fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
                         letterSpacing: '0.03em', transition: 'color 0.2s ease',
-                        borderRight: '1px solid rgba(255,255,255,0.1)',
+                        borderRight: '1px solid var(--dw-border)',
                       }}
                     >
                       <BookOpen size={13} />
@@ -1798,10 +1729,10 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                       padding: '12px 10px', minHeight: 44,
                       background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.55)',
+                      color: 'var(--dw-text-muted)',
                       fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600,
                       letterSpacing: '0.03em',
-                      borderRight: '1px solid rgba(255,255,255,0.1)',
+                      borderRight: '1px solid var(--dw-border)',
                     }}
                   >
                     <RotateCcw size={13} />
@@ -1827,9 +1758,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           letterSpacing: '0.04em',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
-                          border: t === translation ? '1.5px solid rgba(255,255,255,0.7)' : '1.5px solid rgba(255,255,255,0.2)',
-                          background: t === translation ? 'rgba(255,255,255,0.22)' : 'transparent',
-                          color: t === translation ? '#fff' : 'rgba(255,255,255,0.5)',
+                          border: t === translation ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
+                          background: t === translation ? 'rgba(168,85,47,0.15)' : 'transparent',
+                          color: t === translation ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
                         }}
                       >
                         {t}
@@ -1849,9 +1780,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         letterSpacing: '0.04em',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
-                        border: compareMode ? '1.5px solid rgba(255,255,255,0.7)' : '1.5px solid rgba(255,255,255,0.2)',
-                        background: compareMode ? 'rgba(255,255,255,0.22)' : 'transparent',
-                        color: compareMode ? '#fff' : 'rgba(255,255,255,0.5)',
+                        border: compareMode ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
+                        background: compareMode ? 'rgba(168,85,47,0.15)' : 'transparent',
+                        color: compareMode ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
                         marginLeft: 'auto',
                         marginRight: 8,
                       }}
@@ -1878,7 +1809,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       padding: '28px 28px 40px',
                       WebkitOverflowScrolling: 'touch',
                       background: '#FFFFFF',
-                      borderTop: '1px solid rgba(120,170,140,0.15)',
+                      textShadow: 'none',
+                      borderTop: '1px solid rgba(150,112,72,0.15)',
                       borderBottomLeftRadius: 24,
                       borderBottomRightRadius: 24,
                       maxHeight: '60vh',
@@ -1892,7 +1824,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       <p style={{
                         fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
                         textTransform: 'uppercase',
-                        color: '#5C8A6E',
+                        color: '#A06A42',
                         fontFamily: 'var(--font-sans)', marginBottom: 20, marginTop: 4,
                       }}>
                         {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {translation}</span>
@@ -1902,9 +1834,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         <div style={{
                           // Force dark-mode colors so ScripturePassage is readable against #1C1A16 bg
                           // even when the app is in light mode
-                          ['--dw-text-secondary' as any]: '#1F2A23',
-                          ['--dw-text-muted' as any]: '#5C8A6E',
-                          ['--dw-border' as any]: 'rgba(120,170,140,0.2)',
+                          ['--dw-text-secondary' as any]: '#2A2218',
+                          ['--dw-text-muted' as any]: '#A06A42',
+                          ['--dw-border' as any]: 'rgba(150,112,72,0.2)',
                           ['--dw-surface-raised' as any]: 'rgba(255,255,255,0.06)',
                         }}>
                           <ScripturePassage
@@ -1930,9 +1862,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           disabled={readDoneToday}
                           style={{
                             width: '100%', marginTop: 14, padding: '12px', borderRadius: 12,
-                            border: readDoneToday ? '1px solid rgba(120,170,140,0.3)' : 'none',
+                            border: readDoneToday ? '1px solid rgba(150,112,72,0.3)' : 'none',
                             background: readDoneToday ? 'transparent' : 'var(--dw-success)',
-                            color: readDoneToday ? '#5C8A6E' : '#fff',
+                            color: readDoneToday ? '#A06A42' : '#fff',
                             fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
                             cursor: readDoneToday ? 'default' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -1943,8 +1875,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         </>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
-                          <Loader2 size={20} style={{ color: '#5C8A6E', animation: 'spin 1s linear infinite' }} />
-                          <span style={{ color: '#5C8A6E', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
+                          <Loader2 size={20} style={{ color: '#A06A42', animation: 'spin 1s linear infinite' }} />
+                          <span style={{ color: '#A06A42', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
                         </div>
                       )}
                     </div>
@@ -1956,9 +1888,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     display: 'flex', alignItems: 'center', gap: 5,
                     overflowX: 'auto', padding: '6px 12px',
                     scrollbarWidth: 'none',
-                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                    borderTop: '1px solid var(--dw-border)',
                   }}>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', marginRight: 4 }}>Compare:</span>
+                    <span style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginRight: 4 }}>Compare:</span>
                     {getTranslationsForPersona(personaConfig.persona, appLanguage).map(t => (
                       <button
                         key={`compare-${t}`}
@@ -1972,9 +1904,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                           letterSpacing: '0.04em',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
-                          border: t === compareTranslation ? '1.5px solid rgba(255,255,255,0.7)' : '1.5px solid rgba(255,255,255,0.2)',
-                          background: t === compareTranslation ? 'rgba(255,255,255,0.22)' : 'transparent',
-                          color: t === compareTranslation ? '#fff' : 'rgba(255,255,255,0.5)',
+                          border: t === compareTranslation ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
+                          background: t === compareTranslation ? 'rgba(168,85,47,0.14)' : 'transparent',
+                          color: t === compareTranslation ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
                         }}
                       >
                         {t}
@@ -2000,18 +1932,18 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         }}>
           <button
             onClick={() => setDayOffset(d => d - 1)}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', color: 'var(--dw-text-secondary)', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label={t('previous_day')}
           >
             <ChevronLeft size={20} />
           </button>
           <div style={{ textAlign: 'center' }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#fff', marginBottom: 4 }}>{t('todays_reading')}</p>
-            <p style={{ color: '#fff', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--dw-text-muted)', marginBottom: 4 }}>{t('todays_reading')}</p>
+            <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
               {dateStr}
             </p>
             {todaysPlanPassages.length > 0 && (
-              <p style={{ color: '#fff', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
+              <p style={{ color: 'var(--dw-text-secondary)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
                 {(() => {
                   const seen = new Set<string>();
                   const plans: { title: string; dayNum: number; passages: string[] }[] = [];
@@ -2033,7 +1965,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           <button
             onClick={() => setDayOffset(d => d + 1)}
             disabled={dayOffset >= 30}
-            style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'rgba(255,255,255,0.3)' : '#fff', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label={t('next_day')}
           >
             <ChevronRight size={20} />
