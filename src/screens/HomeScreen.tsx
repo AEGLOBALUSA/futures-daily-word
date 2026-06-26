@@ -1086,12 +1086,17 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     playChapterAtIndex(startIdx, newVersion).catch(() => setAudioError(true));
 
     // Clear heroLoading once audio starts playing (or if it fails)
-    const unsub = AP.onStateChange((st) => {
+    let unsub: (() => void) | null = null;
+    let settled = false;
+    unsub = AP.onStateChange((st) => {
       if (st === 'playing' || (st === 'idle' && !AP.isLoading())) {
         setHeroLoading(false);
-        unsub();
+        settled = true;
+        if (unsub) unsub();
       }
     });
+    // onStateChange can fire synchronously (before `unsub` is assigned) — clean up now.
+    if (settled && unsub) unsub();
   };
 
   // Select a chapter without starting audio (tapped on chapter pill or slider when idle)
@@ -1109,12 +1114,17 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
     heroQueueActiveRef.current = true;
     setHeroLoading(true);
     playChapterAtIndex(index, newVersion).catch(() => setAudioError(true));
-    const unsub = AP.onStateChange((st) => {
+    let unsub: (() => void) | null = null;
+    let settled = false;
+    unsub = AP.onStateChange((st) => {
       if (st === 'playing' || (st === 'idle' && !AP.isLoading())) {
         setHeroLoading(false);
-        unsub();
+        settled = true;
+        if (unsub) unsub();
       }
     });
+    // onStateChange can fire synchronously (before `unsub` is assigned) — clean up now.
+    if (settled && unsub) unsub();
   };
 
   // Spacebar toggles play/pause on hero audio
@@ -1506,93 +1516,96 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     {t('esv_human_reader')}
                   </p>
                 </div>
-              </div>
 
-              {/* ── Control deck — on cream, ink-on-light (editorial) ── */}
-              <div style={{ position: 'relative', zIndex: 1, background: 'var(--dw-card)', color: 'var(--dw-text-primary)' }}>
-
-                {/* Big play button — centered, flanked by plan-day nav buttons */}
+                {/* ── The whole carousel is one big play button. This full-plate tap is a
+                     convenience for touch; the centered button below is the labelled control
+                     (so screen readers hear one play control, not two). ── */}
+                <button
+                  onClick={() => handleHeroListen()}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  style={{
+                    position: 'absolute', inset: 0, zIndex: 2,
+                    background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+                  }}
+                />
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '14px 16px 8px',
+                  position: 'absolute', inset: 0, zIndex: 3,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20,
+                  pointerEvents: 'none',
                 }}>
-                  {/* ◀ Back one plan day (plans only) */}
                   {hasActivePlans && (
                     <button
-                      onClick={() => setPlanDayOffset(d => d - 1)}
+                      onClick={(e) => { e.stopPropagation(); setPlanDayOffset(d => d - 1); }}
                       disabled={!heroCanGoBack}
                       aria-label="Previous day"
                       style={{
-                        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', flexShrink: 0,
-                        background: 'var(--dw-surface-hover)',
-                        border: '1px solid var(--dw-border)',
+                        pointerEvents: heroCanGoBack ? 'auto' : 'none', width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                        background: heroCanGoBack ? 'rgba(20,14,8,0.34)' : 'rgba(20,14,8,0.5)', border: '1px solid rgba(255,255,255,0.5)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: heroCanGoBack ? 'var(--dw-text-secondary)' : 'var(--dw-text-faint)',
-                        cursor: heroCanGoBack ? 'pointer' : 'default',
-                        transition: 'background 0.2s, color 0.2s', padding: 0,
+                        color: heroCanGoBack ? '#fff' : 'rgba(255,255,255,0.5)',
+                        cursor: heroCanGoBack ? 'pointer' : 'default', padding: 0,
+                        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
                       }}
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={22} />
                     </button>
                   )}
-
-                  {/* Listen / Pause — primary action */}
                   <button
                     className="hero-play-btn"
                     onClick={() => handleHeroListen()}
                     aria-label={
                       isLoadingHero ? 'Loading audio'
-                        : isPlayingHero ? `Pause ${allLabels[heroChapterIndex] || 'audio'}`
+                        : isPlayingHero && !isPausedHero ? `Pause ${allLabels[heroChapterIndex] || 'audio'}`
                         : isPausedHero ? `Resume ${allLabels[heroChapterIndex] || 'audio'}`
                         : `Listen to ${allLabels.join(', ')}`
                     }
                     style={{
-                      flex: 1, minHeight: 52, borderRadius: 14,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                      background: isLoadingHero ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
-                      color: '#fff', border: 'none', cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 700, letterSpacing: '0.01em',
-                      boxShadow: '0 6px 16px rgba(168,85,47,0.26)',
+                      pointerEvents: 'auto', width: 78, height: 78, borderRadius: '50%', flexShrink: 0,
+                      background: isLoadingHero ? 'rgba(168,85,47,0.55)' : 'rgba(20,14,8,0.42)',
+                      border: '2px solid rgba(255,255,255,0.92)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: '#fff', cursor: 'pointer', padding: 0,
+                      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                      boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
                       transition: 'background 0.2s ease',
                     }}
                   >
                     {isLoadingHero
-                      ? <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                      ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
                       : isPlayingHero && !isPausedHero
-                      ? <Pause size={20} />
-                      : <Play size={20} style={{ marginLeft: 2 }} />
+                      ? <Pause size={32} />
+                      : <Play size={34} style={{ marginLeft: 4 }} />
                     }
-                    <span>
-                      {isLoadingHero ? t('loading_label')
-                        : isPlayingHero && !isPausedHero ? (allLabels[heroChapterIndex] || t('now_playing'))
-                        : isPausedHero ? t('paused_label')
-                        : t('listen_now')}
-                    </span>
-                    {isPlayingHero && !isPausedHero && (
-                      <AudioWave bars={4} height={10} color="rgba(255,255,255,0.85)" />
-                    )}
                   </button>
-
-                  {/* ▶ Forward one plan day (plans only) */}
                   {hasActivePlans && (
                     <button
-                      onClick={() => setPlanDayOffset(d => d + 1)}
+                      onClick={(e) => { e.stopPropagation(); setPlanDayOffset(d => d + 1); }}
                       disabled={!heroCanGoForward}
                       aria-label="Next day"
                       style={{
-                        width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', flexShrink: 0,
-                        background: 'var(--dw-surface-hover)',
-                        border: '1px solid var(--dw-border)',
+                        pointerEvents: heroCanGoForward ? 'auto' : 'none', width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                        background: heroCanGoForward ? 'rgba(20,14,8,0.34)' : 'rgba(20,14,8,0.5)', border: '1px solid rgba(255,255,255,0.5)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: heroCanGoForward ? 'var(--dw-text-secondary)' : 'var(--dw-text-faint)',
-                        cursor: heroCanGoForward ? 'pointer' : 'default',
-                        transition: 'background 0.2s, color 0.2s', padding: 0,
+                        color: heroCanGoForward ? '#fff' : 'rgba(255,255,255,0.5)',
+                        cursor: heroCanGoForward ? 'pointer' : 'default', padding: 0,
+                        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
                       }}
                     >
-                      <ChevronRight size={20} />
+                      <ChevronRight size={22} />
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* ── Control deck — on cream, ink-on-light (editorial) ── */}
+              <div style={{ position: 'relative', zIndex: 1, background: 'var(--dw-card)', color: 'var(--dw-text-primary)' }}>
+
+                {/* Audio now lives on the photo plate above (the whole carousel is
+                   the play button); the deck below holds reading + translations. */}
+                <div style={{ height: 10 }} />
 
                 {/* ── Chapter navigator — large slider + tappable chapter pills ── */}
                 {allLabels.length > 1 && (
