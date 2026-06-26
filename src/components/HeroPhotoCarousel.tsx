@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_BASE } from '../utils/api-base';
 
 /**
  * HeroPhotoCarousel — a slow, cinematic crossfade between a few warm-graded
@@ -15,11 +16,16 @@ import { useState, useEffect, useCallback } from 'react';
  * - Renders absolutely to fill its positioned parent (the photo plate). Dots are
  *   24×24 tap targets (WCAG 2.5.8); the plate's veil/tag/caption sit on top with
  *   pointerEvents:none so taps fall through to them.
+ *
+ * Image URLs are API_BASE-absolute (futuresdailyword.com in prod) so the frames
+ * load from the Daily Word origin even when the app is proxied at
+ * futures.church/daily-word — the church serves its OWN /images (book covers),
+ * so a relative /images path there would 404. In dev API_BASE is '' (relative).
  */
 const HERO_PHOTOS = [
-  '/images/hero-a.jpg',
-  '/images/hero-b.jpg',
-  '/images/hero-d.jpg',
+  `${API_BASE}/images/hero-a.jpg`,
+  `${API_BASE}/images/hero-b.jpg`,
+  `${API_BASE}/images/hero-d.jpg`,
 ];
 
 const ADVANCE_MS = 6500;

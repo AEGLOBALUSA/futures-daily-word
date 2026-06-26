@@ -14,6 +14,8 @@
  * in the Daily Word Netlify env and redeploy. See CUTOVER-RUNBOOK.md.
  */
 
+import { API_BASE } from '../utils/api-base';
+
 const CHURCH_DAILY_WORD_URL =
   import.meta.env.VITE_CHURCH_DAILY_WORD_URL ||
   'https://futures-church.netlify.app/daily-word';
@@ -25,7 +27,7 @@ export function SeamBar() {
       <span className="dw-seam-brand">
         <img
           className="dw-seam-mark"
-          src="/images/futures-wordmark.png"
+          src={`${API_BASE}/images/futures-wordmark.png`}
           alt="Futures"
           width={52}
           height={12}
