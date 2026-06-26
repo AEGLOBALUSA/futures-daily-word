@@ -39,13 +39,13 @@ const FOUNDATION_PASSAGES = [
 // ── Plan priority per signal ──────────────────────────────────────────────────
 
 const PLAN_PRIORITY_BY_SIGNAL: Record<string, string[]> = {
-  comfort: ['psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
-  depth:   ['nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
-  teach:   ['gospels-acts', 'new-testament-90', 'nt-60', 'armor-of-god', 'acts-28'],
-  worship: ['psalms-30', 'psalms-proverbs', 'wisdom-lit', 'gospels-acts', 'gospel-john'],
-  new:     ['faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
-  short:   ['armor-of-god', 'psalms-30', 'acts-28', 'gospel-john', 'prayer-life'],
-  audio:   ['ashley-jane-daily-word', 'gospel-john', 'acts-28', 'gospels-89', 'nt-60'],
+  comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
+  depth:   ['new-testament-90', 'identity-christ', 'gospel-john', 'through-bible-year', 'psalms-proverbs'],
+  teach:   ['gospel-john', 'new-testament-90', 'purpose-calling', 'trusting-god', 'faith-pathway'],
+  worship: ['psalms-proverbs', 'gratitude', 'be-still-rest', 'gospel-john', 'faith-pathway'],
+  new:     ['faith-pathway', 'gospel-john', 'identity-christ', 'prayer-life', 'fresh-start'],
+  short:   ['be-still-rest', 'peace-anxiety', 'gratitude', 'gospel-john', 'prayer-life'],
+  audio:   ['ashley-jane-daily-word', 'gospel-john', 'psalms-brokenhearted', 'new-testament-90', 'through-bible-year'],
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────

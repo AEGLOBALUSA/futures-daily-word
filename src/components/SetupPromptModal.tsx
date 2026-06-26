@@ -13,22 +13,22 @@ const DEFAULT_FEATURED = [
   'ashley-jane-daily-word',
   'faith-pathway',
   'gospel-john',
-  'psalms-30',
+  'peace-anxiety',
   'prayer-life',
-  'acts-28',
+  'identity-christ',
 ];
 
 // Persona-specific plans surfaced at the top (V7 + legacy)
 const PERSONA_PLANS: Record<string, string[]> = {
-  new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
-  congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'psalms-30', 'prayer-life', 'acts-28'],
-  deeper_study: ['nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
-  pastor_leader: ['book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
-  comfort: ['psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
-  new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'acts-28', 'prayer-life', 'armor-of-god'],
-  pastor: ['book-church', 'gospels-acts', 'nt-60', 'faith-pathway', 'acts-28'],
-  deeper: ['nt-60', 'wisdom-lit', 'gospels-89', 'through-bible-year', 'psalms-proverbs'],
-  difficult: ['psalms-30', 'prayer-life', 'armor-of-god', 'faith-pathway', 'psalms-proverbs'],
+  new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
+  congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
+  deeper_study: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
+  pastor_leader: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
+  comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
+  new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
+  pastor: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
+  deeper: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
+  difficult: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
 };
 
 // Persona-friendly header label
