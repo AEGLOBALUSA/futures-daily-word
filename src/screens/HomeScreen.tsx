@@ -53,10 +53,12 @@ import { hapticTap } from '../utils/haptics';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 import { t as tI18n, tField, getLang } from '../utils/i18n';
 
-const TRANSLATIONS: TranslationCode[] = ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
-const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
-const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT', 'KJV', 'NKJV'];
-const COMFORT_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'NLT'];
+// NLT removed from the pickers: its Tyndale API needs NLT_API_KEY (not set in Netlify),
+// so it 500s and falls back to other text. Re-add 'NLT' once the key is configured.
+const TRANSLATIONS: TranslationCode[] = ['ESV', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'];
+const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV'];
+const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'KJV', 'NKJV'];
+const COMFORT_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV'];
 
 // Language-specific translation lists — non-English languages have their own available translations
 const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
@@ -580,6 +582,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
+        if (plan.bookId) continue; // book plans aren't scripture — skip the verse prefetch
         const rawDay = calcPlanDay(prog.startedAt, plan.totalDays);
         const dn = Math.max(1, Math.min(rawDay + planDayOffset, plan.totalDays));
         const dp = plan.passages[dn - 1];
@@ -614,7 +617,11 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       for (const [pid, prog] of Object.entries(ap)) {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) continue;
-        // Include book plans — their passages should drive the hero button too
+        // Book plans read their own content in the book reader / Study Notes; their
+        // "passages" are devotional day-titles (e.g. "Day 1: ..."), NOT scripture refs,
+        // so they must NOT drive the hero's scripture button (would feed the verse API
+        // a non-reference and render garbage). Scripture plans only.
+        if (plan.bookId) continue;
         const rawDay = calcPlanDay(prog.startedAt, plan.totalDays);
         const dn = Math.max(1, Math.min(rawDay + planDayOffset, plan.totalDays));
 
@@ -709,7 +716,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       const ap: Record<string, { startedAt: string }> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       return Object.entries(ap).some(([pid, prog]) => {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
-        if (!plan) return false;
+        if (!plan || plan.bookId) return false;
         return calcPlanDay(prog.startedAt, plan.totalDays) + planDayOffset > 1;
       });
     } catch { return false; }
@@ -721,7 +728,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
       const ap: Record<string, { startedAt: string }> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       return Object.entries(ap).some(([pid, prog]) => {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
-        if (!plan) return false;
+        if (!plan || plan.bookId) return false;
         return calcPlanDay(prog.startedAt, plan.totalDays) + planDayOffset < plan.totalDays;
       });
     } catch { return false; }

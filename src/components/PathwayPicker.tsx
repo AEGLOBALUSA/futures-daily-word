@@ -44,11 +44,11 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
     const hasManualTranslation = localStorage.getItem('dw_translation_manual');
     if (!hasManualTranslation) {
       const translationMap: Record<string, string> = {
-        new_to_faith: 'NLT',
+        new_to_faith: 'NIV', // was NLT — NLT is offline until its API key is set
         congregation: 'ESV',
         deeper_study: 'ESV',
         pastor_leader: 'ESV',
-        comfort: 'NLT',
+        comfort: 'NIV', // was NLT
       };
       const suggested = translationMap[persona];
       if (suggested) localStorage.setItem('dw_translation', suggested);
