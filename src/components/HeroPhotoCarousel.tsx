@@ -19,7 +19,6 @@ import { useState, useEffect, useCallback } from 'react';
 const HERO_PHOTOS = [
   '/images/hero-a.jpg',
   '/images/hero-b.jpg',
-  '/images/hero-c.jpg',
   '/images/hero-d.jpg',
 ];
 
