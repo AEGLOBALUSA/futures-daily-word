@@ -173,10 +173,10 @@
   --dw-charcoal: #1E1C19;
   --dw-charcoal-deep: #14120F;
   --dw-charcoal-light: #2C2A25;
-  --dw-accent: #F2705F;
-  --dw-accent-hover: #E55C4B;
-  --dw-accent-active: #CF4C3C;
-  --dw-accent-bg: rgba(242, 112, 95, 0.14);
+  --dw-accent: #D89066;
+  --dw-accent-hover: #C97E54;
+  --dw-accent-active: #B56E45;
+  --dw-accent-bg: rgba(216, 144, 102, 0.14);
   /* Success / "saved" — a calm green that belongs to the red+gold family,
      replacing the old iOS-blue #2563EB confirm state. */
   --dw-success: #4A7C59;
@@ -231,37 +231,38 @@
 
 /* ---------- Light Mode ---------- */
 [data-theme="light"] {
-  /* Fresh spring/summer vibe — airy, clean, inviting. Soft mint-white ground,
-     warm coral as the brand-evolved accent, fresh emerald + sky as supports. */
-  --dw-canvas: #F6FAF6;
+  /* Editorial / minimal — bright, airy, warm. A magazine on warm ivory:
+     ink text, a warm clay accent (the brand red softened to earth), the
+     photography carries the colour. No coral. */
+  --dw-canvas: #FAF6EF;          /* warm ivory ground */
   --dw-surface: #FFFFFF;
-  --dw-surface-hover: #EEF4EE;
-  --dw-surface-active: #E4EDE5;
+  --dw-surface-hover: #F4EEE3;
+  --dw-surface-active: #ECE3D4;
   --dw-card: #FFFFFF;
   --dw-charcoal: #FFFFFF;        /* "card" surface — light in the fresh theme */
-  --dw-charcoal-deep: #EEF4EE;
+  --dw-charcoal-deep: #F4EEE3;
   --dw-charcoal-light: #FFFFFF;
-  --dw-accent: #E85546;          /* fresh coral (the brand red, grown into summer) */
-  --dw-accent-hover: #D8463A;
-  --dw-accent-active: #C13C30;
-  --dw-accent-bg: rgba(232, 85, 70, 0.08);
-  --dw-success: #1F9165;         /* fresh emerald */
-  --dw-success-hover: #1A7D57;
-  --dw-info: #2589C4;            /* fresh sky */
-  --dw-purple: #8B5CF6;
-  --dw-slate: #5E7C8C;
-  --dw-plan: #2589C4;            /* plans → fresh sky (was iOS blue) */
-  --dw-plan-light: #A9DCF2;
-  --dw-plan-deep: #1E7CB0;
-  --dw-slate-fill: #5E7C8C;
-  --dw-text: #1B2A22;
-  --dw-text-primary: #14201A;
-  --dw-text-secondary: #33443A;
-  --dw-text-muted: #54635A;
-  --dw-text-faint: #66726A;      /* AA on the fresh ground (>=4.5:1) */
-  --dw-text-christ: #C9453A;     /* deeper coral for text/links (AA) */
-  --dw-border: #E4EDE4;
-  --dw-border-subtle: #F0F5F0;
+  --dw-accent: #A8552F;          /* deep terracotta clay — AA as text on ivory & white, AA white-on-fill */
+  --dw-accent-hover: #974A28;
+  --dw-accent-active: #823F22;
+  --dw-accent-bg: rgba(168, 85, 47, 0.10);
+  --dw-success: #2F8062;         /* muted forest — "done" without shouting */
+  --dw-success-hover: #266B52;
+  --dw-info: #4C7E97;            /* dusty slate-blue, calmed for the warm ground */
+  --dw-purple: #8466B0;
+  --dw-slate: #6B6258;
+  --dw-plan: #4C7E97;            /* plans → dusty slate-blue */
+  --dw-plan-light: #BFD6E1;
+  --dw-plan-deep: #3C6A82;
+  --dw-slate-fill: #6B6258;
+  --dw-text: #241E17;
+  --dw-text-primary: #241E17;    /* warm ink */
+  --dw-text-secondary: #564B3F;  /* warm taupe-brown */
+  --dw-text-muted: #7A6A54;      /* AA on ivory & white (>=4.5:1) */
+  --dw-text-faint: #7E6E5A;      /* AA on the warm ivory ground (>=4.5:1) */
+  --dw-text-christ: #A8552F;     /* deeper clay for words-of-Christ/links (AA) */
+  --dw-border: #ECE3D4;
+  --dw-border-subtle: #F5EFE4;
 
   /* Scripture reading surface — clean, fresh */
   --dw-scripture-bg: #FFFFFF;
@@ -755,11 +756,10 @@ h2.text-section-header {
   .dw-done-card { animation: none !important; }
 }
 
-/* Loading pulse — amber glow while audio is preparing */
-@keyframes heroLoadPulse {
-  0%   { background: rgba(255,180,50,0.25); border-color: rgba(255,180,50,0.6); box-shadow: 0 0 0 0 rgba(255,180,50,0.3), 0 10px 32px rgba(0,0,0,0.35); }
-  50%  { background: rgba(255,180,50,0.40); border-color: rgba(255,180,50,0.9); box-shadow: 0 0 0 18px rgba(255,180,50,0.0), 0 10px 32px rgba(0,0,0,0.35); }
-  100% { background: rgba(255,180,50,0.25); border-color: rgba(255,180,50,0.6); box-shadow: 0 0 0 0 rgba(255,180,50,0.3), 0 10px 32px rgba(0,0,0,0.35); }
+/* Cinematic hero carousel — slow Ken Burns drift behind the photo plate */
+@keyframes heroKenBurns {
+  0%   { transform: scale(1.0); }
+  100% { transform: scale(1.09); }
 }
 
 @keyframes sermonPulse {
