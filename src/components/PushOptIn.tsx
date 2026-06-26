@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Bell } from 'lucide-react';
-import { subscribePush, updatePushTime } from '../utils/push';
+import { subscribePush, updatePushTime, pushSupported, openCalendarReminder } from '../utils/push';
 
 // 12-hour label for the reminder-time picker (5am–10pm).
 function formatHour(h: number): string {
@@ -18,17 +18,24 @@ const HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 5 → 22
 export function PushOptIn({ onDone }: { onDone: () => void }) {
   const [hour, setHour] = useState(7);
   const [busy, setBusy] = useState(false);
+  // Native push needs a service worker; where there isn't one (e.g. the app
+  // proxied at futures.church/daily-word) we add a recurring calendar reminder.
+  const canPush = pushSupported();
 
   const enable = async () => {
     if (busy) return;
     setBusy(true);
     try {
       localStorage.setItem('dw_push_hour', String(hour));
-      const email = (() => {
-        try { return JSON.parse(localStorage.getItem('dw_profile') || '{}').email || ''; } catch { return ''; }
-      })();
-      const ok = await subscribePush(email);
-      if (ok) await updatePushTime(hour);
+      if (!canPush) {
+        openCalendarReminder(hour);
+      } else {
+        const email = (() => {
+          try { return JSON.parse(localStorage.getItem('dw_profile') || '{}').email || ''; } catch { return ''; }
+        })();
+        const ok = await subscribePush(email);
+        if (ok) await updatePushTime(hour);
+      }
     } catch { /* permission denied / unsupported — fall through, it's optional */ }
     setBusy(false);
     onDone();
@@ -75,7 +82,9 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
             fontFamily: 'var(--font-sans)', color: 'var(--dw-text-muted)',
           }}
         >
-          We&rsquo;ll send today&rsquo;s Word at the time that fits your rhythm. No spam — just a daily invitation to show up.
+          {canPush
+            ? <>We&rsquo;ll send today&rsquo;s Word at the time that fits your rhythm. No spam — just a daily invitation to show up.</>
+            : <>We&rsquo;ll add a recurring daily reminder to your calendar — a gentle nudge to open today&rsquo;s Word at the time that fits your rhythm.</>}
         </p>
 
         <label
@@ -109,7 +118,9 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
             opacity: busy ? 0.7 : 1,
           }}
         >
-          {busy ? 'Turning on…' : 'Turn on daily reminders'}
+          {busy
+            ? (canPush ? 'Turning on…' : 'Opening calendar…')
+            : (canPush ? 'Turn on daily reminders' : 'Add to my calendar')}
         </button>
         <button
           onClick={() => { if (!busy) onDone(); }}
