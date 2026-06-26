@@ -18,10 +18,33 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+/**
+ * Whether native web-push can actually work here. Push requires a real,
+ * controllable service worker — but the church-proxied build at
+ * futures.church/daily-word deliberately ships NONE (its /sw.js is a permanent
+ * kill-switch, because a root-scope app worker once hijacked the whole church
+ * origin). There, `navigator.serviceWorker.ready` never resolves, so we must NOT
+ * start the push flow — callers fall back to a calendar reminder instead.
+ *
+ * Gate on the Daily Word origin (where the real SW is served) plus local dev.
+ */
+export function pushSupported(): boolean {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (typeof Notification === 'undefined') return false;
+  const h = location.hostname;
+  return (
+    h === 'futuresdailyword.com' ||
+    h === 'www.futuresdailyword.com' ||
+    h === 'localhost' ||
+    h === '127.0.0.1'
+  );
+}
+
 export async function subscribePush(email: string): Promise<boolean> {
   try {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.log('Push not supported');
+    if (!pushSupported()) {
+      console.log('Push not supported on this host');
       return false;
     }
 
@@ -31,7 +54,16 @@ export async function subscribePush(email: string): Promise<boolean> {
       return false;
     }
 
-    const registration = await navigator.serviceWorker.ready;
+    // Never await serviceWorker.ready unbounded — on a host without an activating
+    // worker it hangs forever (which is exactly what stuck the reminder button).
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((res) => setTimeout(() => res(null), 5000)),
+    ]);
+    if (!registration) {
+      console.warn('No active service worker — push unavailable');
+      return false;
+    }
 
     // Check for existing subscription
     let subscription = await registration.pushManager.getSubscription();
@@ -114,7 +146,11 @@ function getTimeZone(): string {
 export async function updatePushTime(hour: number): Promise<boolean> {
   try {
     localStorage.setItem(PUSH_HOUR_KEY, String(hour));
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((res) => setTimeout(() => res(null), 5000)),
+    ]);
+    if (!registration) return false;
     const subscription = await registration.pushManager.getSubscription();
     if (!subscription) return false;
     const res = await fetch(`${API_BASE}/api/push-subscribe`, {
@@ -128,6 +164,44 @@ export async function updatePushTime(hour: number): Promise<boolean> {
       }),
     });
     return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Google Calendar "add event" link for a recurring DAILY reminder at `hour`
+ * (local time). This is the no-service-worker fallback for reminders — used where
+ * native push can't run (see pushSupported), e.g. futures.church/daily-word. The
+ * event links back to wherever the app is being viewed so the tap lands on the Word.
+ */
+export function calendarReminderUrl(hour: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const now = new Date();
+  const day = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const start = `${day}T${pad(hour)}0000`;
+  const end = `${day}T${pad(hour)}1500`; // 15-min slot
+  const back =
+    typeof location !== 'undefined'
+      ? `${location.origin}${location.pathname}`
+      : 'https://futuresdailyword.com/';
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: 'Daily Word',
+    details: `Your daily Bible reading from Futures Church.\n${back}`,
+    dates: `${start}/${end}`,
+    ctz: getTimeZone(),
+    recur: 'RRULE:FREQ=DAILY',
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/** Open the recurring-daily calendar reminder in a new tab. Returns true if launched. */
+export function openCalendarReminder(hour: number): boolean {
+  try {
+    localStorage.setItem(PUSH_HOUR_KEY, String(hour));
+    window.open(calendarReminderUrl(hour), '_blank', 'noopener,noreferrer');
+    return true;
   } catch {
     return false;
   }

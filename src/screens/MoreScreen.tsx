@@ -6,7 +6,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { SeamFooter } from '../components/Seam';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
-import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, updatePushTime } from '../utils/push';
+import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, updatePushTime, pushSupported, openCalendarReminder } from '../utils/push';
 import { pushNow, syncMisc, flushNow } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
@@ -78,6 +78,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [pushHour, setPushHour] = useState(() => getPushHour());
+  // Native push needs a service worker; where there's none (e.g. proxied at
+  // futures.church/daily-word) the reminder is a recurring calendar event instead.
+  const canPush = pushSupported();
   const [downloadingKJV, setDownloadingKJV] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showPollDashboard, setShowPollDashboard] = useState(false);
@@ -680,37 +683,64 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             {t("notifications", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
-            <button
-              onClick={handlePushToggle}
-              style={{
-                width: '100%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: pushSubscribed ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
-                color: pushSubscribed ? '#fff' : 'var(--dw-text-primary)',
-                border: pushSubscribed ? 'none' : '1px solid var(--dw-border)',
-                borderRadius: 10,
-                padding: '14px 16px', fontSize: 14, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
-                textAlign: 'center', transition: 'all 0.2s ease',
-              }}
-            >
-              <Bell size={16} />
-              {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : t("turn_on_push", lang)}
-            </button>
-            {pushSubscribed && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--dw-border)' }}>
+            {canPush ? (
+              <>
+                <button
+                  onClick={handlePushToggle}
+                  style={{
+                    width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    background: pushSubscribed ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                    color: pushSubscribed ? '#fff' : 'var(--dw-text-primary)',
+                    border: pushSubscribed ? 'none' : '1px solid var(--dw-border)',
+                    borderRadius: 10,
+                    padding: '14px 16px', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
+                    textAlign: 'center', transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Bell size={16} />
+                  {pushState === 'loading' ? 'Subscribing...' : pushSubscribed ? 'Push Notifications — On' : t("turn_on_push", lang)}
+                </button>
+                {pushSubscribed && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--dw-border)' }}>
+                    <label
+                      htmlFor="dw-reminder-hour"
+                      style={{ display: 'block', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}
+                    >
+                      Daily reminder time
+                    </label>
+                    <select
+                      id="dw-reminder-hour"
+                      value={pushHour}
+                      onChange={(e) => { const h = parseInt(e.target.value, 10); setPushHour(h); updatePushTime(h); }}
+                      style={{
+                        width: '100%', padding: '12px', borderRadius: 10, fontSize: 14,
+                        fontFamily: 'var(--font-sans)', background: 'var(--dw-surface-hover)',
+                        color: 'var(--dw-text-primary)', border: '1px solid var(--dw-border)',
+                      }}
+                    >
+                      {REMINDER_HOURS.map(h => (
+                        <option key={h} value={h}>{formatHour(h)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
                 <label
-                  htmlFor="dw-reminder-hour"
+                  htmlFor="dw-cal-hour"
                   style={{ display: 'block', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}
                 >
                   Daily reminder time
                 </label>
                 <select
-                  id="dw-reminder-hour"
+                  id="dw-cal-hour"
                   value={pushHour}
-                  onChange={(e) => { const h = parseInt(e.target.value, 10); setPushHour(h); updatePushTime(h); }}
+                  onChange={(e) => { setPushHour(parseInt(e.target.value, 10)); }}
                   style={{
-                    width: '100%', padding: '12px', borderRadius: 10, fontSize: 14,
+                    width: '100%', padding: '12px', borderRadius: 10, fontSize: 14, marginBottom: 12,
                     fontFamily: 'var(--font-sans)', background: 'var(--dw-surface-hover)',
                     color: 'var(--dw-text-primary)', border: '1px solid var(--dw-border)',
                   }}
@@ -719,7 +749,23 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     <option key={h} value={h}>{formatHour(h)}</option>
                   ))}
                 </select>
-              </div>
+                <button
+                  onClick={() => openCalendarReminder(pushHour)}
+                  style={{
+                    width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    background: 'var(--dw-surface-hover)', color: 'var(--dw-text-primary)',
+                    border: '1px solid var(--dw-border)', borderRadius: 10,
+                    padding: '14px 16px', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
+                  }}
+                >
+                  <Bell size={16} /> Add to my calendar
+                </button>
+                <p style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  Adds a recurring daily event to your calendar. Install the app from futuresdailyword.com for in-app notifications.
+                </p>
+              </>
             )}
           </Card>
         </div>
