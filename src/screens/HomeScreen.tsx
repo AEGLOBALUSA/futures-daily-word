@@ -1413,12 +1413,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
               border: '1px solid rgba(40,28,16,0.06)',
             }}>
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'url(/images/hero-1.jpg) center 44% / cover no-repeat',
-              }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(176deg, rgba(30,20,12,0.34) 0%, rgba(30,20,12,0.06) 24%, rgba(30,20,12,0.00) 44%, rgba(30,20,12,0.32) 70%, rgba(30,20,12,0.74) 100%)' }} />
-              <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)' }}>
+              <HeroPhotoCarousel />
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(176deg, rgba(30,20,12,0.40) 0%, rgba(30,20,12,0.10) 30%, rgba(30,20,12,0.18) 58%, rgba(30,20,12,0.62) 100%)' }} />
+              <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)', pointerEvents: 'none' }}>
                 <div style={{ height: 16 }} />
                 <p style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 8px', lineHeight: 1.3 }}>
                   Choose your reading plan
@@ -1434,7 +1431,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                     border: '1px solid rgba(255,255,255,0.4)',
                     background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer',
                     fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)',
-                    letterSpacing: '0.02em',
+                    letterSpacing: '0.02em', pointerEvents: 'auto',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                   }}
                 >
