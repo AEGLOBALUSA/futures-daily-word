@@ -21,6 +21,7 @@ const HERO_PHOTOS = [
   '/images/hero-2.jpg',
   '/images/hero-3.jpg',
   '/images/hero-4.jpg',
+  '/images/hero-5.jpg',
 ];
 
 const ADVANCE_MS = 6500;
