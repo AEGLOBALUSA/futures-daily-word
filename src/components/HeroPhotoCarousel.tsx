@@ -17,11 +17,10 @@ import { useState, useEffect, useCallback } from 'react';
  *   pointerEvents:none so taps fall through to them.
  */
 const HERO_PHOTOS = [
-  '/images/hero-1.jpg',
-  '/images/hero-2.jpg',
-  '/images/hero-3.jpg',
-  '/images/hero-4.jpg',
-  '/images/hero-5.jpg',
+  '/images/hero-a.jpg',
+  '/images/hero-b.jpg',
+  '/images/hero-c.jpg',
+  '/images/hero-d.jpg',
 ];
 
 const ADVANCE_MS = 6500;
