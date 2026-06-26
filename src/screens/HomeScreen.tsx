@@ -299,7 +299,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
   // Deliberate "done" state for today's reading + the calm celebration card it triggers.
   const [readDoneToday, setReadDoneToday] = useState(() => {
-    try { return localStorage.getItem('dw_reading_done') === new Date().toISOString().slice(0, 10); } catch { return false; }
+    try { return localStorage.getItem('dw_reading_done') === new Date().toLocaleDateString('en-CA'); } catch { return false; }
   });
   const [doneCelebration, setDoneCelebration] = useState<number | null>(null);
   const [planFinish, setPlanFinish] = useState<{ title: string; days: number } | null>(null);
@@ -477,7 +477,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // the streak (idempotent — app-open already recorded today), and show a calm "done"
   // celebration. Replaces auto-marking on open (focus-group: completion needs intent).
   const handleMarkRead = (passage: string) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString('en-CA');
     if (localStorage.getItem('dw_reading_done') === today) { setReadDoneToday(true); return; }
     try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
     const result = markPlanDayComplete(passage);
@@ -570,13 +570,8 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planDayOffset]);
 
-  // Telemetry: detect when a new calendar day begins (auto-rollover)
-  useEffect(() => {
-    const today = new Date().toLocaleDateString('en-CA');
-    const lastSeen = localStorage.getItem('dw_last_open_date');
-    if (lastSeen && lastSeen !== today) track('plan_day_calendar_rollover', today);
-    try { localStorage.setItem('dw_last_open_date', today); } catch {}
-  }, []);
+  // (Calendar-day roll-over is handled by the resume/focus effect near stopAudio,
+  // which actually clicks the plan over to the new day — not just telemetry.)
 
   useEffect(() => {
     try {
@@ -742,6 +737,46 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
   const stopAudio = () => {
     AP.stop();
   };
+
+  // ── Daily plan roll-over ───────────────────────────────────────────────────
+  // calcPlanDay is calendar-based, but it's only read at render time. If the app
+  // is left open or resumed from the background across midnight, nothing re-renders
+  // it — so the plan would stay on yesterday's reading until a hard reload. This
+  // detects a new calendar day on resume/focus and clicks the plan over to today.
+  const rolloverDayRef = useRef<string>(new Date().toLocaleDateString('en-CA'));
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-CA');
+    rolloverDayRef.current = today;
+    const prevSeen = localStorage.getItem('dw_last_open_date');
+    if (prevSeen && prevSeen !== today) track('plan_day_calendar_rollover', today);
+    try { localStorage.setItem('dw_last_open_date', today); } catch { /* quota */ }
+
+    const rollIfNewDay = () => {
+      if (document.visibilityState === 'hidden') return;
+      const now = new Date().toLocaleDateString('en-CA');
+      if (now === rolloverDayRef.current) return; // still the same calendar day
+      rolloverDayRef.current = now;
+      try { localStorage.setItem('dw_last_open_date', now); } catch { /* quota */ }
+      track('plan_day_calendar_rollover', now);
+      // Click the daily plan over to the new day's reading.
+      stopAudio();
+      setPlanDayOffset(0);
+      setDayOffset(0);
+      // readDoneToday recomputed against the same LOCAL date axis as the rollover.
+      setReadDoneToday(localStorage.getItem('dw_reading_done') === now);
+      // Don't wipe passageTexts/expanded here — the day/translation-keyed load
+      // effects refresh the new day's reading; clearing could blank the panel when
+      // heroKey is unchanged (clamped-finished plan, or no active plan).
+      setPlanTick(t => t + 1);
+    };
+    document.addEventListener('visibilitychange', rollIfNewDay);
+    window.addEventListener('focus', rollIfNewDay);
+    return () => {
+      document.removeEventListener('visibilitychange', rollIfNewDay);
+      window.removeEventListener('focus', rollIfNewDay);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** Play audio for a passage using the global AudioPlayer */
   const handleAudio = async (passage: string) => {
