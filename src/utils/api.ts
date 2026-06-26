@@ -75,6 +75,9 @@ async function _doFetch(passage: string, translation: TranslationCode, cacheKey:
         break;
     }
 
+    // An empty/whitespace body is a failure, not a hit — don't cache it, fall back
+    // and retry (e.g. a wrong-shaped upstream JSON would otherwise stick as blank).
+    if (!text || !text.trim()) throw new Error(`Empty result: ${passage} (${translation})`);
     verseCacheSet(cacheKey, text);
     return text;
   } catch (err) {
@@ -94,7 +97,7 @@ async function fetchNLT(passage: string): Promise<string> {
   const res = await fetch(`${API_BASE}/api/nlt?q=${encodeURIComponent(passage)}`);
   if (!res.ok) throw new Error(`NLT API error: ${res.status}`);
   const data = await res.json();
-  return data.text || data.passage || '';
+  return data.passages?.[0] || data.text || data.passage || '';
 }
 
 async function fetchBolls(passage: string, translation: string): Promise<string> {
@@ -112,7 +115,9 @@ async function fetchKJV(passage: string): Promise<string> {
   const match = passage.match(/^(.+?)\s+(\d+)$/);
   if (!match) return '';
   const [, book, ch] = match;
-  const bookSlug = book.toLowerCase().replace(/\s+/g, '-');
+  // Bundled KJV dirs use underscores ("1_john", "song_of_solomon") and plural "psalms".
+  let bookSlug = book.toLowerCase().replace(/\s+/g, '_');
+  if (bookSlug === 'psalm') bookSlug = 'psalms';
   try {
     const res = await fetch(`/bible/kjv/${bookSlug}/${ch}.json`);
     if (res.ok) {
