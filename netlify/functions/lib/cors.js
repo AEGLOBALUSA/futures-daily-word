@@ -27,4 +27,21 @@ function getAllowedOrigin(origin) {
   return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
 }
 
-module.exports = { ALLOWED_ORIGINS, getAllowedOrigin };
+/** Parse Origin (or Referer URL) into an origin string for allowlist checks. */
+function parseRequestOrigin(originOrReferer) {
+  if (!originOrReferer) return '';
+  if (!originOrReferer.includes('://')) return originOrReferer;
+  try {
+    return new URL(originOrReferer).origin;
+  } catch {
+    return '';
+  }
+}
+
+/** Exact-match allowlist check — never use startsWith (prefix bypass risk). */
+function isAllowedOrigin(originOrReferer) {
+  const origin = parseRequestOrigin(originOrReferer);
+  return !!origin && ALLOWED_ORIGINS.includes(origin);
+}
+
+module.exports = { ALLOWED_ORIGINS, getAllowedOrigin, parseRequestOrigin, isAllowedOrigin };

@@ -181,7 +181,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const raw = event.notification.data?.url || '/';
   // Validate URL: only allow relative paths or our own domains
-  const ALLOWED_HOSTS = ['futuresdailyword.com', 'www.futuresdailyword.com', 'futures-daily-word.netlify.app'];
+  const ALLOWED_HOSTS = ['futuresdailyword.com', 'www.futuresdailyword.com', 'futures-daily-word.netlify.app', 'futures.church', 'www.futures.church', 'futures.global', 'www.futures.global', 'futures-church.netlify.app'];
   let url = '/';
   if (raw.startsWith('/')) {
     url = raw;

@@ -1,5 +1,9 @@
 # API routes → Netlify Functions
 /api/*    /.netlify/functions/:splat   200
 
+# Legal pages (static HTML — must precede SPA fallback)
+/privacy    /privacy.html   200
+/terms      /terms.html     200
+
 # SPA fallback
 /*    /index.html   200

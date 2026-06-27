@@ -14,7 +14,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { authenticateRequest, migrateRequest } = require("./lib/auth");
 
-const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
 function sanitize(str, maxLen = 200) {
   if (typeof str !== "string") return "";
@@ -136,10 +136,14 @@ function validatePayload(data) {
   if (data.translation !== undefined) cleaned.translation = sanitize(String(data.translation), 20);
   if (data.translationManual !== undefined) cleaned.translation_manual = sanitize(String(data.translationManual), 20);
 
-  // Profile pic — cap at 500KB to prevent bloat
+  // Profile pic — https URLs only (blocks data:/javascript: XSS via <img src>)
   if (data.profilePic !== undefined) {
-    const pic = String(data.profilePic || "");
-    cleaned.profile_pic = pic.length <= 500000 ? pic : "";
+    const pic = String(data.profilePic || "").trim();
+    if (pic.length <= 500000 && /^https:\/\//i.test(pic)) {
+      cleaned.profile_pic = pic;
+    } else {
+      cleaned.profile_pic = "";
+    }
   }
 
   return cleaned;
@@ -166,6 +170,11 @@ exports.handler = async (event) => {
   const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
   if (checkRateLimit(clientIP)) {
     return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
+  }
+
+  // Reject requests not from our app (prevents external abuse)
+  if (!isAllowedOrigin(origin)) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
   }
 
   try {

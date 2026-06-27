@@ -1,7 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { authenticateRequest, issueToken, migrateRequest } = require("./lib/auth");
 
-const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
 // Sanitize string input — strip control chars, cap length
 function sanitize(str, maxLen = 200) {
@@ -76,7 +76,7 @@ exports.handler = async (event) => {
   }
 
   // Reject requests not from our app (prevents external abuse)
-  if (!ALLOWED_ORIGINS.some(o => origin.startsWith(o))) {
+  if (!isAllowedOrigin(origin)) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
   }
 

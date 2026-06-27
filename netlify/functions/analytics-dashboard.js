@@ -1,11 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 
-const ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com"
-];
+const { ALLOWED_ORIGINS, isAllowedOrigin, parseRequestOrigin } = require('./lib/cors');
 
 let sb;
 function db() {
@@ -14,8 +10,8 @@ function db() {
 }
 
 exports.handler = async (event) => {
-  const origin = event.headers.origin || "";
-  const co = ORIGINS.find(o => origin.startsWith(o)) || ORIGINS[0];
+  const origin = event.headers.origin || event.headers.referer || "";
+  const co = isAllowedOrigin(origin) ? parseRequestOrigin(origin) : ALLOWED_ORIGINS[0];
   const h = {
     "Access-Control-Allow-Origin": co,
     "Access-Control-Allow-Methods": "GET, OPTIONS",

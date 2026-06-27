@@ -131,6 +131,14 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
   // Book plan state
   const [bookPlans, setBookPlans] = useState<Record<string, BookPlan>>(getBookPlans);
+  useEffect(() => {
+    const refresh = () => {
+      setActivePlans(getActivePlans());
+      setBookPlans(getBookPlans());
+    };
+    window.addEventListener('dw-cloud-sync', refresh);
+    return () => window.removeEventListener('dw-cloud-sync', refresh);
+  }, []);
   const [startingBook, setStartingBook] = useState<string | null>(null);
 
   const startBookPlan = async (book: Book) => {

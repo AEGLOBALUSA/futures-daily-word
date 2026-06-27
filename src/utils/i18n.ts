@@ -1,6 +1,8 @@
 // Shared i18n utility for Futures Daily Word
 // All UI string translations for en, es, pt, id
 
+import { useState, useEffect } from 'react';
+
 export function getLang(): string {
   try { return localStorage.getItem('dw_lang') || 'en'; } catch { return 'en'; }
 }
@@ -357,7 +359,12 @@ export function t(key: string, lang?: string): string {
 }
 
 export function useTranslation() {
-  const lang = getLang();
+  const [lang, setLang] = useState(getLang);
+  useEffect(() => {
+    const h = () => setLang(getLang());
+    window.addEventListener('dw-lang-changed', h);
+    return () => window.removeEventListener('dw-lang-changed', h);
+  }, []);
   return (key: string) => UI[key]?.[lang] || UI[key]?.['en'] || key;
 }
 

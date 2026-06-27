@@ -6,7 +6,6 @@ import { ScriptureSelectionProvider, useScriptureSelection } from './contexts/Sc
 import { TabBar } from './components/TabBar';
 import { SeamBar } from './components/Seam';
 import { EmailGate } from './components/EmailGate';
-import { BibleAI } from './components/BibleAI';
 import { PathwayPicker } from './components/PathwayPicker';
 import { PushOptIn } from './components/PushOptIn';
 import { isPushSubscribed } from './utils/push';
@@ -61,6 +60,7 @@ const MessagesScreen = lazy(() => import('./screens/MessagesScreen').then(m => (
 const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ default: m.PlansScreen })));
 const MoreScreen = lazy(() => import('./screens/MoreScreen').then(m => ({ default: m.MoreScreen })));
 const SermonNotesScreen = lazy(() => import('./screens/SermonNotesScreen').then(m => ({ default: m.SermonNotesScreen })));
+const BibleAI = lazy(() => import('./components/BibleAI').then(m => ({ default: m.BibleAI })));
 
 /** Content-shaped skeleton shown while a screen chunk downloads */
 function ScreenLoader() {
@@ -265,12 +265,14 @@ function AppContent() {
       </ErrorBoundary>
       <TabBar activeTab={activeTab} onTabChange={navigateTab} />
       {!sundayGuest && !SERMON_DEEP_LINK && <EmailGate />}
-      <BibleAI
-        isOpen={showBibleAI}
-        onClose={() => setShowBibleAI(false)}
-        onOpen={() => setShowBibleAI(true)}
-        selectedText={selection?.text}
-      />
+      <Suspense fallback={null}>
+        <BibleAI
+          isOpen={showBibleAI}
+          onClose={() => setShowBibleAI(false)}
+          onOpen={() => setShowBibleAI(true)}
+          selectedText={selection?.text}
+        />
+      </Suspense>
       <CookieConsent />
       <AudioAnnouncer />
 
