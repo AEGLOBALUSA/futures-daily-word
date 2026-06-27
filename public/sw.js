@@ -1,12 +1,13 @@
 /**
- * Futures Daily Word — Service Worker v22
+ * Futures Daily Word — Service Worker v23
  * Strategy: Network-first for API, Cache-first for static assets,
  * Stale-while-revalidate for fonts and images.
  * V22: Removed aggressive tab reload on activate — uses gentle postMessage instead
+ * V23: Image/asset stale-while-revalidate with network-failure cache fallback (hero frames)
  */
 
-const CACHE_NAME = 'fdw-v49';
-const STATIC_CACHE = 'fdw-static-v49';
+const CACHE_NAME = 'fdw-v50';
+const STATIC_CACHE = 'fdw-static-v50';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
@@ -29,7 +30,7 @@ self.addEventListener('activate', (event) => {
       Promise.all(
         keys
           .filter((key) => key !== CACHE_NAME && key !== STATIC_CACHE && key !== BIBLE_CACHE && key !== FONT_CACHE)
-          .map((key) => caches.delete(key))
+          .map((key) => caches.delete(key).catch(() => false))
       )
     ).then(() => {
       // Notify open tabs that a new version is available (gentle — no forced reload)
@@ -69,7 +70,7 @@ self.addEventListener('fetch', (event) => {
           return fetch(event.request).then((response) => {
             if (response.ok) cache.put(event.request, response.clone());
             return response;
-          });
+          }).catch(() => cached);
         })
       )
     );
@@ -101,23 +102,27 @@ self.addEventListener('fetch', (event) => {
           return fetch(event.request).then((response) => {
             if (response.ok) cache.put(event.request, response.clone());
             return response;
-          });
+          }).catch(() => cached);
         })
       )
     );
     return;
   }
 
-  // Icons and images: cache-first
-  if (url.pathname.startsWith('/icons/') || url.pathname.match(/\.(png|jpg|svg|ico|webp)$/)) {
+  // Icons and images: stale-while-revalidate. Serve the cached copy instantly when we
+  // have one, refresh it in the background, and — critically — if the network fetch
+  // fails (flaky mobile connection) fall back to the cached copy instead of rejecting.
+  // Hero frames are CSS background-images, so a rejected fetch silently leaves a BLANK
+  // hero; this keeps a previously-seen image on screen instead.
+  if (url.pathname.startsWith('/icons/') || url.pathname.match(/\.(png|jpe?g|svg|ico|webp|avif|gif)$/)) {
     event.respondWith(
       caches.open(STATIC_CACHE).then((cache) =>
         cache.match(event.request).then((cached) => {
-          if (cached) return cached;
-          return fetch(event.request).then((response) => {
+          const network = fetch(event.request).then((response) => {
             if (response.ok) cache.put(event.request, response.clone());
             return response;
-          });
+          }).catch(() => cached);
+          return cached || network;
         })
       )
     );

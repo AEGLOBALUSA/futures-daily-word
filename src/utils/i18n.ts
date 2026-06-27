@@ -203,7 +203,7 @@ const UI: Translations = {
   p_adjust_progress: { en: 'Adjust progress', es: 'Ajustar progreso', pt: 'Ajustar progresso', id: 'Sesuaikan progres' },
   p_remove_plan: { en: 'Remove this plan', es: 'Eliminar este plan', pt: 'Remover este plano', id: 'Hapus rencana ini' },
   p_run_multiple: { en: 'You can run multiple plans at once. Tap to select, then save.', es: 'Puedes ejecutar varios planes a la vez. Toca para seleccionar, luego guarda.', pt: 'Voc\u00ea pode executar v\u00e1rios planos ao mesmo tempo. Toque para selecionar, depois salve.', id: 'Kamu bisa menjalankan beberapa rencana sekaligus. Ketuk untuk memilih, lalu simpan.' },
-  p_tap_remove: { en: 'Tap to remove', es: 'Toca para eliminar', pt: 'Toque para remover', id: 'Ketuk untuk menghapus' },
+  p_tap_remove: { en: 'Tap again to remove', es: 'Toca otra vez para eliminar', pt: 'Toque novamente para remover', id: 'Ketuk lagi untuk menghapus' },
   p_active: { en: 'Active', es: 'Activo', pt: 'Ativo', id: 'Aktif' },
   p_day_of: { en: 'Day', es: 'D\u00eda', pt: 'Dia', id: 'Hari' },
   p_of: { en: 'of', es: 'de', pt: 'de', id: 'dari' },

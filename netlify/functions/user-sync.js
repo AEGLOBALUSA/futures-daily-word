@@ -109,8 +109,13 @@ function validatePayload(data) {
     const entries = Object.entries(data.highlights).slice(0, 2000);
     cleaned.highlights = Object.fromEntries(entries);
   }
+  // active plans: the client stores them as an OBJECT map { planId: progress }, so
+  // accept that shape (older array payloads still supported). Without this branch the
+  // upsert silently dropped active_plans and plans never synced to the cloud.
   if (Array.isArray(data.activePlans)) {
     cleaned.active_plans = data.activePlans.slice(0, 100);
+  } else if (data.activePlans && typeof data.activePlans === "object") {
+    cleaned.active_plans = Object.fromEntries(Object.entries(data.activePlans).slice(0, 100));
   }
   if (data.streak && typeof data.streak === "object" && !Array.isArray(data.streak)) {
     cleaned.streak = data.streak;
@@ -207,7 +212,7 @@ exports.handler = async (event) => {
             journal: data.journal || [],
             highlights: data.highlights || {},  // Fix 2
             streak: data.streak || {},
-            activePlans: data.active_plans || [],
+            activePlans: data.active_plans || {},
             bookPlans: data.book_plans || {},
             reactions: data.reactions || {},
             pathwayProgress: data.pathway_progress || {},

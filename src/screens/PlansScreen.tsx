@@ -10,7 +10,7 @@ import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Vide
 import { EmptyState } from '../components/EmptyState';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
-import { schedulePush } from '../utils/cloudSync';
+import { schedulePush, flushNow } from '../utils/cloudSync';
 import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
 import { t, getLang, tField } from '../utils/i18n';
 
@@ -278,6 +278,9 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     trackBehavior('plan_dropped', planId);
     delete plans[planId];
     savePlans(plans);
+    // Push the removal to the cloud immediately so a restart within savePlans' 5s
+    // debounce can't let the startup union-merge resurrect a just-removed plan.
+    flushNow();
     setActivePlans({ ...plans });
     // Also remove book plan data if applicable
     const planDef = PLAN_CATALOGUE.find(p => p.id === planId);
@@ -652,7 +655,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 setDeactivateConfirm(null);
                               } else {
                                 setDeactivateConfirm(plan.id);
-                                setTimeout(() => setDeactivateConfirm(null), 3000);
+                                setTimeout(() => setDeactivateConfirm(null), 6000);
                               }
                               return;
                             }
@@ -1113,7 +1116,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                                 setDeactivateConfirm(null);
                               } else {
                                 setDeactivateConfirm(plan.id);
-                                setTimeout(() => setDeactivateConfirm(null), 3000);
+                                setTimeout(() => setDeactivateConfirm(null), 6000);
                               }
                               return;
                             }

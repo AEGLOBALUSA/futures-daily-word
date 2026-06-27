@@ -178,7 +178,6 @@ function applyCloudData(data: Record<string, unknown>) {
   const jsonFields: Array<[string, string]> = [
     ['highlights',      SYNC_KEYS.highlights],   // Fix 2
     ['streak',          SYNC_KEYS.streak],
-    ['activePlans',     SYNC_KEYS.activePlans],
     ['bookPlans',       SYNC_KEYS.bookPlans],
     ['reactions',        SYNC_KEYS.reactions],
     ['pathwayProgress', SYNC_KEYS.pathwayProgress],
@@ -198,6 +197,28 @@ function applyCloudData(data: Record<string, unknown>) {
           localStorage.setItem(localKey, cloudStr);
         }
       }
+    }
+  }
+
+  // Active plans — union-merge cloud + local by planId (the client stores active
+  // plans as an object map { planId: progress }). Enabling cloud sync must never DROP
+  // a plan that exists on only one device, so merge instead of overwrite: keep every
+  // plan from both sides; on a per-plan conflict prefer the copy with more progress.
+  {
+    const cp = (data.activePlans && typeof data.activePlans === 'object' && !Array.isArray(data.activePlans))
+      ? (data.activePlans as Record<string, { lastDay?: number }>)
+      : {};
+    const lpRaw = readJSON(SYNC_KEYS.activePlans, {});
+    const lp = (lpRaw && typeof lpRaw === 'object' && !Array.isArray(lpRaw))
+      ? (lpRaw as Record<string, { lastDay?: number }>)
+      : {};
+    const merged: Record<string, unknown> = { ...cp };
+    for (const [id, localPlan] of Object.entries(lp)) {
+      const cloudPlan = merged[id] as { lastDay?: number } | undefined;
+      merged[id] = (cloudPlan && (cloudPlan.lastDay || 0) > (localPlan?.lastDay || 0)) ? cloudPlan : localPlan;
+    }
+    if (Object.keys(merged).length > 0) {
+      localStorage.setItem(SYNC_KEYS.activePlans, JSON.stringify(merged));
     }
   }
 
