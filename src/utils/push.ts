@@ -19,6 +19,35 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 /**
+ * Resolve `p`, but never wait longer than `ms` — falls back to `fallback` on timeout
+ * OR rejection. The reminder flow has several calls that can hang or throw on real
+ * devices: the Notification permission prompt (iOS/Safari leave the promise pending if
+ * the user dismisses it without choosing), the push-service handshake
+ * (getSubscription/subscribe on an offline or FCM-blocked network), and the network
+ * round-trip to our server. A hung/failed reminder must never trap the UI, so every
+ * such await is bounded and always settles to a usable value.
+ */
+export function withTimeout<T>(p: Promise<T> | T, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    Promise.resolve(p).catch(() => fallback),
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
+/** fetch with a hard timeout so a stalled request can't hang the caller. Returns null on abort/error. */
+async function fetchWithTimeout(url: string, init: RequestInit, ms = 8000): Promise<Response | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } catch {
+    return null; // aborted or network error — treat as failure so callers fall through
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Whether native web-push can actually work here. Push requires a real,
  * controllable service worker — but the church-proxied build at
  * futures.church/daily-word deliberately ships NONE (its /sw.js is a permanent
@@ -48,9 +77,14 @@ export async function subscribePush(email: string): Promise<boolean> {
       return false;
     }
 
-    const permission = await Notification.requestPermission();
+    // Bounded: a dismissed permission prompt can leave this promise pending forever.
+    const permission = await withTimeout(
+      Notification.requestPermission(),
+      8000,
+      'default' as NotificationPermission,
+    );
     if (permission !== 'granted') {
-      console.log('Push permission denied');
+      console.log('Push permission not granted');
       return false;
     }
 
@@ -65,21 +99,30 @@ export async function subscribePush(email: string): Promise<boolean> {
       return false;
     }
 
-    // Check for existing subscription
-    let subscription = await registration.pushManager.getSubscription();
-
+    // Check for / create the push subscription. Both calls hit the browser's push
+    // service (FCM/GCM) and can hang on an offline or FCM-blocked network — bound them
+    // so no caller (Settings included, which has no outer backstop) can spin forever.
+    let subscription = await withTimeout(registration.pushManager.getSubscription(), 8000, null);
     if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-      });
+      subscription = await withTimeout<PushSubscription | null>(
+        registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+        }),
+        8000,
+        null,
+      );
+    }
+    if (!subscription) {
+      console.warn('Push subscribe timed out or was blocked');
+      return false;
     }
 
     // Register with the server. The function is `push-subscribe` (NOT subscribe-push —
     // that route 404'd, which is why subscriptions silently never persisted). It needs
     // an explicit action, plus timezone + preferred hour so the daily cron can fire at
     // the right local time.
-    const res = await fetch(`${API_BASE}/api/push-subscribe`, {
+    const res = await fetchWithTimeout(`${API_BASE}/api/push-subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -92,7 +135,7 @@ export async function subscribePush(email: string): Promise<boolean> {
       }),
     });
 
-    if (res.ok) {
+    if (res && res.ok) {
       localStorage.setItem('dw_push', 'subscribed');
       return true;
     }
@@ -103,25 +146,32 @@ export async function subscribePush(email: string): Promise<boolean> {
   }
 }
 
-export async function unsubscribePush(): Promise<void> {
+/**
+ * Turn off reminders. Returns true only when we actually settled the state (revoked
+ * the subscription, or confirmed there was none). Returns false WITHOUT clearing the
+ * local flag if the service worker never became ready — clearing there would be a lie:
+ * the endpoint is still live and the cron keeps delivering, so the UI must stay "On"
+ * and let the user retry rather than silently diverge from the server.
+ */
+export async function unsubscribePush(): Promise<boolean> {
   try {
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
+    const registration = await withTimeout(navigator.serviceWorker.ready, 5000, null);
+    if (!registration) return false;
+    const subscription = await withTimeout(registration.pushManager.getSubscription(), 8000, null);
     if (subscription) {
       // Tell the server to stop sending BEFORE dropping the local subscription,
       // otherwise the cron keeps trying to push to a dead endpoint.
-      try {
-        await fetch(`${API_BASE}/api/push-subscribe`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'unsubscribe', subscription: subscription.toJSON() }),
-        });
-      } catch { /* best-effort */ }
+      await fetchWithTimeout(`${API_BASE}/api/push-subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unsubscribe', subscription: subscription.toJSON() }),
+      });
       await subscription.unsubscribe();
     }
     localStorage.removeItem('dw_push');
+    return true;
   } catch {
-    // Silent fail
+    return false;
   }
 }
 
@@ -151,9 +201,9 @@ export async function updatePushTime(hour: number): Promise<boolean> {
       new Promise<null>((res) => setTimeout(() => res(null), 5000)),
     ]);
     if (!registration) return false;
-    const subscription = await registration.pushManager.getSubscription();
+    const subscription = await withTimeout(registration.pushManager.getSubscription(), 8000, null);
     if (!subscription) return false;
-    const res = await fetch(`${API_BASE}/api/push-subscribe`, {
+    const res = await fetchWithTimeout(`${API_BASE}/api/push-subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -163,7 +213,7 @@ export async function updatePushTime(hour: number): Promise<boolean> {
         timezone: getTimeZone(),
       }),
     });
-    return res.ok;
+    return !!(res && res.ok);
   } catch {
     return false;
   }

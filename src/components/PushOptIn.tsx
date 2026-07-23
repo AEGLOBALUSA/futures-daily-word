@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import { subscribePush, updatePushTime, pushSupported, openCalendarReminder } from '../utils/push';
+import { subscribePush, updatePushTime, pushSupported, openCalendarReminder, withTimeout } from '../utils/push';
 
 // 12-hour label for the reminder-time picker (5am–10pm).
 function formatHour(h: number): string {
@@ -21,9 +21,22 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
   // Native push needs a service worker; where there isn't one (e.g. the app
   // proxied at futures.church/daily-word) we add a recurring calendar reminder.
   const canPush = pushSupported();
+  // This is a full-screen onboarding gate — if the opt-in ever fails to dismiss, the
+  // whole app is stuck behind it. So dismissal is guaranteed: `finish()` runs exactly
+  // once from every path (success, skip, or a timed-out attempt), and "Maybe later"
+  // stays live even while an attempt is in flight.
+  const finished = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+
+  const finish = () => {
+    if (finished.current) return;
+    finished.current = true;
+    onDone();
+  };
 
   const enable = async () => {
-    if (busy) return;
+    if (busy || finished.current) return;
     setBusy(true);
     try {
       localStorage.setItem('dw_push_hour', String(hour));
@@ -33,12 +46,14 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
         const email = (() => {
           try { return JSON.parse(localStorage.getItem('dw_profile') || '{}').email || ''; } catch { return ''; }
         })();
-        const ok = await subscribePush(email);
-        if (ok) await updatePushTime(hour);
+        // subscribePush already bounds the permission prompt and the network call; the
+        // outer timeout is a hard backstop so the button can never spin indefinitely.
+        const ok = await withTimeout(subscribePush(email), 12000, false);
+        if (ok) await withTimeout(updatePushTime(hour), 4000, false);
       }
     } catch { /* permission denied / unsupported — fall through, it's optional */ }
-    setBusy(false);
-    onDone();
+    if (mounted.current) setBusy(false);
+    finish();
   };
 
   return (
@@ -123,7 +138,7 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
             : (canPush ? 'Turn on daily reminders' : 'Add to my calendar')}
         </button>
         <button
-          onClick={() => { if (!busy) onDone(); }}
+          onClick={finish}
           style={{
             width: '100%', padding: '12px', borderRadius: 14, border: 'none', background: 'transparent',
             color: 'var(--dw-text-muted)', fontSize: 15, fontWeight: 600,

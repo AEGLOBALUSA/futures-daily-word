@@ -114,9 +114,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
 
   const handlePushToggle = async () => {
+    if (pushState === 'loading') return; // guard against repeat taps stacking attempts
     if (pushSubscribed) {
-      await unsubscribePush();
-      setPushSubscribed(false);
+      setPushState('loading');
+      const ok = await unsubscribePush();
+      if (ok) setPushSubscribed(false); // only flip to "off" if we actually revoked it
+      setPushState('idle');
       return;
     }
     if (!userProfile?.email) { requireEmail(); return; }
@@ -687,6 +690,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               <>
                 <button
                   onClick={handlePushToggle}
+                  disabled={pushState === 'loading'}
                   style={{
                     width: '100%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -695,7 +699,8 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     border: pushSubscribed ? 'none' : '1px solid var(--dw-border)',
                     borderRadius: 10,
                     padding: '14px 16px', fontSize: 14, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
+                    cursor: pushState === 'loading' ? 'default' : 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
+                    opacity: pushState === 'loading' ? 0.7 : 1,
                     textAlign: 'center', transition: 'all 0.2s ease',
                   }}
                 >
