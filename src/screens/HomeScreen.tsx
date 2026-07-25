@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, 
 import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
-import { fetchPassage } from '../utils/api';
+import { fetchPassage, getServedTranslation } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import * as AP from '../utils/audioPlayer';
 import { QUOTES } from '../data/quotes';
@@ -131,7 +131,7 @@ interface ReadingSlot {
   currentChapter: number;
 }
 
-export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab: TabId) => void; onOpenAI?: () => void; onBack?: () => void }) {
+export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) => void; onBack?: () => void }) {
   const { userProfile, setup, saveProfile, saveSetup, requireEmail } = useUser();
 
   // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
@@ -1243,9 +1243,14 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           position: 'relative',
         }}>
 
-        {/* Header — compact, sits above the centered hero */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Header — compact, sits above the centered hero.
+            On a 375px screen this row can hold Back + the Bible AI pill + the title
+            column + the streak. Without minWidth:0 the title column was being crushed
+            to ~55px, so "Daily Word" wrapped to two lines and the glyphs overflowed
+            their box and overprinted the streak text. Let the title column shrink
+            properly and keep the title on one line instead. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 auto' }}>
             {/* Back button — only shown when there's navigation history. Unified with ScreenHeader pattern. */}
             {onBack && (
               <button
@@ -1308,7 +1313,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 textShadow: '0 1px 3px rgba(80,40,0,0.6)',
               }}>{t('bible_ai')}</span>
             </button>
-            <div>
+            <div style={{ minWidth: 0 }}>
               {/* Localized full-date eyebrow above the Daily Word title — sits in the top-left header column,
                   formatted via Intl.DateTimeFormat for the user's chosen language. */}
               <span style={{
@@ -1319,6 +1324,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                 fontFamily: 'var(--font-sans)',
                 letterSpacing: '0.04em',
                 marginBottom: 2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}>
                 {(() => {
                   try { return new Intl.DateTimeFormat(lang, { dateStyle: 'long' }).format(new Date()); }
@@ -1327,10 +1335,14 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
               </span>
               <h1 style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 24,
+                // Shrink to fit a narrow header instead of wrapping and overflowing.
+                fontSize: 'clamp(19px, 5.6vw, 24px)',
                 fontWeight: 400,
                 color: 'var(--dw-text-primary)',
                 letterSpacing: '-0.02em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}>
                 Daily Word
               </h1>
@@ -1357,7 +1369,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
             </div>
           </div>
           {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && (() => {
               const encouragement: [number, string][] = [
                 [1,   'Welcome back.'],
@@ -1405,6 +1417,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                       fontFamily: 'var(--font-sans)',
                       letterSpacing: '0.01em',
                       animation: 'fadeIn 0.5s ease',
+                      whiteSpace: 'nowrap',
                     }}>
                       {label}
                     </span>
@@ -1554,8 +1567,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                   <p style={{ fontSize: 27, fontWeight: 400, fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0, lineHeight: 1.08 }}>
                     {allLabels[0]}
                   </p>
+                  {/* Caption used to hardcode "ESV · Human Reader" no matter what the
+                      reader was actually set to (or fell back to). Show the real one;
+                      the human-recorded reading only exists for ESV. */}
                   <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.78, fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>
-                    {t('esv_human_reader')}
+                    {(() => {
+                      const heroRef = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '';
+                      const served = heroRef ? getServedTranslation(heroRef, translation) : translation;
+                      return served === 'ESV' ? t('esv_human_reader') : served;
+                    })()}
                   </p>
                 </div>
 
@@ -1881,7 +1901,15 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
                         color: '#A06A42',
                         fontFamily: 'var(--font-sans)', marginBottom: 20, marginTop: 4,
                       }}>
-                        {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {translation}</span>
+                        {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {getServedTranslation(readRef, translation)}</span>
+                        {getServedTranslation(readRef, translation) !== translation && (
+                          <span style={{
+                            fontWeight: 500, opacity: 0.7, textTransform: 'none',
+                            letterSpacing: 0, display: 'block', marginTop: 4, fontSize: 11,
+                          }}>
+                            {translation} is unavailable right now — showing the offline text instead.
+                          </span>
+                        )}
                       </p>
                       {readText ? (
                         <>
@@ -2105,7 +2133,7 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
           </div>
         </div>
       )}
-        {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={onOpenAI || (() => {})} persona={personaConfig.persona} />}
+        {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={() => setShowBibleAI(true)} persona={personaConfig.persona} />}
 
         {/* Comfort Card — comfort persona only */}
         {pf.comfortCard && <ComfortCard />}
@@ -3662,11 +3690,9 @@ export function HomeScreen({ onNavigate, onOpenAI, onBack }: { onNavigate?: (tab
         onClose={() => setShowSearch(false)}
         onSearch={(query) => {
           localStorage.setItem('dw_ai_prefill', query);
-          if (onOpenAI) {
-            onOpenAI();
-          } else {
-            setShowBibleAI(true);
-          }
+          // Open THIS screen's BibleAI. Routing to the app-level one (onOpenAI) is
+          // what made Home render two panels at once.
+          setShowBibleAI(true);
         }}
       />
       <StopAllAudio onStop={() => { heroQueueRef.current = []; heroQueueActiveRef.current = false; }} />

@@ -1,0 +1,4 @@
+{
+  "//": "The repo root package.json sets \"type\": \"module\" for the Vite app. Every function in this directory is CommonJS (require / exports.handler), so without this override Node parses them as ESM and each one dies at load with 'ReferenceError: module is not defined in ES module scope'. The .mjs functions here are unaffected — .mjs is always ESM regardless of this field.",
+  "type": "commonjs"
+}

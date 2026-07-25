@@ -4,21 +4,18 @@
  * offers a way back. Mirrors the church College footer lockup pattern
  * (components/layout/CollegeFooter.tsx in futures-church-web).
  *
- * The new church site is currently live at futures-church.netlify.app (its own
- * canonical URL). futures.church still redirects to the legacy site during the
- * cutover hold, and futures.global is a parked lander — so the return link
- * defaults to the working netlify.app URL.
- *
- * CUTOVER: when futures.church goes live, no code change is needed — set
- *   VITE_CHURCH_DAILY_WORD_URL=https://futures.church/daily-word
- * in the Daily Word Netlify env and redeploy. See CUTOVER-RUNBOOK.md.
+ * CUTOVER DONE: futures.church now serves the church site directly, and
+ * futures-church.netlify.app/daily-word 301s to it. The default therefore points
+ * at the canonical domain — showing a raw netlify.app hostname in the app chrome
+ * (and bouncing users through a redirect) is no longer correct.
+ * Still overridable via VITE_CHURCH_DAILY_WORD_URL. See CUTOVER-RUNBOOK.md.
  */
 
 import { API_BASE } from '../utils/api-base';
 
 const CHURCH_DAILY_WORD_URL =
   import.meta.env.VITE_CHURCH_DAILY_WORD_URL ||
-  'https://futures-church.netlify.app/daily-word';
+  'https://futures.church/daily-word';
 
 /** Persistent top strip shown above every screen. */
 export function SeamBar() {
