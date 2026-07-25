@@ -229,7 +229,7 @@ function AppContent() {
   }, []);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={navigateTab} onOpenAI={() => setShowBibleAI(true)} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
+    home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : undefined} />,
     messages: <MessagesScreen onBack={goBack} />,
     plans: <PlansScreen onBack={goBack} />,
@@ -265,14 +265,21 @@ function AppContent() {
       </ErrorBoundary>
       <TabBar activeTab={activeTab} onTabChange={navigateTab} />
       {!sundayGuest && !SERMON_DEEP_LINK && <EmailGate />}
-      <Suspense fallback={null}>
-        <BibleAI
-          isOpen={showBibleAI}
-          onClose={() => setShowBibleAI(false)}
-          onOpen={() => setShowBibleAI(true)}
-          selectedText={selection?.text}
-        />
-      </Suspense>
+      {/* Home and Notes mount their own BibleAI (they need to pass an initialContext
+          from a highlight / Greek-Hebrew tap). Rendering this global one on top of
+          those double-mounted the whole panel AND its floating button — two identical
+          FABs stacked at the same coordinates. Only mount it for the screens that
+          don't bring their own. */}
+      {activeTab !== 'home' && activeTab !== 'journal' && (
+        <Suspense fallback={null}>
+          <BibleAI
+            isOpen={showBibleAI}
+            onClose={() => setShowBibleAI(false)}
+            onOpen={() => setShowBibleAI(true)}
+            selectedText={selection?.text}
+          />
+        </Suspense>
+      )}
       <CookieConsent />
       <AudioAnnouncer />
 

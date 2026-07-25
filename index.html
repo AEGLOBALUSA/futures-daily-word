@@ -7,7 +7,10 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="canonical" href="https://futuresdailyword.com/" />
-    <meta name="theme-color" content="#0A0A0A" />
+    <!-- Light is the default theme (ThemeContext), so the pre-hydration value must be
+         the ivory canvas too — a near-black here gave a black browser chrome / first
+         paint that then flipped to cream. ThemeContext re-sets this on theme change. -->
+    <meta name="theme-color" content="#FAF6EF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="description" content="Futures Daily Word - Your daily Bible reading companion from Futures Church. Read, listen, and study scripture every day." />
@@ -62,22 +65,41 @@
       ]
     }
     </script>
-    <!-- Google Analytics (GA4) — respects cookie consent -->
+    <!-- Analytics consent gate.
+         GA4 and Pulse used to load unconditionally on every first visit, so a
+         visitor was tracked and given _ga cookies BEFORE the consent banner was
+         answered (declining only set ga-disable afterwards, too late). Nothing
+         loads now until consent is 'accepted'; CookieConsent calls
+         window.__dwLoadAnalytics() on Accept so it applies without a reload. -->
     <script>
-      // Disable GA if user declined cookies
-      if (localStorage.getItem('dw_cookie_consent') === 'declined') {
-        window['ga-disable-G-E0CGKS9P9Q'] = true;
-      }
+      (function () {
+        var GA_ID = 'G-E0CGKS9P9Q';
+        window.__dwLoadAnalytics = function () {
+          if (window.__dwAnalyticsLoaded) return;
+          window.__dwAnalyticsLoaded = true;
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () { window.dataLayer.push(arguments); };
+          window.gtag('js', new Date());
+          window.gtag('config', GA_ID, { anonymize_ip: true });
+          var ga = document.createElement('script');
+          ga.async = true;
+          ga.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+          document.head.appendChild(ga);
+          // Pulse Insights — owned analytics (futures.church/admin/pulse)
+          var px = document.createElement('script');
+          px.defer = true;
+          px.src = 'https://futures.church/px.js';
+          document.head.appendChild(px);
+        };
+        try {
+          if (localStorage.getItem('dw_cookie_consent') === 'accepted') {
+            window.__dwLoadAnalytics();
+          } else if (localStorage.getItem('dw_cookie_consent') === 'declined') {
+            window['ga-disable-' + GA_ID] = true;
+          }
+        } catch (e) { /* storage blocked — stay off */ }
+      })();
     </script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E0CGKS9P9Q"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-E0CGKS9P9Q', { anonymize_ip: true });
-    </script>
-    <!-- Pulse Insights — owned analytics (futures.church/admin/pulse), tagged futuresdailyword.com -->
-    <script defer src="https://futures.church/px.js"></script>
   </head>
   <body>
     <div id="root"></div>

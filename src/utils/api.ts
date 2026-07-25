@@ -24,6 +24,27 @@ const inFlight = new Map<string, Promise<string>>();
 
 export type TranslationCode = 'KJV' | 'NKJV' | 'NIV' | 'ESV' | 'NLT' | 'AMP' | 'NASB' | 'WEB' | 'RVR' | 'ARA' | 'NVI' | 'RV1960' | 'TB';
 
+// ── Served-translation ledger ───────────────────────────────────────────────
+// When a live translation source is unreachable we fall back to the bundled
+// offline KJV. That is the right behaviour — reading something beats reading
+// nothing — but the UI must not keep calling it by the requested name, or we
+// present KJV as ESV/NIV. Every resolved fetch records what was ACTUALLY
+// served here so the reader can label itself truthfully.
+const servedTranslation = new Map<string, TranslationCode>();
+
+function recordServed(passage: string, requested: TranslationCode, actual: TranslationCode) {
+  servedTranslation.set(`${passage}_${requested}`, actual);
+}
+
+/**
+ * What translation is the text for `passage` actually in, given the user asked
+ * for `requested`? Returns `requested` until a fetch proves otherwise, so it is
+ * safe to call during render before/while the passage loads.
+ */
+export function getServedTranslation(passage: string, requested: TranslationCode): TranslationCode {
+  return servedTranslation.get(`${passage}_${requested}`) || requested;
+}
+
 /**
  * Fetch passage text from the appropriate API endpoint.
  * Deduplicates concurrent requests for the same passage+translation.
@@ -79,6 +100,7 @@ async function _doFetch(passage: string, translation: TranslationCode, cacheKey:
     // and retry (e.g. a wrong-shaped upstream JSON would otherwise stick as blank).
     if (!text || !text.trim()) throw new Error(`Empty result: ${passage} (${translation})`);
     verseCacheSet(cacheKey, text);
+    recordServed(passage, translation, translation);
     return text;
   } catch (err) {
     console.warn(`Failed to fetch ${passage} in ${translation}, falling back`, err);
@@ -110,6 +132,16 @@ async function fetchBolls(passage: string, translation: string): Promise<string>
   return data.text || '';
 }
 
+/**
+ * The bundled KJV marks translator-supplied words with braces — "To Timothy,
+ * {my} dearly beloved son". Those braces are typesetting metadata (normally
+ * rendered as italics), not scripture, and they were leaking into the reader as
+ * literal characters. Keep the words, drop the markers.
+ */
+function stripSuppliedWordMarkers(text: string): string {
+  return text.replace(/[{}]/g, '').replace(/[ \t]{2,}/g, ' ');
+}
+
 async function fetchKJV(passage: string): Promise<string> {
   // Try local offline KJV first
   const match = passage.match(/^(.+?)\s+(\d+)$/);
@@ -123,15 +155,17 @@ async function fetchKJV(passage: string): Promise<string> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        return data.map((v: { text: string }) => v.text).join(' ');
+        return stripSuppliedWordMarkers(data.map((v: { text: string }) => v.text).join(' '));
       }
       // Bundled KJV chapter files are object-shaped: { book, chapter, verses: string[] }
       if (Array.isArray(data.verses)) {
-        return data.verses
-          .map((v: string | { text: string }) => (typeof v === 'string' ? v : v.text))
-          .join(' ');
+        return stripSuppliedWordMarkers(
+          data.verses
+            .map((v: string | { text: string }) => (typeof v === 'string' ? v : v.text))
+            .join(' ')
+        );
       }
-      return data.text || '';
+      return stripSuppliedWordMarkers(data.text || '');
     }
   } catch {
     // Fall through to API
@@ -153,19 +187,23 @@ async function fetchWEB(passage: string): Promise<string> {
 }
 
 async function fallbackFetch(passage: string, originalTranslation: TranslationCode): Promise<string> {
-  // Fallback chain: KJV offline → WEB built-in
+  // Fallback chain: KJV offline → WEB built-in.
+  // Each branch records what it actually served so the reader can say so.
   if (originalTranslation !== 'KJV') {
     try {
       const kjv = await fetchKJV(passage);
       if (kjv) {
         verseCacheSet(`${passage}_KJV`, kjv);
+        recordServed(passage, originalTranslation, 'KJV');
         return kjv;
       }
     } catch {
       // Fall through
     }
   }
-  return fetchWEB(passage);
+  const web = await fetchWEB(passage);
+  recordServed(passage, originalTranslation, 'WEB');
+  return web;
 }
 
 // ── Audio cache: keyed by passageRef_translation → blob URL ──

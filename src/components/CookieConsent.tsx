@@ -1,9 +1,12 @@
 import { useState } from 'react';
 
 /**
- * GDPR-compliant cookie consent banner.
- * Shows once until user accepts or declines.
- * When declined, disables Google Analytics by setting window property.
+ * Cookie consent banner. Shows once until the user accepts or declines.
+ *
+ * Analytics (GA4 + Pulse) are NOT loaded until this returns 'accepted' — see the
+ * consent gate in index.html. Previously the tags loaded on every first visit and
+ * this banner only set `ga-disable-*` after the fact, so a first-time visitor was
+ * measured (and given _ga cookies) before they had answered.
  */
 export function CookieConsent() {
   const [visible, setVisible] = useState(() => {
@@ -18,12 +21,15 @@ export function CookieConsent() {
 
   const handleAccept = () => {
     try { localStorage.setItem('dw_cookie_consent', 'accepted'); } catch {}
+    // Load the tags now, so consent takes effect without needing a reload.
+    (window as unknown as { __dwLoadAnalytics?: () => void }).__dwLoadAnalytics?.();
     setVisible(false);
   };
 
   const handleDecline = () => {
     try { localStorage.setItem('dw_cookie_consent', 'declined'); } catch {}
-    // Disable Google Analytics
+    // Nothing has loaded yet (the gate in index.html held it back); belt-and-braces
+    // in case a tag was injected some other way.
     (window as unknown as Record<string, unknown>)[`ga-disable-G-E0CGKS9P9Q`] = true;
     setVisible(false);
   };
@@ -38,11 +44,15 @@ export function CookieConsent() {
         left: 12,
         right: 12,
         zIndex: 9999,
-        background: 'var(--dw-card-bg, #1a1a1a)',
-        border: '1px solid var(--dw-border, rgba(255,255,255,0.1))',
+        // --dw-card-bg is not a real token, so this fell back to a hardcoded dark
+        // panel while the text below resolved to the LIGHT theme's ink (#241E17)
+        // — 1.06:1, i.e. invisible. Use the surface token that actually exists so
+        // the banner follows the theme and stays readable in both.
+        background: 'var(--dw-surface)',
+        border: '1px solid var(--dw-border)',
         borderRadius: 16,
         padding: '16px 18px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        boxShadow: '0 8px 32px rgba(20,12,6,0.18)',
         fontFamily: 'var(--font-sans)',
         maxWidth: 420,
         margin: '0 auto',
@@ -51,7 +61,7 @@ export function CookieConsent() {
       <p style={{
         fontSize: 13,
         lineHeight: 1.5,
-        color: 'var(--dw-text-primary, #fff)',
+        color: 'var(--dw-text-primary)',
         margin: '0 0 12px',
       }}>
         We use cookies for analytics to improve your experience.
@@ -60,7 +70,7 @@ export function CookieConsent() {
           href="https://futuresdailyword.com/privacy"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: 'var(--dw-accent, #E84858)', textDecoration: 'underline' }}
+          style={{ color: 'var(--dw-accent)', textDecoration: 'underline' }}
         >
           Privacy Policy
         </a>.
@@ -72,9 +82,9 @@ export function CookieConsent() {
             flex: 1,
             padding: '10px 0',
             borderRadius: 10,
-            border: '1px solid var(--dw-border, rgba(255,255,255,0.15))',
+            border: '1px solid var(--dw-border)',
             background: 'transparent',
-            color: 'var(--dw-text-muted, #999)',
+            color: 'var(--dw-text-primary)',
             fontSize: 13,
             fontWeight: 600,
             fontFamily: 'var(--font-sans)',
@@ -90,7 +100,7 @@ export function CookieConsent() {
             padding: '10px 0',
             borderRadius: 10,
             border: 'none',
-            background: 'var(--dw-accent, #E84858)',
+            background: 'var(--dw-accent)',
             color: '#fff',
             fontSize: 13,
             fontWeight: 600,
