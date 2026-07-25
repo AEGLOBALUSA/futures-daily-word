@@ -868,3 +868,10 @@ button:not(:disabled):active,
 }
 :root .dw-seam-foot .dw-seam-foot-sub { opacity: 0.5; }
 :root .dw-seam-foot .dw-seam-foot-copy { opacity: 0.34; }
+
+/* Rendered AI Markdown (MarkdownText). The last block should not add a trailing
+   gap inside a chat bubble or commentary card. */
+.dw-md > *:last-child { margin-bottom: 0; }
+.dw-md ul { list-style-type: disc; }
+.dw-md ol { list-style-type: decimal; }
+.dw-md li { display: list-item; }

@@ -6,6 +6,8 @@ import { schedulePush } from '../utils/cloudSync'
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext'
 import { t, getLang } from '../utils/i18n';
 import { API_BASE } from '../utils/api-base';
+import { MarkdownText } from './MarkdownText';
+import { stripMarkdown } from '../utils/markdown';
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -292,7 +294,9 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         type: 'saved',
         title: t('bible_ai_label', lang),
-        body: content,
+        // Saved notes are stored as plain text, so flatten the Markdown rather
+        // than persisting literal ** and # into the user's journal forever.
+        body: stripMarkdown(content),
         tags: ['bible-ai'],
       }
       const journal = JSON.parse(localStorage.getItem('dw_journal') || '[]')
@@ -798,7 +802,12 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                         fontFamily: 'var(--font-sans)',
                       }}
                     >
-                      {m.content}
+                      {/* Assistant replies come back as Markdown; rendering the raw
+                          string showed readers literal ** and # and collapsed every
+                          paragraph break. User messages are plain text by definition. */}
+                      {m.role === 'assistant'
+                        ? <MarkdownText text={m.content} />
+                        : m.content}
                     </div>
                   </div>
                   {m.role === 'assistant' && (

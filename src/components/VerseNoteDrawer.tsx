@@ -4,6 +4,7 @@ import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { COMMENTARY } from '../data/commentary';
 import { trackBehavior } from '../utils/behavior';
 import { fetchAICommentary } from '../utils/api';
+import { MarkdownText } from './MarkdownText';
 import { pushNow } from '../utils/cloudSync';
 import { t, getLang } from '../utils/i18n';
 
@@ -405,15 +406,17 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
                       borderRadius: '0 12px 12px 0',
                       padding: '14px 16px',
                     }}>
-                      <p style={{
-                        fontSize: 14, lineHeight: 1.75,
-                        color: 'var(--dw-text-secondary)',
-                        fontFamily: 'var(--font-serif)',
-                        margin: 0, whiteSpace: 'pre-line',
-                        WebkitUserSelect: 'text', userSelect: 'text',
-                      }}>
-                        {aiCommentary}
-                      </p>
+                      {/* AI commentary is Markdown too — pre-line kept the line
+                          breaks but still showed literal ** and # to readers. */}
+                      <MarkdownText
+                        text={aiCommentary}
+                        style={{
+                          fontSize: 14, lineHeight: 1.75,
+                          color: 'var(--dw-text-secondary)',
+                          fontFamily: 'var(--font-serif)',
+                          WebkitUserSelect: 'text', userSelect: 'text',
+                        }}
+                      />
                     </div>
                     <p style={{
                       fontSize: 11, color: 'var(--dw-text-faint)',
