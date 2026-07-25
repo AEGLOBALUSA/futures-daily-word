@@ -1249,7 +1249,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             to ~55px, so "Daily Word" wrapped to two lines and the glyphs overflowed
             their box and overprinted the streak text. Let the title column shrink
             properly and keep the title on one line instead. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 auto' }}>
             {/* Back button — only shown when there's navigation history. Unified with ScreenHeader pattern. */}
             {onBack && (
@@ -1313,7 +1313,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 textShadow: '0 1px 3px rgba(80,40,0,0.6)',
               }}>{t('bible_ai')}</span>
             </button>
-            <div style={{ minWidth: 0 }}>
+            {/* minWidth keeps "Daily Word" legible at 320px: rather than let the row
+                crush this column to ~43px (which truncated the title to "Da…"), the
+                header wraps the streak block onto a second line instead. */}
+            <div style={{ minWidth: 96 }}>
               {/* Localized full-date eyebrow above the Daily Word title — sits in the top-left header column,
                   formatted via Intl.DateTimeFormat for the user's chosen language. */}
               <span style={{
@@ -1336,7 +1339,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               <h1 style={{
                 fontFamily: 'var(--font-serif)',
                 // Shrink to fit a narrow header instead of wrapping and overflowing.
-                fontSize: 'clamp(19px, 5.6vw, 24px)',
+                // Sized to leave slack at 320px and while the serif webfont is still
+                // loading — at 5.6vw it fit with 0px to spare and ellipsised on FOUT.
+                fontSize: 'clamp(17px, 5vw, 24px)',
                 fontWeight: 400,
                 color: 'var(--dw-text-primary)',
                 letterSpacing: '-0.02em',
