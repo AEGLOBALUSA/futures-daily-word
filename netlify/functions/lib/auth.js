@@ -61,11 +61,16 @@ async function authenticateRequest(event, db) {
 
   const hash = hashToken(raw);
 
-  // Query: find profile where session_token_hashes contains this hash
+  // Query: find profile where session_token_hashes contains this hash.
+  // session_token_hashes is jsonb, so the containment value must be passed as a
+  // JSON string. Passing a JS array makes supabase-js emit PostgREST's ARRAY
+  // literal form (cs.{hash}), which Postgres then fails to cast to jsonb —
+  // "invalid input syntax for type json". The query errors, this function
+  // returns null, and the caller silently treats the request as anonymous.
   const { data, error } = await db
     .from("profiles")
     .select("email")
-    .contains("session_token_hashes", [hash])
+    .contains("session_token_hashes", JSON.stringify([hash]))
     .single();
 
   if (error || !data) return null;
