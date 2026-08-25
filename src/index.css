@@ -875,3 +875,38 @@ button:not(:disabled):active,
 .dw-md ul { list-style-type: disc; }
 .dw-md ol { list-style-type: decimal; }
 .dw-md li { display: list-item; }
+
+/* ---------- Reading surface (hero expanded chapter) ----------
+   The chapter expands to its full height — the page is the only scrollbar.
+   Padding lives here (not inline) so desktop gets generous margins. */
+.dw-reading-surface { padding: 28px 24px 44px; }
+@media (min-width: 700px) {
+  .dw-reading-surface { padding: 40px 64px 56px; }
+}
+
+/* Gentle cross-fade when the chapter (or translation) changes — remounted via key */
+.dw-reading-fade { animation: dwReadingFadeIn 0.4s ease; }
+@keyframes dwReadingFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Sticky reading action bar entrance */
+.dw-reading-bar { animation: dwBarIn 0.25s ease; }
+@keyframes dwBarIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dw-reading-fade, .dw-reading-bar { animation: none; }
+}
+
+/* While reading a chapter, hide the floating AI launcher(s) — the reading action
+   bar provides "Ask AI". Body class is toggled by HomeScreen; the class targets
+   every BibleAI launcher instance (App-level + screen-level). */
+body.dw-reading-active .dw-ai-launcher { display: none !important; }
+
+/* Global spin keyframes for the inline "Saving…" / loading spinners (previously
+   only injected per-screen, so a spinner could sit static before any such screen mounted). */
+@keyframes spin { to { transform: rotate(360deg); } }

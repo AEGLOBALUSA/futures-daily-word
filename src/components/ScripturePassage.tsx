@@ -132,7 +132,7 @@ export function ScripturePassage({
             }}
             style={{
               fontSize,
-              lineHeight: 1.85,
+              lineHeight: 1.9,
               color: 'var(--dw-text-secondary)',
               whiteSpace: 'pre-wrap',
               // A true reading serif (the app's scripture face) for calm, immersive
@@ -140,7 +140,7 @@ export function ScripturePassage({
               fontFamily: 'var(--font-serif-text)',
               fontWeight: 400,
               letterSpacing: '0.003em',
-              margin: '5px 0',
+              margin: '10px 0',
               padding: isSelected ? '2px 5px' : '2px 0',
               background: isSelected
                 ? 'rgba(154,123,46,0.35)'

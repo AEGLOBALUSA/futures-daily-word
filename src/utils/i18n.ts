@@ -322,6 +322,35 @@ const UI: Translations = {
   save_to_notes_btn: { en: 'Save to Notes', es: 'Guardar en Notas', pt: 'Salvar nas Notas', id: 'Simpan ke Catatan' },
   saved_label: { en: 'Saved!', es: '\u00a1Guardado!', pt: 'Salvo!', id: 'Tersimpan!' },
 
+  // \u2500\u2500 NOTE SAVING / READING ACTION BAR \u2500\u2500
+  note_save_btn: { en: 'Save note', es: 'Guardar nota', pt: 'Salvar nota', id: 'Simpan catatan' },
+  note_saving: { en: 'Saving\u2026', es: 'Guardando\u2026', pt: 'Salvando\u2026', id: 'Menyimpan\u2026' },
+  note_saved: { en: 'Saved', es: 'Guardado', pt: 'Salvo', id: 'Tersimpan' },
+  note_autosaves: { en: 'Saves automatically as you write', es: 'Se guarda autom\u00e1ticamente mientras escribes', pt: 'Salva automaticamente enquanto voc\u00ea escreve', id: 'Tersimpan otomatis saat kamu menulis' },
+  listen_label: { en: 'Listen', es: 'Escuchar', pt: 'Ouvir', id: 'Dengarkan' },
+  pause_label: { en: 'Pause', es: 'Pausar', pt: 'Pausar', id: 'Jeda' },
+  compare_label: { en: 'Compare', es: 'Comparar', pt: 'Comparar', id: 'Bandingkan' },
+  bookmark_label: { en: 'Bookmark', es: 'Marcador', pt: 'Marcador', id: 'Penanda' },
+  bookmarked_label: { en: 'Saved', es: 'Guardado', pt: 'Salvo', id: 'Tersimpan' },
+  verse_notes: { en: 'Verse Notes', es: 'Notas de versículos', pt: 'Notas de versículos', id: 'Catatan Ayat' },
+
+  // ── SERMON WORKSPACE (Notes → Sermon tab) ──
+  todays_message: { en: "Today's Message", es: 'Mensaje de hoy', pt: 'Mensagem de hoje', id: 'Pesan Hari Ini' },
+  view_sermon: { en: 'View Sermon', es: 'Ver sermón', pt: 'Ver sermão', id: 'Lihat Khotbah' },
+  no_sermon_this_week: { en: 'No message this week — check back before service.', es: 'No hay mensaje esta semana; vuelve antes del servicio.', pt: 'Sem mensagem esta semana — volte antes do culto.', id: 'Belum ada pesan minggu ini — cek lagi sebelum ibadah.' },
+  ws_my_notes: { en: 'My Notes', es: 'Mis notas', pt: 'Minhas notas', id: 'Catatan Saya' },
+  ws_my_notes_ph: { en: 'Write freely as you listen…', es: 'Escribe libremente mientras escuchas…', pt: 'Escreva livremente enquanto ouve…', id: 'Tulis dengan bebas saat kamu mendengarkan…' },
+  ws_key_takeaways: { en: 'Key Takeaways', es: 'Ideas clave', pt: 'Pontos principais', id: 'Poin Utama' },
+  ws_key_takeaways_ph: { en: 'The points you want to remember…', es: 'Los puntos que quieres recordar…', pt: 'Os pontos que você quer lembrar…', id: 'Poin yang ingin kamu ingat…' },
+  ws_what_god: { en: 'What God Is Saying to Me', es: 'Lo que Dios me está diciendo', pt: 'O que Deus está me dizendo', id: 'Apa yang Tuhan Katakan Padaku' },
+  ws_what_god_ph: { en: 'What is stirring in your heart?', es: '¿Qué se está moviendo en tu corazón?', pt: 'O que está se movendo no seu coração?', id: 'Apa yang bergerak di hatimu?' },
+  ws_prayer: { en: 'Prayer', es: 'Oración', pt: 'Oração', id: 'Doa' },
+  ws_prayer_ph: { en: 'Turn it into a prayer…', es: 'Conviértelo en una oración…', pt: 'Transforme em oração…', id: 'Jadikan sebuah doa…' },
+  ws_action_steps: { en: 'Action Steps', es: 'Pasos a seguir', pt: 'Próximos passos', id: 'Langkah Tindakan' },
+  ws_action_steps_ph: { en: 'One thing I will do this week…', es: 'Una cosa que haré esta semana…', pt: 'Uma coisa que farei esta semana…', id: 'Satu hal yang akan kulakukan minggu ini…' },
+  ws_follow_up: { en: 'Follow Up', es: 'Seguimiento', pt: 'Acompanhamento', id: 'Tindak Lanjut' },
+  ws_follow_up_ph: { en: 'To revisit later this week…', es: 'Para retomar más tarde esta semana…', pt: 'Para revisitar mais tarde nesta semana…', id: 'Untuk ditinjau lagi minggu ini…' },
+
   // ── EMAILGATE ──
   first_name_label: { en: 'First name', es: 'Nombre', pt: 'Nome', id: 'Nama depan' },
   last_name_label: { en: 'Last name', es: 'Apellido', pt: 'Sobrenome', id: 'Nama belakang' },
@@ -533,7 +562,6 @@ const UI: Translations = {
   mark_as_read: { en: 'Mark as read', es: 'Marcar como le\u00eddo', pt: 'Marcar como lido', id: 'Tandai sudah dibaca' },
   read_today: { en: '\u2713 Read today', es: '\u2713 Le\u00eddo hoy', pt: '\u2713 Lido hoje', id: '\u2713 Dibaca hari ini' },
   loading_scripture: { en: 'Loading scripture...', es: 'Cargando escritura...', pt: 'Carregando escritura...', id: 'Memuat ayat...' },
-  compare_label: { en: 'Compare', es: 'Comparar', pt: 'Comparar', id: 'Bandingkan' },
   your_faith_journey: { en: 'YOUR FAITH JOURNEY', es: 'TU CAMINO DE FE', pt: 'SUA JORNADA DE F\u00c9', id: 'PERJALANAN IMANMU' },
   day_x_of_y_title: { en: 'Day {x} of {y}', es: 'D\u00eda {x} de {y}', pt: 'Dia {x} de {y}', id: 'Hari {x} dari {y}' },
   pastoral_care: { en: 'PASTORAL CARE', es: 'CUIDADO PASTORAL', pt: 'CUIDADO PASTORAL', id: 'PELAYANAN PASTORAL' },

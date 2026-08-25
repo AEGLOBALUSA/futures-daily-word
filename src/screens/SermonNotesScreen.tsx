@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
+import { syncMisc } from '../utils/cloudSync';
 
 interface SermonNotesScreenProps {
   onBack: () => void;
   embedded?: boolean;
+  /** Reading mode: render the outline as clean reading content — no fill-in blanks,
+   *  no "My Response" prompts/commitments. Used by the Notes → View Sermon button so
+   *  the sermon stays a *reading* experience, separate from the journaling workspace. */
+  readOnly?: boolean;
 }
 
 /* ── JSON schema types ── */
@@ -39,13 +44,17 @@ function getSermonResponses(sermonId: string): Record<string, string> {
   try { return JSON.parse(localStorage.getItem(`dw_sermon_${sermonId}`) || '{}'); } catch { return {}; }
 }
 function saveSermonResponses(sermonId: string, r: Record<string, string>) {
-  localStorage.setItem(`dw_sermon_${sermonId}`, JSON.stringify(r));
+  const json = JSON.stringify(r);
+  localStorage.setItem(`dw_sermon_${sermonId}`, json);
+  // Stamp + push to the cloud (misc bag, newest-wins) so fill-in responses back up
+  // immediately — previously they waited for an unrelated misc write to trigger a push.
+  syncMisc(`dw_sermon_${sermonId}`, json);
 }
 
 const SERMON_BLUE = 'var(--dw-info)';
 const SERMON_BLUE_BG = 'rgba(37, 99, 235, 0.08)';
 
-export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) {
+export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScreenProps) {
   const lang = getLang();
   const [sermon, setSermon] = useState<SermonJson | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,9 +116,10 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
 
   const content = (
     <>
-      {/* Hero */}
+      {/* Hero — fixed warm-dark gradient (NOT the charcoal vars, which resolve to
+          near-white in light theme and made this hardcoded-white title invisible). */}
       <div className="dw-dark-surface" style={{
-        background: 'linear-gradient(135deg, var(--dw-charcoal-deep) 0%, var(--dw-charcoal) 50%, var(--dw-charcoal-light) 100%)',
+        background: 'linear-gradient(135deg, #26201A 0%, #33291F 50%, #26201A 100%)',
         padding: '32px 24px',
         textAlign: 'center',
         borderBottom: `3px solid ${SERMON_BLUE}`,
@@ -178,6 +188,23 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
                 const blankId = `blank-${section.num}-${blankCounter++}`;
                 const isFirst = sectionBlankIndex === 0;
                 sectionBlankIndex++;
+                // Reading mode: no fill-in field — just the surrounding sentence text.
+                if (readOnly) {
+                  return (
+                    <div key={i} style={{ margin: '0 0 12px' }}>
+                      {item.before && (
+                        <p style={{ fontSize: 15, lineHeight: 1.75, margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+                          {item.before}
+                        </p>
+                      )}
+                      {item.after && (
+                        <p style={{ fontSize: 15, lineHeight: 1.75, margin: '4px 0 0', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+                          {item.after}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
                 return (
                   <div key={i} style={{ margin: '0 0 12px' }}>
                     {item.before && (
@@ -218,7 +245,8 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
         );
       })}
 
-      {/* My Response */}
+      {/* My Response — hidden in reading mode (journaling lives in the workspace) */}
+      {!readOnly && (
       <div style={{
         margin: '32px 0', padding: 24,
         background: SERMON_BLUE_BG,
@@ -263,6 +291,7 @@ export function SermonNotesScreen({ onBack, embedded }: SermonNotesScreenProps) 
           </div>
         )}
       </div>
+      )}
 
       {/* Footer */}
       <div style={{ textAlign: 'center', padding: '20px 0 40px', color: 'var(--dw-text-faint)', fontSize: 14, fontWeight: 700, letterSpacing: '3px', fontFamily: 'var(--font-sans)' }}>

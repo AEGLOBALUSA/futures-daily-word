@@ -376,6 +376,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
     <>
       {/* Floating trigger button — burnished gold rectangle */}
       <button
+        className="dw-ai-launcher"
         onClick={onOpen ?? (() => {})}
         aria-label={t('bible_ai_label', getLang())}
         style={{
