@@ -50,6 +50,8 @@ import { API_BASE } from '../utils/api-base';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { PastoralReflectionSection } from '../components/PastoralReflectionSection';
 import { InlineReflection } from '../components/InlineReflection';
+import { ReadingActionBar } from '../components/ReadingActionBar';
+import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
 import { hapticTap } from '../utils/haptics';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
@@ -298,10 +300,45 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioCurrentPassage, setAudioCurrentPassage] = useState<string | null>(null);
   const [showNoteDrawer, setShowNoteDrawer] = useState(false);
+  // Sticky reading action bar: shown while the expanded chapter is on screen.
+  // Callback ref (not useRef+effect) because the reading surface remounts per
+  // chapter (key={readKey}) — the observer must follow the fresh node.
+  const [readingBarVisible, setReadingBarVisible] = useState(false);
+  const barNoteSelectionRef = useRef(false); // Note-from-bar selected the chapter; clear it when the drawer closes
+  const readingObserverRef = useRef<IntersectionObserver | null>(null);
+  const readingSurfaceRef = useCallback((node: HTMLDivElement | null) => {
+    if (readingObserverRef.current) {
+      readingObserverRef.current.disconnect();
+      readingObserverRef.current = null;
+    }
+    if (!node) { setReadingBarVisible(false); return; }
+    // Reading mode just opened — show the bar immediately; the observer only
+    // refines this (hides it once the chapter is scrolled well out of view).
+    // Some webviews suppress IO callbacks entirely, so never *depend* on one.
+    setReadingBarVisible(true);
+    const obs = new IntersectionObserver(
+      ([entry]) => setReadingBarVisible(entry.isIntersecting),
+      { rootMargin: '200px 0px 200px 0px' }
+    );
+    obs.observe(node);
+    readingObserverRef.current = obs;
+  }, []);
+
+  // While reading, hide BOTH floating AI launchers (this screen's + the App-level one)
+  // via a body class — the reading bar already offers "Ask AI". A body class reaches
+  // both instances without prop-drilling; cleanup also covers a tab-switch mid-read.
+  useEffect(() => {
+    document.body.classList.toggle('dw-reading-active', readingBarVisible);
+    return () => { document.body.classList.remove('dw-reading-active'); };
+  }, [readingBarVisible]);
+
+  // If the user leaves Home (e.g. taps a tab) while a bar-initiated chapter selection
+  // is still set, clear it so returning doesn't show a gold-washed passage.
+  useEffect(() => () => { if (barNoteSelectionRef.current) setSelection(null); }, []);
   const [showBibleAI, setShowBibleAI] = useState(false);
   const [bibleAIContext, setBibleAIContext] = useState<string>('');
   const [showSearch, setShowSearch] = useState(false);
-  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode, setActivePopupWord } = useScriptureSelection();
+  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode, setActivePopupWord, highlights, toggleHighlight } = useScriptureSelection();
   const audioSrcCache = useRef<Map<string, string>>(new Map());
   const [audioError, setAudioError] = useState(false);
 
@@ -2144,18 +2181,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   const readKey = `${readRef}_${translation}`;
                   const readText = passageTexts[readKey];
                   if (!isReadExpanded) return null;
+                  // No maxHeight / internal scrollbar: the chapter expands to its full
+                  // height and the page scrolls as one surface (Kindle-style). The
+                  // key remounts the panel per chapter/translation for a gentle fade.
                   return (
-                    <div style={{
+                    <div key={readKey} ref={readingSurfaceRef} className="dw-reading-surface dw-reading-fade" style={{
                       position: 'relative',
-                      overflowY: 'auto',
-                      padding: '28px 28px 40px',
-                      WebkitOverflowScrolling: 'touch',
                       background: '#FFFFFF',
                       textShadow: 'none',
                       borderTop: '1px solid rgba(150,112,72,0.15)',
                       borderBottomLeftRadius: 24,
                       borderBottomRightRadius: 24,
-                      maxHeight: '60vh',
                     }}>
                       {/* Subtle top edge: thin warm accent line connecting to hero */}
                       <div style={{
@@ -2202,7 +2238,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                             the chapter auto-advances) never shows a stale 'Saved' state for a prior chapter. */}
                         <InlineReflection
                           key={readRef}
-                          tone="default"
+                          tone="paper"
                           label={tI18n('reflect_label', lang)}
                           prompt={tI18n('reflect_prompt_default', lang)}
                           verseRef={readRef}
@@ -4009,9 +4045,58 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </div>
         </div>
       )}
+      {/* Sticky reading action bar — pinned above the tab bar while the expanded
+          chapter is on screen, so the core actions never require scrolling away. */}
+      {readingBarVisible && (() => {
+        const barRef = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '';
+        const rawText = passageTexts[`${barRef}_${translation}`] || '';
+        // Don't show the bar until the passage text has loaded (else Bookmark/Note would
+        // capture empty text), and yield to the highlight toolbar when a verse is selected
+        // (they share the same slot) so the two toolbars never stack.
+        if (!barRef || !rawText || selection) return null;
+        const cleanText = () => {
+          try { return parseVerses(rawText).map(v => v.text).join(' '); } catch { return rawText; }
+        };
+        return (
+          <ReadingActionBar
+            playing={audioPlaying && !audioPaused && audioCurrentPassage === HERO_KEY}
+            canCompare={pf.greekHebrew === 'full'}
+            compareActive={compareMode}
+            bookmarked={!!highlights[barRef]}
+            onNote={() => {
+              barNoteSelectionRef.current = true;
+              setSelection({ text: cleanText(), verseRefs: [barRef], source: 'select-all' });
+              setShowNoteDrawer(true);
+            }}
+            onListen={() => handleHeroListen()}
+            onCompare={() => setCompareMode(m => !m)}
+            onAskAI={() => {
+              setBibleAIContext(`The reader is currently reading ${barRef} (${translation}). Ground your answer in this passage.`);
+              setShowBibleAI(true);
+            }}
+            onBookmark={() => {
+              // toggleHighlight mirrors the bookmark into Notes; it also sets a text
+              // selection (pops the highlight toolbar) — clear that, a bookmark tap
+              // shouldn't interrupt reading with a toolbar.
+              toggleHighlight(barRef, cleanText().slice(0, 200));
+              setSelection(null);
+            }}
+          />
+        );
+      })()}
       <VerseNoteDrawer
         open={showNoteDrawer}
-        onClose={() => setShowNoteDrawer(false)}
+        onClose={() => {
+          setShowNoteDrawer(false);
+          // A bar-initiated note selected the whole chapter behind the drawer; on
+          // close, drop that selection so the reader isn't left with a gold-washed
+          // chapter + lingering highlight toolbar. Toolbar-initiated notes keep
+          // their selection (existing flow).
+          if (barNoteSelectionRef.current) {
+            barNoteSelectionRef.current = false;
+            setSelection(null);
+          }
+        }}
         planContext={todaysPlanPassages.length > 0 ? `${todaysPlanPassages[0].planTitle} — Day ${todaysPlanPassages[0].dayNum}` : undefined}
       />
       {/* Global highlight toolbar — appears for ANY selected text (persona-gated) */}

@@ -7,7 +7,7 @@ import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause, FileText } from 'lucide-react';
 import { EmptyState } from '../components/EmptyState';
-import { SermonNotesScreen } from './SermonNotesScreen';
+import { SermonWorkspace } from '../components/SermonWorkspace';
 import { AudioWave } from '../components/AudioWave';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
@@ -34,6 +34,8 @@ interface JournalEntry {
   /** Set when this entry was created from a scripture note */
   verseRef?: string;
   highlightedText?: string;
+  /** Bible translation the verse was read in (e.g. "ESV") — shown on Verse Notes cards */
+  translation?: string;
   planContext?: string; // e.g. "Grace and Favor Revolution — Day 7"
   /** Fix 3: which commentary source and text the user was reading when they saved the note */
   commentarySource?: string;
@@ -79,18 +81,6 @@ function saveEntries(entries: JournalEntry[]): boolean {
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
-
-/** Notes captured in the Campus tab's Sermons panel (separate dw_sermon_notes
- *  store). Rendered read-only here so they stop being invisible to the person
- *  looking at the Sermon tab — no migration, no key rename (that store rides
- *  the misc bag and stays owned by the Campus panel). */
-interface CampusSermonNote { id: string; title: string; date: string; content: string; sermon?: string }
-function getCampusSermonNotes(): CampusSermonNote[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem('dw_sermon_notes') || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
 }
 
 /* ── Auto-expanding textarea ── */
@@ -1245,6 +1235,15 @@ function NoteCard({ entry, onOpen, compact }: { entry: JournalEntry; onOpen: (e:
           <BookOpen size={13} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
         )}
         <p className="text-card-title" style={{ margin: 0 }}>{entry.title}</p>
+        {entry.translation && (
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+            color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+            background: 'var(--dw-surface)', padding: '2px 7px', borderRadius: 999, flexShrink: 0,
+          }}>
+            {entry.translation}
+          </span>
+        )}
       </div>
       {!compact && (entry as any).planContext && (
         <p style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.02em' }}>
@@ -2054,68 +2053,11 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
 
-        {/* Sermon tab — the user's saved sermon notes (type:'sermon', e.g. from the
-            Messages sermon view) PLUS this week's structured fill-in. Previously the
-            tab only showed the fill-in, so free-form sermon notes were stranded under
-            "All Notes" and the tab named "Sermon" never showed them. */}
-        {activeTab === 'sermon' && (
-          <>
-            {(() => {
-              const sermonEntries = entries.filter(e => e.type === 'sermon');
-              const campusNotes = getCampusSermonNotes();
-              if (sermonEntries.length === 0 && campusNotes.length === 0) return null;
-              return (
-                <div style={{ marginBottom: 28 }}>
-                  <h2 className="text-section-header" style={{ margin: '0 0 12px', color: 'var(--dw-text-muted)' }}>
-                    {t('j_my_sermon_notes', lang)}
-                  </h2>
-                  {sermonEntries.length > 0 && (
-                    <GroupedNotesList entries={sermonEntries} onOpen={openEntry} lang={lang} />
-                  )}
-                  {/* Read-only: these live in dw_sermon_notes and are edited in
-                      the Campus tab, not the journal editor. */}
-                  {campusNotes.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: sermonEntries.length > 0 ? 12 : 0 }}>
-                      {campusNotes.map(note => (
-                        <Card key={note.id}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <p style={{
-                              color: 'var(--dw-text-muted)', fontSize: 11, fontWeight: 500,
-                              letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0,
-                              fontFamily: 'var(--font-sans)',
-                            }}>
-                              {note.date}
-                            </p>
-                            <span style={{ fontSize: 10, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)' }}>
-                              {t('j_from_campus_tab', lang)}
-                            </span>
-                          </div>
-                          <p className="text-card-title" style={{ margin: '0 0 4px' }}>{note.title}</p>
-                          {note.sermon && (
-                            <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>
-                              {note.sermon}
-                            </p>
-                          )}
-                          {note.content && (
-                            <p style={{
-                              color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.5,
-                              fontFamily: 'var(--font-sans)',
-                              overflow: 'hidden', textOverflow: 'ellipsis',
-                              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
-                            }}>
-                              {note.content}
-                            </p>
-                          )}
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-            <SermonNotesScreen onBack={() => setActiveTab('today')} embedded />
-          </>
-        )}
+        {/* Sermon tab — a clean journaling workspace. The sermon OUTLINE is reading
+            content and opens on demand via "View Sermon" inside the workspace; it is
+            no longer embedded inline (one screen, one purpose). Free-form type:'sermon'
+            notes still live under "All Notes". */}
+        {activeTab === 'sermon' && <SermonWorkspace />}
 
         {/* Entries */}
         {activeTab !== 'today' && activeTab !== 'sermon' && filteredEntries.length === 0 ? (
@@ -2125,6 +2067,45 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
             actionLabel={t('j_create_first', lang)}
             onAction={openNewEntry}
           />
+        ) : activeTab === 'saved' ? (
+          // All Notes: verse-popup notes get their own "Verse Notes" section so they're
+          // easy to find; everything else renders below via the plan-grouped list.
+          (() => {
+            const verseNotes = filteredEntries.filter(e => !!e.highlightedText);
+            const otherNotes = filteredEntries.filter(e => !e.highlightedText);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {verseNotes.length > 0 && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <Bookmark size={14} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                      <p style={{
+                        fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                        color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', margin: 0,
+                      }}>
+                        {t('verse_notes', lang)}
+                      </p>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)',
+                        fontFamily: 'var(--font-sans)', background: 'var(--dw-surface)',
+                        padding: '2px 8px', borderRadius: 999,
+                      }}>
+                        {verseNotes.length}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {verseNotes.map(entry => (
+                        <NoteCard key={entry.id} entry={entry} onOpen={openEntry} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {otherNotes.length > 0 && (
+                  <GroupedNotesList entries={otherNotes} onOpen={openEntry} lang={lang} />
+                )}
+              </div>
+            );
+          })()
         ) : activeTab !== 'today' && activeTab !== 'sermon' && (
           <GroupedNotesList entries={filteredEntries} onOpen={openEntry} lang={lang} />
         )}
