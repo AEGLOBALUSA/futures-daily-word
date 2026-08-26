@@ -796,10 +796,13 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>LIBRARY</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Pass-through for one release (Ashley, 26 Aug 2026): the Library
+                moved to the Read tab's Reference section; this row still opens it
+                so nobody loses the path, and says where it went. */}
             <button onClick={() => setShowLibrary(true)} style={rowStyle}>
               <BookOpen size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>Essays &amp; Bible Resources</span>
-              <span style={valStyle}>→</span>
+              <span style={{ flex: 1 }}>{t('reference_title', lang)}</span>
+              <span style={valStyle}>{t('now_in_read', lang)} →</span>
             </button>
           </Card>
         </div>

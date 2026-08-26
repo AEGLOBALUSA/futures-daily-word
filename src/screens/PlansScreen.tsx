@@ -8,6 +8,8 @@ import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar, Search } from 'lucide-react';
 import type { TabId } from '../components/TabBar';
+import { LibraryScreen } from './LibraryScreen';
+import { useSubView } from '../utils/useSubView';
 import { EmptyState } from '../components/EmptyState';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
@@ -116,8 +118,6 @@ function streakDisplay(): number {
   return 0;
 }
 
-interface EssaySection { title: string; file: string; }
-interface EssayTOC { title: string; author: string; sections: EssaySection[]; }
 
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
@@ -215,12 +215,12 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
   const [bookAudioActive, setBookAudioActive] = useState(false);
 
   // Essay reader state
-  const [activeEssay, setActiveEssay] = useState<string | null>(null);
-  const [essayTOC, setEssayTOC] = useState<EssayTOC | null>(null);
-  const [essaySection, setEssaySection] = useState<number | null>(null);
-  const [sectionContent, setSectionContent] = useState<string>('');
-  const [essayLoading, setEssayLoading] = useState(false);
-  const [essayAudioActive, setEssayAudioActive] = useState(false);
+  // Reference library (essays + Bible characters/places/timeline) — the ONE
+  // reader, reused from LibraryScreen. PlansScreen's duplicate essay reader was
+  // retired (Ashley, 26 Aug 2026): two readers over the same files had already
+  // drifted. Back-gesture closes it like any sub-view.
+  const [showLibrary, setShowLibrary] = useState(false);
+  useSubView(showLibrary, () => setShowLibrary(false));
 
   // Persona-based plan suggestions
   const persona = (() => {
@@ -241,24 +241,12 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
     } catch { setBookAudioActive(false); }
   };
 
-  // Track book/essay audio state from global player (include loading for UI feedback)
+  // Track book audio state from global player (include loading for UI feedback)
   useEffect(() => {
     return AP.onStateChange((st, key) => {
       if (key === 'book-chapter') setBookAudioActive(st === 'playing' || st === 'loading');
-      if (key === 'essay-section') setEssayAudioActive(st === 'playing' || st === 'loading');
     });
   }, []);
-
-  const readSection = async (text: string) => {
-    AP.unlock();
-    if (essayAudioActive) { AP.stop(); setEssayAudioActive(false); return; }
-    setEssayAudioActive(true);
-    try {
-      const src = await AP.fetchAudioSrc(text.slice(0, 20000), 'ESV');
-      if (src) { await AP.playUrl('essay-section', src); }
-      else { setEssayAudioActive(false); }
-    } catch { setEssayAudioActive(false); }
-  };
 
   const activePlanIds = Object.keys(activePlans);
 
@@ -334,33 +322,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
       .finally(() => setBookLoading(false));
   }, [activeBook]);
 
-  // Essay TOC fetch
-  useEffect(() => {
-    if (!activeEssay) { setEssayTOC(null); setEssaySection(null); setSectionContent(''); return; }
-    setEssayLoading(true);
-    fetch(`/essays/${activeEssay}/toc.json`)
-      .then(r => r.json())
-      .then((toc: EssayTOC) => setEssayTOC(toc))
-      .catch(() => {})
-      .finally(() => setEssayLoading(false));
-  }, [activeEssay]);
-
-  // Essay section fetch
-  useEffect(() => {
-    if (essaySection === null || !essayTOC || !activeEssay) return;
-    setEssayLoading(true);
-    setSectionContent('');
-    const sec = essayTOC.sections[essaySection];
-    if (!sec) return;
-    fetch(`/essays/${activeEssay}/${sec.file}`)
-      .then(r => r.json())
-      .then((data: { content?: string; text?: string; body?: string; paragraphs?: string[] }) => {
-        setSectionContent(data.content || data.text || data.body || (data.paragraphs ? data.paragraphs.join('\n\n') : ''));
-      })
-      .catch(() => setSectionContent('Could not load section.'))
-      .finally(() => setEssayLoading(false));
-  }, [essaySection, essayTOC, activeEssay]);
-
   const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
 
   // Persona-based plan filtering + ordering
@@ -394,6 +355,9 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
 
   // Hub view (V1 structure) - the main Plans & More page
   if (!showPlanDetail) {
+    if (showLibrary) {
+      return <LibraryScreen onBack={() => setShowLibrary(false)} />;
+    }
     return (
       <div className="screen-container">
       <ScreenHeader title={t('plans_title', getLang())} onBack={onBack} />
@@ -470,76 +434,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             )}
           </div>
           <style>{'.spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }'}</style>
-        </div>
-      )}
-
-      {/* ── In-app essay reader ── */}
-      {activeEssay && (
-        <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--dw-border)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <button
-              onClick={() => {
-                AP.stop();
-                if (essaySection !== null) { setEssaySection(null); setSectionContent(''); }
-                else { setActiveEssay(null); }
-              }}
-              style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
-            >
-              <ChevronLeft size={18} />
-              {essaySection !== null ? t('contents_label', getLang()) : t('back', getLang())}
-            </button>
-            <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
-              {essaySection !== null && essayTOC ? essayTOC.sections[essaySection]?.title : (essayTOC?.title || t('msg_essay', getLang()))}
-            </p>
-            {essaySection !== null && sectionContent && (
-              <button
-                onClick={() => readSection(sectionContent)}
-                style={{
-                  background: essayAudioActive ? 'var(--dw-accent)' : 'var(--dw-accent-bg)',
-                  border: '1px solid var(--dw-accent)', borderRadius: 999,
-                  padding: '6px 14px', color: essayAudioActive ? '#fff' : 'var(--dw-accent)',
-                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                  display: 'flex', alignItems: 'center', gap: 5, minHeight: 36,
-                }}
-              >
-                {essayAudioActive ? <><Pause size={13} /> {t('j_stop', getLang())}</> : <><Headphones size={13} /> {t('j_listen', getLang())}</>}
-              </button>
-            )}
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 40px' }}>
-            {essayLoading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 24 }}>
-                <Loader2 size={16} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
-              </div>
-            )}
-            {/* Section list */}
-            {essayTOC && essaySection === null && !essayLoading && (
-              <div style={{ padding: '16px 20px' }}>
-                {essayTOC.author && (
-                  <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 20 }}>by {essayTOC.author}</p>
-                )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {essayTOC.sections.map((sec, i) => (
-                    <Card key={i} style={{ cursor: 'pointer' }} onClick={() => setEssaySection(i)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)', minWidth: 22 }}>{i + 1}</span>
-                        <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)', margin: 0 }}>{sec.title}</p>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Section content */}
-            {essaySection !== null && sectionContent && !essayLoading && (
-              <div style={{ padding: '20px 20px' }}>
-                {sectionContent.split('\n\n').map((para, i) => (
-                  <p key={i} style={{ color: 'var(--dw-text-secondary)', fontSize: 16, lineHeight: 1.75, fontFamily: 'var(--font-serif-text)', marginBottom: 20 }}>{para}</p>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -961,16 +855,17 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             </div>
           </div>
 
-          {/* Essays */}
+          {/* Reference — the Library (essays, Bible characters, places, timeline),
+              moved out of Settings where nobody looked for it. */}
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('essays', getLang())}</h2>
-            <Card style={{ cursor: 'pointer' }} onClick={() => setActiveEssay('knocking-on-the-door')}>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('reference_label', getLang())}</h2>
+            <Card style={{ cursor: 'pointer' }} onClick={() => setShowLibrary(true)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Scroll size={18} style={{ color: 'var(--dw-accent)' }} />
                 <div style={{ flex: 1 }}>
-                  <p className="text-card-title">Knocking on the Door</p>
+                  <p className="text-card-title">{t('reference_title', getLang())}</p>
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                    Conflict personas &amp; biblical guard rails
+                    {t('reference_sub', getLang())}
                   </p>
                 </div>
                 <ChevronRight size={18} style={{ color: 'var(--dw-accent)' }} />
