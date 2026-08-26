@@ -17,6 +17,8 @@ import { t, getLang } from '../utils/i18n';
 import { syncMisc } from '../utils/cloudSync';
 import { recordStreakToday } from '../utils/streak';
 import { SermonNotesScreen } from '../screens/SermonNotesScreen';
+import { getPreachingFocus, setPreachingFocus, getPrepItems, removePrepItem, isPastorPersona } from '../utils/sermonPrep';
+import type { PrepItem } from '../utils/sermonPrep';
 
 interface SermonMeta {
   id: string;
@@ -50,6 +52,30 @@ export function SermonWorkspace() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [showSermon, setShowSermon] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Pastor prep (decision 5): focus line + captures filed from the reading surfaces.
+  const isPastor = isPastorPersona();
+  const [prepFocus, setPrepFocus] = useState(() => getPreachingFocus());
+  const [prepItems, setPrepItems] = useState<PrepItem[]>(() => getPrepItems());
+  useEffect(() => {
+    const h = () => { setPrepFocus(getPreachingFocus()); setPrepItems(getPrepItems()); };
+    window.addEventListener('dw-sermon-prep-updated', h);
+    return () => window.removeEventListener('dw-sermon-prep-updated', h);
+  }, []);
+  // Past sermon notes: the retired Campus sub-tab's dw_sermon_notes store plus
+  // free-form journal entries typed 'sermon' — read-only, so nothing is stranded.
+  const [showPast, setShowPast] = useState(false);
+  const pastNotes = (() => {
+    const out: { id: string; title: string; date: string; content: string }[] = [];
+    try {
+      const legacy = JSON.parse(localStorage.getItem('dw_sermon_notes') || '[]');
+      if (Array.isArray(legacy)) for (const n of legacy) out.push({ id: `c_${n.id}`, title: n.title || n.sermon || '', date: n.date || '', content: n.content || '' });
+    } catch { /* ignore */ }
+    try {
+      const journal = JSON.parse(localStorage.getItem('dw_journal') || '[]');
+      if (Array.isArray(journal)) for (const e of journal) if (e.type === 'sermon' && !e.deleted) out.push({ id: `j_${e.id}`, title: e.title || '', date: e.date || '', content: e.content || e.text || '' });
+    } catch { /* ignore */ }
+    return out.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  })();
 
   useEffect(() => {
     fetch('/sermons/latest.json')
@@ -124,6 +150,55 @@ export function SermonWorkspace() {
 
   return (
     <div style={{ paddingBottom: 24 }}>
+      {/* ── My Preparation — pastor only: the wizard's preaching answer finally
+          lands somewhere, and "To sermon" captures collect here (decision 5). ── */}
+      {isPastor && (
+        <div style={{
+          background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+          borderRadius: 16, padding: '18px 20px', marginBottom: 16,
+        }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', margin: '0 0 10px' }}>
+            {t('ws_my_prep', lang)}
+          </p>
+          <input
+            value={prepFocus}
+            onChange={e => setPrepFocus(e.target.value)}
+            onBlur={() => setPreachingFocus(prepFocus)}
+            placeholder={t('ws_prep_focus_ph', lang)}
+            style={{
+              width: '100%', boxSizing: 'border-box', padding: '10px 12px',
+              background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+              borderRadius: 10, color: 'var(--dw-text-primary)',
+              fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none',
+              marginBottom: prepItems.length ? 12 : 8,
+            }}
+          />
+          {prepItems.length === 0 ? (
+            <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.5 }}>
+              {t('ws_prep_empty', lang)}
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {prepItems.map(it => (
+                <div key={it.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', borderRadius: 10, padding: '10px 12px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {it.ref && <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', margin: '0 0 3px' }}>{it.ref}</p>}
+                    <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'normal', margin: 0, lineHeight: 1.5 }}>{it.text}</p>
+                  </div>
+                  <button
+                    aria-label={t('remove_label', lang)}
+                    onClick={() => removePrepItem(it.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: '4px 2px', fontSize: 12, fontFamily: 'var(--font-sans)', flexShrink: 0, minHeight: 24 }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Today's Message — the reading lives behind "View Sermon", not inline ── */}
       <div style={{
         background: 'var(--dw-card)',
@@ -223,6 +298,35 @@ export function SermonWorkspace() {
           minRows={2}
         />
       </WorkspaceSection>
+
+      {/* ── Past sermon notes — read-only surface for the retired Campus store
+          and 'sermon'-typed journal entries, so no note is stranded. ── */}
+      {pastNotes.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+              {t('ws_past_notes', lang)}
+            </p>
+            <button
+              onClick={() => setShowPast(!showPast)}
+              style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)', padding: '4px 0', minHeight: 24 }}
+            >
+              {showPast ? t('ws_hide', lang) : t('ws_show_n', lang).replace('{n}', String(pastNotes.length))}
+            </button>
+          </div>
+          {showPast && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {pastNotes.map(n => (
+                <div key={n.id} style={{ background: 'var(--dw-card)', border: '1px solid var(--dw-border)', borderRadius: 12, padding: '12px 14px' }}>
+                  {n.title && <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: '0 0 2px' }}>{n.title}</p>}
+                  {n.date && <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 6px' }}>{n.date}</p>}
+                  <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{n.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Sermon reading overlay (opened by "View Sermon") ── */}
       {showSermon && (
