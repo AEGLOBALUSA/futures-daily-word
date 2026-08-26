@@ -10,6 +10,16 @@ import { API_BASE } from '../utils/api-base';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { setSessionToken } from '../utils/sessionToken';
+import { useModalA11y } from '../utils/useModalA11y';
+
+// i18n keys per persona (persona_* / persona_*_desc exist in all four languages).
+const PERSONA_I18N: Record<string, string> = {
+  new_to_faith: 'persona_new',
+  congregation: 'persona_member',
+  deeper_study: 'persona_study',
+  pastor_leader: 'persona_leader',
+  comfort: 'persona_comfort',
+};
 
 const PERSONAS = ALL_PERSONAS.map(id => ({
   id,
@@ -53,6 +63,9 @@ export function EmailGate() {
     }
   }, [showEmailGate]);
 
+  // Dialog semantics: focus in, Tab trap, Escape → skip, focus restore.
+  const dialogRef = useModalA11y(showEmailGate, () => handleSkip());
+
   if (!showEmailGate) return null;
 
   const handlePersonaSelect = (p: string) => {
@@ -64,7 +77,7 @@ export function EmailGate() {
   const handleSubmit = async () => {
     const trimEmail = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) {
-      setError('Please enter a valid email address');
+      setError(t('valid_email_error', lang));
       return;
     }
 
@@ -152,7 +165,7 @@ export function EmailGate() {
       }, 1200);
 
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError(t('something_wrong_error', lang));
     } finally {
       setSaving(false);
     }
@@ -178,7 +191,12 @@ export function EmailGate() {
       padding: 24,
       backdropFilter: 'blur(8px)',
     }}>
-      <div style={{
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dw-email-gate-title"
+        style={{
         background: 'var(--dw-surface)',
         borderRadius: 20,
         border: '1px solid var(--dw-border)',
@@ -193,11 +211,12 @@ export function EmailGate() {
         <button
           onClick={handleSkip}
           style={{
-            position: 'absolute', top: 16, right: 16,
+            // padding 12 + top/right 8 = same visual icon spot, 44px hit area
+            position: 'absolute', top: 8, right: 8,
             background: 'none', border: 'none', color: 'var(--dw-text-muted)',
-            cursor: 'pointer', padding: 4,
+            cursor: 'pointer', padding: 12,
           }}
-          aria-label="Close"
+          aria-label={t('j_close', lang)}
         >
           <X size={20} />
         </button>
@@ -205,17 +224,17 @@ export function EmailGate() {
         {/* Step: Persona selection */}
         {step === 'persona' && (
           <div>
-            <h2 style={{
+            <h2 id="dw-email-gate-title" style={{
               fontFamily: 'var(--font-serif)',
               fontSize: 22,
               fontWeight: 400,
               color: 'var(--dw-text-primary)',
               marginBottom: 6,
             }}>
-              Welcome to Daily Word
+              {t('welcome_daily_word', lang)}
             </h2>
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20, fontFamily: 'var(--font-sans)' }}>
-              Choose your reading focus to personalize your experience.
+              {t('choose_focus_desc', lang)}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -235,10 +254,10 @@ export function EmailGate() {
                   }}
                 >
                   <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 2 }}>
-                    {p.label}
+                    {PERSONA_I18N[p.id] ? t(PERSONA_I18N[p.id], lang) : p.label}
                   </p>
                   <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-                    {p.desc}
+                    {PERSONA_I18N[p.id] ? t(PERSONA_I18N[p.id] + '_desc', lang) : p.desc}
                   </p>
                 </button>
               ))}
@@ -249,17 +268,17 @@ export function EmailGate() {
         {/* Step: Email + details */}
         {step === 'email' && (
           <div>
-            <h2 style={{
+            <h2 id="dw-email-gate-title" style={{
               fontFamily: 'var(--font-serif)',
               fontSize: 22,
               fontWeight: 400,
               color: 'var(--dw-text-primary)',
               marginBottom: 6,
             }}>
-              Set Up Your Profile
+              {t('setup_profile_title', lang)}
             </h2>
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20, fontFamily: 'var(--font-sans)' }}>
-              Sync across devices and join your campus community.
+              {t('setup_profile_desc', lang)}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} onKeyDown={e => { if (e.key === 'Enter' && !saving) handleSubmit(); }}>
@@ -310,7 +329,7 @@ export function EmailGate() {
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
                 {saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-                {saving ? 'Setting up...' : 'Continue'}
+                {saving ? t('setting_up', lang) : t('continue_label', lang)}
               </button>
 
               <button
@@ -321,7 +340,7 @@ export function EmailGate() {
                   fontFamily: 'var(--font-sans)', padding: 8, minHeight: 44,
                 }}
               >
-                Skip for now
+                {t('skip_for_now', lang)}
               </button>
             </div>
           </div>
@@ -331,17 +350,17 @@ export function EmailGate() {
         {step === 'done' && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <CheckCircle size={48} style={{ color: 'var(--dw-plan-light)', marginBottom: 16 }} />
-            <h2 style={{
+            <h2 id="dw-email-gate-title" style={{
               fontFamily: 'var(--font-serif)',
               fontSize: 22,
               fontWeight: 400,
               color: 'var(--dw-text-primary)',
               marginBottom: 8,
             }}>
-              Welcome!
+              {t('welcome_short', lang)}
             </h2>
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-              Your profile is set up. Enjoy your reading.
+              {t('profile_ready', lang)}
             </p>
           </div>
         )}

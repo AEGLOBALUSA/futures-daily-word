@@ -4,6 +4,8 @@ import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BookOpen, Scroll, MapPin, Clock, Users, ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
+import { API_BASE } from '../utils/api-base';
+import { useSubView } from '../utils/useSubView';
 
 /* ── Essay TOC + section types ── */
 interface EssaySection { title: string; file: string; }
@@ -49,6 +51,11 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
   const [essaySection, setEssaySection] = useState<number | null>(null);
   const [sectionContent, setSectionContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
+
+  // Back-gesture support: each open reader level (item → essay section) owns
+  // one history entry, so back closes the deepest level instead of the tab.
+  useSubView(!!activeItem, () => { setActiveItem(null); setEssayTOC(null); });
+  useSubView(essaySection !== null, () => { setEssaySection(null); setSectionContent(''); });
 
   // Fetch essay TOC when selected
   useEffect(() => {
@@ -97,8 +104,12 @@ export function LibraryScreen({ onBack }: LibraryScreenProps) {
     if (!activeItem || activeItem === 'knocking-on-the-door') return;
     setLoading(true);
     setDataContent([]);
-    fetch(`/data/${activeItem}.js`)
-      .then(r => r.text())
+    fetch(`${API_BASE}/data/${activeItem}.js`)
+      .then(r => {
+        // Without the guard, an SPA-fallback 404 HTML page renders as "content".
+        if (!r.ok) throw new Error(`data fetch ${r.status}`);
+        return r.text();
+      })
       .then(text => {
         // Try to extract the data — these are JS files with exports
         // We'll show them as readable content

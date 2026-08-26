@@ -77,8 +77,12 @@
   [headers.values]
     Cache-Control = "public, max-age=86400, must-revalidate"
 
-# Data files - moderate cache
+# Data files - moderate cache. CORS open on purpose: public static reference
+# data, fetched cross-origin by the app when served on the church origin
+# (LibraryScreen uses an API_BASE-absolute URL so the church proxy isn't a
+# single point of failure).
 [[headers]]
   for = "/data/*"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+    Access-Control-Allow-Origin = "*"

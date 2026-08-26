@@ -126,13 +126,13 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
           copied ? <Check size={16} color="var(--dw-success)" /> : <Copy size={16} />,
           copied ? t('copied_toast', lang) : t('copy_label', lang)
         )}
-        {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? 'Pause' : 'Listen', listening)}
-        {btn(handleShare, <Share2 size={16} />, 'Share')}
-        {btn(onOpenNotes, <BookOpen size={16} />, 'Note')}
+        {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
+        {btn(handleShare, <Share2 size={16} />, t('j_share', lang))}
+        {btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
         {!basicMode && btn(
           () => setGreekHebrewMode(!greekHebrewMode),
           <Languages size={16} />,
-          greekHebrewMode ? 'Hide' : 'Gk/Heb',
+          greekHebrewMode ? t('hide_reading', lang) : t('gk_heb', lang),
           greekHebrewMode
         )}
 
@@ -172,12 +172,13 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
           }}>{t('ask_ai_label', lang)}</span>
         </button>
 
-        <button aria-label="Close"
+        <button aria-label={t('j_close', lang)}
           onClick={handleDismiss}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '8px 10px', background: 'transparent',
             color: 'var(--dw-text-muted)', border: 'none', cursor: 'pointer',
+            minWidth: 44, // 44px hit area (row already stretches it to full height)
           }}
         >
           <X size={14} />

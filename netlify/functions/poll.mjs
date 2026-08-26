@@ -1,19 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+// Default-import interop: CJS libs load fine from ESM this way (the old inline
+// copy of the allowlist omitted the church origins).
+import corsLib from "./lib/cors.js";
+import rateLimitLib from "./lib/rate-limit.js";
 
-// ── Config ──
-// Note: ESM import not possible from CJS lib/cors.js — keep canonical list inline
-const ALLOWED_ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://www.futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com",
-];
+const { getAllowedOrigin, isAllowedOrigin } = corsLib;
+const { isSharedRateLimited } = rateLimitLib;
 
 function getCorsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
-    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Origin": getAllowedOrigin(origin),
     "Access-Control-Allow-Headers": "Content-Type, X-Pastor-Code",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   };
@@ -44,6 +41,14 @@ export const handler = async (event) => {
   const db = getSupabase();
 
   if (event.httpMethod === "POST") {
+    // Browser fetch always sends Origin on POST; anything else is not the app.
+    if (!isAllowedOrigin(origin)) {
+      return { statusCode: 403, headers: cors, body: JSON.stringify({ error: "Forbidden" }) };
+    }
+    const ip = (event.headers["x-forwarded-for"] || "").split(",")[0].trim() || "unknown";
+    if (await isSharedRateLimited("poll", ip, 5)) {
+      return { statusCode: 429, headers: cors, body: JSON.stringify({ error: "Too many submissions — please wait a minute" }) };
+    }
     try {
       const body = JSON.parse(event.body || "{}");
       const { poll_version, campus, home_clutter, home_priority } = body;

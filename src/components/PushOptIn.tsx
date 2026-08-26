@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { subscribePush, updatePushTime, pushSupported, openCalendarReminder, withTimeout } from '../utils/push';
+import { t, getLang } from '../utils/i18n';
+import { useModalA11y } from '../utils/useModalA11y';
 
 // 12-hour label for the reminder-time picker (5am–10pm).
 function formatHour(h: number): string {
@@ -35,6 +37,9 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
     onDone();
   };
 
+  // Dialog semantics: focus in, Tab trap, Escape → "Maybe later", focus restore.
+  const dialogRef = useModalA11y(true, finish);
+
   const enable = async () => {
     if (busy || finished.current) return;
     setBusy(true);
@@ -58,6 +63,10 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
 
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dw-push-optin-title"
       style={{
         position: 'fixed',
         inset: 0,
@@ -84,12 +93,13 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
           <Bell size={32} color="var(--dw-accent, #DC535D)" />
         </div>
         <h1
+          id="dw-push-optin-title"
           style={{
             fontSize: 26, fontWeight: 700, lineHeight: 1.2, margin: '0 0 10px',
             fontFamily: 'var(--font-serif-text, Georgia, serif)', color: 'var(--dw-text-primary)',
           }}
         >
-          One gentle nudge a day
+          {t('push_optin_title', getLang())}
         </h1>
         <p
           style={{
@@ -98,15 +108,38 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
           }}
         >
           {canPush
-            ? <>We&rsquo;ll send today&rsquo;s Word at the time that fits your rhythm. No spam — just a daily invitation to show up.</>
-            : <>We&rsquo;ll add a recurring daily reminder to your calendar — a gentle nudge to open today&rsquo;s Word at the time that fits your rhythm.</>}
+            ? t('push_optin_body_push', getLang())
+            : t('push_optin_body_calendar', getLang())}
         </p>
+        {/* Church-proxy origin can never do push (no service worker there by
+            design) — bridge to the native origin with the same-email safety
+            rail. A link only, never an auto-redirect; the calendar fallback
+            above stays exactly as it is. */}
+        {!canPush && (
+          <p
+            style={{
+              fontSize: 13, lineHeight: 1.5, margin: '-8px 0 24px',
+              fontFamily: 'var(--font-sans)', color: 'var(--dw-text-muted)',
+            }}
+          >
+            {t('bridge_line1', getLang())}{' '}
+            <a
+              href="https://futuresdailyword.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--dw-accent, #DC535D)', fontWeight: 600, textDecoration: 'underline' }}
+            >
+              {t('bridge_continue', getLang())}
+            </a>
+            {' — '}{t('bridge_line2', getLang())}
+          </p>
+        )}
 
         <label
           htmlFor="dw-onboard-hour"
           style={{ display: 'block', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}
         >
-          Remind me at
+          {t('remind_me_at', getLang())}
         </label>
         <select
           id="dw-onboard-hour"
@@ -134,8 +167,8 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
           }}
         >
           {busy
-            ? (canPush ? 'Turning on…' : 'Opening calendar…')
-            : (canPush ? 'Turn on daily reminders' : 'Add to my calendar')}
+            ? (canPush ? t('turning_on', getLang()) : t('opening_calendar', getLang()))
+            : (canPush ? t('turn_on_daily_reminders', getLang()) : t('add_to_calendar', getLang()))}
         </button>
         <button
           onClick={finish}
@@ -145,7 +178,7 @@ export function PushOptIn({ onDone }: { onDone: () => void }) {
             fontFamily: 'var(--font-sans)', cursor: 'pointer',
           }}
         >
-          Maybe later
+          {t('maybe_later', getLang())}
         </button>
       </div>
     </div>

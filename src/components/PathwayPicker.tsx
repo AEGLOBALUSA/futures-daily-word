@@ -8,6 +8,7 @@ import { Sprout, Users, BookOpen, Shield, Heart } from 'lucide-react';
 import type { Persona } from '../utils/persona-config';
 import { PERSONA_CONFIGS, ALL_PERSONAS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
+import { useModalA11y } from '../utils/useModalA11y';
 
 const ICONS: Record<string, React.FC<{ size?: number; color?: string }>> = {
   Sprout,
@@ -25,6 +26,16 @@ const ACCENT_COLORS: Record<Persona, string> = {
   comfort: '#5C6BC0',
 };
 
+// i18n keys for the card label/description per persona (persona_*_desc pairs
+// live in i18n.ts for all four languages; config.label is the English source).
+const PERSONA_I18N: Record<Persona, string> = {
+  new_to_faith: 'persona_new',
+  congregation: 'persona_member',
+  deeper_study: 'persona_study',
+  pastor_leader: 'persona_leader',
+  comfort: 'persona_comfort',
+};
+
 interface Props {
   onSelect: (persona: Persona) => void;
   currentPersona?: string;
@@ -35,6 +46,20 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
   const lang = getLang();
   const [selected, setSelected] = useState<Persona | null>(null);
   const [animatingOut, setAnimatingOut] = useState(false);
+
+  // Dialog semantics: focus in, Tab trap, focus restore. Escape keeps the
+  // current path on a revisit; on first run there is no dismiss (a pathway
+  // must be picked), so Escape does nothing.
+  const dialogRef = useModalA11y(
+    true,
+    isRevisit
+      ? () => {
+          if (animatingOut || !currentPersona) return;
+          setAnimatingOut(true);
+          setTimeout(() => onSelect(currentPersona as Persona), 400);
+        }
+      : undefined
+  );
 
   function handleSelect(persona: Persona) {
     setSelected(persona);
@@ -58,7 +83,12 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
   }
 
   return (
-    <div style={{
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dw-pathway-picker-title"
+      style={{
       position: 'fixed',
       inset: 0,
       background: 'var(--dw-canvas, #FAFAF8)',
@@ -74,7 +104,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
     }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 28, maxWidth: 360 }}>
-        <h1 style={{
+        <h1 id="dw-pathway-picker-title" style={{
           fontSize: 28,
           fontWeight: 700,
           color: 'var(--dw-text-primary, #1A1A1A)',
@@ -153,7 +183,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
                   margin: 0,
                   lineHeight: 1.3,
                 }}>
-                  {getLang() === 'id' && config.labelId ? config.labelId : config.label}
+                  {t(PERSONA_I18N[persona], lang)}
                 </p>
                 <p style={{
                   fontSize: 13,
@@ -162,7 +192,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
                   margin: '2px 0 0',
                   lineHeight: 1.4,
                 }}>
-                  {getLang() === 'id' && config.descriptionId ? config.descriptionId : config.description}
+                  {t(PERSONA_I18N[persona] + '_desc', lang)}
                 </p>
               </div>
             </button>
@@ -186,7 +216,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
             padding: '10px 20px',
           }}
         >
-          Keep my current path →
+          {t('keep_current_path', lang)}
         </button>
       ) : (
         <button
@@ -205,7 +235,7 @@ export function PathwayPicker({ onSelect, currentPersona }: Props) {
             textUnderlineOffset: '3px',
           }}
         >
-          Not sure? Start with Church Member →
+          {t('not_sure_start_member', lang)}
         </button>
       )}
     </div>

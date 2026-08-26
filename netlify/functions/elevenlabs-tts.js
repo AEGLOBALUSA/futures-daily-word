@@ -1,4 +1,5 @@
 const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { isSharedRateLimited } = require('./lib/rate-limit');
 
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -51,12 +52,19 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers: corsHeaders, body: 'Method not allowed' };
   }
 
+  // Browsers always send Origin on POST — "no Origin and no Referer" is not
+  // our app; no bypass for it on a paid TTS endpoint.
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
   const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
-  const isNoOrigin = !origin && !referer;
-  if (!isAllowedOrigin && !isSameOrigin && !isNoOrigin) {
+  if (!isAllowedOrigin && !isSameOrigin) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
+  }
+
+  // Shared (cross-instance) rate limit — ElevenLabs bills per character
+  const clientIP = event.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+  if (await isSharedRateLimited('elevenlabs-tts', clientIP, 10)) {
+    return { statusCode: 429, headers: corsHeaders, body: JSON.stringify({ error: 'Too many requests. Please slow down.' }) };
   }
 
   const API_KEY = process.env.ELEVENLABS_API_KEY;

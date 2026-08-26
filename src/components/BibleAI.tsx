@@ -8,6 +8,7 @@ import { t, getLang } from '../utils/i18n';
 import { API_BASE } from '../utils/api-base';
 import { MarkdownText } from './MarkdownText';
 import { stripMarkdown } from '../utils/markdown';
+import { useSubView } from '../utils/useSubView';
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -103,6 +104,10 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
 
   // Reset the studySaved flag whenever the panel closes — a fresh open should be saveable again.
   useEffect(() => { if (!isOpen) setStudySaved(false); }, [isOpen]);
+
+  // Back-gesture support: while open the panel owns one history entry, so
+  // Android back / back-swipe closes the panel instead of leaving the tab.
+  useSubView(isOpen, onClose);
 
   // Pre-populate input when selectedText changes and panel is open
   useEffect(() => {
@@ -372,7 +377,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
       {/* Floating trigger button — burnished gold rectangle */}
       <button
         onClick={onOpen ?? (() => {})}
-        aria-label="Bible AI"
+        aria-label={t('bible_ai_label', getLang())}
         style={{
           position: 'fixed',
           bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
@@ -658,7 +663,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
                     boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                   }}
                 />
-                <button aria-label="Send message"
+                <button aria-label={t('send_message', getLang())}
                   onClick={() => {
                     if (loading) {
                       if (abortRef.current) abortRef.current.abort();
@@ -968,7 +973,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
               boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
             }}
           />
-          <button aria-label="Send message"
+          <button aria-label={t('send_message', getLang())}
             onClick={() => {
               if (loading) {
                 if (abortRef.current) abortRef.current.abort();
@@ -1006,25 +1011,30 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
         </div>
       </div>
 
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(26, 23, 20, 0.9)',
-          color: '#fff',
-          padding: '8px 14px',
-          borderRadius: 8,
-          fontSize: 12,
-          fontFamily: 'var(--font-sans)',
-          animation: 'fadeInOut 1.5s ease-in-out',
-          zIndex: 95,
-          pointerEvents: 'none',
-        }}>
-          {toastMessage}
-        </div>
-      )}
+      {/* Live region stays mounted so screen readers announce each toast
+          (incl. the failure cases); the styled bubble inside mounts per toast. */}
+      <div role="status" aria-live="polite" style={{
+        position: 'fixed',
+        bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 95,
+        pointerEvents: 'none',
+      }}>
+        {toastMessage && (
+          <div style={{
+            background: 'rgba(26, 23, 20, 0.9)',
+            color: '#fff',
+            padding: '8px 14px',
+            borderRadius: 8,
+            fontSize: 12,
+            fontFamily: 'var(--font-sans)',
+            animation: 'fadeInOut 1.5s ease-in-out',
+          }}>
+            {toastMessage}
+          </div>
+        )}
+      </div>
 
       <style>{`
         @keyframes pulse {

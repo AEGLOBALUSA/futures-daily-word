@@ -2,6 +2,8 @@
  * Persona Pathway Configuration — V7
  * Drives all feature gating, section ordering, and AI personalization.
  */
+import { getStreak } from './streak';
+import { t } from './i18n';
 
 export type Persona = 'new_to_faith' | 'congregation' | 'deeper_study' | 'pastor_leader' | 'comfort';
 
@@ -84,6 +86,17 @@ function capitalize(s: string): string {
 export function getGreeting(persona: Persona, name: string, streak: number, lang?: string): string {
   const first = capitalize(name) || (lang === 'id' ? 'teman' : 'friend');
   const tod = timeOfDay(lang);
+
+  // Streak memory: on a reset day, acknowledge the longest run rather than greeting
+  // a long-time reader like a first-timer. Personas whose greetings never surface
+  // the streak (new_to_faith, comfort) keep their own lines.
+  if (streak === 1 && persona !== 'new_to_faith' && persona !== 'comfort') {
+    const best = getStreak().bestCount;
+    if (best >= 3) {
+      const prefix = lang === 'id' ? `Selamat ${tod}, ${first}. ` : `Good ${tod}, ${first}. `;
+      return prefix + t('streak_reset_best', lang).replace('{best}', String(best));
+    }
+  }
 
   if (lang === 'id') {
     switch (persona) {

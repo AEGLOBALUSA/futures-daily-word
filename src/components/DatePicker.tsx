@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { t, getLang } from '../utils/i18n';
 
 interface DatePickerProps {
   isOpen: boolean;
@@ -94,7 +95,7 @@ export function DatePicker({ isOpen, onClose, onSelectDate, currentDate, startDa
               display: 'flex',
               alignItems: 'center',
             }}
-            aria-label="Previous month"
+            aria-label={t('previous_month', getLang())}
           >
             <ChevronLeft size={20} />
           </button>
@@ -120,7 +121,7 @@ export function DatePicker({ isOpen, onClose, onSelectDate, currentDate, startDa
               display: 'flex',
               alignItems: 'center',
             }}
-            aria-label="Next month"
+            aria-label={t('next_month', getLang())}
           >
             <ChevronRight size={20} />
           </button>

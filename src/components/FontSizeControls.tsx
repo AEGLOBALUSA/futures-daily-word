@@ -42,9 +42,12 @@ export const FontSizeControls = memo(function FontSizeControls({
           color: atMin ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
           opacity: atMin ? 0.4 : 1,
           transition: 'all 0.15s ease',
+          position: 'relative',
         }}
-        aria-label="Decrease font size"
+        aria-label={t('decrease_font', getLang())}
       >
+        {/* invisible hit-area extender → 44px target, visual circle unchanged */}
+        <span aria-hidden="true" style={{ position: 'absolute', inset: -4 }} />
         <Minus size={14} />
       </button>
       <span style={{
@@ -66,9 +69,12 @@ export const FontSizeControls = memo(function FontSizeControls({
           color: atMax ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)',
           opacity: atMax ? 0.4 : 1,
           transition: 'all 0.15s ease',
+          position: 'relative',
         }}
-        aria-label="Increase font size"
+        aria-label={t('increase_font', getLang())}
       >
+        {/* invisible hit-area extender → 44px target, visual circle unchanged */}
+        <span aria-hidden="true" style={{ position: 'absolute', inset: -4 }} />
         <Plus size={16} />
       </button>
       </div>

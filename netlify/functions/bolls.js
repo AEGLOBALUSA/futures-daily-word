@@ -188,10 +188,12 @@ exports.handler = async (event) => {
     };
   } catch (err) {
     const isTimeout = err.name === 'AbortError';
+    // Log the detail server-side only — don't echo internals to clients
+    if (!isTimeout) console.error('Bolls proxy error:', err);
     return {
       statusCode: isTimeout ? 504 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: isTimeout ? 'Request timed out' : 'Server error: ' + err.message })
+      body: JSON.stringify({ error: isTimeout ? 'Request timed out' : 'Server error' })
     };
   }
 };

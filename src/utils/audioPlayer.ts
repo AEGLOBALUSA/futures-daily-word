@@ -11,6 +11,7 @@
 
 import { fetchAudio } from './api';
 import type { TranslationCode } from './api';
+import { API_BASE } from './api-base';
 
 type PlaybackState = 'idle' | 'loading' | 'playing' | 'paused';
 type StateListener = (state: PlaybackState, passage?: string) => void;
@@ -50,6 +51,13 @@ function trackBlob(url: string) {
 function setState(s: PlaybackState, passage?: string | null) {
   state = s;
   currentPassage = passage ?? null;
+  // Keep the OS transport UI (lock screen / notification) in step with our state.
+  try {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState =
+        s === 'playing' ? 'playing' : s === 'paused' ? 'paused' : 'none';
+    }
+  } catch { /* unsupported */ }
   listeners.forEach(fn => {
     try { fn(state, currentPassage ?? undefined); } catch {}
   });
@@ -90,8 +98,64 @@ function getAudio(): HTMLAudioElement {
         setState('idle', key);
       }
     });
+    // Reconcile with OS-initiated transport changes (phone call, unplugged
+    // headphones, lock-screen controls): those pause/resume the element directly,
+    // which used to leave our state 'playing' — a Pause icon over silence.
+    // Our own pause()/stop()/resetForChain() set state synchronously before these
+    // events fire, so the state guards make internal transitions no-ops here.
+    audioEl.addEventListener('pause', () => {
+      if (state === 'playing' && audioEl && !audioEl.ended) {
+        setState('paused', currentPassage);
+      }
+    });
+    audioEl.addEventListener('play', () => {
+      // unlockPromise guard: ignore the silence-blob unlock play.
+      if (state === 'paused' && !unlockPromise) {
+        setState('playing', currentPassage);
+      }
+    });
   }
   return audioEl;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Media Session — lock-screen title/artwork + transport handlers     */
+/* ------------------------------------------------------------------ */
+
+export interface MediaSessionInfo {
+  /** Lock-screen title, e.g. 'Romans 4' */
+  title: string;
+  /** Defaults to 'Daily Word' */
+  artist?: string;
+  /** Wire to skip-forward (e.g. next chapter); omit to hide the control */
+  onNext?: () => void;
+  /** Wire to skip-back (e.g. previous chapter); omit to hide the control */
+  onPrev?: () => void;
+}
+
+/**
+ * Update the OS media session (lock screen / notification / hardware keys).
+ * Feature-guarded no-op where unsupported. Call from the tap handler that starts
+ * playback; play/pause are wired to resume()/pause() so the lock-screen controls
+ * stay in sync with app state.
+ */
+export function setMediaSession(info: MediaSessionInfo): void {
+  try {
+    if (!('mediaSession' in navigator)) return;
+    const ms = navigator.mediaSession;
+    ms.metadata = new MediaMetadata({
+      title: info.title,
+      artist: info.artist ?? 'Daily Word',
+      artwork: [
+        { src: `${API_BASE}/icons/icon-192.png`, sizes: '192x192', type: 'image/png' },
+        { src: `${API_BASE}/icons/icon-512.png`, sizes: '512x512', type: 'image/png' },
+      ],
+    });
+    ms.setActionHandler('play', () => { void resume(); });
+    ms.setActionHandler('pause', () => { pause(); });
+    ms.setActionHandler('nexttrack', info.onNext ?? null);
+    ms.setActionHandler('previoustrack', info.onPrev ?? null);
+  } catch { /* MediaMetadata/handler unsupported — silently skip */ }
 }
 
 /* ------------------------------------------------------------------ */

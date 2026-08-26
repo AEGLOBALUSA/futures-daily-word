@@ -8,14 +8,20 @@
  * futures-church.netlify.app/daily-word 301s to it. The default therefore points
  * at the canonical domain — showing a raw netlify.app hostname in the app chrome
  * (and bouncing users through a redirect) is no longer correct.
+ *
+ * These links go to the CHURCH SITE, not a Daily Word surface: the old
+ * futures.church/daily-word default just reloaded this app (self-loop) — and
+ * futures.church/daily-word-app is a live iframe embed of it. "Back to Futures
+ * Church" must land on futures.church itself.
  * Still overridable via VITE_CHURCH_DAILY_WORD_URL. See CUTOVER-RUNBOOK.md.
  */
 
 import { API_BASE } from '../utils/api-base';
+import { t, getLang } from '../utils/i18n';
 
 const CHURCH_DAILY_WORD_URL =
   import.meta.env.VITE_CHURCH_DAILY_WORD_URL ||
-  'https://futures.church/daily-word';
+  'https://futures.church';
 
 /** Persistent top strip shown above every screen. */
 export function SeamBar() {
@@ -37,7 +43,7 @@ export function SeamBar() {
         href={CHURCH_DAILY_WORD_URL}
         target="_blank"
         rel="noopener"
-        aria-label="Open Futures Church"
+        aria-label={t('open_futures_church', getLang())}
       >
         Futures Church
         <span aria-hidden>↗</span>

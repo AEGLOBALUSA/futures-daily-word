@@ -2,6 +2,7 @@ const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin, parseRequestOrigin } = require('./lib/cors');
+const { isSharedRateLimited } = require('./lib/rate-limit');
 
 let sb;
 function db() {
@@ -25,9 +26,27 @@ exports.handler = async (event) => {
   const secret = process.env.PASTOR_SECRET;
   if (!code || !secret) return { statusCode: 403, headers: h, body: '{"error":"Forbidden"}' };
 
+  // Rate limit — campus codes are 8 hex chars; cap online guessing per IP
+  const clientIP = event.headers["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  if (await isSharedRateLimited("analytics-dashboard", clientIP, 15)) {
+    return { statusCode: 429, headers: h, body: '{"error":"Too many requests"}' };
+  }
+
   const CS = ["paradise","adelaide-city","salisbury","south","clare-valley","mount-barker",
     "victor-harbor","copper-coast","gwinnett","kennesaw","alpharetta","futuros-duluth",
     "futuros-kennesaw","futuros-grayson","franklin","solo","cemani","bali","samarinda","langowan","rio"];
+  // Campus-code slug → the campus id stored on profiles.campus / prayers.campus
+  // (the prefixed ids from src/data/tokens.ts CAMPUSES / pco-sync PCO_CAMPUS_MAP)
+  const CAMPUS_IDS = {
+    "paradise": "au-paradise", "adelaide-city": "au-adelaide-city", "salisbury": "au-salisbury",
+    "south": "au-south", "clare-valley": "au-clare-valley", "mount-barker": "au-mount-barker",
+    "victor-harbor": "au-victor-harbor", "copper-coast": "au-copper-coast",
+    "gwinnett": "us-gwinnett", "kennesaw": "us-kennesaw", "alpharetta": "us-alpharetta",
+    "futuros-duluth": "us-futuros-duluth", "futuros-kennesaw": "us-futuros-kennesaw",
+    "futuros-grayson": "us-futuros-grayson", "franklin": "us-franklin",
+    "solo": "id-solo", "cemani": "id-cemani", "bali": "id-bali",
+    "samarinda": "id-samarinda", "langowan": "id-langowan", "rio": "br-rio"
+  };
   // Accept: campus pastor codes (SHA-256), master secret, or admin PIN
   // Use constant-time comparison to prevent timing attacks
   const ADMIN_PIN = process.env.ADMIN_PIN || "";
@@ -35,11 +54,17 @@ exports.handler = async (event) => {
     if (!a || !b || a.length !== b.length) return false;
     try { return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)); } catch { return false; }
   };
-  const ok = safeEq(code, ADMIN_PIN) || safeEq(code, secret.toUpperCase()) || CS.some(c => {
-    const expected = crypto.createHash("sha256").update(c + ":" + secret).digest("hex").slice(0, 8).toUpperCase();
-    return safeEq(expected, code);
-  });
-  if (!ok) {
+  // A campus code identifies ONE campus and gets only that campus's aggregate
+  // numbers; the global view (incl. recentSignups PII) is admin/master only.
+  const isAdmin = safeEq(code, ADMIN_PIN) || safeEq(code, secret.toUpperCase());
+  let campusSlug = null;
+  if (!isAdmin) {
+    for (const c of CS) {
+      const expected = crypto.createHash("sha256").update(c + ":" + secret).digest("hex").slice(0, 8).toUpperCase();
+      if (safeEq(expected, code)) { campusSlug = c; break; }
+    }
+  }
+  if (!isAdmin && !campusSlug) {
     return { statusCode: 403, headers: h, body: '{"error":"Bad code"}' };
   }
 
@@ -50,6 +75,32 @@ exports.handler = async (event) => {
     const w = new Date(now - 7 * 864e5).toISOString();
     const m = new Date(now - 30 * 864e5).toISOString();
 
+    // ── Campus-scoped view: real counts for THIS campus only, no PII ──
+    if (!isAdmin) {
+      const campusId = CAMPUS_IDS[campusSlug] || campusSlug;
+      const [rt, awc, pc] = await Promise.all([
+        d.from("profiles").select("*", { count: "exact", head: true })
+          .eq("campus", campusId).gte("last_active_at", today + "T00:00:00Z"),
+        d.from("profiles").select("*", { count: "exact", head: true })
+          .eq("campus", campusId).gte("last_active_at", w),
+        d.from("prayers").select("*", { count: "exact", head: true })
+          .eq("campus", campusId).gte("created_at", m),
+      ]);
+      return {
+        statusCode: 200, headers: h,
+        body: JSON.stringify({
+          scope: "campus",
+          campus: campusId,
+          campusSlug,
+          readingToday: rt.count || 0,
+          activeThisWeek: awc.count || 0,
+          prayerCount: pc.count || 0,
+          generatedAt: now.toISOString(),
+        })
+      };
+    }
+
+    // ── Global view: admin PIN / master secret only ──
     const [tu, at, aw, am, ecm, ecw, cr, ci, rs, pr, lr, da] = await Promise.all([
       d.from("profiles").select("*", { count: "exact", head: true }),
       d.from("profiles").select("*", { count: "exact", head: true }).gte("last_active_at", today + "T00:00:00Z"),

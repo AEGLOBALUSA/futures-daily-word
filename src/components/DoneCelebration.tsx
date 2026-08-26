@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { Check, PartyPopper } from 'lucide-react';
+import { getStreak } from '../utils/streak';
+import { t } from '../utils/i18n';
 
 /**
  * A calm "you've read today's Word" moment, shown when the user deliberately marks
@@ -22,10 +24,15 @@ export function DoneCelebration({
     return () => clearTimeout(t);
   }, [onClose, isPlan]);
 
+  // Streak memory: on a reset day, acknowledge the longest run instead of
+  // greeting a returning reader like a first-timer.
+  const best = getStreak().bestCount;
   const message =
     streakCount >= 2
-      ? `${streakCount} days and counting — you're building something.`
-      : 'You showed up today. That’s how it starts.';
+      ? t('done_days_counting').replace('{x}', String(streakCount))
+      : streakCount === 1 && best >= 3
+      ? t('streak_reset_best').replace('{best}', String(best))
+      : t('done_showed_up');
 
   return (
     <div
@@ -86,7 +93,7 @@ export function DoneCelebration({
             margin: '0 0 6px',
           }}
         >
-          {isPlan ? 'Plan complete 🎉' : <>Today&rsquo;s reading, done.</>}
+          {isPlan ? t('plan_complete_title') : t('done_title')}
         </p>
         <p
           style={{
@@ -98,7 +105,7 @@ export function DoneCelebration({
           }}
         >
           {planFinish
-            ? `${planFinish.title} — ${planFinish.days} days in the Word. You finished.`
+            ? t('done_plan_body').replace('{title}', planFinish.title).replace('{days}', String(planFinish.days))
             : message}
         </p>
         {!isPlan && streakCount >= 2 && (
@@ -111,7 +118,7 @@ export function DoneCelebration({
               margin: '0 0 18px',
             }}
           >
-            🔥 {streakCount}-day streak
+            🔥 {t('done_streak_line').replace('{x}', String(streakCount))}
           </p>
         )}
         <button
@@ -129,7 +136,7 @@ export function DoneCelebration({
             cursor: 'pointer',
           }}
         >
-          Amen
+          {t('amen')}
         </button>
       </div>
     </div>

@@ -4,26 +4,11 @@
  */
 
 const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { isSharedRateLimited } = require('./lib/rate-limit');
 
-// In-memory rate limiting (per function instance)
-const rateLimits = {};
+// Shared (cross-instance) rate limit — this endpoint spends Anthropic tokens
 const RATE_LIMIT_WINDOW = 60000;
 const RATE_LIMIT_MAX = 10;
-
-function isRateLimited(ip) {
-  const now = Date.now();
-  if (!rateLimits[ip]) rateLimits[ip] = [];
-  rateLimits[ip] = rateLimits[ip].filter(t => now - t < RATE_LIMIT_WINDOW);
-  if (rateLimits[ip].length >= RATE_LIMIT_MAX) return true;
-  rateLimits[ip].push(now);
-  const ipKeys = Object.keys(rateLimits);
-  if (ipKeys.length > 200) {
-    for (const k of ipKeys) {
-      if (rateLimits[k].every(t => now - t >= RATE_LIMIT_WINDOW)) delete rateLimits[k];
-    }
-  }
-  return false;
-}
 
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -57,17 +42,19 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers: corsHeaders, body: 'Method not allowed' };
   }
 
+  // Browsers always send Origin on cross-origin and same-origin POSTs, so a
+  // request with neither Origin nor Referer is not our app — no bypass for it
+  // on a paid endpoint (curl satisfies "no headers" trivially).
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
   const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
-  const isNoOrigin = !origin && !referer;
-  if (!isAllowedOrigin && !isSameOrigin && !isNoOrigin) {
+  if (!isAllowedOrigin && !isSameOrigin) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
   }
 
   const clientIP = event.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
                     event.headers?.['client-ip'] || 'unknown';
-  if (isRateLimited(clientIP)) {
+  if (await isSharedRateLimited('claude', clientIP, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW)) {
     return { statusCode: 429, headers: corsHeaders, body: JSON.stringify({ error: 'Too many requests. Please slow down.' }) };
   }
 

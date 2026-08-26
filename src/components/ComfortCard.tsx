@@ -3,8 +3,10 @@
  * Only shown to comfort persona. Displays encouraging verse,
  * Listen button, and Pray button.
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Heart } from 'lucide-react';
+import { localDayIndex } from './ComfortSection';
+import { t } from '../utils/i18n';
 
 const COMFORT_SCRIPTURES = [
   { ref: 'Psalm 23:4', text: 'Even though I walk through the darkest valley, I will fear no evil, for you are with me; your rod and your staff, they comfort me.' },
@@ -31,18 +33,13 @@ const GUIDED_PRAYERS = [
 export function ComfortCard() {
   const [showPrayer, setShowPrayer] = useState(false);
 
-  // Pick scripture and prayer based on day
-  const dayIdx = Math.floor(Date.now() / 86400000) % COMFORT_SCRIPTURES.length;
+  // Pick scripture and prayer based on the LOCAL day (UTC index flips mid-evening)
+  const dayIdx = localDayIndex() % COMFORT_SCRIPTURES.length;
   const scripture = COMFORT_SCRIPTURES[dayIdx];
   const prayer = GUIDED_PRAYERS[dayIdx % GUIDED_PRAYERS.length];
 
-  // Auto-close prayer after opening
-  useEffect(() => {
-    if (showPrayer) {
-      const t = setTimeout(() => setShowPrayer(false), 30000);
-      return () => clearTimeout(t);
-    }
-  }, [showPrayer]);
+  // The guided prayer stays open until the reader closes it (the Pray button
+  // toggles) — never auto-dismiss a prayer someone may be reading slowly.
 
   return (
     <div style={{
@@ -62,7 +59,7 @@ export function ComfortCard() {
           fontFamily: 'var(--font-sans)',
           marginBottom: 8,
         }}>
-          A Word of Comfort
+          {t('comfort_word_header')}
         </p>
         <p style={{
           fontSize: 16,
@@ -105,7 +102,7 @@ export function ComfortCard() {
             transition: 'all 0.2s',
           }}
         >
-          <Heart size={14} /> Pray
+          <Heart size={14} /> {t('pray_label')}
         </button>
       </div>
 

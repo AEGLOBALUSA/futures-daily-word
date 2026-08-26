@@ -21,6 +21,7 @@ import { getPersonaConfig } from '../utils/persona-config';
 // sermons moved to Campus tab
 import { BibleAI } from '../components/BibleAI';
 import { t, getLang } from '../utils/i18n';
+import { useSubView } from '../utils/useSubView';
 
 interface JournalEntry {
   id: string;
@@ -60,15 +61,35 @@ function getVisibleEntries(): JournalEntry[] {
   return getEntries().filter(e => !e.deleted);
 }
 
-function saveEntries(entries: JournalEntry[]) {
-  localStorage.setItem('dw_journal', JSON.stringify(entries));
+/** Returns false when the write failed (QuotaExceededError) — callers must NOT
+ *  show success UI, and no push is scheduled (it would upload the stale stored
+ *  journal while the screen claims the new entry saved). */
+function saveEntries(entries: JournalEntry[]): boolean {
+  try {
+    localStorage.setItem('dw_journal', JSON.stringify(entries));
+  } catch {
+    return false;
+  }
     // Cloud sync: push updated journal to cloud
     const profile = JSON.parse(localStorage.getItem('dw_profile') || '{}');
     if (profile.email) schedulePush(profile.email);
+    return true;
 }
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+/** Notes captured in the Campus tab's Sermons panel (separate dw_sermon_notes
+ *  store). Rendered read-only here so they stop being invisible to the person
+ *  looking at the Sermon tab — no migration, no key rename (that store rides
+ *  the misc bag and stays owned by the Campus panel). */
+interface CampusSermonNote { id: string; title: string; date: string; content: string; sermon?: string }
+function getCampusSermonNotes(): CampusSermonNote[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('dw_sermon_notes') || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
 }
 
 /* ── Auto-expanding textarea ── */
@@ -592,7 +613,7 @@ function ModalSelectionBar({
         display: 'flex', overflow: 'hidden', maxWidth: '100%',
       }}>
         {tbBtn(handleCopy, copied ? <Check size={15} color="var(--dw-success)" /> : <Copy size={15} />, copied ? t('j_copied', lang) : t('j_copy', lang))}
-        {tbBtn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={13} /></> : <Volume2 size={15} />, listening ? t('j_pause', lang) || 'Pause' : t('j_listen', lang), listening)}
+        {tbBtn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={13} /></> : <Volume2 size={15} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
         {tbBtn(handleShare, <Share2 size={15} />, t('j_share', lang))}
         {tbBtn(() => { onNoteSelected(selectedText); dismiss(); }, <BookOpen size={15} />, t('j_note', lang))}
 
@@ -1445,6 +1466,22 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   const [activePlansData, setActivePlansData] = useState(getActivePlansData);
   const [modalPassage, setModalPassage] = useState<TodayPassage | null>(null);
 
+  // Back-gesture support: the full-screen editor and the study modal each own
+  // one history entry while open, so Android back / back-swipe closes them
+  // instead of ejecting the user from the Notes tab.
+  useSubView(showEditor && !!editingEntry, () => { setShowEditor(false); setEditingEntry(null); });
+  useSubView(!!modalPassage, () => setModalPassage(null));
+
+  // Re-tap of the Notes tab in the tab bar → back to the tab's root state.
+  useEffect(() => {
+    const onReset = () => {
+      setActiveTab('today');
+      document.querySelector('.screen-container')?.scrollTo({ top: 0 });
+    };
+    window.addEventListener('dw-tab-reset', onReset);
+    return () => window.removeEventListener('dw-tab-reset', onReset);
+  }, []);
+
   // Helper to get existing note for a passage ref
   const getExistingNoteForModal = useCallback((ref: string): JournalEntry | undefined => {
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -1455,9 +1492,31 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   // Since screens stay mounted, we listen for visibility/focus changes to pick up
   // notes saved from HomeScreen's VerseNoteDrawer or BibleAI.
   useEffect(() => {
+    // Consume the "Journal This" prefill written by PastoralReflectionSection —
+    // without this the pastor lands on a blank tab and the prompt is lost.
+    const consumePrefill = () => {
+      try {
+        const raw = localStorage.getItem('dw_journal_prefill');
+        if (!raw) return;
+        localStorage.removeItem('dw_journal_prefill');
+        const prefill = JSON.parse(raw);
+        const today = new Date().toISOString().slice(0, 10); // matches the writer's date format
+        if (!prefill?.prompt || prefill.date !== today) return; // stale — drop it
+        setEditingEntry({
+          id: generateId(),
+          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          title: String(prefill.prompt).slice(0, 60),
+          body: `"${prefill.prompt}"\n\n`,
+          tags: ['reflection'],
+          type: 'journal',
+        });
+        setShowEditor(true);
+      } catch { /* ignore */ }
+    };
     const refresh = () => {
       setEntries(getVisibleEntries());
       setActivePlansData(getActivePlansData());
+      consumePrefill();
     };
     refresh(); // initial load
     // Re-read when tab becomes visible (covers switching between app tabs)
@@ -1503,13 +1562,20 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     return e.type === activeTab;
   }) : [];
 
+  // Visible "couldn't save — storage full" notice (QuotaExceededError path)
+  const [saveError, setSaveError] = useState(false);
+  const flagSaveError = useCallback(() => {
+    setSaveError(true);
+    setTimeout(() => setSaveError(false), 4000);
+  }, []);
+
   const handleTodaySave = useCallback((entry: JournalEntry) => {
     const all = getEntries();
     const idx = all.findIndex(e => e.id === entry.id);
     if (idx >= 0) { all[idx] = entry; } else { all.unshift(entry); }
-    saveEntries(all);
+    if (!saveEntries(all)) { flagSaveError(); return; }
     setEntries(all.filter(e => !e.deleted));
-  }, []);
+  }, [flagSaveError]);
 
   const openNewEntry = useCallback(() => {
     if (!userProfile?.email) { requireEmail(); return; }
@@ -1519,7 +1585,10 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
       title: '',
       body: '',
       tags: [],
-      type: activeTab === 'prayer' ? 'prayer' : 'journal',
+      // A note started from the Sermon tab files as a sermon note (mirrors the
+      // prayer mapping) — previously it landed under All Notes and vanished
+      // from the tab the user was on.
+      type: activeTab === 'prayer' ? 'prayer' : activeTab === 'sermon' ? 'sermon' : 'journal',
     });
     setShowEditor(true);
   }, [activeTab, userProfile, requireEmail]);
@@ -1540,10 +1609,12 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     } else {
       all.unshift(editingEntry);
     }
+    // Persist FIRST — on quota failure the entry never saved, so skip the
+    // analytics/streak/success path and tell the user instead of losing it.
+    if (!saveEntries(all)) { flagSaveError(); return; }
     trackBehavior('note_created');
     track('journal_save', editingEntry.type || 'journal');
     recordStreakToday(); // journaling counts toward the daily streak, not just opening Home
-    saveEntries(all);
     setEntries(all.filter(e => !e.deleted));
     // Show "Saved!" confirmation before closing
     setEditorSaved(true);
@@ -1552,7 +1623,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
       setShowEditor(false);
       setEditingEntry(null);
     }, 1200);
-  }, [editingEntry]);
+  }, [editingEntry, flagSaveError]);
 
   const deleteEntry = useCallback((id: string) => {
     // Soft-delete: keep a tombstone (id + deleted flag + fresh updatedAt) so the
@@ -1563,11 +1634,11 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
         ? { ...e, deleted: true, body: '', title: '', updatedAt: new Date().toISOString() }
         : e
     );
-    saveEntries(all);
+    if (!saveEntries(all)) { flagSaveError(); return; }
     setEntries(all.filter(e => !e.deleted));
     setShowEditor(false);
     setEditingEntry(null);
-  }, []);
+  }, [flagSaveError]);
 
   const addTag = useCallback((tag: string) => {
     if (!editingEntry || editingEntry.tags.includes(tag)) return;
@@ -1578,6 +1649,19 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     if (!editingEntry) return;
     setEditingEntry({ ...editingEntry, tags: editingEntry.tags.filter(t => t !== tag) });
   }, [editingEntry]);
+
+  // Visible failure notice for quota-exceeded journal writes (shared by the
+  // editor overlay and the main screen).
+  const saveErrorBanner = saveError ? (
+    <div role="alert" style={{
+      margin: '12px 20px 0', padding: '10px 14px',
+      background: 'rgba(220,53,69,0.12)', border: '1px solid rgba(220,53,69,0.4)',
+      borderRadius: 10, fontSize: 13, fontWeight: 600,
+      color: 'var(--dw-danger, #C0392B)', fontFamily: 'var(--font-sans)',
+    }}>
+      {t('j_save_failed', lang)}
+    </div>
+  ) : null;
 
   // Full-screen editor overlay
   if (showEditor && editingEntry) {
@@ -1629,6 +1713,8 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
             </button>
           </div>
         </div>
+
+        {saveErrorBanner}
 
         {/* Editor Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -1745,6 +1831,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   return (
     <div className="screen-container">
       <ScreenHeader title="Notes" onBack={onBack} />
+      {saveErrorBanner}
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -1974,13 +2061,54 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           <>
             {(() => {
               const sermonEntries = entries.filter(e => e.type === 'sermon');
-              if (sermonEntries.length === 0) return null;
+              const campusNotes = getCampusSermonNotes();
+              if (sermonEntries.length === 0 && campusNotes.length === 0) return null;
               return (
                 <div style={{ marginBottom: 28 }}>
                   <h2 className="text-section-header" style={{ margin: '0 0 12px', color: 'var(--dw-text-muted)' }}>
                     {t('j_my_sermon_notes', lang)}
                   </h2>
-                  <GroupedNotesList entries={sermonEntries} onOpen={openEntry} lang={lang} />
+                  {sermonEntries.length > 0 && (
+                    <GroupedNotesList entries={sermonEntries} onOpen={openEntry} lang={lang} />
+                  )}
+                  {/* Read-only: these live in dw_sermon_notes and are edited in
+                      the Campus tab, not the journal editor. */}
+                  {campusNotes.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: sermonEntries.length > 0 ? 12 : 0 }}>
+                      {campusNotes.map(note => (
+                        <Card key={note.id}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <p style={{
+                              color: 'var(--dw-text-muted)', fontSize: 11, fontWeight: 500,
+                              letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0,
+                              fontFamily: 'var(--font-sans)',
+                            }}>
+                              {note.date}
+                            </p>
+                            <span style={{ fontSize: 10, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)' }}>
+                              {t('j_from_campus_tab', lang)}
+                            </span>
+                          </div>
+                          <p className="text-card-title" style={{ margin: '0 0 4px' }}>{note.title}</p>
+                          {note.sermon && (
+                            <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>
+                              {note.sermon}
+                            </p>
+                          )}
+                          {note.content && (
+                            <p style={{
+                              color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.5,
+                              fontFamily: 'var(--font-sans)',
+                              overflow: 'hidden', textOverflow: 'ellipsis',
+                              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+                            }}>
+                              {note.content}
+                            </p>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })()}

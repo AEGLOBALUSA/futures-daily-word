@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { schedulePush, pushNow } from '../utils/cloudSync';
 
@@ -143,32 +143,42 @@ export function ScriptureSelectionProvider({ children }: { children: ReactNode }
     planContextRef.current = ctx;
   }, []);
 
+  // Re-read highlights after a cloud sync rewrites dw_highlights — this provider
+  // mounts ABOVE the <main key={syncNonce}> remount boundary in App.tsx, so without
+  // this the in-memory map stays pre-sync for the whole session.
+  useEffect(() => {
+    const refresh = () => setHighlights(loadHighlights());
+    window.addEventListener('dw-cloud-sync', refresh);
+    return () => window.removeEventListener('dw-cloud-sync', refresh);
+  }, []);
+
   const toggleHighlight = useCallback((verseKey: string, text: string) => {
-    setHighlights(prev => {
-      const next = { ...prev };
-      const wasHighlighted = !!next[verseKey];
-      if (wasHighlighted) {
-        delete next[verseKey];
-      } else {
-        next[verseKey] = { verseKey, text, timestamp: Date.now(), color: 'gold' };
-      }
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+    // Read-modify-write against localStorage, not in-memory state: if the map in
+    // state is ever stale (e.g. a missed sync event), deriving from it would
+    // wholesale-erase the stored set and push that loss to the cloud.
+    const next = loadHighlights();
+    const wasHighlighted = !!next[verseKey];
+    if (wasHighlighted) {
+      delete next[verseKey];
+    } else {
+      next[verseKey] = { verseKey, text, timestamp: Date.now(), color: 'gold' };
+    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
 
-      // Fix 1: mirror the highlight into the Journal so it appears in the Notes tab automatically.
-      if (wasHighlighted) {
-        removeHighlightEntryIfUntouched(verseKey, text);
-      } else {
-        appendHighlightEntry(verseKey, text, 'gold', planContextRef.current);
-      }
+    // Fix 1: mirror the highlight into the Journal so it appears in the Notes tab automatically.
+    if (wasHighlighted) {
+      removeHighlightEntryIfUntouched(verseKey, text);
+    } else {
+      appendHighlightEntry(verseKey, text, 'gold', planContextRef.current);
+    }
 
-      // Also push the highlights map itself (Fix 2 ensures this reaches the cloud).
-      try {
-        const profile = JSON.parse(localStorage.getItem('dw_profile') || '{}');
-        if (profile.email) schedulePush(profile.email);
-      } catch {}
+    // Also push the highlights map itself (Fix 2 ensures this reaches the cloud).
+    try {
+      const profile = JSON.parse(localStorage.getItem('dw_profile') || '{}');
+      if (profile.email) schedulePush(profile.email);
+    } catch { /* ignore */ }
 
-      return next;
-    });
+    setHighlights(next);
     setSelection({ text, verseRefs: [verseKey], source: 'tap' });
   }, []);
 

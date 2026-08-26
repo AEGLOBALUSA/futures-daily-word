@@ -188,6 +188,19 @@ function getCurrentHour(timezone, tzCache) {
   }
 }
 
+// Subscriber-local date string (YYYY-MM-DD via en-CA) — keys the once-per-day ledger
+function getLocalDate(timezone, dateCache) {
+  if (dateCache[timezone] !== undefined) return dateCache[timezone];
+  let s;
+  try {
+    s = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  } catch (e) {
+    s = new Date().toISOString().slice(0, 10);
+  }
+  dateCache[timezone] = s;
+  return s;
+}
+
 function buildPayload(passage, lang) {
   const verse = getVerseSnippet(passage, lang);
   const template = getTemplate(lang);
@@ -233,16 +246,31 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Single query to get ALL active subscriptions — includes lang field if available
-    const { data: subs, error } = await db.from("push_subscriptions")
-      .select("id, subscription, timezone, preferred_hour, endpoint_hash, lang")
+    // Single query to get ALL active subscriptions — includes lang field if available.
+    // Prefer selecting last_sent_date (the once-per-local-day send ledger that
+    // enables the catch-up window). Until that column exists, fall back to the
+    // legacy select + exact-hour matching so the run never breaks.
+    let subs;
+    let hasLedger = true;
+    const res = await db.from("push_subscriptions")
+      .select("id, subscription, timezone, preferred_hour, endpoint_hash, lang, last_sent_date")
       .eq("active", true);
-
-    if (error) throw error;
+    if (res.error) {
+      hasLedger = false;
+      const legacy = await db.from("push_subscriptions")
+        .select("id, subscription, timezone, preferred_hour, endpoint_hash, lang")
+        .eq("active", true);
+      if (legacy.error) throw legacy.error;
+      subs = legacy.data;
+    } else {
+      subs = res.data;
+    }
 
     let sent = 0, failed = 0, skipped = 0;
     const CONCURRENCY = 10;
     const expiredIds = [];
+    const dateCache = {};
+    const sentIdsByDate = {};
 
     // Process in batches of CONCURRENCY
     for (let i = 0; i < (subs || []).length; i += CONCURRENCY) {
@@ -250,7 +278,19 @@ exports.handler = async (event) => {
       const results = await Promise.allSettled(
         batch.map(async (sub) => {
           const currentHour = getCurrentHour(sub.timezone, tzCache);
-          if (currentHour !== sub.preferred_hour) {
+          // Legacy rows with a null preferred_hour would never match — default 7am
+          const preferredHour = sub.preferred_hour ?? 7;
+          if (hasLedger) {
+            // Catch-up window: scheduled functions are best-effort, so a
+            // delayed/skipped hourly run used to silently drop that hour's
+            // cohort for the day. Fire up to 2h past the preferred hour, at
+            // most once per subscriber-local day (keyed on last_sent_date).
+            const localDate = getLocalDate(sub.timezone, dateCache);
+            const withinWindow = currentHour >= preferredHour && currentHour - preferredHour <= 2;
+            if (!withinWindow || sub.last_sent_date === localDate) {
+              return 'skipped';
+            }
+          } else if (currentHour !== preferredHour) {
             return 'skipped';
           }
           const payload = getPayload(sub.lang);
@@ -262,7 +302,14 @@ exports.handler = async (event) => {
       for (let j = 0; j < results.length; j++) {
         const r = results[j];
         if (r.status === 'fulfilled') {
-          if (r.value === 'sent') sent++;
+          if (r.value === 'sent') {
+            sent++;
+            if (hasLedger) {
+              const localDate = getLocalDate(batch[j].timezone, dateCache);
+              if (!sentIdsByDate[localDate]) sentIdsByDate[localDate] = [];
+              sentIdsByDate[localDate].push(batch[j].id);
+            }
+          }
           else skipped++;
         } else {
           const err = r.reason;
@@ -272,6 +319,14 @@ exports.handler = async (event) => {
           failed++;
         }
       }
+    }
+
+    // Record today's send per subscriber (grouped by local date) — this is what
+    // stops the catch-up window double-sending on the next hourly run.
+    for (const [localDate, ids] of Object.entries(sentIdsByDate)) {
+      const { error: ledgerErr } = await db.from("push_subscriptions")
+        .update({ last_sent_date: localDate }).in("id", ids);
+      if (ledgerErr) console.error("Failed to record last_sent_date:", ledgerErr);
     }
 
     // Cleanup expired subscriptions in one batch delete

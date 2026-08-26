@@ -98,7 +98,11 @@ async function _doFetch(passage: string, translation: TranslationCode, cacheKey:
 
     // An empty/whitespace body is a failure, not a hit — don't cache it, fall back
     // and retry (e.g. a wrong-shaped upstream JSON would otherwise stick as blank).
-    if (!text || !text.trim()) throw new Error(`Empty result: ${passage} (${translation})`);
+    // The legacy offline placeholder is equally a failure: it must never be cached
+    // or recorded as served, or it renders (and can be marked read) as scripture.
+    if (!text || !text.trim() || text === OFFLINE_PLACEHOLDER) {
+      throw new Error(`Empty result: ${passage} (${translation})`);
+    }
     verseCacheSet(cacheKey, text);
     recordServed(passage, translation, translation);
     return text;
@@ -174,20 +178,22 @@ async function fetchKJV(passage: string): Promise<string> {
   return fetchBolls(passage, 'KJV');
 }
 
+// The old offline fallback returned this literal string as if it were passage text;
+// it was then cached, rendered as scripture, and could be marked as read. It is now
+// treated as a failed fetch everywhere (HomeScreen also blacklists it for audio).
+const OFFLINE_PLACEHOLDER = 'World English Bible text — loading...';
+
 // World English Bible (public domain). Fetched via Bolls, like the other non-ESV/NLT
-// translations, so selecting WEB shows real text instead of a placeholder. Only falls
-// back to the placeholder if the source is unreachable (e.g. offline). The bundled
+// translations, so selecting WEB shows real text. If the source is unreachable
+// (e.g. offline) this now REJECTS instead of returning a placeholder — every
+// fetchPassage caller already treats a rejection as "no text yet". The bundled
 // offline reader is KJV (fetchKJV); bundling WEB for offline is a separate follow-up.
 async function fetchWEB(passage: string): Promise<string> {
-  try {
-    const t = await fetchBolls(passage, 'WEB');
-    if (t && t.trim()) return t;
-  } catch { /* offline / source down — fall through to placeholder */ }
-  return 'World English Bible text — loading...';
+  return fetchBolls(passage, 'WEB');
 }
 
 async function fallbackFetch(passage: string, originalTranslation: TranslationCode): Promise<string> {
-  // Fallback chain: KJV offline → WEB built-in.
+  // Fallback chain: KJV offline → WEB via Bolls.
   // Each branch records what it actually served so the reader can say so.
   if (originalTranslation !== 'KJV') {
     try {
@@ -201,7 +207,10 @@ async function fallbackFetch(passage: string, originalTranslation: TranslationCo
       // Fall through
     }
   }
+  // Terminal fallback. If this also fails (fully offline, no bundled KJV for the
+  // ref) the rejection propagates: no text is better than fake text.
   const web = await fetchWEB(passage);
+  if (!web || !web.trim()) throw new Error(`No text available: ${passage}`);
   recordServed(passage, originalTranslation, 'WEB');
   return web;
 }
@@ -237,7 +246,11 @@ function audioCacheSet(key: string, url: string) {
  * Audio responses are cached in-memory so replaying doesn't re-fetch.
  */
 export async function fetchAudio(text: string, translation: TranslationCode, passageRef?: string): Promise<string | null> {
-  const cacheKey = `${passageRef || text.slice(0, 60)}_${translation}`;
+  // text.length discriminator: callers pass different slices of the same passage
+  // (e.g. a short preload slice vs the full playback text). Without it they share
+  // a cache entry and TTS playback serves whichever slice was fetched first —
+  // long chapters were cutting off ~1/3 in when a 5,000-char preload won the race.
+  const cacheKey = `${passageRef || text.slice(0, 60)}_${translation}_${text.length}`;
 
   // Return cached audio URL if we already have it
   if (audioCache.has(cacheKey)) return audioCache.get(cacheKey)!;
@@ -324,21 +337,36 @@ async function _doFetchAudio(
 }
 
 // ── Helper: ESV.org native audio ──
+// The esv-audio function now 302-redirects to the mp3 on audio.esv.org instead of
+// buffering it (whole-chapter base64 bodies blew Netlify's 6MB response cap — Psalm
+// 119, Luke 11, John 11 all 502'd and silently degraded to TTS). We ask for the
+// redirect target as JSON (a cross-origin fetch can't follow the redirect — no CORS
+// on audio.esv.org) and hand that URL straight to the audio element, which media-src
+// CSP allows on both futuresdailyword.com and the futures.church embed.
+async function _tryESVAudioRef(ref: string): Promise<string | null> {
+  const res = await fetch(`${API_BASE}/api/esv-audio?q=${encodeURIComponent(ref)}&format=json`);
+  if (!res.ok) return null;
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = await res.json().catch(() => null);
+    const url = typeof data?.url === 'string' ? data.url : '';
+    // Only ever play audio from ESV's own host — anything else won't pass CSP.
+    return url.startsWith('https://audio.esv.org/') ? url : null;
+  }
+  // Defensive: the function may still proxy small audio bodies directly.
+  const blob = await res.blob();
+  if (blob.size > 1000) return URL.createObjectURL(blob);
+  return null;
+}
+
 async function _tryESVAudio(passageRef: string): Promise<string | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/esv-audio?q=${encodeURIComponent(passageRef)}`);
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 1000) return URL.createObjectURL(blob);
-    }
+    const url = await _tryESVAudioRef(passageRef);
+    if (url) return url;
     // Try first individual ref if combined failed
     const refs = passageRef.split(/[;,]/).map(r => r.trim()).filter(Boolean);
     if (refs.length > 1) {
-      const singleRes = await fetch(`${API_BASE}/api/esv-audio?q=${encodeURIComponent(refs[0])}`);
-      if (singleRes.ok) {
-        const blob = await singleRes.blob();
-        if (blob.size > 1000) return URL.createObjectURL(blob);
-      }
+      return await _tryESVAudioRef(refs[0]);
     }
   } catch { /* no ESV audio */ }
   return null;

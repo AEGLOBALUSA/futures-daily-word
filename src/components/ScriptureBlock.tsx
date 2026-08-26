@@ -76,6 +76,18 @@ export function ScriptureBlock({
       onPointerCancel={handlePointerUp}
       onPointerEnter={handlePointerEnter}
       onClick={handleTap}
+      // Keyboard parity with tap-to-highlight (pointer-only before). In
+      // Gk/Heb mode word taps take priority, so the verse isn't a button.
+      role={greekHebrewMode ? undefined : 'button'}
+      tabIndex={greekHebrewMode ? undefined : 0}
+      aria-pressed={greekHebrewMode ? undefined : isHighlighted}
+      onKeyDown={e => {
+        if (greekHebrewMode) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault(); // stop Space from scrolling / hero-audio hijack
+          handleTap();
+        }
+      }}
     >
       <span style={{
         color: 'var(--dw-gold)', fontSize: 10, fontWeight: 700,
