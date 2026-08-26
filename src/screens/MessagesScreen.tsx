@@ -8,6 +8,7 @@ import { PrayerGlobe } from '../components/PrayerGlobe';
 import { CampusSelect } from '../components/CampusSelect';
 import { t, getLang } from '../utils/i18n';
 import type { TabId } from '../components/TabBar';
+import { PromoAds } from '../components/PromoAds';
 import { pushNow } from '../utils/cloudSync';
 import { API_BASE } from '../utils/api-base';
 
@@ -499,6 +500,7 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
         : <PrayerWallPanel userProfile={userProfile} requireEmail={requireEmail} />
       }
 
+      <PromoAds />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

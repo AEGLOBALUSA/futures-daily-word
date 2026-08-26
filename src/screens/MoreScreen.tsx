@@ -14,6 +14,7 @@ import { LibraryScreen } from './LibraryScreen';
 import { API_BASE } from '../utils/api-base';
 import { CampusSelect } from '../components/CampusSelect';
 import { useSubView } from '../utils/useSubView';
+import { PromoAds } from '../components/PromoAds';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
@@ -1165,6 +1166,8 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         {/* Version — long-press reveals the Admin section for non-pastor
             personas (the App Analytics PIN entry used to clutter every user's
             settings; admins know the gesture). */}
+        <PromoAds />
+
         <p
           onPointerDown={() => {
             if (adminHoldTimer.current) clearTimeout(adminHoldTimer.current);

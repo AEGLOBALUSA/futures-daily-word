@@ -41,6 +41,7 @@ import { getDailyWord } from '../data/daily-words';
 import { BIBLE_BOOKS, BOOK_CHAPTERS } from '../data/bible-books';
 import { ComfortSection, localDayIndex } from '../components/ComfortSection';
 import { EmailNudgeCard } from '../components/EmailNudgeCard';
+import { PromoAds } from '../components/PromoAds';
 import { COMFORT_CHAPTERS } from '../data/comfort';
 import { PastorStudyOnboarding } from '../components/PastorStudyOnboarding';
 import { NewBelieverLessonCard } from '../components/NewBelieverLessonCard';
@@ -4017,6 +4018,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       {pf.highlighting !== 'none' && (
         <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />
       )}
+      <PromoAds />
       {pf.greekHebrew !== 'hidden' && (
         <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
       )}
