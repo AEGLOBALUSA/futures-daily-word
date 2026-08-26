@@ -3,6 +3,7 @@ import { Search, X, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE } from '../utils/api-base';
 import { t, getLang } from '../utils/i18n';
 import { CANONICAL_BOOKS } from '../data/translations';
+import { useModalA11y } from '../utils/useModalA11y';
 
 interface BibleSearchProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ export function BibleSearch({ isOpen, onClose, onSearch }: BibleSearchProps) {
   const [hits, setHits] = useState<PassageHit[]>([]);
   const [error, setError] = useState(false);
   const [searched, setSearched] = useState(false);
+  // Hook must run unconditionally (before the early return); it no-ops while closed.
+  const dialogRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -105,6 +108,10 @@ export function BibleSearch({ isOpen, onClose, onSearch }: BibleSearchProps) {
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100 }}
       />
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dw-bible-search-title"
         style={{
           position: 'fixed', top: '12%', left: 16, right: 16, maxWidth: 440, margin: '0 auto',
           background: 'var(--dw-canvas)', borderRadius: 16, padding: 20, zIndex: 101,
@@ -113,7 +120,7 @@ export function BibleSearch({ isOpen, onClose, onSearch }: BibleSearchProps) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontFamily: 'var(--font-serif)', color: 'var(--dw-text)' }}>
+          <h3 id="dw-bible-search-title" style={{ margin: 0, fontSize: 18, fontFamily: 'var(--font-serif)', color: 'var(--dw-text)' }}>
             Search Scripture
           </h3>
           <button aria-label={t('close_search', getLang())} onClick={onClose}
