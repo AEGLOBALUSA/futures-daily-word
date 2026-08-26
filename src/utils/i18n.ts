@@ -7,6 +7,13 @@ export function getLang(): string {
   try { return localStorage.getItem('dw_lang') || 'en'; } catch { return 'en'; }
 }
 
+/** BCP-47 locale for date formatting in the current app language. Display-only:
+ *  stored entry dates stay 'en-US' (JournalScreen matches them by string equality). */
+export function dateLocale(lang?: string): string {
+  const map: Record<string, string> = { en: 'en-US', es: 'es', pt: 'pt-BR', id: 'id' };
+  return map[lang || getLang()] || 'en-US';
+}
+
 /** Write language preference and dispatch event so listeners can react */
 export function setLangPref(lang: string): void {
   try { localStorage.setItem('dw_lang', lang); } catch {}
@@ -529,6 +536,18 @@ const UI: Translations = {
   compare_label: { en: 'Compare', es: 'Comparar', pt: 'Comparar', id: 'Bandingkan' },
   your_faith_journey: { en: 'YOUR FAITH JOURNEY', es: 'TU CAMINO DE FE', pt: 'SUA JORNADA DE F\u00c9', id: 'PERJALANAN IMANMU' },
   day_x_of_y_title: { en: 'Day {x} of {y}', es: 'D\u00eda {x} de {y}', pt: 'Dia {x} de {y}', id: 'Hari {x} dari {y}' },
+  pastoral_care: { en: 'PASTORAL CARE', es: 'CUIDADO PASTORAL', pt: 'CUIDADO PASTORAL', id: 'PELAYANAN PASTORAL' },
+  report_a_bug: { en: 'REPORT A BUG', es: 'REPORTAR UN PROBLEMA', pt: 'RELATAR UM PROBLEMA', id: 'LAPORKAN MASALAH' },
+  bug_thank_you: { en: 'Thank you!', es: '\u00a1Gracias!', pt: 'Obrigado!', id: 'Terima kasih!' },
+  bug_received: { en: 'Your report has been received.', es: 'Hemos recibido tu reporte.', pt: 'Seu relato foi recebido.', id: 'Laporan Anda telah diterima.' },
+  bug_intro: { en: "Found something not working? Let us know and we'll fix it.", es: '\u00bfEncontraste algo que no funciona? Av\u00edsanos y lo arreglaremos.', pt: 'Encontrou algo que n\u00e3o funciona? Avise-nos e vamos corrigir.', id: 'Menemukan sesuatu yang tidak berfungsi? Beri tahu kami dan kami akan memperbaikinya.' },
+  bug_placeholder: { en: 'Describe what happened...', es: 'Describe lo que pas\u00f3...', pt: 'Descreva o que aconteceu...', id: 'Jelaskan apa yang terjadi...' },
+  bug_sending: { en: 'Sending...', es: 'Enviando...', pt: 'Enviando...', id: 'Mengirim...' },
+  bug_send: { en: 'Send Report', es: 'Enviar reporte', pt: 'Enviar relato', id: 'Kirim Laporan' },
+  bug_cat_audio: { en: 'Audio', es: 'Audio', pt: '\u00c1udio', id: 'Audio' },
+  bug_cat_display: { en: 'Display', es: 'Pantalla', pt: 'Tela', id: 'Tampilan' },
+  bug_cat_navigation: { en: 'Navigation', es: 'Navegaci\u00f3n', pt: 'Navega\u00e7\u00e3o', id: 'Navigasi' },
+  bug_cat_other: { en: 'Other', es: 'Otro', pt: 'Outro', id: 'Lainnya' },
   continue_journey: { en: 'Continue Journey', es: 'Continuar el camino', pt: 'Continuar a jornada', id: 'Lanjutkan Perjalanan' },
   todays_study: { en: "TODAY'S STUDY", es: 'ESTUDIO DE HOY', pt: 'ESTUDO DE HOJE', id: 'STUDI HARI INI' },
   for_you: { en: 'FOR YOU', es: 'PARA TI', pt: 'PARA VOC\u00ca', id: 'UNTUKMU' },
