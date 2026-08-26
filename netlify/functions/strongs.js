@@ -58,24 +58,40 @@ exports.handler = async (event) => {
     };
   }
 
-  // Fallback: try Open Scriptures Strongs API
+  // Fallback: bolls.life BDBT dictionary (Brown-Driver-Briggs + Thayer), which
+  // covers the full G/H Strongs range. (The previous Open Scriptures URL 404'd
+  // for every entry — the fallback had never actually worked.)
   try {
-    const lang = testament === 'OT' ? 'hebrew' : 'greek';
-    const numOnly = num.replace(/^[GH]/, '');
-    const resp = await fetch(`https://openscriptures.github.io/strongs/entries/${lang}/${numOnly}.json`);
+    const resp = await fetch(`https://bolls.life/dictionary-definition/BDBT/${encodeURIComponent(num)}/`);
     if (resp.ok) {
-      const data = await resp.json();
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          word: data.lemma || data.unicode || num,
-          transliteration: data.translit || '',
-          definition: data.strongs_def || data.kjv_def || 'See full entry',
-          fullDefinition: data.derivation || '',
-          usage: '',
-        }),
-      };
+      const rows = await resp.json();
+      const row = Array.isArray(rows) && rows.find((r) => r.topic === num);
+      if (row && row.definition) {
+        const html = String(row.definition);
+        const pick = (re) => { const m = html.match(re); return m ? m[1].replace(/<[^>]+>/g, '').trim() : ''; };
+        const lemma = pick(/<(?:el|he)>([\s\S]*?)<\/(?:el|he)>/);
+        const translit = pick(/Transliteration:\s*<b>([\s\S]*?)<\/b>/i);
+        const plain = html
+          .replace(/<p[^>]*>/gi, '\n').replace(/<br\s*\/?\s*>/gi, '\n')
+          .replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ')
+          .replace(/\n{2,}/g, '\n').trim();
+        // First line after "Definition:" as the short def; whole entry as full.
+        const defIdx = plain.search(/Definition:/i);
+        const short = defIdx >= 0
+          ? plain.slice(defIdx + 'Definition:'.length).trim().split('\n').filter(Boolean).slice(0, 2).join(' ').slice(0, 200)
+          : plain.split('\n').filter(Boolean).slice(0, 2).join(' ').slice(0, 200);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            word: lemma || num,
+            transliteration: translit,
+            definition: short || 'See full entry',
+            fullDefinition: plain.slice(0, 1200),
+            usage: '',
+          }),
+        };
+      }
     }
   } catch {}
 

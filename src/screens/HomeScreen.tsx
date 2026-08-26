@@ -6,8 +6,8 @@ import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, 
 import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
-import { fetchPassage, getServedTranslation } from '../utils/api';
-import type { TranslationCode } from '../utils/api';
+import { fetchPassage, getServedTranslation, fetchStrongsMap } from '../utils/api';
+import type { TranslationCode, StrongsMap } from '../utils/api';
 import * as AP from '../utils/audioPlayer';
 import { QUOTES } from '../data/quotes';
 import { COMMENTARY } from '../data/commentary';
@@ -31,7 +31,6 @@ import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/b
 import { track } from '../utils/analytics';
 import { personalize } from '../utils/personalization';
 import { getPersonaConfig, getGreeting, PERSONA_CONFIGS } from '../utils/persona-config';
-import { ComfortCard } from '../components/ComfortCard';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
@@ -300,7 +299,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [showBibleAI, setShowBibleAI] = useState(false);
   const [bibleAIContext, setBibleAIContext] = useState<string>('');
   const [showSearch, setShowSearch] = useState(false);
-  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
+  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode, setActivePopupWord } = useScriptureSelection();
   const audioSrcCache = useRef<Map<string, string>>(new Map());
   const [audioError, setAudioError] = useState(false);
 
@@ -1423,6 +1422,19 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleHeroListen]);
 
+  // Instant Gk/Heb: per-passage word→Strong's maps from bolls' KJV tags,
+  // prefetched while the mode is on so a tap resolves locally (no AI round-trip).
+  const strongsMapsRef = useRef<Record<string, StrongsMap | null>>({});
+  useEffect(() => {
+    if (!greekHebrewMode) return;
+    for (const passage of expandedPassages) {
+      if (passage in strongsMapsRef.current) continue;
+      strongsMapsRef.current[passage] = null; // in flight
+      fetchStrongsMap(passage).then((m) => { strongsMapsRef.current[passage] = m; });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [greekHebrewMode, expandedPassages]);
+
   /** Render scripture text with tappable words when Gk/Heb mode is active */
   const renderScripture = (text: string, passage: string) => {
     if (!greekHebrewMode) return text;
@@ -1437,8 +1449,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           key={i}
           onClick={(e) => {
             e.stopPropagation();
-            // Open BibleAI with word study context
             trackBehavior('greek_hebrew', `${word} in ${passage}`);
+            // Instant path first: resolve the word against the passage's KJV
+            // Strong's map and open the lexicon popup (its "Study this word"
+            // button remains the deliberate AI deep-dive). ESV↔KJV wording
+            // differs, so unmatched words fall back to the old AI flow.
+            const smap = strongsMapsRef.current[passage];
+            const nums = smap?.byWord[word.toLowerCase()];
+            if (smap && nums && nums.length) {
+              setActivePopupWord({ word, strongsNum: nums[0], testament: smap.testament });
+              return;
+            }
             setBibleAIContext(`Please explain the original Greek or Hebrew meaning of the word "${word}" as it appears in ${passage}. Include the Strongs number if known, the original language word, its transliteration, definition, and how it enriches understanding of this verse.`);
             setShowBibleAI(true);
           }}
@@ -2416,9 +2437,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         </div>
       )}
         {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={() => setShowBibleAI(true)} persona={personaConfig.persona} />}
-
-        {/* Comfort Card — comfort persona only */}
-        {pf.comfortCard && <ComfortCard />}
 
         {/* Book Cards — surfaces recommended books, tapping starts the reading plan */}
         {pf.bookCards.length > 0 && (

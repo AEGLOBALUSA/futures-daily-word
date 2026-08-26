@@ -1,7 +1,6 @@
 export { HomeProvider, useHome } from './HomeContext';
 export type { HomeContextValue } from './HomeContext';
 export { GreetingSection } from './GreetingSection';
-export { ComfortCardSection } from './ComfortCardSection';
 export { ComfortVerseBannerSection } from './ComfortVerseBannerSection';
 export { BookCardsSection } from './BookCardsSection';
 export { PollBannerSection } from './PollBannerSection';
