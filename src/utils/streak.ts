@@ -83,10 +83,14 @@ export function recordStreakToday(): { count: number; isNew: boolean; isMileston
     const saved: StreakState = { count: newCount, lastDate: today, freezesAvailable: freezesLeft, lastFreezeWeek: freezeWeek, bestCount };
     try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* quota */ }
     pushNow();
+    // Announce on the app's CustomEvent bus — App.tsx re-times the push ask to
+    // AFTER the first real engagement instead of the cold-start gate stack.
+    try { window.dispatchEvent(new Event('dw-streak-recorded')); } catch { /* SSR/tests */ }
     return { count: newCount, isNew: true, isMilestone: MILESTONES.includes(newCount) };
   } catch {
     try { localStorage.setItem(KEY, JSON.stringify({ count: 1, lastDate: today, freezesAvailable: 1, lastFreezeWeek: '', bestCount: 1 })); } catch { /* quota */ }
     pushNow();
+    try { window.dispatchEvent(new Event('dw-streak-recorded')); } catch { /* SSR/tests */ }
     return { count: 1, isNew: true, isMilestone: false };
   }
 }
