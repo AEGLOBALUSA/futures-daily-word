@@ -26,12 +26,14 @@ export function EmailNudgeCard() {
     try { return !!localStorage.getItem('dw_push_onboarded'); } catch { return false; }
   });
   useEffect(() => {
-    const h = () => {
-      setHasRead(true);
-      try { setPushDone(!!localStorage.getItem('dw_push_onboarded')); } catch { /* ignore */ }
+    const onRead = () => setHasRead(true);
+    const onPush = () => setPushDone(true);
+    window.addEventListener('dw-streak-recorded', onRead);
+    window.addEventListener('dw-push-onboarded', onPush);
+    return () => {
+      window.removeEventListener('dw-streak-recorded', onRead);
+      window.removeEventListener('dw-push-onboarded', onPush);
     };
-    window.addEventListener('dw-streak-recorded', h);
-    return () => window.removeEventListener('dw-streak-recorded', h);
   }, []);
 
   if (dismissed || !hasRead || !pushDone || userProfile?.email) return null;

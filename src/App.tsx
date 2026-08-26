@@ -252,6 +252,9 @@ function AppContent() {
   function handlePushOnboardingDone() {
     try { localStorage.setItem('dw_push_onboarded', '1'); } catch { /* quota */ }
     setPushOnboarded(true);
+    // The EmailNudgeCard sequences itself AFTER this moment — tell it directly
+    // (its mount-time read predates the flag when the prompt resolves mid-session).
+    try { window.dispatchEvent(new Event('dw-push-onboarded')); } catch { /* ignore */ }
   }
 
   useEffect(() => {
