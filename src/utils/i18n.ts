@@ -95,7 +95,7 @@ const UI: Translations = {
   characters: { en: 'characters', es: 'caracteres', pt: 'caracteres', id: 'karakter' },
 
   // ââ PLANS SCREEN ââ
-  plans_title: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
+  plans_title: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
   plans_and_more: { en: 'Plans & More', es: 'Planes y m\u00e1s', pt: 'Planos e mais', id: 'Rencana & Lainnya' },
   plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devo\u00e7\u00e3o e comunidade', id: 'Rencana bacaan, devosi, dan komunitas Anda' },
   your_plans: { en: 'YOUR PLANS', es: 'TUS PLANES', pt: 'SEUS PLANOS', id: 'RENCANA ANDA' },
