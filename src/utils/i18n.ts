@@ -54,7 +54,7 @@ const UI: Translations = {
   tab_home: { en: 'Home', es: 'Inicio', pt: 'In\u00edcio', id: 'Beranda' },
   tab_notes: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   tab_campus: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
-  tab_plans: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
+  tab_plans: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
   tab_settings: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 
   // ââ SETTINGS / MORE SCREEN ââ
