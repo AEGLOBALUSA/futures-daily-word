@@ -101,6 +101,11 @@ exports.handler = async (event) => {
   const params = event.queryStringParameters || {};
   const q = params.q;
   const v = (params.v || 'NKJV').toUpperCase();
+  // strongs=1: keep bolls' word-level Strong's tags (KJV embeds them as
+  // <S>1234</S> after each word) as {{S:1234}} markers the client can parse,
+  // and report the testament so the client can prefix G/H. Only KJV carries
+  // the tags on bolls, so the mode forces that translation.
+  const wantStrongs = params.strongs === '1';
 
   if (!q) {
     return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Missing q parameter' }) };
@@ -121,7 +126,7 @@ exports.handler = async (event) => {
 
   try {
     // Check server-side cache first
-    const cacheKey = `${q.trim().toLowerCase()}_${v}`;
+    const cacheKey = `${q.trim().toLowerCase()}_${wantStrongs ? 'KJV_S1' : v}`;
     const cached = passageCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
       return {
@@ -147,7 +152,7 @@ exports.handler = async (event) => {
 
       const chapterResults = await Promise.all(
         chapterNums.map(async (ch) => {
-          const url = `https://bolls.life/get-text/${v}/${parsed.bookId}/${ch}/`;
+          const url = `https://bolls.life/get-text/${wantStrongs ? 'KJV' : v}/${parsed.bookId}/${ch}/`;
           const resp = await fetchWithTimeout(url);
           if (!resp.ok) throw new Error('Bolls API error: ' + resp.status);
           let verses = await resp.json();
@@ -162,17 +167,24 @@ exports.handler = async (event) => {
       );
 
       // Format
+      const clean = wantStrongs
+        ? (t) => stripHtml(String(t).replace(/<S>(\d+)<\/S>/g, '{{S:$1}}'))
+        : stripHtml;
       if (chapterResults.length === 1) {
-        allPassageTexts.push(chapterResults[0].verses.map(v => `[${v.verse}] ${stripHtml(v.text)}`).join(' '));
+        allPassageTexts.push(chapterResults[0].verses.map(v => `[${v.verse}] ${clean(v.text)}`).join(' '));
       } else {
         allPassageTexts.push(chapterResults.map(cv =>
-          cv.verses.map(v => `[${v.verse}] ${stripHtml(v.text)}`).join(' ')
+          cv.verses.map(v => `[${v.verse}] ${clean(v.text)}`).join(' ')
         ).join('\n\n'));
       }
     }
 
     const passageText = allPassageTexts.join('\n\n');
-    const responseBody = JSON.stringify({ canonical: q, passages: [passageText] });
+    const responseBody = JSON.stringify({
+      canonical: q,
+      passages: [passageText],
+      ...(wantStrongs ? { testament: parsedRefs[0].bookId <= 39 ? 'OT' : 'NT' } : {}),
+    });
 
     // Store in cache (evict oldest if full)
     if (passageCache.size >= CACHE_MAX) {

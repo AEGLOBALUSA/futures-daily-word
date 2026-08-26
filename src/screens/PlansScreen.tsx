@@ -323,13 +323,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
     }
   }, []);
 
-  // Auto-suggest faith-pathway for new believers
-  useEffect(() => {
-    if ((persona === 'new_to_faith' || persona === 'new_returning') && !activePlans['faith-pathway']) {
-      // Don't auto-start, just show browse view
-    }
-  }, [persona]);
-
   // Book fetch effect — top level (Rules of Hooks)
   useEffect(() => {
     if (!activeBook) { setBookData(null); setBookChapter(null); return; }
@@ -372,7 +365,10 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
 
   // Persona-based plan filtering + ordering
   const PERSONA_PRIORITY: Record<string, string[]> = {
-    new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
+    // faith-pathway removed for new believers: they are auto-enrolled in the
+    // 40-day Faith Pathway on Home — surfacing a second, different-length
+    // 'faith pathway' here put people on two parallel journeys (Ashley, 26 Aug).
+    new_to_faith: ['ashley-jane-daily-word', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
     congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
     deeper_study: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
     pastor_leader: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],

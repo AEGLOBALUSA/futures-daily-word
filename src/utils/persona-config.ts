@@ -33,7 +33,6 @@ export interface PersonaConfig {
     sermonNotes: boolean;
     wordStudies: boolean;
     adminTools: boolean;
-    comfortCard: boolean;
     faithPathway: boolean;
     bookCards: string[];
   };
@@ -204,14 +203,12 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: false,
       wordStudies: false,
       adminTools: false,
-      comfortCard: false,
       faithPathway: true,
       bookCards: [],
     },
     plans: {
       showFullCatalog: false,
       featuredCategories: ['beginner', 'devotional'],
-      autoSuggest: 'faith-pathway',
     },
     journal: {
       entryTypes: ['journal', 'prayer'],
@@ -259,7 +256,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: true,
       wordStudies: false,
       adminTools: false,
-      comfortCard: false,
       faithPathway: false,
       bookCards: [],
     },
@@ -313,7 +309,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: true,
       wordStudies: true,
       adminTools: false,
-      comfortCard: false,
       faithPathway: false,
       bookCards: [],
     },
@@ -373,7 +368,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: true,
       wordStudies: true,
       adminTools: true,
-      comfortCard: false,
       faithPathway: false,
       bookCards: ['grace-and-truth', 'no-more-fear'],
     },
@@ -445,7 +439,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: false,
       wordStudies: false,
       adminTools: false,
-      comfortCard: true,
       faithPathway: false,
       bookCards: ['grace-and-truth', 'no-more-fear'],
     },

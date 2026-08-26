@@ -283,10 +283,10 @@ export const PLAN_CATALOGUE: PlanDef[] = [
   // ── Foundation & Spiritual Growth ─────────────────────────────────────────
   {
     id: 'faith-pathway',
-    title: '30-Day Faith Pathway',
-    titleId: 'Jalan Iman 30 Hari',
-    titleEs: 'Camino de Fe — 30 Días',
-    titlePt: 'Caminho da Fé — 30 Dias',
+    title: 'Foundations of Faith',
+    titleId: 'Dasar-Dasar Iman',
+    titleEs: 'Fundamentos de la Fe',
+    titlePt: 'Fundamentos da Fé',
     description: 'A guided journey through the foundations of faith — designed for new believers and anyone returning to Scripture.',
     descriptionId: 'Perjalanan terpandu melalui dasar-dasar iman — dirancang untuk orang percaya baru dan siapa pun yang ingin kembali mendalami Alkitab.',
     descriptionEs: 'Un recorrido guiado por los fundamentos de la fe — diseñado para nuevos creyentes y para quienes desean volver a las Escrituras.',

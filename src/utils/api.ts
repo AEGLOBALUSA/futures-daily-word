@@ -459,3 +459,37 @@ export async function fetchAICommentary(passageRef: string, lang: string = 'en')
     aiCommentaryInFlight.delete(cacheKey);
   }
 }
+
+/** Word → Strong's numbers for a passage, from bolls' KJV S-tags (via /api/bolls
+ *  strongs=1). Instant Gk/Heb lookups: tapping a word resolves locally instead of
+ *  costing a Bible-AI call. ESV↔KJV wording differs, so misses are expected —
+ *  callers fall back to the AI path for unmatched words. Cached per passage. */
+export interface StrongsMap { byWord: Record<string, string[]>; testament: 'OT' | 'NT'; }
+const strongsMapCache = new Map<string, StrongsMap>();
+export async function fetchStrongsMap(passage: string): Promise<StrongsMap | null> {
+  const key = passage.trim().toLowerCase();
+  const hit = strongsMapCache.get(key);
+  if (hit) return hit;
+  try {
+    const res = await fetch(`${API_BASE}/api/bolls?q=${encodeURIComponent(passage)}&strongs=1`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text: string = data.passages?.[0] || '';
+    const testament: 'OT' | 'NT' = data.testament === 'OT' ? 'OT' : 'NT';
+    if (!text) return null;
+    const prefix = testament === 'OT' ? 'H' : 'G';
+    const byWord: Record<string, string[]> = {};
+    // Tokens look like: word{{S:1234}} — possibly several tags per word.
+    const re = /([A-Za-z][A-Za-z']*)((?:\{\{S:\d+\}\})+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const w = m[1].toLowerCase();
+      const nums = Array.from(m[2].matchAll(/\{\{S:(\d+)\}\}/g), (t) => prefix + t[1]);
+      if (!byWord[w]) byWord[w] = [];
+      for (const n of nums) if (!byWord[w].includes(n)) byWord[w].push(n);
+    }
+    const map = { byWord, testament };
+    strongsMapCache.set(key, map);
+    return map;
+  } catch { return null; }
+}
