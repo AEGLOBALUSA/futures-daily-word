@@ -873,6 +873,8 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
               </div>
             </Card>
           </div>
+
+          <PromoAds />
         </div>
       </div>
     );
@@ -1258,7 +1260,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             </button>
           </Card>
         )}
-        <PromoAds />
       </div>
       <StopAllAudio />
     </div>

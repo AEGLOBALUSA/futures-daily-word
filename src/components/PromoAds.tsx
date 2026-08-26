@@ -39,7 +39,6 @@ export function PromoAds() {
               key={src}
               src={src}
               alt=""
-              loading="lazy"
               width={52}
               height={72}
               style={{
@@ -83,7 +82,6 @@ export function PromoAds() {
         <img
           src="/promos/logo-flc-horizontal-cream.svg"
           alt="Futures Leadership College"
-          loading="lazy"
           style={{ height: 26, width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 8 }}
         />
         <p style={{ fontSize: 12, color: 'rgba(245,239,230,0.8)', fontFamily: 'var(--font-sans)', margin: 0 }}>
