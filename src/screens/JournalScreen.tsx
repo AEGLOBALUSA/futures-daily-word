@@ -22,6 +22,7 @@ import { getPersonaConfig } from '../utils/persona-config';
 import { BibleAI } from '../components/BibleAI';
 import { t, getLang } from '../utils/i18n';
 import { useSubView } from '../utils/useSubView';
+import { PromoAds } from '../components/PromoAds';
 
 interface JournalEntry {
   id: string;
@@ -2156,6 +2157,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
         />
       )}
 
+      <PromoAds />
       <StopAllAudio />
     </div>
   );

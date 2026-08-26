@@ -10,6 +10,7 @@ import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Vide
 import type { TabId } from '../components/TabBar';
 import { LibraryScreen } from './LibraryScreen';
 import { useSubView } from '../utils/useSubView';
+import { PromoAds } from '../components/PromoAds';
 import { EmptyState } from '../components/EmptyState';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
@@ -872,6 +873,8 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
               </div>
             </Card>
           </div>
+
+          <PromoAds />
         </div>
       </div>
     );
