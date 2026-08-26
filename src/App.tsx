@@ -9,6 +9,8 @@ import { EmailGate } from './components/EmailGate';
 import { PathwayPicker } from './components/PathwayPicker';
 import { PushOptIn } from './components/PushOptIn';
 import { isPushSubscribed } from './utils/push';
+import { getStreak } from './utils/streak';
+import { schedulePush } from './utils/cloudSync';
 import { ScreenSkeleton } from './components/Skeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CookieConsent } from './components/CookieConsent';
@@ -201,6 +203,21 @@ function AppContent() {
   function handlePathwaySelect(persona: Persona) {
     saveSetup({ persona, source: 'onboarding' });
     localStorage.setItem('dw_v7_pathway_done', 'true');
+    // Church Member auto-starts the editorial default plan (Ashley, 26 Aug 2026):
+    // it was the ONLY pathway that landed with zero scripture — 6-8 decisions to
+    // the first verse. Exact startPlanFromHome write shape (full ISO startedAt);
+    // never touches an existing plan set. Not a book plan, so the book-plan
+    // hero-exclusion invariant is unaffected.
+    if (persona === 'congregation') {
+      try {
+        const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+        if (Object.keys(existing).length === 0) {
+          existing['ashley-jane-daily-word'] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
+          localStorage.setItem('dw_activeplans', JSON.stringify(existing));
+          try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch { /* ignore */ }
+        }
+      } catch { /* quota */ }
+    }
     // Seed the daily reading volume from the pathway — the dead SetupPromptModal's
     // PERSONA_CHAPTERS intent, now applied at the pick (deep-study/pastor read
     // more; everyone else, comfort included, starts at a gentle 1). Fill-only:
@@ -218,7 +235,20 @@ function AppContent() {
   const [pushOnboarded, setPushOnboarded] = useState(() => {
     try { return !!localStorage.getItem('dw_push_onboarded') || isPushSubscribed(); } catch { return false; }
   });
-  const needsPushOnboarding = onboardingActive && !needsFirstRunPicker && !pushOnboarded;
+  // Evidence-timed (Ashley, 26 Aug 2026): the ask appears only after the user has
+  // actually read something (first mark-as-read / celebration records the streak),
+  // not as a cold-start gate. Comfort users are never gated — someone in crisis
+  // should not meet a permissions screen (Settings still offers push).
+  const [hasReadOnce, setHasReadOnce] = useState(() => {
+    try { return !!getStreak().lastDate; } catch { return false; }
+  });
+  useEffect(() => {
+    const h = () => setHasReadOnce(true);
+    window.addEventListener('dw-streak-recorded', h);
+    return () => window.removeEventListener('dw-streak-recorded', h);
+  }, []);
+  const needsPushOnboarding = onboardingActive && !needsFirstRunPicker && !pushOnboarded
+    && hasReadOnce && setup?.persona !== 'comfort';
   function handlePushOnboardingDone() {
     try { localStorage.setItem('dw_push_onboarded', '1'); } catch { /* quota */ }
     setPushOnboarded(true);
@@ -324,7 +354,9 @@ function AppContent() {
           />
         </Suspense>
       )}
-      <CookieConsent />
+      {/* Cookie banner waits until no full-screen gate is active — a brand-new
+          visitor was hitting picker + push + banner inside ~30 seconds. */}
+      {!needsFirstRunPicker && !needsPushOnboarding && <CookieConsent />}
       <AudioAnnouncer />
 
       {/* Cross-device merge notice — fired by cloudSync when the same entry was

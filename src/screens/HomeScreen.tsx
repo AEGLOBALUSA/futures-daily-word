@@ -40,6 +40,7 @@ import { getStreak, recordStreakToday } from '../utils/streak';
 import { getDailyWord } from '../data/daily-words';
 import { BIBLE_BOOKS, BOOK_CHAPTERS } from '../data/bible-books';
 import { ComfortSection, localDayIndex } from '../components/ComfortSection';
+import { EmailNudgeCard } from '../components/EmailNudgeCard';
 import { COMFORT_CHAPTERS } from '../data/comfort';
 import { PastorStudyOnboarding } from '../components/PastorStudyOnboarding';
 import { NewBelieverLessonCard } from '../components/NewBelieverLessonCard';
@@ -2325,6 +2326,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             <ChevronRight size={20} />
           </button>
         </div>
+
+        {/* Post-first-reading backup nudge — appears only after the push prompt
+            is resolved, so the two post-reading moments never stack. */}
+        <EmailNudgeCard />
 
         {/* ── Choose Your Plan — only while nothing is set up yet. Mid-plan users
              already have entry points; pastor/study personas get the tailored
