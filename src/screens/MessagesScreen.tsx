@@ -6,7 +6,7 @@ import { useUser } from '../contexts/UserContext';
 import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, CheckCircle, MessageSquare, MapPin } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
 import { CampusSelect } from '../components/CampusSelect';
-import { t, getLang } from '../utils/i18n';
+import { t, getLang, dateLocale } from '../utils/i18n';
 import { pushNow } from '../utils/cloudSync';
 import { API_BASE } from '../utils/api-base';
 
@@ -893,6 +893,6 @@ function formatDate(isoStr: string): string {
     if (days === 0) return t('today', getLang());
     if (days === 1) return t('yesterday', getLang());
     if (days < 7) return t('days_ago', getLang()).replace('{n}', String(days));
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric' });
   } catch { return t('recently', getLang()); }
 }

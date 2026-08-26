@@ -52,7 +52,7 @@ import { InlineReflection } from '../components/InlineReflection';
 import { DoneCelebration } from '../components/DoneCelebration';
 import { hapticTap } from '../utils/haptics';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
-import { t as tI18n, tField, getLang } from '../utils/i18n';
+import { t as tI18n, tField, getLang, dateLocale } from '../utils/i18n';
 
 // NLT removed from the pickers: its Tyndale API needs NLT_API_KEY (not set in Netlify),
 // so it 500s and falls back to other text. Re-add 'NLT' once the key is configured.
@@ -102,7 +102,7 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
     if (streak < 3) return null;
     const daysRead = Math.min(streak, 7);
     const question = WEEK_REVIEW_QUESTIONS[Math.floor(today.getDate() / 7) % WEEK_REVIEW_QUESTIONS.length];
-    const weekLabel = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const weekLabel = today.toLocaleDateString(dateLocale(), { month: 'long', day: 'numeric' });
     return { weekLabel, daysRead, streak, question };
   } catch { return null; }
 }
@@ -1789,7 +1789,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     {(() => {
                       const d = new Date();
                       d.setDate(d.getDate() + planDayOffset);
-                      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                      return d.toLocaleDateString(dateLocale(lang), { weekday: 'short', month: 'short', day: 'numeric' });
                     })()}
                   </span>
                 </div>

@@ -821,7 +821,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         {/* ── PASTORAL CARE (Comfort Persona Only) ── */}
         {setup?.persona === 'comfort' && (
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PASTORAL CARE</h2>
+            <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>{t('pastoral_care', lang)}</h2>
             <Card style={{ padding: 16 }}>
               <div style={{ marginBottom: 14 }}>
                 <p style={{
@@ -946,22 +946,22 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <MessageSquareWarning size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            REPORT A BUG
+            {t('report_a_bug', lang)}
           </h2>
           <Card style={{ padding: 16 }}>
             {bugSubmitted ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
-                  Thank you!
+                  {t('bug_thank_you', lang)}
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  Your report has been received.
+                  {t('bug_received', lang)}
                 </p>
               </div>
             ) : (
               <>
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 14, lineHeight: 1.5 }}>
-                  Found something not working? Let us know and we'll fix it.
+                  {t('bug_intro', lang)}
                 </p>
 
                 {/* Category pills */}
@@ -981,7 +981,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                         minHeight: 32,
                       }}
                     >
-                      {cat}
+                      {t(`bug_cat_${cat}`, lang)}
                     </button>
                   ))}
                 </div>
@@ -990,7 +990,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 <textarea
                   value={bugMessage}
                   onChange={e => setBugMessage(e.target.value.slice(0, 600))}
-                  placeholder="Describe what happened..."
+                  placeholder={t('bug_placeholder', lang)}
                   style={{
                     width: '100%', minHeight: 100, padding: '14px 16px',
                     resize: 'none', outline: 'none',
@@ -1051,7 +1051,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     }}
                   >
                     <Send size={13} />
-                    {bugSubmitting ? 'Sending...' : 'Send Report'}
+                    {bugSubmitting ? t('bug_sending', lang) : t('bug_send', lang)}
                   </button>
                 </div>
               </>
