@@ -8,6 +8,7 @@ import { Card } from './Card';
 import type { TabId } from './TabBar';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { tField, t as trans } from '../utils/i18n';
+import { getPreachingFocus, setPreachingFocus } from '../utils/sermonPrep';
 
 interface PastorStudyOnboardingProps {
   isPastor: boolean;
@@ -225,6 +226,19 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                   <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('back', lang)}</button>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>{trans('wiz_preach_sub', lang)}</p>
+                {/* The question finally accepts its own answer (decision 5): the focus
+                    seeds the Notes → Sermon workspace's MY PREPARATION card. */}
+                <input
+                  defaultValue={getPreachingFocus()}
+                  onBlur={e => setPreachingFocus(e.target.value)}
+                  placeholder={trans('ws_prep_focus_ph', lang)}
+                  style={{
+                    width: '100%', boxSizing: 'border-box', padding: '12px 14px',
+                    background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                    borderRadius: 10, color: 'var(--dw-text-primary)',
+                    fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 12,
+                  }}
+                />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
                     { plan: 'new-testament-90', label: trans('wiz_full_nt', lang), sub: trans('wiz_full_nt_sub', lang) },

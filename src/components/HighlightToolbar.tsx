@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
-import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2, Pause } from 'lucide-react';
+import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2, Pause, FolderPlus } from 'lucide-react';
 import { AudioWave } from './AudioWave';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import * as AP from '../utils/audioPlayer';
 import { t, getLang } from '../utils/i18n';
+import { addPrepItem, isPastorPersona } from '../utils/sermonPrep';
 
 interface HighlightToolbarProps {
   onOpenNotes: () => void;
@@ -15,6 +16,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
   const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const lang = getLang();
   const [copied, setCopied] = useState(false);
+  const [filed, setFiled] = useState(false);
   const [listening, setListening] = useState(false);
   const listenAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -26,6 +28,14 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* fallback */ }
+  };
+
+  // Pastor-only: file the selection into the sermon-prep bag (decision 5 —
+  // the 1-tap capture finally has somewhere to put things).
+  const handleFileToSermon = () => {
+    addPrepItem(selection.verseRefs[0] || '', selection.text);
+    setFiled(true);
+    setTimeout(() => setFiled(false), 2000);
   };
 
   const handleShare = () => {
@@ -129,6 +139,11 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
         {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
         {btn(handleShare, <Share2 size={16} />, t('j_share', lang))}
         {btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
+        {isPastorPersona() && btn(
+          handleFileToSermon,
+          filed ? <Check size={16} color="var(--dw-success)" /> : <FolderPlus size={16} />,
+          filed ? t('filed_toast', lang) : t('file_to_sermon', lang)
+        )}
         {!basicMode && btn(
           () => setGreekHebrewMode(!greekHebrewMode),
           <Languages size={16} />,
