@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Search, X, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE } from '../utils/api-base';
-import { getLang } from '../utils/i18n';
+import { t, getLang } from '../utils/i18n';
 import { CANONICAL_BOOKS } from '../data/translations';
 
 interface BibleSearchProps {
@@ -116,7 +116,7 @@ export function BibleSearch({ isOpen, onClose, onSearch }: BibleSearchProps) {
           <h3 style={{ margin: 0, fontSize: 18, fontFamily: 'var(--font-serif)', color: 'var(--dw-text)' }}>
             Search Scripture
           </h3>
-          <button aria-label="Close search" onClick={onClose}
+          <button aria-label={t('close_search', getLang())} onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 4 }}>
             <X size={20} />
           </button>

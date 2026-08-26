@@ -10,12 +10,23 @@ function getCorsHeaders(origin) {
   };
 }
 
-// In-memory audio cache — keyed by passage. ESV audio is immutable, so caching is safe
-// and lets a successful fetch cover later requests for the same chapter (the audit saw
-// Luke 11 intermittently 502 while 1 Thess 5 succeeded — cache makes the good response stick).
-const audioCache = new Map();
-const CACHE_MAX = 20;            // base64 audio is large; keep the cache small
+// In-memory redirect cache — keyed by passage. ESV audio URLs are stable, so caching is
+// safe and lets a successful lookup cover later requests for the same chapter.
+// We cache the audio.esv.org Location, NOT audio bytes: buffering + base64 blew
+// Netlify's 6MB response cap on long chapters (Psalm 119, Luke 11, John 11 all 502'd
+// with Function.ResponseSizeTooLarge), so the function now redirects instead.
+const redirectCache = new Map();
+const CACHE_MAX = 200;           // URL strings are tiny
 const CACHE_TTL = 86400000;      // 24h (matches the Cache-Control we already send)
+
+// Only ever redirect to ESV's own audio host — it's the origin the app CSPs
+// (including the futures.church embed) allow in media-src.
+const ESV_AUDIO_ORIGIN = 'https://audio.esv.org';
+
+// Defensive cap for the rare direct-200 upstream path: Netlify rejects response
+// payloads over 6,291,556 bytes AFTER the handler returns (an opaque 502), so fail
+// clearly ourselves instead. Base64 inflates ~4/3, so cap the raw bytes at ~4.5MB.
+const MAX_DIRECT_BODY_BYTES = 4.5 * 1024 * 1024;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -73,16 +84,28 @@ exports.handler = async (event) => {
     };
   }
 
-  // Serve from cache if we already have this chapter's audio.
+  // `format=json` returns the audio URL as a JSON body instead of a 302. The SPA
+  // uses this: a cross-origin fetch can't follow the redirect to audio.esv.org
+  // (no CORS there), so it reads the URL and hands it to the <audio> element,
+  // which media-src CSP allows on both futuresdailyword.com and futures.church.
+  const wantsJson = event.queryStringParameters?.format === 'json';
+  const respondWithLocation = (location, cacheStatus) => wantsJson
+    ? {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400', 'X-Cache': cacheStatus },
+        body: JSON.stringify({ url: location })
+      }
+    : {
+        statusCode: 302,
+        headers: { ...corsHeaders, 'Location': location, 'Cache-Control': 'public, max-age=86400', 'X-Cache': cacheStatus },
+        body: ''
+      };
+
+  // Serve from cache if we already resolved this chapter's audio URL.
   const cacheKey = passage.trim().toLowerCase();
-  const cached = audioCache.get(cacheKey);
+  const cached = redirectCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    return {
-      statusCode: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400', 'X-Cache': 'HIT' },
-      body: cached.body,
-      isBase64Encoded: true
-    };
+    return respondWithLocation(cached.location, 'HIT');
   }
 
   const params = new URLSearchParams({ q: passage });
@@ -96,22 +119,49 @@ exports.handler = async (event) => {
     try {
       const response = await fetchWithTimeout(url, {
         headers: { 'Authorization': `Token ${API_KEY}` },
-        redirect: 'follow'
+        redirect: 'manual'
       }, 7000);
 
+      // Normal ESV behaviour: a redirect to the mp3 on audio.esv.org.
+      if (response.status >= 300 && response.status < 400) {
+        const rawLocation = response.headers.get('location');
+        let location = null;
+        try {
+          const resolved = new URL(rawLocation, url);
+          if (resolved.origin === ESV_AUDIO_ORIGIN) location = resolved.href;
+        } catch { /* missing/invalid Location — fall through to error */ }
+
+        if (location) {
+          if (redirectCache.size >= CACHE_MAX) {
+            redirectCache.delete(redirectCache.keys().next().value); // evict oldest
+          }
+          redirectCache.set(cacheKey, { location, ts: Date.now() });
+          return respondWithLocation(location, 'MISS');
+        }
+        // Redirect to an unexpected origin — never pass it through.
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'ESV audio redirect target not recognised' })
+        };
+      }
+
+      // Defensive: upstream returned the audio bytes directly (not observed in
+      // practice — the API redirects). Proxy small bodies; refuse oversized ones
+      // instead of letting the platform 502 opaquely.
       if (response.ok) {
         const arrayBuffer = await response.arrayBuffer();
-        const base64Body = Buffer.from(arrayBuffer).toString('base64');
-
-        if (audioCache.size >= CACHE_MAX) {
-          audioCache.delete(audioCache.keys().next().value); // evict oldest
+        if (arrayBuffer.byteLength > MAX_DIRECT_BODY_BYTES) {
+          return {
+            statusCode: 502,
+            headers: corsHeaders,
+            body: JSON.stringify({ error: 'ESV audio too large to proxy' })
+          };
         }
-        audioCache.set(cacheKey, { body: base64Body, ts: Date.now() });
-
         return {
           statusCode: 200,
           headers: { ...corsHeaders, 'Content-Type': 'audio/mpeg', 'Cache-Control': 'public, max-age=86400' },
-          body: base64Body,
+          body: Buffer.from(arrayBuffer).toString('base64'),
           isBase64Encoded: true
         };
       }

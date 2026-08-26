@@ -10,6 +10,7 @@
 import { useCallback, useMemo } from 'react';
 import { parseVerses } from '../utils/parseVerses';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
+import { t } from '../utils/i18n';
 
 interface ScripturePassageProps {
   /** Raw passage text with [N] verse markers */
@@ -84,7 +85,7 @@ export function ScripturePassage({
               transition: 'all 0.15s ease',
             }}
           >
-            {isAllSelected ? 'Deselect All' : 'Select All'}
+            {isAllSelected ? t('deselect_all') : t('select_all_passages')}
           </button>
         </div>
       )}
@@ -102,7 +103,7 @@ export function ScripturePassage({
             fontFamily: 'var(--font-sans)',
           }}
         >
-          Tap any word to explore its original meaning
+          {t('tap_word_hint')}
         </p>
       )}
 
@@ -117,6 +118,18 @@ export function ScripturePassage({
           <p
             key={v.verse}
             onClick={() => handleVerseTap(v.verse, v.text)}
+            // Keyboard parity with tap-to-highlight (pointer-only before). In
+            // Gk/Heb mode word taps take priority, so the verse isn't a button.
+            role={greekHebrewMode ? undefined : 'button'}
+            tabIndex={greekHebrewMode ? undefined : 0}
+            aria-pressed={greekHebrewMode ? undefined : isSelected}
+            onKeyDown={e => {
+              if (greekHebrewMode) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault(); // stop Space from scrolling / hero-audio hijack
+                handleVerseTap(v.verse, v.text);
+              }
+            }}
             style={{
               fontSize,
               lineHeight: 1.85,

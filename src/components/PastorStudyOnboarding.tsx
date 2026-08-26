@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Card } from './Card';
 import type { TabId } from './TabBar';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { tField } from '../utils/i18n';
+import { tField, t as trans } from '../utils/i18n';
 
 interface PastorStudyOnboardingProps {
   isPastor: boolean;
@@ -33,19 +33,27 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
             return null;
           }
 
+          // Self-dismiss once ANY plan exists — the step state is initialized once,
+          // so without this re-check a first-run wizard stayed up after the user
+          // started a plan elsewhere (Plans tab, Choose Your Plan, cloud sync).
+          try {
+            const ap = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+            if (Object.keys(ap).length > 0) return null;
+          } catch { /* ignore */ }
+
           // Dismissed (said "Later") — show gentle re-entry
           if (pastorOnboardStep === -1) {
             return (
               <Card style={{ marginBottom: 16, textAlign: 'center', padding: '24px 16px' }}>
                 <p style={{ fontWeight: 600, fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-                  {isPastor ? "Ready when you are. Let's set up your reading." : "Whenever you're ready to set up your reading, we're here."}
+                  {isPastor ? trans('wiz_ready_pastor', lang) : trans('wiz_ready_study', lang)}
                 </p>
                 <button
                   className="dw-btn-dark"
                   onClick={() => setPastorOnboardStep(0)}
                   style={{ background: 'var(--dw-accent)', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)' }}
                 >
-                  Let's Go
+                  {trans('wiz_lets_go', lang)}
                 </button>
               </Card>
             );
@@ -57,20 +65,20 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>
-                    Let's get you set up.
+                    {trans('wiz_get_set_up', lang)}
                   </p>
-                  <button onClick={() => { setPastorOnboardStep(-1); try { localStorage.setItem('dw_pastor_onboard_dismissed', '1'); } catch { /* ignore */ } }} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Later</button>
+                  <button onClick={() => { setPastorOnboardStep(-1); try { localStorage.setItem('dw_pastor_onboard_dismissed', '1'); } catch { /* ignore */ } }} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('later_label', lang)}</button>
                 </div>
                 <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', margin: '0 0 18px', lineHeight: 1.6 }}>
-                  You've got commentary, Greek/Hebrew tools, word studies, and sermon prep built in. First, let's get the right reading plan locked in.
+                  {trans('wiz_pastor_intro', lang)}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <button className="dw-btn-dark" onClick={() => setPastorOnboardStep(1)} style={{
                     padding: '16px 18px', borderRadius: 14, background: 'var(--dw-accent)', border: 'none',
                     cursor: 'pointer', textAlign: 'left',
                   }}>
-                    <p style={{ fontWeight: 600, fontSize: 15, color: '#fff', fontFamily: 'var(--font-sans)', margin: 0 }}>Help me pick the right plan</p>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Three quick questions</p>
+                    <p style={{ fontWeight: 600, fontSize: 15, color: '#fff', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_help_pick', lang)}</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>{trans('wiz_three_questions', lang)}</p>
                   </button>
                   <button onClick={() => {
                     setPastorOnboardStep(-2);
@@ -84,8 +92,8 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                     padding: '14px 16px', borderRadius: 14, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
                     cursor: 'pointer', textAlign: 'left',
                   }}>
-                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>I already know what I want</p>
-                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Go straight to plans</p>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_know_want', lang)}</p>
+                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>{trans('wiz_straight_plans', lang)}</p>
                   </button>
                 </div>
               </Card>
@@ -98,12 +106,12 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>
-                    What's the priority right now?
+                    {trans('wiz_priority_q', lang)}
                   </p>
-                  <button onClick={() => setPastorOnboardStep(0)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  <button onClick={() => setPastorOnboardStep(0)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('back', lang)}</button>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>
-                  This helps us match you with the right plan and tools.
+                  {trans('wiz_priority_sub', lang)}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
@@ -130,15 +138,15 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>Where do you want to spend time?</p>
-                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>{trans('wiz_where_time_q', lang)}</p>
+                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('back', lang)}</button>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick one. You can always change it later.</p>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>{trans('wiz_pick_one_change', lang)}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One chapter of each, daily.' },
-                    { plan: 'gospel-john', label: 'Gospel of John', sub: '21 days. One chapter a day.' },
-                    { plan: 'new-testament-90', label: 'New Testament', sub: 'The whole NT in 90 days.' },
+                    { plan: 'psalms-proverbs', label: trans('wiz_plan_psalms', lang), sub: trans('wiz_plan_psalms_sub', lang) },
+                    { plan: 'gospel-john', label: trans('wiz_plan_john', lang), sub: trans('wiz_plan_john_sub', lang) },
+                    { plan: 'new-testament-90', label: trans('wiz_plan_nt', lang), sub: trans('wiz_plan_nt_sub', lang) },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
@@ -157,16 +165,16 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>What do you want to study?</p>
-                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>{trans('wiz_study_q', lang)}</p>
+                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('back', lang)}</button>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>You'll get full commentary, Greek/Hebrew tools, and word studies with all of these.</p>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>{trans('wiz_study_sub', lang)}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'new-testament-90', label: 'New Testament in 90 days', sub: 'Entire NT in 90 days. 3–4 chapters a day.' },
-                    { plan: 'through-bible-year', label: 'Through the Bible in a year', sub: 'Genesis to Revelation. 365 days.' },
-                    { plan: 'gospel-john', label: 'Gospel of John', sub: '21 days. One chapter a day.' },
-                    { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One of each, daily.' },
+                    { plan: 'new-testament-90', label: trans('wiz_plan_nt90', lang), sub: trans('wiz_plan_nt90_sub', lang) },
+                    { plan: 'through-bible-year', label: trans('wiz_plan_year', lang), sub: trans('wiz_plan_year_sub', lang) },
+                    { plan: 'gospel-john', label: trans('wiz_plan_john', lang), sub: trans('wiz_plan_john_sub', lang) },
+                    { plan: 'psalms-proverbs', label: trans('wiz_plan_psalms', lang), sub: trans('wiz_plan_each_daily_sub', lang) },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
@@ -185,16 +193,16 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>How much time are you working with?</p>
-                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>{trans('wiz_time_q', lang)}</p>
+                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('back', lang)}</button>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick the pace that fits your schedule. A plan you finish beats a plan you quit.</p>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>{trans('wiz_time_sub', lang)}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'gospel-john', label: '5–10 minutes', sub: 'Gospel of John — 1 chapter a day, 21 days.' },
-                    { plan: 'new-testament-90', label: '10–15 minutes', sub: 'New Testament in 90 days — about 3 chapters a day.' },
-                    { plan: 'psalms-proverbs', label: '15–20 minutes', sub: 'Psalms & Proverbs — a few chapters a day.' },
-                    { plan: 'through-bible-year', label: '20+ minutes', sub: 'Through the Bible in a year — 3–4 chapters a day.' },
+                    { plan: 'gospel-john', label: trans('wiz_min_5_10', lang), sub: trans('wiz_min_5_10_sub', lang) },
+                    { plan: 'new-testament-90', label: trans('wiz_min_10_15', lang), sub: trans('wiz_min_10_15_sub', lang) },
+                    { plan: 'psalms-proverbs', label: trans('wiz_min_15_20', lang), sub: trans('wiz_min_15_20_sub', lang) },
+                    { plan: 'through-bible-year', label: trans('wiz_min_20', lang), sub: trans('wiz_min_20_sub', lang) },
                   ].map(opt => (
                     <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
@@ -213,18 +221,20 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>What are you preaching through?</p>
-                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: 0 }}>{trans('wiz_preach_q', lang)}</p>
+                  <button onClick={() => setPastorOnboardStep(1)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('back', lang)}</button>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick the closest match. Full commentary, word studies, and cross-references come with every plan.</p>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>{trans('wiz_preach_sub', lang)}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { plan: 'new-testament-90', label: 'Full New Testament', sub: 'The whole NT in 90 days. Great for a sermon series.' },
-                    { plan: 'through-bible-year', label: 'Whole Bible', sub: 'Genesis to Revelation in a year.' },
-                    { plan: 'psalms-proverbs', label: 'Psalms & Proverbs', sub: 'One of each, daily. Good for a wisdom series.' },
-                    { plan: 'book-church', label: 'The Church Awakening', sub: "Ps A's book on purpose and identity of the church." },
+                    { plan: 'new-testament-90', label: trans('wiz_full_nt', lang), sub: trans('wiz_full_nt_sub', lang) },
+                    { plan: 'through-bible-year', label: trans('wiz_whole_bible', lang), sub: trans('wiz_whole_bible_sub', lang) },
+                    { plan: 'psalms-proverbs', label: trans('wiz_plan_psalms', lang), sub: trans('wiz_psalms_wisdom_sub', lang) },
+                    { plan: 'book-church', label: 'The Church Awakening', sub: trans('wiz_church_book_sub', lang) },
                   ].map(opt => (
-                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
+                    // book-church is a book plan (bookId) — excluded from the Home hero
+                    // by design, so land the pastor on Plans where the book actually reads.
+                    <button key={opt.plan} onClick={() => { startPlanFromHome(opt.plan); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } if (opt.plan === 'book-church') onNavigate?.('plans'); }} style={{
                       padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left',
                     }}>
                       <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{opt.label}</p>
@@ -234,7 +244,7 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                   <button onClick={() => { onNavigate?.('plans'); }} style={{
                     padding: '12px 14px', borderRadius: 12, background: 'transparent', border: '1px dashed var(--dw-border)', cursor: 'pointer', textAlign: 'center',
                   }}>
-                    <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>Browse all plans</p>
+                    <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_browse_all', lang)}</p>
                   </button>
                 </div>
               </Card>
@@ -246,14 +256,14 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>Let's set up your study.</p>
-                  <button onClick={() => { setPastorOnboardStep(-1); try { localStorage.setItem('dw_pastor_onboard_dismissed', '1'); } catch { /* ignore */ } }} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Later</button>
+                  <p style={{ fontWeight: 700, fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_setup_study', lang)}</p>
+                  <button onClick={() => { setPastorOnboardStep(-1); try { localStorage.setItem('dw_pastor_onboard_dismissed', '1'); } catch { /* ignore */ } }} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('later_label', lang)}</button>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 16px', lineHeight: 1.5 }}>Pick a reading plan and you'll get full commentary, word studies, and Greek/Hebrew tools alongside every passage.</p>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 16px', lineHeight: 1.5 }}>{trans('wiz_study_intro', lang)}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <button className="dw-btn-dark" onClick={() => setPastorOnboardStep(2)} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--dw-accent)', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <p style={{ fontWeight: 600, fontSize: 15, color: '#fff', fontFamily: 'var(--font-sans)', margin: 0 }}>Help me choose a plan</p>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>We'll recommend one based on your pace</p>
+                    <p style={{ fontWeight: 600, fontSize: 15, color: '#fff', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_help_choose', lang)}</p>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>{trans('wiz_recommend_pace', lang)}</p>
                   </button>
                   <button onClick={() => {
                     setPastorOnboardStep(-2);
@@ -264,8 +274,8 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                     } catch { /* ignore */ }
                     onNavigate?.('plans');
                   }} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border)', cursor: 'pointer', textAlign: 'left' }}>
-                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>I know what I want</p>
-                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>Go straight to the plans</p>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_know_want_short', lang)}</p>
+                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '4px 0 0' }}>{trans('wiz_straight_plans', lang)}</p>
                   </button>
                 </div>
               </Card>
@@ -278,10 +288,10 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
             return (
               <Card style={{ marginBottom: 16, padding: '24px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>Here are a few we'd recommend.</p>
-                  <button onClick={() => setPastorOnboardStep(0)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>Back</button>
+                  <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_few_recommend', lang)}</p>
+                  <button onClick={() => setPastorOnboardStep(0)} style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>{trans('back', lang)}</button>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>Pick one and you're in. You can always switch later.</p>
+                <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.5 }}>{trans('wiz_pick_one_in', lang)}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {recommendedPlans.map(plan => (
                     <button key={plan.id} onClick={() => { startPlanFromHome(plan.id); setPastorOnboardStep(-2); try { localStorage.setItem('dw_pastor_onboard_completed', '1'); localStorage.setItem('dw_setup_dismissed', '1'); } catch { /* */ } }} style={{
@@ -294,7 +304,7 @@ export function PastorStudyOnboarding({ isPastor, t, lang, startPlanFromHome, on
                   <button onClick={() => { onNavigate?.('plans'); }} style={{
                     padding: '12px 14px', borderRadius: 12, background: 'transparent', border: '1px dashed var(--dw-border)', cursor: 'pointer', textAlign: 'center',
                   }}>
-                    <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>Browse all plans →</p>
+                    <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>{trans('wiz_browse_all', lang)} →</p>
                   </button>
                 </div>
               </Card>

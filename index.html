@@ -110,9 +110,13 @@
       <p>Please enable JavaScript to use the Futures Daily Word app.</p>
     </noscript>
     <script>
-      // ?reset — nuke everything and reload fresh
+      // ?reset — nuke everything and reload fresh.
+      // App-origin only: on futures.church/daily-word the registrations and
+      // caches belong to the CHURCH (incl. the /listen PWA) — never touch them.
       (function(){
         if(location.search.indexOf('reset')===-1) return;
+        var h=location.hostname;
+        if(h!=='futuresdailyword.com'&&h!=='www.futuresdailyword.com'&&h!=='futures-daily-word.netlify.app'&&h!=='localhost'&&h!=='127.0.0.1') return;
         if('serviceWorker' in navigator){
           navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(s){s.unregister();});});
         }
@@ -125,8 +129,12 @@
     <script>
       // One-time cache reset — keyed by version. Clears stale app caches only,
       // preserves offline Bible (fdw-bible-v1) and font cache (fdw-fonts-v1).
+      // App-origin only: un-gated this unregistered the church's /listen worker
+      // and deleted church-origin caches on every version bump.
       (function(){
         var V='v63';
+        var h=location.hostname;
+        if(h!=='futuresdailyword.com'&&h!=='www.futuresdailyword.com'&&h!=='futures-daily-word.netlify.app'&&h!=='localhost'&&h!=='127.0.0.1') return;
         if(localStorage.getItem('fdw_nuked')===V) return;
         var KEEP=['fdw-bible-v1','fdw-fonts-v1'];
         if('serviceWorker' in navigator){

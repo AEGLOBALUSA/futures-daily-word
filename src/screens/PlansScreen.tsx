@@ -6,7 +6,8 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Heart, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar, Search } from 'lucide-react';
+import type { TabId } from '../components/TabBar';
 import { EmptyState } from '../components/EmptyState';
 import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
@@ -55,22 +56,33 @@ function getBookPlans(): Record<string, BookPlan> {
   catch { return {}; }
 }
 
-/** Fetch the language-specific book JSON, falling back to the English version on 404 */
-async function fetchBookJson(jsonFile: string): Promise<Response> {
+/**
+ * Fetch book JSON, trying the language-specific file first and falling back to
+ * the English version. Validates the PAYLOAD, not the status: the SPA fallback
+ * answers every missing path with a 200 HTML page (and older service workers
+ * pinned that HTML under the JSON URL), so resp.ok alone proves nothing.
+ * Accepts legacy stored paths that were saved pre-localized (e.g.
+ * '/books/scarcity_id.json') by normalizing back to the base file first.
+ */
+async function fetchBookJson(jsonFile: string): Promise<BookData> {
+  const tryFetch = async (url: string): Promise<BookData | null> => {
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return Array.isArray(data?.chapters) ? (data as BookData) : null;
+    } catch { return null; }
+  };
+  const base = jsonFile.replace(/_(es|pt|id)\.json$/, '.json');
   const lang = getLang();
   if (lang !== 'en') {
-    const localizedUrl = jsonFile.replace('.json', `_${lang}.json`);
-    const resp = await fetch(localizedUrl);
-    if (resp.ok) return resp;
-    // Fallback to original English file
+    const localized = await tryFetch(base.replace('.json', `_${lang}.json`));
+    if (localized) return localized;
+    // Fall back to the English file
   }
-  return fetch(jsonFile);
-}
-
-/** Return the language-aware book JSON path (for storing in localStorage) */
-function localizedBookJsonFile(jsonFile: string): string {
-  const lang = getLang();
-  return lang !== 'en' ? jsonFile.replace('.json', `_${lang}.json`) : jsonFile;
+  const english = await tryFetch(base);
+  if (english) return english;
+  throw new Error(`Book JSON unavailable: ${base}`);
 }
 
 function saveBookToday(bookId: string, data: { title: string; paragraphs: string[]; chapterIndex: number; bookTitle: string; bookAuthor: string }) {
@@ -93,9 +105,14 @@ function savePlans(plans: Record<string, PlanProgress>) {
 // yesterday, else 0 (a streak not yet broken but not yet continued today).
 function streakDisplay(): number {
   const s = getStreakState();
-  const today = new Date().toISOString().slice(0, 10);
+  // LOCAL calendar days (repo invariant) — UTC slices showed 0 to evening readers.
+  const today = new Date().toLocaleDateString('en-CA');
   const y = new Date(); y.setDate(y.getDate() - 1);
-  if (s.lastDate === today || s.lastDate === y.toISOString().slice(0, 10)) return s.count || 0;
+  const yesterday = y.toLocaleDateString('en-CA');
+  // Upgrade tolerance: older builds stored lastDate as the UTC day, which can sit
+  // one day AHEAD of local in the evening — accept it so existing streaks don't blink.
+  const utcToday = new Date().toISOString().slice(0, 10);
+  if (s.lastDate === today || s.lastDate === yesterday || s.lastDate === utcToday) return s.count || 0;
   return 0;
 }
 
@@ -105,7 +122,10 @@ interface EssayTOC { title: string; author: string; sections: EssaySection[]; }
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
   try {
-    const start = new Date(startedAt);
+    // Date-only stamps ('2026-08-25') parse as UTC midnight — the PREVIOUS local
+    // day west of UTC — which skipped Day 1. Parse them on the local axis.
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startedAt);
+    const start = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(startedAt);
     start.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -116,7 +136,7 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
   }
 }
 
-export function PlansScreen({ onBack }: { onBack?: () => void }) {
+export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
   const { userProfile } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
   const [lang, setLang] = useState(getLang());
@@ -145,11 +165,11 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     if (!book.jsonFile) return;
     setStartingBook(book.id);
     try {
-      const resp = await fetchBookJson(book.jsonFile);
-      const data = await resp.json();
+      const data = await fetchBookJson(book.jsonFile);
       const chapters = data.chapters as Array<{ title: string; paragraphs: string[] }>;
       const plan: BookPlan = {
-        jsonFile: localizedBookJsonFile(book.jsonFile),
+        // Store the BASE path — fetchBookJson localizes at fetch time
+        jsonFile: book.jsonFile,
         title: book.title,
         author: book.author,
         currentChapter: 0,
@@ -175,8 +195,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
     const nextChapter = plan.currentChapter + 1;
     if (nextChapter >= plan.totalChapters) return;
     try {
-      const resp = await fetchBookJson(plan.jsonFile);
-      const data = await resp.json();
+      const data = await fetchBookJson(plan.jsonFile);
       const chapters = data.chapters as Array<{ title: string; paragraphs: string[] }>;
       const ch = chapters[nextChapter];
       plan.currentChapter = nextChapter;
@@ -381,7 +400,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
   if (!showPlanDetail) {
     return (
       <div className="screen-container">
-      <ScreenHeader title="Plans" onBack={onBack} />
+      <ScreenHeader title={t('plans_title', getLang())} onBack={onBack} />
       {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -392,7 +411,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >
               <ChevronLeft size={18} />
-              {bookChapter !== null ? 'Contents' : 'Back'}
+              {bookChapter !== null ? t('contents_label', getLang()) : t('back', getLang())}
             </button>
             {bookData && bookChapter === null && (
               <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
@@ -414,7 +433,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                     display: 'flex', alignItems: 'center', gap: 5, minHeight: 36,
                   }}
                 >
-                  {bookAudioActive ? <><Pause size={13} /> Stop</> : <><Headphones size={13} /> Listen</>}
+                  {bookAudioActive ? <><Pause size={13} /> {t('j_stop', getLang())}</> : <><Headphones size={13} /> {t('j_listen', getLang())}</>}
                 </button>
               </>
             )}
@@ -471,10 +490,10 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
               style={{ background: 'none', border: 'none', color: 'var(--dw-accent)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 14, padding: 0, minHeight: 44 }}
             >
               <ChevronLeft size={18} />
-              {essaySection !== null ? 'Contents' : 'Back'}
+              {essaySection !== null ? t('contents_label', getLang()) : t('back', getLang())}
             </button>
             <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 17, fontWeight: 400, color: 'var(--dw-text-primary)', margin: 0, flex: 1 }}>
-              {essaySection !== null && essayTOC ? essayTOC.sections[essaySection]?.title : (essayTOC?.title || 'Essay')}
+              {essaySection !== null && essayTOC ? essayTOC.sections[essaySection]?.title : (essayTOC?.title || t('msg_essay', getLang()))}
             </p>
             {essaySection !== null && sectionContent && (
               <button
@@ -487,7 +506,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                   display: 'flex', alignItems: 'center', gap: 5, minHeight: 36,
                 }}
               >
-                {essayAudioActive ? <><Pause size={13} /> Stop</> : <><Headphones size={13} /> Listen</>}
+                {essayAudioActive ? <><Pause size={13} /> {t('j_stop', getLang())}</> : <><Headphones size={13} /> {t('j_listen', getLang())}</>}
               </button>
             )}
           </div>
@@ -542,6 +561,32 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
             {t('p_plans_subtitle', lang)}
           </p>
 
+          {/* Search the Bible — surfaces the Home-mounted BibleSearch (the tab must
+              be switched first: only the active tab's screen is mounted). */}
+          <button
+            onClick={() => {
+              track('plans_search_row');
+              if (onNavigate) {
+                onNavigate('home');
+                window.setTimeout(() => window.dispatchEvent(new CustomEvent('dw-open-search')), 60);
+              } else {
+                window.dispatchEvent(new CustomEvent('dw-open-search'));
+              }
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+              background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+              borderRadius: 12, padding: '12px 16px', marginBottom: 24,
+              cursor: 'pointer', minHeight: 44, textAlign: 'left',
+            }}
+          >
+            <Search size={17} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-primary)', flex: 1 }}>
+              {t('search_the_bible', lang)}
+            </span>
+            <ChevronRight size={16} style={{ color: 'var(--dw-text-muted)' }} />
+          </button>
+
 {/* Devotion removed from Plans page — devotion lives on the home screen only */}
 
           {/* My Campus */}
@@ -559,11 +604,10 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                 </div>
                 <ChevronRight size={18} style={{ color: 'var(--dw-text-muted)' }} />
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="dw-btn-secondary" style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-                  <Heart size={14} /> {t('p_prayer_wall', lang)}
-                </button>
-                {campusData.videoUrl && (
+              {/* Prayer Wall button removed — it had no onClick (dead control); the
+                  Prayer Wall lives on the Messages tab, which this screen can't navigate to. */}
+              {campusData.videoUrl && (
+                <div style={{ display: 'flex', gap: 8 }}>
                   <a
                     href={campusData.videoUrl}
                     target="_blank"
@@ -573,8 +617,8 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                   >
                     <Video size={14} /> {t('p_live_stream', lang)}
                   </a>
-                )}
-              </div>
+                </div>
+              )}
             </Card>
           )}
 
@@ -620,9 +664,9 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
           {/* ── All Reading Plans ── */}
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>READING PLANS</h2>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('reading_plans_header', getLang())}</h2>
             <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 16, fontFamily: 'var(--font-sans)', paddingLeft: 4 }}>
-              Tap a plan to start it. Your chosen plan sets your daily reading.
+              Tap a plan, then tap Start This Plan to begin. Your chosen plan sets your daily reading.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {(() => {
@@ -923,7 +967,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
 
           {/* Essays */}
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>ESSAYS</h2>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('essays', getLang())}</h2>
             <Card style={{ cursor: 'pointer' }} onClick={() => setActiveEssay('knocking-on-the-door')}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Scroll size={18} style={{ color: 'var(--dw-accent)' }} />
@@ -975,7 +1019,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
           Reading Plans
         </h1>
         <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20, fontFamily: 'var(--font-sans)' }}>
-          Tap a plan to start it. Your active plan drives the hero button on the home screen.
+          Tap a plan, then tap Start This Plan to begin. Your active plan drives the hero button on the home screen.
         </p>
 
         {/* Single unified view — no tabs */}
@@ -988,7 +1032,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                     fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
                     textTransform: 'uppercase', color: 'var(--dw-accent)',
                     fontFamily: 'var(--font-sans)', margin: '0 0 8px',
-                  }}>Your Active Plans</p>
+                  }}>{t('j_your_active_plans', getLang())}</p>
                   {myPlans.map(plan => {
                     const progress = activePlans[plan.id];
                     if (!progress) return null;
@@ -1067,7 +1111,7 @@ export function PlansScreen({ onBack }: { onBack?: () => void }) {
                               </button>
                             )}
                             <button
-                              onClick={(e) => { e.stopPropagation(); if (window.confirm('Remove this plan? Your progress will be lost.')) resetPlan(plan.id); }}
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm(t('remove_plan_confirm', getLang()))) resetPlan(plan.id); }}
                               style={{
                                 background: 'none', border: 'none', cursor: 'pointer',
                                 fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',

@@ -10,6 +10,9 @@ export function getLang(): string {
 /** Write language preference and dispatch event so listeners can react */
 export function setLangPref(lang: string): void {
   try { localStorage.setItem('dw_lang', lang); } catch {}
+  // Keep <html lang> in step with the in-place switch (main.tsx only sets it
+  // on boot) so screen readers change voice without a full reload.
+  try { document.documentElement.lang = lang; } catch { /* ignore */ }
   window.dispatchEvent(new Event('dw-lang-changed'));
 }
 
@@ -26,6 +29,7 @@ const UI: Translations = {
   font_size: { en: 'FONT SIZE', es: 'TAMA\u00d1O DE FUENTE', pt: 'TAMANHO DA FONTE', id: 'UKURAN FONT' },
   select_campus: { en: 'Select Campus', es: 'Seleccionar sede', pt: 'Selecionar campus', id: 'Pilih Kampus' },
   search: { en: 'Search', es: 'Buscar', pt: 'Pesquisar', id: 'Cari' },
+  search_the_bible: { en: 'Search the Bible', es: 'Buscar en la Biblia', pt: 'Pesquisar na B\u00edblia', id: 'Cari di Alkitab' },
   welcome_msg: { en: 'Welcome, friend. We\'re glad you\'re here.', es: 'Bienvenido, amigo. Nos alegra que est\u00e9s aqu\u00ed.', pt: 'Bem-vindo, amigo. Estamos felizes que voc\u00ea est\u00e1 aqui.', id: 'Selamat datang, teman. Kami senang Anda di sini.' },
   im_new_to_this: { en: "I'm New to This", es: 'Soy Nuevo en Esto', pt: 'Sou Novo Nisso', id: 'Saya Baru' },
   mark_complete: { en: 'Mark Complete', es: 'Marcar completo', pt: 'Marcar completo', id: 'Tandai Selesai' },
@@ -168,6 +172,7 @@ const UI: Translations = {
   j_tap_study: { en: 'Tap to study \u2192', es: 'Toca para estudiar \u2192', pt: 'Toque para estudar \u2192', id: 'Ketuk untuk belajar \u2192' },
   j_delete_entry: { en: 'Delete this entry? This cannot be undone.', es: 'Eliminar esta entrada? No se puede deshacer.', pt: 'Excluir esta entrada? Isso n\u00e3o pode ser desfeito.', id: 'Hapus entri ini? Ini tidak bisa dibatalkan.' },
   j_title_placeholder: { en: 'Title...', es: 'T\u00edtulo...', pt: 'T\u00edtulo...', id: 'Judul...' },
+  j_save_failed: { en: "Couldn't save \u2014 device storage is full. Free up space and try again.", es: 'No se pudo guardar: el almacenamiento del dispositivo est\u00e1 lleno. Libera espacio e int\u00e9ntalo de nuevo.', pt: 'N\u00e3o foi poss\u00edvel salvar: o armazenamento do dispositivo est\u00e1 cheio. Libere espa\u00e7o e tente novamente.', id: 'Tidak dapat menyimpan \u2014 penyimpanan perangkat penuh. Kosongkan ruang dan coba lagi.' },
   j_todays_prompt: { en: "Today's Prompt", es: 'Mensaje de Hoy', pt: 'Prompt de Hoje', id: 'Prompt Hari Ini' },
   j_tap_start_prompt: { en: 'Tap to start with this prompt', es: 'Toca para comenzar con este mensaje', pt: 'Toque para come\u00e7ar com este prompt', id: 'Ketuk untuk memulai dengan prompt ini' },
   j_write_sermon: { en: 'Write your sermon notes...', es: 'Escribe tus notas del serm\u00f3n...', pt: 'Escreva suas notas do serm\u00e3o...', id: 'Tulis catatan khotbahmu...' },
@@ -245,6 +250,8 @@ const UI: Translations = {
   // ── HERO BUTTON STATES ──
   now_playing: { en: 'Now Playing', es: 'Reproduciendo', pt: 'Reproduzindo', id: 'Sedang Diputar' },
   paused_label: { en: 'Paused', es: 'Pausado', pt: 'Pausado', id: 'Dijeda' },
+  pause: { en: 'Pause', es: 'Pausar', pt: 'Pausar', id: 'Jeda' },
+  chapter_navigator: { en: 'Chapter navigator', es: 'Navegador de cap\u00edtulos', pt: 'Navegador de cap\u00edtulos', id: 'Navigasi pasal' },
   loading_label: { en: 'Preparing audio \u2014 please wait\u2026', es: 'Preparando audio \u2014 espere\u2026', pt: 'Preparando \u00e1udio \u2014 aguarde\u2026', id: 'Menyiapkan audio \u2014 harap tunggu\u2026' },
   stop_all: { en: 'Stop All', es: 'Detener Todo', pt: 'Parar Tudo', id: 'Hentikan Semua' },
   select_all_passages: { en: 'Select All', es: 'Seleccionar Todo', pt: 'Selecionar Tudo', id: 'Pilih Semua' },
@@ -342,6 +349,15 @@ const UI: Translations = {
   chapters_3: { en: '3 chapters a day', es: '3 cap\u00edtulos al d\u00eda', pt: '3 cap\u00edtulos por dia', id: '3 pasal per hari' },
   chapters_3_desc: { en: 'Deeper immersion', es: 'Inmersi\u00f3n m\u00e1s profunda', pt: 'Imers\u00e3o mais profunda', id: 'Pendalaman lebih' },
 
+  // \u2500\u2500 COMFORT DAILY READING \u2500\u2500
+  comfort_reading_x_of_y: { en: 'Reading {x} of {y}', es: 'Lectura {x} de {y}', pt: 'Leitura {x} de {y}', id: 'Bacaan {x} dari {y}' },
+  comfort_change_daily: { en: 'Change daily amount', es: 'Cambiar la cantidad diaria', pt: 'Alterar a quantidade di\u00e1ria', id: 'Ubah jumlah harian' },
+
+  // \u2500\u2500 PATHWAY COMPLETION MOMENT \u2500\u2500
+  pathway_day_complete: { en: '\u2713 Day {x} complete \u2014 Day {y} will be here tomorrow', es: '\u2713 D\u00eda {x} completado \u2014 el d\u00eda {y} estar\u00e1 aqu\u00ed ma\u00f1ana', pt: '\u2713 Dia {x} conclu\u00eddo \u2014 o dia {y} estar\u00e1 aqui amanh\u00e3', id: '\u2713 Hari {x} selesai \u2014 hari {y} akan tersedia besok' },
+  pathway_day_complete_final: { en: '\u2713 Day {x} complete', es: '\u2713 D\u00eda {x} completado', pt: '\u2713 Dia {x} conclu\u00eddo', id: '\u2713 Hari {x} selesai' },
+  pathway_show_now: { en: 'Show me now', es: 'Mostrar ahora', pt: 'Mostrar agora', id: 'Tampilkan sekarang' },
+
   // ── FONT SIZE CONTROLS ──
   font_size_label: { en: 'Font Size', es: 'Tama\u00f1o de Fuente', pt: 'Tamanho da Fonte', id: 'Ukuran Font' },
   language_label: { en: 'LANGUAGE', es: 'IDIOMA', pt: 'IDIOMA', id: 'BAHASA' },
@@ -351,6 +367,279 @@ const UI: Translations = {
   publish: { en: 'Publish', es: 'Publicar', pt: 'Publicar', id: 'Terbitkan' },
   write_notes: { en: 'Write your notes...', es: 'Escribe tus notas...', pt: 'Escreva suas notas...', id: 'Tulis catatanmu...' },
   ask_about_passage: { en: 'Ask about this passage\u2026', es: 'Pregunta sobre este pasaje\u2026', pt: 'Pergunte sobre esta passagem\u2026', id: 'Tanyakan tentang bagian ini\u2026' },
+
+  // -- STREAK RESET --
+  streak_reset_best: { en: 'Day 1 \u2014 your longest run is {best} days. It starts the same way.', es: 'D\u00eda 1 \u2014 tu racha m\u00e1s larga es de {best} d\u00edas. Empieza de la misma manera.', pt: 'Dia 1 \u2014 sua maior sequ\u00eancia \u00e9 de {best} dias. Come\u00e7a do mesmo jeito.', id: 'Hari 1 \u2014 rekor terpanjangmu {best} hari. Semuanya dimulai dengan cara yang sama.' },
+
+  // \u2500\u2500 NATIVE ORIGIN BRIDGE (church-proxy users \u2192 futuresdailyword.com) \u2500\u2500
+  bridge_line1: { en: 'Want real notifications and a home-screen app?', es: '\u00bfQuieres notificaciones reales y la app en tu pantalla de inicio?', pt: 'Quer notifica\u00e7\u00f5es de verdade e um app na tela inicial?', id: 'Ingin notifikasi sungguhan dan aplikasi di layar utama?' },
+  bridge_continue: { en: 'Continue at futuresdailyword.com', es: 'Contin\u00faa en futuresdailyword.com', pt: 'Continue em futuresdailyword.com', id: 'Lanjutkan di futuresdailyword.com' },
+  bridge_line2: { en: 'sign in with the same email and everything comes with you.', es: 'inicia sesi\u00f3n con el mismo correo y todo te acompa\u00f1a.', pt: 'entre com o mesmo e-mail e tudo vai com voc\u00ea.', id: 'masuk dengan email yang sama dan semuanya ikut bersama Anda.' },
+
+  // \u2500\u2500 ADMIN INLINE CODE ENTRY / DATA NOTICE \u2500\u2500
+  enter_pastor_or_admin_code: { en: 'Enter your campus pastor code or admin PIN', es: 'Ingresa tu c\u00f3digo de pastor de sede o PIN de administrador', pt: 'Digite seu c\u00f3digo de pastor de campus ou PIN de administrador', id: 'Masukkan kode pendeta kampus Anda atau PIN admin' },
+  open_label: { en: 'Open', es: 'Abrir', pt: 'Abrir', id: 'Buka' },
+  data_notice_cloud: { en: "Your notes back up to your account when you're online. Clearing browser data before a sync can lose recent changes.", es: 'Tus notas se respaldan en tu cuenta cuando est\u00e1s en l\u00ednea. Borrar los datos del navegador antes de una sincronizaci\u00f3n puede perder cambios recientes.', pt: 'Suas notas s\u00e3o copiadas para sua conta quando voc\u00ea est\u00e1 on-line. Limpar os dados do navegador antes de uma sincroniza\u00e7\u00e3o pode perder altera\u00e7\u00f5es recentes.', id: 'Catatan Anda dicadangkan ke akun saat online. Menghapus data browser sebelum sinkronisasi dapat menghilangkan perubahan terbaru.' },
+  pastor_code_hint: { en: 'Your code comes from the Daily Word team.', es: 'Tu c\u00f3digo lo proporciona el equipo de Daily Word.', pt: 'Seu c\u00f3digo vem da equipe do Daily Word.', id: 'Kode Anda berasal dari tim Daily Word.' },
+
+  // \u2500\u2500 CAMPUS PICKER (Campus tab empty state) \u2500\u2500
+  choose_campus_here: { en: 'Choose your campus to see updates from your pastor.', es: 'Elige tu sede para ver actualizaciones de tu pastor.', pt: 'Escolha seu campus para ver atualiza\u00e7\u00f5es do seu pastor.', id: 'Pilih kampus Anda untuk melihat pembaruan dari pendeta Anda.' },
+
+  // \u2500\u2500 JOURNAL SERMON TAB \u2500\u2500
+  j_from_campus_tab: { en: 'From the Campus tab', es: 'De la pesta\u00f1a Sede', pt: 'Da aba Campus', id: 'Dari tab Kampus' },
+
+  // \u2500\u2500 PATHWAY PICKER (first-run bottom actions) \u2500\u2500
+  keep_current_path: { en: 'Keep my current path \u2192', es: 'Mantener mi camino actual \u2192', pt: 'Manter meu caminho atual \u2192', id: 'Pertahankan jalurku saat ini \u2192' },
+  not_sure_start_member: { en: 'Not sure? Start with Church Member \u2192', es: '\u00bfNo est\u00e1s seguro? Comienza como Miembro de la Iglesia \u2192', pt: 'N\u00e3o tem certeza? Comece como Membro da Igreja \u2192', id: 'Belum yakin? Mulai sebagai Anggota Gereja \u2192' },
+
+  // \u2500\u2500 PUSH OPT-IN (first-run reminder gate) \u2500\u2500
+  push_optin_title: { en: 'One gentle nudge a day', es: 'Un suave recordatorio al d\u00eda', pt: 'Um lembrete gentil por dia', id: 'Satu pengingat lembut setiap hari' },
+  push_optin_body_push: { en: "We'll send today's Word at the time that fits your rhythm. No spam \u2014 just a daily invitation to show up.", es: 'Te enviaremos la Palabra de hoy a la hora que se ajuste a tu ritmo. Sin spam \u2014 solo una invitaci\u00f3n diaria a estar presente.', pt: 'Enviaremos a Palavra de hoje no hor\u00e1rio que combina com seu ritmo. Sem spam \u2014 apenas um convite di\u00e1rio para estar presente.', id: 'Kami akan mengirim Firman hari ini pada waktu yang cocok dengan ritmemu. Tanpa spam \u2014 hanya undangan harian untuk hadir.' },
+  push_optin_body_calendar: { en: "We'll add a recurring daily reminder to your calendar \u2014 a gentle nudge to open today's Word at the time that fits your rhythm.", es: 'A\u00f1adiremos un recordatorio diario a tu calendario \u2014 un suave aviso para abrir la Palabra de hoy a la hora que se ajuste a tu ritmo.', pt: 'Adicionaremos um lembrete di\u00e1rio ao seu calend\u00e1rio \u2014 um toque gentil para abrir a Palavra de hoje no hor\u00e1rio que combina com seu ritmo.', id: 'Kami akan menambahkan pengingat harian ke kalendermu \u2014 dorongan lembut untuk membuka Firman hari ini pada waktu yang cocok dengan ritmemu.' },
+  remind_me_at: { en: 'Remind me at', es: 'Recu\u00e9rdame a las', pt: 'Lembrar-me \u00e0s', id: 'Ingatkan saya pukul' },
+  turning_on: { en: 'Turning on\u2026', es: 'Activando\u2026', pt: 'Ativando\u2026', id: 'Mengaktifkan\u2026' },
+  opening_calendar: { en: 'Opening calendar\u2026', es: 'Abriendo calendario\u2026', pt: 'Abrindo calend\u00e1rio\u2026', id: 'Membuka kalender\u2026' },
+  turn_on_daily_reminders: { en: 'Turn on daily reminders', es: 'Activar recordatorios diarios', pt: 'Ativar lembretes di\u00e1rios', id: 'Aktifkan pengingat harian' },
+  add_to_calendar: { en: 'Add to my calendar', es: 'A\u00f1adir a mi calendario', pt: 'Adicionar ao meu calend\u00e1rio', id: 'Tambahkan ke kalender saya' },
+  maybe_later: { en: 'Maybe later', es: 'Quiz\u00e1s luego', pt: 'Talvez depois', id: 'Nanti saja' },
+
+  // \u2500\u2500 EMAIL GATE (profile onboarding) \u2500\u2500
+  valid_email_error: { en: 'Please enter a valid email address', es: 'Ingresa un correo electr\u00f3nico v\u00e1lido', pt: 'Digite um endere\u00e7o de e-mail v\u00e1lido', id: 'Masukkan alamat email yang valid' },
+  something_wrong_error: { en: 'Something went wrong. Please try again.', es: 'Algo sali\u00f3 mal. Int\u00e9ntalo de nuevo.', pt: 'Algo deu errado. Tente novamente.', id: 'Terjadi kesalahan. Silakan coba lagi.' },
+  choose_focus_desc: { en: 'Choose your reading focus to personalize your experience.', es: 'Elige tu enfoque de lectura para personalizar tu experiencia.', pt: 'Escolha seu foco de leitura para personalizar sua experi\u00eancia.', id: 'Pilih fokus bacaanmu untuk mempersonalisasi pengalamanmu.' },
+  setup_profile_title: { en: 'Set Up Your Profile', es: 'Configura tu perfil', pt: 'Configure seu perfil', id: 'Atur Profilmu' },
+  setup_profile_desc: { en: 'Sync across devices and join your campus community.', es: 'Sincroniza entre dispositivos y \u00fanete a la comunidad de tu sede.', pt: 'Sincronize entre dispositivos e junte-se \u00e0 comunidade do seu campus.', id: 'Sinkronkan antar perangkat dan bergabunglah dengan komunitas kampusmu.' },
+  setting_up: { en: 'Setting up...', es: 'Configurando...', pt: 'Configurando...', id: 'Menyiapkan...' },
+  continue_label: { en: 'Continue', es: 'Continuar', pt: 'Continuar', id: 'Lanjutkan' },
+  skip_for_now: { en: 'Skip for now', es: 'Omitir por ahora', pt: 'Pular por enquanto', id: 'Lewati untuk sekarang' },
+  welcome_short: { en: 'Welcome!', es: '\u00a1Bienvenido!', pt: 'Bem-vindo!', id: 'Selamat datang!' },
+  profile_ready: { en: 'Your profile is set up. Enjoy your reading.', es: 'Tu perfil est\u00e1 listo. Disfruta tu lectura.', pt: 'Seu perfil est\u00e1 pronto. Aproveite sua leitura.', id: 'Profilmu sudah siap. Selamat membaca.' },
+
+  // \u2500\u2500 SETUP PROMPT MODAL (plan picker sheet) \u2500\u2500
+  start_reading: { en: 'Start reading', es: 'Comienza a leer', pt: 'Comece a ler', id: 'Mulai membaca' },
+  plans_for_faith_journey: { en: 'Plans for your faith journey', es: 'Planes para tu camino de fe', pt: 'Planos para sua jornada de f\u00e9', id: 'Rencana untuk perjalanan imanmu' },
+  plans_for_daily_walk: { en: 'Plans for your daily walk', es: 'Planes para tu caminar diario', pt: 'Planos para sua caminhada di\u00e1ria', id: 'Rencana untuk perjalanan harianmu' },
+  plans_for_deeper: { en: 'Plans for going deeper', es: 'Planes para profundizar', pt: 'Planos para se aprofundar', id: 'Rencana untuk mendalami lebih jauh' },
+  plans_for_ministry: { en: 'Plans for ministry & leadership', es: 'Planes para ministerio y liderazgo', pt: 'Planos para minist\u00e9rio e lideran\u00e7a', id: 'Rencana untuk pelayanan & kepemimpinan' },
+  plans_for_season: { en: 'Plans for your current season', es: 'Planes para tu temporada actual', pt: 'Planos para sua esta\u00e7\u00e3o atual', id: 'Rencana untuk musimmu saat ini' },
+  pick_reading_plan: { en: 'Pick a reading plan', es: 'Elige un plan de lectura', pt: 'Escolha um plano de leitura', id: 'Pilih rencana baca' },
+  plan_keeps_track: { en: 'A plan keeps you on track. Pick one or skip for now.', es: 'Un plan te mantiene en camino. Elige uno u om\u00edtelo por ahora.', pt: 'Um plano mant\u00e9m voc\u00ea no caminho. Escolha um ou pule por enquanto.', id: 'Rencana membantumu tetap konsisten. Pilih satu atau lewati untuk sekarang.' },
+  popular_label: { en: 'Popular', es: 'Populares', pt: 'Populares', id: 'Populer' },
+  more_plans: { en: 'More Plans', es: 'M\u00e1s planes', pt: 'Mais planos', id: 'Rencana Lainnya' },
+  start_plans_one: { en: 'Start 1 Plan', es: 'Comenzar 1 plan', pt: 'Iniciar 1 plano', id: 'Mulai 1 Rencana' },
+  start_plans_many: { en: 'Start {n} Plans', es: 'Comenzar {n} planes', pt: 'Iniciar {n} planos', id: 'Mulai {n} Rencana' },
+  skip_plans: { en: 'Skip Plans', es: 'Omitir planes', pt: 'Pular planos', id: 'Lewati Rencana' },
+
+  // \u2500\u2500 SETUP WIZARD (pastor / deeper-study onboarding) \u2500\u2500
+  wiz_ready_pastor: { en: "Ready when you are. Let's set up your reading.", es: 'Cuando quieras. Configuremos tu lectura.', pt: 'Quando voc\u00ea quiser. Vamos configurar sua leitura.', id: 'Kapan pun kamu siap. Mari atur bacaanmu.' },
+  wiz_ready_study: { en: "Whenever you're ready to set up your reading, we're here.", es: 'Cuando est\u00e9s listo para configurar tu lectura, aqu\u00ed estamos.', pt: 'Quando estiver pronto para configurar sua leitura, estamos aqui.', id: 'Kapan pun kamu siap mengatur bacaanmu, kami di sini.' },
+  wiz_lets_go: { en: "Let's Go", es: 'Vamos', pt: 'Vamos l\u00e1', id: 'Ayo Mulai' },
+  later_label: { en: 'Later', es: 'Luego', pt: 'Depois', id: 'Nanti' },
+  wiz_get_set_up: { en: "Let's get you set up.", es: 'Vamos a configurarte.', pt: 'Vamos deixar tudo pronto.', id: 'Mari kita siapkan semuanya.' },
+  wiz_pastor_intro: { en: "You've got commentary, Greek/Hebrew tools, word studies, and sermon prep built in. First, let's get the right reading plan locked in.", es: 'Tienes comentario, herramientas de griego/hebreo, estudios de palabras y preparaci\u00f3n de sermones integrados. Primero, asegura el plan de lectura correcto.', pt: 'Voc\u00ea tem coment\u00e1rio, ferramentas de grego/hebraico, estudos de palavras e prepara\u00e7\u00e3o de serm\u00f5es integrados. Primeiro, vamos definir o plano de leitura certo.', id: 'Kamu punya komentar, alat Yunani/Ibrani, studi kata, dan persiapan khotbah bawaan. Pertama, mari kunci rencana baca yang tepat.' },
+  wiz_help_pick: { en: 'Help me pick the right plan', es: 'Ay\u00fadame a elegir el plan correcto', pt: 'Ajude-me a escolher o plano certo', id: 'Bantu aku memilih rencana yang tepat' },
+  wiz_three_questions: { en: 'Three quick questions', es: 'Tres preguntas r\u00e1pidas', pt: 'Tr\u00eas perguntas r\u00e1pidas', id: 'Tiga pertanyaan singkat' },
+  wiz_know_want: { en: 'I already know what I want', es: 'Ya s\u00e9 lo que quiero', pt: 'J\u00e1 sei o que quero', id: 'Aku sudah tahu yang kuinginkan' },
+  wiz_straight_plans: { en: 'Go straight to plans', es: 'Ir directo a los planes', pt: 'Ir direto para os planos', id: 'Langsung ke rencana' },
+  wiz_priority_q: { en: "What's the priority right now?", es: '\u00bfCu\u00e1l es la prioridad ahora?', pt: 'Qual \u00e9 a prioridade agora?', id: 'Apa prioritasmu sekarang?' },
+  wiz_priority_sub: { en: 'This helps us match you with the right plan and tools.', es: 'Esto nos ayuda a darte el plan y las herramientas correctas.', pt: 'Isso nos ajuda a indicar o plano e as ferramentas certas.', id: 'Ini membantu kami mencocokkanmu dengan rencana dan alat yang tepat.' },
+  wiz_where_time_q: { en: 'Where do you want to spend time?', es: '\u00bfD\u00f3nde quieres pasar tiempo?', pt: 'Onde voc\u00ea quer passar tempo?', id: 'Di mana kamu ingin menghabiskan waktu?' },
+  wiz_pick_one_change: { en: 'Pick one. You can always change it later.', es: 'Elige uno. Siempre puedes cambiarlo despu\u00e9s.', pt: 'Escolha um. Voc\u00ea sempre pode mudar depois.', id: 'Pilih satu. Kamu selalu bisa mengubahnya nanti.' },
+  wiz_plan_psalms: { en: 'Psalms & Proverbs', es: 'Salmos y Proverbios', pt: 'Salmos e Prov\u00e9rbios', id: 'Mazmur & Amsal' },
+  wiz_plan_psalms_sub: { en: 'One chapter of each, daily.', es: 'Un cap\u00edtulo de cada uno, a diario.', pt: 'Um cap\u00edtulo de cada, diariamente.', id: 'Satu pasal dari masing-masing, setiap hari.' },
+  wiz_plan_john: { en: 'Gospel of John', es: 'Evangelio de Juan', pt: 'Evangelho de Jo\u00e3o', id: 'Injil Yohanes' },
+  wiz_plan_john_sub: { en: '21 days. One chapter a day.', es: '21 d\u00edas. Un cap\u00edtulo al d\u00eda.', pt: '21 dias. Um cap\u00edtulo por dia.', id: '21 hari. Satu pasal per hari.' },
+  wiz_plan_nt: { en: 'New Testament', es: 'Nuevo Testamento', pt: 'Novo Testamento', id: 'Perjanjian Baru' },
+  wiz_plan_nt_sub: { en: 'The whole NT in 90 days.', es: 'Todo el NT en 90 d\u00edas.', pt: 'Todo o NT em 90 dias.', id: 'Seluruh PB dalam 90 hari.' },
+  wiz_study_q: { en: 'What do you want to study?', es: '\u00bfQu\u00e9 quieres estudiar?', pt: 'O que voc\u00ea quer estudar?', id: 'Apa yang ingin kamu pelajari?' },
+  wiz_study_sub: { en: "You'll get full commentary, Greek/Hebrew tools, and word studies with all of these.", es: 'Tendr\u00e1s comentario completo, herramientas de griego/hebreo y estudios de palabras con todos estos.', pt: 'Voc\u00ea ter\u00e1 coment\u00e1rio completo, ferramentas de grego/hebraico e estudos de palavras com todos estes.', id: 'Kamu akan mendapat komentar lengkap, alat Yunani/Ibrani, dan studi kata di semuanya.' },
+  wiz_plan_nt90: { en: 'New Testament in 90 days', es: 'Nuevo Testamento en 90 d\u00edas', pt: 'Novo Testamento em 90 dias', id: 'Perjanjian Baru dalam 90 hari' },
+  wiz_plan_nt90_sub: { en: 'Entire NT in 90 days. 3\u20134 chapters a day.', es: 'Todo el NT en 90 d\u00edas. 3\u20134 cap\u00edtulos al d\u00eda.', pt: 'Todo o NT em 90 dias. 3\u20134 cap\u00edtulos por dia.', id: 'Seluruh PB dalam 90 hari. 3\u20134 pasal per hari.' },
+  wiz_plan_year: { en: 'Through the Bible in a year', es: 'La Biblia en un a\u00f1o', pt: 'A B\u00edblia em um ano', id: 'Alkitab dalam setahun' },
+  wiz_plan_year_sub: { en: 'Genesis to Revelation. 365 days.', es: 'De G\u00e9nesis a Apocalipsis. 365 d\u00edas.', pt: 'De G\u00eanesis a Apocalipse. 365 dias.', id: 'Kejadian sampai Wahyu. 365 hari.' },
+  wiz_plan_each_daily_sub: { en: 'One of each, daily.', es: 'Uno de cada uno, a diario.', pt: 'Um de cada, diariamente.', id: 'Satu dari masing-masing, setiap hari.' },
+  wiz_time_q: { en: 'How much time are you working with?', es: '\u00bfCu\u00e1nto tiempo tienes?', pt: 'Quanto tempo voc\u00ea tem?', id: 'Berapa banyak waktu yang kamu punya?' },
+  wiz_time_sub: { en: 'Pick the pace that fits your schedule. A plan you finish beats a plan you quit.', es: 'Elige el ritmo que se ajuste a tu horario. Un plan que terminas vale m\u00e1s que uno que abandonas.', pt: 'Escolha o ritmo que cabe na sua agenda. Um plano que voc\u00ea termina vale mais que um que voc\u00ea abandona.', id: 'Pilih kecepatan yang sesuai jadwalmu. Rencana yang selesai lebih baik daripada rencana yang berhenti.' },
+  wiz_min_5_10: { en: '5\u201310 minutes', es: '5\u201310 minutos', pt: '5\u201310 minutos', id: '5\u201310 menit' },
+  wiz_min_5_10_sub: { en: 'Gospel of John \u2014 1 chapter a day, 21 days.', es: 'Evangelio de Juan \u2014 1 cap\u00edtulo al d\u00eda, 21 d\u00edas.', pt: 'Evangelho de Jo\u00e3o \u2014 1 cap\u00edtulo por dia, 21 dias.', id: 'Injil Yohanes \u2014 1 pasal per hari, 21 hari.' },
+  wiz_min_10_15: { en: '10\u201315 minutes', es: '10\u201315 minutos', pt: '10\u201315 minutos', id: '10\u201315 menit' },
+  wiz_min_10_15_sub: { en: 'New Testament in 90 days \u2014 about 3 chapters a day.', es: 'Nuevo Testamento en 90 d\u00edas \u2014 unos 3 cap\u00edtulos al d\u00eda.', pt: 'Novo Testamento em 90 dias \u2014 cerca de 3 cap\u00edtulos por dia.', id: 'Perjanjian Baru dalam 90 hari \u2014 sekitar 3 pasal per hari.' },
+  wiz_min_15_20: { en: '15\u201320 minutes', es: '15\u201320 minutos', pt: '15\u201320 minutos', id: '15\u201320 menit' },
+  wiz_min_15_20_sub: { en: 'Psalms & Proverbs \u2014 a few chapters a day.', es: 'Salmos y Proverbios \u2014 algunos cap\u00edtulos al d\u00eda.', pt: 'Salmos e Prov\u00e9rbios \u2014 alguns cap\u00edtulos por dia.', id: 'Mazmur & Amsal \u2014 beberapa pasal per hari.' },
+  wiz_min_20: { en: '20+ minutes', es: 'M\u00e1s de 20 minutos', pt: 'Mais de 20 minutos', id: '20+ menit' },
+  wiz_min_20_sub: { en: 'Through the Bible in a year \u2014 3\u20134 chapters a day.', es: 'La Biblia en un a\u00f1o \u2014 3\u20134 cap\u00edtulos al d\u00eda.', pt: 'A B\u00edblia em um ano \u2014 3\u20134 cap\u00edtulos por dia.', id: 'Alkitab dalam setahun \u2014 3\u20134 pasal per hari.' },
+  wiz_preach_q: { en: 'What are you preaching through?', es: '\u00bfSobre qu\u00e9 est\u00e1s predicando?', pt: 'Sobre o que voc\u00ea est\u00e1 pregando?', id: 'Apa yang sedang kamu khotbahkan?' },
+  wiz_preach_sub: { en: 'Pick the closest match. Full commentary, word studies, and cross-references come with every plan.', es: 'Elige lo m\u00e1s cercano. Cada plan incluye comentario completo, estudios de palabras y referencias cruzadas.', pt: 'Escolha o mais pr\u00f3ximo. Todo plano inclui coment\u00e1rio completo, estudos de palavras e refer\u00eancias cruzadas.', id: 'Pilih yang paling mendekati. Setiap rencana menyertakan komentar lengkap, studi kata, dan referensi silang.' },
+  wiz_full_nt: { en: 'Full New Testament', es: 'Nuevo Testamento completo', pt: 'Novo Testamento completo', id: 'Perjanjian Baru Lengkap' },
+  wiz_full_nt_sub: { en: 'The whole NT in 90 days. Great for a sermon series.', es: 'Todo el NT en 90 d\u00edas. Ideal para una serie de sermones.', pt: 'Todo o NT em 90 dias. \u00d3timo para uma s\u00e9rie de serm\u00f5es.', id: 'Seluruh PB dalam 90 hari. Cocok untuk seri khotbah.' },
+  wiz_whole_bible: { en: 'Whole Bible', es: 'Biblia completa', pt: 'B\u00edblia completa', id: 'Seluruh Alkitab' },
+  wiz_whole_bible_sub: { en: 'Genesis to Revelation in a year.', es: 'De G\u00e9nesis a Apocalipsis en un a\u00f1o.', pt: 'De G\u00eanesis a Apocalipse em um ano.', id: 'Kejadian sampai Wahyu dalam setahun.' },
+  wiz_psalms_wisdom_sub: { en: 'One of each, daily. Good for a wisdom series.', es: 'Uno de cada uno, a diario. Bueno para una serie de sabidur\u00eda.', pt: 'Um de cada, diariamente. Bom para uma s\u00e9rie de sabedoria.', id: 'Satu dari masing-masing, setiap hari. Cocok untuk seri hikmat.' },
+  wiz_church_book_sub: { en: "Ps A's book on purpose and identity of the church.", es: 'El libro del Pastor A sobre el prop\u00f3sito y la identidad de la iglesia.', pt: 'O livro do Pastor A sobre o prop\u00f3sito e a identidade da igreja.', id: 'Buku Ps A tentang tujuan dan identitas gereja.' },
+  wiz_browse_all: { en: 'Browse all plans', es: 'Ver todos los planes', pt: 'Ver todos os planos', id: 'Jelajahi semua rencana' },
+  wiz_setup_study: { en: "Let's set up your study.", es: 'Configuremos tu estudio.', pt: 'Vamos configurar seu estudo.', id: 'Mari atur studimu.' },
+  wiz_study_intro: { en: "Pick a reading plan and you'll get full commentary, word studies, and Greek/Hebrew tools alongside every passage.", es: 'Elige un plan de lectura y tendr\u00e1s comentario completo, estudios de palabras y herramientas de griego/hebreo junto a cada pasaje.', pt: 'Escolha um plano de leitura e voc\u00ea ter\u00e1 coment\u00e1rio completo, estudos de palavras e ferramentas de grego/hebraico junto a cada passagem.', id: 'Pilih rencana baca dan kamu akan mendapat komentar lengkap, studi kata, dan alat Yunani/Ibrani di setiap bagian.' },
+  wiz_help_choose: { en: 'Help me choose a plan', es: 'Ay\u00fadame a elegir un plan', pt: 'Ajude-me a escolher um plano', id: 'Bantu aku memilih rencana' },
+  wiz_recommend_pace: { en: "We'll recommend one based on your pace", es: 'Te recomendaremos uno seg\u00fan tu ritmo', pt: 'Recomendaremos um conforme seu ritmo', id: 'Kami akan merekomendasikan sesuai kecepatanmu' },
+  wiz_know_want_short: { en: 'I know what I want', es: 'S\u00e9 lo que quiero', pt: 'Sei o que quero', id: 'Aku tahu yang kuinginkan' },
+  wiz_few_recommend: { en: "Here are a few we'd recommend.", es: 'Aqu\u00ed tienes algunos que recomendamos.', pt: 'Aqui est\u00e3o alguns que recomendamos.', id: 'Ini beberapa yang kami rekomendasikan.' },
+  wiz_pick_one_in: { en: "Pick one and you're in. You can always switch later.", es: 'Elige uno y listo. Siempre puedes cambiar despu\u00e9s.', pt: 'Escolha um e pronto. Voc\u00ea sempre pode trocar depois.', id: 'Pilih satu dan mulai. Kamu selalu bisa berganti nanti.' },
+
+  // \u2500\u2500 DONE CELEBRATION \u2500\u2500
+  done_title: { en: "Today's reading, done.", es: 'La lectura de hoy, completada.', pt: 'A leitura de hoje, conclu\u00edda.', id: 'Bacaan hari ini, selesai.' },
+  plan_complete_title: { en: 'Plan complete \ud83c\udf89', es: 'Plan completado \ud83c\udf89', pt: 'Plano conclu\u00eddo \ud83c\udf89', id: 'Rencana selesai \ud83c\udf89' },
+  done_days_counting: { en: "{x} days and counting \u2014 you're building something.", es: '{x} d\u00edas y contando \u2014 est\u00e1s construyendo algo.', pt: '{x} dias e contando \u2014 voc\u00ea est\u00e1 construindo algo.', id: '{x} hari dan terus bertambah \u2014 kamu sedang membangun sesuatu.' },
+  done_showed_up: { en: 'You showed up today. That\u2019s how it starts.', es: 'Hoy te presentaste. As\u00ed es como empieza.', pt: 'Voc\u00ea apareceu hoje. \u00c9 assim que come\u00e7a.', id: 'Kamu hadir hari ini. Begitulah semuanya dimulai.' },
+  done_plan_body: { en: '{title} \u2014 {days} days in the Word. You finished.', es: '{title} \u2014 {days} d\u00edas en la Palabra. Lo terminaste.', pt: '{title} \u2014 {days} dias na Palavra. Voc\u00ea terminou.', id: '{title} \u2014 {days} hari dalam Firman. Kamu menyelesaikannya.' },
+  done_streak_line: { en: '{x}-day streak', es: 'racha de {x} d\u00edas', pt: 'sequ\u00eancia de {x} dias', id: '{x} hari beruntun' },
+  amen: { en: 'Amen', es: 'Am\u00e9n', pt: 'Am\u00e9m', id: 'Amin' },
+
+  // \u2500\u2500 STREAK MILESTONES \u2500\u2500
+  milestone_days: { en: '{x} Days!', es: '\u00a1{x} d\u00edas!', pt: '{x} dias!', id: '{x} Hari!' },
+  milestone_100: { en: 'Extraordinary dedication.', es: 'Dedicaci\u00f3n extraordinaria.', pt: 'Dedica\u00e7\u00e3o extraordin\u00e1ria.', id: 'Dedikasi yang luar biasa.' },
+  milestone_30: { en: 'A full month in the Word.', es: 'Un mes completo en la Palabra.', pt: 'Um m\u00eas inteiro na Palavra.', id: 'Satu bulan penuh dalam Firman.' },
+  milestone_14: { en: 'Two solid weeks.', es: 'Dos semanas s\u00f3lidas.', pt: 'Duas semanas s\u00f3lidas.', id: 'Dua minggu penuh.' },
+  milestone_7: { en: 'One week strong.', es: 'Una semana firme.', pt: 'Uma semana firme.', id: 'Satu minggu penuh semangat.' },
+  day_word: { en: 'day', es: 'd\u00eda', pt: 'dia', id: 'hari' },
+  days_word: { en: 'days', es: 'd\u00edas', pt: 'dias', id: 'hari' },
+  streak_enc_1: { en: 'Welcome back.', es: 'Bienvenido de nuevo.', pt: 'Bem-vindo de volta.', id: 'Selamat datang kembali.' },
+  streak_enc_2: { en: 'Two in a row.', es: 'Dos seguidos.', pt: 'Dois seguidos.', id: 'Dua hari berturut-turut.' },
+  streak_enc_3: { en: 'Building a habit.', es: 'Formando un h\u00e1bito.', pt: 'Criando um h\u00e1bito.', id: 'Membangun kebiasaan.' },
+  streak_enc_5: { en: 'Five days strong.', es: 'Cinco d\u00edas firmes.', pt: 'Cinco dias firmes.', id: 'Lima hari penuh semangat.' },
+  streak_enc_7: { en: 'One week!', es: '\u00a1Una semana!', pt: 'Uma semana!', id: 'Satu minggu!' },
+  streak_enc_10: { en: 'Ten days.', es: 'Diez d\u00edas.', pt: 'Dez dias.', id: 'Sepuluh hari.' },
+  streak_enc_14: { en: 'Two weeks!', es: '\u00a1Dos semanas!', pt: 'Duas semanas!', id: 'Dua minggu!' },
+  streak_enc_21: { en: 'Three weeks.', es: 'Tres semanas.', pt: 'Tr\u00eas semanas.', id: 'Tiga minggu.' },
+  streak_enc_30: { en: 'One month!', es: '\u00a1Un mes!', pt: 'Um m\u00eas!', id: 'Satu bulan!' },
+  streak_enc_40: { en: 'Forty days.', es: 'Cuarenta d\u00edas.', pt: 'Quarenta dias.', id: 'Empat puluh hari.' },
+  streak_enc_60: { en: 'Two months!', es: '\u00a1Dos meses!', pt: 'Dois meses!', id: 'Dua bulan!' },
+  streak_enc_90: { en: 'Three months.', es: 'Tres meses.', pt: 'Tr\u00eas meses.', id: 'Tiga bulan.' },
+  streak_enc_100: { en: 'One hundred days!', es: '\u00a1Cien d\u00edas!', pt: 'Cem dias!', id: 'Seratus hari!' },
+  streak_enc_180: { en: 'Half a year!', es: '\u00a1Medio a\u00f1o!', pt: 'Meio ano!', id: 'Setengah tahun!' },
+  streak_enc_365: { en: 'One full year!', es: '\u00a1Un a\u00f1o completo!', pt: 'Um ano inteiro!', id: 'Satu tahun penuh!' },
+
+  // \u2500\u2500 HOME HERO + SECTIONS \u2500\u2500
+  choose_reading_plan: { en: 'Choose your reading plan', es: 'Elige tu plan de lectura', pt: 'Escolha seu plano de leitura', id: 'Pilih rencana bacamu' },
+  pick_plan_syncs: { en: 'Pick a plan and everything here syncs to your daily reading.', es: 'Elige un plan y todo aqu\u00ed se sincroniza con tu lectura diaria.', pt: 'Escolha um plano e tudo aqui se sincroniza com sua leitura di\u00e1ria.', id: 'Pilih rencana dan semua di sini tersinkron dengan bacaan harianmu.' },
+  resume_label: { en: 'Resume', es: 'Reanudar', pt: 'Retomar', id: 'Lanjutkan' },
+  loading_audio: { en: 'Loading audio', es: 'Cargando audio', pt: 'Carregando \u00e1udio', id: 'Memuat audio' },
+  mark_as_read: { en: 'Mark as read', es: 'Marcar como le\u00eddo', pt: 'Marcar como lido', id: 'Tandai sudah dibaca' },
+  read_today: { en: '\u2713 Read today', es: '\u2713 Le\u00eddo hoy', pt: '\u2713 Lido hoje', id: '\u2713 Dibaca hari ini' },
+  loading_scripture: { en: 'Loading scripture...', es: 'Cargando escritura...', pt: 'Carregando escritura...', id: 'Memuat ayat...' },
+  compare_label: { en: 'Compare', es: 'Comparar', pt: 'Comparar', id: 'Bandingkan' },
+  your_faith_journey: { en: 'YOUR FAITH JOURNEY', es: 'TU CAMINO DE FE', pt: 'SUA JORNADA DE F\u00c9', id: 'PERJALANAN IMANMU' },
+  day_x_of_y_title: { en: 'Day {x} of {y}', es: 'D\u00eda {x} de {y}', pt: 'Dia {x} de {y}', id: 'Hari {x} dari {y}' },
+  continue_journey: { en: 'Continue Journey', es: 'Continuar el camino', pt: 'Continuar a jornada', id: 'Lanjutkan Perjalanan' },
+  todays_study: { en: "TODAY'S STUDY", es: 'ESTUDIO DE HOY', pt: 'ESTUDO DE HOJE', id: 'STUDI HARI INI' },
+  for_you: { en: 'FOR YOU', es: 'PARA TI', pt: 'PARA VOC\u00ca', id: 'UNTUKMU' },
+  remove_reading_slot: { en: 'Remove reading slot', es: 'Eliminar espacio de lectura', pt: 'Remover espa\u00e7o de leitura', id: 'Hapus slot bacaan' },
+  remove_slot_confirm: { en: 'Remove this reading slot?', es: '\u00bfEliminar este espacio de lectura?', pt: 'Remover este espa\u00e7o de leitura?', id: 'Hapus slot bacaan ini?' },
+  next_lesson_ready: { en: 'Your next lesson is ready', es: 'Tu pr\u00f3xima lecci\u00f3n est\u00e1 lista', pt: 'Sua pr\u00f3xima li\u00e7\u00e3o est\u00e1 pronta', id: 'Pelajaran berikutnya sudah siap' },
+  just_getting_started: { en: 'Just getting started', es: 'Apenas comenzando', pt: 'Apenas come\u00e7ando', id: 'Baru saja mulai' },
+  days_completed: { en: '{n} days completed', es: '{n} d\u00edas completados', pt: '{n} dias conclu\u00eddos', id: '{n} hari selesai' },
+  completed_check: { en: '\u2713 Completed', es: '\u2713 Completado', pt: '\u2713 Conclu\u00eddo', id: '\u2713 Selesai' },
+  tap_to_read: { en: 'Tap to read \u203a', es: 'Toca para leer \u203a', pt: 'Toque para ler \u203a', id: 'Ketuk untuk membaca \u203a' },
+  reading_now: { en: 'READING NOW', es: 'LEYENDO AHORA', pt: 'LENDO AGORA', id: 'SEDANG DIBACA' },
+  recommended_label: { en: 'RECOMMENDED', es: 'RECOMENDADO', pt: 'RECOMENDADO', id: 'DIREKOMENDASIKAN' },
+  tap_continue_reading: { en: 'Tap to continue reading', es: 'Toca para seguir leyendo', pt: 'Toque para continuar lendo', id: 'Ketuk untuk lanjut membaca' },
+  read_own_pace: { en: 'Read at your own pace', es: 'Lee a tu propio ritmo', pt: 'Leia no seu pr\u00f3prio ritmo', id: 'Baca dengan kecepatanmu sendiri' },
+  from_todays_devotion: { en: "From today's devotion", es: 'Del devocional de hoy', pt: 'Do devocional de hoje', id: 'Dari renungan hari ini' },
+  change_label: { en: 'Change', es: 'Cambiar', pt: 'Alterar', id: 'Ubah' },
+  select_label: { en: 'Select', es: 'Seleccionar', pt: 'Selecionar', id: 'Pilih' },
+
+  // \u2500\u2500 SCRIPTURE PASSAGE / TOOLBAR \u2500\u2500
+  deselect_all: { en: 'Deselect All', es: 'Deseleccionar todo', pt: 'Desmarcar tudo', id: 'Batalkan Pilih Semua' },
+  tap_word_hint: { en: 'Tap any word to explore its original meaning', es: 'Toca cualquier palabra para explorar su significado original', pt: 'Toque em qualquer palavra para explorar seu significado original', id: 'Ketuk kata mana pun untuk menjelajahi makna aslinya' },
+  gk_heb: { en: 'Gk/Heb', es: 'Gr/Heb', pt: 'Gr/Heb', id: 'Yun/Ibr' },
+
+  // \u2500\u2500 INLINE REFLECTION \u2500\u2500
+  reflect_label: { en: 'Reflect', es: 'Reflexiona', pt: 'Reflita', id: 'Renungkan' },
+  sit_with_this: { en: 'Sit with this', es: 'Med\u00edtalo', pt: 'Medite nisso', id: 'Renungkan ini' },
+  reflect_prompt_default: { en: "What stood out to you in today's reading?", es: '\u00bfQu\u00e9 te llam\u00f3 la atenci\u00f3n en la lectura de hoy?', pt: 'O que chamou sua aten\u00e7\u00e3o na leitura de hoje?', id: 'Apa yang menonjol bagimu dari bacaan hari ini?' },
+  reflect_prompt_comfort: { en: 'Which words brought you the most peace today?', es: '\u00bfQu\u00e9 palabras te trajeron m\u00e1s paz hoy?', pt: 'Quais palavras trouxeram mais paz a voc\u00ea hoje?', id: 'Kata-kata mana yang paling memberimu kedamaian hari ini?' },
+  save_reflection: { en: 'Save reflection', es: 'Guardar reflexi\u00f3n', pt: 'Salvar reflex\u00e3o', id: 'Simpan refleksi' },
+  saved_to_journal: { en: 'Saved to your journal', es: 'Guardado en tu diario', pt: 'Salvo no seu di\u00e1rio', id: 'Tersimpan di jurnalmu' },
+  write_thought_placeholder: { en: 'Write your thought\u2026', es: 'Escribe tu pensamiento\u2026', pt: 'Escreva seu pensamento\u2026', id: 'Tulis pemikiranmu\u2026' },
+  view_journal_label: { en: 'View journal', es: 'Ver diario', pt: 'Ver di\u00e1rio', id: 'Lihat jurnal' },
+
+  // \u2500\u2500 WEEKLY REVIEW \u2500\u2500
+  week_in_word: { en: 'YOUR WEEK IN THE WORD', es: 'TU SEMANA EN LA PALABRA', pt: 'SUA SEMANA NA PALAVRA', id: 'MINGGUMU DALAM FIRMAN' },
+  week_of: { en: 'Week of {x}', es: 'Semana del {x}', pt: 'Semana de {x}', id: 'Minggu {x}' },
+
+  // \u2500\u2500 COMFORT FLOW \u2500\u2500
+  comfort_word_for_you: { en: 'A WORD FOR YOU TODAY', es: 'UNA PALABRA PARA TI HOY', pt: 'UMA PALAVRA PARA VOC\u00ca HOJE', id: 'FIRMAN UNTUKMU HARI INI' },
+  comfort_take_time: { en: 'Take your time', es: 'T\u00f3mate tu tiempo', pt: 'Sem pressa', id: 'Tidak perlu buru-buru' },
+  comfort_finished_reading: { en: "I've finished reading", es: 'Termin\u00e9 de leer', pt: 'Terminei de ler', id: 'Aku sudah selesai membaca' },
+  comfort_peace_prompt: { en: 'Which words brought you the most peace?', es: '\u00bfQu\u00e9 palabras te trajeron m\u00e1s paz?', pt: 'Quais palavras trouxeram mais paz a voc\u00ea?', id: 'Kata-kata mana yang paling memberimu kedamaian?' },
+  comfort_thought_header: { en: 'A THOUGHT FROM THIS CHAPTER', es: 'UNA REFLEXI\u00d3N DE ESTE CAP\u00cdTULO', pt: 'UMA REFLEX\u00c3O DESTE CAP\u00cdTULO', id: 'RENUNGAN DARI PASAL INI' },
+  comfort_read_another: { en: "Would you like to read another passage from God's Word?", es: '\u00bfTe gustar\u00eda leer otro pasaje de la Palabra de Dios?', pt: 'Gostaria de ler outra passagem da Palavra de Deus?', id: 'Mau membaca bagian lain dari Firman Tuhan?' },
+  comfort_yes_more: { en: 'Yes, keep going', es: 'S\u00ed, sigamos', pt: 'Sim, continuar', id: 'Ya, lanjutkan' },
+  comfort_enough_today: { en: "That's enough for today", es: 'Suficiente por hoy', pt: 'Por hoje \u00e9 suficiente', id: 'Cukup untuk hari ini' },
+  comfort_doing_great: { en: "You're doing great.", es: 'Lo est\u00e1s haciendo muy bien.', pt: 'Voc\u00ea est\u00e1 indo muito bem.', id: 'Kamu melakukannya dengan baik.' },
+  comfort_set_daily_q: { en: 'Would you like to set a daily reading amount so we can have something ready for you each day?', es: '\u00bfQuieres fijar una cantidad de lectura diaria para que tengamos algo listo para ti cada d\u00eda?', pt: 'Quer definir uma quantidade de leitura di\u00e1ria para termos algo pronto para voc\u00ea a cada dia?', id: 'Mau menetapkan jumlah bacaan harian agar kami menyiapkan sesuatu untukmu setiap hari?' },
+  comfort_one_more: { en: 'Just give me one more for now', es: 'Dame solo uno m\u00e1s por ahora', pt: 'S\u00f3 mais um por enquanto', id: 'Beri aku satu lagi untuk sekarang' },
+  comfort_good_today: { en: "I'm good for today", es: 'Estoy bien por hoy', pt: 'Estou bem por hoje', id: 'Sudah cukup untukku hari ini' },
+  comfort_set_daily_one: { en: "You're set for 1 chapter a day. We'll have something ready for you tomorrow.", es: 'Quedaste con 1 cap\u00edtulo al d\u00eda. Tendremos algo listo para ti ma\u00f1ana.', pt: 'Ficou definido 1 cap\u00edtulo por dia. Teremos algo pronto para voc\u00ea amanh\u00e3.', id: 'Kamu diatur untuk 1 pasal per hari. Kami akan menyiapkan sesuatu untukmu besok.' },
+  comfort_set_daily_many: { en: "You're set for {n} chapters a day. We'll have something ready for you tomorrow.", es: 'Quedaste con {n} cap\u00edtulos al d\u00eda. Tendremos algo listo para ti ma\u00f1ana.', pt: 'Ficaram definidos {n} cap\u00edtulos por dia. Teremos algo pronto para voc\u00ea amanh\u00e3.', id: 'Kamu diatur untuk {n} pasal per hari. Kami akan menyiapkan sesuatu untukmu besok.' },
+  comfort_god_with_you: { en: 'God is with you. Come back whenever you need Him.', es: 'Dios est\u00e1 contigo. Vuelve cuando lo necesites.', pt: 'Deus est\u00e1 com voc\u00ea. Volte sempre que precisar Dele.', id: 'Tuhan besertamu. Kembalilah kapan pun kamu membutuhkan-Nya.' },
+  comfort_word_header: { en: 'A Word of Comfort', es: 'Una palabra de consuelo', pt: 'Uma palavra de consolo', id: 'Firman Penghiburan' },
+  pray_label: { en: 'Pray', es: 'Orar', pt: 'Orar', id: 'Berdoa' },
+  praying_label: { en: 'Praying', es: 'Orando', pt: 'Orando', id: 'Mendoakan' },
+
+  // \u2500\u2500 PRAYER WALL \u2500\u2500
+  all_campuses: { en: 'All Campuses', es: 'Todas las sedes', pt: 'Todos os campi', id: 'Semua Kampus' },
+  my_campus: { en: 'My Campus', es: 'Mi sede', pt: 'Meu campus', id: 'Kampusku' },
+  add_prayer: { en: 'Add Prayer', es: 'Agregar oraci\u00f3n', pt: 'Adicionar ora\u00e7\u00e3o', id: 'Tambah Doa' },
+  share_prayer_request: { en: 'SHARE A PRAYER REQUEST', es: 'COMPARTE UNA PETICI\u00d3N DE ORACI\u00d3N', pt: 'COMPARTILHE UM PEDIDO DE ORA\u00c7\u00c3O', id: 'BAGIKAN PERMOHONAN DOA' },
+  post_anonymously: { en: 'Post anonymously', es: 'Publicar an\u00f3nimamente', pt: 'Publicar anonimamente', id: 'Kirim secara anonim' },
+  cancel_label: { en: 'Cancel', es: 'Cancelar', pt: 'Cancelar', id: 'Batal' },
+  posting_label: { en: 'Posting\u2026', es: 'Publicando\u2026', pt: 'Publicando\u2026', id: 'Mengirim\u2026' },
+  post_label: { en: 'Post', es: 'Publicar', pt: 'Publicar', id: 'Kirim' },
+  prayer_count_one: { en: '1 prayer request across the global church', es: '1 petici\u00f3n de oraci\u00f3n en la iglesia global', pt: '1 pedido de ora\u00e7\u00e3o na igreja global', id: '1 permohonan doa di gereja global' },
+  prayer_count_many: { en: '{n} prayer requests across the global church', es: '{n} peticiones de oraci\u00f3n en la iglesia global', pt: '{n} pedidos de ora\u00e7\u00e3o na igreja global', id: '{n} permohonan doa di gereja global' },
+  loading_prayer_wall: { en: 'Loading prayer wall\u2026', es: 'Cargando muro de oraci\u00f3n\u2026', pt: 'Carregando mural de ora\u00e7\u00e3o\u2026', id: 'Memuat dinding doa\u2026' },
+  prayers_load_error: { en: 'Could not load prayers. Check your connection.', es: 'No se pudieron cargar las oraciones. Verifica tu conexi\u00f3n.', pt: 'N\u00e3o foi poss\u00edvel carregar as ora\u00e7\u00f5es. Verifique sua conex\u00e3o.', id: 'Tidak dapat memuat doa. Periksa koneksimu.' },
+  try_again: { en: 'Try Again', es: 'Intentar de nuevo', pt: 'Tentar novamente', id: 'Coba Lagi' },
+  no_prayers_campus: { en: 'No prayer requests from your campus yet.', es: 'A\u00fan no hay peticiones de tu sede.', pt: 'Ainda n\u00e3o h\u00e1 pedidos do seu campus.', id: 'Belum ada permohonan doa dari kampusmu.' },
+  no_prayers_yet: { en: 'No prayer requests yet.', es: 'A\u00fan no hay peticiones de oraci\u00f3n.', pt: 'Ainda n\u00e3o h\u00e1 pedidos de ora\u00e7\u00e3o.', id: 'Belum ada permohonan doa.' },
+  be_first_share: { en: 'Be the first to share one.', es: 'S\u00e9 el primero en compartir una.', pt: 'Seja o primeiro a compartilhar um.', id: 'Jadilah yang pertama membagikannya.' },
+  post_failed_check_code: { en: 'Failed to post. Check your pastor code.', es: 'No se pudo publicar. Verifica tu c\u00f3digo de pastor.', pt: 'N\u00e3o foi poss\u00edvel publicar. Verifique seu c\u00f3digo de pastor.', id: 'Gagal mengirim. Periksa kode pastormu.' },
+  yesterday: { en: 'Yesterday', es: 'Ayer', pt: 'Ontem', id: 'Kemarin' },
+  edit_note_header: { en: 'Edit Note', es: 'Editar nota', pt: 'Editar nota', id: 'Edit Catatan' },
+  new_sermon_note: { en: 'New Sermon Note', es: 'Nueva nota del sermón', pt: 'Nova nota do sermão', id: 'Catatan Khotbah Baru' },
+  note_title_placeholder: { en: 'Note title...', es: 'Título de la nota...', pt: 'Título da nota...', id: 'Judul catatan...' },
+  sermon_title_placeholder: { en: 'Sermon title (optional)...', es: 'Título del sermón (opcional)...', pt: 'Título do sermão (opcional)...', id: 'Judul khotbah (opsional)...' },
+  update_label: { en: 'Update', es: 'Actualizar', pt: 'Atualizar', id: 'Perbarui' },
+  days_ago: { en: '{n} days ago', es: 'hace {n} d\u00edas', pt: 'h\u00e1 {n} dias', id: '{n} hari lalu' },
+  recently: { en: 'Recently', es: 'Recientemente', pt: 'Recentemente', id: 'Baru-baru ini' },
+
+  // \u2500\u2500 GREEK / HEBREW POPUP \u2500\u2500
+  greek_label: { en: 'Greek', es: 'Griego', pt: 'Grego', id: 'Yunani' },
+  definition_unavailable: { en: 'Definition not available', es: 'Definici\u00f3n no disponible', pt: 'Defini\u00e7\u00e3o n\u00e3o dispon\u00edvel', id: 'Definisi tidak tersedia' },
+  show_less: { en: 'Show less \u2191', es: 'Mostrar menos \u2191', pt: 'Mostrar menos \u2191', id: 'Tampilkan lebih sedikit \u2191' },
+  full_definition: { en: 'Full definition \u2193', es: 'Definici\u00f3n completa \u2193', pt: 'Defini\u00e7\u00e3o completa \u2193', id: 'Definisi lengkap \u2193' },
+  study_this_word: { en: 'Study this word', es: 'Estudiar esta palabra', pt: 'Estudar esta palavra', id: 'Pelajari kata ini' },
+
+  // \u2500\u2500 PLANS SCREEN (readers) \u2500\u2500
+  reading_plans_header: { en: 'READING PLANS', es: 'PLANES DE LECTURA', pt: 'PLANOS DE LEITURA', id: 'RENCANA BACAAN' },
+  contents_label: { en: 'Contents', es: 'Contenido', pt: 'Sum\u00e1rio', id: 'Daftar Isi' },
+  remove_plan_confirm: { en: 'Remove this plan? Your progress will be lost.', es: '\u00bfEliminar este plan? Perder\u00e1s tu progreso.', pt: 'Remover este plano? Seu progresso ser\u00e1 perdido.', id: 'Hapus rencana ini? Progresmu akan hilang.' },
+
+  // \u2500\u2500 ARIA-ONLY CONTROL LABELS \u2500\u2500
+  previous_month: { en: 'Previous month', es: 'Mes anterior', pt: 'M\u00eas anterior', id: 'Bulan sebelumnya' },
+  next_month: { en: 'Next month', es: 'Mes siguiente', pt: 'Pr\u00f3ximo m\u00eas', id: 'Bulan berikutnya' },
+  send_message: { en: 'Send message', es: 'Enviar mensaje', pt: 'Enviar mensagem', id: 'Kirim pesan' },
+  cookie_consent_label: { en: 'Cookie consent', es: 'Consentimiento de cookies', pt: 'Consentimento de cookies', id: 'Persetujuan cookie' },
+  open_futures_church: { en: 'Open Futures Church', es: 'Abrir Futures Church', pt: 'Abrir Futures Church', id: 'Buka Futures Church' },
+  close_search: { en: 'Close search', es: 'Cerrar b\u00fasqueda', pt: 'Fechar pesquisa', id: 'Tutup pencarian' },
+  decrease_font: { en: 'Decrease font size', es: 'Reducir tama\u00f1o de fuente', pt: 'Diminuir tamanho da fonte', id: 'Perkecil ukuran font' },
+  increase_font: { en: 'Increase font size', es: 'Aumentar tama\u00f1o de fuente', pt: 'Aumentar tamanho da fonte', id: 'Perbesar ukuran font' },
+  dismiss_sync_notice: { en: 'Dismiss sync notice', es: 'Descartar aviso de sincronizaci\u00f3n', pt: 'Dispensar aviso de sincroniza\u00e7\u00e3o', id: 'Tutup pemberitahuan sinkronisasi' },
+  switch_light_mode: { en: 'Switch to light mode', es: 'Cambiar a modo claro', pt: 'Mudar para modo claro', id: 'Beralih ke mode terang' },
+  switch_dark_mode: { en: 'Switch to dark mode', es: 'Cambiar a modo oscuro', pt: 'Mudar para modo escuro', id: 'Beralih ke mode gelap' },
+  stop_audio_label: { en: 'Stop audio playback', es: 'Detener reproducci\u00f3n de audio', pt: 'Parar reprodu\u00e7\u00e3o de \u00e1udio', id: 'Hentikan pemutaran audio' },
+  sync_notice_one: { en: 'Synced across your devices \u2014 kept the newest version of 1 note.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de 1 nota.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de 1 nota.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari 1 catatan disimpan.' },
+  sync_notice_many: { en: 'Synced across your devices \u2014 kept the newest version of {n} notes.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de {n} notas.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de {n} notas.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari {n} catatan disimpan.' },
 };
 
 export function t(key: string, lang?: string): string {

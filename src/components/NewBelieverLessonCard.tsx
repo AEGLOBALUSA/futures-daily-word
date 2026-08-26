@@ -4,8 +4,10 @@
  * render reading HomeScreen state via props; plan completion routes through the
  * savePathwayProgress callback.
  */
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Share2, Loader2, Pause, Headphones, BookOpen } from 'lucide-react';
+import { t as trans } from '../utils/i18n';
 import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
 import { AudioWave } from './AudioWave';
@@ -40,7 +42,11 @@ export function NewBelieverLessonCard({
   audioPlaying, audioLoading, audioCurrentPassage,
   savePathwayProgress, handleTranslationChange, handleListen, loadPassage, renderScripture,
 }: NewBelieverLessonCardProps) {
-          const currentDay = pathwayProgress.currentDay || 1;
+          // Completion moment: hold the just-completed lesson on screen (with a
+          // "Day N complete" note) instead of instantly swapping to tomorrow's.
+          // Progress itself still advances immediately via savePathwayProgress.
+          const [justCompletedDay, setJustCompletedDay] = useState<number | null>(null);
+          const currentDay = justCompletedDay ?? (pathwayProgress.currentDay || 1);
           const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
           if (!dayData) return null;
           const completed = pathwayProgress.completedDays?.length || 0;
@@ -65,6 +71,9 @@ export function NewBelieverLessonCard({
           const isCompleted = pathwayProgress.completedDays.includes(currentDay);
 
           return (
+            // The wrapper div carries the scroll anchor the Faith Journey banner's
+            // "Continue" targets (Card does not forward an id prop).
+            <div id="pathway-lesson-card">
             <Card style={{ marginBottom: 16 }}>
               {/* Header: plan name + progress */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -107,6 +116,7 @@ export function NewBelieverLessonCard({
                     if (!isCompleted) {
                       const newCompleted = [...pathwayProgress.completedDays, currentDay];
                       const nextDay = Math.min(totalDays, currentDay + 1);
+                      setJustCompletedDay(currentDay);
                       savePathwayProgress({ ...pathwayProgress, completedDays: newCompleted, currentDay: nextDay });
                     }
                   }}
@@ -122,7 +132,7 @@ export function NewBelieverLessonCard({
                     fontFamily: 'var(--font-sans)',
                   }}
                 >
-                  {isCompleted ? '✓ Completed' : t('mark_complete')}
+                  {isCompleted ? trans('completed_check', lang) : t('mark_complete')}
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button onClick={() => {
@@ -137,10 +147,41 @@ export function NewBelieverLessonCard({
                     borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 500,
                     color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)',
                   }}>
-                    <Share2 size={14} /> Share
+                    <Share2 size={14} /> {trans('share', lang)}
                   </button>
                 </div>
               </div>
+
+              {/* Completion moment — shown until the reader asks for the next lesson */}
+              {justCompletedDay !== null && (
+                <div style={{
+                  marginTop: 12, padding: '12px 14px',
+                  background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
+                  borderRadius: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                }}>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)' }}>
+                    {justCompletedDay < totalDays
+                      ? trans('pathway_day_complete', lang)
+                          .replace('{x}', String(justCompletedDay))
+                          .replace('{y}', String(justCompletedDay + 1))
+                      : trans('pathway_day_complete_final', lang).replace('{x}', String(justCompletedDay))}
+                  </p>
+                  {justCompletedDay < totalDays && (
+                    <button
+                      onClick={() => setJustCompletedDay(null)}
+                      style={{
+                        background: 'transparent', border: 'none', padding: '4px 6px',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                        textDecoration: 'underline', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {trans('pathway_show_now', lang)}
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* ── Scripture Reading for this day ── */}
               {dayReading && (() => {
@@ -195,11 +236,11 @@ export function NewBelieverLessonCard({
                         }}
                       >
                         {isLoadingAudio ? (
-                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> {trans('j_loading', lang)}…</>
                         ) : isPlayingThis ? (
-                          <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
+                          <><AudioWave height={14} color="#fff" /> <Pause size={14} /> {trans('pause', lang)}</>
                         ) : (
-                          <><Headphones size={14} /> Listen</>
+                          <><Headphones size={14} /> {trans('j_listen', lang)}</>
                         )}
                       </button>
                     </div>
@@ -208,7 +249,7 @@ export function NewBelieverLessonCard({
                     {isLoading ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                         <Loader2 size={14} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'normal', fontFamily: 'var(--font-sans)' }}>Loading {translation}…</span>
+                        <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'normal', fontFamily: 'var(--font-sans)' }}>{trans('j_loading', lang)} {translation}…</span>
                       </div>
                     ) : passageText ? (
                       <ScripturePassage
@@ -228,12 +269,13 @@ export function NewBelieverLessonCard({
                           display: 'flex', alignItems: 'center', gap: 6,
                         }}
                       >
-                        <BookOpen size={16} /> Read {fullChapter}
+                        <BookOpen size={16} /> {trans('read_btn', lang)} {fullChapter}
                       </button>
                     )}
                   </div>
                 );
               })()}
             </Card>
+            </div>
           );
 }

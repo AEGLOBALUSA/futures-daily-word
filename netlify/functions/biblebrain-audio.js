@@ -82,6 +82,16 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: corsHeaders, body: '' };
   }
 
+  // Origin check — same gate as esv-audio.js. Without it this function was an
+  // open proxy on the paid Bible Brain key, callable from any origin.
+  const referer = event.headers?.referer || event.headers?.Referer || '';
+  const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
+  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
+  const isNoOrigin = !origin && !referer;
+  if (!isAllowedOrigin && !isSameOrigin && !isNoOrigin) {
+    return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
+  }
+
   const API_KEY = process.env.BIBLE_BRAIN_API_KEY;
   if (!API_KEY) {
     return {

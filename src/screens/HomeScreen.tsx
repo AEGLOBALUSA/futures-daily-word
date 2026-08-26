@@ -40,11 +40,12 @@ import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
 import { getStreak, recordStreakToday } from '../utils/streak';
 import { getDailyWord } from '../data/daily-words';
 import { BIBLE_BOOKS, BOOK_CHAPTERS } from '../data/bible-books';
-import { ComfortSection } from '../components/ComfortSection';
+import { ComfortSection, localDayIndex } from '../components/ComfortSection';
+import { COMFORT_CHAPTERS } from '../data/comfort';
 import { PastorStudyOnboarding } from '../components/PastorStudyOnboarding';
 import { NewBelieverLessonCard } from '../components/NewBelieverLessonCard';
 import { DailyWordCard } from '../components/DailyWordCard';
-import { CampusCountBadge } from '../components/CampusCountBadge';
+import { API_BASE } from '../utils/api-base';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { PastoralReflectionSection } from '../components/PastoralReflectionSection';
 import { InlineReflection } from '../components/InlineReflection';
@@ -110,7 +111,15 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
 /** Calendar-based plan day — advances automatically each day regardless of completion */
 function calcPlanDay(startedAt: string, totalDays: number): number {
   try {
-    const start = new Date(startedAt);
+    // Date-only stamps ('2026-08-25') parse as UTC midnight = the PREVIOUS local
+    // day for any timezone west of UTC, which skipped Day 1 entirely (plans showed
+    // Day 2 on their first day). Production dw_activeplans entries with that shape
+    // persist and union-merge across devices, so the defensive local-axis parse is
+    // required even though writers now store full ISO timestamps.
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startedAt);
+    const start = dateOnly
+      ? new Date(+dateOnly[1], +dateOnly[2] - 1, +dateOnly[3])
+      : new Date(startedAt);
     start.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -246,6 +255,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     'ask_about_passage': { en: 'Ask about this passage\u2026', es: 'Pregunta sobre este pasaje\u2026', pt: 'Pergunte sobre esta passagem\u2026', id: 'Tanyakan tentang bagian ini\u2026' },
     'read_btn': { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
     'hide_reading': { en: 'Hide', es: 'Ocultar', pt: 'Ocultar', id: 'Sembunyikan' },
+    'campus_stats_prompt': { en: 'Enter your campus pastor code to see live stats for your campus.', es: 'Ingresa tu código de pastor de sede para ver estadísticas en vivo de tu sede.', pt: 'Digite seu código de pastor de campus para ver estatísticas ao vivo do seu campus.', id: 'Masukkan kode pastor kampusmu untuk melihat statistik langsung kampusmu.' },
+    'campus_stats_view': { en: 'View stats', es: 'Ver estadísticas', pt: 'Ver estatísticas', id: 'Lihat statistik' },
+    'campus_stats_error': { en: 'Couldn’t load live stats — check your campus code.', es: 'No se pudieron cargar las estadísticas — verifica tu código de sede.', pt: 'Não foi possível carregar as estatísticas — verifique seu código de campus.', id: 'Statistik tidak dapat dimuat — periksa kode kampusmu.' },
   };
   const t = (key: string): string => UI_STRINGS[key]?.[appLanguage] || UI_STRINGS[key]?.['en'] || key;
 
@@ -266,7 +278,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   // Chapters per day (from Settings)
   const [chaptersPerDay, setChaptersPerDay] = useState<number>(() => {
-    return parseInt(localStorage.getItem('dw_chapters_per_day') || '3', 10);
+    // Default is ONE chapter a day — the old '3' made every default-config user's
+    // "today" span three plan days (tripling audio/TTS too). Users who explicitly
+    // chose a cadence keep their stored key.
+    return parseInt(localStorage.getItem('dw_chapters_per_day') || '1', 10);
   });
 
   // Faith Pathway state
@@ -297,7 +312,25 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       setAudioCurrentPassage(passage ?? null);
     });
   }, []);
+
+  // Other screens (e.g. the Plans hub's "Search the Bible" row) open the
+  // Home-mounted BibleSearch through this event — matches the app's CustomEvent bus.
+  useEffect(() => {
+    const openSearch = () => setShowSearch(true);
+    window.addEventListener('dw-open-search', openSearch);
+    return () => window.removeEventListener('dw-open-search', openSearch);
+  }, []);
   const [streakCount, setStreakCount] = useState(() => getStreak().count);
+  // A brand-new user (fresh streak state per src/utils/streak.ts: lastDate '')
+  // gets count=1 from the mount-effect below — that's not a streak yet, so on the
+  // first-visit DAY (dw_first_open missing or today) the header chip shows nothing
+  // instead of "1 day / Welcome back.". Real streaks (2+) always show.
+  const isFirstVisitDay = (() => {
+    try {
+      const firstOpen = localStorage.getItem('dw_first_open');
+      return !firstOpen || firstOpen === new Date().toLocaleDateString('en-CA');
+    } catch { return false; }
+  })();
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
   // Deliberate "done" state for today's reading + the calm celebration card it triggers.
   const [readDoneToday, setReadDoneToday] = useState(() => {
@@ -357,6 +390,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // selection now lives on the Home "Choose your reading plan" hero + the Plans tab.
 
   const savePathwayProgress = (p: PathwayProgress) => {
+    // A newly completed pathway day is real engagement — count the streak
+    // (recordStreakToday is idempotent per day, repo convention).
+    if ((p.completedDays?.length || 0) > (pathwayProgress.completedDays?.length || 0)) {
+      const r = recordStreakToday();
+      if (r.isNew) setStreakCount(r.count);
+    }
     setPathwayProgress(p);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
     try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
@@ -504,8 +543,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     loadPassage(passage);
     trackBehavior('passage_read', passage);
     track('daily_reading', passage);
-    // Mark this plan day as completed
-    markPlanDayComplete(passage);
+    // Mark this plan day as completed — and if that completion FINISHED the whole
+    // plan, show the finish celebration (the one-shot finishedCelebrated flag was
+    // previously consumed here silently, so finishing a plan ended with nothing).
+    const done = markPlanDayComplete(passage);
+    if (done?.planFinished) setPlanFinish({ title: done.planTitle, days: done.planDays });
   };
 
   const handleListen = (passage: string) => {
@@ -551,16 +593,19 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // deferred too — the Home hero + Plans tab are the plan entry points now.
   useEffect(() => {
     if (!localStorage.getItem('dw_first_open')) {
-      localStorage.setItem('dw_first_open', new Date().toISOString().slice(0, 10));
+      // LOCAL calendar day (repo invariant) — not the UTC toISOString slice.
+      localStorage.setItem('dw_first_open', new Date().toLocaleDateString('en-CA'));
     }
   }, []);
 
-  // Reset expanded passages when day or translation changes
+  // Reset expanded passages when day or translation changes. Deliberately does
+  // NOT stop audio: with a plan active the strip below drives planDayOffset (its
+  // own effect handles the day change), so a dayOffset tick here is a no-op for
+  // the plan reading and killing commute audio for it was pure loss.
   useEffect(() => {
     setExpandedPassages(new Set());
     setPassageTexts({});
     setCompareTexts({});
-    stopAudio();
   }, [dayOffset, translation]);
 
   // Persist planDayOffset (date-keyed so it resets on a new calendar day)
@@ -644,15 +689,23 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; titleId?: string; author: string; body: string; bodyId?: string } }>; }
   })();
 
-  // Primary passage: always driven by active plan — no calendar fallback
-  const primaryPassage = todaysPlanPassages[0]?.passage || '';
+  // Commentary covers EVERY passage of the day (not just the first) — each entry
+  // keeps its passage so the card can label which chapter it belongs to.
   const commentarySources = COMMENTARY as Record<string, Record<string, string>>;
-  const allCommentaries: { source: string; text: string }[] = [];
-  for (const [source, entries] of Object.entries(commentarySources)) {
-    if (entries[primaryPassage]) {
-      allCommentaries.push({ source, text: entries[primaryPassage] });
+  const allCommentaries: { source: string; text: string; passage: string }[] = [];
+  {
+    const seenCommentaryRefs = new Set<string>();
+    for (const { passage } of todaysPlanPassages) {
+      if (seenCommentaryRefs.has(passage)) continue;
+      seenCommentaryRefs.add(passage);
+      for (const [source, entries] of Object.entries(commentarySources)) {
+        if (entries[passage]) {
+          allCommentaries.push({ source, text: entries[passage], passage });
+        }
+      }
     }
   }
+  const commentaryPassageCount = new Set(allCommentaries.map(c => c.passage)).size;
 
   // If the user has an active Ashley-Jane plan, sync the devotion to that plan's day
   // instead of using the calendar-based rotation (which doesn't match the hero reading)
@@ -680,27 +733,18 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       if (!text) return;
       const cacheKey = tKey;
       if (audioSrcCache.current.has(cacheKey)) return; // already cached
-      // Silently preload — don't auto-play, just warm the cache
-      AP.fetchAudioSrc(text.slice(0, 5000), translation, passage).then(src => {
+      // Silently preload — don't auto-play, just warm the cache. MUST pass the
+      // same slice as playback (handleAudio, 20000): a shorter preload slice was
+      // cached under the same key and cut TTS audio off ~1/3 into long chapters.
+      AP.fetchAudioSrc(text.slice(0, 20000), translation, passage).then(src => {
         if (src) audioSrcCache.current.set(cacheKey, src);
       }).catch(() => {});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passageTexts, translation]);
 
-  // Fetch compare text when compare mode or translation changes
-  useEffect(() => {
-    if (!compareMode || todaysPlanPassages.length === 0) return;
-    todaysPlanPassages.forEach(({ passage }) => {
-      const cKey = `${passage}_${compareTranslation}`;
-      if (compareTexts[cKey]) return; // already loaded
-      fetchPassage(passage, compareTranslation)
-        .then(text => {
-          setCompareTexts(prev => ({ ...prev, [cKey]: text }));
-        })
-        .catch(() => {});
-    });
-  }, [compareMode, compareTranslation, todaysPlanPassages]);
+  // (Compare-text fetch effect lives below, after heroChapterRefs is defined —
+  // it needs the plan-passages ∪ reading-slots union to cover slot cards.)
 
   // ── Hero full-passage state (always ESV for real human audio) ──────────────
   // heroFullText removed — audio now fetches per-chapter on demand
@@ -778,12 +822,71 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     };
     document.addEventListener('visibilitychange', rollIfNewDay);
     window.addEventListener('focus', rollIfNewDay);
+    // Backstop for a tab/kiosk that stays open, visible AND focused across
+    // midnight — neither visibilitychange nor focus fires then, and in-page taps
+    // don't refire focus. rollIfNewDay is idempotent (rolloverDayRef compare),
+    // so a minute tick is cheap and only acts once per calendar day.
+    const rollInterval = window.setInterval(rollIfNewDay, 60000);
     return () => {
       document.removeEventListener('visibilitychange', rollIfNewDay);
       window.removeEventListener('focus', rollIfNewDay);
+      window.clearInterval(rollInterval);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Campus Overview — REAL analytics (pastor_leader only) ──────────────────
+  // The old grid fabricated "reading today" / "active this week" / "prayer
+  // requests" from a deterministic seed on the campus id — pastors were quoting
+  // invented engagement numbers. It now shows ONLY what /api/analytics-dashboard
+  // returns for the pastor's own campus code (campus-scoped, no PII); without a
+  // working code it shows the code prompt, never fake numbers.
+  const [campusStats, setCampusStats] = useState<{ campus: string; readingToday: number; activeThisWeek: number; prayerCount: number } | null>(null);
+  const [campusStatsError, setCampusStatsError] = useState(false);
+  const [campusStatsLoading, setCampusStatsLoading] = useState(false);
+  const [pastorCodeInput, setPastorCodeInput] = useState('');
+  const [campusStatsRetry, setCampusStatsRetry] = useState(0);
+  const [pastorCode, setPastorCode] = useState<string>(() => {
+    try { return localStorage.getItem('dw_pastor_code') || ''; } catch { return ''; }
+  });
+
+  useEffect(() => {
+    if (personaConfig.persona !== 'pastor_leader' || !pastorCode) return;
+    let cancelled = false;
+    setCampusStatsLoading(true);
+    setCampusStatsError(false);
+    fetch(`${API_BASE}/api/analytics-dashboard`, { headers: { 'X-Pastor-Code': pastorCode } })
+      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .then(json => {
+        if (cancelled) return;
+        // A campus code gets the campus-scoped shape; the admin/master codes get
+        // the global shape (full dashboard lives in More) — only render numbers
+        // the API actually sent for THIS campus.
+        if (json && json.scope === 'campus') {
+          setCampusStats({
+            campus: String(json.campus || ''),
+            readingToday: Number(json.readingToday) || 0,
+            activeThisWeek: Number(json.activeThisWeek) || 0,
+            prayerCount: Number(json.prayerCount) || 0,
+          });
+        } else {
+          setCampusStats(null);
+          setCampusStatsError(true);
+        }
+      })
+      .catch(() => { if (!cancelled) { setCampusStats(null); setCampusStatsError(true); } })
+      .finally(() => { if (!cancelled) setCampusStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, [personaConfig.persona, pastorCode, campusStatsRetry]);
+
+  const submitPastorCode = () => {
+    const code = pastorCodeInput.trim().toUpperCase();
+    if (!code) return;
+    try { localStorage.setItem('dw_pastor_code', code); } catch { /* quota */ }
+    setCampusStatsError(false);
+    setPastorCode(code);
+    setCampusStatsRetry(n => n + 1); // refetch even when the code is unchanged
+  };
 
   /** Play audio for a passage using the global AudioPlayer */
   const handleAudio = async (passage: string) => {
@@ -836,7 +939,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       const updated = { ...existing };
       for (const id of planIds) {
         if (!updated[id]) {
-          updated[id] = { startedAt: new Date().toISOString().slice(0, 10), completedDays: [], lastDay: 0 };
+          // Full ISO timestamp like startPlanFromHome/PlansScreen.startPlan — a
+          // date-only UTC slice made calcPlanDay skip Day 1 west of UTC.
+          updated[id] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
         }
       }
       localStorage.setItem('dw_activeplans', JSON.stringify(updated));
@@ -867,9 +972,20 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     try {
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
         JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      const bookPlans: Record<string, { currentChapter: number; totalChapters: number }> =
+        (() => { try { return JSON.parse(localStorage.getItem('dw_book_plans') || '{}'); } catch { return {}; } })();
       return Object.entries(ap).map(([pid, prog]) => {
         const plan = PLAN_CATALOGUE.find(p => p.id === pid);
         if (!plan) return null;
+        // Book plans are CHAPTER-driven, not calendar-driven: 19 elapsed days
+        // with zero chapters read is not "✓ Complete". Mirror PlansScreen and
+        // read dw_book_plans.currentChapter (0 progress when the entry is
+        // missing). This only READS book-plan progress — book plans stay
+        // excluded from the hero scripture pipeline.
+        if (plan.bookId) {
+          const bp = bookPlans[plan.bookId];
+          return { plan, dayNum: bp ? bp.currentChapter + 1 : 0 };
+        }
         // Use calendar-based day to match hero display (not completion count)
         const dayNum = calcPlanDay(prog.startedAt, plan.totalDays);
         return { plan, dayNum };
@@ -893,10 +1009,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         const bookPlans: Record<string, { jsonFile: string; title: string; author: string; currentChapter: number; totalChapters: number; startedAt: string }> =
           (() => { try { return JSON.parse(localStorage.getItem('dw_book_plans') || '{}'); } catch { return {}; } })();
         if (!bookPlans[planDef.bookId]) {
-          const _bLang = getLang();
-          const _bLangSuffix = _bLang !== 'en' ? `_${_bLang}` : '';
+          // Store the BASE path only. fetchBookJson (PlansScreen) localizes at
+          // fetch time and falls back to English; storing a localized path here
+          // double-suffixed it ('..._id_id.json'), which the SPA fallback then
+          // answered with 200 HTML — breaking book plans for non-English users.
           bookPlans[planDef.bookId] = {
-            jsonFile: planDef.bookJsonFile.replace('.json', `${_bLangSuffix}.json`),
+            jsonFile: planDef.bookJsonFile,
             title: planDef.title,
             author: 'Pastor Ashley Evans',
             currentChapter: 0,
@@ -922,9 +1040,45 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         .slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length))
         .map(s => `${s.book} ${s.currentChapter}`),
     ];
+    // Persona fallback — comfort and new-believer users have auto-served content,
+    // so an empty plan/slot state lands them on that reading instead of the
+    // "Choose your reading plan" funnel. Scripture refs only: book plans stay
+    // excluded from the hero pipeline.
+    if (refs.length === 0) {
+      if (personaConfig.persona === 'comfort') {
+        const comfortRef = COMFORT_CHAPTERS[localDayIndex() % COMFORT_CHAPTERS.length];
+        if (comfortRef) refs.push(comfortRef);
+      } else if (personaConfig.persona === 'new_to_faith' && pathwayProgress.enrolled && pathwayData) {
+        const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === (pathwayProgress.currentDay || 1));
+        if (dayData?.reading) refs.push(`${dayData.reading.book} ${dayData.reading.chapter}`);
+      }
+    }
     return refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
-  }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef]);
+  }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef, personaConfig.persona, pathwayProgress, pathwayData]);
   const heroKey = heroChapterRefs.join('|');
+
+  // Fetch compare text when compare mode or translation changes. Covers BOTH the
+  // raw plan passages (plan cards key compareTexts by the un-expanded ref) AND
+  // heroChapterRefs, which unions plan chapters with visible reading slots —
+  // slot cards' compare panels previously spun "Loading…" forever because
+  // nothing ever fetched their keys.
+  useEffect(() => {
+    if (!compareMode) return;
+    const refs = [
+      ...todaysPlanPassages.map(p => p.passage),
+      ...heroChapterRefs,
+    ].filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
+    refs.forEach(passage => {
+      const cKey = `${passage}_${compareTranslation}`;
+      if (compareTexts[cKey]) return; // already loaded
+      fetchPassage(passage, compareTranslation)
+        .then(text => {
+          setCompareTexts(prev => ({ ...prev, [cKey]: text }));
+        })
+        .catch(() => {});
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compareMode, compareTranslation, todaysPlanPassages, heroKey]);
 
   // Pre-load today's chapter texts in background (for read view)
   // Does NOT set heroLoading — that's only for audio loading feedback
@@ -947,10 +1101,22 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const heroQueueRef = useRef<string[]>([]);
   const heroQueueActiveRef = useRef(false);
   const heroChainVersionRef = useRef(0); // version counter to kill stale chains
+  // One-shot within-chapter resume time ({key, idx, t} rides in dw_hero_chapter_idx,
+  // throttle-saved during playback) — consumed on the day's first hero play.
+  const heroResumeRef = useRef<{ idx: number; t: number } | null>(null);
   const [heroChapterIndex, setHeroChapterIndex] = useState(() => {
     try {
-      const saved = localStorage.getItem('dw_hero_chapter_idx');
-      return saved ? parseInt(saved, 10) : 0;
+      // Persisted as {key, idx} and honoured ONLY when the stored key matches the
+      // current heroKey. A bare index survived across days, so a fresh morning
+      // launch auto-opened (and played from) yesterday's LAST chapter — the
+      // reset-on-change effect below never fires on a fresh mount. Legacy plain
+      // numbers and parse failures fall back to 0.
+      const saved = JSON.parse(localStorage.getItem('dw_hero_chapter_idx') || 'null');
+      if (saved && saved.key === heroKey && Number.isInteger(saved.idx) && saved.idx >= 0) {
+        if (typeof saved.t === 'number' && saved.t > 10) heroResumeRef.current = { idx: saved.idx, t: saved.t };
+        return saved.idx;
+      }
+      return 0;
     } catch { return 0; }
   });
   const [audioPaused, setAudioPaused] = useState(false);
@@ -958,8 +1124,25 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   useEffect(() => {
     heroChapterIndexRef.current = heroChapterIndex;
-    try { localStorage.setItem('dw_hero_chapter_idx', String(heroChapterIndex)); } catch {}
+    try { localStorage.setItem('dw_hero_chapter_idx', JSON.stringify({ key: heroKey, idx: heroChapterIndex })); } catch { /* quota */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroChapterIndex]);
+
+  // Throttle-save the within-chapter position while the hero chain is playing so
+  // an app kill mid-chapter can resume ({key, idx, t} — the same shape the state
+  // initializer above reads back). Chapter advances rewrite {key, idx} without t,
+  // which is correct: a new chapter starts from the top.
+  useEffect(() => {
+    if (!audioPlaying || audioCurrentPassage !== HERO_KEY) return;
+    const id = window.setInterval(() => {
+      try {
+        localStorage.setItem('dw_hero_chapter_idx',
+          JSON.stringify({ key: heroKey, idx: heroChapterIndexRef.current, t: AP.getCurrentTime() }));
+      } catch { /* quota */ }
+    }, 5000);
+    return () => window.clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioPlaying, audioCurrentPassage, heroKey]);
 
   // Reset chapter index when day or plan changes (heroKey reflects current passages)
   const prevHeroKeyRef = useRef(heroKey);
@@ -1004,14 +1187,19 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     });
   }, []);
 
-  const playChapterAtIndex = async (index: number, chainVersion?: number) => {
+  // Resolves true when playback started for this (or a later) chapter — or when
+  // the chain was superseded/stopped, which is not the caller's failure to show.
+  // Resolves false ONLY when the chain exhausted every remaining chapter without
+  // any audio: the caller surfaces that as audioError (previously the chain
+  // resolved silently and offline taps did visibly nothing, forever).
+  const playChapterAtIndex = async (index: number, chainVersion?: number): Promise<boolean> => {
     const myVersion = chainVersion ?? heroChainVersionRef.current;
 
     if (index < 0 || index >= heroChapterRefs.length) {
       heroQueueActiveRef.current = false;
-      return;
+      return false; // nothing (left) to play
     }
-    if (myVersion !== heroChainVersionRef.current) return;
+    if (myVersion !== heroChainVersionRef.current) return true; // superseded
 
     setHeroChapterIndex(index);
     const ref = heroChapterRefs[index];
@@ -1022,20 +1210,20 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       let src = audioSrcCache.current.get(cacheKey);
       if (!src) {
         const text = await fetchPassage(ref, translation).catch(() => '');
-        if (myVersion !== heroChainVersionRef.current) return;
+        if (myVersion !== heroChainVersionRef.current) return true;
         if (text) {
           src = await AP.fetchAudioSrc(text, translation, ref) ?? undefined;
           if (src) audioSrcCache.current.set(cacheKey, src);
         }
       }
-      if (myVersion !== heroChainVersionRef.current) return;
+      if (myVersion !== heroChainVersionRef.current) return true;
 
       if (!src) {
         // No audio available — skip to next chapter
         if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
-          await playChapterAtIndex(index + 1, myVersion);
+          return await playChapterAtIndex(index + 1, myVersion);
         }
-        return;
+        return true; // stopped mid-chain — not an exhaustion
       }
 
       // ── Pre-fetch next chapter in background ──
@@ -1058,32 +1246,104 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       if (AP.getState() !== 'playing') {
         // playUrl failed — skip to next
         if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
-          await playChapterAtIndex(index + 1, myVersion);
+          return await playChapterAtIndex(index + 1, myVersion);
         }
-        return;
+        return true;
+      }
+
+      // Within-chapter resume (one-shot): the day's first play of the saved
+      // chapter picks up where a killed session left off. Near-start times skip.
+      if (heroResumeRef.current) {
+        const resume = heroResumeRef.current;
+        heroResumeRef.current = null;
+        if (resume.idx === index && resume.t > 10) {
+          try { AP.seekTo(resume.t); } catch { /* ignore */ }
+        }
       }
 
       // ── Wait for audio to finish (uses ended event + state listener) ──
       const result = await AP.waitForEnd();
 
-      markPlanDayComplete(ref);
+      // Completion integrity: credit the plan day ONLY when playback actually
+      // reached the end — Stop after five seconds (or a media error) is not a
+      // completed reading.
+      if (result === 'ended') {
+        const today = new Date().toLocaleDateString('en-CA');
+        if (index === heroChapterRefs.length - 1 && localStorage.getItem('dw_reading_done') !== today) {
+          // Listening through the END of the whole reading completes the day:
+          // handleMarkRead credits the plan day, stamps dw_reading_done (en-CA),
+          // records the streak and picks the finish-vs-done celebration itself.
+          // Deferred a tick so the chain's state churn settles first.
+          setTimeout(() => handleMarkRead(ref), 0);
+        } else {
+          const done = markPlanDayComplete(ref);
+          if (done?.planFinished) {
+            // The one-shot finishedCelebrated flag was previously consumed here
+            // silently — surface the plan-finish celebration instead.
+            const finish = { title: done.planTitle, days: done.planDays };
+            setTimeout(() => setPlanFinish(finish), 0);
+          }
+        }
+      }
 
       // If user stopped, don't advance
       if (result === 'stopped' && AP.wasStopRequested()) {
         heroQueueActiveRef.current = false;
-        return;
+        return true;
       }
 
       // Advance to next chapter
       if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
         await playChapterAtIndex(index + 1, myVersion);
       }
+      return true; // this chapter played — a later exhaustion isn't a failure
     } catch {
       // On error, try next chapter
       if (heroQueueActiveRef.current && myVersion === heroChainVersionRef.current) {
-        await playChapterAtIndex(index + 1, myVersion);
+        return await playChapterAtIndex(index + 1, myVersion);
       }
+      return true;
     }
+  };
+
+  /** Fire the hero chain at startIdx and keep the play button honest.
+   *  onStateChange replays the CURRENT state synchronously on subscribe — 'idle'
+   *  at this point — so 'idle' is only terminal AFTER the chain has been seen
+   *  active ('loading'/'playing'); the old instant-settle cancelled the spinner
+   *  in the same tick and disarmed the double-tap guard. If the whole chain
+   *  exhausts without producing any audio (offline, all providers down), set
+   *  audioError and satisfy the hero error line's gate so the failure is VISIBLE. */
+  const startHeroChain = (startIdx: number, version: number) => {
+    let unsub: (() => void) | null = null;
+    let settled = false;
+    let sawActive = false;
+    const settle = () => {
+      settled = true;
+      setHeroLoading(false);
+      if (unsub) { unsub(); unsub = null; }
+    };
+    unsub = AP.onStateChange((st) => {
+      if (st === 'loading' || st === 'playing') sawActive = true;
+      if (st === 'playing' || (sawActive && st === 'idle' && !AP.isLoading())) settle();
+    });
+    // onStateChange can fire synchronously (before `unsub` is assigned) — clean up now.
+    if (settled && unsub) { (unsub as () => void)(); unsub = null; }
+
+    playChapterAtIndex(startIdx, version)
+      .then(anyPlayed => {
+        if (!anyPlayed && version === heroChainVersionRef.current) {
+          setAudioError(true);
+          setAudioCurrentPassage(HERO_KEY); // error line is gated on the hero key
+        }
+        if (!settled) settle(); // exhausted without a state change — stop the spinner
+      })
+      .catch(() => {
+        if (version === heroChainVersionRef.current) {
+          setAudioError(true);
+          setAudioCurrentPassage(HERO_KEY);
+        }
+        if (!settled) settle();
+      });
   };
 
   const handleHeroListen = () => {
@@ -1125,20 +1385,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     heroQueueActiveRef.current = true;
 
     // Fire and forget — the chain runs autonomously through all chapters
-    playChapterAtIndex(startIdx, newVersion).catch(() => setAudioError(true));
-
-    // Clear heroLoading once audio starts playing (or if it fails)
-    let unsub: (() => void) | null = null;
-    let settled = false;
-    unsub = AP.onStateChange((st) => {
-      if (st === 'playing' || (st === 'idle' && !AP.isLoading())) {
-        setHeroLoading(false);
-        settled = true;
-        if (unsub) unsub();
-      }
-    });
-    // onStateChange can fire synchronously (before `unsub` is assigned) — clean up now.
-    if (settled && unsub) unsub();
+    startHeroChain(startIdx, newVersion);
   };
 
   // Select a chapter without starting audio (tapped on chapter pill or slider when idle)
@@ -1155,26 +1402,20 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     const newVersion = ++heroChainVersionRef.current;
     heroQueueActiveRef.current = true;
     setHeroLoading(true);
-    playChapterAtIndex(index, newVersion).catch(() => setAudioError(true));
-    let unsub: (() => void) | null = null;
-    let settled = false;
-    unsub = AP.onStateChange((st) => {
-      if (st === 'playing' || (st === 'idle' && !AP.isLoading())) {
-        setHeroLoading(false);
-        settled = true;
-        if (unsub) unsub();
-      }
-    });
-    // onStateChange can fire synchronously (before `unsub` is assigned) — clean up now.
-    if (settled && unsub) unsub();
+    startHeroChain(index, newVersion);
   };
 
   // Spacebar toggles play/pause on hero audio
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return;
-      const tag = (e.target as HTMLElement)?.tagName;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Space on a focused control must activate it, not hijack hero audio.
+      if (el?.closest?.('button, [role="button"], a, [contenteditable="true"]')) return;
+      // Ditto while any modal/gate is open on top of the mounted Home screen.
+      if (document.querySelector('[aria-modal="true"]')) return;
       e.preventDefault();
       handleHeroListen();
     };
@@ -1357,7 +1598,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   fontSize: 11, fontWeight: 600, color: 'var(--dw-accent)',
                   fontFamily: 'var(--font-sans)',
                 }}>
-                  {(() => { const _pc = PERSONA_CONFIGS[personaConfig.persona]; const _l = getLang(); return (_l === 'id' && _pc?.labelId) ? _pc.labelId : _pc?.label || ''; })()}
+                  {(() => { const _keys: Record<string, string> = { new_to_faith: 'persona_new', congregation: 'persona_member', deeper_study: 'persona_study', pastor_leader: 'persona_leader', comfort: 'persona_comfort' }; const _k = _keys[personaConfig.persona]; return _k ? tI18n(_k, lang) : PERSONA_CONFIGS[personaConfig.persona]?.label || ''; })()}
                 </span>
                 {currentCampus && (
                   <>
@@ -1375,24 +1616,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </div>
           {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && (() => {
-              const encouragement: [number, string][] = [
-                [1,   'Welcome back.'],
-                [2,   'Two in a row.'],
-                [3,   'Building a habit.'],
-                [5,   'Five days strong.'],
-                [7,   'One week!'],
-                [10,  'Ten days.'],
-                [14,  'Two weeks!'],
-                [21,  'Three weeks.'],
-                [30,  'One month!'],
-                [40,  'Forty days.'],
-                [60,  'Two months!'],
-                [90,  'Three months.'],
-                [100, 'One hundred days!'],
-                [180, 'Half a year!'],
-                [365, 'One full year!'],
-              ];
+            {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && !(streakCount <= 1 && isFirstVisitDay) && (() => {
+              const encouragement: [number, string][] = [1, 2, 3, 5, 7, 10, 14, 21, 30, 40, 60, 90, 100, 180, 365]
+                .map(n => [n, tI18n(`streak_enc_${n}`, lang)] as [number, string]);
               const label = [...encouragement].reverse().find(([n]) => streakCount >= n)?.[1] ?? null;
               const isMilestone = streakCount >= 7;
               return (
@@ -1413,7 +1639,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     fontVariantNumeric: 'tabular-nums',
                     letterSpacing: '-0.03em',
                   }}>
-                    {streakCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>{streakCount === 1 ? 'day' : 'days'}</span>
+                    {streakCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>{streakCount === 1 ? tI18n('day_word', lang) : tI18n('days_word', lang)}</span>
                   </span>
                   {label && (
                     <span style={{
@@ -1449,7 +1675,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </p>
           {pf.searchEnabled && (
             <button
-              aria-label="Search"
+              aria-label={t('search')}
               onClick={() => setShowSearch(true)}
               style={{
                 background: 'none',
@@ -1460,12 +1686,16 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: 5,
                 transition: 'color 0.2s ease',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--dw-accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--dw-text-muted)')}
             >
               <Search size={20} />
+              {/* Text label — the app's most differentiated feature shouldn't hide
+                  behind one unlabeled icon. */}
+              <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{t('search')}</span>
             </button>
           )}
         </div>
@@ -1488,10 +1718,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)', pointerEvents: 'none' }}>
                 <div style={{ height: 16 }} />
                 <p style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 8px', lineHeight: 1.3 }}>
-                  Choose your reading plan
+                  {tI18n('choose_reading_plan', lang)}
                 </p>
                 <p style={{ fontSize: 14, opacity: 0.72, fontFamily: 'var(--font-sans)', margin: '0 0 22px', lineHeight: 1.5 }}>
-                  Pick a plan and everything here syncs to your daily reading.
+                  {tI18n('pick_plan_syncs', lang)}
                 </p>
                 <button
                   className="dw-hero-light-btn"
@@ -1505,7 +1735,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                   }}
                 >
-                  Browse Plans
+                  {tI18n('browse_plans', lang)}
                 </button>
               </div>
             </div>
@@ -1514,7 +1744,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           const allLabels = heroChapterRefs.length > 0
             ? heroChapterRefs
             : [firstPlan ? expandChapterRef(firstPlan.passage) : `${firstSlot!.book} ${firstSlot!.currentChapter}`];
-          const planLabel = firstPlan ? `${firstPlan.planTitle} — Day ${firstPlan.dayNum}` : null;
+          const planLabel = firstPlan ? `${firstPlan.planTitle} — ${tI18n('p_day_of', lang)} ${firstPlan.dayNum}` : null;
           const isPlayingHero = audioPlaying && audioCurrentPassage === HERO_KEY;
           const isPausedHero = audioPaused && audioCurrentPassage === HERO_KEY;
           const isLoadingHero = (audioLoading && audioCurrentPassage === HERO_KEY) || heroLoading;
@@ -1605,7 +1835,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     <button
                       onClick={(e) => { e.stopPropagation(); setPlanDayOffset(d => d - 1); }}
                       disabled={!heroCanGoBack}
-                      aria-label="Previous day"
+                      aria-label={t('previous_day')}
                       style={{
                         pointerEvents: heroCanGoBack ? 'auto' : 'none', width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                         background: heroCanGoBack ? 'rgba(20,14,8,0.34)' : 'rgba(20,14,8,0.5)', border: '1px solid rgba(255,255,255,0.5)',
@@ -1623,10 +1853,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     className="hero-play-btn"
                     onClick={() => handleHeroListen()}
                     aria-label={
-                      isLoadingHero ? 'Loading audio'
-                        : isPlayingHero && !isPausedHero ? `Pause ${allLabels[heroChapterIndex] || 'audio'}`
-                        : isPausedHero ? `Resume ${allLabels[heroChapterIndex] || 'audio'}`
-                        : `Listen to ${allLabels.join(', ')}`
+                      isLoadingHero ? tI18n('loading_audio', lang)
+                        : isPlayingHero && !isPausedHero ? `${tI18n('pause', lang)} — ${allLabels[heroChapterIndex] || ''}`
+                        : isPausedHero ? `${tI18n('resume_label', lang)} — ${allLabels[heroChapterIndex] || ''}`
+                        : `${t('listen_now')} — ${allLabels.join(', ')}`
                     }
                     style={{
                       pointerEvents: 'auto', width: 78, height: 78, borderRadius: '50%', flexShrink: 0,
@@ -1650,7 +1880,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     <button
                       onClick={(e) => { e.stopPropagation(); setPlanDayOffset(d => d + 1); }}
                       disabled={!heroCanGoForward}
-                      aria-label="Next day"
+                      aria-label={t('next_day')}
                       style={{
                         pointerEvents: heroCanGoForward ? 'auto' : 'none', width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                         background: heroCanGoForward ? 'rgba(20,14,8,0.34)' : 'rgba(20,14,8,0.5)', border: '1px solid rgba(255,255,255,0.5)',
@@ -1682,6 +1912,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                       <input
                         className="hero-range-slider"
                         type="range"
+                        aria-label={tI18n('chapter_navigator', lang)}
+                        aria-valuetext={`${allLabels[heroChapterIndex] || ''} — ${tI18n('p_chapter_of', lang)} ${heroChapterIndex + 1} ${tI18n('p_of', lang)} ${allLabels.length}`}
                         min={0}
                         max={allLabels.length - 1}
                         value={heroChapterIndex}
@@ -1697,10 +1929,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     {/* Chapter counter */}
                     <p style={{
                       fontSize: 10, fontWeight: 600, textAlign: 'center',
-                      opacity: 0.5, fontFamily: 'var(--font-sans)', margin: '0 0 8px',
+                      // AA token instead of opacity 0.5 (≈3.2:1 on the cream card)
+                      color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 8px',
                       letterSpacing: '0.08em', textTransform: 'uppercase',
                     }}>
-                      {`Chapter ${heroChapterIndex + 1} of ${allLabels.length}`}
+                      {`${tI18n('p_chapter_of', lang)} ${heroChapterIndex + 1} ${tI18n('p_of', lang)} ${allLabels.length}`}
                     </p>
                     {/* Chapter pills — large, tappable */}
                     <div style={{
@@ -1759,8 +1992,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   {/* Stop or Read button — context-aware */}
                   {(isPlayingHero || isPausedHero) ? (
                     <button
-                      aria-label="Stop audio playback"
-                      onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; setHeroChapterIndex(0); }}
+                      aria-label={tI18n('stop_audio_label', lang)}
+                      // Stop keeps your place: the keyed index is day-scoped, so no
+                      // reset to 0 — Restart exists for starting over.
+                      onClick={(e) => { e.stopPropagation(); AP.stop(); heroQueueActiveRef.current = false; }}
                       style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '12px 8px', minHeight: 44,
@@ -1772,11 +2007,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                       }}
                     >
                       <Square size={12} fill="currentColor" />
-                      Stop
+                      {tI18n('stop', lang)}
                     </button>
                   ) : (
                     <button
-                      aria-label={`Read ${heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || 'passage'}`}
+                      aria-label={`${t('read_btn')} ${heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || ''}`}
                       onClick={() => handleRead(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '')}
                       style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -1797,12 +2032,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     onClick={(e) => {
                       e.stopPropagation();
                       AP.unlock();
+                      setAudioError(false);
                       if (audioPlaying || audioPaused) AP.stop();
                       const rv = ++heroChainVersionRef.current;
                       setHeroChapterIndex(0);
                       setHeroLoading(true);
                       heroQueueActiveRef.current = true;
-                      playChapterAtIndex(0, rv).catch(() => setAudioError(true)).finally(() => setHeroLoading(false));
+                      // startHeroChain clears heroLoading when audio STARTS. The old
+                      // .finally held it true until the whole multi-chapter chain
+                      // ENDED, so the button spun through playback and the pause
+                      // gate (heroLoading) made pausing impossible.
+                      startHeroChain(0, rv);
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -1815,7 +2055,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     }}
                   >
                     <RotateCcw size={13} />
-                    Restart
+                    {tI18n('p_restart', lang)}
                   </button>
 
                   {/* Translation picker — horizontal scrollable pills */}
@@ -1866,7 +2106,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         marginRight: 8,
                       }}
                     >
-                      Compare
+                      {tI18n('compare_label', lang)}
                     </button>
                   )}
                 </div>
@@ -1940,9 +2180,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         <InlineReflection
                           key={readRef}
                           tone="default"
-                          label="Reflect"
-                          prompt="What stood out to you in today's reading?"
+                          label={tI18n('reflect_label', lang)}
+                          prompt={tI18n('reflect_prompt_default', lang)}
                           verseRef={readRef}
+                          onViewJournal={onNavigate ? () => onNavigate('journal') : undefined}
                         />
                         <button
                           onClick={() => handleMarkRead(readRef)}
@@ -1957,13 +2198,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                           }}
                         >
-                          {readDoneToday ? '✓ Read today' : 'Mark as read'}
+                          {readDoneToday ? tI18n('read_today', lang) : tI18n('mark_as_read', lang)}
                         </button>
                         </>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
                           <Loader2 size={20} style={{ color: '#A06A42', animation: 'spin 1s linear infinite' }} />
-                          <span style={{ color: '#A06A42', fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading scripture...</span>
+                          <span style={{ color: '#A06A42', fontSize: 15, fontFamily: 'var(--font-sans)' }}>{tI18n('loading_scripture', lang)}</span>
                         </div>
                       )}
                     </div>
@@ -1977,7 +2218,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     scrollbarWidth: 'none',
                     borderTop: '1px solid var(--dw-border)',
                   }}>
-                    <span style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginRight: 4 }}>Compare:</span>
+                    <span style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginRight: 4 }}>{tI18n('compare_label', lang)}:</span>
                     {getTranslationsForPersona(personaConfig.persona, appLanguage).map(t => (
                       <button
                         key={`compare-${t}`}
@@ -2017,9 +2258,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           borderRadius: 14,
           padding: '14px 8px',
         }}>
+          {/* With a plan active these chevrons move the SAME axis as the hero's
+              (planDayOffset, same clamps) — two adjacent look-alike controls moving
+              different axes made an idle tap here a silent audio-killer. The legacy
+              dayOffset arrows only remain for the no-plan state. */}
           <button
-            onClick={() => setDayOffset(d => d - 1)}
-            style={{ background: 'none', border: 'none', color: 'var(--dw-text-secondary)', cursor: 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => hasActivePlans ? setPlanDayOffset(d => d - 1) : setDayOffset(d => d - 1)}
+            disabled={hasActivePlans && !heroCanGoBack}
+            style={{ background: 'none', border: 'none', color: (hasActivePlans && !heroCanGoBack) ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)', cursor: (hasActivePlans && !heroCanGoBack) ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label={t('previous_day')}
           >
             <ChevronLeft size={20} />
@@ -2027,7 +2273,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           <div style={{ textAlign: 'center' }}>
             <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--dw-text-muted)', marginBottom: 4 }}>{t('todays_reading')}</p>
             <p style={{ color: 'var(--dw-text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-              {dateStr}
+              {hasActivePlans ? getDateString(planDayOffset) : dateStr}
             </p>
             {todaysPlanPassages.length > 0 && (
               <p style={{ color: 'var(--dw-text-secondary)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 4, lineHeight: 1.5 }}>
@@ -2043,23 +2289,30 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     }
                   });
                   return plans.map(p =>
-                    `Day ${p.dayNum} of ${p.title} · ${p.passages.join(', ')}`
+                    `${tI18n('p_day_of', lang)} ${p.dayNum} ${tI18n('p_of', lang)} ${p.title} · ${p.passages.join(', ')}`
                   ).join(' | ');
                 })()}
               </p>
             )}
           </div>
           <button
-            onClick={() => setDayOffset(d => d + 1)}
-            disabled={dayOffset >= 30}
-            style={{ background: 'none', border: 'none', color: dayOffset >= 30 ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)', cursor: dayOffset >= 30 ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => hasActivePlans ? setPlanDayOffset(d => d + 1) : setDayOffset(d => d + 1)}
+            disabled={hasActivePlans ? !heroCanGoForward : dayOffset >= 30}
+            style={{ background: 'none', border: 'none', color: (hasActivePlans ? !heroCanGoForward : dayOffset >= 30) ? 'var(--dw-text-faint)' : 'var(--dw-text-secondary)', cursor: (hasActivePlans ? !heroCanGoForward : dayOffset >= 30) ? 'default' : 'pointer', padding: 8, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label={t('next_day')}
           >
             <ChevronRight size={20} />
           </button>
         </div>
 
-        {/* ── Choose Your Plan — prominent CTA ── */}
+        {/* ── Choose Your Plan — only while nothing is set up yet. Mid-plan users
+             already have entry points; pastor/study personas get the tailored
+             wizard below (this button was bypassing it); comfort and new-believer
+             users have auto-served content, so no setup funnel for them. ── */}
+        {todaysPlanPassages.length === 0
+          && !personaConfig.sectionOrder.includes('plan_scripture')
+          && personaConfig.persona !== 'comfort'
+          && personaConfig.persona !== 'new_to_faith' && (
         <button
           className="dw-btn-dark"
           onClick={() => onNavigate?.('plans')}
@@ -2075,6 +2328,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         >
           Choose Your Plan
         </button>
+        )}
 
         {/* ── Pastor/Study Onboarding wizard (extracted to <PastorStudyOnboarding>) ── */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (
@@ -2089,6 +2343,29 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
         {/* Comfort Verse Banner — comfort persona only */}
         {personaConfig.sectionOrder.includes('comfort_verse_banner') && <ComfortVerseBannerSection persona={personaConfig.persona} />}
+
+        {/* ── Comfort Scripture — auto-served (extracted to <ComfortSection>) ──
+             Rendered directly after the verse banner (persona-config's intended
+             order) — it used to sit ninth, below setup CTAs and book promos. */}
+        {personaConfig.sectionOrder.includes('comfort_scripture') && (
+          <ComfortSection
+            translation={translation}
+            translations={getTranslationsForPersona('comfort', appLanguage)}
+            handleTranslationChange={handleTranslationChange}
+            lang={lang}
+            t={t}
+            passageTexts={passageTexts}
+            loadingPassages={loadingPassages}
+            loadPassage={loadPassage}
+            audioPlaying={audioPlaying}
+            audioLoading={audioLoading}
+            audioCurrentPassage={audioCurrentPassage}
+            handleListen={handleListen}
+            renderScripture={renderScripture}
+            greekHebrewMode={greekHebrewMode}
+            scriptureFontSize={scriptureFontSize}
+          />
+        )}
 
         {/* Poll banner — right under the hero audio card (persona-gated) */}
         {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
@@ -2120,21 +2397,21 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         >
           <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '120px', height: '120px', background: 'rgba(255,255,255,0.08)', borderRadius: '50%' }} />
           <div style={{ position: 'absolute', bottom: '-30px', left: '20%', width: '80px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.85)', marginBottom: '6px', textTransform: 'uppercase' }}>YOUR FAITH JOURNEY</p>
+          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.85)', marginBottom: '6px', textTransform: 'uppercase' }}>{tI18n('your_faith_journey', lang)}</p>
           <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>
-            Day {pathwayProgress.currentDay} of {pathwayData.days?.length || 40}
+            {tI18n('day_x_of_y_title', lang).replace('{x}', String(pathwayProgress.currentDay)).replace('{y}', String(pathwayData.days?.length || 40))}
           </p>
           <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', margin: '0 0 12px 0' }}>
-            {pathwayData.days?.find(d => d.day === pathwayProgress.currentDay)?.title || 'Your next lesson is ready'}
+            {pathwayData.days?.find(d => d.day === pathwayProgress.currentDay)?.title || tI18n('next_lesson_ready', lang)}
           </p>
           <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '100px', height: '6px', marginBottom: '8px' }}>
             <div style={{ background: '#fff', height: '100%', borderRadius: '100px', width: `${Math.round(((pathwayProgress.currentDay - 1) / (pathwayData.days?.length || 40)) * 100)}%`, transition: 'width 0.5s ease' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
-              {pathwayProgress.currentDay === 1 ? 'Just getting started' : `${pathwayProgress.completedDays?.length || 0} days completed`}
+              {pathwayProgress.currentDay === 1 ? tI18n('just_getting_started', lang) : tI18n('days_completed', lang).replace('{n}', String(pathwayProgress.completedDays?.length || 0))}
             </span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>Continue →</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>{tI18n('continue_label', lang)} →</span>
           </div>
         </div>
       )}
@@ -2181,13 +2458,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   }}
                 >
                   <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
-                    {isActive ? 'READING NOW' : 'RECOMMENDED'}
+                    {isActive ? tI18n('reading_now', lang) : tI18n('recommended_label', lang)}
                   </p>
                   <p style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-serif)', marginBottom: 4 }}>
                     {info.title}
                   </p>
                   <p style={{ fontSize: 12, opacity: 0.8, fontFamily: 'var(--font-sans)' }}>
-                    {isActive ? 'Tap to continue reading' : info.description}
+                    {isActive ? tI18n('tap_continue_reading', lang) : info.description}
                   </p>
                 </div>
               );
@@ -2307,7 +2584,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   }} />
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#D4A574' }}>
-                  Continue Journey &rarr;
+                  {tI18n('continue_journey', lang)} &rarr;
                 </div>
               </div>
             </div>
@@ -2322,26 +2599,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
         {/* Devotion of the Day removed from home page */}
 
-        {/* ── Comfort Scripture — auto-served (extracted to <ComfortSection>) ── */}
-        {personaConfig.sectionOrder.includes('comfort_scripture') && (
-          <ComfortSection
-            translation={translation}
-            translations={getTranslationsForPersona('comfort', appLanguage)}
-            handleTranslationChange={handleTranslationChange}
-            lang={lang}
-            t={t}
-            passageTexts={passageTexts}
-            loadingPassages={loadingPassages}
-            loadPassage={loadPassage}
-            audioPlaying={audioPlaying}
-            audioLoading={audioLoading}
-            audioCurrentPassage={audioCurrentPassage}
-            handleListen={handleListen}
-            renderScripture={renderScripture}
-            greekHebrewMode={greekHebrewMode}
-            scriptureFontSize={scriptureFontSize}
-          />
-        )}
+        {/* Comfort Scripture section moved up — it renders directly after the
+            comfort verse banner now (see above). */}
 
         {/* ── Today's Reading — shows plan chapters when active, else devotion scripture ── */}
         {personaConfig.sectionOrder.includes('devotion_scripture') && (todaysPlanPassages.length > 0 || todaysDevotion?.verse) && (() => {
@@ -2364,7 +2623,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   {isComfort ? "TODAY'S SCRIPTURE" : t('todays_reading')}
                 </h2>
                 <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  {hasPlanPassages ? `Day ${todaysPlanPassages[0].dayNum} · ${todaysPlanPassages[0].planTitle}` : (isComfort ? 'Read at your own pace' : 'From today\'s devotion')}
+                  {hasPlanPassages ? `${tI18n('p_day_of', lang)} ${todaysPlanPassages[0].dayNum} · ${todaysPlanPassages[0].planTitle}` : (isComfort ? tI18n('read_own_pace', lang) : tI18n('from_todays_devotion', lang))}
                 </span>
               </div>
 
@@ -2408,11 +2667,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   }}
                 >
                   {isLoadingAudio ? (
-                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> {tI18n('j_loading', lang)}…</>
                   ) : isPlayingThis ? (
-                    <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
+                    <><AudioWave height={14} color="#fff" /> <Pause size={14} /> {tI18n('pause', lang)}</>
                   ) : (
-                    <><Headphones size={14} /> Listen</>
+                    <><Headphones size={14} /> {tI18n('j_listen', lang)}</>
                   )}
                 </button>
               </div>
@@ -2438,17 +2697,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     display: 'flex', alignItems: 'center', gap: 6,
                   }}
                 >
-                  <BookOpen size={16} /> Read {devPassage}
+                  <BookOpen size={16} /> {t('read_btn')} {devPassage}
                 </button>
               )}
 
               {/* Reflection prompt — now an inline one-tap journal capture */}
               <InlineReflection
                 tone={isComfort ? 'comfort' : 'default'}
-                label={isComfort ? 'Sit with this' : 'Reflect'}
+                label={isComfort ? tI18n('sit_with_this', lang) : tI18n('reflect_label', lang)}
                 prompt={isComfort
-                  ? 'Which words brought you the most peace today?'
-                  : 'What stood out to you in today\'s reading?'}
+                  ? tI18n('reflect_prompt_comfort', lang)
+                  : tI18n('reflect_prompt_default', lang)}
                 verseRef={devPassage}
               />
               {/* NOTE: the enclosing section gates on the never-set 'devotion_scripture'
@@ -2468,7 +2727,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           return (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <h2 className="text-section-header" style={{ margin: 0 }}>TODAY'S STUDY</h2>
+                <h2 className="text-section-header" style={{ margin: 0 }}>{tI18n('todays_study', lang)}</h2>
                 {/* Greek/Hebrew mode toggle */}
                 {pf.greekHebrew === 'full' && (
                   <button
@@ -2519,11 +2778,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         }}
                       >
                         {isLoadingAudio ? (
-                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                          <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> {tI18n('j_loading', lang)}…</>
                         ) : isPlayingThis ? (
-                          <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
+                          <><AudioWave height={14} color="#fff" /> <Pause size={14} /> {tI18n('pause', lang)}</>
                         ) : (
-                          <><Headphones size={14} /> Listen</>
+                          <><Headphones size={14} /> {tI18n('j_listen', lang)}</>
                         )}
                       </button>
                     </div>
@@ -2574,7 +2833,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           display: 'flex', alignItems: 'center', gap: 6,
                         }}
                       >
-                        <BookOpen size={16} /> Read {passage}
+                        <BookOpen size={16} /> {t('read_btn')} {passage}
                       </button>
                     )}
                   </Card>
@@ -2583,6 +2842,71 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             </div>
           );
         })()}
+
+        {/* 5. Commentary — persona-gated: hidden / collapsed / expanded. Sits
+            directly after TODAY'S STUDY so it reads next to the passages it
+            comments on; entries now cover every passage of the day. */}
+        {pf.commentary !== 'hidden' && allCommentaries.length > 0 && (
+          <Card style={{ marginBottom: 16 }}>
+            <div
+              onClick={() => !commentaryExpanded && setCommentaryExpanded(true)}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: commentaryExpanded ? 'default' : 'pointer', marginBottom: commentaryExpanded ? 10 : 0 }}
+            >
+              <h2 className="text-section-header" style={{ margin: 0 }}>{tI18n('commentary_label', lang)}</h2>
+              {!commentaryExpanded && (
+                <span style={{ fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{tI18n('tap_to_read', lang)}</span>
+              )}
+            </div>
+            {commentaryExpanded && (
+              <>
+                {/* Source tab strip — labels carry the passage when the day has
+                    commentary on more than one chapter */}
+                {allCommentaries.length > 1 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                    {allCommentaries.map((c, i) => (
+                      <button
+                        key={`${c.passage}_${c.source}`}
+                        onClick={() => setSelectedCommentaryIdx(i)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 20,
+                          border: '1px solid',
+                          borderColor: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'var(--dw-border, #E8E6E0)',
+                          background: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'transparent',
+                          color: i === selectedCommentaryIdx ? '#fff' : 'var(--dw-text-muted)',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-sans)',
+                          cursor: 'pointer',
+                          letterSpacing: '0.02em',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {commentaryPassageCount > 1 ? `${c.passage} · ${c.source}` : c.source}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Selected commentary text */}
+                {allCommentaries[selectedCommentaryIdx] && (
+                  <>
+                    {allCommentaries.length === 1 && (
+                      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
+                        {allCommentaries[0].source.toUpperCase()} · {allCommentaries[0].passage}
+                      </p>
+                    )}
+                    <p
+                      onClick={() => setSelection({ text: allCommentaries[selectedCommentaryIdx].text, verseRefs: [allCommentaries[selectedCommentaryIdx].passage], source: 'tap' })}
+                      style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif-text)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
+                    >
+                      {allCommentaries[selectedCommentaryIdx].text}
+                    </p>
+                  </>
+                )}
+              </>
+            )}
+          </Card>
+        )}
 
         {/* ── Pastoral Reflection Prompt (pastor_leader) ── */}
         {personaConfig.sectionOrder.includes('pastoral_prompt') && (
@@ -2620,16 +2944,24 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           />
         )}
 
-        {/* ── Campus community count — persona-gated ── */}
-        {pf.campusCount !== 'hidden' && userProfile?.campus && (
-          <CampusCountBadge userProfile={userProfile} />
-        )}
+        {/* Campus community count badge REMOVED: its "N people at your campus are
+            in the Word today" number was fabricated from a deterministic seed, and
+            congregation members hold no credential that could fetch a real count.
+            Real campus numbers now live in the pastor Campus Overview below. */}
 
         {/* Translation selector removed — hero card has translation picker */}
 
 
         {/* 3. TODAY'S CHAPTERS — gated by sectionOrder */}
         {personaConfig.sectionOrder.includes('scripture') && (() => {
+          // Comfort + new-believer personas get auto-served readings (comfort
+          // rotation / pathway lesson) — with no plan or slots, telling them
+          // "No reading plan active" mislabels content they already have. Render
+          // nothing instead of the setup funnel.
+          if (readingSlots.length === 0 && todaysPlanPassages.length === 0 &&
+              (personaConfig.persona === 'comfort' || personaConfig.persona === 'new_to_faith')) {
+            return null;
+          }
           // When plan_scripture is also present (pastor/study personas), that section already
           // shows plan passages with deep tools. Here we only show manually-added reading slots
           // to avoid duplication. If there are no slots in that case, skip the section entirely.
@@ -2664,7 +2996,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     source: 'select-all',
                   });
                 }
-              }} style={{ background:'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>Select All</button>
+              }} style={{ background:'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>{t('select_all_passages')}</button>
               <button onClick={() => {
                 const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
                 const passageRefs = [
@@ -2716,7 +3048,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 onClick={() => onNavigate?.('plans')}
                 style={{ padding: '12px 24px', borderRadius: 12, background: 'var(--dw-accent)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
               >
-                Browse Plans
+                {tI18n('browse_plans', lang)}
               </button>
             </Card>
           ) : (
@@ -2768,9 +3100,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     {isLoadingThis ? (
                       <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading audio…</>
                     ) : isPlayingThis ? (
-                      <><AudioWave height={16} color="#fff" /> <Pause size={16} /> Pause</>
+                      <><AudioWave height={16} color="#fff" /> <Pause size={16} /> {tI18n('pause', lang)}</>
                     ) : (
-                      <><Headphones size={16} /> Listen</>
+                      <><Headphones size={16} /> {tI18n('j_listen', lang)}</>
                     )}
                   </button>
                 );
@@ -2821,11 +3153,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           {slot.book}
                         </p>
                         <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-                          Chapter {slot.currentChapter} of {maxChapter}
+                          {tI18n('p_chapter_of', lang)} {slot.currentChapter} {tI18n('p_of', lang)} {maxChapter}
                         </p>
                       </div>
                       <button
-                        onClick={() => { if (window.confirm('Remove this reading slot?')) removeReadingSlot(slot.id); }}
+                        onClick={() => { if (window.confirm(tI18n('remove_slot_confirm', lang))) removeReadingSlot(slot.id); }}
                         style={{
                           background: 'none',
                           border: 'none',
@@ -2838,7 +3170,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
-                        aria-label="Remove reading slot"
+                        aria-label={tI18n('remove_reading_slot', lang)}
                       >
                         <X size={16} />
                       </button>
@@ -2868,7 +3200,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         }}
                       >
                         <BookOpen size={16} />
-                        {isExpanded ? 'Reading' : 'Read'}
+                        {isExpanded ? tI18n('j_reading', lang) : t('read_btn')}
                       </button>
                       <button
                         onClick={() => handleListen(passage)}
@@ -2892,11 +3224,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         }}
                       >
                         {isLoadingThis ? (
-                          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                          <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> {tI18n('j_loading', lang)}…</>
                         ) : isPlayingThis ? (
-                          <><AudioWave height={14} color="#fff" /> <Pause size={16} /> Pause</>
+                          <><AudioWave height={14} color="#fff" /> <Pause size={16} /> {tI18n('pause', lang)}</>
                         ) : (
-                          <><Headphones size={16} /> Listen</>
+                          <><Headphones size={16} /> {tI18n('j_listen', lang)}</>
                         )}
                       </button>
                     </div>
@@ -3138,67 +3470,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           />
         )}
 
-        {/* 5. Commentary — persona-gated: hidden / collapsed / expanded */}
-        {pf.commentary !== 'hidden' && allCommentaries.length > 0 && (
-          <Card style={{ marginBottom: 16 }}>
-            <div
-              onClick={() => !commentaryExpanded && setCommentaryExpanded(true)}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: commentaryExpanded ? 'default' : 'pointer', marginBottom: commentaryExpanded ? 10 : 0 }}
-            >
-              <h2 className="text-section-header" style={{ margin: 0 }}>COMMENTARY</h2>
-              {!commentaryExpanded && (
-                <span style={{ fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>Tap to read ›</span>
-              )}
-            </div>
-            {commentaryExpanded && (
-              <>
-                {/* Source tab strip */}
-                {allCommentaries.length > 1 && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                    {allCommentaries.map((c, i) => (
-                      <button
-                        key={c.source}
-                        onClick={() => setSelectedCommentaryIdx(i)}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 20,
-                          border: '1px solid',
-                          borderColor: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'var(--dw-border, #E8E6E0)',
-                          background: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'transparent',
-                          color: i === selectedCommentaryIdx ? '#fff' : 'var(--dw-text-muted)',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-sans)',
-                          cursor: 'pointer',
-                          letterSpacing: '0.02em',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        {c.source}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {/* Selected commentary text */}
-                {allCommentaries[selectedCommentaryIdx] && (
-                  <>
-                    {allCommentaries.length === 1 && (
-                      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
-                        {allCommentaries[0].source.toUpperCase()}
-                      </p>
-                    )}
-                    <p
-                      onClick={() => setSelection({ text: allCommentaries[selectedCommentaryIdx].text, verseRefs: [primaryPassage], source: 'tap' })}
-                      style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif-text)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-                    >
-                      {allCommentaries[selectedCommentaryIdx].text}
-                    </p>
-                  </>
-                )}
-              </>
-            )}
-          </Card>
-        )}
+        {/* Commentary card moved up — it renders directly after TODAY'S STUDY now,
+            next to the passages it comments on (it used to sit 5+ cards down here,
+            past quote / word-of-day / weekly-review). */}
 
         {/* Featured Plan Invite — removed; Plans tab is the right place to browse */}
 
@@ -3207,14 +3481,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: showCampusPicker ? 14 : 0 }}>
             <MapPin size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <h2 className="text-section-header" style={{ marginBottom: 2 }}>YOUR CAMPUS</h2>
+              <h2 className="text-section-header" style={{ marginBottom: 2 }}>{tI18n('your_campus', lang)}</h2>
               <p style={{
                 color: 'var(--dw-text-primary)',
                 fontSize: 15,
                 fontWeight: 500,
                 fontFamily: 'var(--font-sans)',
               }}>
-                {currentCampus?.name || 'Select your campus'}
+                {currentCampus?.name || tI18n('select_your_campus', lang)}
               </p>
               {currentCampus?.city && (
                 <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 1 }}>
@@ -3237,7 +3511,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 minHeight: 36,
               }}
             >
-              {currentCampus ? 'Change' : 'Select'}
+              {currentCampus ? tI18n('change_label', lang) : tI18n('select_label', lang)}
             </button>
           </div>
 
@@ -3292,7 +3566,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         {/* ── Active Plans Strip ── */}
         {homeActivePlans.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 10 }}>YOUR ACTIVE PLANS</h2>
+            <h2 className="text-section-header" style={{ marginBottom: 10 }}>{tI18n('j_your_active_plans', lang)}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {homeActivePlans.map(({ plan, dayNum }) => {
                 const pct = Math.min((dayNum / plan.totalDays) * 100, 100);
@@ -3358,7 +3632,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                               color: '#fff', fontFamily: 'var(--font-sans)',
                             }}
                           >
-                            Browse Plans
+                            {tI18n('browse_plans', lang)}
                           </button>
                           <button
                             onClick={() => {
@@ -3402,7 +3676,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           return (
             <Card style={{ marginBottom: 16, border: '1px solid rgba(37,99,235,0.18)', background: 'rgba(37,99,235,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <h2 className="text-section-header" style={{ margin: 0, color: 'var(--dw-info)' }}>FOR YOU</h2>
+                <h2 className="text-section-header" style={{ margin: 0, color: 'var(--dw-info)' }}>{tI18n('for_you', lang)}</h2>
                 {signal && signal !== 'mixed' && (
                   <span style={{
                     fontSize: 10, fontWeight: 600, color: 'var(--dw-info)',
@@ -3458,21 +3732,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
         {/* Reading Plans Discovery — removed; full plan list lives on Plans tab */}
 
-        {/* Campus Overview — pastor_leader persona only (leaders, connect group leaders, campus pastors) */}
+        {/* Campus Overview — pastor_leader persona only. REAL numbers from the
+            campus-scoped analytics endpoint (authenticated by the pastor's own
+            campus code); the seeded pseudo-random counts are gone — progress is
+            grounded in facts or not shown at all. */}
         {personaConfig.persona === 'pastor_leader' && (() => {
-          const campusId = userProfile?.campus || '';
-          const seed = campusId.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
-          const day = new Date().getDate() + new Date().getMonth() * 31;
-          const dow = new Date().getDay();
-          const base = (seed % 40) + 20;
-          const dayBonus = dow === 0 ? 18 : dow === 6 ? 10 : 0;
-          const variance = ((seed * day) % 14) - 7;
-          const dailyCount = campusId ? Math.max(8, base + dayBonus + variance) : 0;
-          const weeklyActive = dailyCount * 3 + ((seed * 7 + day) % 10);
-          const prayerCount = 12 + (day % 20);
-          const campusName = campusId
-            ? CAMPUSES.find(c => c.id === campusId)?.name || 'your campus'
-            : 'all campuses';
+          const campusName = campusStats
+            ? (CAMPUSES.find(c => c.id === campusStats.campus)?.name || campusStats.campus)
+            : (CAMPUSES.find(c => c.id === userProfile?.campus)?.name || 'your campus');
           return (
             <div style={{
               marginBottom: 16, borderRadius: 16, padding: '16px 14px',
@@ -3486,23 +3753,70 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               }}>
                 CAMPUS OVERVIEW
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>{dailyCount}</p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>reading today</p>
+              {campusStats ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>{campusStats.readingToday}</p>
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>reading today</p>
+                  </div>
+                  <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>{campusStats.activeThisWeek}</p>
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>active this week</p>
+                  </div>
+                  <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-purple)', margin: 0 }}>{campusStats.prayerCount}</p>
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>prayer requests</p>
+                  </div>
+                  <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-info)', fontWeight: 600, margin: 0 }}>{campusName}</p>
+                  </div>
                 </div>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-info)', margin: 0 }}>{weeklyActive}</p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>active this week</p>
+              ) : campusStatsLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
+                  <Loader2 size={14} style={{ color: 'var(--dw-info)', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>{t('loading_label')}</span>
                 </div>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 700, color: 'var(--dw-purple)', margin: 0 }}>{prayerCount}</p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>prayer requests</p>
+              ) : (
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.5 }}>
+                    {t('campus_stats_prompt')}
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="text"
+                      value={pastorCodeInput}
+                      onChange={e => setPastorCodeInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') submitPastorCode(); }}
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      aria-label={t('campus_stats_prompt')}
+                      style={{
+                        flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: 10,
+                        border: '1px solid var(--dw-border)', background: 'var(--dw-surface)',
+                        color: 'var(--dw-text-primary)', fontSize: 13, fontFamily: 'var(--font-sans)',
+                      }}
+                    />
+                    <button
+                      onClick={submitPastorCode}
+                      disabled={!pastorCodeInput.trim()}
+                      style={{
+                        padding: '10px 14px', borderRadius: 10, border: 'none',
+                        background: 'var(--dw-info)', color: '#fff', cursor: pastorCodeInput.trim() ? 'pointer' : 'default',
+                        fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)',
+                        opacity: pastorCodeInput.trim() ? 1 : 0.5, whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {t('campus_stats_view')}
+                    </button>
+                  </div>
+                  {campusStatsError && (
+                    <p style={{ fontSize: 11, color: '#B23A2E', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>
+                      {t('campus_stats_error')}
+                    </p>
+                  )}
                 </div>
-                <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-info)', fontWeight: 600, margin: 0 }}>{campusName}</p>
-                </div>
-              </div>
+              )}
             </div>
           );
         })()}
@@ -3649,10 +3963,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               fontSize: 32, fontWeight: 700, color: '#FF9500',
               fontFamily: 'var(--font-sans)', marginBottom: 4,
             }}>
-              {showMilestone} Day{showMilestone !== 1 ? 's' : ''}!
+              {tI18n('milestone_days', lang).replace('{x}', String(showMilestone))}
             </p>
             <p style={{ fontSize: 17, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', marginBottom: 8 }}>
-              {showMilestone >= 100 ? 'Extraordinary dedication.' : showMilestone >= 30 ? 'A full month in the Word.' : showMilestone >= 14 ? 'Two solid weeks.' : 'One week strong.'}
+              {showMilestone >= 100 ? tI18n('milestone_100', lang) : showMilestone >= 30 ? tI18n('milestone_30', lang) : showMilestone >= 14 ? tI18n('milestone_14', lang) : tI18n('milestone_7', lang)}
             </p>
             <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 24 }}>
               {showMilestone >= 30 ? '"His mercies are new every morning." — Lam. 3:23' : showMilestone >= 7 ? '"Blessed is the one who reads." — Rev. 1:3' : '"Draw near to God and he will draw near to you." — James 4:8'}
@@ -3666,7 +3980,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}
             >
-              Keep Going 🙌
+              {tI18n('p_keep_going', lang)} 🙌
             </button>
           </div>
         </div>

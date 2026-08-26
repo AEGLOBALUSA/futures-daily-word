@@ -25,7 +25,9 @@ export default defineConfig({
         if (existsSync(wellKnownSrc)) {
           cpSync(wellKnownSrc, resolve('dist', '.well-known'), { recursive: true })
         }
-        for (const file of ['robots.txt', 'sitemap.xml', 'manifest.json', '_redirects', '404.html', 'privacy.html', 'terms.html', 'apple-touch-icon.png']) {
+        // manifest.json intentionally NOT copied from the repo root — a stale dark
+        // root copy used to overwrite public/manifest.json (the light one) in dist.
+        for (const file of ['robots.txt', 'sitemap.xml', '_redirects', '404.html', 'privacy.html', 'terms.html', 'apple-touch-icon.png']) {
           const src = resolve(file)
           if (existsSync(src)) {
             copyFileSync(src, resolve('dist', file))
@@ -46,7 +48,7 @@ export default defineConfig({
           'vendor-icons': ['lucide-react'],
           // Data files — loaded with main app but cached separately
           'data-plans': ['./src/data/plans.ts', './src/data/ashley-jane-plan.ts'],
-          'data-content': ['./src/data/commentary.ts', './src/data/quotes.ts', './src/data/devotions.ts', './src/data/sermons.ts'],
+          'data-content': ['./src/data/commentary.ts', './src/data/quotes.ts', './src/data/devotions.ts'],
         },
       },
     },

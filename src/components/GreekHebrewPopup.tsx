@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { t, getLang } from '../utils/i18n';
 import { API_BASE } from '../utils/api-base';
+import { useModalA11y } from '../utils/useModalA11y';
 
 interface StrongsEntry {
   word: string;
@@ -29,16 +30,19 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
       .catch(() => setEntry({
         word: activePopupWord.word,
         transliteration: '',
-        definition: 'Definition not available',
+        definition: t('definition_unavailable', getLang()),
         fullDefinition: '',
         usage: '',
       }))
       .finally(() => setLoading(false));
   }, [activePopupWord]);
 
+  // Dialog semantics: focus in, Tab trap, Escape → close, focus restore.
+  const dialogRef = useModalA11y(!!activePopupWord, () => setActivePopupWord(null));
+
   if (!activePopupWord) return null;
 
-  const langLabel = activePopupWord.testament === 'NT' ? 'Greek' : 'Hebrew';
+  const langLabel = activePopupWord.testament === 'NT' ? t('greek_label', lang) : t('hebrew_label', lang);
   const langColor = activePopupWord.testament === 'NT' ? 'var(--dw-info)' : 'var(--dw-gold)';
 
   return (
@@ -50,7 +54,12 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
           background: 'rgba(0,0,0,0.4)',
         }}
       />
-      <div style={{
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dw-ghpopup-title"
+        style={{
         position: 'fixed', left: '50%', top: '50%',
         transform: 'translate(-50%, -50%)',
         zIndex: 97,
@@ -65,13 +74,15 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
         {/* Close */}
         <button
           onClick={() => setActivePopupWord(null)}
-          style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)' }}
+          aria-label={t('j_close', lang)}
+          // padding 13 + top/right 3 = same visual icon spot, 44px hit area
+          style={{ position: 'absolute', top: 3, right: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 13 }}
         >
           <X size={18} />
         </button>
 
         {/* Language badge */}
-        <span style={{
+        <span id="dw-ghpopup-title" style={{
           display: 'inline-block', padding: '2px 10px', borderRadius: 20,
           background: langColor + '20', color: langColor,
           fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 12,
@@ -105,7 +116,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
                   onClick={() => setExpanded(e => !e)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-accent)', fontSize: 13, fontWeight: 600, padding: 0, marginBottom: 8 }}
                 >
-                  {expanded ? 'Show less ↑' : 'Full definition ↓'}
+                  {expanded ? t('show_less', lang) : t('full_definition', lang)}
                 </button>
                 {expanded && (
                   <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', lineHeight: 1.7, marginBottom: 12 }}>
@@ -132,7 +143,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
             >
-              <span style={{ fontSize: 10, fontWeight: 800, background: 'rgba(255,255,255,0.25)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.06em' }}>BIBLE AI</span> Study this word
+              <span style={{ fontSize: 10, fontWeight: 800, background: 'rgba(255,255,255,0.25)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.06em' }}>{t('bible_ai', lang)}</span> {t('study_this_word', lang)}
             </button>
           </>
         ) : null}

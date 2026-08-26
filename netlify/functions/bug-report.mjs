@@ -1,17 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
+// Default-import interop: CJS libs load fine from ESM this way (the old inline
+// copy of the allowlist omitted the church origins).
+import corsLib from "./lib/cors.js";
 
-// Note: ESM import not possible from CJS lib/cors.js — keep canonical list inline
-const ALLOWED_ORIGINS = [
-  "https://futures-daily-word.netlify.app",
-  "https://www.futures-daily-word.netlify.app",
-  "https://futuresdailyword.com",
-  "https://www.futuresdailyword.com",
-];
+const { getAllowedOrigin } = corsLib;
 
 function getCorsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
-    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Origin": getAllowedOrigin(origin),
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };

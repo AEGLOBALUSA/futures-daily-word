@@ -10,9 +10,17 @@ import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
 import { AudioWave } from './AudioWave';
 import { COMFORT_CHAPTERS, COMFORT_DEVOTIONS } from '../data/comfort';
-import { tField } from '../utils/i18n';
+import { tField, t as trans } from '../utils/i18n';
 import { syncMisc } from '../utils/cloudSync';
 import type { TranslationCode } from '../utils/api';
+
+/** Stable day index derived from the LOCAL calendar date (en-CA), per the repo's
+ *  local-day invariant. Math.floor(Date.now()/86400000) is a UTC day index, which
+ *  flips the daily comfort content mid-evening for US users. */
+export function localDayIndex(): number {
+  const [y, m, d] = new Date().toLocaleDateString('en-CA').split('-').map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+}
 
 interface ComfortSectionProps {
   translation: TranslationCode;
@@ -39,7 +47,7 @@ export function ComfortSection({
   renderScripture, greekHebrewMode, scriptureFontSize,
 }: ComfortSectionProps) {
   const [comfortChapterIndex, setComfortChapterIndex] = useState<number>(() => {
-    return Math.floor(Date.now() / 86400000) % COMFORT_CHAPTERS.length;
+    return localDayIndex() % COMFORT_CHAPTERS.length;
   });
   const [comfortChaptersServed, setComfortChaptersServed] = useState(0);
   const [comfortPostRead, setComfortPostRead] = useState<null | 'devotion' | 'ask_more' | 'ask_lock' | 'done'>(null);
@@ -54,6 +62,22 @@ export function ComfortSection({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comfortChapterIndex, translation]);
 
+          // After the devotion (or when the chapter has none): honor the daily amount
+          // the user chose — auto-advance until N chapters are read, never re-ask once
+          // an amount is set. With no amount set, keep the original ask flow.
+          const advanceAfterDevotion = () => {
+            if (comfortDailyAmount > 0) {
+              if (comfortChaptersServed >= comfortDailyAmount) {
+                setComfortPostRead('done');
+              } else {
+                setComfortChapterIndex(prev => (prev + 1) % COMFORT_CHAPTERS.length);
+                setComfortPostRead(null);
+              }
+            } else {
+              setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more');
+            }
+          };
+
           const comfortPassage = COMFORT_CHAPTERS[comfortChapterIndex % COMFORT_CHAPTERS.length];
           const comfortTKey = `${comfortPassage}_${translation}`;
           const comfortText = passageTexts[comfortTKey];
@@ -66,9 +90,13 @@ export function ComfortSection({
               {/* Current comfort chapter — auto-loaded */}
               <Card style={{ marginBottom: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <h2 className="text-section-header" style={{ margin: 0 }}>A WORD FOR YOU TODAY</h2>
+                  <h2 className="text-section-header" style={{ margin: 0 }}>{trans('comfort_word_for_you', lang)}</h2>
                   <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                    Take your time
+                    {comfortDailyAmount > 0
+                      ? trans('comfort_reading_x_of_y', lang)
+                          .replace('{x}', String(Math.min(comfortChaptersServed + 1, comfortDailyAmount)))
+                          .replace('{y}', String(comfortDailyAmount))
+                      : trans('comfort_take_time', lang)}
                   </span>
                 </div>
 
@@ -109,11 +137,11 @@ export function ComfortSection({
                     }}
                   >
                     {comfortIsLoadingAudio ? (
-                      <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…</>
+                      <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> {trans('j_loading', lang)}…</>
                     ) : comfortIsPlaying ? (
-                      <><AudioWave height={14} color="#fff" /> <Pause size={14} /> Pause</>
+                      <><AudioWave height={14} color="#fff" /> <Pause size={14} /> {trans('pause', lang)}</>
                     ) : (
-                      <><Headphones size={14} /> Listen</>
+                      <><Headphones size={14} /> {trans('j_listen', lang)}</>
                     )}
                   </button>
                 </div>
@@ -122,7 +150,7 @@ export function ComfortSection({
                 {comfortIsLoading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0' }}>
                     <Loader2 size={14} style={{ color: 'var(--dw-slate)', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'normal', fontFamily: 'var(--font-sans)' }}>Loading…</span>
+                    <span style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontStyle: 'normal', fontFamily: 'var(--font-sans)' }}>{trans('j_loading', lang)}…</span>
                   </div>
                 ) : comfortText ? (
                   <ScripturePassage
@@ -142,7 +170,7 @@ export function ComfortSection({
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}
                   >
-                    <BookOpen size={16} /> Read {comfortPassage}
+                    <BookOpen size={16} /> {trans('read_btn', lang)} {comfortPassage}
                   </button>
                 )}
 
@@ -156,7 +184,7 @@ export function ComfortSection({
                     textAlign: 'center',
                   }}>
                     <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: '0 0 14px', fontStyle: 'normal' }}>
-                      Which words brought you the most peace?
+                      {trans('comfort_peace_prompt', lang)}
                     </p>
                     <button
                       className="dw-btn-dark"
@@ -170,7 +198,7 @@ export function ComfortSection({
                         cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
                     >
-                      I've finished reading
+                      {trans('comfort_finished_reading', lang)}
                     </button>
                   </div>
                 )}
@@ -180,8 +208,8 @@ export function ComfortSection({
               {comfortPostRead === 'devotion' && (() => {
                 const devotion = COMFORT_DEVOTIONS[comfortPassage];
                 if (!devotion) {
-                  // No devotion for this chapter, skip to ask_more
-                  setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more');
+                  // No devotion for this chapter, skip straight to the next step
+                  advanceAfterDevotion();
                   return null;
                 }
                 return (
@@ -196,7 +224,7 @@ export function ComfortSection({
                       textTransform: 'uppercase', color: 'var(--dw-slate)',
                       fontFamily: 'var(--font-sans)', marginBottom: 10,
                     }}>
-                      A THOUGHT FROM THIS CHAPTER
+                      {trans('comfort_thought_header', lang)}
                     </p>
                     <p style={{
                       fontSize: 17, fontWeight: 700, color: 'var(--dw-text-primary)',
@@ -215,7 +243,7 @@ export function ComfortSection({
                     </div>
                     <button
                       className="dw-btn-dark"
-                      onClick={() => setComfortPostRead(comfortChaptersServed >= 2 ? 'ask_lock' : 'ask_more')}
+                      onClick={advanceAfterDevotion}
                       style={{
                         width: '100%', padding: '12px 16px', borderRadius: 10,
                         background: 'var(--dw-slate-fill)', border: 'none',
@@ -223,7 +251,7 @@ export function ComfortSection({
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
                     >
-                      Continue
+                      {trans('continue_label', lang)}
                     </button>
                   </Card>
                 );
@@ -233,7 +261,7 @@ export function ComfortSection({
               {comfortPostRead === 'ask_more' && (
                 <Card style={{ marginTop: 12, textAlign: 'center', padding: '20px 16px' }}>
                   <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 14 }}>
-                    Would you like to read another passage from God's Word?
+                    {trans('comfort_read_another', lang)}
                   </p>
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                     <button
@@ -249,7 +277,7 @@ export function ComfortSection({
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
                     >
-                      Yes, keep going
+                      {trans('comfort_yes_more', lang)}
                     </button>
                     <button
                       onClick={() => setComfortPostRead('done')}
@@ -260,7 +288,7 @@ export function ComfortSection({
                         color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                       }}
                     >
-                      That's enough for today
+                      {trans('comfort_enough_today', lang)}
                     </button>
                   </div>
                 </Card>
@@ -269,10 +297,10 @@ export function ComfortSection({
               {comfortPostRead === 'ask_lock' && (
                 <Card style={{ marginTop: 12, textAlign: 'center', padding: '20px 16px' }}>
                   <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
-                    You're doing great.
+                    {trans('comfort_doing_great', lang)}
                   </p>
                   <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 16, lineHeight: 1.5 }}>
-                    Would you like to set a daily reading amount so we can have something ready for you each day?
+                    {trans('comfort_set_daily_q', lang)}
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 260, margin: '0 auto' }}>
                     {[
@@ -310,7 +338,7 @@ export function ComfortSection({
                         color: '#fff', fontFamily: 'var(--font-sans)',
                       }}
                     >
-                      Just give me one more for now
+                      {trans('comfort_one_more', lang)}
                     </button>
                     <button
                       onClick={() => setComfortPostRead('done')}
@@ -321,7 +349,7 @@ export function ComfortSection({
                         color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
                       }}
                     >
-                      I'm good for today
+                      {trans('comfort_good_today', lang)}
                     </button>
                   </div>
                 </Card>
@@ -331,9 +359,24 @@ export function ComfortSection({
                 <Card style={{ marginTop: 12, textAlign: 'center', padding: '16px' }}>
                   <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0, fontStyle: 'normal' }}>
                     {comfortDailyAmount > 0
-                      ? `You're set for ${comfortDailyAmount} chapter${comfortDailyAmount > 1 ? 's' : ''} a day. We'll have something ready for you tomorrow.`
-                      : 'God is with you. Come back whenever you need Him.'}
+                      ? (comfortDailyAmount === 1
+                          ? trans('comfort_set_daily_one', lang)
+                          : trans('comfort_set_daily_many', lang).replace('{n}', String(comfortDailyAmount)))
+                      : trans('comfort_god_with_you', lang)}
                   </p>
+                  {comfortDailyAmount > 0 && (
+                    <button
+                      onClick={() => setComfortPostRead('ask_lock')}
+                      style={{
+                        marginTop: 10, padding: '4px 8px',
+                        background: 'transparent', border: 'none',
+                        fontSize: 12, cursor: 'pointer', textDecoration: 'underline',
+                        color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                      }}
+                    >
+                      {trans('comfort_change_daily', lang)}
+                    </button>
+                  )}
                 </Card>
               )}
             </div>

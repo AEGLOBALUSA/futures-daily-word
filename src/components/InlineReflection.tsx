@@ -8,6 +8,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Check, ChevronRight } from 'lucide-react';
 import { pushNow } from '../utils/cloudSync';
 import { recordStreakToday } from '../utils/streak';
+import { t } from '../utils/i18n';
 
 interface InlineReflectionProps {
   label: string;        // 'Reflect' / 'Sit with this'
@@ -16,11 +17,15 @@ interface InlineReflectionProps {
   verseRef?: string;    // today's passage, so the entry links back to what was read
   savedLabel?: string;  // confirmation copy
   placeholder?: string;
+  onViewJournal?: () => void; // when set, the saved confirmation becomes a tappable hand-off to the journal
 }
 
 export function InlineReflection({
-  label, prompt, tone = 'default', verseRef, savedLabel = 'Saved to your journal', placeholder = 'Write your thought…',
+  label, prompt, tone = 'default', verseRef, savedLabel, placeholder, onViewJournal,
 }: InlineReflectionProps) {
+  // Defaults resolve per render so they follow the active language.
+  savedLabel = savedLabel ?? t('saved_to_journal');
+  placeholder = placeholder ?? t('write_thought_placeholder');
   const comfort = tone === 'comfort';
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -73,9 +78,22 @@ export function InlineReflection({
       </p>
 
       {saved ? (
-        <p style={{ fontSize: 14, color: comfort ? '#37474F' : 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Check size={15} style={{ color: 'var(--dw-success)', flexShrink: 0 }} /> {savedLabel}
-        </p>
+        onViewJournal ? (
+          <button
+            onClick={onViewJournal}
+            aria-label={`${savedLabel} — ${t('view_journal_label')}`}
+            style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}
+          >
+            <span style={{ fontSize: 14, color: comfort ? '#37474F' : 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Check size={15} style={{ color: 'var(--dw-success)', flexShrink: 0 }} /> {savedLabel}
+            </span>
+            <ChevronRight size={16} style={{ color: comfort ? '#5C6BC0' : 'var(--dw-text-faint)', flexShrink: 0 }} />
+          </button>
+        ) : (
+          <p style={{ fontSize: 14, color: comfort ? '#37474F' : 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Check size={15} style={{ color: 'var(--dw-success)', flexShrink: 0 }} /> {savedLabel}
+          </p>
+        )
       ) : !open ? (
         <button
           onClick={() => setOpen(true)}
@@ -119,7 +137,7 @@ export function InlineReflection({
                 opacity: text.trim() ? 1 : 0.5,
               }}
             >
-              Save reflection
+              {t('save_reflection')}
             </button>
             <button
               onClick={() => { setOpen(false); setText(''); }}
@@ -129,7 +147,7 @@ export function InlineReflection({
                 fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)', cursor: 'pointer',
               }}
             >
-              Later
+              {t('later_label')}
             </button>
           </div>
         </>

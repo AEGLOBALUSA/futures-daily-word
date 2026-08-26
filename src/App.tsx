@@ -18,6 +18,9 @@ import { isSundayWindow, activateSundayGuest, isSundayGuest } from './utils/sund
 import { hideSplash, registerNativePush, isNative } from './utils/native';
 import { API_BASE } from './utils/api-base';
 import { track } from './utils/analytics';
+import { t, getLang } from './utils/i18n';
+import { syncMisc } from './utils/cloudSync';
+import { closeSubViewsTo, openSubViewCount } from './utils/useSubView';
 
 // ── Pre-render deep link setup — must run before any React component initializes ──
 const SERMON_DEEP_LINK = (() => {
@@ -109,6 +112,10 @@ function AppContent() {
       // pops a tab instead of exiting the app. The popstate effect below does the
       // actual state update when an entry is popped.
       try { window.history.pushState({ dwTab: tab }, ''); } catch { /* ignore */ }
+    } else {
+      // Re-tap of the already-active tab → return that screen to its root
+      // state (screens with sub-state listen, clear it, and scroll to top).
+      try { window.dispatchEvent(new CustomEvent('dw-tab-reset', { detail: { tab } })); } catch { /* ignore */ }
     }
     setActiveTab(tab);
   };
@@ -122,12 +129,39 @@ function AppContent() {
   };
 
   // Bind tab history to the History API: seed a root entry, then translate each
-  // popstate (browser back, Android hardware back, back-swipe) into a tab pop.
+  // popstate (browser back, Android hardware back, back-swipe) into closing the
+  // newest open sub-view first, and only then into a tab change. The handler is
+  // idempotent — it reads the landed entry's own state instead of blind-popping,
+  // so Forward navigates forward and repeated/stale pops can't corrupt the stack.
   useEffect(() => {
     try { window.history.replaceState({ dwTab: tabHistoryRef.current[0], dwRoot: true }, ''); } catch { /* ignore */ }
-    const onPop = () => {
+    const onPop = (e: PopStateEvent) => {
+      const st = (e.state || {}) as { dwTab?: TabId; dwSub?: boolean; dwSubDepth?: number };
+      // 1. Sub-views: the entry we landed on encodes how many sub-views should
+      //    remain open — close the newer ones. Views already closed by their own
+      //    UI are no longer registered, so this is safely repeatable.
+      const targetDepth = st.dwSub ? Math.max(0, st.dwSubDepth ?? 0) : 0;
+      closeSubViewsTo(targetDepth);
+      if (st.dwSub) {
+        // Still inside sub-view entries — the tab doesn't change. A stale entry
+        // (its view was unmounted by a tab switch / sync remount) is consumed
+        // with one more back() so the gesture never lands on a dead press.
+        if (openSubViewCount() < targetDepth) {
+          try { window.history.back(); } catch { /* ignore */ }
+        }
+        return;
+      }
       const h = tabHistoryRef.current;
-      if (h.length > 1) {
+      if (st.dwTab) {
+        if (h.length > 1 && h[h.length - 2] === st.dwTab) {
+          h.pop(); // back to the previous tab
+        } else if (h[h.length - 1] !== st.dwTab) {
+          h.push(st.dwTab); // forward (or a jump) — mirror it into the stack
+          if (h.length > 20) h.splice(0, h.length - 20);
+        }
+        setActiveTab(st.dwTab);
+      } else if (h.length > 1) {
+        // Entry without our state (pre-dates this session) — legacy blind pop.
         h.pop();
         setActiveTab(h[h.length - 1]);
       }
@@ -167,6 +201,16 @@ function AppContent() {
   function handlePathwaySelect(persona: Persona) {
     saveSetup({ persona, source: 'onboarding' });
     localStorage.setItem('dw_v7_pathway_done', 'true');
+    // Seed the daily reading volume from the pathway — the dead SetupPromptModal's
+    // PERSONA_CHAPTERS intent, now applied at the pick (deep-study/pastor read
+    // more; everyone else, comfort included, starts at a gentle 1). Fill-only:
+    // never overwrite a cadence the user already chose (synced via the misc bag).
+    try {
+      if (!localStorage.getItem('dw_chapters_per_day')) {
+        const seed = persona === 'deeper_study' || persona === 'pastor_leader' ? '3' : '1';
+        syncMisc('dw_chapters_per_day', seed);
+      }
+    } catch { /* quota */ }
   }
 
   // After the pathway pick, a one-time "want a daily nudge?" step — the high-intent moment
@@ -232,7 +276,7 @@ function AppContent() {
     home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : undefined} />,
     messages: <MessagesScreen onBack={goBack} />,
-    plans: <PlansScreen onBack={goBack} />,
+    plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
     more: <MoreScreen onBack={goBack} />,
     'sermon-notes': <SermonNotesScreen onBack={() => navigateTab('home')} />,
   };
@@ -302,11 +346,11 @@ function AppContent() {
           }}
         >
           <span style={{ flex: 1, fontSize: 13, color: 'var(--dw-text-secondary)' }}>
-            Synced across your devices — kept the newest version of {syncConflicts} note{syncConflicts > 1 ? 's' : ''}.
+            {syncConflicts === 1 ? t('sync_notice_one', getLang()) : t('sync_notice_many', getLang()).replace('{n}', String(syncConflicts))}
           </span>
           <button
             onClick={() => setSyncConflicts(0)}
-            aria-label="Dismiss sync notice"
+            aria-label={t('dismiss_sync_notice', getLang())}
             style={{
               background: 'none', border: 'none', color: 'var(--dw-text-muted)',
               cursor: 'pointer', padding: 4, display: 'flex', fontSize: 18, lineHeight: 1, flexShrink: 0,

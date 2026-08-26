@@ -61,14 +61,18 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET for everything else
   if (event.request.method !== 'GET') return;
 
-  // Bible data (KJV offline): cache-first, long-lived
+  // Bible data (KJV offline): cache-first, long-lived.
+  // Only cache real JSON: the SPA fallback answers every MISSING path with a
+  // 200 HTML page, which used to get pinned under the JSON URL forever
+  // (broke book plans whenever a localized file didn't exist).
   if (url.pathname.startsWith('/bible/') || url.pathname.startsWith('/books/')) {
     event.respondWith(
       caches.open(BIBLE_CACHE).then((cache) =>
         cache.match(event.request).then((cached) => {
           if (cached) return cached;
           return fetch(event.request).then((response) => {
-            if (response.ok) cache.put(event.request, response.clone());
+            const ct = response.headers.get('content-type') || '';
+            if (response.ok && ct.includes('application/json')) cache.put(event.request, response.clone());
             return response;
           }).catch(() => cached);
         })

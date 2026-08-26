@@ -1,5 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
-const { authenticateRequest, issueToken, migrateRequest } = require("./lib/auth");
+const { authenticateRequest, issueToken, migrateRequest, checkMigrationRate } = require("./lib/auth");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
@@ -113,16 +113,51 @@ exports.handler = async (event) => {
         last_active_at: new Date().toISOString()
       };
 
-      // Upsert — insert or update on conflict
-      const { data, error } = await db.from("profiles")
-        .upsert(record, { onConflict: "email" })
-        .select("first_name, last_name, email")
-        .single();
+      // Register is unauthenticated, so for an email that already has a
+      // profile it must be FILL-ONLY: a replayed register for a victim's
+      // email must not overwrite their existing fields (or flip push off).
+      const { data: existing } = await db.from("profiles")
+        .select("email, first_name, last_name, phone, church, city, campus, persona, lang")
+        .eq("email", email)
+        .maybeSingle();
 
-      if (error) throw error;
+      let data;
+      if (existing) {
+        const updates = { last_active_at: record.last_active_at };
+        for (const f of ["first_name", "last_name", "phone", "church", "city", "campus", "persona", "lang"]) {
+          if (!existing[f] && record[f]) updates[f] = record[f];
+        }
+        if (body.pushEnabled === true) updates.push_enabled = true;
 
-      // Issue a session token on registration
-      const sessionToken = await issueToken(db, data.email);
+        const { data: updated, error } = await db.from("profiles")
+          .update(updates)
+          .eq("email", email)
+          .select("first_name, last_name, email")
+          .single();
+        if (error) throw error;
+        data = updated;
+      } else {
+        // New email — full insert (upsert covers a concurrent first-register race)
+        const { data: inserted, error } = await db.from("profiles")
+          .upsert(record, { onConflict: "email" })
+          .select("first_name, last_name, email")
+          .single();
+        if (error) throw error;
+        data = inserted;
+      }
+
+      // Token issuance shares the migration limiter (5/min per IP) so register
+      // is not a weaker token path than the deliberately-hardened migrate.
+      // When limited, the profile still saves — the client just gets no token
+      // (it recovers via the rate-limited migration path on its next call).
+      let sessionToken = null;
+      if (!checkMigrationRate(clientIP)) {
+        try {
+          sessionToken = await issueToken(db, data.email);
+        } catch (tokenErr) {
+          console.error("Register token issuance failed:", tokenErr);
+        }
+      }
 
       return {
         statusCode: 200,
@@ -131,7 +166,7 @@ exports.handler = async (event) => {
           success: true,
           message: "Profile saved",
           profile: { firstName: data.first_name, lastName: data.last_name, email: data.email },
-          sessionToken
+          ...(sessionToken ? { sessionToken } : {})
         })
       };
     }

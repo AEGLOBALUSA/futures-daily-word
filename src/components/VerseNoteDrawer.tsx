@@ -7,6 +7,7 @@ import { fetchAICommentary } from '../utils/api';
 import { MarkdownText } from './MarkdownText';
 import { pushNow } from '../utils/cloudSync';
 import { t, getLang } from '../utils/i18n';
+import { useModalA11y } from '../utils/useModalA11y';
 
 interface VerseNoteDrawerProps {
   open: boolean;
@@ -137,6 +138,9 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
   const commentaries = passage ? sortSources(getCommentariesForRef(passage)) : [];
   const hasCommentary = commentaries.length > 0;
 
+  // Dialog semantics: focus in, Tab trap, Escape → close, focus restore.
+  const dialogRef = useModalA11y(open, onClose);
+
   useEffect(() => {
     if (open) {
       setSaved(false);
@@ -219,7 +223,13 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
       />
 
       {/* Drawer */}
-      <div style={{
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-hidden={!open}
+        aria-label={passage || t('save_to_notes_btn', lang)}
+        style={{
         position: 'fixed', left: 0, right: 0,
         bottom: open ? 0 : '-100%',
         zIndex: 97,
@@ -227,7 +237,10 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
         borderRadius: '20px 20px 0 0',
         padding: '0 0 env(safe-area-inset-bottom)',
         boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
-        transition: 'bottom 0.3s cubic-bezier(0.32,0.72,0,1)',
+        // visibility keeps the closed off-screen drawer out of the Tab order;
+        // it transitions discretely at the end so the slide-out still shows.
+        visibility: open ? 'visible' : 'hidden',
+        transition: 'bottom 0.3s cubic-bezier(0.32,0.72,0,1), visibility 0.3s',
         maxHeight: '82vh',
         display: 'flex', flexDirection: 'column',
       }}>
@@ -258,7 +271,8 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
               </span>
             )}
           </div>
-          <button aria-label="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)' }}>
+          {/* padding 13 + margin -13 = 44px hit area, same 18px layout footprint */}
+          <button aria-label={t('j_close', getLang())} onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 13, margin: -13 }}>
             <X size={18} />
           </button>
         </div>

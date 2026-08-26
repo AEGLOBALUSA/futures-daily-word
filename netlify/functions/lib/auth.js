@@ -86,33 +86,62 @@ async function authenticateRequest(event, db) {
 async function issueToken(db, email) {
   const { raw, hash } = generateToken();
 
-  // Get current hashes — verify email exists first
-  const { data, error } = await db
-    .from("profiles")
-    .select("session_token_hashes")
-    .eq("email", email)
-    .single();
+  // Compare-and-swap append. Parallel startup calls (user-sync pull,
+  // user-profile get, track-activity) each trigger migration concurrently;
+  // a plain read-modify-write here loses tokens (last write wins), so the
+  // client can store a hash that was never persisted and silently de-auth.
+  // Guarding the update with the previously-read array value makes each
+  // append atomic; on conflict we re-read and retry.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    // Get current hashes — verify email exists first
+    const { data, error } = await db
+      .from("profiles")
+      .select("session_token_hashes")
+      .eq("email", email)
+      .single();
 
-  if (error || !data) {
-    throw new Error("Cannot issue token: profile not found for " + email);
+    if (error || !data) {
+      throw new Error("Cannot issue token: profile not found for " + email);
+    }
+
+    const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : null;
+    let hashes = prev ? [...prev] : [];
+    hashes.push(hash);
+
+    // Cap at 5 tokens (oldest first — keep the 5 most recent)
+    if (hashes.length > 5) hashes = hashes.slice(-5);
+
+    let update = db
+      .from("profiles")
+      .update({ session_token_hashes: hashes })
+      .eq("email", email);
+    // CAS guard: only write if the array is unchanged since our read.
+    // jsonb filter values must be passed as JSON strings (see authenticateRequest).
+    update = prev === null
+      ? update.is("session_token_hashes", null)
+      : update.eq("session_token_hashes", JSON.stringify(prev));
+
+    const { data: updated, error: updateErr } = await update.select("email");
+
+    if (updateErr) {
+      // The guarded update itself failed (not a CAS miss). Fall back to the
+      // legacy unconditional write so token issuance never hard-breaks.
+      console.error("issueToken CAS update error, falling back:", updateErr.message);
+      const { error: plainErr } = await db
+        .from("profiles")
+        .update({ session_token_hashes: hashes })
+        .eq("email", email);
+      if (plainErr) throw new Error("Failed to store token: " + plainErr.message);
+      return raw;
+    }
+    if (updated && updated.length > 0) {
+      return raw;
+    }
+    // Zero rows matched — a concurrent issue landed between our read and
+    // write. Loop to re-read the fresh array and append onto it.
   }
 
-  let hashes = Array.isArray(data.session_token_hashes) ? [...data.session_token_hashes] : [];
-  hashes.push(hash);
-
-  // Cap at 5 tokens (oldest first — keep the 5 most recent)
-  if (hashes.length > 5) hashes = hashes.slice(-5);
-
-  const { error: updateErr } = await db
-    .from("profiles")
-    .update({ session_token_hashes: hashes })
-    .eq("email", email);
-
-  if (updateErr) {
-    throw new Error("Failed to store token: " + updateErr.message);
-  }
-
-  return raw;
+  throw new Error("Failed to store token: concurrent update conflict");
 }
 
 /**
