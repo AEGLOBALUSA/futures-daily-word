@@ -54,7 +54,7 @@ const UI: Translations = {
   tab_home: { en: 'Home', es: 'Inicio', pt: 'In\u00edcio', id: 'Beranda' },
   tab_notes: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   tab_campus: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
-  tab_plans: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
+  tab_plans: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
   tab_settings: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 
   // ââ SETTINGS / MORE SCREEN ââ
@@ -95,7 +95,7 @@ const UI: Translations = {
   characters: { en: 'characters', es: 'caracteres', pt: 'caracteres', id: 'karakter' },
 
   // ââ PLANS SCREEN ââ
-  plans_title: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
+  plans_title: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
   plans_and_more: { en: 'Plans & More', es: 'Planes y m\u00e1s', pt: 'Planos e mais', id: 'Rencana & Lainnya' },
   plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devo\u00e7\u00e3o e comunidade', id: 'Rencana bacaan, devosi, dan komunitas Anda' },
   your_plans: { en: 'YOUR PLANS', es: 'TUS PLANES', pt: 'SEUS PLANOS', id: 'RENCANA ANDA' },
@@ -552,6 +552,11 @@ const UI: Translations = {
   email_nudge_body: { en: 'Your streak and journal live only on this device. Add your email and they follow you everywhere.', es: 'Tu racha y tu diario solo viven en este dispositivo. Agrega tu correo y te seguir\u00e1n a todas partes.', pt: 'Sua sequ\u00eancia e seu di\u00e1rio vivem apenas neste aparelho. Adicione seu e-mail e eles v\u00e3o com voc\u00ea.', id: 'Rangkaian dan jurnal Anda hanya tersimpan di perangkat ini. Tambahkan email Anda agar tersimpan di mana saja.' },
   email_nudge_cta: { en: 'Back it up', es: 'Respaldar', pt: 'Fazer backup', id: 'Cadangkan' },
   email_nudge_later: { en: 'Not now', es: 'Ahora no', pt: 'Agora n\u00e3o', id: 'Nanti saja' },
+  sermon_notes_moved: { en: 'Sermon notes now live in Notes \u2192 Sermon', es: 'Las notas de sermones ahora viven en Notas \u2192 Serm\u00f3n', pt: 'As notas de serm\u00e3o agora vivem em Notas \u2192 Serm\u00e3o', id: 'Catatan khotbah kini ada di Catatan \u2192 Khotbah' },
+  reference_label: { en: 'REFERENCE', es: 'REFERENCIA', pt: 'REFER\u00caNCIA', id: 'REFERENSI' },
+  reference_title: { en: 'Reference Library', es: 'Biblioteca de referencia', pt: 'Biblioteca de refer\u00eancia', id: 'Perpustakaan Referensi' },
+  reference_sub: { en: 'Essays, Bible characters, places & timeline', es: 'Ensayos, personajes b\u00edblicos, lugares y cronolog\u00eda', pt: 'Ensaios, personagens b\u00edblicos, lugares e linha do tempo', id: 'Esai, tokoh Alkitab, tempat & garis waktu' },
+  now_in_read: { en: 'Now in Read', es: 'Ahora en Leer', pt: 'Agora em Ler', id: 'Kini di Baca' },
   continue_journey: { en: 'Continue Journey', es: 'Continuar el camino', pt: 'Continuar a jornada', id: 'Lanjutkan Perjalanan' },
   todays_study: { en: "TODAY'S STUDY", es: 'ESTUDIO DE HOY', pt: 'ESTUDO DE HOJE', id: 'STUDI HARI INI' },
   for_you: { en: 'FOR YOU', es: 'PARA TI', pt: 'PARA VOC\u00ca', id: 'UNTUKMU' },

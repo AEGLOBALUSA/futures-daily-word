@@ -3,22 +3,15 @@ import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
-import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, CheckCircle, MessageSquare, MapPin } from 'lucide-react';
+import { Plus, Loader2, Heart, HandHeart, RefreshCw, Send, CheckCircle, MessageSquare, MapPin } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
 import { CampusSelect } from '../components/CampusSelect';
-import { t, getLang, dateLocale } from '../utils/i18n';
+import { t, getLang } from '../utils/i18n';
+import type { TabId } from '../components/TabBar';
 import { pushNow } from '../utils/cloudSync';
 import { API_BASE } from '../utils/api-base';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-interface SermonNote {
-  id: string;
-  title: string;
-  date: string;
-  content: string;
-  sermon?: string;
-}
-
 interface Prayer {
   id: string;
   name: string;
@@ -435,12 +428,14 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export function MessagesScreen({ onBack }: { onBack?: () => void }) {
+export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
   const { userProfile, requireEmail, setup } = useUser();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
-  const [activeTab, setActiveTab] = useState<'pastor' | 'notes' | 'prayer'>('pastor');
+  // 'notes' (Sermons) sub-tab retired (Ashley, 26 Aug 2026): it was a stranded
+  // third sermon-note surface — sermon notes live in Notes → Sermon now.
+  const [activeTab, setActiveTab] = useState<'pastor' | 'prayer'>('pastor');
 
   // Re-tap of the Campus tab in the tab bar → back to the tab's root state.
   useEffect(() => {
@@ -468,7 +463,7 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
           background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
           border: '1px solid var(--dw-border)',
         }}>
-          {(['pastor', 'notes', 'prayer'] as const).map(tab => (
+          {(['pastor', 'prayer'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               flex: 1, padding: '10px 0',
               background: activeTab === tab ? 'var(--dw-accent)' : 'transparent',
@@ -477,16 +472,30 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
               fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
               transition: 'all 0.2s ease',
             }}>
-              {tab === 'pastor' ? t("pastors_corner", lang) : tab === 'notes' ? t("sermons", lang) : t("prayer_wall", lang)}
+              {tab === 'pastor' ? t("pastors_corner", lang) : t("prayer_wall", lang)}
             </button>
           ))}
         </div>
       </div>
 
+      {/* One-line pointer for the retired Sermons sub-tab — notes moved, not lost. */}
+      <button
+        onClick={() => onNavigate?.('journal')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: 'calc(100% - 48px)',
+          margin: '0 24px 12px', padding: '10px 14px',
+          background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+          borderRadius: 10, cursor: 'pointer', textAlign: 'left', minHeight: 40,
+        }}
+      >
+        <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', flex: 1 }}>
+          {t('sermon_notes_moved', lang)}
+        </span>
+        <span style={{ color: 'var(--dw-text-faint)', fontSize: 12 }}>→</span>
+      </button>
+
       {activeTab === 'pastor'
         ? <PastorsCornerPanel userProfile={userProfile} setup={setup} />
-        : activeTab === 'notes'
-        ? <SermonNotesPanel userProfile={userProfile} requireEmail={requireEmail} />
         : <PrayerWallPanel userProfile={userProfile} requireEmail={requireEmail} />
       }
 
@@ -494,175 +503,6 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
     </div>
   );
 }
-
-// ── Sermon Notes Panel ─────────────────────────────────────────────────────────
-function SermonNotesPanel({
-  userProfile,
-  requireEmail,
-}: {
-  userProfile: { email?: string; name?: string; campus?: string } | null;
-  requireEmail: (cb?: () => void) => void;
-}) {
-  const [notes, setNotes] = useState<SermonNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: '', sermon: '', content: '' });
-
-  const loadNotes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const storedNotes = localStorage.getItem('dw_sermon_notes');
-      if (storedNotes) setNotes(JSON.parse(storedNotes));
-    } catch { /* empty */ }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { loadNotes(); }, [loadNotes]);
-
-  const saveNote = async () => {
-    if (!formData.title.trim() || !formData.content.trim()) return;
-    if (!userProfile?.email) { requireEmail(); return; }
-    const newNote: SermonNote = {
-      id: editingId || Date.now().toString(),
-      title: formData.title, sermon: formData.sermon,
-      content: formData.content, date: new Date().toISOString().slice(0, 10),
-    };
-    const updated = editingId ? notes.map(n => n.id === editingId ? newNote : n) : [newNote, ...notes];
-    setNotes(updated);
-    localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
-    pushNow(); // back up sermon notes to the cloud (misc bag)
-    setFormData({ title: '', sermon: '', content: '' });
-    setShowForm(false);
-    setEditingId(null);
-  };
-
-  const deleteNote = (id: string) => {
-    const updated = notes.filter(n => n.id !== id);
-    setNotes(updated);
-    localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
-    pushNow();
-  };
-
-  const editNote = (note: SermonNote) => {
-    setFormData({ title: note.title, sermon: note.sermon || '', content: note.content });
-    setEditingId(note.id);
-    setShowForm(true);
-  };
-
-  return (
-    <div style={{ padding: '0 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', margin: 0 }}>
-          Capture insights from sermons and teachings
-        </p>
-        <button
-          className="dw-btn-primary"
-          style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-          onClick={() => {
-            if (!userProfile?.email) { requireEmail(); return; }
-            setFormData({ title: '', sermon: '', content: '' });
-            setEditingId(null);
-            setShowForm(true);
-          }}
-        >
-          <Plus size={14} /> New Note
-        </button>
-      </div>
-
-      {showForm && (
-        <Card style={{ marginBottom: 20 }}>
-          <h2 className="text-section-header" style={{ marginBottom: 12 }}>
-            {editingId ? t('edit_note_header', getLang()) : t('new_sermon_note', getLang())}
-          </h2>
-          {[
-            { placeholder: t('note_title_placeholder', getLang()), key: 'title', fontSize: 14 },
-            { placeholder: t('sermon_title_placeholder', getLang()), key: 'sermon', fontSize: 13 },
-          ].map(({ placeholder, key, fontSize }) => (
-            <input key={key} type="text" placeholder={placeholder} value={(formData as Record<string, string>)[key]}
-              onChange={e => setFormData({ ...formData, [key]: e.target.value })}
-              style={{
-                width: '100%', background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                borderRadius: 10, padding: '12px 14px', color: 'var(--dw-text-primary)',
-                fontSize, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 12, minHeight: 44,
-                boxSizing: 'border-box',
-              }}
-            />
-          ))}
-          <textarea placeholder={t('write_notes', getLang())} value={formData.content}
-            onChange={e => setFormData({ ...formData, content: e.target.value })}
-            style={{
-              width: '100%', minHeight: 120, background: 'var(--dw-surface)',
-              border: '1px solid var(--dw-border)', borderRadius: 10, padding: 12,
-              color: 'var(--dw-text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)',
-              outline: 'none', resize: 'vertical', marginBottom: 12, boxSizing: 'border-box',
-            }}
-          />
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button onClick={() => { setShowForm(false); setEditingId(null); setFormData({ title: '', sermon: '', content: '' }); }}
-              className="dw-btn-secondary" style={{ fontSize: 13, padding: '8px 16px' }}>{t('cancel_label', getLang())}</button>
-            <button onClick={saveNote} disabled={!formData.title.trim() || !formData.content.trim()}
-              className="dw-btn-primary"
-              style={{ fontSize: 13, padding: '8px 16px', opacity: !formData.title.trim() || !formData.content.trim() ? 0.5 : 1 }}>
-              {editingId ? t('update_label', getLang()) : t('save', getLang())}
-            </button>
-          </div>
-        </Card>
-      )}
-
-      {/* ── User's own notes ── */}
-      {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0', gap: 8 }}>
-          <Loader2 size={18} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-          <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading notes...</span>
-        </div>
-      ) : notes.length === 0 ? (
-        <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
-          <Pencil size={24} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-            No personal sermon notes yet. Create your first one!
-          </p>
-        </Card>
-      ) : (
-        <>
-          <h2 className="text-section-header" style={{ marginBottom: 10 }}>{t('j_my_notes', getLang())}</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {notes.map(note => (
-              <Card key={note.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <p className="text-card-title">{note.title}</p>
-                    {note.sermon && (
-                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>{note.sermon}</p>
-                    )}
-                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', marginTop: 4 }}>{formatDate(note.date)}</p>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
-                    {[
-                      { fn: () => editNote(note), icon: <Pencil size={14} />, bg: 'var(--dw-accent-bg)', color: 'var(--dw-accent)' },
-                      { fn: () => { if (window.confirm('Delete this sermon note?')) deleteNote(note.id); }, icon: <Trash2 size={14} />, bg: 'var(--dw-border)', color: 'var(--dw-text-muted)' },
-                    ].map(({ fn, icon, bg, color }, i) => (
-                      <button key={i} onClick={fn} style={{
-                        background: bg, border: 'none', borderRadius: 8, padding: '8px 12px',
-                        color, cursor: 'pointer', display: 'flex', alignItems: 'center', minHeight: 36,
-                      }}>{icon}</button>
-                    ))}
-                  </div>
-                </div>
-                {note.content && (
-                  <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>
-                    {note.content.slice(0, 150)}{note.content.length > 150 ? '...' : ''}
-                  </p>
-                )}
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 // ── Prayer Wall Panel ──────────────────────────────────────────────────────────
 function PrayerWallPanel({
   userProfile,
@@ -886,13 +726,3 @@ function PrayerWallPanel({
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function formatDate(isoStr: string): string {
-  try {
-    const d = new Date(isoStr);
-    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (days === 0) return t('today', getLang());
-    if (days === 1) return t('yesterday', getLang());
-    if (days < 7) return t('days_ago', getLang()).replace('{n}', String(days));
-    return d.toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric' });
-  } catch { return t('recently', getLang()); }
-}
