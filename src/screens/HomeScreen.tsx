@@ -295,6 +295,18 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     } catch { return { completedDays: [], currentDay: 1, enrolled: false }; }
   });
 
+  // Which pathway day the app SHOWS today. Once a day is completed the stored
+  // currentDay points at tomorrow's lesson, but today's reading and lesson stay
+  // on screen for the rest of the day — otherwise finishing the reading swapped
+  // the chapter out from under the reader mid-page.
+  const pathwayDisplayDay = (() => {
+    const today = new Date().toLocaleDateString('en-CA');
+    if (pathwayProgress.lastCompletedDate === today && pathwayProgress.lastCompletedDay) {
+      return pathwayProgress.lastCompletedDay;
+    }
+    return pathwayProgress.currentDay || 1;
+  })();
+
   // Audio state — powered by global AudioPlayer (single element, iOS-safe)
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
@@ -398,15 +410,39 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       if (!pathwayData) {
         const _lang = getLang();
         const _pathwayUrl = _lang !== 'en' ? `/books/faith-pathway_${_lang}.json` : '/books/faith-pathway.json';
+        // Mirror the length into dw_pathway_progress so the Read tab can show
+        // "Day N of M" without fetching this 373KB file itself.
+        const _apply = (data: PathwayData) => {
+          setPathwayData(data);
+          const total = data.days?.length || 40;
+          const title = _lang === 'es' ? (data.titleEs || data.title)
+            : _lang === 'pt' ? (data.titlePt || data.title)
+            : _lang === 'id' ? (data.titleId || data.title)
+            : data.title;
+          // ‼️ Merge into whatever is CURRENTLY STORED — never rebuild this record
+          // from React state. applyCloudData restores dw_pathway_progress straight
+          // to localStorage without telling React, so a `{...prev}` write here
+          // would stamp mount-time state over a just-restored cloud copy and the
+          // next push would send that loss back to every device.
+          try {
+            const stored = JSON.parse(localStorage.getItem('dw_pathway_progress') || '{}');
+            if (stored.totalDays !== total || stored.title !== title) {
+              localStorage.setItem('dw_pathway_progress', JSON.stringify({ ...stored, totalDays: total, title }));
+            }
+          } catch { /* quota / bad JSON */ }
+          setPathwayProgress(prev => (
+            (prev.totalDays === total && prev.title === title) ? prev : { ...prev, totalDays: total, title }
+          ));
+        };
         fetch(_pathwayUrl)
           .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
-          .then((data: PathwayData) => setPathwayData(data))
+          .then(_apply)
           .catch(() => {
             // Fallback to English if translated file doesn't exist
             if (_lang !== 'en') {
               fetch('/books/faith-pathway.json')
                 .then(r => r.json())
-                .then((data: PathwayData) => setPathwayData(data))
+                .then(_apply)
                 .catch(() => {});
             }
           });
@@ -437,6 +473,54 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     setPathwayProgress(p);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
     try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
+  };
+
+  // ── One day, one completion (new believers) ──────────────────────────────
+  // The reading and the lesson are ONE daily unit, so finishing either finishes
+  // the day. Before this, "Mark as read" on the hero and "Mark Complete" on the
+  // lesson wrote to different stores: a new believer could read the whole day
+  // and still be told "Just getting started" on a Day 1 that never advanced.
+  const completeTodaysPathwayDay = (passage?: string) => {
+    if (!pf.faithPathway || !pathwayProgress.enrolled || !pathwayData) return;
+    const today = new Date().toLocaleDateString('en-CA');
+    if (pathwayProgress.lastCompletedDate === today) return;
+    const total = pathwayData.days?.length || 40;
+    const day = pathwayProgress.currentDay || 1;
+    if (pathwayProgress.completedDays?.includes(day)) return;
+    // Only the pathway's OWN reading closes the pathway day. If this reader also
+    // has an active plan the hero serves the plan's chapter instead, and crediting
+    // the lesson for a chapter the lesson never taught would advance the journey
+    // past content they were never shown. They complete it from the lesson card.
+    const dayReading = pathwayData.days?.find((d: PathwayDay) => d.day === day)?.reading;
+    if (passage && dayReading && passage !== `${dayReading.book} ${dayReading.chapter}`) return;
+    savePathwayProgress({
+      ...pathwayProgress,
+      completedDays: [...(pathwayProgress.completedDays || []), day],
+      currentDay: Math.min(total, day + 1),
+      lastCompletedDay: day,
+      lastCompletedDate: today,
+      totalDays: total,
+    });
+  };
+
+  // The other direction: completing the lesson also closes out today's reading,
+  // so the hero flips to "Read today" and the streak/backup prompts see a real
+  // read. No second celebration — the lesson card shows its own "day complete".
+  const savePathwayProgressFromLesson = (p: PathwayProgress) => {
+    savePathwayProgress(p);
+    const today = new Date().toLocaleDateString('en-CA');
+    if (localStorage.getItem('dw_reading_done') === today) return;
+    // Finishing the lesson closes out the whole day — including an active plan's
+    // day. The dw_reading_done stamp below is handleMarkRead's early-return guard,
+    // so without crediting the plan here it could never be credited at all today.
+    const heroPassage = heroChapterRefs[0];
+    if (heroPassage) {
+      const planResult = markPlanDayComplete(heroPassage);
+      if (planResult?.planFinished) setPlanFinish({ title: planResult.planTitle, days: planResult.planDays });
+    }
+    try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
+    setReadDoneToday(true);
+    try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* SSR/tests */ }
   };
 
   const saveReadingSlots = (slots: ReadingSlot[]) => {
@@ -560,6 +644,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     if (localStorage.getItem('dw_reading_done') === today) { setReadDoneToday(true); return; }
     try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
     const result = markPlanDayComplete(passage);
+    completeTodaysPathwayDay(passage);
     recordStreakToday();
     setReadDoneToday(true);
     hapticTap(18);
@@ -680,8 +765,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   useEffect(() => {
     if (!pf.faithPathway || !pathwayData || !pathwayProgress.enrolled) return;
     if (personaConfig.sectionOrder.includes('devotion')) return; // only for plan-based personas
-    const currentDay = pathwayProgress.currentDay || 1;
-    const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
+    const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
     if (!dayData) return;
     const reading = dayData.reading;
     if (!reading) return;
@@ -1087,12 +1171,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         const comfortRef = COMFORT_CHAPTERS[localDayIndex() % COMFORT_CHAPTERS.length];
         if (comfortRef) refs.push(comfortRef);
       } else if (personaConfig.persona === 'new_to_faith' && pathwayProgress.enrolled && pathwayData) {
-        const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === (pathwayProgress.currentDay || 1));
+        const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
         if (dayData?.reading) refs.push(`${dayData.reading.book} ${dayData.reading.chapter}`);
       }
     }
     return refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
-  }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef, personaConfig.persona, pathwayProgress, pathwayData]);
+  }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef, personaConfig.persona, pathwayProgress, pathwayDisplayDay, pathwayData]);
   const heroKey = heroChapterRefs.join('|');
 
   // Fetch compare text when compare mode or translation changes. Covers BOTH the
@@ -1521,10 +1605,19 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   return (
     <div className="screen-container">
       {doneCelebration !== null && (
-        <DoneCelebration streakCount={doneCelebration} onClose={() => setDoneCelebration(null)} />
+        <DoneCelebration streakCount={doneCelebration} onClose={() => {
+          setDoneCelebration(null);
+          // Announce the finished reading only once this moment is closed, so the
+          // push ask (which waits on it) can never land on top of the celebration
+          // — the two post-reading prompts must not stack.
+          try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* SSR/tests */ }
+        }} />
       )}
       {planFinish !== null && (
-        <DoneCelebration streakCount={0} planFinish={planFinish} onClose={() => setPlanFinish(null)} />
+        <DoneCelebration streakCount={0} planFinish={planFinish} onClose={() => {
+          setPlanFinish(null);
+          try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* SSR/tests */ }
+        }} />
       )}
       {showSetupModal && (
         <SetupPromptModal
@@ -1760,10 +1853,45 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           )}
         </div>
 
+        {/* What this actually is — one line, for the persona that has never used
+            a Bible app. Only while they are early in the pathway. */}
+        {pf.faithPathway && pathwayProgress.enrolled && (pathwayProgress.completedDays?.length || 0) < 3 && (
+          <p style={{
+            fontFamily: 'var(--font-sans)', fontSize: 13, lineHeight: 1.5,
+            color: 'var(--dw-text-muted)', textAlign: 'center',
+            margin: '-4px 0 16px', padding: '0 8px',
+          }}>
+            {tI18n('pathway_how_it_works', lang)}
+          </p>
+        )}
+
         {(() => {
           const firstPlan = todaysPlanPassages[0];
           const firstSlot = readingSlots[0];
           const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot;
+
+          // New believers have a reading — it just arrives with the pathway JSON.
+          // Until then the hero must NOT flash the "Choose your reading plan"
+          // funnel: this is the one persona deliberately exempt from it, and it
+          // is the first thing they ever see.
+          if (!hasAnyPassage && pf.faithPathway && pathwayProgress.enrolled) return (
+            <div key="hero-pathway-loading" style={{
+              position: 'relative', borderRadius: 24, overflow: 'hidden',
+              marginBottom: 20,
+              boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
+              border: '1px solid rgba(40,28,16,0.06)',
+            }}>
+              <HeroPhotoCarousel />
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(176deg, rgba(30,20,12,0.40) 0%, rgba(30,20,12,0.10) 30%, rgba(30,20,12,0.18) 58%, rgba(30,20,12,0.62) 100%)' }} />
+              <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)', pointerEvents: 'none' }}>
+                <div style={{ height: 16 }} />
+                <p style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 8px', lineHeight: 1.3 }}>
+                  {tI18n('pathway_hero_loading', lang)}
+                </p>
+                <div style={{ height: 40 }} />
+              </div>
+            </div>
+          );
 
           // No active plan or slot — show a "Start a Plan" prompt in the hero card
           if (!hasAnyPassage) return (
@@ -2364,6 +2492,21 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </button>
         </div>
 
+        {/* ── Today's lesson (new_to_faith) — immediately under the reading it
+             teaches, so the day is one unit: read it, then read about it, then
+             one button finishes both. ── */}
+        {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (
+          <NewBelieverLessonCard
+            pathwayData={pathwayData}
+            pathwayProgress={pathwayProgress}
+            displayDay={pathwayDisplayDay}
+            lang={lang}
+            t={t}
+            scriptureFontSize={scriptureFontSize}
+            savePathwayProgress={savePathwayProgressFromLesson}
+          />
+        )}
+
         {/* Post-first-reading backup nudge — appears only after the push prompt
             is resolved, so the two post-reading moments never stack. */}
         <EmailNudgeCard />
@@ -2435,49 +2578,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
         {/* AI Prompt Section — multi-persona */}
 
-      {/* Blue Faith Pathway Banner for New Christians */}
-      {pf.faithPathway && pathwayProgress.enrolled && pathwayData && (
-        <div
-          className="dw-dark-surface"
-          onClick={() => {
-            const el = document.getElementById('pathway-lesson-card');
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else if (onNavigate) {
-              onNavigate('plans');
-            }
-          }}
-          style={{
-            margin: '12px 0',
-            padding: '20px',
-            background: 'linear-gradient(135deg, var(--dw-plan-deep) 0%, var(--dw-plan) 50%, #2563eb 100%)',
-            borderRadius: '16px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '120px', height: '120px', background: 'rgba(255,255,255,0.08)', borderRadius: '50%' }} />
-          <div style={{ position: 'absolute', bottom: '-30px', left: '20%', width: '80px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
-          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '2px', color: 'rgba(255,255,255,0.85)', marginBottom: '6px', textTransform: 'uppercase' }}>{tI18n('your_faith_journey', lang)}</p>
-          <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 4px 0' }}>
-            {tI18n('day_x_of_y_title', lang).replace('{x}', String(pathwayProgress.currentDay)).replace('{y}', String(pathwayData.days?.length || 40))}
-          </p>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', margin: '0 0 12px 0' }}>
-            {pathwayData.days?.find(d => d.day === pathwayProgress.currentDay)?.title || tI18n('next_lesson_ready', lang)}
-          </p>
-          <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '100px', height: '6px', marginBottom: '8px' }}>
-            <div style={{ background: '#fff', height: '100%', borderRadius: '100px', width: `${Math.round(((pathwayProgress.currentDay - 1) / (pathwayData.days?.length || 40)) * 100)}%`, transition: 'width 0.5s ease' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
-              {pathwayProgress.currentDay === 1 ? tI18n('just_getting_started', lang) : tI18n('days_completed', lang).replace('{n}', String(pathwayProgress.completedDays?.length || 0))}
-            </span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>{tI18n('continue_label', lang)} →</span>
-          </div>
-        </div>
-      )}
+      {/* The blue "Your Faith Journey" banner was removed: it repeated the day
+          number, plan title and progress bar that the lesson card now shows
+          directly under the hero, and its only action was to scroll to that
+          card. Two progress readouts on one screen read as two journeys. */}
         {personaConfig.sectionOrder.includes('ai_prompt') && <BibleAIPromptSection onOpenAI={() => setShowBibleAI(true)} persona={personaConfig.persona} />}
 
         {/* Book Cards — surfaces recommended books, tapping starts the reading plan */}
@@ -2980,29 +3084,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           />
         )}
 
-        {/* ── Plan-based lesson card for new_to_faith (extracted to <NewBelieverLessonCard>) ── */}
-        {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (
-          <NewBelieverLessonCard
-            pathwayData={pathwayData}
-            pathwayProgress={pathwayProgress}
-            lang={lang}
-            t={t}
-            translation={translation}
-            translations={getTranslationsForPersona('new_to_faith', appLanguage)}
-            passageTexts={passageTexts}
-            loadingPassages={loadingPassages}
-            greekHebrewMode={greekHebrewMode}
-            scriptureFontSize={scriptureFontSize}
-            audioPlaying={audioPlaying}
-            audioLoading={audioLoading}
-            audioCurrentPassage={audioCurrentPassage}
-            savePathwayProgress={savePathwayProgress}
-            handleTranslationChange={handleTranslationChange}
-            handleListen={handleListen}
-            loadPassage={loadPassage}
-            renderScripture={renderScripture}
-          />
-        )}
+        {/* The new-believer lesson card now renders directly under the hero — see
+            "Today's lesson" above. It used to sit here, eight blocks below the
+            reading it belongs to. */}
 
         {/* Campus community count badge REMOVED: its "N people at your campus are
             in the Word today" number was fabricated from a deterministic seed, and
