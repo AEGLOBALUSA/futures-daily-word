@@ -8,7 +8,7 @@
  * translation picker, audio and "Mark as read". Rendering it here too put the
  * same chapter on screen twice with two sets of controls.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Share2 } from 'lucide-react';
 import { t as trans } from '../utils/i18n';
 import { Card } from './Card';
@@ -35,6 +35,10 @@ export function NewBelieverLessonCard({
   // apart, and it survives a reload — this used to be component state, so
   // refreshing handed out the next lesson early.
   const [showNext, setShowNext] = useState(false);
+  // Drop the peek whenever the day being shown moves on — otherwise a tab left
+  // open across midnight keeps it set, and completing the new day would jump the
+  // card a day ahead of the chapter the hero is still showing.
+  useEffect(() => { setShowNext(false); }, [displayDay]);
   const today = new Date().toLocaleDateString('en-CA');
   const completedToday = pathwayProgress.lastCompletedDate === today
     ? (pathwayProgress.lastCompletedDay ?? null)

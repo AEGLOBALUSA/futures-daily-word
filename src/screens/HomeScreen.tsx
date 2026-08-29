@@ -419,12 +419,20 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             : _lang === 'pt' ? (data.titlePt || data.title)
             : _lang === 'id' ? (data.titleId || data.title)
             : data.title;
-          setPathwayProgress(prev => {
-            if (prev.totalDays === total && prev.title === title) return prev;
-            const next = { ...prev, totalDays: total, title };
-            try { localStorage.setItem('dw_pathway_progress', JSON.stringify(next)); } catch { /* quota */ }
-            return next;
-          });
+          // ‼️ Merge into whatever is CURRENTLY STORED — never rebuild this record
+          // from React state. applyCloudData restores dw_pathway_progress straight
+          // to localStorage without telling React, so a `{...prev}` write here
+          // would stamp mount-time state over a just-restored cloud copy and the
+          // next push would send that loss back to every device.
+          try {
+            const stored = JSON.parse(localStorage.getItem('dw_pathway_progress') || '{}');
+            if (stored.totalDays !== total || stored.title !== title) {
+              localStorage.setItem('dw_pathway_progress', JSON.stringify({ ...stored, totalDays: total, title }));
+            }
+          } catch { /* quota / bad JSON */ }
+          setPathwayProgress(prev => (
+            (prev.totalDays === total && prev.title === title) ? prev : { ...prev, totalDays: total, title }
+          ));
         };
         fetch(_pathwayUrl)
           .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
@@ -472,13 +480,19 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // the day. Before this, "Mark as read" on the hero and "Mark Complete" on the
   // lesson wrote to different stores: a new believer could read the whole day
   // and still be told "Just getting started" on a Day 1 that never advanced.
-  const completeTodaysPathwayDay = () => {
+  const completeTodaysPathwayDay = (passage?: string) => {
     if (!pf.faithPathway || !pathwayProgress.enrolled || !pathwayData) return;
     const today = new Date().toLocaleDateString('en-CA');
     if (pathwayProgress.lastCompletedDate === today) return;
     const total = pathwayData.days?.length || 40;
     const day = pathwayProgress.currentDay || 1;
     if (pathwayProgress.completedDays?.includes(day)) return;
+    // Only the pathway's OWN reading closes the pathway day. If this reader also
+    // has an active plan the hero serves the plan's chapter instead, and crediting
+    // the lesson for a chapter the lesson never taught would advance the journey
+    // past content they were never shown. They complete it from the lesson card.
+    const dayReading = pathwayData.days?.find((d: PathwayDay) => d.day === day)?.reading;
+    if (passage && dayReading && passage !== `${dayReading.book} ${dayReading.chapter}`) return;
     savePathwayProgress({
       ...pathwayProgress,
       completedDays: [...(pathwayProgress.completedDays || []), day],
@@ -496,6 +510,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     savePathwayProgress(p);
     const today = new Date().toLocaleDateString('en-CA');
     if (localStorage.getItem('dw_reading_done') === today) return;
+    // Finishing the lesson closes out the whole day — including an active plan's
+    // day. The dw_reading_done stamp below is handleMarkRead's early-return guard,
+    // so without crediting the plan here it could never be credited at all today.
+    const heroPassage = heroChapterRefs[0];
+    if (heroPassage) {
+      const planResult = markPlanDayComplete(heroPassage);
+      if (planResult?.planFinished) setPlanFinish({ title: planResult.planTitle, days: planResult.planDays });
+    }
     try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
     setReadDoneToday(true);
     try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* SSR/tests */ }
@@ -622,7 +644,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     if (localStorage.getItem('dw_reading_done') === today) { setReadDoneToday(true); return; }
     try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
     const result = markPlanDayComplete(passage);
-    completeTodaysPathwayDay();
+    completeTodaysPathwayDay(passage);
     recordStreakToday();
     setReadDoneToday(true);
     hapticTap(18);

@@ -235,6 +235,11 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
   // JSON loads, so this tab never has to fetch that 373KB file.
   const faithJourney = (() => {
     try {
+      // Persona-gated to match HomeScreen's pf.faithPathway. `enrolled` is never
+      // set back to false, so a reader who finishes the pathway and is upgraded to
+      // congregation (or switches persona in Settings) would otherwise keep seeing
+      // the faith journey here for good, in place of their real plans.
+      if (persona !== 'new_to_faith') return null;
       const p = JSON.parse(localStorage.getItem('dw_pathway_progress') || '{}');
       if (!p?.enrolled) return null;
       // Same "day being shown today" rule Home uses: once today's day is done the
