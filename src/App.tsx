@@ -9,7 +9,6 @@ import { EmailGate } from './components/EmailGate';
 import { PathwayPicker } from './components/PathwayPicker';
 import { PushOptIn } from './components/PushOptIn';
 import { isPushSubscribed } from './utils/push';
-import { getStreak } from './utils/streak';
 import { schedulePush } from './utils/cloudSync';
 import { ScreenSkeleton } from './components/Skeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -236,16 +235,22 @@ function AppContent() {
     try { return !!localStorage.getItem('dw_push_onboarded') || isPushSubscribed(); } catch { return false; }
   });
   // Evidence-timed (Ashley, 26 Aug 2026): the ask appears only after the user has
-  // actually read something (first mark-as-read / celebration records the streak),
-  // not as a cold-start gate. Comfort users are never gated — someone in crisis
-  // should not meet a permissions screen (Settings still offers push).
+  // actually read something, not as a cold-start gate. Comfort users are never
+  // gated — someone in crisis should not meet a permissions screen (Settings
+  // still offers push).
+  // Keyed on a finished reading (dw_reading_done + the dw-reading-completed event
+  // fired when the "done" moment is dismissed), NOT the streak: the streak records
+  // on HomeScreen mount — behind the picker — so this gate was already satisfied
+  // before a brand-new user had seen a word, and the push screen fired straight
+  // after the persona pick. Firing on dismissal also keeps the ask off the
+  // celebration, so the two post-reading prompts never stack.
   const [hasReadOnce, setHasReadOnce] = useState(() => {
-    try { return !!getStreak().lastDate; } catch { return false; }
+    try { return !!localStorage.getItem('dw_reading_done'); } catch { return false; }
   });
   useEffect(() => {
     const h = () => setHasReadOnce(true);
-    window.addEventListener('dw-streak-recorded', h);
-    return () => window.removeEventListener('dw-streak-recorded', h);
+    window.addEventListener('dw-reading-completed', h);
+    return () => window.removeEventListener('dw-reading-completed', h);
   }, []);
   const needsPushOnboarding = onboardingActive && !needsFirstRunPicker && !pushOnboarded
     && hasReadOnce && setup?.persona !== 'comfort';

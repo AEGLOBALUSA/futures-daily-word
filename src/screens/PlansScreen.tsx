@@ -6,7 +6,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar, Search } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, RotateCcw, BookOpen, MapPin, Video, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar, Search } from 'lucide-react';
 import type { TabId } from '../components/TabBar';
 import { LibraryScreen } from './LibraryScreen';
 import { useSubView } from '../utils/useSubView';
@@ -228,6 +228,29 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
     try {
       return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || '';
     } catch { return ''; }
+  })();
+
+  // The auto-enrolled Faith Pathway lives in dw_pathway_progress, not in
+  // dw_activeplans — totalDays is mirrored there by HomeScreen when the pathway
+  // JSON loads, so this tab never has to fetch that 373KB file.
+  const faithJourney = (() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('dw_pathway_progress') || '{}');
+      if (!p?.enrolled) return null;
+      // Same "day being shown today" rule Home uses: once today's day is done the
+      // stored currentDay points at tomorrow, and the two screens must not
+      // disagree about which day of the journey the reader is on.
+      const today = new Date().toLocaleDateString('en-CA');
+      const displayDay = (p.lastCompletedDate === today && p.lastCompletedDay)
+        ? p.lastCompletedDay
+        : (p.currentDay || 1);
+      return {
+        currentDay: displayDay,
+        completed: (p.completedDays || []).length,
+        total: p.totalDays || 40,
+        title: p.title || t('your_faith_journey', lang),
+      };
+    } catch { return null; }
   })();
 
   const readChapter = async (paragraphs: string[]) => {
@@ -516,7 +539,26 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
           {/* Your Plans */}
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('your_plans', lang)}</h2>
-            {myPlans.length === 0 ? (
+            {myPlans.length === 0 && faithJourney ? (
+              /* New believers are auto-enrolled in the Faith Pathway on Home, which
+                 is not a dw_activeplans entry — so this tab used to tell them
+                 "No active plans" while Home said "Day 1 of 40". Show the journey
+                 they are actually on, and send them back to it. */
+              <Card style={{ cursor: 'pointer' }} onClick={() => onNavigate?.('home')}>
+                <p className="text-card-title" style={{ marginBottom: 8 }}>{faithJourney.title}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1, height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${Math.min(100, (faithJourney.completed / faithJourney.total) * 100)}%`,
+                      height: '100%', background: 'var(--dw-accent)', borderRadius: 2,
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                    {t('p_day_of', lang)} {faithJourney.currentDay} {t('p_of', lang)} {faithJourney.total}
+                  </span>
+                </div>
+              </Card>
+            ) : myPlans.length === 0 ? (
               <EmptyState
                 compact
                 icon={Calendar}
@@ -1243,23 +1285,11 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
           </p>
         </Card>
 
-        {/* Suggested faith pathway for new believers */}
-        {(persona === 'new_to_faith' || persona === 'new_returning') && !activePlans['faith-pathway'] && (
-          <Card style={{ marginTop: 16, borderLeft: '3px solid var(--dw-accent)' }}>
-            <h2 className="text-section-header" style={{ marginBottom: 8 }}>{t('p_recommended', lang)}</h2>
-            <p className="text-card-title" style={{ marginBottom: 4 }}>{t('p_faith_pathway', lang)}</p>
-            <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 12, fontFamily: 'var(--font-sans)' }}>
-              {t('p_faith_desc', lang)}
-            </p>
-            <button
-              onClick={() => { startPlan('faith-pathway'); }}
-              className="dw-btn-primary"
-              style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              <Play size={14} /> {t('p_start_faith', lang)}
-            </button>
-          </Card>
-        )}
+        {/* The "30-Day Faith Pathway" recommendation was removed (it survived the
+            26 Aug catalogue fix at the priority row above). New believers are
+            already auto-enrolled in the 40-day Faith Pathway on Home; this card
+            offered a SECOND, differently-numbered faith pathway on the one screen
+            they visit to find something to read. */}
       </div>
       <StopAllAudio />
     </div>
