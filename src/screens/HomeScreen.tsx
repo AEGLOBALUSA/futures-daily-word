@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { HeroPhotoCarousel } from '../components/HeroPhotoCarousel';
-import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw, FileText } from 'lucide-react';
 import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
@@ -30,11 +30,12 @@ import { FeedbackPoll } from '../components/FeedbackPoll';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { personalize } from '../utils/personalization';
-import { getPersonaConfig, getGreeting, PERSONA_CONFIGS } from '../utils/persona-config';
+import { getPersonaConfig, getGreeting } from '../utils/persona-config';
+import type { Persona } from '../utils/persona-config';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
-// import { isSundayWindow } from '../utils/sunday';
+import { isSundayWindow } from '../utils/sunday';
 import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
 import { getStreak, recordStreakToday } from '../utils/streak';
 import { getDailyWord } from '../data/daily-words';
@@ -51,6 +52,7 @@ import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { PastoralReflectionSection } from '../components/PastoralReflectionSection';
 import { InlineReflection } from '../components/InlineReflection';
 import { ReadingActionBar } from '../components/ReadingActionBar';
+import { HomeContextChips } from '../components/HomeContextChips';
 import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
 import { hapticTap } from '../utils/haptics';
@@ -1788,26 +1790,29 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               }}>
                 Daily Word
               </h1>
-              {/* Compact context labels — settings changed via Settings tab */}
-              <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
-                <span style={{
-                  fontSize: 11, fontWeight: 600, color: 'var(--dw-accent)',
-                  fontFamily: 'var(--font-sans)',
-                }}>
-                  {(() => { const _keys: Record<string, string> = { new_to_faith: 'persona_new', congregation: 'persona_member', deeper_study: 'persona_study', pastor_leader: 'persona_leader', comfort: 'persona_comfort' }; const _k = _keys[personaConfig.persona]; return _k ? tI18n(_k, lang) : PERSONA_CONFIGS[personaConfig.persona]?.label || ''; })()}
-                </span>
-                {currentCampus && (
-                  <>
-                    <span style={{ color: 'var(--dw-border)', fontSize: 10 }}>·</span>
-                    <span style={{
-                      fontSize: 11, fontWeight: 500, color: 'var(--dw-text-muted)',
-                      fontFamily: 'var(--font-sans)',
-                    }}>
-                      📍 {currentCampus.name?.replace('Futures ', '')}
-                    </span>
-                  </>
-                )}
-              </div>
+              {/* Compact context chips — tap to change persona or campus in place */}
+              <HomeContextChips
+                persona={personaConfig.persona}
+                campusId={userProfile?.campus || ''}
+                onPersonaChange={(id: Persona) => {
+                  // Deliberate choice on the chip itself — stamp + sync (not a silent default).
+                  saveSetup({ persona: id, source: 'settings' });
+                  flushNow();
+                  track('persona_change', id);
+                }}
+                onCampusChange={(id) => {
+                  saveProfile({
+                    email: userProfile?.email || '',
+                    firstName: userProfile?.firstName || '',
+                    lastName: userProfile?.lastName || '',
+                    phone: userProfile?.phone || '',
+                    church: userProfile?.church || '',
+                    city: userProfile?.city || '',
+                    campus: id,
+                  });
+                  track('campus_switched', id);
+                }}
+              />
             </div>
           </div>
           {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
@@ -1895,6 +1900,31 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             </button>
           )}
         </div>
+
+        {/* Sermon notes — one tap from Home, not buried in Notes. Slim so it
+            does not compete with the new-Christian closed parchment hero. */}
+        <button
+          onClick={() => onNavigate?.('sermon-notes')}
+          aria-label={tI18n('sermon_notes_title', lang)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+            margin: '0 0 16px', padding: '12px 14px',
+            background: 'var(--dw-card)',
+            border: isSundayWindow() ? '1.5px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+            borderRadius: 12, cursor: 'pointer', textAlign: 'left', minHeight: 44,
+          }}
+        >
+          <FileText size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+              {tI18n('sermon_notes_title', lang)}
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+              {tI18n('sermon_notes_home_sub', lang)}
+            </span>
+          </span>
+          <span style={{ color: 'var(--dw-text-faint)', fontSize: 14, flexShrink: 0 }}>→</span>
+        </button>
 
         {/* What this actually is — one line, for the persona that has never used
             a Bible app. Only while they are early in the pathway. */}
@@ -2800,7 +2830,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           );
         })()}
 
-        {/* Sermon Notes Banner - disabled */}
+        {/* Sermon notes live on Home (one tap) + Sunday QR. Banner here retired. */}
 
         {/* Date Navigation moved to directly under hero card */}
 

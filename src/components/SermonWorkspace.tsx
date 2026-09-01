@@ -1,15 +1,15 @@
 /**
- * SermonWorkspace — the Notes screen's "Sermon" tab, rebuilt as a calm journaling
- * workspace instead of the long fill-in outline. One screen, one purpose: reflect.
+ * SermonWorkspace — Sunday sermon-note journaling. One screen, one purpose: reflect.
  *
- * The sermon OUTLINE itself is reading content — it opens on demand via "View Sermon"
- * (SermonNotesScreen in readOnly mode), never embedded inline here. This keeps
- * consumption (reading) and creation (journaling) cleanly separated.
+ * Lives on the hidden `sermon-notes` tab (Home one-tap + Sunday QR), not inside
+ * Notes. Notes is the person's own journal.
  *
- * Sections (My Notes, Key Takeaways, What God Is Saying To Me, Prayer, Action Steps,
- * Follow Up) persist to the same `dw_sermon_{id}` bag the fill-in used, so they ride
- * the existing misc cloud-sync path. Everything auto-saves — the user never thinks
- * about a save button.
+ * The sermon OUTLINE is reading content — it opens on demand via "View Sermon"
+ * (SermonNotesScreen in readOnly mode) only when a current message is published.
+ * If nothing is posted this week, the outline card is omitted so we never show
+ * a stale or empty sermon. Journaling still works against a per-day open note.
+ *
+ * Sections persist to `dw_sermon_{id}` and ride the misc cloud-sync path.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Check, Loader2, BookOpen, X } from 'lucide-react';
@@ -19,6 +19,9 @@ import { recordStreakToday } from '../utils/streak';
 import { SermonNotesScreen } from '../screens/SermonNotesScreen';
 import { getPreachingFocus, setPreachingFocus, getPrepItems, removePrepItem, isPastorPersona } from '../utils/sermonPrep';
 import type { PrepItem } from '../utils/sermonPrep';
+import { fetchCurrentSermon, openSermonNotesId } from '../utils/currentSermon';
+import { ScreenHeader } from './ScreenHeader';
+import { PromoAds } from './PromoAds';
 
 interface SermonMeta {
   id: string;
@@ -45,8 +48,8 @@ function formatTime(d: Date, lang: string): string {
 export function SermonWorkspace() {
   const lang = getLang();
   const [sermon, setSermon] = useState<SermonMeta | null>(null);
+  const [notesId, setNotesId] = useState(() => openSermonNotesId());
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -78,26 +81,25 @@ export function SermonWorkspace() {
   })();
 
   useEffect(() => {
-    fetch('/sermons/latest.json')
-      .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
-      .then((data: SermonMeta) => {
+    fetchCurrentSermon<SermonMeta>()
+      .then(data => {
+        const id = openSermonNotesId(data?.id);
         setSermon(data);
-        setResponses(loadResponses(data.id));
+        setNotesId(id);
+        setResponses(loadResponses(id));
         setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
+      });
     return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); };
   }, []);
 
   const updateField = useCallback((key: string, value: string) => {
-    if (!sermon) return;
     setSaveState('saving');
     setResponses(prev => {
       const next = { ...prev, [key]: value };
       const json = JSON.stringify(next);
       try {
-        localStorage.setItem(storageKey(sermon.id), json);
-        syncMisc(storageKey(sermon.id), json); // stamp + push (newest-wins across devices)
+        localStorage.setItem(storageKey(notesId), json);
+        syncMisc(storageKey(notesId), json); // stamp + push (newest-wins across devices)
       } catch { /* ignore */ }
       return next;
     });
@@ -108,7 +110,7 @@ export function SermonWorkspace() {
       setSaveState('saved');
       setLastSavedAt(new Date());
     }, 500);
-  }, [sermon]);
+  }, [notesId]);
 
   if (loading) {
     return (
@@ -199,7 +201,9 @@ export function SermonWorkspace() {
         </div>
       )}
 
-      {/* ── Today's Message — the reading lives behind "View Sermon", not inline ── */}
+      {/* ── Today's Message — only when a current outline is published.
+          Stale/missing latest.json must not leave a broken empty sermon here. ── */}
+      {sermon && (
       <div style={{
         background: 'var(--dw-card)',
         border: '1px solid var(--dw-border)',
@@ -213,39 +217,32 @@ export function SermonWorkspace() {
         }}>
           {t('todays_message', lang)}
         </p>
-        {error || !sermon ? (
-          <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif)', margin: 0 }}>
-            {t('no_sermon_this_week', lang)}
-          </p>
-        ) : (
-          <>
-            <h2 style={{
-              fontSize: 22, fontWeight: 400, color: 'var(--dw-text-primary)',
-              fontFamily: 'var(--font-serif)', letterSpacing: '-0.01em', margin: '0 0 10px', lineHeight: 1.2,
-            }}>
-              {messageTitle}
-            </h2>
-            <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 2px' }}>
-              {sermon.speaker}
-            </p>
-            <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-              {dateStr}
-            </p>
-            <button
-              onClick={() => setShowSermon(true)}
-              style={{
-                marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 7,
-                background: 'var(--dw-accent-bg, rgba(168,85,47,0.1))',
-                border: '1px solid var(--dw-accent)', borderRadius: 10,
-                padding: '9px 16px', minHeight: 44, cursor: 'pointer',
-                color: 'var(--dw-accent)', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
-              }}
-            >
-              <BookOpen size={15} /> {t('view_sermon', lang)}
-            </button>
-          </>
-        )}
+        <h2 style={{
+          fontSize: 22, fontWeight: 400, color: 'var(--dw-text-primary)',
+          fontFamily: 'var(--font-serif)', letterSpacing: '-0.01em', margin: '0 0 10px', lineHeight: 1.2,
+        }}>
+          {messageTitle}
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 2px' }}>
+          {sermon.speaker}
+        </p>
+        <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+          {dateStr}
+        </p>
+        <button
+          onClick={() => setShowSermon(true)}
+          style={{
+            marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 7,
+            background: 'var(--dw-accent-bg, rgba(168,85,47,0.1))',
+            border: '1px solid var(--dw-accent)', borderRadius: 10,
+            padding: '9px 16px', minHeight: 44, cursor: 'pointer',
+            color: 'var(--dw-accent)', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
+          }}
+        >
+          <BookOpen size={15} /> {t('view_sermon', lang)}
+        </button>
       </div>
+      )}
 
       {/* ── Save status — the user should never wonder whether their notes are safe ── */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', minHeight: 18, marginBottom: 8 }}>
@@ -329,7 +326,7 @@ export function SermonWorkspace() {
       )}
 
       {/* ── Sermon reading overlay (opened by "View Sermon") ── */}
-      {showSermon && (
+      {showSermon && sermon && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'var(--dw-canvas)', overflowY: 'auto' }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -403,3 +400,17 @@ function AutoGrow({ value, onChange, placeholder, minRows }: {
 }
 
 export default SermonWorkspace;
+
+/** Standalone Sunday / Home destination — same workspace, with screen chrome. */
+export function SermonNotesTab({ onBack }: { onBack: () => void }) {
+  const lang = getLang();
+  return (
+    <div className="screen-container">
+      <ScreenHeader title={t('sermon_notes_title', lang)} onBack={onBack} />
+      <div style={{ padding: '8px 24px 24px' }}>
+        <SermonWorkspace />
+      </div>
+      <PromoAds />
+    </div>
+  );
+}
