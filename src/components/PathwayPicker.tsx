@@ -4,7 +4,7 @@
  * Superdesign: https://p.superdesign.dev/draft/5464ab28-53b4-4f18-b635-cdd156f9afb7
  */
 import type { Persona } from '../utils/persona-config';
-import { ALL_PERSONAS } from '../utils/persona-config';
+import { ALL_PERSONAS, isNewChristianPersona } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { useModalA11y } from '../utils/useModalA11y';
 
@@ -59,7 +59,7 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona, embedded 
             <button
               key={persona}
               type="button"
-              className={`dw-path-card${isCurrent ? ' is-current' : ''}`}
+              className={`dw-path-card${isCurrent ? ' is-current' : ''}${isNewChristianPersona(persona) ? ' dw-path-new' : ''}`}
               onClick={() => handleSelect(persona)}
             >
               <span className="dw-path-card-label">{t(PERSONA_I18N[persona], lang)}</span>

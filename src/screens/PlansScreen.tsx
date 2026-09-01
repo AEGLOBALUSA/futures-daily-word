@@ -577,7 +577,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
             {!isNewChristian && <h2 className="dw-plans-sd-section">{t('browse_plans', lang)}</h2>}
             <div className="dw-plans-sd-list">
               {isNewChristian ? (
-                <div className="dw-plan-sd-card">
+                <div className="dw-plan-sd-card dw-plan-sd-card-new">
                   <p className="dw-plan-sd-days">
                     {t('plan_days', lang).replace('{n}', String(GRACE_SERIES_TOTAL_DAYS))}
                   </p>

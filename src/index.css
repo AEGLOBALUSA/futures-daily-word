@@ -193,6 +193,11 @@
   --dw-plan: #2563EB;
   --dw-plan-light: #93C5FD;
   --dw-plan-deep: #1E40AF;
+  /* I'm New to This / 40-day New Christian journey — new-life green.
+     Distinct from --dw-plan (blue), --dw-accent (terracotta), --dw-success (save/done). */
+  --dw-new: #3D9B68;
+  --dw-new-hover: #4AAD76;
+  --dw-new-soft: rgba(61, 155, 104, 0.22);
   --dw-slate-fill: #5B7085;
   --dw-text: #F2EDE5;
   --dw-text-primary: #F2EDE5;
@@ -254,6 +259,9 @@
   --dw-plan: #4C7E97;            /* plans → dusty slate-blue */
   --dw-plan-light: #BFD6E1;
   --dw-plan-deep: #3C6A82;
+  --dw-new: #1B7A4A;             /* AA green on ivory, white-on-fill */
+  --dw-new-hover: #176B41;
+  --dw-new-soft: rgba(27, 122, 74, 0.14);
   --dw-slate-fill: #6B6258;
   --dw-text: #241E17;
   --dw-text-primary: #241E17;    /* warm ink */
@@ -391,6 +399,13 @@ h2.text-section-header {
 
 .dw-card:hover { background: var(--dw-surface-hover); }
 .dw-card:active { background: var(--dw-surface-active); }
+
+/* 40-day New Christian journey card — one green wash, keep hover on the same token */
+.dw-card.dw-new-journey,
+.dw-card.dw-new-journey:hover,
+.dw-card.dw-new-journey:active {
+  background: var(--dw-new-soft);
+}
 
 /* ---------- Buttons ---------- */
 .dw-btn-primary {
@@ -1163,6 +1178,14 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   border-color: #C98A2E;
   box-shadow: inset 3px 0 0 #C98A2E;
 }
+.dw-path-card.dw-path-new .dw-path-card-label {
+  color: var(--dw-new);
+}
+.dw-path-card.dw-path-new.is-current {
+  border-color: var(--dw-new);
+  box-shadow: inset 3px 0 0 var(--dw-new);
+  background: var(--dw-new-soft);
+}
 .dw-path-card-label {
   font-family: var(--font-sans);
   font-size: 16px;
@@ -1280,6 +1303,19 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #C98A2E;
+}
+.dw-plan-sd-card-new {
+  background: var(--dw-new-soft);
+}
+.dw-plan-sd-card-new .dw-plan-sd-name,
+.dw-plan-sd-card-new .dw-plan-sd-active {
+  color: var(--dw-new);
+}
+.dw-plan-sd-card-new .dw-plan-sd-start {
+  background: var(--dw-new);
+}
+.dw-plan-sd-card-new .dw-plan-sd-start:hover {
+  background: var(--dw-new-hover);
 }
 
 /* Locked Sermon Notes surface (live page + staff preview). Ivory even in dark theme. */
