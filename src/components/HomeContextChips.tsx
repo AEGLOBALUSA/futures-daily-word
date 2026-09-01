@@ -120,7 +120,7 @@ export function HomeContextChips({
         style={{ ...chipStyle, fontSize: 11, fontWeight: 600, color: newPathChip ? 'var(--dw-new)' : 'var(--dw-accent)' }}
       >
         {personaLabel}
-        <ChevronDown size={11} style={{ opacity: 0.7, transform: open === 'persona' ? 'rotate(180deg)' : undefined }} />
+        <ChevronDown size={11} color="currentColor" style={{ opacity: 0.7, transform: open === 'persona' ? 'rotate(180deg)' : undefined }} />
       </button>
       <span style={{ color: 'var(--dw-border)', fontSize: 10 }} aria-hidden>·</span>
       <button
@@ -173,14 +173,14 @@ export function HomeContextChips({
                   }}
                   style={{
                     display: 'block', width: '100%', textAlign: 'left',
-                    background: active ? optionFill : 'transparent',
-                    color: active ? '#fff' : 'var(--dw-text-primary)',
+                    background: active && !isNewOption ? optionFill : 'transparent',
+                    color: active && !isNewOption ? '#fff' : 'var(--dw-text-primary)',
                     border: 'none', borderRadius: 10, cursor: 'pointer',
                     padding: '10px 12px', marginBottom: 2,
                     fontFamily: 'var(--font-sans)', minHeight: 44,
                   }}
                 >
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: !active && isNewOption ? 'var(--dw-new)' : undefined }}>{t(PERSONA_LABEL[id], lang)}</span>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: isNewOption ? 'var(--dw-new)' : undefined }}>{t(PERSONA_LABEL[id], lang)}</span>
                   <span style={{ display: 'block', fontSize: 12, opacity: 0.75, marginTop: 2 }}>{t(PERSONA_DESC[id], lang)}</span>
                 </button>
               );

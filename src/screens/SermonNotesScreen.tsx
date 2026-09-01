@@ -18,7 +18,7 @@ function AdsBelowNotes() {
   return (
     <div
       data-testid="sermon-notes-ads"
-      style={{ padding: '8px 20px 32px', background: 'var(--dw-bg)' }}
+      style={{ padding: 0, background: 'var(--dw-bg)' }}
     >
       <PromoAds />
     </div>

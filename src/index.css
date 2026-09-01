@@ -193,11 +193,13 @@
   --dw-plan: #2563EB;
   --dw-plan-light: #93C5FD;
   --dw-plan-deep: #1E40AF;
-  /* I'm New to This / 40-day New Christian journey — new-life green.
-     Distinct from --dw-plan (blue), --dw-accent (terracotta), --dw-success (save/done). */
-  --dw-new: #3D9B68;
-  --dw-new-hover: #4AAD76;
-  --dw-new-soft: rgba(61, 155, 104, 0.22);
+  /* I'm New to This / 40-day New Christian journey — sage on charcoal.
+     Distinct from --dw-plan (blue), --dw-accent (terracotta), --dw-success (save/done).
+     Filled chrome: sage field, charcoal ink — never white text on --dw-new in dark. */
+  --dw-new: #8FAF90;
+  --dw-new-hover: #A3B89A;
+  --dw-new-soft: #8FAF9038;
+  --dw-new-on-fill: #0F0D0B;
   --dw-slate-fill: #5B7085;
   --dw-text: #F2EDE5;
   --dw-text-primary: #F2EDE5;
@@ -259,9 +261,10 @@
   --dw-plan: #4C7E97;            /* plans → dusty slate-blue */
   --dw-plan-light: #BFD6E1;
   --dw-plan-deep: #3C6A82;
-  --dw-new: #1B7A4A;             /* AA green on ivory, white-on-fill */
-  --dw-new-hover: #176B41;
-  --dw-new-soft: rgba(27, 122, 74, 0.14);
+  --dw-new: #3F5E46;             /* sage on ivory, white-on-fill */
+  --dw-new-hover: #334F3D;
+  --dw-new-soft: #3F5E4624;
+  --dw-new-on-fill: #FFFFFF;
   --dw-slate-fill: #6B6258;
   --dw-text: #241E17;
   --dw-text-primary: #241E17;    /* warm ink */
@@ -1306,16 +1309,126 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 }
 .dw-plan-sd-card-new {
   background: var(--dw-new-soft);
+  border-color: var(--dw-new);
 }
+.dw-plan-sd-card-new .dw-plan-sd-days,
 .dw-plan-sd-card-new .dw-plan-sd-name,
 .dw-plan-sd-card-new .dw-plan-sd-active {
   color: var(--dw-new);
 }
 .dw-plan-sd-card-new .dw-plan-sd-start {
   background: var(--dw-new);
+  color: var(--dw-new-on-fill);
 }
 .dw-plan-sd-card-new .dw-plan-sd-start:hover {
   background: var(--dw-new-hover);
+}
+
+/* Filled I'm New chrome: white on sage in light, charcoal on sage in dark.
+   Attribute match is the same pattern as the accent contrast rules above. */
+:root:not([data-theme="light"]) [style*="background: var(--dw-new)"],
+:root:not([data-theme="light"]) [style*="background:var(--dw-new)"],
+:root:not([data-theme="light"]) [style*="background-color: var(--dw-new)"],
+:root:not([data-theme="light"]) [style*="background-color:var(--dw-new)"] {
+  color: var(--dw-canvas) !important;
+}
+:root[data-theme="light"] [style*="background: var(--dw-new)"],
+:root[data-theme="light"] [style*="background:var(--dw-new)"],
+:root[data-theme="light"] [style*="background-color: var(--dw-new)"],
+:root[data-theme="light"] [style*="background-color:var(--dw-new)"] {
+  color: #FFFFFF !important;
+}
+
+/* House ads — one commercial strip, charcoal field, no shadow. */
+.dw-promo-strip {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 20px 24px;
+}
+.dw-promo-card {
+  display: block;
+  background: #17130F;
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: none;
+}
+.dw-promo-band {
+  box-sizing: border-box;
+  height: 140px;
+  min-height: 140px;
+  background: #17130F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.dw-promo-covers {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  height: 100%;
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.dw-promo-covers img {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.dw-promo-copy {
+  padding: 8px 12px 12px;
+}
+.dw-promo-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dw-promo-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #F5EFE6;
+  min-width: 0;
+}
+.dw-promo-cta {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #F5EFE6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dw-promo-meta {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(245, 239, 230, 0.72);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dw-promo-date {
+  margin: 4px 0 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #F5EFE6;
 }
 
 /* Locked Sermon Notes surface (live page + staff preview). Ivory even in dark theme. */

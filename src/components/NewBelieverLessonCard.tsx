@@ -126,7 +126,7 @@ export function NewBelieverLessonCard({
           style={{
             padding: '8px 16px',
             background: isCompleted ? 'var(--dw-surface)' : 'var(--dw-new)',
-            color: isCompleted ? 'var(--dw-text-muted)' : '#fff',
+            color: isCompleted ? 'var(--dw-text-muted)' : 'var(--dw-new-on-fill)',
             border: isCompleted ? '1px solid var(--dw-border)' : 'none',
             borderRadius: 10,
             cursor: isCompleted ? 'default' : 'pointer',

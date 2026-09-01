@@ -80,6 +80,23 @@ describe('HomeContextChips', () => {
     act(() => root.unmount());
   });
 
+  it('does not paint a green lozenge when I\'m New to This is the selected chip', () => {
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="new_to_faith"
+        campusId="us-gwinnett"
+        onPersonaChange={vi.fn()}
+        onCampusChange={vi.fn()}
+      />,
+    );
+    const personaChip = [...el.querySelectorAll('button')].find(b => /i'm new to this/i.test(b.textContent || ''));
+    click(personaChip!);
+    const newOption = [...document.querySelectorAll('[role="option"]')].find(b => /i'm new to this/i.test(b.textContent || '')) as HTMLElement;
+    expect(newOption.style.background).toBe('transparent');
+    expect((newOption.querySelector('span') as HTMLElement).style.color).toBe('var(--dw-new)');
+    act(() => root.unmount());
+  });
+
   it('uses the new-life green token on the I\'m New to This chip', () => {
     const { el, root } = mount(
       <HomeContextChips
