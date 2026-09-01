@@ -1,11 +1,13 @@
 /**
  * Current weekly sermon outline.
  *
- * Live feed is whatever Ashley approved from staff intake
- * (`/api/published-sermon`). `public/sermons/latest.json` remains a fallback
- * for a static file if one is committed. A missing feed (or a body without an
- * `id`) means there is no published message this week — callers must not
- * invent a placeholder. Past sermons live under `public/sermons/archive/`.
+ * Production live feed is whatever Ashley approved from staff intake
+ * (`/api/published-sermon`). Deploy-preview may load the static SAMPLE at
+ * `public/sermons/sample.json` so previews can show congregation notes without
+ * writing into the shared published_sermons table. Production never reads
+ * `latest.json` or `sample.json`. A missing feed (or a body without an `id`)
+ * means there is no published message this week — callers must not invent a
+ * placeholder. Past sermons live under `public/sermons/archive/`.
  */
 
 import { localApiBase } from './api-base';
@@ -39,19 +41,20 @@ async function trySermon<T extends { id: string }>(url: string): Promise<T | nul
   }
 }
 
+function isDeployPreview(): boolean {
+  return typeof location !== 'undefined' && /deploy-preview/i.test(location.hostname);
+}
+
 /** Fetch the published current sermon, or null if none is posted.
- *  Deploy-preview builds prefer the static SAMPLE in latest.json so we never
- *  write fake notes into the shared published_sermons table. Production still
- *  uses whatever Ashley approved. */
+ *  Deploy-preview builds prefer the static SAMPLE in sample.json so we never
+ *  write fake notes into the shared published_sermons table. Production uses
+ *  `/api/published-sermon` only — never a static file. */
 export async function fetchCurrentSermon<T extends { id: string } = CurrentSermonMeta>(): Promise<T | null> {
-  const preview = typeof location !== 'undefined' && /deploy-preview/i.test(location.hostname);
-  if (preview) {
-    const fromFile = await trySermon<T>('/sermons/latest.json');
+  if (isDeployPreview()) {
+    const fromFile = await trySermon<T>('/sermons/sample.json');
     if (fromFile) return fromFile;
   }
-  const fromApi = await trySermon<T>(`${localApiBase()}/api/published-sermon`);
-  if (fromApi) return fromApi;
-  return trySermon<T>('/sermons/latest.json');
+  return trySermon<T>(`${localApiBase()}/api/published-sermon`);
 }
 
 /** localStorage bag id for sermon-workspace notes. Uses the published sermon
