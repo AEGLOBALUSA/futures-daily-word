@@ -479,9 +479,10 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
         </div>
       </div>
 
-      {/* One-line pointer for the retired Sermons sub-tab — notes moved, not lost. */}
+      {/* One-line pointer — sermon notes moved off Notes onto Home / the
+          dedicated Sunday screen. */}
       <button
-        onClick={() => onNavigate?.('journal')}
+        onClick={() => onNavigate?.('sermon-notes')}
         style={{
           display: 'flex', alignItems: 'center', gap: 8, width: 'calc(100% - 48px)',
           margin: '0 24px 12px', padding: '10px 14px',

@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 import { syncMisc } from '../utils/cloudSync';
+import { fetchCurrentSermon } from '../utils/currentSermon';
 
 interface SermonNotesScreenProps {
   onBack: () => void;
   embedded?: boolean;
   /** Reading mode: render the outline as clean reading content — no fill-in blanks,
-   *  no "My Response" prompts/commitments. Used by the Notes → View Sermon button so
-   *  the sermon stays a *reading* experience, separate from the journaling workspace. */
+   *  no "My Response" prompts/commitments. Used by Sermon Workspace "View Sermon"
+   *  so the sermon stays a *reading* experience, separate from journaling. */
   readOnly?: boolean;
 }
 
@@ -61,16 +62,18 @@ export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScr
   const [error, setError] = useState(false);
   const [responses, setResponses] = useState<Record<string, string>>({});
 
-  // Fetch latest sermon JSON
+  // Fetch current sermon JSON — 404 / missing id = no published message this week
   useEffect(() => {
-    fetch('/sermons/latest.json')
-      .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
-      .then((data: SermonJson) => {
-        setSermon(data);
-        setResponses(getSermonResponses(data.id));
+    fetchCurrentSermon<SermonJson>()
+      .then(data => {
+        if (data) {
+          setSermon(data);
+          setResponses(getSermonResponses(data.id));
+        } else {
+          setError(true);
+        }
         setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
+      });
   }, []);
 
   const updateResponse = useCallback((key: string, value: string) => {

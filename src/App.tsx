@@ -72,7 +72,7 @@ const JournalScreen = lazy(() => import('./screens/JournalScreen').then(m => ({ 
 const MessagesScreen = lazy(() => import('./screens/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
 const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ default: m.PlansScreen })));
 const MoreScreen = lazy(() => import('./screens/MoreScreen').then(m => ({ default: m.MoreScreen })));
-const SermonNotesScreen = lazy(() => import('./screens/SermonNotesScreen').then(m => ({ default: m.SermonNotesScreen })));
+const SermonNotesTab = lazy(() => import('./components/SermonWorkspace').then(m => ({ default: m.SermonNotesTab })));
 const BibleAI = lazy(() => import('./components/BibleAI').then(m => ({ default: m.BibleAI })));
 
 /** Content-shaped skeleton shown while a screen chunk downloads */
@@ -317,11 +317,11 @@ function AppContent() {
 
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
-    journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : undefined} />,
+    journal: <JournalScreen onBack={goBack} onNavigate={navigateTab} />,
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
     plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
     more: <MoreScreen onBack={goBack} />,
-    'sermon-notes': <SermonNotesScreen onBack={() => navigateTab('home')} />,
+    'sermon-notes': <SermonNotesTab onBack={() => navigateTab('home')} />,
   };
 
   const TAB_ORDER: TabId[] = ['home', 'journal', 'messages', 'plans', 'more', 'sermon-notes'];

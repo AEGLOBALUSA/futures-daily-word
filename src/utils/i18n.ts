@@ -83,6 +83,7 @@ const UI: Translations = {
   bible_translation: { en: 'BIBLE TRANSLATION', es: 'TRADUCCI\u00d3N DE LA BIBLIA', pt: 'TRADU\u00c7\u00c3O DA B\u00cdBLIA', id: 'TERJEMAHAN ALKITAB' },
   your_campus: { en: 'YOUR CAMPUS', es: 'TU SEDE', pt: 'SEU CAMPUS', id: 'KAMPUS ANDA' },
   select_your_campus: { en: 'Select your campus', es: 'Selecciona tu sede', pt: 'Selecione seu campus', id: 'Pilih kampus Anda' },
+  campus_chip: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
   notifications: { en: 'NOTIFICATIONS', es: 'NOTIFICACIONES', pt: 'NOTIFICA\u00c7\u00d5ES', id: 'NOTIFIKASI' },
   turn_on_push: { en: 'Turn On Push Notifications', es: 'Activar notificaciones push', pt: 'Ativar notifica\u00e7\u00f5es push', id: 'Aktifkan Notifikasi Push' },
   library: { en: 'LIBRARY', es: 'BIBLIOTECA', pt: 'BIBLIOTECA', id: 'PERPUSTAKAAN' },
@@ -334,7 +335,7 @@ const UI: Translations = {
   bookmarked_label: { en: 'Saved', es: 'Guardado', pt: 'Salvo', id: 'Tersimpan' },
   verse_notes: { en: 'Verse Notes', es: 'Notas de versículos', pt: 'Notas de versículos', id: 'Catatan Ayat' },
 
-  // ── SERMON WORKSPACE (Notes → Sermon tab) ──
+  // ── SERMON WORKSPACE (Home one-tap + Sunday QR) ──
   todays_message: { en: "Today's Message", es: 'Mensaje de hoy', pt: 'Mensagem de hoje', id: 'Pesan Hari Ini' },
   view_sermon: { en: 'View Sermon', es: 'Ver sermón', pt: 'Ver sermão', id: 'Lihat Khotbah' },
   no_sermon_this_week: { en: 'No message this week — check back before service.', es: 'No hay mensaje esta semana; vuelve antes del servicio.', pt: 'Sem mensagem esta semana — volte antes do culto.', id: 'Belum ada pesan minggu ini — cek lagi sebelum ibadah.' },
@@ -582,7 +583,8 @@ const UI: Translations = {
   email_nudge_body: { en: 'Your streak and journal live only on this device. Add your email and they follow you everywhere.', es: 'Tu racha y tu diario solo viven en este dispositivo. Agrega tu correo y te seguir\u00e1n a todas partes.', pt: 'Sua sequ\u00eancia e seu di\u00e1rio vivem apenas neste aparelho. Adicione seu e-mail e eles v\u00e3o com voc\u00ea.', id: 'Rangkaian dan jurnal Anda hanya tersimpan di perangkat ini. Tambahkan email Anda agar tersimpan di mana saja.' },
   email_nudge_cta: { en: 'Back it up', es: 'Respaldar', pt: 'Fazer backup', id: 'Cadangkan' },
   email_nudge_later: { en: 'Not now', es: 'Ahora no', pt: 'Agora n\u00e3o', id: 'Nanti saja' },
-  sermon_notes_moved: { en: 'Sermon notes now live in Notes \u2192 Sermon', es: 'Las notas de sermones ahora viven en Notas \u2192 Serm\u00f3n', pt: 'As notas de serm\u00e3o agora vivem em Notas \u2192 Serm\u00e3o', id: 'Catatan khotbah kini ada di Catatan \u2192 Khotbah' },
+  sermon_notes_moved: { en: 'Sermon notes live on Home', es: 'Las notas de sermones est\u00e1n en Inicio', pt: 'As notas de serm\u00e3o est\u00e3o em In\u00edcio', id: 'Catatan khotbah ada di Beranda' },
+  sermon_notes_home_sub: { en: 'Take notes during the message', es: 'Toma notas durante el mensaje', pt: 'Anote durante a mensagem', id: 'Catat selama khotbah' },
   reference_label: { en: 'REFERENCE', es: 'REFERENCIA', pt: 'REFER\u00caNCIA', id: 'REFERENSI' },
   reference_title: { en: 'Reference Library', es: 'Biblioteca de referencia', pt: 'Biblioteca de refer\u00eancia', id: 'Perpustakaan Referensi' },
   reference_sub: { en: 'Essays, Bible characters, places & timeline', es: 'Ensayos, personajes b\u00edblicos, lugares y cronolog\u00eda', pt: 'Ensaios, personagens b\u00edblicos, lugares e linha do tempo', id: 'Esai, tokoh Alkitab, tempat & garis waktu' },
