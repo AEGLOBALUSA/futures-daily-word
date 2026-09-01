@@ -417,16 +417,7 @@ function AutoGrow({ value, onChange, placeholder, minRows }: {
 
 export default SermonWorkspace;
 
-/** Standalone Sunday / Home destination — same workspace, with screen chrome. */
+/** Sunday / Home destination — congregation fill-in page (same surface as staff preview). */
 export function SermonNotesTab({ onBack }: { onBack: () => void }) {
-  const lang = getLang();
-  return (
-    <div className="screen-container">
-      <ScreenHeader title={t('sermon_notes_title', lang)} onBack={onBack} />
-      <div style={{ padding: '8px 24px 24px' }}>
-        <SermonWorkspace />
-      </div>
-      <PromoAds />
-    </div>
-  );
+  return <SermonNotesScreen onBack={onBack} />;
 }

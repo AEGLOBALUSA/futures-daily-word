@@ -39,8 +39,16 @@ async function trySermon<T extends { id: string }>(url: string): Promise<T | nul
   }
 }
 
-/** Fetch the published current sermon, or null if none is posted. */
+/** Fetch the published current sermon, or null if none is posted.
+ *  Deploy-preview builds prefer the static SAMPLE in latest.json so we never
+ *  write fake notes into the shared published_sermons table. Production still
+ *  uses whatever Ashley approved. */
 export async function fetchCurrentSermon<T extends { id: string } = CurrentSermonMeta>(): Promise<T | null> {
+  const preview = typeof location !== 'undefined' && /deploy-preview/i.test(location.hostname);
+  if (preview) {
+    const fromFile = await trySermon<T>('/sermons/latest.json');
+    if (fromFile) return fromFile;
+  }
   const fromApi = await trySermon<T>(`${localApiBase()}/api/published-sermon`);
   if (fromApi) return fromApi;
   return trySermon<T>('/sermons/latest.json');
