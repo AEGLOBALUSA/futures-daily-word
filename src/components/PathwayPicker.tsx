@@ -66,7 +66,7 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona, embedded 
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
                 <span className="dw-path-card-label">{t(PERSONA_I18N[persona], lang)}</span>
                 {isCurrent && isNewChristianPersona(persona) && (
-                  <Check size={18} strokeWidth={2.5} color="var(--dw-new)" aria-hidden />
+                  <Check size={18} strokeWidth={2.5} color="var(--dw-new-on-fill)" aria-hidden />
                 )}
               </span>
               <span className="dw-path-card-desc">{t(PERSONA_I18N[persona] + '_desc', lang)}</span>
