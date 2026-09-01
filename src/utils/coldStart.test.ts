@@ -69,7 +69,7 @@ describe('cold start → 40-day grace series', () => {
     expect(localStorage.getItem('dw_chapters_per_day')).toBe('3');
   });
 
-  it('shows the Superdesign landing until Begin Day 1', () => {
+  it('shows the Superdesign landing until Read', () => {
     expect(needsDay1Landing()).toBe(true);
     startGraceSeriesIfCold();
     expect(needsDay1Landing()).toBe(true); // enrolled is not the same as begun
@@ -92,7 +92,7 @@ describe('cold start → 40-day grace series', () => {
 });
 
 describe('Day 1 reading surface', () => {
-  it('shows the reading screen after Begin until Mark as read', () => {
+  it('shows the reading screen after Read until Mark as read', () => {
     expect(needsDay1Reading()).toBe(false);
     beginDay1();
     expect(needsDay1Reading()).toBe(true);

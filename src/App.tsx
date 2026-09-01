@@ -46,7 +46,7 @@ const SERMON_DEEP_LINK = (() => {
 // is attribution only and is stripped here; it never invents a new pathway.
 const LANDING_FROM = consumeLandingParam();
 // Enroll fill-only before UserProvider reads localStorage, so Home (after
-// Begin Day 1) already has new_to_faith. The Superdesign screen is the gate;
+// Read → Mark as read) already has new_to_faith. The Superdesign screen is the gate;
 // it does not mount Home, so no streak is recorded until they tap through.
 startGraceSeriesIfCold('default');
 
@@ -328,10 +328,12 @@ function AppContent() {
 
   if (showDay1Landing) {
     return (
-      <Day1Landing onBegin={() => {
-        setShowDay1Landing(false);
-        setShowDay1Reading(true);
-      }} />
+      <Day1Landing
+        onDone={() => {
+          setShowDay1Landing(false);
+          setShowDay1Reading(false);
+        }}
+      />
     );
   }
 

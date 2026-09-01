@@ -14,7 +14,7 @@ exact homepage CTA that site needs. Nothing here invents traffic numbers.
 | **URL** | `https://futuresdailyword.com/?from=church` |
 | **Also works** | `https://futuresdailyword.com/` (same Day 1; `from=church` is attribution only) |
 | **Sunday** | Same URL. Do not send people to `?sunday=1` / `?sermon=1` for this hop — those open sermon-notes / guest chrome. Day 1 is the product. |
-| **What they see** | Superdesign Day 1 landing (wordmark, Day 1 of 40, **Grace Changes Everything**, Ephesians 2:8-9, pastoral word). One tap: **Begin Day 1**. No persona picker, tabs, or settings. |
+| **What they see** | Superdesign Day 1 **hero** (wordmark, Day 1 of 40 · New & Returning to Faith, **Grace Changes Everything**, one **Read** button). Scripture + pastoral stay collapsed below that button until they tap Read. No persona picker, tabs, or settings. |
 | **What they do not see** | I'm New / Church Member / Deep Study / Leader / Comfort. No skip. |
 
 `from=church` is stripped from the address bar after read, and fires a real
@@ -50,8 +50,9 @@ footer. Not an iframe of the five-choice picker.
 
 ## Verify after the church change
 
-1. Incognito → church homepage → tap CTA → Daily Word Day 1 landing
-   ("Grace Changes Everything", Ephesians 2:8-9, **Begin Day 1**). No picker.
-2. Tap **Begin Day 1** → Home with the same day's reading.
-2. Same user, Settings → change persona → still their choice on reload.
-3. `?from=church` disappears from the URL after load.
+1. Incognito → church homepage → tap CTA → Daily Word Day 1 **hero**
+   (wordmark, Day 1 of 40, **Grace Changes Everything**, **Read**). No
+   Ephesians block, no pastoral word, no picker.
+2. Tap **Read** → scripture + pastoral open (below the button / reading surface).
+3. Same user, Settings → change persona → still their choice on reload.
+4. `?from=church` disappears from the URL after load.

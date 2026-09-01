@@ -128,7 +128,7 @@ export function hasBegunDay1(): boolean {
 }
 
 /**
- * Superdesign Day 1 screen: first visit until they tap Begin Day 1.
+ * Superdesign Day 1 screen: closed hero until they tap Read.
  * Not shown after a real persona choice, mid-series progress, or a finished reading.
  */
 export function needsDay1Landing(): boolean {

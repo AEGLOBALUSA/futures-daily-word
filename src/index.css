@@ -990,7 +990,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   color: #7A6A54;
 }
 .dw-day1-title {
-  margin: 0 0 40px;
+  margin: 0 0 24px;
   font-family: var(--font-serif);
   font-size: 30px;
   font-weight: 400;
@@ -998,6 +998,20 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   line-height: 1.3;
   letter-spacing: -0.025em;
   color: #241E17;
+}
+.dw-day1-cta-wrap--hero {
+  margin-top: 0;
+  padding-top: 8px;
+  padding-bottom: 16px;
+}
+.dw-day1-reading {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.dw-day1-reading:focus {
+  outline: none;
 }
 .dw-day1-card {
   position: relative;
