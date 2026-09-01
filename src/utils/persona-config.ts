@@ -212,7 +212,9 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       commentary: 'hidden',
       greekHebrew: 'hidden',
       highlighting: 'basic',
-      verseSelection: false,
+      // Verse tap is ON for I'm New (Ashley, 1 Sep): highlight + the simple
+      // study sheet on the Day N reading. Greek/Hebrew/commentary stay hidden.
+      verseSelection: true,
       wordOfDay: 'hidden',
       campusCount: 'hidden',
       weeklyReview: false,

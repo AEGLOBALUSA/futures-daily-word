@@ -462,7 +462,12 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
             onSelect={(p: Persona) => {
               const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
               saveSetup({ persona: p, source: src });
-              if (p === 'new_to_faith') ensureGraceSeriesEnrolled();
+              if (p === 'new_to_faith') {
+                ensureGraceSeriesEnrolled();
+                // Choosing I'm New goes straight into the journey — Home IS the
+                // sage 40-day journey for this persona (Ashley, 1 Sep).
+                onNavigate?.('home');
+              }
               setPersona(p);
             }}
             onBeginDay1={() => onNavigate?.('home')}

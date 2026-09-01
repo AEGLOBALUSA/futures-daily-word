@@ -84,9 +84,12 @@ interface BibleAIProps {
   onOpen?: () => void
   initialContext?: string
   selectedText?: string
+  /** Auto-send this question once when the panel opens (I'm-New "What this
+      means" — the next step must be an answer, not another tap). */
+  initialQuestion?: string
 }
 
-export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText }: BibleAIProps) {
+export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText, initialQuestion }: BibleAIProps) {
   const { selection } = useScriptureSelection()
   const [messages, setMessages] = useState<Message[]>([])
   const [lang, setLang] = useState(getLang());
@@ -108,6 +111,18 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText 
   // Back-gesture support: while open the panel owns one history entry, so
   // Android back / back-swipe closes the panel instead of leaving the tab.
   useSubView(isOpen, onClose);
+
+  // Auto-send the queued question once per open (default-off: only when the
+  // caller passes initialQuestion). The ref stops a re-render from re-asking.
+  const autoAskedRef = useRef(false)
+  useEffect(() => {
+    if (!isOpen) { autoAskedRef.current = false; return }
+    if (initialQuestion && !autoAskedRef.current) {
+      autoAskedRef.current = true
+      sendMessage(initialQuestion)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialQuestion])
 
   // Pre-populate input when selectedText changes and panel is open
   useEffect(() => {

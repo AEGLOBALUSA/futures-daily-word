@@ -1669,6 +1669,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   const isNewPath = isNewChristianPersona(personaConfig.persona);
 
+  // Full-screen Day N journey surface (new_to_faith) — opened from the journey
+  // hero; the browser back gesture closes it via the card's useSubView.
+  const [showJourneyDay, setShowJourneyDay] = useState(false);
+  // One-tap "What this means" question queued for Bible AI (I'm-New study sheet).
+  const [bibleAIQuestion, setBibleAIQuestion] = useState('');
+
   return (
     <div className="screen-container">
       {doneCelebration !== null && (
@@ -1995,6 +2001,63 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               </div>
             </div>
           );
+
+          // The I'm-New home IS the 40-day journey (Ashley, 1 Sep): one sage
+          // object — the photo plate, Day N, title, progress, and a single tap
+          // that opens the full-screen Day N reading. No audio / translation /
+          // chevron chrome on this persona's home; the shared hero below stays
+          // exactly as it was for every other persona.
+          if (isNewPath && pf.faithPathway && pathwayProgress.enrolled && pathwayData) {
+            const jDay = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
+            if (jDay) {
+              const jTitle = lang === 'es' ? (jDay.titleEs || jDay.title)
+                : lang === 'pt' ? (jDay.titlePt || jDay.title)
+                : lang === 'id' ? (jDay.titleId || jDay.title)
+                : jDay.title;
+              const jSeries = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
+                : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
+                : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
+                : pathwayData.title;
+              const jCompleted = pathwayProgress.completedDays?.length || 0;
+              const jTotal = pathwayData.days?.length || 40;
+              return (
+                <div key="hero-journey" style={{
+                  position: 'relative', borderRadius: 24, overflow: 'hidden',
+                  marginBottom: 20,
+                  boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
+                  border: '1px solid rgba(40,28,16,0.06)',
+                }}>
+                  <HeroPhotoCarousel />
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(176deg, rgba(30,20,12,0.40) 0%, rgba(30,20,12,0.10) 30%, rgba(30,20,12,0.18) 58%, rgba(30,20,12,0.62) 100%)' }} />
+                  <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '24px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)', pointerEvents: 'none' }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'var(--font-sans)', margin: '0 0 6px', opacity: 0.9 }}>
+                      {t('day_label')} {pathwayDisplayDay} {t('of_label')} {jTotal} · {jSeries}
+                    </p>
+                    <p style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 14px', lineHeight: 1.25 }}>
+                      {jTitle}
+                    </p>
+                    <div style={{ height: 4, maxWidth: 220, margin: '0 auto 18px', background: 'rgba(255,255,255,0.28)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ width: `${(jCompleted / jTotal) * 100}%`, height: '100%', background: 'var(--dw-new)', borderRadius: 2, transition: 'width 0.3s' }} />
+                    </div>
+                    <button
+                      onClick={() => setShowJourneyDay(true)}
+                      aria-label={`${t('read_btn')} ${t('day_label')} ${pathwayDisplayDay}`}
+                      style={{
+                        padding: '14px 34px', borderRadius: 14, border: 'none',
+                        background: 'var(--dw-new)', color: 'var(--dw-new-on-fill)',
+                        cursor: 'pointer', fontSize: 15, fontWeight: 700,
+                        fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
+                        pointerEvents: 'auto', textShadow: 'none',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.28)',
+                      }}
+                    >
+                      {readDoneToday ? tI18n('read_today', lang) : t('read_btn')}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+          }
 
           // No active plan or slot — show a "Start a Plan" prompt in the hero card
           if (!hasAnyPassage) return (
@@ -2614,21 +2677,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </button>
         </div>}
 
-        {/* ── Today's lesson (new_to_faith) — sits under the hero AFTER Read, so
-             the day is one unit: hero first, Read reveals scripture, then the
-             pastoral word. Do not dump the lesson on a closed hero. ── */}
-        {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData
-          && isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') && (
-          <NewBelieverLessonCard
-            pathwayData={pathwayData}
-            pathwayProgress={pathwayProgress}
-            displayDay={pathwayDisplayDay}
-            lang={lang}
-            t={t}
-            scriptureFontSize={scriptureFontSize}
-            savePathwayProgress={savePathwayProgressFromLesson}
-          />
-        )}
+        {/* The Day N lesson no longer mounts inline here: the journey hero above
+            opens NewBelieverLessonCard as the FULL-SCREEN Day N reading (verses
+            already open) — mounted with the other overlays at the end of this
+            screen. The day stays one unit; it is just no longer hidden behind
+            the hero's Read state. */}
 
         {/* Post-first-reading backup nudge — appears only after the push prompt
             is resolved, so the two post-reading moments never stack. */}
@@ -4336,9 +4389,41 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         }}
         planContext={todaysPlanPassages.length > 0 ? `${todaysPlanPassages[0].planTitle} — Day ${todaysPlanPassages[0].dayNum}` : undefined}
       />
-      {/* Global highlight toolbar — appears for ANY selected text (persona-gated) */}
+      {/* Full-screen Day N — the journey reading surface (new_to_faith only). */}
+      {isNewPath && showJourneyDay && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
+        const jDay = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
+        const jRef = jDay?.reading ? `${jDay.reading.book} ${jDay.reading.chapter}` : '';
+        return (
+          <NewBelieverLessonCard
+            pathwayData={pathwayData}
+            pathwayProgress={pathwayProgress}
+            displayDay={pathwayDisplayDay}
+            lang={lang}
+            t={t}
+            scriptureFontSize={scriptureFontSize}
+            savePathwayProgress={savePathwayProgressFromLesson}
+            onClose={() => setShowJourneyDay(false)}
+            passageText={jRef ? passageTexts[`${jRef}_${translation}`] : undefined}
+            servedTranslation={jRef ? getServedTranslation(jRef, translation) : undefined}
+          />
+        );
+      })()}
+      {/* Global highlight toolbar — appears for ANY selected text (persona-gated).
+          newPath swaps it to the simple I'm-New study sheet (What this means /
+          Note) — gated on the persona, NOT basicMode, so comfort keeps its
+          existing toolbar. */}
       {pf.highlighting !== 'none' && (
-        <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />
+        <HighlightToolbar
+          onOpenNotes={() => setShowNoteDrawer(true)}
+          onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }}
+          basicMode={pf.highlighting === 'basic'}
+          newPath={isNewPath}
+          onWhatThisMeans={() => {
+            setBibleAIContext(selection?.text || '');
+            setBibleAIQuestion(tI18n('what_this_means_q', lang));
+            setShowBibleAI(true);
+          }}
+        />
       )}
       {/* House ads stay off the I'm-New home (journey only); the other five tabs and
           personas keep them — gate the mount here, never inside PromoAds itself. */}
@@ -4348,10 +4433,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       )}
       <BibleAI
         isOpen={showBibleAI}
-        onClose={() => setShowBibleAI(false)}
+        onClose={() => { setShowBibleAI(false); setBibleAIQuestion(''); }}
         onOpen={() => setShowBibleAI(true)}
         initialContext={bibleAIContext}
         selectedText={selection?.text}
+        initialQuestion={bibleAIQuestion || undefined}
       />
       <BibleSearch
         isOpen={showSearch}
