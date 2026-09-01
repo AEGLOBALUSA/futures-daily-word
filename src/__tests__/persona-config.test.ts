@@ -33,6 +33,18 @@ describe('PERSONA_CONFIGS', () => {
     }
   });
 
+  it("I'm New has verse tap on but the deep-study tools off (Ashley, 1 Sep 2026)", () => {
+    const nf = PERSONA_CONFIGS.new_to_faith.features;
+    expect(nf.verseSelection).toBe(true);
+    expect(nf.highlighting).toBe('basic');
+    expect(nf.commentary).toBe('hidden');
+    expect(nf.greekHebrew).toBe('hidden');
+    expect(nf.wordStudies).toBe(false);
+    // Comfort keeps its own (untouched) settings — the I'm-New sheet must not
+    // leak there via the shared basicMode.
+    expect(PERSONA_CONFIGS.comfort.features.verseSelection).toBe(false);
+  });
+
   it('every persona has a non-empty AI system prompt addition', () => {
     for (const key of ALL_PERSONAS) {
       expect(PERSONA_CONFIGS[key].ai.systemPromptAddition.length).toBeGreaterThan(10);

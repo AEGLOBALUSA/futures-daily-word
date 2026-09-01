@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'; 
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { HeroPhotoCarousel } from '../components/HeroPhotoCarousel';
@@ -374,6 +374,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       document.body.classList.remove('dw-reading-active');
     };
   }, [readingBarVisible]);
+
+  // The I'm-New home carries nothing unrelated to the 40-day journey — that
+  // includes the floating gold AI launcher (all mounted instances, hence a body
+  // class like dw-reading-active above). CSS scopes it to the home tab, so the
+  // launcher still shows for this persona on Journal etc. Layout effect, not
+  // effect: the class must land before first paint or the launcher flashes for
+  // a frame on cold boot.
+  useLayoutEffect(() => {
+    document.body.classList.toggle('dw-new-home', isNewChristianPersona(personaConfig.persona));
+    return () => { document.body.classList.remove('dw-new-home'); };
+  }, [personaConfig.persona]);
 
   // If the user leaves Home (e.g. taps a tab) while a bar-initiated chapter selection
   // is still set, clear it so returning doesn't show a gold-washed passage.
@@ -1658,6 +1669,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   const isNewPath = isNewChristianPersona(personaConfig.persona);
 
+  // Full-screen Day N journey surface (new_to_faith) — opened from the journey
+  // hero; the browser back gesture closes it via the card's useSubView.
+  const [showJourneyDay, setShowJourneyDay] = useState(false);
+  // One-tap "What this means" question queued for Bible AI (I'm-New study sheet).
+  const [bibleAIQuestion, setBibleAIQuestion] = useState('');
+
   return (
     <div className="screen-container">
       {doneCelebration !== null && (
@@ -1716,8 +1733,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 <ChevronLeft size={20} /> {tI18n('back', lang)}
               </button>
             )}
-            {/* {t('bible_ai')} button — burnished gold + glass */}
-            <button
+            {/* {t('bible_ai')} button — burnished gold + glass. Not on the I'm-New
+                home: nothing there may compete with the sage journey button; Bible AI
+                stays reachable from the reading action bar while a chapter is open. */}
+            {!isNewPath && <button
               onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}
               style={{
                 position: 'relative',
@@ -1762,7 +1781,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 position: 'relative',
                 textShadow: '0 1px 3px rgba(80,40,0,0.6)',
               }}>{t('bible_ai')}</span>
-            </button>
+            </button>}
             {/* minWidth keeps "Daily Word" legible at 320px: rather than let the row
                 crush this column to ~43px (which truncated the title to "Da…"), the
                 header wraps the streak block onto a second line instead. */}
@@ -1801,8 +1820,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               }}>
                 Daily Word
               </h1>
-              {/* Compact context chips — tap to change persona or campus in place */}
-              <HomeContextChips
+              {/* Compact context chips — tap to change persona or campus in place.
+                  Hidden on the I'm-New path: the chip was one accidental tap off the
+                  40-day journey, and its labels aren't about the journey. Persona and
+                  campus remain changeable in Settings (two-step Save & Apply). */}
+              {!isNewPath && <HomeContextChips
                 persona={personaConfig.persona}
                 campusId={userProfile?.campus || ''}
                 onPersonaChange={(id: Persona) => {
@@ -1823,7 +1845,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   });
                   track('campus_switched', id);
                 }}
-              />
+              />}
             </div>
           </div>
           {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
@@ -1913,8 +1935,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         </div>
 
         {/* Sermon notes — one tap from Home, not buried in Notes. Slim so it
-            does not compete with the new-Christian closed parchment hero. */}
-        <button
+            does not compete with the new-Christian closed parchment hero.
+            On the I'm-New path it shows ONLY in the Sunday window: the Sunday QR
+            guest flow lands people as new_to_faith and they need this row, but on
+            a weekday the journey home carries nothing unrelated to the journey. */}
+        {(!isNewPath || isSundayWindow()) && <button
           onClick={() => onNavigate?.('sermon-notes')}
           aria-label={tI18n('sermon_notes_title', lang)}
           style={{
@@ -1935,7 +1960,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             </span>
           </span>
           <span style={{ color: 'var(--dw-text-faint)', fontSize: 14, flexShrink: 0 }}>→</span>
-        </button>
+        </button>}
 
         {/* What this actually is — one line, for the persona that has never used
             a Bible app. Only while they are early in the pathway. */}
@@ -1976,6 +2001,63 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               </div>
             </div>
           );
+
+          // The I'm-New home IS the 40-day journey (Ashley, 1 Sep): one sage
+          // object — the photo plate, Day N, title, progress, and a single tap
+          // that opens the full-screen Day N reading. No audio / translation /
+          // chevron chrome on this persona's home; the shared hero below stays
+          // exactly as it was for every other persona.
+          if (isNewPath && pf.faithPathway && pathwayProgress.enrolled && pathwayData) {
+            const jDay = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
+            if (jDay) {
+              const jTitle = lang === 'es' ? (jDay.titleEs || jDay.title)
+                : lang === 'pt' ? (jDay.titlePt || jDay.title)
+                : lang === 'id' ? (jDay.titleId || jDay.title)
+                : jDay.title;
+              const jSeries = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
+                : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
+                : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
+                : pathwayData.title;
+              const jCompleted = pathwayProgress.completedDays?.length || 0;
+              const jTotal = pathwayData.days?.length || 40;
+              return (
+                <div key="hero-journey" style={{
+                  position: 'relative', borderRadius: 24, overflow: 'hidden',
+                  marginBottom: 20,
+                  boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
+                  border: '1px solid rgba(40,28,16,0.06)',
+                }}>
+                  <HeroPhotoCarousel />
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(176deg, rgba(30,20,12,0.40) 0%, rgba(30,20,12,0.10) 30%, rgba(30,20,12,0.18) 58%, rgba(30,20,12,0.62) 100%)' }} />
+                  <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '24px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)', pointerEvents: 'none' }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'var(--font-sans)', margin: '0 0 6px', opacity: 0.9 }}>
+                      {t('day_label')} {pathwayDisplayDay} {t('of_label')} {jTotal} · {jSeries}
+                    </p>
+                    <p style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 14px', lineHeight: 1.25 }}>
+                      {jTitle}
+                    </p>
+                    <div style={{ height: 4, maxWidth: 220, margin: '0 auto 18px', background: 'rgba(255,255,255,0.28)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ width: `${(jCompleted / jTotal) * 100}%`, height: '100%', background: 'var(--dw-new)', borderRadius: 2, transition: 'width 0.3s' }} />
+                    </div>
+                    <button
+                      onClick={() => setShowJourneyDay(true)}
+                      aria-label={`${t('read_btn')} ${t('day_label')} ${pathwayDisplayDay}`}
+                      style={{
+                        padding: '14px 34px', borderRadius: 14, border: 'none',
+                        background: 'var(--dw-new)', color: 'var(--dw-new-on-fill)',
+                        cursor: 'pointer', fontSize: 15, fontWeight: 700,
+                        fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
+                        pointerEvents: 'auto', textShadow: 'none',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.28)',
+                      }}
+                    >
+                      {readDoneToday ? tI18n('read_today', lang) : t('read_btn')}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+          }
 
           // No active plan or slot — show a "Start a Plan" prompt in the hero card
           if (!hasAnyPassage) return (
@@ -2534,8 +2616,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           );
         })()}
 
-        {/* ── Date Navigation — directly under hero so users connect the two ── */}
-        <div className="dw-dark-surface" style={{
+        {/* ── Date Navigation — directly under hero so users connect the two ──
+            Not on the I'm-New path: their reading is the pathway day, which these
+            chevrons never move (they drive the legacy dayOffset axis), and the date
+            already sits on the hero plate. */}
+        {!isNewPath && <div className="dw-dark-surface" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -2590,23 +2675,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           >
             <ChevronRight size={20} />
           </button>
-        </div>
+        </div>}
 
-        {/* ── Today's lesson (new_to_faith) — sits under the hero AFTER Read, so
-             the day is one unit: hero first, Read reveals scripture, then the
-             pastoral word. Do not dump the lesson on a closed hero. ── */}
-        {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData
-          && isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') && (
-          <NewBelieverLessonCard
-            pathwayData={pathwayData}
-            pathwayProgress={pathwayProgress}
-            displayDay={pathwayDisplayDay}
-            lang={lang}
-            t={t}
-            scriptureFontSize={scriptureFontSize}
-            savePathwayProgress={savePathwayProgressFromLesson}
-          />
-        )}
+        {/* The Day N lesson no longer mounts inline here: the journey hero above
+            opens NewBelieverLessonCard as the FULL-SCREEN Day N reading (verses
+            already open) — mounted with the other overlays at the end of this
+            screen. The day stays one unit; it is just no longer hidden behind
+            the hero's Read state. */}
 
         {/* Post-first-reading backup nudge — appears only after the push prompt
             is resolved, so the two post-reading moments never stack. */}
@@ -3691,8 +3766,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
 
 
-        {/* ── Daily Quote — below the fold ── */}
-        <div style={{
+        {/* ── Daily Quote — below the fold. Not on the I'm-New path: on the journey
+            home every line of text relates to the 40-day journey. ── */}
+        {!isNewPath && <div style={{
           marginBottom: 20,
           padding: '8px 0',
           textAlign: 'center',
@@ -3724,7 +3800,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           }}>
             — {quote.author}
           </p>
-        </div>
+        </div>}
 
         {/* ── Daily Word of the Day — persona-gated ── */}
         {pf.wordOfDay !== 'hidden' && (
@@ -3833,8 +3909,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           )}
         </Card>}
 
-        {/* ── Active Plans Strip ── */}
-        {homeActivePlans.length > 0 && (
+        {/* ── Active Plans Strip ──
+            Not on the I'm-New path: their path is the 40-day journey, not catalog
+            plans (todaysPlanPassages is already forced empty for them) — but plans
+            started earlier or synced from another device would still leak in here. */}
+        {!isNewPath && homeActivePlans.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <h2 className="text-section-header" style={{ marginBottom: 10 }}>{tI18n('j_your_active_plans', lang)}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -4310,20 +4389,55 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         }}
         planContext={todaysPlanPassages.length > 0 ? `${todaysPlanPassages[0].planTitle} — Day ${todaysPlanPassages[0].dayNum}` : undefined}
       />
-      {/* Global highlight toolbar — appears for ANY selected text (persona-gated) */}
+      {/* Full-screen Day N — the journey reading surface (new_to_faith only). */}
+      {isNewPath && showJourneyDay && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
+        const jDay = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
+        const jRef = jDay?.reading ? `${jDay.reading.book} ${jDay.reading.chapter}` : '';
+        return (
+          <NewBelieverLessonCard
+            pathwayData={pathwayData}
+            pathwayProgress={pathwayProgress}
+            displayDay={pathwayDisplayDay}
+            lang={lang}
+            t={t}
+            scriptureFontSize={scriptureFontSize}
+            savePathwayProgress={savePathwayProgressFromLesson}
+            onClose={() => setShowJourneyDay(false)}
+            passageText={jRef ? passageTexts[`${jRef}_${translation}`] : undefined}
+            servedTranslation={jRef ? getServedTranslation(jRef, translation) : undefined}
+          />
+        );
+      })()}
+      {/* Global highlight toolbar — appears for ANY selected text (persona-gated).
+          newPath swaps it to the simple I'm-New study sheet (What this means /
+          Note) — gated on the persona, NOT basicMode, so comfort keeps its
+          existing toolbar. */}
       {pf.highlighting !== 'none' && (
-        <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />
+        <HighlightToolbar
+          onOpenNotes={() => setShowNoteDrawer(true)}
+          onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }}
+          basicMode={pf.highlighting === 'basic'}
+          newPath={isNewPath}
+          onWhatThisMeans={() => {
+            setBibleAIContext(selection?.text || '');
+            setBibleAIQuestion(tI18n('what_this_means_q', lang));
+            setShowBibleAI(true);
+          }}
+        />
       )}
-      <PromoAds />
+      {/* House ads stay off the I'm-New home (journey only); the other five tabs and
+          personas keep them — gate the mount here, never inside PromoAds itself. */}
+      {!isNewPath && <PromoAds />}
       {pf.greekHebrew !== 'hidden' && (
         <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
       )}
       <BibleAI
         isOpen={showBibleAI}
-        onClose={() => setShowBibleAI(false)}
+        onClose={() => { setShowBibleAI(false); setBibleAIQuestion(''); }}
         onOpen={() => setShowBibleAI(true)}
         initialContext={bibleAIContext}
         selectedText={selection?.text}
+        initialQuestion={bibleAIQuestion || undefined}
       />
       <BibleSearch
         isOpen={showSearch}

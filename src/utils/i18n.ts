@@ -317,6 +317,8 @@ const UI: Translations = {
   copied_toast: { en: 'Copied!', es: '\u00a1Copiado!', pt: 'Copiado!', id: 'Disalin!' },
   copy_label: { en: 'Copy', es: 'Copiar', pt: 'Copiar', id: 'Salin' },
   ask_ai_label: { en: 'Ask AI', es: 'Preguntar IA', pt: 'Perguntar IA', id: 'Tanya AI' },
+  what_this_means: { en: 'What this means', es: 'Qué significa', pt: 'O que significa', id: 'Apa artinya' },
+  what_this_means_q: { en: 'What does this verse mean? Explain it in simple, everyday language.', es: '¿Qué significa este versículo? Explícalo en lenguaje sencillo y cotidiano.', pt: 'O que significa este versículo? Explique em linguagem simples e cotidiana.', id: 'Apa arti ayat ini? Jelaskan dengan bahasa yang sederhana dan sehari-hari.' },
   failed_to_copy: { en: 'Failed to copy', es: 'Error al copiar', pt: 'Falha ao copiar', id: 'Gagal menyalin' },
   saved_to_notes: { en: 'Saved to Notes!', es: '\u00a1Guardado en Notas!', pt: 'Salvo nas Notas!', id: 'Tersimpan di Catatan!' },
   failed_to_save: { en: 'Failed to save', es: 'Error al guardar', pt: 'Falha ao salvar', id: 'Gagal menyimpan' },

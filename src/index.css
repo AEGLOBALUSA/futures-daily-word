@@ -966,6 +966,12 @@ body:not([data-active-tab="home"]) .dw-ai-launcher { display: revert; }
    every BibleAI launcher instance (App-level + screen-level). */
 body.dw-reading-active .dw-ai-launcher { display: none !important; }
 
+/* The I'm-New home is the 40-day journey only — no floating AI launcher there.
+   dw-new-home is toggled by HomeScreen for new-Christian personas; scoping to the
+   home tab keeps the launcher available to them on Journal and the other tabs. */
+body.dw-new-home[data-active-tab="home"] .dw-ai-launcher { display: none !important; }
+body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !important; }
+
 /* Global spin keyframes for the inline "Saving…" / loading spinners (previously
    only injected per-screen, so a spinner could sit static before any such screen mounted). */
 @keyframes spin { to { transform: rotate(360deg); } }
