@@ -160,7 +160,7 @@ export function HomeContextChips({
             {open === 'persona' && ALL_PERSONAS.map(id => {
               const active = id === persona;
               const isNewOption = isNewChristianPersona(id);
-              const optionFill = isNewOption ? 'var(--dw-new)' : 'var(--dw-accent)';
+              const newSelected = isNewOption && active;
               return (
                 <button
                   key={id}
@@ -173,15 +173,19 @@ export function HomeContextChips({
                   }}
                   style={{
                     display: 'block', width: '100%', textAlign: 'left',
-                    background: active && !isNewOption ? optionFill : 'transparent',
-                    color: active && !isNewOption ? '#fff' : 'var(--dw-text-primary)',
+                    background: isNewOption
+                      ? (active ? 'var(--dw-new)' : 'var(--dw-new-soft)')
+                      : (active ? 'var(--dw-accent)' : 'transparent'),
+                    color: newSelected
+                      ? 'var(--dw-new-on-fill)'
+                      : (active ? '#fff' : 'var(--dw-text-primary)'),
                     border: 'none', borderRadius: 10, cursor: 'pointer',
                     padding: '10px 12px', marginBottom: 2,
                     fontFamily: 'var(--font-sans)', minHeight: 44,
                   }}
                 >
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: isNewOption ? 'var(--dw-new)' : undefined }}>{t(PERSONA_LABEL[id], lang)}</span>
-                  <span style={{ display: 'block', fontSize: 12, opacity: 0.75, marginTop: 2 }}>{t(PERSONA_DESC[id], lang)}</span>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: newSelected ? 'var(--dw-new-on-fill)' : (isNewOption ? 'var(--dw-new)' : undefined) }}>{t(PERSONA_LABEL[id], lang)}</span>
+                  <span style={{ display: 'block', fontSize: 12, marginTop: 2, ...(newSelected ? { color: 'var(--dw-new-on-fill)' } : { opacity: 0.75 }) }}>{t(PERSONA_DESC[id], lang)}</span>
                 </button>
               );
             })}

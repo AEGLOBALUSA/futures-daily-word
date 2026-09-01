@@ -76,11 +76,12 @@ describe('HomeContextChips', () => {
     expect(newOption).toBeTruthy();
     expect((newOption.querySelector('span') as HTMLElement).style.color).toBe('var(--dw-new)');
     expect(memberOption.style.background).toBe('var(--dw-accent)');
-    expect(newOption.style.background).toBe('transparent');
+    expect(newOption.style.background).toBe('var(--dw-new-soft)');
+    expect(newOption.style.color).toBe('var(--dw-text-primary)');
     act(() => root.unmount());
   });
 
-  it('does not paint a green lozenge when I\'m New to This is the selected chip', () => {
+  it('paints selected I\'m New as a sage object, title and desc on-fill', () => {
     const { el, root } = mount(
       <HomeContextChips
         persona="new_to_faith"
@@ -92,8 +93,11 @@ describe('HomeContextChips', () => {
     const personaChip = [...el.querySelectorAll('button')].find(b => /i'm new to this/i.test(b.textContent || ''));
     click(personaChip!);
     const newOption = [...document.querySelectorAll('[role="option"]')].find(b => /i'm new to this/i.test(b.textContent || '')) as HTMLElement;
-    expect(newOption.style.background).toBe('transparent');
-    expect((newOption.querySelector('span') as HTMLElement).style.color).toBe('var(--dw-new)');
+    const spans = [...newOption.querySelectorAll('span')] as HTMLElement[];
+    expect(newOption.style.background).toBe('var(--dw-new)');
+    expect(newOption.style.color).toBe('var(--dw-new-on-fill)');
+    expect(spans[0].style.color).toBe('var(--dw-new-on-fill)');
+    expect(spans[1].style.color).toBe('var(--dw-new-on-fill)');
     act(() => root.unmount());
   });
 

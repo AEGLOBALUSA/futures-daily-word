@@ -618,10 +618,10 @@ h2.text-section-header {
 }
 
 /* === CONTRAST FIX: Bright white text on accent/pink buttons === */
-:root:not([data-theme="light"]) button[style*="var(--dw-accent)"],
+:root:not([data-theme="light"]) button[style*="var(--dw-accent)"]:not(.dw-journey-new),
 :root:not([data-theme="light"]) button[style*="DC535D"],
 :root:not([data-theme="light"]) button[style*="dc535d"],
-:root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"] {
+:root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"]:not(.dw-journey-new) {
   color: #FFFFFF !important;
   font-weight: 700;
 }
@@ -1055,7 +1055,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   top: 24px;
   bottom: 24px;
   width: 2px;
-  background: #C98A2E;
+  background: var(--dw-new);
   border-radius: 0 999px 999px 0;
 }
 .dw-day1-verse {
@@ -1101,13 +1101,13 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   height: 56px;
   border: none;
   border-radius: 14px;
-  background: #A8552F;
-  color: #FFFFFF;
+  background: var(--dw-new);
+  color: var(--dw-new-on-fill);
   font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(168, 85, 47, 0.28);
+  box-shadow: none;
 }
 .dw-day1-cta:active { transform: scale(0.98); }
 .dw-day1-cta-note {
@@ -1129,8 +1129,8 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #FAF6EF;
-  color: #241E17;
+  background: var(--dw-canvas);
+  color: var(--dw-text-primary);
   font-family: var(--font-sans);
 }
 .dw-path-main {
@@ -1149,14 +1149,14 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-style: normal;
   line-height: 1.3;
   letter-spacing: -0.025em;
-  color: #241E17;
+  color: var(--dw-text-primary);
 }
 .dw-path-sub {
   margin: 0 0 24px;
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
-  color: #7A6A54;
+  color: var(--dw-text-muted);
 }
 .dw-path-list {
   display: flex;
@@ -1170,8 +1170,8 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   gap: 4px;
   width: 100%;
   padding: 16px 18px;
-  background: #FFFFFF;
-  border: 1px solid #ECE3D4;
+  background: var(--dw-surface);
+  border: 1px solid var(--dw-border);
   border-radius: 12px;
   text-align: left;
   cursor: pointer;
@@ -1181,25 +1181,34 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   border-color: #C98A2E;
   box-shadow: inset 3px 0 0 #C98A2E;
 }
+.dw-path-card.dw-path-new {
+  background: var(--dw-new-soft);
+  border-color: var(--dw-new);
+}
 .dw-path-card.dw-path-new .dw-path-card-label {
   color: var(--dw-new);
 }
 .dw-path-card.dw-path-new.is-current {
+  background: var(--dw-new);
   border-color: var(--dw-new);
-  box-shadow: inset 3px 0 0 var(--dw-new);
-  background: var(--dw-new-soft);
+  box-shadow: none;
+}
+.dw-path-card.dw-path-new.is-current .dw-path-card-label,
+.dw-path-card.dw-path-new.is-current .dw-path-card-desc,
+.dw-path-card.dw-path-new.is-current .dw-path-card-label svg {
+  color: var(--dw-new-on-fill);
 }
 .dw-path-card-label {
   font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
-  color: #241E17;
+  color: var(--dw-text-primary);
 }
 .dw-path-card-desc {
   font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.4;
-  color: #7A6A54;
+  color: var(--dw-text-muted);
 }
 .dw-path-secondary {
   margin: 20px auto 24px;
@@ -1209,7 +1218,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 600;
-  color: #A8552F;
+  color: var(--dw-new);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1227,7 +1236,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 
 /* ---------- Superdesign Plans catalog ---------- */
 .dw-plans-sd {
-  background: #FAF6EF;
+  background: var(--dw-canvas);
 }
 .dw-plans-sd-kicker {
   margin: 8px 0 6px;
@@ -1236,7 +1245,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-weight: 600;
   letter-spacing: 1.1px;
   text-transform: uppercase;
-  color: #7A6A54;
+  color: var(--dw-text-muted);
 }
 .dw-plans-sd-title {
   margin: 0 0 20px;
@@ -1245,7 +1254,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-weight: 400;
   line-height: 1.3;
   letter-spacing: -0.025em;
-  color: #241E17;
+  color: var(--dw-text-primary);
 }
 .dw-plans-sd-section {
   margin: 8px 0 16px;
@@ -1254,7 +1263,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-weight: 600;
   letter-spacing: 1.1px;
   text-transform: uppercase;
-  color: #7A6A54;
+  color: var(--dw-text-muted);
 }
 .dw-plans-sd-list {
   display: flex;
@@ -1262,8 +1271,8 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   gap: 12px;
 }
 .dw-plan-sd-card {
-  background: #FFFFFF;
-  border: 1px solid #ECE3D4;
+  background: var(--dw-surface);
+  border: 1px solid var(--dw-border);
   border-radius: 12px;
   padding: 20px 20px 18px;
 }
@@ -1274,7 +1283,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-weight: 600;
   letter-spacing: 1.1px;
   text-transform: uppercase;
-  color: #7A6A54;
+  color: var(--dw-text-muted);
 }
 .dw-plan-sd-name {
   margin: 0 0 16px;
@@ -1282,7 +1291,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-size: 22px;
   font-weight: 400;
   line-height: 1.3;
-  color: #241E17;
+  color: var(--dw-text-primary);
 }
 .dw-plan-sd-start {
   display: block;
@@ -1322,6 +1331,26 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 }
 .dw-plan-sd-card-new .dw-plan-sd-start:hover {
   background: var(--dw-new-hover);
+}
+
+/* Settings Your Journey — I'm New is a sage object in BOTH themes.
+   Never inherit dark --dw-accent (#D89066) on the selected row. */
+.dw-journey-new {
+  background: var(--dw-new-soft) !important;
+  color: var(--dw-text-primary) !important;
+}
+.dw-journey-new .dw-journey-new-title {
+  color: var(--dw-new) !important;
+}
+.dw-journey-new.is-current,
+:root:not([data-theme="light"]) .dw-journey-new.is-current,
+:root[data-theme="light"] .dw-journey-new.is-current {
+  background: var(--dw-new) !important;
+  color: var(--dw-new-on-fill) !important;
+}
+.dw-journey-new.is-current .dw-journey-new-title,
+.dw-journey-new.is-current .dw-journey-new-desc {
+  color: var(--dw-new-on-fill) !important;
 }
 
 /* Filled I'm New chrome: white on sage in light, charcoal on sage in dark.

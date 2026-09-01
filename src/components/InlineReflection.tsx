@@ -24,6 +24,8 @@ interface InlineReflectionProps {
   savedLabel?: string;  // confirmation copy
   placeholder?: string;
   onViewJournal?: () => void; // when set, the saved confirmation becomes a tappable hand-off to the journal
+  /** I'm New path — paper/default chrome uses sage, not terracotta. */
+  newPath?: boolean;
 }
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
@@ -45,7 +47,7 @@ function formatTime(d: Date): string {
 }
 
 export function InlineReflection({
-  label, prompt, tone = 'default', verseRef, savedLabel, placeholder, onViewJournal,
+  label, prompt, tone = 'default', verseRef, savedLabel, placeholder, onViewJournal, newPath = false,
 }: InlineReflectionProps) {
   // Defaults resolve per render so they follow the active language.
   savedLabel = savedLabel ?? t('saved_to_journal');
@@ -169,7 +171,7 @@ export function InlineReflection({
     } catch { /* ignore */ }
   };
 
-  const accent = comfort ? '#5C6BC0' : paper ? '#A8552F' : 'var(--dw-accent)';
+  const accent = comfort ? '#5C6BC0' : newPath ? 'var(--dw-new)' : paper ? '#A8552F' : 'var(--dw-accent)';
   const cardBg = comfort
     ? 'linear-gradient(135deg, rgba(92,107,192,0.08) 0%, rgba(92,107,192,0.03) 100%)'
     : paper
@@ -180,7 +182,7 @@ export function InlineReflection({
     : paper
     ? '1px solid rgba(150,112,72,0.18)'
     : '1px solid rgba(255,255,255,0.06)';
-  const labelColor = comfort ? '#5C6BC0' : paper ? '#A06A42' : 'var(--dw-text-muted)';
+  const labelColor = comfort ? '#5C6BC0' : newPath ? 'var(--dw-new)' : paper ? '#A06A42' : 'var(--dw-text-muted)';
   const bodyColor = comfort ? '#37474F' : paper ? '#2A2218' : 'var(--dw-text-secondary)';
 
   const statusLine = () => {
@@ -220,7 +222,7 @@ export function InlineReflection({
           <span style={{ fontSize: 14, color: bodyColor, fontFamily: 'var(--font-serif-text, Georgia, serif)', fontStyle: 'normal', lineHeight: 1.5 }}>
             {prompt}
           </span>
-          <ChevronRight size={16} style={{ color: comfort ? '#5C6BC0' : paper ? '#A06A42' : 'var(--dw-text-faint)', flexShrink: 0, marginTop: 2 }} />
+          <ChevronRight size={16} style={{ color: comfort ? '#5C6BC0' : newPath ? 'var(--dw-new)' : paper ? '#A06A42' : 'var(--dw-text-faint)', flexShrink: 0, marginTop: 2 }} />
         </button>
       ) : (
         <>
@@ -254,7 +256,7 @@ export function InlineReflection({
               <span aria-live="polite" style={{ fontSize: 12, minHeight: 16, color: 'var(--dw-success)', fontFamily: 'var(--font-sans)' }}>
                 {statusLine()}
               </span>
-              <ChevronRight size={14} style={{ color: comfort ? '#5C6BC0' : paper ? '#A06A42' : 'var(--dw-text-faint)', flexShrink: 0 }} />
+              <ChevronRight size={14} style={{ color: comfort ? '#5C6BC0' : newPath ? 'var(--dw-new)' : paper ? '#A06A42' : 'var(--dw-text-faint)', flexShrink: 0 }} />
             </button>
           ) : (
             <p aria-live="polite" style={{
@@ -272,7 +274,7 @@ export function InlineReflection({
               style={{
                 flex: 1, padding: '10px', borderRadius: 8, border: 'none',
                 background: saveState === 'saved' ? 'var(--dw-success)' : accent,
-                color: '#fff', fontSize: 14, fontWeight: 700,
+                color: newPath && saveState !== 'saved' ? 'var(--dw-new-on-fill)' : '#fff', fontSize: 14, fontWeight: 700,
                 fontFamily: 'var(--font-sans)',
                 cursor: text.trim() && saveState === 'dirty' ? 'pointer' : 'default',
                 opacity: text.trim() ? 1 : 0.5,
@@ -289,7 +291,7 @@ export function InlineReflection({
               style={{
                 padding: '10px 16px', borderRadius: 8,
                 border: comfort ? '1px solid rgba(92,107,192,0.25)' : paper ? '1px solid rgba(150,112,72,0.25)' : '1px solid var(--dw-border)',
-                background: 'transparent', color: comfort ? '#5C6BC0' : paper ? '#A06A42' : 'var(--dw-text-muted)',
+                background: 'transparent', color: comfort ? '#5C6BC0' : newPath ? 'var(--dw-new)' : paper ? '#A06A42' : 'var(--dw-text-muted)',
                 fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)', cursor: 'pointer',
               }}
             >
