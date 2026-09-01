@@ -1,12 +1,14 @@
 /**
  * Current weekly sermon outline.
  *
- * `public/sermons/latest.json` is the live feed. A missing file (or a body
- * without an `id`) means there is no published message this week — callers
- * must not invent a placeholder. Past sermons live under
- * `public/sermons/archive/` and are not auto-fed into Notes or the Sunday
- * workspace.
+ * Live feed is whatever Ashley approved from staff intake
+ * (`/api/published-sermon`). `public/sermons/latest.json` remains a fallback
+ * for a static file if one is committed. A missing feed (or a body without an
+ * `id`) means there is no published message this week — callers must not
+ * invent a placeholder. Past sermons live under `public/sermons/archive/`.
  */
+
+import { localApiBase } from './api-base';
 
 export interface CurrentSermonMeta {
   id: string;
@@ -17,19 +19,30 @@ export interface CurrentSermonMeta {
   commitments?: string[];
 }
 
-/** Fetch the published current sermon, or null if none is posted. */
-export async function fetchCurrentSermon<T extends { id: string } = CurrentSermonMeta>(): Promise<T | null> {
+function pickSermon<T extends { id: string }>(data: unknown): T | null {
+  if (!data || typeof data !== 'object') return null;
+  const obj = data as Record<string, unknown>;
+  const inner = obj.sermon;
+  const candidate = (inner && typeof inner === 'object' ? inner : obj) as T;
+  if (candidate && typeof candidate.id === 'string' && candidate.id) return candidate;
+  return null;
+}
+
+async function trySermon<T extends { id: string }>(url: string): Promise<T | null> {
   try {
-    const r = await fetch('/sermons/latest.json');
+    const r = await fetch(url);
     if (!r.ok) return null;
-    const data = await r.json();
-    if (!data || typeof data !== 'object' || typeof (data as CurrentSermonMeta).id !== 'string' || !(data as CurrentSermonMeta).id) {
-      return null;
-    }
-    return data as T;
+    return pickSermon<T>(await r.json());
   } catch {
     return null;
   }
+}
+
+/** Fetch the published current sermon, or null if none is posted. */
+export async function fetchCurrentSermon<T extends { id: string } = CurrentSermonMeta>(): Promise<T | null> {
+  const fromApi = await trySermon<T>(`${localApiBase()}/api/published-sermon`);
+  if (fromApi) return fromApi;
+  return trySermon<T>('/sermons/latest.json');
 }
 
 /** localStorage bag id for sermon-workspace notes. Uses the published sermon

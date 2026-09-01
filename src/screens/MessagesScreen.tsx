@@ -3,14 +3,14 @@ import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
-import { Plus, Loader2, Heart, HandHeart, RefreshCw, Send, CheckCircle, MessageSquare, MapPin } from 'lucide-react';
+import { Plus, Loader2, Heart, HandHeart, RefreshCw, Send, MessageSquare, MapPin } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
 import { CampusSelect } from '../components/CampusSelect';
 import { t, getLang } from '../utils/i18n';
 import type { TabId } from '../components/TabBar';
 import { PromoAds } from '../components/PromoAds';
 import { pushNow } from '../utils/cloudSync';
-import { API_BASE } from '../utils/api-base';
+import { API_BASE, staffPortalUrl } from '../utils/api-base';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -82,25 +82,13 @@ async function prayForIt(id: string): Promise<boolean> {
 // ── {t("pastors_corner", lang)} Panel ────────────────────────────────────────────────────
 interface CampusItem { id: string; type: string; title: string; content: string; author: string; date: string; }
 
-function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: any }) {
+function PastorsCornerPanel({ userProfile }: { userProfile: any }) {
   const { saveProfile, requireEmail } = useUser();
   const campus = userProfile?.campus || '';
-  const isPastor = setup?.persona === 'pastor_leader' || setup?.persona === 'pastor';
   const [items, setItems] = useState<CampusItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
-  const [showPostForm, setShowPostForm] = useState(false);
-  const [postTitle, setPostTitle] = useState('');
-  const [postContent, setPostContent] = useState('');
-  const [postType, setPostType] = useState('announcement');
-  const [posting, setPosting] = useState(false);
-  const [posted, setPosted] = useState(false);
-  // Prefill from the remembered code (also written by the Home campus stats
-  // card) so a pastor types it once, not on every post.
-  const [pastorCode, setPastorCode] = useState(() => {
-    try { return localStorage.getItem('dw_pastor_code') || ''; } catch { return ''; }
-  });
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
@@ -116,41 +104,6 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
   }, [campus]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
-
-  const handlePost = async () => {
-    if (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) return;
-    setPosting(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/campus-content`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          campus,
-          type: postType,
-          title: postTitle.trim(),
-          content: postContent.trim(),
-          author: userProfile?.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : 'Pastor',
-          code: pastorCode.trim(),
-        }),
-      });
-      if (res.ok) {
-        // Remember the accepted code (uppercase — the shape the server checks
-        // and the Home campus stats card reads) so it prefills next time.
-        try { localStorage.setItem('dw_pastor_code', pastorCode.trim().toUpperCase()); } catch { /* quota */ }
-        setPosted(true);
-        setPostTitle('');
-        setPostContent('');
-        setShowPostForm(false);
-        setTimeout(() => setPosted(false), 2000);
-        fetchItems();
-        track('campus_content_post', postType);
-      } else {
-        const err = await res.json().catch(() => ({ error: 'Failed' }));
-        alert(err.error || t('post_failed_check_code', getLang()));
-      }
-    } catch { alert(t('network_error', getLang())); }
-    setPosting(false);
-  };
 
   if (!campus) {
     // The moment of highest intent — offer the actual picker here instead of
@@ -190,138 +143,18 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 
   return (
     <div style={{ padding: '0 24px 24px' }}>
-      {/* Pastor post button */}
-      {isPastor && !showPostForm && (
-        <button
-          onClick={() => setShowPostForm(true)}
-          style={{
-            width: '100%', padding: '14px 16px', borderRadius: 14,
-            background: 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
-            border: 'none', color: '#fff',
-            fontSize: 15, fontWeight: 700, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', marginBottom: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: '0 2px 12px rgba(168,50,59,0.3)',
-          }}
-        >
-          <Plus size={18} /> Post to Your Campus
-        </button>
-      )}
-
-      {/* Post form */}
-      {isPastor && showPostForm && (
-        <div style={{
-          marginBottom: 20, padding: '20px',
-          background: 'var(--dw-card)', borderRadius: 16,
-          border: '1px solid var(--dw-border)',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)' }}>
-              New Post
-            </span>
-            <button onClick={() => setShowPostForm(false)} style={{
-              background: 'var(--dw-surface-hover)', border: 'none', cursor: 'pointer',
-              color: 'var(--dw-text-muted)', padding: '4px 8px', borderRadius: 6,
-              fontSize: 12, fontFamily: 'var(--font-sans)',
-            }}>
-              Cancel
-            </button>
-          </div>
-
-          {/* Type selector */}
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Type
-          </p>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-            {['announcement', 'sermon_note', 'essay', 'prayer_point'].map(t => {
-              const tc = typeConfig[t];
-              const active = postType === t;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setPostType(t)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 20,
-                    border: `1.5px solid ${active ? tc.color : 'var(--dw-border)'}`,
-                    background: active ? tc.bg : 'transparent',
-                    color: active ? tc.color : 'var(--dw-text-muted)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
-                  }}
-                >
-                  {tc.icon} {tc.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <input
-            value={postTitle}
-            onChange={e => setPostTitle(e.target.value)}
-            placeholder={t('title_placeholder', lang)}
-            style={{
-              width: '100%', padding: '12px 14px', borderRadius: 12,
-              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 15, fontWeight: 600,
-              fontFamily: 'var(--font-sans)', marginBottom: 10, outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          <textarea
-            value={postContent}
-            onChange={e => setPostContent(e.target.value)}
-            placeholder={t('write_message_placeholder', lang)}
-            rows={5}
-            style={{
-              width: '100%', padding: '12px 14px', borderRadius: 12,
-              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-serif-text)',
-              marginBottom: 10, outline: 'none', resize: 'none',
-              boxSizing: 'border-box', lineHeight: 1.6,
-            }}
-          />
-          <input
-            value={pastorCode}
-            onChange={e => setPastorCode(e.target.value)}
-            placeholder={t('enter_pastor_code_placeholder', lang)}
-            type="password"
-            style={{
-              width: '100%', padding: '12px 14px', borderRadius: 12,
-              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
-              marginBottom: 6, outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-          <p style={{ fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', margin: '0 0 14px', lineHeight: 1.4 }}>
-            {t('pastor_code_hint', lang)}
-          </p>
-          <button
-            onClick={handlePost}
-            disabled={posting || !postTitle.trim() || !postContent.trim() || !pastorCode.trim()}
-            style={{
-              width: '100%', padding: '14px', borderRadius: 14,
-              background: posting ? 'var(--dw-border)' : 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
-              border: 'none', color: '#fff', fontSize: 15, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              opacity: (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) ? 0.5 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          >
-            {posting ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Publishing...</> : <><Send size={16} /> Publish</>}
-          </button>
-        </div>
-      )}
-
-      {posted && (
-        <div style={{
-          textAlign: 'center', padding: '10px 16px', marginBottom: 14,
-          background: 'rgba(37,99,235,0.08)', borderRadius: 10,
-          color: 'var(--dw-info)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
-        }}>
-          <CheckCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Published to your campus!
-        </div>
-      )}
+      <a
+        href={staffPortalUrl()}
+        style={{
+          display: 'block', marginBottom: 16, padding: '10px 14px',
+          borderRadius: 12, border: '1px solid var(--dw-border)',
+          background: 'var(--dw-card)', color: 'var(--dw-text-muted)',
+          fontSize: 12, fontFamily: 'var(--font-sans)', lineHeight: 1.45,
+          textDecoration: 'none',
+        }}
+      >
+        {t('pastors_submit_staff', lang)}
+      </a>
 
       {/* Content list */}
       {loading ? (
@@ -430,7 +263,7 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
-  const { userProfile, requireEmail, setup } = useUser();
+  const { userProfile, requireEmail } = useUser();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
@@ -497,7 +330,7 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
       </button>
 
       {activeTab === 'pastor'
-        ? <PastorsCornerPanel userProfile={userProfile} setup={setup} />
+        ? <PastorsCornerPanel userProfile={userProfile} />
         : <PrayerWallPanel userProfile={userProfile} requireEmail={requireEmail} />
       }
 

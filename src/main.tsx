@@ -1,9 +1,19 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { flushSync } from './utils/cloudSync'
 import { LS } from './utils/storage'
+
+const StaffApp = lazy(() => import('./staff/StaffApp').then(m => ({ default: m.StaffApp })));
+const IS_STAFF = (() => {
+  try {
+    const p = window.location.pathname.replace(/\/+$/, '') || '/';
+    return p === '/staff';
+  } catch {
+    return false;
+  }
+})();
 
 // Apply saved theme or OS preference before React renders (avoids flash).
 // Must read the SAME key ThemeContext writes (dw_dark = 'true'|'false'); the old
@@ -47,7 +57,13 @@ window.addEventListener('pagehide', tryFlushSync);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {IS_STAFF ? (
+      <Suspense fallback={null}>
+        <StaffApp />
+      </Suspense>
+    ) : (
+      <App />
+    )}
   </StrictMode>,
 )
 

@@ -66,40 +66,16 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ valid, campusId }) };
   }
 
-  // ── Action: post ── Create content (requires valid code)
-  if (action === "post") {
-    const { type, title, content, author } = body;
-    if (!campusId || !code) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Missing campusId or code" }) };
-    if (!validateCode(campusId, code)) return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Invalid code" }) };
-    if (!type || !content) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Missing type or content" }) };
-
-    const validTypes = ["announcement", "sermon_note", "essay", "note", "prayer_point", "video"];
-    if (!validTypes.includes(type)) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid type" }) };
-
-    const db = getSupabase();
-    const { data, error } = await db.from("campus_content").insert({
-      campus: sanitize(campusId, 100),
-      type: type,
-      title: sanitize(title || "", 200),
-      content: sanitize(content, 5000),
-      author: sanitize(author || "Campus Pastor", 100)
-    }).select();
-
-    if (error) return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "Failed to save" }) };
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true, item: data[0] }) };
-  }
-
-  // ── Action: delete ── Remove content (requires valid code)
-  if (action === "delete") {
-    const { itemId } = body;
-    if (!campusId || !code || !itemId) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Missing fields" }) };
-    if (!validateCode(campusId, code)) return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Invalid code" }) };
-
-    const db = getSupabase();
-    // Only delete content belonging to this campus
-    const { error } = await db.from("campus_content").delete().eq("id", itemId).eq("campus", campusId);
-    if (error) return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "Failed to delete" }) };
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true }) };
+  // Live campus-corner writes go through staff intake + Ashley's review.
+  if (action === "post" || action === "delete") {
+    return {
+      statusCode: 403,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: "Campus updates go through the staff intake form and go live after review.",
+        intake: "/staff"
+      })
+    };
   }
 
   // ── Action: list-codes ── Admin only: list all campus codes (requires master secret directly)

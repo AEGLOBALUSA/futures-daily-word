@@ -35,6 +35,18 @@ describe('fetchCurrentSermon', () => {
     await expect(fetchCurrentSermon()).resolves.toBeNull();
   });
 
+  it('prefers the approved intake sermon over a static file', async () => {
+    const sermon = { id: 'hope-2026-09-06', title: 'Hope' };
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('published-sermon')) {
+        return { ok: true, json: async () => ({ sermon }) };
+      }
+      return { ok: true, json: async () => ({ id: 'stale', title: 'Stale' }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(fetchCurrentSermon()).resolves.toEqual(sermon);
+  });
+
   it('returns the sermon when latest.json is a real message', async () => {
     const sermon = { id: 'next-sunday', title: 'Hope' };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
