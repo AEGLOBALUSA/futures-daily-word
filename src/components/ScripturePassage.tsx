@@ -71,6 +71,7 @@ export function ScripturePassage({
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
           <button
             onClick={handleSelectAll}
+            className={newPath ? 'dw-select-all-new' : undefined}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

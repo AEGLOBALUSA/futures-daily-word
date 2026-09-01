@@ -146,6 +146,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [personaSaved, setPersonaSaved] = useState(false);
   const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
+  const newPathSettings = isNewChristianPersona(setup?.persona) || isNewChristianPersona(currentPersona?.id);
 
   const handlePushToggle = async () => {
     if (pushState === 'loading') return; // guard against repeat taps stacking attempts
@@ -322,24 +323,24 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               style={{
                 width: 72, height: 72, borderRadius: '50%',
                 objectFit: 'cover', marginBottom: 10,
-                border: '2px solid var(--dw-accent)',
+                border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
               }}
             />
           ) : (
             <div style={{
               width: 72, height: 72, borderRadius: '50%',
-              background: 'var(--dw-accent-bg)',
+              background: newPathSettings ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 10, border: '2px solid var(--dw-accent)',
+              marginBottom: 10, border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
             }}>
-              <User size={32} style={{ color: 'var(--dw-accent)' }} />
+              <User size={32} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)' }} />
             </div>
           )}
           <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
             {displayName}
           </p>
           {currentPersona && (
-            <p style={{ color: isNewChristianPersona(setup?.persona) ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+            <p className={newPathSettings ? 'dw-new-label' : undefined} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
               {currentPersona.label}
             </p>
           )}
@@ -390,10 +391,10 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     onClick={() => handlePersonaSelect(p.id)}
                     style={{
                       background: isNewOption
-                        ? undefined
+                        ? (newFilled ? 'var(--dw-new)' : 'var(--dw-new-soft)')
                         : (isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)'),
                       color: isNewOption
-                        ? undefined
+                        ? (newFilled ? 'var(--dw-new-on-fill)' : 'var(--dw-text-primary)')
                         : (isActive || isPending ? '#fff' : 'var(--dw-text-primary)'),
                       border: isPending && !isNewOption ? '2px solid var(--dw-gold)' : 'none',
                       borderRadius: 10,

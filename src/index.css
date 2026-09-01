@@ -1352,6 +1352,12 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 .dw-journey-new.is-current .dw-journey-new-desc {
   color: var(--dw-new-on-fill) !important;
 }
+.dw-new-label {
+  color: var(--dw-new) !important;
+}
+.dw-select-all-new {
+  color: var(--dw-new) !important;
+}
 
 /* Filled I'm New chrome: white on sage in light, charcoal on sage in dark.
    Attribute match is the same pattern as the accent contrast rules above. */

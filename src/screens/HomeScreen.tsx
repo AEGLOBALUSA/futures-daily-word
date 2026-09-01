@@ -3249,7 +3249,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     source: 'select-all',
                   });
                 }
-              }} style={{ background: isNewPath ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color: isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>{t('select_all_passages')}</button>
+              }} className={isNewPath ? 'dw-select-all-new' : undefined} style={{ background: isNewPath ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color: isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>{t('select_all_passages')}</button>
               <button onClick={() => {
                 const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
                 const passageRefs = [
