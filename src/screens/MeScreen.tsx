@@ -16,9 +16,10 @@ import { getStreak } from '../utils/streak';
 import { hapticTap } from '../utils/haptics';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { FeedbackPoll } from '../components/FeedbackPoll';
+import { PromoAds } from '../components/PromoAds';
 import type { TabId } from '../components/TabBar';
 
-type Dest = { tab: TabId; journalTab?: 'today' | 'saved' | 'prayer' | 'sermon' };
+type Dest = { tab: TabId; journalTab?: 'today' | 'saved' | 'prayer' };
 
 const COPY: Record<string, Record<string, string>> = {
   me:       { en: 'Me',            es: 'Yo',              pt: 'Eu',              id: 'Saya' },
@@ -109,6 +110,7 @@ export function MeScreen({ onNavigate }: { onNavigate: (tab: TabId, journalTab?:
             </button>
           ))}
         </nav>
+        <PromoAds />
       </div>
       {/* Product feedback belongs where the personal stuff is, not on Today. */}
       <FeedbackPoll userCampus={campus} />

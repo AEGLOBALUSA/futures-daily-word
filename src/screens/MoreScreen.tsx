@@ -11,19 +11,20 @@ import { pushNow, syncMisc, flushNow } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
-import { API_BASE } from '../utils/api-base';
+import { API_BASE, staffPortalUrl } from '../utils/api-base';
 import { CampusSelect } from '../components/CampusSelect';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
+import { PWAInstallSettingsBlock } from '../components/PWAInstall';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
   Download, Languages, MapPin, Heart,
-  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send
+  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send, ClipboardList
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
-import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
+import { ALL_PERSONAS, PERSONA_CONFIGS, isNewChristianPersona } from '../utils/persona-config';
 import { t, getLang, setLangPref } from '../utils/i18n';
 
 // Bible translations filtered by selected language
@@ -145,6 +146,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [personaSaved, setPersonaSaved] = useState(false);
   const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
+  const newPathSettings = isNewChristianPersona(setup?.persona) || isNewChristianPersona(currentPersona?.id);
 
   const handlePushToggle = async () => {
     if (pushState === 'loading') return; // guard against repeat taps stacking attempts
@@ -195,12 +197,14 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     localStorage.setItem('dw_translation', t);
     localStorage.setItem('dw_translation_manual', 'true');
     track('translation_switch', t);
-    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_translation on return
+    setSettingsRev(r => r + 1);
+    try { window.dispatchEvent(new Event('dw-translation-changed')); } catch { /* ignore */ }
   };
 
   const handleFontSelect = (val: number) => {
     localStorage.setItem('dw_font_size', String(val));
-    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_font_size on return
+    setSettingsRev(r => r + 1);
+    try { window.dispatchEvent(new Event('dw-font-size-changed')); } catch { /* ignore */ }
   };
 
   const handleLangSelect = (val: string) => {
@@ -316,27 +320,31 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             <img
               src={profilePic}
               alt="Profile"
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
               style={{
                 width: 72, height: 72, borderRadius: '50%',
                 objectFit: 'cover', marginBottom: 10,
-                border: '2px solid var(--dw-accent)',
+                border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
               }}
             />
           ) : (
-            <div style={{
-              width: 72, height: 72, borderRadius: '50%',
-              background: 'var(--dw-accent-bg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 10, border: '2px solid var(--dw-accent)',
-            }}>
-              <User size={32} style={{ color: 'var(--dw-accent)' }} />
+            <div
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: newPathSettings ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 10, border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
+              }}
+            >
+              <User size={32} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)' }} />
             </div>
           )}
           <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
             {displayName}
           </p>
           {currentPersona && (
-            <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+            <p className={newPathSettings ? 'dw-new-label' : undefined} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
               {currentPersona.label}
             </p>
           )}
@@ -372,16 +380,27 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {PERSONAS.map(p => {
-                const isActive = setup?.persona === p.id && !pendingPersona;
+                const isNewOption = isNewChristianPersona(p.id);
+                const isActive = (
+                  setup?.persona === p.id
+                  || (isNewOption && isNewChristianPersona(setup?.persona))
+                ) && !pendingPersona;
                 const isPending = pendingPersona === p.id;
+                const newFilled = isNewOption && (isActive || isPending);
                 return (
                   <button
                     key={p.id}
+                    type="button"
+                    className={isNewOption ? `dw-journey-new${newFilled ? ' is-current' : ''}` : undefined}
                     onClick={() => handlePersonaSelect(p.id)}
                     style={{
-                      background: isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)',
-                      color: isActive || isPending ? '#fff' : 'var(--dw-text-primary)',
-                      border: isPending ? '2px solid var(--dw-gold)' : 'none',
+                      background: isNewOption
+                        ? (newFilled ? 'var(--dw-new)' : 'var(--dw-new-soft)')
+                        : (isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)'),
+                      color: isNewOption
+                        ? (newFilled ? 'var(--dw-new-on-fill)' : 'var(--dw-text-primary)')
+                        : (isActive || isPending ? '#fff' : 'var(--dw-text-primary)'),
+                      border: isPending && !isNewOption ? '2px solid var(--dw-gold)' : 'none',
                       borderRadius: 10,
                       padding: '12px 16px',
                       fontSize: 14,
@@ -393,8 +412,8 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
+                    <div className={isNewOption ? 'dw-journey-new-title' : undefined} style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
+                    <div className={isNewOption ? 'dw-journey-new-desc' : undefined} style={{ fontSize: 12, opacity: newFilled ? 1 : 0.7 }}>{p.desc}</div>
                   </button>
                 );
               })}
@@ -812,6 +831,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <PWAInstallSettingsBlock rowStyle={rowStyle} iconStyle={iconStyle} valStyle={valStyle} dividerStyle={dividerStyle} />
             <button onClick={handleKJVDownload} style={rowStyle}>
               <Download size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>{t("offline_bible", lang)}</span>
@@ -1075,6 +1095,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
             }}>{t('admin_label', lang)}</p>
             <Card style={{ padding: 0, overflow: 'hidden' }}>
+              <a href={staffPortalUrl()} style={{ ...rowStyle, textDecoration: 'none', color: 'inherit' }}>
+                <ClipboardList size={18} style={iconStyle} />
+                <span style={{ flex: 1 }}>{t('staff_intake', lang)}</span>
+                <span style={valStyle}>→</span>
+              </a>
+              <div style={dividerStyle} />
               {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor') && (
                 <>
                   <button

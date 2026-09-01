@@ -1,316 +1,47 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
-import { syncMisc } from '../utils/cloudSync';
+import { fetchCurrentSermon } from '../utils/currentSermon';
+import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
+import { PromoAds } from '../components/PromoAds';
 
 interface SermonNotesScreenProps {
   onBack: () => void;
   embedded?: boolean;
-  /** Reading mode: render the outline as clean reading content — no fill-in blanks,
-   *  no "My Response" prompts/commitments. Used by the Notes → View Sermon button so
-   *  the sermon stays a *reading* experience, separate from the journaling workspace. */
+  /** Reading mode: outline only — no fill-in blanks, no response. */
   readOnly?: boolean;
 }
 
-/* ── JSON schema types ── */
-interface SermonJson {
-  id: string;
-  title: string;
-  series?: string;
-  date: string;
-  speaker: string;
-  keyVerse: string;
-  keyVerseText: string;
-  sections: SectionJson[];
-  responsePrompts: string[];
-  commitments: string[];
-}
-interface SectionJson {
-  num: string;
-  title: string;
-  content: ContentItem[];
-}
-type ContentItem =
-  | { type: 'text'; value: string }
-  | { type: 'bold'; value: string }
-  | { type: 'bullet'; value: string }
-  | { type: 'subhead'; value: string }
-  | { type: 'note'; value: string }
-  | { type: 'blank'; before: string; after?: string }
-  | { type: 'quote'; text: string; ref: string };
-
-/* ── localStorage for user's fill-in responses ── */
-function getSermonResponses(sermonId: string): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(`dw_sermon_${sermonId}`) || '{}'); } catch { return {}; }
-}
-function saveSermonResponses(sermonId: string, r: Record<string, string>) {
-  const json = JSON.stringify(r);
-  localStorage.setItem(`dw_sermon_${sermonId}`, json);
-  // Stamp + push to the cloud (misc bag, newest-wins) so fill-in responses back up
-  // immediately — previously they waited for an unrelated misc write to trigger a push.
-  syncMisc(`dw_sermon_${sermonId}`, json);
-}
-
 const SERMON_BLUE = 'var(--dw-info)';
-const SERMON_BLUE_BG = 'rgba(37, 99, 235, 0.08)';
 
-export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScreenProps) {
-  const lang = getLang();
-  const [sermon, setSermon] = useState<SermonJson | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [responses, setResponses] = useState<Record<string, string>>({});
-
-  // Fetch latest sermon JSON
-  useEffect(() => {
-    fetch('/sermons/latest.json')
-      .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
-      .then((data: SermonJson) => {
-        setSermon(data);
-        setResponses(getSermonResponses(data.id));
-        setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
-  }, []);
-
-  const updateResponse = useCallback((key: string, value: string) => {
-    setResponses(prev => {
-      const next = { ...prev, [key]: value };
-      if (sermon) saveSermonResponses(sermon.id, next);
-      return next;
-    });
-  }, [sermon]);
-
-  // Loading state
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-        <Loader2 size={24} style={{ color: SERMON_BLUE, animation: 'spin 1s linear infinite' }} />
-      </div>
-    );
-  }
-
-  // No sermon available
-  if (error || !sermon) {
-    return (
-      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', marginBottom: 8 }}>
-          No sermon notes this week
-        </p>
-        <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-          Check back before Sunday service.
-        </p>
-      </div>
-    );
-  }
-
-  // Format date nicely
-  const dateStr = (() => {
-    try {
-      const d = new Date(sermon.date + 'T00:00:00');
-      return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    } catch { return sermon.date; }
-  })();
-
-  let blankCounter = 0;
-
-  const content = (
-    <>
-      {/* Hero — fixed warm-dark gradient (NOT the charcoal vars, which resolve to
-          near-white in light theme and made this hardcoded-white title invisible). */}
-      <div className="dw-dark-surface" style={{
-        background: 'linear-gradient(135deg, #26201A 0%, #33291F 50%, #26201A 100%)',
-        padding: '32px 24px',
-        textAlign: 'center',
-        borderBottom: `3px solid ${SERMON_BLUE}`,
-        borderRadius: embedded ? 14 : 0,
-        marginBottom: 20,
-      }}>
-        <p style={{ fontSize: 13, letterSpacing: '2px', color: SERMON_BLUE, marginBottom: 8, textTransform: 'uppercase', fontFamily: 'var(--font-sans)' }}>
-          {sermon.series || 'Futures Church'} &bull; {dateStr}
-        </p>
-        <h2 style={{ fontSize: 28, fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px 0', letterSpacing: '-0.5px', fontFamily: 'var(--font-serif)' }}>
-          {sermon.title}
-        </h2>
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.8)', margin: '0 0 4px 0', fontFamily: 'var(--font-sans)' }}>
-          {sermon.keyVerse}
-        </p>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: 0, fontFamily: 'var(--font-sans)' }}>
-          {sermon.speaker}
-        </p>
-      </div>
-
-      {/* Key Verse */}
-      <div style={{
-        margin: '0 0 24px',
-        padding: 20,
-        background: SERMON_BLUE_BG,
-        borderLeft: `4px solid ${SERMON_BLUE}`,
-        borderRadius: '0 12px 12px 0',
-      }}>
-        <p style={{ fontSize: 15, lineHeight: 1.7, fontStyle: 'normal', color: 'var(--dw-text-primary)', margin: '0 0 8px 0', fontFamily: 'var(--font-serif-text)' }}>
-          &ldquo;{sermon.keyVerseText}&rdquo;
-        </p>
-        <p style={{ fontSize: 13, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
-          — {sermon.keyVerse}
-        </p>
-      </div>
-
-      {/* Sections */}
-      {sermon.sections.map((section) => {
-        let sectionBlankIndex = 0;
-        return (
-        <div key={section.num} style={{ marginBottom: 28 }}>
-          <h3 style={{
-            fontSize: 18, fontWeight: 700, margin: '28px 0 12px 0',
-            color: SERMON_BLUE, fontFamily: 'var(--font-serif)',
-          }}>
-            {section.num}. &nbsp;{section.title}
-          </h3>
-          {section.content.map((item, i) => {
-            switch (item.type) {
-              case 'text':
-                return <p key={i} style={{ fontSize: 15, lineHeight: 1.75, margin: '0 0 12px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', whiteSpace: 'pre-line' }}>{item.value}</p>;
-              case 'bold':
-                return <p key={i} style={{ fontSize: 15, lineHeight: 1.75, margin: '0 0 12px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>{item.value}</p>;
-              case 'bullet':
-                return (
-                  <div key={i} style={{ display: 'flex', gap: 10, margin: '0 0 8px', paddingLeft: 4 }}>
-                    <span style={{ color: SERMON_BLUE, fontWeight: 700, flexShrink: 0 }}>&bull;</span>
-                    <span style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>{item.value}</span>
-                  </div>
-                );
-              case 'subhead':
-                return <p key={i} style={{ fontSize: 16, fontWeight: 700, margin: '16px 0 6px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>{item.value}</p>;
-              case 'note':
-                return <p key={i} style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>{item.value}</p>;
-              case 'blank': {
-                const blankId = `blank-${section.num}-${blankCounter++}`;
-                const isFirst = sectionBlankIndex === 0;
-                sectionBlankIndex++;
-                // Reading mode: no fill-in field — just the surrounding sentence text.
-                if (readOnly) {
-                  return (
-                    <div key={i} style={{ margin: '0 0 12px' }}>
-                      {item.before && (
-                        <p style={{ fontSize: 15, lineHeight: 1.75, margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                          {item.before}
-                        </p>
-                      )}
-                      {item.after && (
-                        <p style={{ fontSize: 15, lineHeight: 1.75, margin: '4px 0 0', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                          {item.after}
-                        </p>
-                      )}
-                    </div>
-                  );
-                }
-                return (
-                  <div key={i} style={{ margin: '0 0 12px' }}>
-                    {item.before && (
-                      <p style={{ fontSize: 15, lineHeight: 1.75, margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                        {item.before}
-                      </p>
-                    )}
-                    <BlankInput id={blankId} responses={responses} onChange={updateResponse} placeholder={isFirst ? 'Write your notes...' : undefined} />
-                    {item.after && (
-                      <p style={{ fontSize: 15, lineHeight: 1.75, margin: '4px 0 0', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                        {item.after}
-                      </p>
-                    )}
-                  </div>
-                );
-              }
-              case 'quote':
-                return (
-                  <div key={i} style={{
-                    margin: '12px 0', padding: 16,
-                    background: SERMON_BLUE_BG,
-                    borderLeft: `3px solid ${SERMON_BLUE}`,
-                    borderRadius: '0 8px 8px 0',
-                  }}>
-                    <p style={{ fontSize: 14, lineHeight: 1.7, fontStyle: 'normal', margin: '0 0 4px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif-text)' }}>
-                      &ldquo;{item.text}&rdquo;
-                    </p>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: SERMON_BLUE, margin: 0, fontFamily: 'var(--font-sans)' }}>
-                      — {item.ref}
-                    </p>
-                  </div>
-                );
-              default:
-                return null;
-            }
-          })}
-        </div>
-        );
-      })}
-
-      {/* My Response — hidden in reading mode (journaling lives in the workspace) */}
-      {!readOnly && (
-      <div style={{
-        margin: '32px 0', padding: 24,
-        background: SERMON_BLUE_BG,
-        borderRadius: 16,
-        border: '1px solid var(--dw-border)',
-      }}>
-        <h3 style={{ fontSize: 18, fontWeight: 800, textAlign: 'center', margin: '0 0 24px', color: SERMON_BLUE, fontFamily: 'var(--font-sans)', letterSpacing: '0.08em' }}>
-          MY RESPONSE
-        </h3>
-        {sermon.responsePrompts.map((prompt, i) => (
-          <div key={i} style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 8px', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>{prompt}</p>
-            <AutoTextarea
-              value={responses[`resp-${i}`] || ''}
-              onChange={val => updateResponse(`resp-${i}`, val)}
-              placeholder="Write your thoughts here..."
-              minRows={3}
-              style={{
-                width: '100%', padding: '12px 14px',
-                background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                borderRadius: 10, color: 'var(--dw-text-primary)',
-                fontSize: 14, fontFamily: 'var(--font-sans)', lineHeight: 1.6,
-                resize: 'none', outline: 'none', overflow: 'hidden',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-        ))}
-        {sermon.commitments.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20 }}>
-            {sermon.commitments.map((c, i) => (
-              <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, cursor: 'pointer', color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                <input
-                  type="checkbox"
-                  checked={responses[`commit-${i}`] === '1'}
-                  onChange={e => updateResponse(`commit-${i}`, e.target.checked ? '1' : '')}
-                  style={{ width: 20, height: 20, accentColor: SERMON_BLUE }}
-                />
-                {c}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-      )}
-
-      {/* Footer */}
-      <div style={{ textAlign: 'center', padding: '20px 0 40px', color: 'var(--dw-text-faint)', fontSize: 14, fontWeight: 700, letterSpacing: '3px', fontFamily: 'var(--font-sans)' }}>
-        {sermon.title}
-      </div>
-    </>
-  );
-
-  if (embedded) return content;
-
+function AdsBelowNotes() {
   return (
-    <div className="screen-container" style={{
-      background: 'var(--dw-canvas)',
-      color: 'var(--dw-text)',
-    }}>
+    <div
+      data-testid="sermon-notes-ads"
+      style={{ padding: 0, background: 'var(--dw-bg)' }}
+    >
+      <PromoAds />
+    </div>
+  );
+}
+
+function NotesChrome({
+  onBack,
+  lang,
+  children,
+  ads,
+}: {
+  onBack: () => void;
+  lang: string;
+  children: ReactNode;
+  ads?: boolean;
+}) {
+  return (
+    <div className="screen-container" style={{ background: '#FAF6EF', color: '#241E17' }}>
       <div style={{
         display: 'flex', alignItems: 'center', padding: '16px 20px',
-        borderBottom: '1px solid var(--dw-border)',
-        position: 'sticky', top: 0, background: 'var(--dw-canvas)', zIndex: 10,
+        borderBottom: '1px solid #ECE3D4',
+        position: 'sticky', top: 0, background: '#FAF6EF', zIndex: 10,
       }}>
         <button aria-label={t('back', lang)} onClick={onBack} style={{
           background: 'none', border: 'none', color: 'var(--dw-accent)',
@@ -322,77 +53,69 @@ export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScr
         </button>
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, fontFamily: 'var(--font-serif)' }}>{t('sermon_notes_title', lang)}</h1>
       </div>
-      <div style={{ padding: '0 20px' }}>
-        {content}
-      </div>
+      {children}
+      {ads ? <AdsBelowNotes /> : null}
     </div>
   );
 }
 
-/* ── Auto-expanding textarea (reusable) ── */
-function AutoTextarea({ value, onChange, placeholder, minRows, style }: {
-  value: string; onChange: (val: string) => void; placeholder?: string; minRows?: number; style?: React.CSSProperties;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const autoResize = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
-  }, []);
-  useEffect(() => { autoResize(); }, [value, autoResize]);
-  return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={e => { onChange(e.target.value); autoResize(); }}
-      placeholder={placeholder}
-      rows={minRows || 1}
-      style={style}
-    />
-  );
-}
+export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScreenProps) {
+  const lang = getLang();
+  const [sermon, setSermon] = useState<SermonNotesData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-/* ── Auto-expanding blank textarea component ── */
-function BlankInput({ id, responses, onChange, placeholder }: { id: string; responses: Record<string, string>; onChange: (id: string, val: string) => void; placeholder?: string }) {
-  const [focused, setFocused] = useState(false);
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  const autoResize = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
+  useEffect(() => {
+    fetchCurrentSermon<SermonNotesData>()
+      .then(data => {
+        if (data) setSermon(data);
+        else setError(true);
+        setLoading(false);
+      });
   }, []);
 
-  useEffect(() => { autoResize(); }, [responses[id], autoResize]);
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+        <Loader2 size={24} style={{ color: SERMON_BLUE, animation: 'spin 1s linear infinite' }} />
+      </div>
+    );
+  }
+
+  if (error || !sermon) {
+    if (embedded) {
+      return (
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', marginBottom: 8 }}>
+            No sermon notes this week
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+            Check back before Sunday service.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <NotesChrome onBack={onBack} lang={lang} ads>
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <p style={{ fontSize: 16, fontWeight: 600, color: '#241E17', fontFamily: 'var(--font-serif)', marginBottom: 8 }}>
+            No sermon notes this week
+          </p>
+          <p style={{ fontSize: 13, color: 'rgba(36,30,23,0.55)', fontFamily: 'var(--font-sans)' }}>
+            Check back before Sunday service.
+          </p>
+        </div>
+      </NotesChrome>
+    );
+  }
+
+  const surface = <SermonNotesSurface sermon={sermon} readOnly={readOnly} />;
+
+  if (embedded) return surface;
 
   return (
-    <textarea
-      ref={ref}
-      value={responses[id] || ''}
-      onChange={e => { onChange(id, e.target.value); autoResize(); }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      placeholder={placeholder || ''}
-      rows={1}
-      style={{
-        display: 'block',
-        width: '100%',
-        border: 'none',
-        borderBottom: `2px solid ${focused ? SERMON_BLUE : 'var(--dw-border)'}`,
-        background: 'transparent',
-        padding: '6px 4px',
-        fontSize: 15, fontFamily: 'var(--font-sans)', fontWeight: 600,
-        color: 'var(--dw-text-primary)', outline: 'none',
-        transition: 'border-color 0.2s',
-        resize: 'none',
-        overflow: 'hidden',
-        lineHeight: 1.6,
-        boxSizing: 'border-box',
-      }}
-    />
+    <NotesChrome onBack={onBack} lang={lang} ads>
+      {surface}
+    </NotesChrome>
   );
 }
-
-export default SermonNotesScreen;

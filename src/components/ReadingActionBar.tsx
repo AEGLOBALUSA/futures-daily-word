@@ -18,11 +18,13 @@ interface ReadingActionBarProps {
   onCompare: () => void;
   onAskAI: () => void;
   onBookmark: () => void;
+  /** I'm New path — active icons use --dw-new instead of terracotta. */
+  newPath?: boolean;
 }
 
 export function ReadingActionBar({
   playing, canCompare, compareActive, bookmarked,
-  onNote, onListen, onCompare, onAskAI, onBookmark,
+  onNote, onListen, onCompare, onAskAI, onBookmark, newPath,
 }: ReadingActionBarProps) {
   const items: { key: string; label: string; icon: React.ReactNode; onClick: () => void; active?: boolean }[] = [
     { key: 'note', label: t('note_label'), icon: <PenLine size={18} />, onClick: onNote },
@@ -89,7 +91,7 @@ export function ReadingActionBar({
             border: 'none',
             borderRadius: 12,
             cursor: 'pointer',
-            color: item.active ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+            color: item.active ? (newPath ? 'var(--dw-new)' : 'var(--dw-accent)') : 'var(--dw-text-muted)',
             transition: 'color 0.15s ease',
           }}
         >

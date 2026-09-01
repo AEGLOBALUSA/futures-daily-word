@@ -29,6 +29,7 @@ import { getLang } from '../utils/i18n';
 import { getDayNumber } from '../utils/daily-passages';
 import { ALL_ASHLEY_JANE_DEVOTIONALS, ALL_ASHLEY_JANE_PASSAGES } from '../data/ashley-jane-plan';
 import type { PathwayData, PathwayDay, PathwayProgress } from '../data/pathway-types';
+import { ensureGraceSeriesEnrolled, readPathwayProgress, GRACE_SERIES_TOTAL_DAYS, GRACE_SERIES_TITLE } from '../utils/coldStart';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { recordStreakToday } from '../utils/streak';
@@ -98,16 +99,7 @@ function pathwayContent(data: PathwayData, day: number, lang: string): TodayCont
   };
 }
 
-function readProgress(): PathwayProgress {
-  try {
-    const raw = localStorage.getItem('dw_pathway_progress');
-    if (raw) {
-      const p = JSON.parse(raw);
-      return { completedDays: p.completedDays || [], currentDay: p.currentDay || 1, enrolled: !!p.enrolled };
-    }
-  } catch { /* corrupt or unavailable */ }
-  return { completedDays: [], currentDay: 1, enrolled: false };
-}
+
 
 export function TodayScreen() {
   const { setup, saveSetup } = useUser();
@@ -122,7 +114,7 @@ export function TodayScreen() {
 
   // ── Faith Pathway (new_to_faith only) ──
   const [pathway, setPathway] = useState<PathwayData | null>(null);
-  const [progress, setProgress] = useState<PathwayProgress>(readProgress);
+  const [progress, setProgress] = useState<PathwayProgress>(readPathwayProgress);
 
   useEffect(() => {
     if (!isNewToFaith || pathway) return;
@@ -135,20 +127,19 @@ export function TodayScreen() {
   }, [isNewToFaith, lang, pathway]);
 
   // Auto-enrol: reaching Today as new_to_faith IS the enrolment. No picker.
+  // Fill-only (coldStart's helper) — never resets a series in progress.
   useEffect(() => {
     if (!isNewToFaith || progress.enrolled) return;
-    const next = { ...progress, enrolled: true };
-    setProgress(next);
-    try { localStorage.setItem('dw_pathway_progress', JSON.stringify(next)); } catch { /* quota */ }
-    syncMisc('dw_pathway_progress', JSON.stringify(next));
-  }, [isNewToFaith, progress]);
+    ensureGraceSeriesEnrolled();
+    setProgress(readPathwayProgress());
+  }, [isNewToFaith, progress.enrolled]);
 
   // Which pathway day is on screen. Progress says where they got to; viewDay
   // says what they're reading — Ashley (1 Sep 2026): they choose how much they
   // want to read, so finishing a day offers the next one immediately and they
   // can go back over any day they've already opened.
   const [viewDay, setViewDay] = useState<number | null>(null);
-  const lastDay = pathway?.days?.length || 40;
+  const lastDay = progress.totalDays || pathway?.days?.length || GRACE_SERIES_TOTAL_DAYS;
   const day = Math.min(viewDay ?? progress.currentDay ?? 1, lastDay);
 
   const content: TodayContent | null = isNewToFaith
@@ -173,15 +164,24 @@ export function TodayScreen() {
       : [...progress.completedDays, d];
     // currentDay is the furthest they've reached — it only ever moves forward,
     // so re-reading an earlier day can never pull their progress backwards.
+    // LOCAL date (en-CA) — the date-axis rule; also what the Bible tab compares.
+    const today = new Date().toLocaleDateString('en-CA');
     const next: PathwayProgress = {
+      ...progress,
       completedDays,
       currentDay: Math.min(Math.max(progress.currentDay || 1, d + 1), lastDay),
       enrolled: true,
+      lastCompletedDay: d,
+      lastCompletedDate: today,
+      totalDays: progress.totalDays || GRACE_SERIES_TOTAL_DAYS,
+      title: progress.title || GRACE_SERIES_TITLE,
     };
     setProgress(next);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(next)); } catch { /* quota */ }
     syncMisc('dw_pathway_progress', JSON.stringify(next));
+    try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
     recordStreakToday();
+    try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* ignore */ }
     track('pathway_day_complete', String(d));
   };
 
@@ -216,10 +216,10 @@ export function TodayScreen() {
   // person onto the 40-day pathway and Today becomes Day 1 in place. No new
   // screen to understand, no plan to choose.
   const startPathway = () => {
-    const fresh: PathwayProgress = { completedDays: [], currentDay: 1, enrolled: true };
-    setProgress(fresh);
-    try { localStorage.setItem('dw_pathway_progress', JSON.stringify(fresh)); } catch { /* quota */ }
-    syncMisc('dw_pathway_progress', JSON.stringify(fresh));
+    ensureGraceSeriesEnrolled(); // fill-only — resumes a half-done journey rather than wiping it
+    const p = readPathwayProgress();
+    setProgress(p);
+    syncMisc('dw_pathway_progress', JSON.stringify(p));
     saveSetup({ persona: 'new_to_faith', source: 'onboarding' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

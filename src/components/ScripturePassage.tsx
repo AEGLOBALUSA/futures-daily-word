@@ -23,6 +23,8 @@ interface ScripturePassageProps {
   greekHebrewMode?: boolean;
   /** Override font size in px (default 15) */
   fontSize?: number;
+  /** I'm New path — Select All uses sage, not glass terracotta. */
+  newPath?: boolean;
 }
 
 export function ScripturePassage({
@@ -31,6 +33,7 @@ export function ScripturePassage({
   renderScripture,
   greekHebrewMode = false,
   fontSize = 15,
+  newPath = false,
 }: ScripturePassageProps) {
   const { selection, setSelection, highlights, toggleHighlight } = useScriptureSelection();
 
@@ -68,17 +71,20 @@ export function ScripturePassage({
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
           <button
             onClick={handleSelectAll}
+            className={newPath ? 'dw-select-all-new' : undefined}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
-              background: isAllSelected ? 'rgba(154,123,46,0.35)' : 'var(--dw-surface-raised, rgba(0,0,0,0.03))',
+              background: isAllSelected
+                ? (newPath ? 'var(--dw-new-soft)' : 'rgba(154,123,46,0.35)')
+                : 'var(--dw-surface-raised, rgba(0,0,0,0.03))',
               border: '1px solid var(--dw-border)',
               borderRadius: 14,
               padding: '4px 12px',
               fontSize: 11,
               fontWeight: 600,
-              color: isAllSelected ? 'var(--dw-gold)' : 'var(--dw-text-muted)',
+              color: newPath ? 'var(--dw-new)' : (isAllSelected ? 'var(--dw-gold)' : 'var(--dw-text-muted)'),
               cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               letterSpacing: '0.03em',

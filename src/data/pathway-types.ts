@@ -31,4 +31,13 @@ export interface PathwayProgress {
   completedDays: number[];
   currentDay: number;
   enrolled: boolean;
+  // The day finished on lastCompletedDate. Persisted so "today's lesson is done,
+  // the next one arrives tomorrow" survives a reload — it used to be component
+  // state, so refreshing served the next lesson immediately.
+  lastCompletedDay?: number;
+  lastCompletedDate?: string;
+  // Mirrored from the pathway JSON so the Read tab can show "Day N of M"
+  // without fetching the 373KB file.
+  totalDays?: number;
+  title?: string;
 }

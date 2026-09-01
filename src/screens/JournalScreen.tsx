@@ -5,24 +5,22 @@ import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause, FileText } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause } from 'lucide-react';
 import { EmptyState } from '../components/EmptyState';
-import { SermonWorkspace } from '../components/SermonWorkspace';
 import { AudioWave } from '../components/AudioWave';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { ListenButton } from '../components/ListenButton';
-import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
 import { recordStreakToday } from '../utils/streak';
 import { getPersonaConfig } from '../utils/persona-config';
-// sermons moved to Campus tab
 import { BibleAI } from '../components/BibleAI';
 import { t, getLang } from '../utils/i18n';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
+import type { TabId } from '../components/TabBar';
 
 interface JournalEntry {
   id: string;
@@ -758,7 +756,7 @@ function ScriptureModal({
   }
 
   // One neutral for every byline — the name does the distinguishing, not a hue.
-  const authorColor = () => 'var(--dw-text-muted)';
+  const authorColor = (_author: string) => 'var(--dw-text-muted)';
 
   return (
     <>
@@ -851,7 +849,7 @@ function ScriptureModal({
                 background: 'var(--dw-card)',
                 border: '1px solid var(--dw-border)',
                 borderLeft: '4px solid',
-                borderLeftColor: authorColor(),
+                borderLeftColor: authorColor(devotional.author),
                 overflow: 'hidden',
                 cursor: 'pointer',
                 WebkitUserSelect: 'text',
@@ -891,8 +889,8 @@ function ScriptureModal({
                 </p>
                 <span style={{
                   display: 'inline-block',
-                  background: 'var(--dw-surface-hover)',
-                  color: authorColor(),
+                  background: authorColor(devotional.author) + '18',
+                  color: authorColor(devotional.author),
                   fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
                   padding: '3px 10px', borderRadius: 999,
                   fontFamily: 'var(--font-sans)',
@@ -954,8 +952,8 @@ function ScriptureModal({
                         <span style={{
                           flexShrink: 0,
                           width: 24, height: 24, borderRadius: '50%',
-                          background: 'var(--dw-surface-hover)',
-                          color: authorColor(),
+                          background: authorColor(devotional.author) + '20',
+                          color: authorColor(devotional.author),
                           fontSize: 11, fontWeight: 800,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontFamily: 'var(--font-sans)',
@@ -974,7 +972,7 @@ function ScriptureModal({
                           </p>
                           <span style={{
                             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-                            color: authorColor(),
+                            color: authorColor(devotional.author),
                             fontFamily: 'var(--font-sans)',
                             textTransform: 'uppercase',
                           }}>
@@ -1442,13 +1440,13 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   );
 }
 
-export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; initialTab?: 'today' | 'saved' | 'prayer' | 'sermon' }) {
+export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () => void; onNavigate?: (tab: TabId) => void; initialTab?: 'today' | 'saved' | 'prayer' }) {
   const { userProfile, setup, requireEmail } = useUser();
   const { selection } = useScriptureSelection();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
-  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer' | 'sermon'>(initialTab || 'today');
+  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer'>(initialTab || 'today');
   const [entries, setEntries] = useState<JournalEntry[]>(getVisibleEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -1526,8 +1524,8 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', refresh);
     // Custom event fired when a note is saved from another screen → auto-switch to the
-    // All Notes tab so the user sees it. A sync-driven refresh (tagged source:'sync')
-    // must NOT switch tabs — that would yank the user off Sermon/Prayer mid-session.
+    // A sync-driven refresh (tagged source:'sync')
+    // must NOT switch tabs — that would yank the user off Prayer mid-session.
     const handleJournalUpdate = (e: Event) => {
       refresh();
       const fromSync = (e as CustomEvent).detail?.source === 'sync';
@@ -1546,13 +1544,12 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   const allowedEntryTypes = personaConfig.journal.entryTypes;
   const allTabs = [
     { id: 'today' as const, label: 'Today', icon: BookOpen },
-    { id: 'sermon' as const, label: 'Sermon', icon: FileText },
     { id: 'saved' as const, label: 'All Notes', icon: Bookmark },
     { id: 'prayer' as const, label: t('prayer', lang), icon: Heart },
   ];
-  // Show tabs: Today + Sermon always visible, others persona-gated
+  // Today + All Notes always visible; Prayer is persona-gated
   const tabs = allTabs.filter(t =>
-    t.id === 'today' || t.id === 'saved' || t.id === 'sermon' || allowedEntryTypes.includes(t.id)
+    t.id === 'today' || t.id === 'saved' || allowedEntryTypes.includes(t.id)
   );
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
@@ -1585,10 +1582,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
       title: '',
       body: '',
       tags: [],
-      // A note started from the Sermon tab files as a sermon note (mirrors the
-      // prayer mapping) — previously it landed under All Notes and vanished
-      // from the tab the user was on.
-      type: activeTab === 'prayer' ? 'prayer' : activeTab === 'sermon' ? 'sermon' : 'journal',
+      type: activeTab === 'prayer' ? 'prayer' : 'journal',
     });
     setShowEditor(true);
   }, [activeTab, userProfile, requireEmail]);
@@ -1880,6 +1874,28 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           </div>
         </div>
 
+        {/* Sunday notes live on their own screen — one tap from here, not a
+            church outline dumped into the personal journal. */}
+        <button
+          onClick={() => onNavigate?.('sermon-notes')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            margin: '0 0 16px', padding: '12px 14px',
+            background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+            borderRadius: 10, cursor: 'pointer', textAlign: 'left', minHeight: 44,
+          }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+              {t('sermon_notes_title', lang)}
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+              {t('sermon_notes_home_sub', lang)}
+            </span>
+          </span>
+          <span style={{ color: 'var(--dw-text-faint)', fontSize: 12 }}>→</span>
+        </button>
+
         {/* Sub-tabs */}
         <div style={{
           display: 'flex', gap: 4, background: 'var(--dw-surface)',
@@ -2050,14 +2066,8 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
 
-        {/* Sermon tab — a clean journaling workspace. The sermon OUTLINE is reading
-            content and opens on demand via "View Sermon" inside the workspace; it is
-            no longer embedded inline (one screen, one purpose). Free-form type:'sermon'
-            notes still live under "All Notes". */}
-        {activeTab === 'sermon' && <SermonWorkspace />}
-
         {/* Entries */}
-        {activeTab !== 'today' && activeTab !== 'sermon' && filteredEntries.length === 0 ? (
+        {activeTab !== 'today' && filteredEntries.length === 0 ? (
           <EmptyState
             icon={PenLine}
             title={activeTab === 'prayer' ? t('j_no_prayers', lang) : t('j_no_notes', lang)}
@@ -2103,7 +2113,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
               </div>
             );
           })()
-        ) : activeTab !== 'today' && activeTab !== 'sermon' && (
+        ) : activeTab !== 'today' && (
           <GroupedNotesList entries={filteredEntries} onOpen={openEntry} lang={lang} />
         )}
       </div>
@@ -2136,7 +2146,6 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
       )}
 
       <PromoAds />
-      <StopAllAudio />
     </div>
   );
 }

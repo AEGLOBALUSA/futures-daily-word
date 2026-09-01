@@ -54,7 +54,8 @@ const UI: Translations = {
   tab_home: { en: 'Home', es: 'Inicio', pt: 'In\u00edcio', id: 'Beranda' },
   tab_notes: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   tab_campus: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
-  tab_plans: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
+  // 'Bible' (Ashley, 1 Sep 2026): bottom nav is Today \u00b7 Bible \u00b7 Me.
+  tab_plans: { en: 'Bible', es: 'Biblia', pt: 'B\u00edblia', id: 'Alkitab' },
   tab_settings: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 
   // ââ SETTINGS / MORE SCREEN ââ
@@ -83,6 +84,7 @@ const UI: Translations = {
   bible_translation: { en: 'BIBLE TRANSLATION', es: 'TRADUCCI\u00d3N DE LA BIBLIA', pt: 'TRADU\u00c7\u00c3O DA B\u00cdBLIA', id: 'TERJEMAHAN ALKITAB' },
   your_campus: { en: 'YOUR CAMPUS', es: 'TU SEDE', pt: 'SEU CAMPUS', id: 'KAMPUS ANDA' },
   select_your_campus: { en: 'Select your campus', es: 'Selecciona tu sede', pt: 'Selecione seu campus', id: 'Pilih kampus Anda' },
+  campus_chip: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
   notifications: { en: 'NOTIFICATIONS', es: 'NOTIFICACIONES', pt: 'NOTIFICA\u00c7\u00d5ES', id: 'NOTIFIKASI' },
   turn_on_push: { en: 'Turn On Push Notifications', es: 'Activar notificaciones push', pt: 'Ativar notifica\u00e7\u00f5es push', id: 'Aktifkan Notifikasi Push' },
   library: { en: 'LIBRARY', es: 'BIBLIOTECA', pt: 'BIBLIOTECA', id: 'PERPUSTAKAAN' },
@@ -95,7 +97,7 @@ const UI: Translations = {
   characters: { en: 'characters', es: 'caracteres', pt: 'caracteres', id: 'karakter' },
 
   // ââ PLANS SCREEN ââ
-  // Matches the tab label — the screen and its tab must never disagree (Ashley, 1 Sep 2026).
+  // Matches the tab label \u2014 the screen and its tab must never disagree.
   plans_title: { en: 'Bible', es: 'Biblia', pt: 'B\u00edblia', id: 'Alkitab' },
   j_add_plan_hint: { en: 'Tap Bible to add a reading plan.', es: 'Toca Biblia para a\u00f1adir un plan de lectura.', pt: 'Toque em B\u00edblia para adicionar um plano de leitura.', id: 'Ketuk Alkitab untuk menambahkan rencana bacaan.' },
   plans_and_more: { en: 'Plans & More', es: 'Planes y m\u00e1s', pt: 'Planos e mais', id: 'Rencana & Lainnya' },
@@ -336,7 +338,7 @@ const UI: Translations = {
   bookmarked_label: { en: 'Saved', es: 'Guardado', pt: 'Salvo', id: 'Tersimpan' },
   verse_notes: { en: 'Verse Notes', es: 'Notas de versículos', pt: 'Notas de versículos', id: 'Catatan Ayat' },
 
-  // ── SERMON WORKSPACE (Notes → Sermon tab) ──
+  // ── SERMON WORKSPACE (Home one-tap + Sunday QR) ──
   todays_message: { en: "Today's Message", es: 'Mensaje de hoy', pt: 'Mensagem de hoje', id: 'Pesan Hari Ini' },
   view_sermon: { en: 'View Sermon', es: 'Ver sermón', pt: 'Ver sermão', id: 'Lihat Khotbah' },
   no_sermon_this_week: { en: 'No message this week — check back before service.', es: 'No hay mensaje esta semana; vuelve antes del servicio.', pt: 'Sem mensagem esta semana — volte antes do culto.', id: 'Belum ada pesan minggu ini — cek lagi sebelum ibadah.' },
@@ -395,6 +397,8 @@ const UI: Translations = {
   pathway_day_complete: { en: '\u2713 Day {x} complete \u2014 Day {y} will be here tomorrow', es: '\u2713 D\u00eda {x} completado \u2014 el d\u00eda {y} estar\u00e1 aqu\u00ed ma\u00f1ana', pt: '\u2713 Dia {x} conclu\u00eddo \u2014 o dia {y} estar\u00e1 aqui amanh\u00e3', id: '\u2713 Hari {x} selesai \u2014 hari {y} akan tersedia besok' },
   pathway_day_complete_final: { en: '\u2713 Day {x} complete', es: '\u2713 D\u00eda {x} completado', pt: '\u2713 Dia {x} conclu\u00eddo', id: '\u2713 Hari {x} selesai' },
   pathway_show_now: { en: 'Show me now', es: 'Mostrar ahora', pt: 'Mostrar agora', id: 'Tampilkan sekarang' },
+  pathway_hero_loading: { en: 'Today\u2019s reading is loading\u2026', es: 'La lectura de hoy se est\u00e1 cargando\u2026', pt: 'A leitura de hoje est\u00e1 carregando\u2026', id: 'Bacaan hari ini sedang dimuat\u2026' },
+  pathway_how_it_works: { en: 'Each day: one scripture, one short teaching, one step. About five minutes.', es: 'Cada d\u00eda: una escritura, una ense\u00f1anza breve, un paso. Unos cinco minutos.', pt: 'Cada dia: uma escritura, um ensino curto, um passo. Cerca de cinco minutos.', id: 'Setiap hari: satu ayat, satu pengajaran singkat, satu langkah. Sekitar lima menit.' },
 
   // ── FONT SIZE CONTROLS ──
   font_size_label: { en: 'Font Size', es: 'Tama\u00f1o de Fuente', pt: 'Tamanho da Fonte', id: 'Ukuran Font' },
@@ -422,6 +426,9 @@ const UI: Translations = {
 
   // \u2500\u2500 CAMPUS PICKER (Campus tab empty state) \u2500\u2500
   choose_campus_here: { en: 'Choose your campus to see updates from your pastor.', es: 'Elige tu sede para ver actualizaciones de tu pastor.', pt: 'Escolha seu campus para ver atualiza\u00e7\u00f5es do seu pastor.', id: 'Pilih kampus Anda untuk melihat pembaruan dari pendeta Anda.' },
+  staff_intake: { en: 'Staff intake', es: 'Formulario del equipo', pt: 'Formul\u00e1rio da equipe', id: 'Formulir staf' },
+  staff_intake_hint: { en: 'Campus updates and sermon notes go through one form. Save puts them live.', es: 'Las actualizaciones del campus y las notas del serm\u00f3n pasan por un formulario. Se publican al guardar.', pt: 'Atualiza\u00e7\u00f5es do campus e notas do serm\u00e3o passam por um formul\u00e1rio. Entram no ar ao salvar.', id: 'Pembaruan kampus dan catatan khotbah lewat satu formulir. Tayang saat disimpan.' },
+  pastors_submit_staff: { en: 'Pastors put campus updates on the staff form. Save puts them on the campus corner.', es: 'Los pastores env\u00edan actualizaciones del campus a trav\u00e9s del formulario del equipo. Se publican al guardar.', pt: 'Pastores enviam atualiza\u00e7\u00f5es do campus pelo formul\u00e1rio da equipe. Entram no ar ao salvar.', id: 'Pendeta mengirim pembaruan kampus lewat formulir staf. Tayang saat disimpan.' },
 
   // \u2500\u2500 JOURNAL SERMON TAB \u2500\u2500
   j_from_campus_tab: { en: 'From My campus', es: 'De Mi sede', pt: 'De Meu campus', id: 'Dari Kampus saya' },
@@ -582,16 +589,38 @@ const UI: Translations = {
   email_nudge_body: { en: 'Your streak and journal live only on this device. Add your email and they follow you everywhere.', es: 'Tu racha y tu diario solo viven en este dispositivo. Agrega tu correo y te seguir\u00e1n a todas partes.', pt: 'Sua sequ\u00eancia e seu di\u00e1rio vivem apenas neste aparelho. Adicione seu e-mail e eles v\u00e3o com voc\u00ea.', id: 'Rangkaian dan jurnal Anda hanya tersimpan di perangkat ini. Tambahkan email Anda agar tersimpan di mana saja.' },
   email_nudge_cta: { en: 'Back it up', es: 'Respaldar', pt: 'Fazer backup', id: 'Cadangkan' },
   email_nudge_later: { en: 'Not now', es: 'Ahora no', pt: 'Agora n\u00e3o', id: 'Nanti saja' },
-  sermon_notes_moved: { en: 'Sermon notes now live in Notes \u2192 Sermon', es: 'Las notas de sermones ahora viven en Notas \u2192 Serm\u00f3n', pt: 'As notas de serm\u00e3o agora vivem em Notas \u2192 Serm\u00e3o', id: 'Catatan khotbah kini ada di Catatan \u2192 Khotbah' },
+  sermon_notes_moved: { en: 'Sermon notes live on Home', es: 'Las notas de sermones est\u00e1n en Inicio', pt: 'As notas de serm\u00e3o est\u00e3o em In\u00edcio', id: 'Catatan khotbah ada di Beranda' },
+  sermon_notes_home_sub: { en: 'Take notes during the message', es: 'Toma notas durante el mensaje', pt: 'Anote durante a mensagem', id: 'Catat selama khotbah' },
   reference_label: { en: 'REFERENCE', es: 'REFERENCIA', pt: 'REFER\u00caNCIA', id: 'REFERENSI' },
   reference_title: { en: 'Reference Library', es: 'Biblioteca de referencia', pt: 'Biblioteca de refer\u00eancia', id: 'Perpustakaan Referensi' },
   reference_sub: { en: 'Essays, Bible characters, places & timeline', es: 'Ensayos, personajes b\u00edblicos, lugares y cronolog\u00eda', pt: 'Ensaios, personagens b\u00edblicos, lugares e linha do tempo', id: 'Esai, tokoh Alkitab, tempat & garis waktu' },
   now_in_read: { en: 'Now in Read', es: 'Ahora en Leer', pt: 'Agora em Ler', id: 'Kini di Baca' },
+  file_to_sermon: { en: 'To sermon', es: 'Al serm\u00f3n', pt: 'Ao serm\u00e3o', id: 'Ke khotbah' },
+  filed_toast: { en: 'Filed', es: 'Guardado', pt: 'Arquivado', id: 'Tersimpan' },
+  ws_my_prep: { en: 'MY PREPARATION', es: 'MI PREPARACI\u00d3N', pt: 'MINHA PREPARA\u00c7\u00c3O', id: 'PERSIAPANKU' },
+  ws_prep_focus_ph: { en: "What are you preaching through right now?", es: '\u00bfSobre qu\u00e9 est\u00e1s predicando ahora?', pt: 'Sobre o que voc\u00ea est\u00e1 pregando agora?', id: 'Apa yang sedang Anda khotbahkan sekarang?' },
+  ws_prep_empty: { en: 'Highlight any verse while you read and tap "To sermon" — it lands here.', es: 'Resalta cualquier vers\u00edculo mientras lees y toca "Al serm\u00f3n" — aparecer\u00e1 aqu\u00ed.', pt: 'Destaque qualquer vers\u00edculo enquanto l\u00ea e toque em "Ao serm\u00e3o" — ele aparece aqui.', id: 'Tandai ayat mana pun saat membaca lalu ketuk "Ke khotbah" — akan muncul di sini.' },
+  ws_past_notes: { en: 'PAST SERMON NOTES', es: 'NOTAS DE SERMONES ANTERIORES', pt: 'NOTAS DE SERM\u00d5ES ANTERIORES', id: 'CATATAN KHOTBAH SEBELUMNYA' },
+  ws_show_n: { en: 'Show {n}', es: 'Mostrar {n}', pt: 'Mostrar {n}', id: 'Tampilkan {n}' },
+  ws_hide: { en: 'Hide', es: 'Ocultar', pt: 'Ocultar', id: 'Sembunyikan' },
+  remove_label: { en: 'Remove', es: 'Quitar', pt: 'Remover', id: 'Hapus' },
   promo_books_label: { en: 'Free books', es: 'Libros gratis', pt: 'Livros gr\u00e1tis', id: 'Buku gratis' },
   promo_books_title: { en: 'Books by Ps Ashley & Jane', es: 'Libros de los pastores Ashley y Jane', pt: 'Livros dos pastores Ashley e Jane', id: 'Buku dari Ps Ashley & Jane' },
   promo_books_sub: { en: 'Read them free at futures.church', es: 'L\u00e9elos gratis en futures.church', pt: 'Leia gr\u00e1tis em futures.church', id: 'Baca gratis di futures.church' },
+  promo_shop: { en: 'Shop', es: 'Comprar', pt: 'Comprar', id: 'Belanja' },
+  promo_explore: { en: 'Explore', es: 'Explorar', pt: 'Explorar', id: 'Jelajahi' },
+  promo_coming: { en: 'Coming', es: 'Pr\u00f3ximamente', pt: 'Em breve', id: 'Segera' },
   promo_college_sub: { en: 'Train for what God has called you to.', es: 'F\u00f3rmate para lo que Dios te ha llamado a hacer.', pt: 'Prepare-se para o que Deus te chamou a fazer.', id: 'Bersiaplah untuk panggilan Tuhan atasmu.' },
   promo_college_cta: { en: 'Explore the college', es: 'Conoce el instituto', pt: 'Conhe\u00e7a a faculdade', id: 'Jelajahi kampusnya' },
+  promo_college_loc_au: { en: 'Paradise, Adelaide + Online', es: 'Paradise, Adelaida + en l\u00ednea', pt: 'Paradise, Adelaide + online', id: 'Paradise, Adelaide + Online' },
+  promo_college_loc_us: { en: 'Alpharetta, GA + Online', es: 'Alpharetta, GA + en l\u00ednea', pt: 'Alpharetta, GA + online', id: 'Alpharetta, GA + Online' },
+  promo_college_choose: { en: 'Choose your campus', es: 'Elige tu campus', pt: 'Escolha seu campus', id: 'Pilih kampusmu' },
+  promo_selah_label: { en: 'Selah, our app', es: 'Selah, nuestra app', pt: 'Selah, nosso app', id: 'Selah, aplikasi kami' },
+  promo_selah_name: { en: 'Selah', es: 'Selah', pt: 'Selah', id: 'Selah' },
+  promo_selah_date: { en: '1 October', es: '1 de octubre', pt: '1\u00ba de outubro', id: '1 Oktober' },
+  promo_selah_title: { en: 'Coming 1 October', es: 'Llega el 1 de octubre', pt: 'Chega em 1\u00ba de outubro', id: 'Hadir 1 Oktober' },
+  promo_selah_sub: { en: 'A daily pastoral companion. For the questions you can\u2019t google.', es: 'Un acompa\u00f1ante pastoral diario. Para las preguntas que no puedes googlear.', pt: 'Um companheiro pastoral di\u00e1rio. Para as perguntas que voc\u00ea n\u00e3o googleia.', id: 'Pendamping pastoral harian. Untuk pertanyaan yang tak bisa digoogle.' },
+  promo_selah_cta: { en: 'Learn more', es: 'Saber m\u00e1s', pt: 'Saiba mais', id: 'Pelajari' },
   continue_journey: { en: 'Continue Journey', es: 'Continuar el camino', pt: 'Continuar a jornada', id: 'Lanjutkan Perjalanan' },
   todays_study: { en: "TODAY'S STUDY", es: 'ESTUDIO DE HOY', pt: 'ESTUDO DE HOJE', id: 'STUDI HARI INI' },
   for_you: { en: 'FOR YOU', es: 'PARA TI', pt: 'PARA VOC\u00ca', id: 'UNTUKMU' },
@@ -703,6 +732,30 @@ const UI: Translations = {
   stop_audio_label: { en: 'Stop audio playback', es: 'Detener reproducci\u00f3n de audio', pt: 'Parar reprodu\u00e7\u00e3o de \u00e1udio', id: 'Hentikan pemutaran audio' },
   sync_notice_one: { en: 'Synced across your devices \u2014 kept the newest version of 1 note.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de 1 nota.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de 1 nota.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari 1 catatan disimpan.' },
   sync_notice_many: { en: 'Synced across your devices \u2014 kept the newest version of {n} notes.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de {n} notas.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de {n} notas.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari {n} catatan disimpan.' },
+
+  // \u2500\u2500 PWA / ADD TO HOME SCREEN \u2500\u2500
+  pwa_install_title: { en: 'Add to Home Screen', es: 'A\u00f1adir a inicio', pt: 'Adicionar \u00e0 tela inicial', id: 'Tambahkan ke layar utama' },
+  pwa_install_body: { en: 'Open Daily Word like an app \u2014 one tap, no browser chrome.', es: 'Abre Daily Word como una app \u2014 un toque, sin el navegador.', pt: 'Abra o Daily Word como um app \u2014 um toque, sem o navegador.', id: 'Buka Daily Word seperti aplikasi \u2014 satu ketukan, tanpa bilah browser.' },
+  pwa_install_cta: { en: 'Add', es: 'A\u00f1adir', pt: 'Adicionar', id: 'Tambahkan' },
+  pwa_install_dismiss: { en: 'Not now', es: 'Ahora no', pt: 'Agora n\u00e3o', id: 'Nanti saja' },
+  pwa_ios_intro: { en: 'Safari doesn\u2019t show an install button. Two taps:', es: 'Safari no muestra un bot\u00f3n de instalaci\u00f3n. Dos toques:', pt: 'O Safari n\u00e3o mostra um bot\u00e3o de instala\u00e7\u00e3o. Dois toques:', id: 'Safari tidak menampilkan tombol pasang. Dua ketukan:' },
+  pwa_ios_step1: { en: 'Tap the Share button in Safari', es: 'Toca el bot\u00f3n Compartir en Safari', pt: 'Toque em Compartilhar no Safari', id: 'Ketuk tombol Bagikan di Safari' },
+  pwa_ios_step2: { en: 'Scroll and tap Add to Home Screen', es: 'Despl\u00e1zate y toca A\u00f1adir a pantalla de inicio', pt: 'Role e toque em Adicionar \u00e0 Tela de In\u00edcio', id: 'Gulir dan ketuk Tambah ke Layar Utama' },
+  pwa_browser_intro: { en: 'Your browser will offer an install prompt, or use the browser menu.', es: 'Tu navegador ofrecer\u00e1 instalar, o usa el men\u00fa del navegador.', pt: 'Seu navegador oferecer\u00e1 instalar, ou use o menu do navegador.', id: 'Browser Anda akan menawarkan pemasangan, atau gunakan menu browser.' },
+  pwa_browser_menu: { en: 'Look for Install app or Add to Home Screen in the browser menu.', es: 'Busca Instalar app o A\u00f1adir a inicio en el men\u00fa del navegador.', pt: 'Procure Instalar app ou Adicionar \u00e0 tela inicial no menu do navegador.', id: 'Cari Pasang aplikasi atau Tambah ke Layar Utama di menu browser.' },
+
+  // \u2500\u2500 DAY 1 LANDING (Superdesign-locked) \u2500\u2500
+  day1_eyebrow: { en: 'Day 1 of 40 \u00b7 {series}', es: 'D\u00eda 1 de 40 \u00b7 {series}', pt: 'Dia 1 de 40 \u00b7 {series}', id: 'Hari 1 dari 40 \u00b7 {series}' },
+  begin_day1: { en: 'Begin Day 1', es: 'Comenzar D\u00eda 1', pt: 'Come\u00e7ar o Dia 1', id: 'Mulai Hari 1' },
+  day1_of_40: { en: 'Day 1 of 40', es: 'D\u00eda 1 de 40', pt: 'Dia 1 de 40', id: 'Hari 1 dari 40' },
+  path_chooser_title: { en: 'Where are you right now?', es: '\u00bfD\u00f3nde est\u00e1s ahora?', pt: 'Onde voc\u00ea est\u00e1 agora?', id: 'Di mana Anda sekarang?' },
+  path_chooser_sub: { en: 'Pick one to see matching plans.', es: 'Elige uno para ver planes que coincidan.', pt: 'Escolha um para ver planos correspondentes.', id: 'Pilih satu untuk melihat rencana yang cocok.' },
+  not_sure_begin_day1: { en: 'Not sure? Begin Day 1', es: '\u00bfNo est\u00e1s seguro? Comenzar D\u00eda 1', pt: 'N\u00e3o tem certeza? Come\u00e7ar o Dia 1', id: 'Belum yakin? Mulai Hari 1' },
+  change_path: { en: 'Change path', es: 'Cambiar camino', pt: 'Mudar caminho', id: 'Ubah jalur' },
+  start_this_plan: { en: 'Start This Plan', es: 'Comenzar este plan', pt: 'Come\u00e7ar este plano', id: 'Mulai Rencana Ini' },
+  plan_days: { en: '{n} DAYS', es: '{n} D\u00cdAS', pt: '{n} DIAS', id: '{n} HARI' },
+  plan_active: { en: 'Active', es: 'Activo', pt: 'Ativo', id: 'Aktif' },
+  plans_start_hint: { en: 'Start This Plan to begin. Your chosen plan sets your daily reading.', es: 'Toca Comenzar este plan para empezar. El plan que elijas fija tu lectura diaria.', pt: 'Toque em Come\u00e7ar este plano para come\u00e7ar. O plano escolhido define sua leitura di\u00e1ria.', id: 'Ketuk Mulai Rencana Ini untuk memulai. Rencana yang Anda pilih mengatur bacaan harian Anda.' },
 };
 
 export function t(key: string, lang?: string): string {

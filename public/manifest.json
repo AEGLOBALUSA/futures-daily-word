@@ -2,7 +2,9 @@
   "name": "Futures Daily Word",
   "short_name": "Daily Word",
   "description": "Your daily Bible reading companion from Futures Church",
-  "start_url": "https://futuresdailyword.com/",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#FAF6EF",
@@ -25,7 +27,7 @@
     {
       "name": "Today's Reading",
       "short_name": "Today",
-      "url": "https://futuresdailyword.com/",
+      "url": "/",
       "description": "Open today's daily reading",
       "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }

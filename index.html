@@ -12,6 +12,8 @@
          paint that then flipped to cream. ThemeContext re-sets this on theme change. -->
     <meta name="theme-color" content="#FAF6EF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Daily Word" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="description" content="Futures Daily Word - Your daily Bible reading companion from Futures Church. Read, listen, and study scripture every day." />
     <title>Futures Daily Word</title>
@@ -36,6 +38,8 @@
          Absolute (Daily Word origin) so the preload also resolves when the app is proxied
          at futures.church/daily-word, where a relative /images path hits the church's own assets. -->
     <link rel="preload" as="image" href="https://futuresdailyword.com/images/hero-a.jpg" fetchpriority="high" />
+    <!-- Body face — first paint; browsers skip unused @font-face files, so this is the one that matters. -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/dm-sans-latin.woff2" crossorigin />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",

@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-/* ============================================
-   Self-hosted DM fonts — eliminates Google CDN dependency
+/* =====================================   Self-hosted DM fonts — eliminates Google CDN dependency
    ============================================ */
 
 /* DM Sans — Latin */
@@ -193,6 +192,13 @@
   --dw-plan: #2563EB;
   --dw-plan-light: #93C5FD;
   --dw-plan-deep: #1E40AF;
+  /* I'm New to This / 40-day New Christian journey — sage on charcoal.
+     Distinct from --dw-plan (blue), --dw-accent (terracotta), --dw-success (save/done).
+     Filled chrome: sage field, charcoal ink — never white text on --dw-new in dark. */
+  --dw-new: #8FAF90;
+  --dw-new-hover: #A3B89A;
+  --dw-new-soft: #8FAF9038;
+  --dw-new-on-fill: #0F0D0B;
   --dw-slate-fill: #5B7085;
   --dw-text: #F2EDE5;
   --dw-text-primary: #F2EDE5;
@@ -254,6 +260,10 @@
   --dw-plan: #4C7E97;            /* plans → dusty slate-blue */
   --dw-plan-light: #BFD6E1;
   --dw-plan-deep: #3C6A82;
+  --dw-new: #3F5E46;             /* sage on ivory, white-on-fill */
+  --dw-new-hover: #334F3D;
+  --dw-new-soft: #3F5E4624;
+  --dw-new-on-fill: #FFFFFF;
   --dw-slate-fill: #6B6258;
   --dw-text: #241E17;
   --dw-text-primary: #241E17;    /* warm ink */
@@ -285,6 +295,16 @@ html, body, #root {
   height: 100%;
   width: 100%;
   overflow: hidden;
+}
+
+/* /staff is a separate full page. Congregation tabs still need the lock above. */
+html.staff-route,
+html.staff-route body,
+html.staff-route #root {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -381,6 +401,13 @@ h2.text-section-header {
 
 .dw-card:hover { background: var(--dw-surface-hover); }
 .dw-card:active { background: var(--dw-surface-active); }
+
+/* 40-day New Christian journey card — one green wash, keep hover on the same token */
+.dw-card.dw-new-journey,
+.dw-card.dw-new-journey:hover,
+.dw-card.dw-new-journey:active {
+  background: var(--dw-new-soft);
+}
 
 /* ---------- Buttons ---------- */
 .dw-btn-primary {
@@ -590,10 +617,10 @@ h2.text-section-header {
 }
 
 /* === CONTRAST FIX: Bright white text on accent/pink buttons === */
-:root:not([data-theme="light"]) button[style*="var(--dw-accent)"],
+:root:not([data-theme="light"]) button[style*="var(--dw-accent)"]:not(.dw-journey-new),
 :root:not([data-theme="light"]) button[style*="DC535D"],
 :root:not([data-theme="light"]) button[style*="dc535d"],
-:root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"] {
+:root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"]:not(.dw-journey-new) {
   color: #FFFFFF !important;
   font-weight: 700;
 }
@@ -870,10 +897,41 @@ button:not(:disabled):active,
 /* ---------- Reading surface (hero expanded chapter) ----------
    The chapter expands to its full height — the page is the only scrollbar.
    Padding lives here (not inline) so desktop gets generous margins. */
-.dw-reading-surface { padding: 28px 24px 44px; }
+.dw-reading-surface { padding: 32px 22px 96px; }
 @media (min-width: 700px) {
-  .dw-reading-surface { padding: 40px 64px 56px; }
+  .dw-reading-surface { padding: 48px 72px 112px; }
 }
+
+/* Tab keep-alive: hide inactive screens without unmounting (preserves scroll + audio). */
+.dw-tab-host {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+.dw-tab-panel {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.dw-tab-panel.is-active {
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dw-tab-panel.is-active { animation: dwTabIn 0.16s ease; }
+}
+@keyframes dwTabIn {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+/* Reading chrome belongs on Home only — keep-alive Home would otherwise
+   leave the action bar / hide-AI class active on Notes / Campus / Read. */
+body:not([data-active-tab="home"]) .dw-reading-bar { display: none !important; }
+body:not([data-active-tab="home"]) .dw-ai-launcher { display: revert; }
 
 /* Gentle cross-fade when the chapter (or translation) changes — remounted via key */
 .dw-reading-fade { animation: dwReadingFadeIn 0.4s ease; }
@@ -1075,7 +1133,9 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   margin: 0 0 14px;
 }
 
-/* THE New-to-Faith button. One definition, every screen. Do not fork it. */
+/* THE New-to-Faith button. One definition, every screen. Do not fork it.
+   Sage (--dw-new) is the New-Christian identity across the app (PRs #72–77);
+   --dw-new-on-fill keeps the ink correct in both themes. */
 .dw-new-to-faith {
   display: flex;
   align-items: center;
@@ -1085,8 +1145,8 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   padding: 17px 22px;
   border: none;
   border-radius: 16px;
-  background: var(--dw-accent);
-  color: #FFFFFF;
+  background: var(--dw-new);
+  color: var(--dw-new-on-fill);
   font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
@@ -1094,8 +1154,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.dw-new-to-faith:hover { background: var(--dw-accent-hover); }
-.dw-new-to-faith:active { background: var(--dw-accent-active); }
+.dw-new-to-faith:hover { background: var(--dw-new-hover); }
 
 /* ── Me ── */
 .me-title {
@@ -1142,3 +1201,692 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 .me-row:last-child { border-bottom: none; }
 .me-row-label { flex: 1; font-weight: 600; }
 .me-row-chev { color: var(--dw-text-muted); }
+=======
+/* ---------- Superdesign-locked Day 1 cold start ----------
+   Visual source: https://p.superdesign.dev/draft/455f03e1-0e76-4fb9-81ce-2d00e807caef
+   Hardcoded locked tokens (not theme vars) so dark mode cannot recolor it. */
+.dw-day1-landing {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #FAF6EF;
+  color: #241E17;
+  font-family: var(--font-sans);
+}
+.dw-day1-header {
+  flex-shrink: 0;
+  padding: calc(56px + var(--safe-top, env(safe-area-inset-top, 0px))) 32px 16px;
+  display: flex;
+  justify-content: center;
+}
+.dw-day1-wordmark {
+  height: 16px;
+  width: auto;
+  opacity: 0.8;
+  mix-blend-mode: multiply;
+  display: block;
+}
+.dw-day1-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 32px calc(32px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+}
+.dw-day1-eyebrow {
+  margin: 32px 0 16px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+.dw-day1-title {
+  margin: 0 0 24px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  color: #241E17;
+}
+.dw-day1-cta-wrap--hero {
+  margin-top: 0;
+  padding-top: 8px;
+  padding-bottom: 16px;
+}
+.dw-day1-reading {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.dw-day1-reading:focus {
+  outline: none;
+}
+.dw-day1-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid #ECE3D4;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 0 0 40px;
+}
+.dw-day1-gold-rule {
+  position: absolute;
+  left: 0;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  background: var(--dw-new);
+  border-radius: 0 999px 999px 0;
+}
+.dw-day1-verse {
+  margin: 0 0 16px;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.65;
+  color: #1F2A23;
+}
+.dw-day1-ref {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+.dw-day1-pastoral {
+  margin: 0 0 48px;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(36, 30, 23, 0.9);
+}
+.dw-day1-pastoral-stack {
+  margin-bottom: 18px;
+}
+.dw-day1-pastoral-stack:last-of-type {
+  margin-bottom: 48px;
+}
+.dw-day1-spacer { flex: 1 1 0; min-height: 8px; }
+.dw-day1-cta-wrap {
+  margin-top: auto;
+  padding: 16px 0 34px;
+}
+.dw-day1-cta {
+  display: block;
+  width: 100%;
+  height: 56px;
+  border: none;
+  border-radius: 14px;
+  background: var(--dw-new);
+  color: var(--dw-new-on-fill);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+}
+.dw-day1-cta:active { transform: scale(0.98); }
+.dw-day1-cta-note {
+  margin: 0 0 10px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+
+/* ---------- Superdesign path chooser (Plans tab, not a first-run gate) ---------- */
+.dw-path-chooser {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--dw-canvas);
+  color: var(--dw-text-primary);
+  font-family: var(--font-sans);
+}
+.dw-path-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 32px calc(32px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+}
+.dw-path-title {
+  margin: 16px 0 8px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  color: var(--dw-text-primary);
+}
+.dw-path-sub {
+  margin: 0 0 24px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--dw-text-muted);
+}
+.dw-path-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dw-path-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 18px;
+  background: var(--dw-surface);
+  border: 1px solid var(--dw-border);
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.dw-path-card.is-current {
+  border-color: #C98A2E;
+  box-shadow: inset 3px 0 0 #C98A2E;
+}
+.dw-path-card.dw-path-new {
+  background: var(--dw-new-soft);
+  border-color: var(--dw-new);
+}
+.dw-path-card.dw-path-new .dw-path-card-label {
+  color: var(--dw-new);
+}
+.dw-path-card.dw-path-new.is-current {
+  background: var(--dw-new);
+  border-color: var(--dw-new);
+  box-shadow: none;
+}
+.dw-path-card.dw-path-new.is-current .dw-path-card-label,
+.dw-path-card.dw-path-new.is-current .dw-path-card-desc,
+.dw-path-card.dw-path-new.is-current .dw-path-card-label svg {
+  color: var(--dw-new-on-fill);
+}
+.dw-path-card-label {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dw-text-primary);
+}
+.dw-path-card-desc {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--dw-text-muted);
+}
+.dw-path-secondary {
+  margin: 20px auto 24px;
+  background: none;
+  border: none;
+  padding: 12px 8px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dw-new);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.dw-path-embedded {
+  padding: 8px 4px 28px;
+}
+.dw-path-embedded .dw-path-title {
+  margin-top: 0;
+  font-size: 26px;
+}
+.dw-path-embedded .dw-path-secondary {
+  margin: 12px 0 0;
+}
+
+/* ---------- Superdesign Plans catalog ---------- */
+.dw-plans-sd {
+  background: var(--dw-canvas);
+}
+.dw-plans-sd-kicker {
+  margin: 8px 0 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--dw-text-muted);
+}
+.dw-plans-sd-title {
+  margin: 0 0 20px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  color: var(--dw-text-primary);
+}
+.dw-plans-sd-section {
+  margin: 8px 0 16px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--dw-text-muted);
+}
+.dw-plans-sd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dw-plan-sd-card {
+  background: var(--dw-surface);
+  border: 1px solid var(--dw-border);
+  border-radius: 12px;
+  padding: 20px 20px 18px;
+}
+.dw-plan-sd-days {
+  margin: 0 0 8px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--dw-text-muted);
+}
+.dw-plan-sd-name {
+  margin: 0 0 16px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--dw-text-primary);
+}
+.dw-plan-sd-start {
+  display: block;
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #A8552F;
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dw-plan-sd-start:active { transform: scale(0.98); }
+.dw-plan-sd-active {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #C98A2E;
+}
+.dw-plan-sd-card-new {
+  background: var(--dw-new-soft);
+  border-color: var(--dw-new);
+}
+.dw-plan-sd-card-new .dw-plan-sd-days,
+.dw-plan-sd-card-new .dw-plan-sd-name,
+.dw-plan-sd-card-new .dw-plan-sd-active {
+  color: var(--dw-new);
+}
+.dw-plan-sd-card-new .dw-plan-sd-start {
+  background: var(--dw-new);
+  color: var(--dw-new-on-fill);
+}
+.dw-plan-sd-card-new .dw-plan-sd-start:hover {
+  background: var(--dw-new-hover);
+}
+
+/* Settings Your Journey — I'm New is a sage object in BOTH themes.
+   Never inherit dark --dw-accent (#D89066) on the selected row. */
+.dw-journey-new {
+  background: var(--dw-new-soft) !important;
+  color: var(--dw-text-primary) !important;
+}
+.dw-journey-new .dw-journey-new-title {
+  color: var(--dw-new) !important;
+}
+.dw-journey-new.is-current,
+:root:not([data-theme="light"]) .dw-journey-new.is-current,
+:root[data-theme="light"] .dw-journey-new.is-current {
+  background: var(--dw-new) !important;
+  color: var(--dw-new-on-fill) !important;
+}
+.dw-journey-new.is-current .dw-journey-new-title,
+.dw-journey-new.is-current .dw-journey-new-desc {
+  color: var(--dw-new-on-fill) !important;
+}
+.dw-new-label {
+  color: var(--dw-new) !important;
+}
+/* Settings avatar — I'm New ring + glyph stay sage in both themes.
+   Inline border/color loses to contrast !important rules (same lesson as
+   .dw-journey-new). Other personas keep --dw-accent via inline only. */
+.dw-settings-avatar-new {
+  border-color: var(--dw-new) !important;
+  color: var(--dw-new) !important;
+}
+.dw-settings-avatar-new svg {
+  color: var(--dw-new) !important;
+  stroke: var(--dw-new) !important;
+}
+.dw-select-all-new {
+  color: var(--dw-new) !important;
+}
+
+/* Filled I'm New chrome: white on sage in light, charcoal on sage in dark.
+   Attribute match is the same pattern as the accent contrast rules above. */
+:root:not([data-theme="light"]) [style*="background: var(--dw-new)"],
+:root:not([data-theme="light"]) [style*="background:var(--dw-new)"],
+:root:not([data-theme="light"]) [style*="background-color: var(--dw-new)"],
+:root:not([data-theme="light"]) [style*="background-color:var(--dw-new)"] {
+  color: var(--dw-canvas) !important;
+}
+:root[data-theme="light"] [style*="background: var(--dw-new)"],
+:root[data-theme="light"] [style*="background:var(--dw-new)"],
+:root[data-theme="light"] [style*="background-color: var(--dw-new)"],
+:root[data-theme="light"] [style*="background-color:var(--dw-new)"] {
+  color: #FFFFFF !important;
+}
+
+/* House ads — one commercial strip, charcoal field, no shadow.
+   Parents (Home / Plans / Notes / Campus / Sermon Notes) are full-bleed, so
+   20px inline matches the tab content column. More is the one padded parent. */
+.dw-promo-strip {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 20px 24px;
+}
+.dw-promo-card {
+  display: block;
+  background: #17130F;
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: none;
+}
+.dw-promo-band {
+  box-sizing: border-box;
+  height: 140px;
+  background: #17130F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.dw-promo-covers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.dw-promo-covers img {
+  flex: none;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.dw-promo-logo {
+  height: 56px;
+  width: auto;
+  max-width: 80%;
+  object-fit: contain;
+  display: block;
+}
+.dw-promo-copy {
+  padding: 8px 12px 12px;
+}
+.dw-promo-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dw-promo-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #F5EFE6;
+  min-width: 0;
+}
+.dw-promo-cta {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #F5EFE6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dw-promo-meta {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(245, 239, 230, 0.72);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dw-promo-date {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #F5EFE6;
+  text-align: center;
+}
+
+/* Locked Sermon Notes surface (live page + staff preview). Ivory even in dark theme. */
+.dw-sermon-notes-phone {
+  width: 390px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #FAF6EF;
+}
+.dw-sermon-notes {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #FAF6EF;
+  color: #241E17;
+  caret-color: #A8552F;
+}
+.dw-sermon-notes-video {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 0 28px;
+  background: #000;
+}
+.dw-sermon-notes-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.dw-sermon-notes-meta {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7A6A54;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+.dw-sermon-notes-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #241E17;
+  margin: 0 0 8px;
+  text-transform: none;
+  text-decoration: none;
+  letter-spacing: 0;
+}
+.dw-sermon-notes-ref {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: #7A6A54;
+  margin: 0 0 32px;
+  line-height: 1.4;
+}
+.dw-sermon-notes-section {
+  margin: 0 0 36px;
+}
+.dw-sermon-notes-subhead {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #241E17;
+  margin: 0 0 14px;
+}
+.dw-sermon-notes-point {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: #241E17;
+  margin: 0 0 8px;
+}
+.dw-sermon-notes-point::before {
+  content: "·  ";
+}
+.dw-sermon-notes-point.is-bold {
+  font-weight: 600;
+}
+.dw-sermon-notes-quote {
+  font-family: var(--font-serif-text);
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #241E17;
+  border: none;
+  border-left: 2px solid #A8552F;
+  padding: 8px 0 8px 12px;
+  margin: 0 0 16px;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+.dw-sermon-notes-quote cite {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-style: normal;
+  color: #7A6A54;
+  margin-top: 6px;
+}
+.dw-sermon-notes-note {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #7A6A54;
+  margin: 0 0 8px;
+}
+.dw-sermon-notes-blank {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: 12px 0 0;
+  border: 1.5px solid #ECE3D4;
+  border-radius: 10px;
+  background: #FFF;
+  box-shadow: none;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #241E17;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  caret-color: #A8552F;
+  box-sizing: border-box;
+}
+.dw-sermon-notes-blank.is-response {
+  min-height: 88px;
+}
+.dw-sermon-notes-blank::placeholder {
+  color: #7A6A54;
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 1;
+}
+.dw-sermon-notes-response {
+  margin: 8px 0 0;
+}
+.dw-sermon-notes-response-label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7A6A54;
+  margin: 8px 0 20px;
+}
+.dw-sermon-notes-prompt {
+  margin: 0 0 24px;
+}
+.dw-sermon-notes-prompt-q {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: #241E17;
+  margin: 0 0 8px;
+}
