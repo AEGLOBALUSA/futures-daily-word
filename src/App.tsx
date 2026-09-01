@@ -59,7 +59,12 @@ if (typeof document !== 'undefined' && IS_EMBEDDED) {
 }
 
 // ── Lazy-loaded screens — only downloaded when the user navigates to them ──
-const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
+// The old persona-driven HomeScreen is no longer routed — Today replaced it
+// (Ashley, 1 Sep 2026). The file is kept until its remaining one-off sections
+// (comfort scripture, polls, book cards, upgrade prompt) are re-homed under
+// Bible/Me; nothing links to it.
+const TodayScreen = lazy(() => import('./screens/TodayScreen').then(m => ({ default: m.TodayScreen })));
+const MeScreen = lazy(() => import('./screens/MeScreen').then(m => ({ default: m.MeScreen })));
 const JournalScreen = lazy(() => import('./screens/JournalScreen').then(m => ({ default: m.JournalScreen })));
 const MessagesScreen = lazy(() => import('./screens/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
 const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ default: m.PlansScreen })));
@@ -102,6 +107,10 @@ function AppContent() {
   const [syncNonce, setSyncNonce] = useState(0);
   // Count of journal entries that had cross-device edits, surfaced as a toast.
   const [syncConflicts, setSyncConflicts] = useState(0);
+  // Which Journal tab the Me hub asked for (Notes vs Saved verses). A ref, so
+  // setting it can't re-render Me before navigateTab swaps the screen out.
+  const meJournalTabRef = useRef<'today' | 'saved' | 'prayer' | 'sermon' | undefined>(undefined);
+  const meJournalTab = meJournalTabRef.current;
 
   // Track tab navigation history
   const navigateTab = (tab: TabId) => {
@@ -306,8 +315,9 @@ function AppContent() {
   }, []);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
-    journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : undefined} />,
+    home: <TodayScreen />,
+    me: <MeScreen onNavigate={(tab, journalTab) => { if (journalTab) meJournalTabRef.current = journalTab as typeof meJournalTab; navigateTab(tab); }} />,
+    journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : meJournalTab} />,
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
     plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
     more: <MoreScreen onBack={goBack} />,
@@ -347,7 +357,9 @@ function AppContent() {
           those double-mounted the whole panel AND its floating button — two identical
           FABs stacked at the same coordinates. Only mount it for the screens that
           don't bring their own. */}
-      {activeTab !== 'home' && activeTab !== 'journal' && (
+      {/* Today never mounts the AI button — Ashley's rule: one hero, one action,
+          no competing controls on the opening screen. Notes brings its own. */}
+      {activeTab !== 'journal' && activeTab !== 'home' && (
         <Suspense fallback={null}>
           <BibleAI
             isOpen={showBibleAI}
