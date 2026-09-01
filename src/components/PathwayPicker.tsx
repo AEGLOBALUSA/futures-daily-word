@@ -7,6 +7,7 @@ import type { Persona } from '../utils/persona-config';
 import { ALL_PERSONAS, isNewChristianPersona } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { useModalA11y } from '../utils/useModalA11y';
+import { Check } from 'lucide-react';
 
 const PERSONA_I18N: Record<Persona, string> = {
   new_to_faith: 'persona_new',
@@ -62,7 +63,12 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona, embedded 
               className={`dw-path-card${isCurrent ? ' is-current' : ''}${isNewChristianPersona(persona) ? ' dw-path-new' : ''}`}
               onClick={() => handleSelect(persona)}
             >
-              <span className="dw-path-card-label">{t(PERSONA_I18N[persona], lang)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+                <span className="dw-path-card-label">{t(PERSONA_I18N[persona], lang)}</span>
+                {isCurrent && isNewChristianPersona(persona) && (
+                  <Check size={18} strokeWidth={2.5} color="var(--dw-new)" aria-hidden />
+                )}
+              </span>
               <span className="dw-path-card-desc">{t(PERSONA_I18N[persona] + '_desc', lang)}</span>
             </button>
           );

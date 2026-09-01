@@ -759,10 +759,10 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
             </Card>
           </div>
 
-          <PromoAds />
           </>
           )}
         </div>
+        <PromoAds />
       </div>
     );
   }

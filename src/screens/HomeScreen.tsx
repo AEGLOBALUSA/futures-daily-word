@@ -1656,6 +1656,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     });
   };
 
+  const isNewPath = isNewChristianPersona(personaConfig.persona);
+
   return (
     <div className="screen-container">
       {doneCelebration !== null && (
@@ -2223,13 +2225,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                             fontFamily: 'var(--font-sans)',
                             letterSpacing: '0.02em',
                             border: i === heroChapterIndex
-                              ? '2px solid var(--dw-accent)'
+                              ? `2px solid ${isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)'}`
                               : '1.5px solid var(--dw-border)',
                             background: i === heroChapterIndex
-                              ? 'rgba(168,85,47,0.15)'
+                              ? (isNewPath ? 'var(--dw-new-soft)' : 'rgba(168,85,47,0.15)')
                               : 'transparent',
                             color: i === heroChapterIndex
-                              ? 'var(--dw-accent)'
+                              ? (isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)')
                               : 'var(--dw-text-muted)',
                             transition: 'all 0.2s ease',
                           }}
@@ -2286,13 +2288,21 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                       style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '12px 8px', minHeight: 44,
-                        background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: isNewChristianPersona(personaConfig.persona)
-                          ? 'var(--dw-new)'
+                        background: isNewPath
+                          ? (isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-surface)' : 'var(--dw-new)')
+                          : 'transparent',
+                        border: isNewPath
+                          ? (isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? '1px solid var(--dw-new)' : 'none')
+                          : 'none',
+                        borderRadius: isNewPath ? 10 : 0,
+                        cursor: 'pointer',
+                        color: isNewPath
+                          ? (isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-new)' : 'var(--dw-new-on-fill)')
                           : isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-text-primary)' : 'var(--dw-text-muted)',
                         fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
-                        letterSpacing: '0.03em', transition: 'color 0.2s ease',
-                        borderRight: '1px solid var(--dw-border)',
+                        letterSpacing: '0.03em', transition: 'color 0.2s ease, background 0.2s ease',
+                        borderRight: isNewPath ? undefined : '1px solid var(--dw-border)',
+                        margin: isNewPath ? '4px 6px' : 0,
                       }}
                     >
                       <BookOpen size={13} />
@@ -2414,7 +2424,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                       <p style={{
                         fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
                         textTransform: 'uppercase',
-                        color: '#A06A42',
+                        color: isNewPath ? 'var(--dw-new)' : '#A06A42',
                         fontFamily: 'var(--font-sans)', marginBottom: 20, marginTop: 4,
                       }}>
                         {readRef} <span style={{ fontWeight: 500, opacity: 0.6 }}>· {getServedTranslation(readRef, translation)}</span>
@@ -4253,6 +4263,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             canCompare={pf.greekHebrew === 'full'}
             compareActive={compareMode}
             bookmarked={!!highlights[barRef]}
+            newPath={isNewPath}
             onNote={() => {
               barNoteSelectionRef.current = true;
               setSelection({ text: cleanText(), verseRefs: [barRef], source: 'select-all' });
