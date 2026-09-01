@@ -59,6 +59,12 @@
   [headers.values]
     Cache-Control = "public, max-age=3600"
 
+# Current-sermon stub — never cache so a SAMPLE file cannot linger on production
+[[headers]]
+  for = "/sermons/latest.json"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
 # Icons - long cache
 [[headers]]
   for = "/icons/*"
