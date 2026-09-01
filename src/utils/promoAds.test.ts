@@ -72,6 +72,38 @@ describe('house ads commercial strip', () => {
   });
 });
 
+describe('house ads size lock', () => {
+  const ads = src('components/PromoAds.tsx');
+  const css = src('index.css');
+
+  it('locks every image band at exactly 140px', () => {
+    expect(css).toMatch(/\.dw-promo-band\s*\{[^}]*height:\s*140px/);
+    expect(css).not.toMatch(/\.dw-promo-card\s*\{[^}]*min-height/);
+  });
+
+  it('keeps book covers at natural aspect — contain, not cover or flex-grow', () => {
+    expect(css).toMatch(/\.dw-promo-covers img\s*\{[^}]*object-fit:\s*contain/);
+    expect(css).toMatch(/\.dw-promo-covers img\s*\{[^}]*width:\s*auto/);
+    expect(css).not.toMatch(/\.dw-promo-covers img\s*\{[^}]*object-fit:\s*cover/);
+    expect(css).not.toMatch(/\.dw-promo-covers img\s*\{[^}]*flex:\s*1/);
+  });
+
+  it('puts Selah date in the 140px band, not a third copy block', () => {
+    const selah = ads.slice(ads.indexOf('house_ad_selah'));
+    expect(selah).toMatch(/dw-promo-band[\s\S]*promo_selah_date[\s\S]*dw-promo-copy/);
+    expect(selah).not.toMatch(/dw-promo-copy[\s\S]*promo_selah_date/);
+    expect(selah).not.toMatch(/dw-promo-copy[\s\S]*dw-promo-date/);
+  });
+
+  it('sizes the college logo for the 140px band, not 28px', () => {
+    expect(ads).not.toMatch(/height:\s*28/);
+    expect(ads).toMatch('dw-promo-logo');
+    expect(css).toMatch(/\.dw-promo-logo\s*\{[^}]*height:\s*56px/);
+    expect(css).toMatch(/\.dw-promo-logo\s*\{[^}]*max-width:\s*80%/);
+    expect(css).toMatch(/\.dw-promo-logo\s*\{[^}]*object-fit:\s*contain/);
+  });
+});
+
 describe('I\'m New sage tokens', () => {
   it('replaces the rejected greens in both themes', () => {
     const css = src('index.css');
