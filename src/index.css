@@ -1355,6 +1355,17 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 .dw-new-label {
   color: var(--dw-new) !important;
 }
+/* Settings avatar — I'm New ring + glyph stay sage in both themes.
+   Inline border/color loses to contrast !important rules (same lesson as
+   .dw-journey-new). Other personas keep --dw-accent via inline only. */
+.dw-settings-avatar-new {
+  border-color: var(--dw-new) !important;
+  color: var(--dw-new) !important;
+}
+.dw-settings-avatar-new svg {
+  color: var(--dw-new) !important;
+  stroke: var(--dw-new) !important;
+}
 .dw-select-all-new {
   color: var(--dw-new) !important;
 }
