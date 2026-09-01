@@ -2,6 +2,10 @@
  * PromoAds — quiet house ads for Futures offers. Rendered on every congregation
  * tab (Home, Plans, Journal, Messages, More, Sermon Notes). Staff /staff does
  * not use this. One college card by IP (AU vs US), never both.
+ *
+ * Mosaic: Books is the featured photography tile. College and Selah are the
+ * 1:1 companions. Mobile stacks Books full-width then College | Selah.
+ * Desktop is a 2fr/1fr magazine grid.
  */
 import { useEffect, useState } from 'react';
 import { track } from '../utils/analytics';
@@ -33,14 +37,14 @@ export function PromoAds() {
 
   return (
     <div className="dw-promo-strip">
-      {/* ── Books ── */}
+      {/* ── Books — featured photography tile ── */}
       <a
         href="https://futures.church/books"
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => track('house_ad_books')}
         aria-label={`${t('promo_books_title', lang)} — ${t('promo_shop', lang)}`}
-        className="dw-promo-card"
+        className="dw-promo-card dw-promo-books"
       >
         <div className="dw-promo-band" aria-hidden>
           <div className="dw-promo-covers">
@@ -64,9 +68,9 @@ export function PromoAds() {
         rel="noopener noreferrer"
         onClick={() => track('house_ad_college', campus)}
         aria-label={`Futures Leadership College — ${t(college.locKey, lang)}`}
-        className="dw-promo-card"
+        className="dw-promo-card dw-promo-college"
       >
-        <div className="dw-promo-band">
+        <div className="dw-promo-mark">
           <img
             className="dw-promo-logo"
             src="/promos/logo-flc-horizontal-cream.svg"
@@ -81,23 +85,19 @@ export function PromoAds() {
         </div>
       </a>
 
-      {/* ── Selah — coming 1 October (learn more, not a fake download) ── */}
+      {/* ── Selah — coming 1 October. Type is the image; not a shop. ── */}
       <a
         href={SELAH_HREF}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => track('house_ad_selah')}
         aria-label={`${t('promo_selah_name', lang)} — ${t('promo_selah_date', lang)}`}
-        className="dw-promo-card"
+        className="dw-promo-card dw-promo-selah"
       >
-        <div className="dw-promo-band" aria-hidden>
+        <span className="dw-promo-meta">{t('promo_coming', lang)}</span>
+        <div className="dw-promo-selah-type">
+          <p className="dw-promo-title">{t('promo_selah_name', lang)}</p>
           <p className="dw-promo-date">{t('promo_selah_date', lang)}</p>
-        </div>
-        <div className="dw-promo-copy">
-          <div className="dw-promo-title-row">
-            <p className="dw-promo-title">{t('promo_selah_name', lang)}</p>
-            <span className="dw-promo-meta">{t('promo_coming', lang)}</span>
-          </div>
         </div>
       </a>
     </div>
