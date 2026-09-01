@@ -3,6 +3,7 @@ import { ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 import { syncMisc } from '../utils/cloudSync';
 import { fetchCurrentSermon } from '../utils/currentSermon';
+import { youtubeEmbedUrl } from '../utils/youtube';
 
 interface SermonNotesScreenProps {
   onBack: () => void;
@@ -25,6 +26,7 @@ interface SermonJson {
   sections: SectionJson[];
   responsePrompts: string[];
   commitments: string[];
+  youtubeUrl?: string;
 }
 interface SectionJson {
   num: string;
@@ -142,6 +144,22 @@ export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScr
           {sermon.speaker}
         </p>
       </div>
+
+      {youtubeEmbedUrl(sermon.youtubeUrl) && (
+        <div style={{
+          position: 'relative', paddingBottom: '56.25%', height: 0,
+          margin: '0 0 24px', borderRadius: 14, overflow: 'hidden',
+          background: '#000',
+        }}>
+          <iframe
+            title="Watch this week's message"
+            src={youtubeEmbedUrl(sermon.youtubeUrl)}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+          />
+        </div>
+      )}
 
       {/* Key Verse */}
       <div style={{

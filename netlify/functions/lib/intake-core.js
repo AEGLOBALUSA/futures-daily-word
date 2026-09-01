@@ -6,6 +6,7 @@
  */
 
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 
 const CAMPUS_IDS = [
   "au-paradise", "au-adelaide-city", "au-salisbury", "au-south",
@@ -21,7 +22,10 @@ const CAMPUS_SET = new Set(CAMPUS_IDS);
 const NAMED_STAFF = {
   "ae@futures.global": { role: "admin", name: "Ashley Evans" },
   "josh@futures.church": { role: "hub", name: "Josh Greenwood" },
-  "ryan.rolls@futures.church": { role: "hub", name: "Ryan Rolls" }
+  "ryan.rolls@futures.church": { role: "hub", name: "Ryan Rolls" },
+  "alexi.patsianis@futures.church": { role: "media", name: "Alexi Patsianis" },
+  "jessie.ramos@futures.church": { role: "media", name: "Jessie Ramos" },
+  "noah.terrell@futures.church": { role: "media", name: "Noah Terrell" }
 };
 
 /** Generic inboxes that appear in this repo — not pastors. */
@@ -29,13 +33,13 @@ const BLOCKED_INBOXES = new Set(["hello@futures.church", "care@futures.church"])
 
 const QUESTION_TYPES = [
   "text", "long_text", "yes_no", "campus", "date",
-  "corner_add", "corner_remove", "sermon_notes"
+  "corner_add", "corner_remove", "sermon_notes", "sermon_pick"
 ];
-const AUDIENCES = ["all", "campus", "hub", "admin"];
-const ROLES = ["admin", "hub", "campus"];
+const AUDIENCES = ["all", "campus", "hub", "admin", "media"];
+const ROLES = ["admin", "hub", "campus", "media"];
 const CORNER_TYPES = ["announcement", "note", "prayer_point", "essay"];
 const SERMON_FIELD_KEYS = [
-  "title", "speaker", "date", "series", "keyVerse", "keyVerseText", "outline"
+  "title", "speaker", "date", "series", "keyVerse", "keyVerseText", "outline", "youtubeUrl"
 ];
 
 function normalizeEmail(email) {
@@ -87,6 +91,48 @@ function lockCampus(staff, requestedCampus) {
 function sanitize(str, maxLen = 5000) {
   if (typeof str !== "string") return "";
   return str.replace(/<[^>]*>/g, "").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim().slice(0, maxLen);
+}
+
+function isYoutubeId(id) {
+  return /^[A-Za-z0-9_-]{11}$/.test(String(id || ""));
+}
+
+/** Accept watch, youtu.be, shorts, embed, live. Return the 11-char id or null. */
+function parseYoutubeId(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return null;
+  if (isYoutubeId(raw)) return raw;
+  let href = raw;
+  if (!/^https?:\/\//i.test(href)) href = "https://" + href;
+  try {
+    const u = new URL(href);
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    if (host === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      return isYoutubeId(id) ? id : null;
+    }
+    if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com" || host === "youtube-nocookie.com") {
+      const v = u.searchParams.get("v");
+      if (isYoutubeId(v)) return v;
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (parts[0] === "embed" || parts[0] === "shorts" || parts[0] === "live" || parts[0] === "v") {
+        return isYoutubeId(parts[1]) ? parts[1] : null;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function youtubeWatchUrl(url) {
+  const id = parseYoutubeId(url);
+  return id ? "https://www.youtube.com/watch?v=" + id : "";
+}
+
+function youtubeEmbedUrl(url) {
+  const id = parseYoutubeId(url);
+  return id ? "https://www.youtube-nocookie.com/embed/" + id : "";
 }
 
 function slugify(s) {
@@ -154,7 +200,8 @@ function sermonFromNotes(notes) {
     keyVerseText: sanitize(src.keyVerseText || "", 2000),
     sections: Array.isArray(src.sections) && src.sections.length ? src.sections : parseOutline(outline),
     responsePrompts: prompts.length ? prompts : ["What is God saying to you through this message?"],
-    commitments
+    commitments,
+    youtubeUrl: youtubeWatchUrl(src.youtubeUrl)
   };
 }
 
@@ -169,7 +216,7 @@ function collectCampusFromAnswers(questions, answers) {
 }
 
 function applyAnswers(questions, answers, ctx) {
-  const sermonPatch = {};
+  const sermonPatch = { reformat: true };
   let hasSermon = false;
   const cornerAdds = [];
   const cornerRemoves = [];
@@ -177,7 +224,7 @@ function applyAnswers(questions, answers, ctx) {
 
   for (const q of questions || []) {
     const val = answers ? answers[q.id] : undefined;
-    if (val == null || val === "" || val === false) continue;
+    if (val == null || val === "") continue;
     const cfg = q.config && typeof q.config === "object" ? q.config : {};
 
     if (q.type === "corner_add") {
@@ -204,6 +251,19 @@ function applyAnswers(questions, answers, ctx) {
       hasSermon = true;
     }
 
+    if (q.type === "sermon_pick" || cfg.publish === "sermon_target") {
+      sermonPatch.target = typeof val === "string" ? sanitize(val, 200) : sanitize((val && val.id) || "", 200);
+      hasSermon = true;
+    }
+
+    if (cfg.publish === "sermon_reformat") {
+      sermonPatch.reformat = val !== false && val !== "false" && val !== 0;
+    }
+
+    if (q.type === "yes_no" && cfg.publish === "sermon_reformat") {
+      sermonPatch.reformat = !!val;
+    }
+
     if (cfg.publish === "campus_corner") {
       const content = typeof val === "string" ? sanitize(val, 5000) : "";
       if (content) {
@@ -212,17 +272,30 @@ function applyAnswers(questions, answers, ctx) {
       }
     }
 
+    if (val === false) continue;
+
     if (cfg.publish === "sermon_field" && SERMON_FIELD_KEYS.includes(cfg.sermonKey)) {
       sermonPatch[cfg.sermonKey] = typeof val === "string" || typeof val === "boolean" ? val : String(val);
       hasSermon = true;
     }
   }
 
+  if (sermonPatch.youtubeUrl) {
+    const yt = youtubeWatchUrl(sermonPatch.youtubeUrl);
+    if (!yt && String(sermonPatch.youtubeUrl).trim()) {
+      sermonPatch.youtubeInvalid = true;
+    }
+    sermonPatch.youtubeUrl = yt;
+  }
+
   const sermon = hasSermon && (sermonPatch.title || sermonPatch.outline || sermonPatch.body || sermonPatch.speaker)
     ? sermonFromNotes(sermonPatch)
     : null;
 
-  return { sermon, cornerAdds, cornerRemoves };
+  const youtubeOnly = !!(sermonPatch.youtubeUrl && !sermonPatch.outline && !sermonPatch.title);
+  const notesPolish = !!(sermonPatch.outline && !sermonPatch.title);
+
+  return { sermon, sermonPatch, cornerAdds, cornerRemoves, youtubeOnly, notesPolish };
 }
 
 function publicStaff(staff) {
@@ -245,13 +318,14 @@ function passwordIssue(password, email) {
 }
 
 function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.scryptSync(String(password), salt, 32).toString("hex");
-  return `scrypt:${salt}:${hash}`;
+  return bcrypt.hashSync(String(password), 10);
 }
 
 function verifyPassword(password, stored) {
   if (!stored || typeof stored !== "string" || typeof password !== "string") return false;
+  if (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$")) {
+    try { return bcrypt.compareSync(password, stored); } catch { return false; }
+  }
   const parts = stored.split(":");
   if (parts.length !== 3 || parts[0] !== "scrypt") return false;
   const salt = parts[1];
@@ -286,5 +360,9 @@ module.exports = {
   publicStaff,
   passwordIssue,
   hashPassword,
-  verifyPassword
+  verifyPassword,
+  isYoutubeId,
+  parseYoutubeId,
+  youtubeWatchUrl,
+  youtubeEmbedUrl
 };

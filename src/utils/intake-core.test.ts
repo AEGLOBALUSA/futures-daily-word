@@ -29,6 +29,9 @@ describe('staff allowlist', () => {
     const named = core.NAMED_STAFF as Record<string, { role: string; name: string }>;
     const admins = Object.entries(named).filter(([, v]) => v.role === 'admin');
     expect(admins).toEqual([['ae@futures.global', { role: 'admin', name: 'Ashley Evans' }]]);
+    expect(core.fallbackStaff('alexi.patsianis@futures.church').role).toBe('media');
+    expect(core.fallbackStaff('jessie.ramos@futures.church').name).toBe('Jessie Ramos');
+    expect(core.fallbackStaff('noah.terrell@futures.church').role).toBe('media');
   });
 });
 
@@ -57,6 +60,14 @@ describe('question visibility', () => {
     expect(core.questionVisible(q, 'hub')).toBe(false);
     expect(core.questionVisible(q, 'campus')).toBe(true);
   });
+
+  it('shows media questions only to media and admin', () => {
+    const q = { type: 'text', audience: 'media', enabled: true };
+    expect(core.questionVisible(q, 'media')).toBe(true);
+    expect(core.questionVisible(q, 'hub')).toBe(false);
+    expect(core.questionVisible(q, 'campus')).toBe(false);
+    expect(core.questionVisible(q, 'admin')).toBe(true);
+  });
 });
 
 describe('applyAnswers', () => {
@@ -77,20 +88,23 @@ describe('applyAnswers', () => {
     expect(plan.sermon).toBeNull();
   });
 
-  it('builds sermon notes for Sermon Notes, not the journal', () => {
-    const questions = [{ id: 's', type: 'sermon_notes', config: {} }];
-    const answers = {
-      s: {
-        title: 'Hope',
-        speaker: 'Josh Greenwood',
-        date: '2026-09-06',
-        outline: '1. God is near\nHe stays.\n- Trust Him',
-      },
-    };
-    const plan = core.applyAnswers(questions, answers, { name: 'Josh' });
+  it('maps field questions including youtube onto sermon JSON', () => {
+    const questions = [
+      { id: 't', type: 'text', config: { publish: 'sermon_field', sermonKey: 'title' } },
+      { id: 's', type: 'text', config: { publish: 'sermon_field', sermonKey: 'speaker' } },
+      { id: 'd', type: 'date', config: { publish: 'sermon_field', sermonKey: 'date' } },
+      { id: 'o', type: 'long_text', config: { publish: 'sermon_field', sermonKey: 'outline' } },
+      { id: 'y', type: 'text', config: { publish: 'sermon_field', sermonKey: 'youtubeUrl' } },
+    ];
+    const plan = core.applyAnswers(questions, {
+      t: 'Hope',
+      s: 'Josh Greenwood',
+      d: '2026-09-06',
+      o: '1. God is near\nHe stays.\n- Trust Him',
+      y: 'https://youtu.be/dQw4w9WgXcQ',
+    }, { name: 'Josh' });
     expect(plan.sermon.id).toBe('hope-2026-09-06');
-    expect(plan.sermon.speaker).toBe('Josh Greenwood');
-    expect(plan.sermon.sections[0].title).toBe('God is near');
+    expect(plan.sermon.youtubeUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
     expect(plan.sermon.sections[0].content.some((c: { type: string }) => c.type === 'blank')).toBe(true);
   });
 });
@@ -102,11 +116,48 @@ describe('staff passwords', () => {
     expect(core.passwordIssue('a-real-password', 'josh@futures.church')).toBeNull();
   });
 
-  it('hashes so the same password verifies and a wrong one does not', () => {
+  it('hashes with bcrypt so the same password verifies and a wrong one does not', () => {
     const stored = core.hashPassword('a-real-password');
-    expect(stored.startsWith('scrypt:')).toBe(true);
+    expect(stored.startsWith('$2')).toBe(true);
     expect(core.verifyPassword('a-real-password', stored)).toBe(true);
     expect(core.verifyPassword('wrong-password', stored)).toBe(false);
     expect(core.verifyPassword('a-real-password', 'not-a-hash')).toBe(false);
+  });
+
+  it('still verifies a legacy scrypt hash', () => {
+    const crypto = require('crypto');
+    const salt = 'a'.repeat(32);
+    const hash = crypto.scryptSync('legacy-password', salt, 32).toString('hex');
+    expect(core.verifyPassword('legacy-password', `scrypt:${salt}:${hash}`)).toBe(true);
+    expect(core.verifyPassword('nope', `scrypt:${salt}:${hash}`)).toBe(false);
+  });
+});
+
+describe('youtube urls', () => {
+  it('accepts watch, youtu.be, shorts, and embed', () => {
+    expect(core.parseYoutubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(core.parseYoutubeId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(core.parseYoutubeId('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(core.parseYoutubeId('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(core.parseYoutubeId('https://example.com/watch?v=dQw4w9WgXcQ')).toBeNull();
+    expect(core.youtubeEmbedUrl('https://youtu.be/dQw4w9WgXcQ')).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  });
+});
+
+describe('deterministic sermon formatter', () => {
+  it('adds write-in blanks, prompts, and commitments', () => {
+    const fmt = require('../../netlify/functions/lib/sermon-format.js');
+    const sermon = fmt.formatSermonDeterministic({
+      title: 'Hope',
+      speaker: 'Ryan Rolls',
+      date: '2026-09-06',
+      outline: '1. God is near\nHe stays.\n- Trust Him\n2. God provides\n- Ask Him',
+      youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    });
+    expect(sermon.sections.length).toBeGreaterThanOrEqual(2);
+    expect(sermon.sections.every((s: { content: { type: string }[] }) => s.content.some(c => c.type === 'blank'))).toBe(true);
+    expect(sermon.responsePrompts.length).toBeGreaterThanOrEqual(2);
+    expect(sermon.commitments.length).toBeGreaterThanOrEqual(2);
+    expect(sermon.youtubeUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   });
 });

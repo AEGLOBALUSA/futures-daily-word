@@ -17,6 +17,7 @@ export interface CurrentSermonMeta {
   date?: string;
   speaker?: string;
   commitments?: string[];
+  youtubeUrl?: string;
 }
 
 function pickSermon<T extends { id: string }>(data: unknown): T | null {

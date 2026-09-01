@@ -7,8 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { CAMPUSES } from '../data/tokens';
 import { getStaffToken, intake, setStaffToken } from './api';
+import { youtubeEmbedUrl } from '../utils/youtube';
 
-type Role = 'admin' | 'hub' | 'campus';
+type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Staff = { email: string; role: Role; campusId: string | null; name: string; isAdmin: boolean };
 type Question = {
   id: string;
@@ -19,9 +20,24 @@ type Question = {
   audience: string;
   required: boolean;
   enabled: boolean;
-  config: { publish?: string; itemType?: string; sermonKey?: string };
+  config: { publish?: string; itemType?: string; sermonKey?: string; default?: boolean };
 };
 type CornerItem = { id: string; type: string; title: string; created_at?: string };
+type SermonChoice = { id: string; title: string; date?: string; speaker?: string; current?: boolean; source?: string };
+type FormattedSermon = {
+  id: string;
+  title: string;
+  series?: string;
+  date: string;
+  speaker: string;
+  keyVerse?: string;
+  keyVerseText?: string;
+  sections?: { num: string; title: string; content: { type: string; value?: string; before?: string }[] }[];
+  responsePrompts?: string[];
+  commitments?: string[];
+  youtubeUrl?: string;
+  youtubeOnly?: boolean;
+};
 type Submission = {
   id: string;
   email: string;
@@ -32,6 +48,7 @@ type Submission = {
   created_at: string;
   reviewed_at?: string | null;
   reviewed_by?: string | null;
+  formatted_sermon?: FormattedSermon | null;
   publish_result?: { cornerAdded?: number; cornerRemoved?: number; sermon?: { id: string; title: string } | null } | null;
 };
 
@@ -43,11 +60,13 @@ const TYPES = [
   { id: 'date', label: 'Date' },
   { id: 'corner_add', label: 'Add to campus corner' },
   { id: 'corner_remove', label: 'Remove from campus corner' },
-  { id: 'sermon_notes', label: 'Sermon notes (this week)' },
+  { id: 'sermon_notes', label: 'Sermon notes (legacy blob)' },
+  { id: 'sermon_pick', label: 'Which sermon' },
 ];
 const AUDIENCES = [
   { id: 'campus', label: 'Campus pastors' },
   { id: 'hub', label: 'Hub pastors (when they preach)' },
+  { id: 'media', label: 'Media (YouTube + notes polish)' },
   { id: 'all', label: 'Everyone on the form' },
   { id: 'admin', label: 'Ashley only' },
 ];
@@ -86,7 +105,7 @@ function emptyAnswer(q: Question): unknown {
   if (q.type === 'sermon_notes') {
     return { title: '', speaker: '', date: '', series: '', keyVerse: '', keyVerseText: '', outline: '' };
   }
-  if (q.type === 'yes_no') return false;
+  if (q.type === 'yes_no') return q.config?.default === true;
   return '';
 }
 
@@ -163,6 +182,7 @@ export function StaffApp() {
             {staff.name || staff.email}
             {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
             {staff.role === 'hub' ? ' · sermon notes' : ''}
+            {staff.role === 'media' ? ' · video & notes' : ''}
             {staff.role === 'admin' ? ' · review & form' : ''}
           </p>
           {staff.isAdmin && (
@@ -254,7 +274,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         </p>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>Staff sign-in</h1>
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
-          Email and password. Other staff set their own password on first visit. Ashley reviews before anything goes live.
+          Email and password. Other staff set their own password on first visit. Hub pastors put up notes when they preach; media can add the YouTube after Sunday and clean the notes if needed. Ashley reviews before anything goes live.
         </p>
         <label style={labelStyle} htmlFor="staff-email">Work email</label>
         <input
@@ -313,25 +333,42 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   );
 }
 
+function formIntro(role: Role) {
+  if (role === 'hub') {
+    return 'Hub pastors put up notes when they preach. Paste whatever you have — AI formats it into the Sermon Notes page the congregation writes in. You can add the YouTube after Sunday. Ashley reviews before it goes live.';
+  }
+  if (role === 'media') {
+    return 'Media can add the YouTube after Sunday and clean the notes if the hub pastor needs a hand. Leave notes blank to keep the live outline and only attach the video. Ashley still reviews first.';
+  }
+  if (role === 'campus') {
+    return 'Fill what applies for your campus. Ashley reviews it, then it appears on the campus corner.';
+  }
+  return 'Hub pastors put up notes when they preach; media can add the YouTube after Sunday and clean the notes if needed. Campus pastors update their campus corner. Ashley reviews before anything goes live.';
+}
+
 function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => void }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [cornerItems, setCornerItems] = useState<CornerItem[]>([]);
+  const [sermons, setSermons] = useState<SermonChoice[]>([]);
   const [mine, setMine] = useState<{ id: string; status: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [preview, setPreview] = useState<FormattedSermon | null>(null);
+  const [previewSource, setPreviewSource] = useState('');
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
 
   const load = useCallback(async (campusId?: string) => {
     onError('');
     try {
-      const data = await intake<{ questions: Question[]; cornerItems: CornerItem[]; submissions: typeof mine; staff: Staff }>(
+      const data = await intake<{ questions: Question[]; cornerItems: CornerItem[]; submissions: typeof mine; staff: Staff; sermons?: SermonChoice[] }>(
         'form',
         campusId ? { campusId } : {},
       );
       setQuestions(data.questions || []);
       setCornerItems(data.cornerItems || []);
       setMine(data.submissions || []);
+      setSermons(data.sermons || []);
       setAnswers(prev => {
         const next = { ...prev };
         for (const q of data.questions || []) {
@@ -350,12 +387,27 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
   useEffect(() => { load(staff.campusId || undefined); }, [load, staff.campusId]);
 
   const campusLocked = staff.role === 'campus' && !!staff.campusId;
+  const sermonForm = staff.role === 'hub' || staff.role === 'media' || staff.role === 'admin';
+
+  const runPreview = async () => {
+    setBusy(true); onError('');
+    try {
+      const data = await intake<{ preview: FormattedSermon | null; source?: string }>('format_preview', { answers });
+      setPreview(data.preview);
+      setPreviewSource(data.source || '');
+      if (!data.preview) onError('Nothing to format yet — add notes or a YouTube link.');
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Could not preview');
+    }
+    setBusy(false);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true); onError(''); setDone(false);
     try {
-      await intake('submit', { answers, campusId: pickCampus || staff.campusId });
+      const data = await intake<{ preview?: FormattedSermon | null }>('submit', { answers, campusId: pickCampus || staff.campusId });
+      if (data.preview) setPreview(data.preview);
       setDone(true);
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
@@ -367,11 +419,9 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
   return (
     <form onSubmit={submit}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>This week</h2>
-      <p style={{ ...helpStyle, marginBottom: 20 }}>
-        Fill what applies. Ashley reviews it, then it appears on the campus corner or in Sermon Notes — not in personal Notes.
-      </p>
+      <p style={{ ...helpStyle, marginBottom: 20 }}>{formIntro(staff.role)}</p>
 
-      {staff.role !== 'campus' && (
+      {staff.role === 'admin' && (
         <Field label="Campus (if this is a campus-corner update)">
           <select
             value={pickCampus}
@@ -398,7 +448,9 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
           campusLocked={campusLocked}
           lockedCampus={staff.campusId}
           cornerItems={cornerItems}
-          onChange={v => setAnswers(a => ({ ...a, [q.id]: v }))}
+          sermons={sermons}
+          require={q.required && (q.audience === staff.role || q.audience === 'all')}
+          onChange={v => { setAnswers(a => ({ ...a, [q.id]: v })); setPreview(null); }}
         />
       ))}
 
@@ -406,9 +458,22 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
         <p style={helpStyle}>No questions on the form yet. Ashley adds them under Questions.</p>
       )}
 
+      {sermonForm && (
+        <button type="button" disabled={busy || questions.length === 0} onClick={runPreview} style={{ ...btnGhost, marginTop: 8, marginRight: 8 }}>
+          {busy ? 'Working…' : 'Preview formatted notes'}
+        </button>
+      )}
       <button type="submit" disabled={busy || questions.length === 0} style={{ ...btnPrimary, marginTop: 8 }}>
         {busy ? 'Sending…' : 'Submit for review'}
       </button>
+      {preview && (
+        <div style={{ marginTop: 20 }}>
+          <p style={{ ...helpStyle, marginBottom: 8 }}>
+            Preview{previewSource === 'ai' ? ' · formatted with AI' : previewSource === 'merge' ? ' · video on the existing notes' : ' · formatted'} — Ashley still has to accept this.
+          </p>
+          <SermonPreview sermon={preview} />
+        </div>
+      )}
       {done && (
         <p style={{ marginTop: 12, color: 'var(--dw-info)', fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
           Sent. It goes live after Ashley accepts it.
@@ -441,8 +506,51 @@ function Field({ label, help, children }: { label: string; help?: string; childr
   );
 }
 
+function SermonPreview({ sermon }: { sermon: FormattedSermon }) {
+  const embed = youtubeEmbedUrl(sermon.youtubeUrl);
+  return (
+    <div style={{ border: '1px solid var(--dw-border)', borderRadius: 16, padding: 16, background: 'var(--dw-card)' }}>
+      <p style={{ margin: 0, fontSize: 12, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        {sermon.series || 'Sermon Notes'}{sermon.date ? ` · ${sermon.date}` : ''}
+      </p>
+      <h3 style={{ margin: '6px 0 4px', fontFamily: 'var(--font-serif)', fontSize: 22 }}>{sermon.title}</h3>
+      <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>{sermon.speaker}</p>
+      {embed && (
+        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, marginBottom: 16, borderRadius: 12, overflow: 'hidden' }}>
+          <iframe
+            title="Sermon video"
+            src={embed}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+          />
+        </div>
+      )}
+      {sermon.keyVerseText && (
+        <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 15, lineHeight: 1.55, color: 'var(--dw-text-secondary)' }}>
+          “{sermon.keyVerseText}”{sermon.keyVerse ? ` — ${sermon.keyVerse}` : ''}
+        </p>
+      )}
+      {(sermon.sections || []).map(sec => (
+        <div key={sec.num} style={{ marginTop: 14 }}>
+          <p style={{ margin: '0 0 6px', fontWeight: 700, fontFamily: 'var(--font-serif)', color: 'var(--dw-accent)' }}>
+            {sec.num}. {sec.title}
+          </p>
+          {(sec.content || []).map((c, i) => (
+            c.type === 'blank'
+              ? <p key={i} style={{ ...helpStyle, fontStyle: 'italic' }}>Write-in space</p>
+              : <p key={i} style={{ margin: '0 0 6px', fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)' }}>
+                  {c.type === 'bullet' ? `• ${c.value}` : c.value || c.before}
+                </p>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function QuestionField({
-  q, value, onChange, campusLocked, lockedCampus, cornerItems,
+  q, value, onChange, campusLocked, lockedCampus, cornerItems, sermons, require,
 }: {
   q: Question;
   value: unknown;
@@ -450,13 +558,16 @@ function QuestionField({
   campusLocked: boolean;
   lockedCampus: string | null;
   cornerItems: CornerItem[];
+  sermons?: SermonChoice[];
+  require?: boolean;
 }) {
+  const required = require ?? q.required;
   if (q.type === 'campus') {
     const v = String(value || lockedCampus || '');
     return (
       <Field label={q.label} help={q.help}>
         <select
-          required={q.required}
+          required={required}
           disabled={campusLocked}
           value={v}
           onChange={e => onChange(e.target.value)}
@@ -483,16 +594,40 @@ function QuestionField({
   if (q.type === 'date') {
     return (
       <Field label={q.label} help={q.help}>
-        <input type="date" required={q.required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle} />
+        <input type="date" required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle} />
       </Field>
     );
   }
-  if (q.type === 'long_text' || q.type === 'text') {
+  if (q.type === 'long_text' || q.type === 'text' || q.type === 'sermon_pick') {
+    if (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target') {
+      const choices = sermons || [];
+      return (
+        <Field label={q.label} help={q.help}>
+          <select
+            required={required}
+            value={String(value || '')}
+            onChange={e => onChange(e.target.value)}
+            style={{ ...inputStyle, marginBottom: 8 }}
+          >
+            <option value="">Select this week's message</option>
+            {choices.map(s => (
+              <option key={s.id} value={s.id}>{s.title}{s.date ? ` · ${s.date}` : ''}</option>
+            ))}
+          </select>
+          <input
+            placeholder="Or paste a title / sermon id"
+            value={choices.some(s => s.id === value) ? '' : String(value || '')}
+            onChange={e => onChange(e.target.value)}
+            style={inputStyle}
+          />
+        </Field>
+      );
+    }
     const Comp = q.type === 'long_text' ? 'textarea' : 'input';
     return (
       <Field label={q.label} help={q.help}>
         <Comp
-          required={q.required}
+          required={required}
           value={String(value || '')}
           onChange={e => onChange(e.target.value)}
           rows={q.type === 'long_text' ? 5 : undefined}
@@ -675,7 +810,7 @@ function FormBuilder({ onError }: { onError: (s: string) => void }) {
               {AUDIENCES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
           </Field>
-          {(editing.type === 'text' || editing.type === 'long_text') && (
+          {(editing.type === 'text' || editing.type === 'long_text' || editing.type === 'date') && (
             <Field label="When I approve, put this on">
               <select
                 value={editing.config?.publish || ''}
@@ -702,6 +837,7 @@ function FormBuilder({ onError }: { onError: (s: string) => void }) {
                 <option value="keyVerse">Key verse</option>
                 <option value="keyVerseText">Key verse text</option>
                 <option value="outline">Outline body</option>
+                <option value="youtubeUrl">YouTube URL</option>
               </select>
             </Field>
           )}
@@ -819,6 +955,12 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
           <p style={{ fontWeight: 700, fontFamily: 'var(--font-sans)', margin: '0 0 12px' }}>
             {open.email} · {campusName(open.campus_id) || 'no campus'}
           </p>
+          {open.formatted_sermon && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ ...labelStyle, marginBottom: 8 }}>Formatted notes + video</p>
+              <SermonPreview sermon={open.formatted_sermon} />
+            </div>
+          )}
           {Object.entries(open.answers || {}).map(([id, val]) => (
             <div key={id} style={{ marginBottom: 12 }}>
               <p style={{ ...labelStyle, marginBottom: 4 }}>{labelFor[id] || id}</p>
@@ -873,7 +1015,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>People</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>
-        Ashley Evans (ae@futures.global) is the only admin — he owns questions, review, and this roster. Everyone else fills the intake form. Other staff set their own password on first visit. Pin a campus here so they only see theirs.
+        Ashley Evans (ae@futures.global) is the only admin — he owns questions, review, and this roster. Hub pastors put up notes when they preach; media can add the YouTube after Sunday and clean the notes if needed. Other staff set their own password on first visit.
       </p>
       {rows.map(r => (
         <div key={r.email} style={{ border: '1px solid var(--dw-border)', borderRadius: 14, padding: 14, marginBottom: 8 }}>
@@ -913,6 +1055,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
         <select value={role} onChange={e => setRole(e.target.value as Role)} style={inputStyle}>
           <option value="campus">Campus pastor</option>
           <option value="hub">Hub pastor (sermon notes)</option>
+          <option value="media">Media (YouTube + notes polish)</option>
           <option value="admin">Admin (Ashley)</option>
         </select>
       </Field>

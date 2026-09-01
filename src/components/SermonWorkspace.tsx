@@ -20,6 +20,7 @@ import { SermonNotesScreen } from '../screens/SermonNotesScreen';
 import { getPreachingFocus, setPreachingFocus, getPrepItems, removePrepItem, isPastorPersona } from '../utils/sermonPrep';
 import type { PrepItem } from '../utils/sermonPrep';
 import { fetchCurrentSermon, openSermonNotesId } from '../utils/currentSermon';
+import { youtubeEmbedUrl } from '../utils/youtube';
 import { ScreenHeader } from './ScreenHeader';
 import { PromoAds } from './PromoAds';
 
@@ -30,6 +31,7 @@ interface SermonMeta {
   date: string;
   speaker: string;
   commitments?: string[];
+  youtubeUrl?: string;
 }
 
 type SaveState = 'idle' | 'saving' | 'saved';
@@ -229,6 +231,20 @@ export function SermonWorkspace() {
         <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
           {dateStr}
         </p>
+        {youtubeEmbedUrl(sermon.youtubeUrl) && (
+          <div style={{
+            position: 'relative', paddingBottom: '56.25%', height: 0,
+            marginTop: 14, borderRadius: 12, overflow: 'hidden', background: '#000',
+          }}>
+            <iframe
+              title="Watch this week's message"
+              src={youtubeEmbedUrl(sermon.youtubeUrl)}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+            />
+          </div>
+        )}
         <button
           onClick={() => setShowSermon(true)}
           style={{
