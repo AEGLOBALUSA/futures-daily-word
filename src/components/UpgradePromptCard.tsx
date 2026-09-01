@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from './Card';
 import { checkForUpgrade, dismissUpgrade } from '../utils/pathway-upgrades';
+import { isNewChristianPersona } from '../utils/persona-config';
 
 interface UpgradePromptCardProps {
   persona: string;
@@ -17,11 +18,15 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
   const [animateOut, setAnimateOut] = useState(false);
 
   useEffect(() => {
+    if (isNewChristianPersona(persona)) {
+      setUpgrade(null);
+      return;
+    }
     const result = checkForUpgrade(persona);
     setUpgrade(result);
   }, [persona]);
 
-  if (!upgrade || dismissed) return null;
+  if (isNewChristianPersona(persona) || !upgrade || dismissed) return null;
 
   const handleDismiss = () => {
     setAnimateOut(true);

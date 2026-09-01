@@ -2739,7 +2739,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </div>
         )}
 
-        {/* ── Upgrade Prompt — "Ready for More?" ── */}
+        {/* ── Upgrade Prompt — congregation "Go Deeper?" / comfort "Feeling Stronger?"
+             Never mount for new_to_faith: I'm New stays until they change path themselves. ── */}
+        {personaConfig.persona !== 'new_to_faith' && (
         <UpgradePromptCard
           persona={setup?.persona || 'congregation'}
           onUpgrade={(newPersona) => {
@@ -2749,6 +2751,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             flushNow(); // back up the choice immediately; saveSetup updates context reactively (no reload)
           }}
         />
+        )}
 
         {/* Start Your Journey — removed; "Choose Your Plan" button at top handles this */}
 
