@@ -1339,7 +1339,9 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   color: #FFFFFF !important;
 }
 
-/* House ads — one commercial strip, charcoal field, no shadow. */
+/* House ads — one commercial strip, charcoal field, no shadow.
+   Parents (Home / Plans / Notes / Campus / Sermon Notes) are full-bleed, so
+   20px inline matches the tab content column. More is the one padded parent. */
 .dw-promo-strip {
   box-sizing: border-box;
   width: 100%;
@@ -1360,7 +1362,6 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 .dw-promo-band {
   box-sizing: border-box;
   height: 140px;
-  min-height: 140px;
   background: #17130F;
   display: flex;
   align-items: center;
@@ -1369,19 +1370,26 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 }
 .dw-promo-covers {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
   height: 100%;
-  width: 100%;
   padding: 8px;
   box-sizing: border-box;
 }
 .dw-promo-covers img {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: none;
   height: 100%;
-  object-fit: cover;
+  width: auto;
+  object-fit: contain;
   border-radius: 4px;
+}
+.dw-promo-logo {
+  height: 56px;
+  width: auto;
+  max-width: 80%;
+  object-fit: contain;
+  display: block;
 }
 .dw-promo-copy {
   padding: 8px 12px 12px;
@@ -1423,12 +1431,13 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   flex-shrink: 0;
 }
 .dw-promo-date {
-  margin: 4px 0 0;
+  margin: 0;
   font-family: var(--font-serif);
   font-size: 28px;
   font-weight: 400;
   line-height: 1.2;
   color: #F5EFE6;
+  text-align: center;
 }
 
 /* Locked Sermon Notes surface (live page + staff preview). Ivory even in dark theme. */

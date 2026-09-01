@@ -68,9 +68,9 @@ export function PromoAds() {
       >
         <div className="dw-promo-band">
           <img
+            className="dw-promo-logo"
             src="/promos/logo-flc-horizontal-cream.svg"
             alt="Futures Leadership College"
-            style={{ height: 28, width: 'auto', maxWidth: '90%', display: 'block' }}
           />
         </div>
         <div className="dw-promo-copy">
@@ -90,13 +90,14 @@ export function PromoAds() {
         aria-label={`${t('promo_selah_name', lang)} — ${t('promo_selah_date', lang)}`}
         className="dw-promo-card"
       >
-        <div className="dw-promo-band" aria-hidden />
+        <div className="dw-promo-band" aria-hidden>
+          <p className="dw-promo-date">{t('promo_selah_date', lang)}</p>
+        </div>
         <div className="dw-promo-copy">
           <div className="dw-promo-title-row">
             <p className="dw-promo-title">{t('promo_selah_name', lang)}</p>
             <span className="dw-promo-meta">{t('promo_coming', lang)}</span>
           </div>
-          <p className="dw-promo-date">{t('promo_selah_date', lang)}</p>
         </div>
       </a>
     </div>
