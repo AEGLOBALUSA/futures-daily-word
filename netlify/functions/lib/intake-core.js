@@ -67,12 +67,17 @@ function fallbackStaff(email) {
 }
 
 function questionVisible(question, role) {
+  return questionVisibleForJob(question, role, null);
+}
+
+/** When a job is set (hub / media / campus), only that audience’s questions show — even for Ashley. */
+function questionVisibleForJob(question, role, job) {
   if (!question || question.enabled === false) return false;
-  if (role === "admin") return true;
   const aud = question.audience || "all";
   if (aud === "all") return true;
   if (aud === "admin") return role === "admin";
-  return aud === role;
+  const viewAs = job === "hub" || job === "media" || job === "campus" ? job : role;
+  return aud === viewAs;
 }
 
 function isCampusId(id) {
@@ -381,6 +386,7 @@ module.exports = {
   isAllowlistedEmail,
   fallbackStaff,
   questionVisible,
+  questionVisibleForJob,
   isCampusId,
   lockCampus,
   sanitize,

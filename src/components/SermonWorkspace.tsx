@@ -21,8 +21,6 @@ import { getPreachingFocus, setPreachingFocus, getPrepItems, removePrepItem, isP
 import type { PrepItem } from '../utils/sermonPrep';
 import { fetchCurrentSermon, openSermonNotesId } from '../utils/currentSermon';
 import { youtubeEmbedUrl } from '../utils/youtube';
-import { ScreenHeader } from './ScreenHeader';
-import { PromoAds } from './PromoAds';
 
 interface SermonMeta {
   id: string;

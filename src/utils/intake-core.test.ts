@@ -52,7 +52,8 @@ describe('question visibility', () => {
     const q = { type: 'long_text', audience: 'hub', enabled: true };
     expect(core.questionVisible(q, 'campus')).toBe(false);
     expect(core.questionVisible(q, 'hub')).toBe(true);
-    expect(core.questionVisible(q, 'admin')).toBe(true);
+    expect(core.questionVisibleForJob(q, 'admin', 'hub')).toBe(true);
+    expect(core.questionVisible(q, 'admin')).toBe(false);
   });
 
   it('hides campus-corner questions from hub pastors', () => {
@@ -61,12 +62,22 @@ describe('question visibility', () => {
     expect(core.questionVisible(q, 'campus')).toBe(true);
   });
 
-  it('shows media questions only to media and admin', () => {
+  it('lets Ashley fill one job without seeing every audience mixed together', () => {
+    const hub = { type: 'date', audience: 'hub', enabled: true };
+    const campus = { type: 'text', audience: 'campus', enabled: true };
+    expect(core.questionVisibleForJob(hub, 'admin', 'hub')).toBe(true);
+    expect(core.questionVisibleForJob(campus, 'admin', 'hub')).toBe(false);
+    expect(core.questionVisibleForJob(hub, 'admin', 'campus')).toBe(false);
+    expect(core.questionVisibleForJob(campus, 'admin', 'campus')).toBe(true);
+  });
+
+  it('shows media questions only to media and admin filling the media job', () => {
     const q = { type: 'text', audience: 'media', enabled: true };
     expect(core.questionVisible(q, 'media')).toBe(true);
     expect(core.questionVisible(q, 'hub')).toBe(false);
     expect(core.questionVisible(q, 'campus')).toBe(false);
-    expect(core.questionVisible(q, 'admin')).toBe(true);
+    expect(core.questionVisibleForJob(q, 'admin', 'media')).toBe(true);
+    expect(core.questionVisible(q, 'admin')).toBe(false);
   });
 });
 

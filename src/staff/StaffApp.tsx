@@ -10,6 +10,8 @@ import { getStaffToken, intake, setStaffToken } from './api';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
+type Tab = 'home' | 'form' | 'questions' | 'review' | 'people';
+type Job = 'hub' | 'media' | 'campus';
 type Staff = { email: string; role: Role; campusId: string | null; name: string; isAdmin: boolean };
 type Question = {
   id: string;
@@ -107,7 +109,9 @@ export function StaffApp() {
   const [token, setToken] = useState(() => getStaffToken());
   const [staff, setStaff] = useState<Staff | null>(null);
   const [boot, setBoot] = useState(!!getStaffToken());
-  const [tab, setTab] = useState<'form' | 'questions' | 'review' | 'people'>('form');
+  const [tab, setTab] = useState<Tab>('home');
+  const [job, setJob] = useState<Job>('hub');
+  const [pendingCount, setPendingCount] = useState(0);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -118,9 +122,10 @@ export function StaffApp() {
   const loadMe = useCallback(async () => {
     if (!getStaffToken()) { setBoot(false); return; }
     try {
-      const data = await intake<{ staff: Staff }>('me');
+      const data = await intake<{ staff: Staff; pendingCount?: number }>('me');
       setStaff(data.staff);
-      setTab(data.staff.isAdmin ? 'review' : 'form');
+      setPendingCount(data.pendingCount || 0);
+      setTab('home');
     } catch {
       setStaffToken('');
       setToken('');
@@ -130,6 +135,13 @@ export function StaffApp() {
   }, []);
 
   useEffect(() => { loadMe(); }, [loadMe]);
+
+  useEffect(() => {
+    if (tab !== 'home' || !staff) return;
+    intake<{ pendingCount?: number }>('me')
+      .then(d => setPendingCount(d.pendingCount || 0))
+      .catch(() => { /* */ });
+  }, [tab, staff]);
 
   if (boot) {
     return (
@@ -142,7 +154,7 @@ export function StaffApp() {
   if (!token || !staff) {
     return (
       <Login
-        onSignedIn={(t, s) => { setStaffToken(t); setToken(t); setStaff(s); setTab(s.isAdmin ? 'review' : 'form'); }}
+        onSignedIn={(t, s) => { setStaffToken(t); setToken(t); setStaff(s); setTab('home'); }}
       />
     );
   }
@@ -175,34 +187,15 @@ export function StaffApp() {
           <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
             {staff.name || staff.email}
             {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
-            {staff.role === 'hub' ? ' · sermon notes' : ''}
-            {staff.role === 'media' ? ' · video & notes' : ''}
-            {staff.role === 'admin' ? ' · review & form' : ''}
           </p>
-          {staff.isAdmin && (
-            <nav style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
-              {([
-                ['review', 'Review'],
-                ['form', 'Fill form'],
-                ['questions', 'Questions'],
-                ['people', 'People'],
-              ] as const).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  style={{
-                    ...btnGhost,
-                    minHeight: 36, padding: '6px 12px',
-                    background: tab === id ? 'var(--dw-accent)' : 'transparent',
-                    color: tab === id ? '#fff' : 'var(--dw-text-muted)',
-                    borderColor: tab === id ? 'var(--dw-accent)' : 'var(--dw-border)',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </nav>
+          {tab !== 'home' && (
+            <button
+              type="button"
+              onClick={() => { setTab('home'); setError(''); }}
+              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 12 }}
+            >
+              ← Staff home
+            </button>
           )}
         </div>
       </header>
@@ -211,9 +204,21 @@ export function StaffApp() {
         {error && (
           <p style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 16 }}>{error}</p>
         )}
-        {tab === 'form' && <IntakeForm staff={staff} onError={setError} />}
+        {tab === 'home' && (
+          <StaffHome
+            staff={staff}
+            pendingCount={pendingCount}
+            onJob={j => { setJob(j); setTab('form'); setError(''); }}
+            onReview={() => { setTab('review'); setError(''); }}
+            onQuestions={() => { setTab('questions'); setError(''); }}
+            onPeople={() => { setTab('people'); setError(''); }}
+          />
+        )}
+        {tab === 'form' && <IntakeForm staff={staff} job={job} onError={setError} />}
         {tab === 'questions' && staff.isAdmin && <FormBuilder onError={setError} />}
-        {tab === 'review' && staff.isAdmin && <ReviewQueue onError={setError} />}
+        {tab === 'review' && staff.isAdmin && (
+          <ReviewQueue onError={setError} onPutUpNotes={() => { setJob('hub'); setTab('form'); }} />
+        )}
         {tab === 'people' && staff.isAdmin && <Roster onError={setError} />}
       </main>
     </div>
@@ -268,7 +273,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         </p>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>Staff sign-in</h1>
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
-          Email and password. Other staff set their own password on first visit. Hub pastors put up notes when they preach; media can add the YouTube after Sunday and clean the notes if needed. Ashley reviews before anything goes live.
+          Sign in to put Sunday’s sermon notes on the page people write in.
         </p>
         <label style={labelStyle} htmlFor="staff-email">Work email</label>
         <input
@@ -331,20 +336,98 @@ function isFlowQuestion(q: Question) {
   return !!q.config?.flow;
 }
 
-function formIntro(role: Role) {
-  if (role === 'hub') {
-    return 'Answer each question, then paste your notes. If you want AI to format them, you will see the congregation page and sign off before Ashley reviews.';
-  }
-  if (role === 'media') {
-    return 'Pick the sermon and add the YouTube if you have it. Paste notes only if you are cleaning them up. YouTube alone does not change the notes.';
-  }
-  if (role === 'campus') {
-    return 'Answer each question for your campus. Ashley reviews, then it appears on the campus corner.';
-  }
-  return 'Hub pastors put up notes when they preach; media can add the YouTube after Sunday; campus pastors update their campus corner. Ashley reviews first.';
+function withStep(n: number, label: string) {
+  return `${n}. ${label.replace(/^\d+\.\s*/, '')}`;
 }
 
-function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => void }) {
+function StaffHome({
+  staff, pendingCount, onJob, onReview, onQuestions, onPeople,
+}: {
+  staff: Staff;
+  pendingCount: number;
+  onJob: (job: Job) => void;
+  onReview: () => void;
+  onQuestions: () => void;
+  onPeople: () => void;
+}) {
+  const jobs: { id: Job; title: string; body: string }[] = [
+    { id: 'hub', title: 'Put up this week’s sermon notes', body: 'Date, title, speaker, verse, YouTube, paste your notes, see the congregation page, sign off.' },
+    { id: 'media', title: 'Add the YouTube or clean the notes', body: 'Pick the sermon. Paste a link. Or paste notes if they need a cleanup.' },
+    { id: 'campus', title: 'Update a campus corner', body: 'Add one note for your campus, or take one thing down.' },
+  ];
+  const visible = staff.isAdmin ? jobs : jobs.filter(j => j.id === staff.role);
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
+      <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
+        This is how Sunday’s sermon notes get onto the page people write in.
+      </p>
+      {visible.map(j => (
+        <button
+          key={j.id}
+          type="button"
+          onClick={() => onJob(j.id)}
+          style={{
+            display: 'block', width: '100%', textAlign: 'left',
+            background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+            borderRadius: 16, padding: '18px 20px', marginBottom: 12, cursor: 'pointer',
+          }}
+        >
+          <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
+          <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
+        </button>
+      ))}
+      {staff.isAdmin && (
+        <>
+          <button
+            type="button"
+            onClick={onReview}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+              borderRadius: 16, padding: '18px 20px', marginTop: 8, marginBottom: 12, cursor: 'pointer',
+            }}
+          >
+            <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)' }}>
+              Review what staff sent
+              {pendingCount > 0 ? (
+                <span style={{
+                  marginLeft: 10, fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700,
+                  letterSpacing: '0.04em', background: 'var(--dw-accent)', color: '#fff',
+                  borderRadius: 999, padding: '3px 8px', verticalAlign: 'middle',
+                }}>{pendingCount}</span>
+              ) : null}
+            </span>
+            <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)' }}>
+              {pendingCount > 0 ? 'Accept a submission to put it live.' : 'Nothing is waiting. Put this week’s message up from the first button.'}
+            </span>
+          </button>
+          <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-text-muted)' }}>
+            Settings
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" style={btnGhost} onClick={onQuestions}>Questions</button>
+            <button type="button" style={btnGhost} onClick={onPeople}>People</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function formIntro(job: Job, isAdmin: boolean) {
+  if (job === 'hub') {
+    return 'You’re putting this week’s message on the congregation Sermon Notes page. Answer these, paste your notes, then you’ll see that page and sign off.';
+  }
+  if (job === 'media') {
+    return 'Add the YouTube for this week’s message, or paste notes if they need a cleanup. YouTube alone does not change the notes that are already live.';
+  }
+  return isAdmin
+    ? 'This updates one campus corner. You can put it live yourself.'
+    : 'Answer each question for your campus. Ashley reviews, then people at your campus see it.';
+}
+
+function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: (s: string) => void }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [cornerItems, setCornerItems] = useState<CornerItem[]>([]);
@@ -352,8 +435,8 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
   const [mine, setMine] = useState<{ id: string; status: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [published, setPublished] = useState(false);
   const [preview, setPreview] = useState<FormattedSermon | null>(null);
-  const [previewSource, setPreviewSource] = useState('');
   const [signedOff, setSignedOff] = useState(false);
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
 
@@ -362,7 +445,7 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
     try {
       const data = await intake<{ questions: Question[]; cornerItems: CornerItem[]; submissions: typeof mine; staff: Staff; sermons?: SermonChoice[] }>(
         'form',
-        campusId ? { campusId } : {},
+        { job, ...(campusId ? { campusId } : {}) },
       );
       setQuestions(data.questions || []);
       setCornerItems(data.cornerItems || []);
@@ -381,29 +464,31 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Could not load the form');
     }
-  }, [onError, staff.campusId]);
+  }, [onError, staff.campusId, job]);
 
-  useEffect(() => { load(staff.campusId || undefined); }, [load, staff.campusId]);
+  useEffect(() => { load(staff.campusId || undefined); }, [load, staff.campusId, job]);
 
   const campusLocked = staff.role === 'campus' && !!staff.campusId;
-  const sermonForm = staff.role === 'hub' || staff.role === 'media' || staff.role === 'admin';
-  const flowQs = questions.filter(isFlowQuestion);
+  const sermonForm = job === 'hub' || job === 'media';
+  const flowQs = questions.filter(q => isFlowQuestion(q) && (q.audience === job || q.audience === 'all'));
   const formQs = questions.filter(q => !isFlowQuestion(q));
-  const haveQ = flowQs.find(q => q.config?.flow === 'notes_have');
-  const pasteQ = flowQs.find(q => q.config?.flow === 'notes_paste');
-  const aiQ = flowQs.find(q => q.config?.flow === 'notes_ai');
-  const haveNotes = haveQ ? answers[haveQ.id] === true : staff.role !== 'hub';
+  const haveQ = job === 'hub' ? flowQs.find(q => q.config?.flow === 'notes_have') : undefined;
+  const pasteQ = flowQs.find(q => q.config?.flow === 'notes_paste' && q.audience === job);
+  const aiQ = flowQs.find(q => q.config?.flow === 'notes_ai' && q.audience === job);
+  const haveNotes = haveQ ? answers[haveQ.id] === true : job !== 'hub';
   const paste = pasteQ ? String(answers[pasteQ.id] || '') : '';
   const wantAI = aiQ ? answers[aiQ.id] === true : false;
   const showPaste = !haveQ || haveNotes === true;
   const showAI = showPaste && paste.trim().length > 0;
   const needsSignOff = sermonForm && wantAI && paste.trim().length > 0;
+  const stepStart = formQs.length;
 
   const setAnswer = (id: string, v: unknown) => {
     setAnswers(a => ({ ...a, [id]: v }));
     setPreview(null);
     setSignedOff(false);
     setDone(false);
+    setPublished(false);
   };
 
   const runPreview = async (override?: Record<string, unknown>) => {
@@ -412,9 +497,9 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
       const data = await intake<{ preview: FormattedSermon | null; source?: string }>('format_preview', {
         answers: override || answers,
         useAI: true,
+        job,
       });
       setPreview(data.preview);
-      setPreviewSource(data.source || '');
       if (!data.preview) onError('Nothing to format yet — paste your notes first.');
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Could not preview');
@@ -432,21 +517,24 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
       onError('Do you have your notes?');
       return;
     }
-    if (haveNotes && pasteQ && !paste.trim() && staff.role === 'hub') {
+    if (haveNotes && pasteQ && !paste.trim() && job === 'hub') {
       onError('Paste your notes.');
       return;
     }
     setBusy(true); onError(''); setDone(false);
     try {
-      const data = await intake<{ preview?: FormattedSermon | null }>('submit', {
+      const data = await intake<{ preview?: FormattedSermon | null; published?: boolean }>('submit', {
         answers,
         campusId: pickCampus || staff.campusId,
+        job,
         signedOff: signed || signedOff,
         formatted_sermon: (signed || signedOff) ? preview : undefined,
+        publishNow: staff.isAdmin,
       });
       if (data.preview) setPreview(data.preview);
       setSignedOff(true);
       setDone(true);
+      setPublished(!!data.published);
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Could not submit');
@@ -456,11 +544,13 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
 
   return (
     <form onSubmit={submit}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>This week</h2>
-      <p style={{ ...helpStyle, marginBottom: 20 }}>{formIntro(staff.role)}</p>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>
+        {job === 'hub' ? 'This week’s sermon notes' : job === 'media' ? 'YouTube and notes' : 'Campus corner'}
+      </h2>
+      <p style={{ ...helpStyle, marginBottom: 28 }}>{formIntro(job, staff.isAdmin)}</p>
 
-      {staff.role === 'admin' && (
-        <Field label="Campus (if this is a campus-corner update)">
+      {staff.isAdmin && job === 'campus' && (
+        <Field label="Which campus?">
           <select
             value={pickCampus}
             onChange={async e => {
@@ -470,7 +560,7 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
             }}
             style={inputStyle}
           >
-            <option value="">—</option>
+            <option value="">Select campus</option>
             {CAMPUSES.filter(c => c.id !== 'other').map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -478,33 +568,37 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
         </Field>
       )}
 
-      {formQs.map(q => (
+      {formQs.map((q, i) => (
         <QuestionField
           key={q.id}
-          q={q}
+          q={job === 'hub' ? {
+            ...q,
+            label: withStep(i + 1, q.label),
+            help: q.config?.sermonKey === 'youtubeUrl' ? 'You can add this after Sunday.' : q.help,
+          } : q}
           value={answers[q.id]}
           campusLocked={campusLocked}
           lockedCampus={staff.campusId}
           cornerItems={cornerItems}
           sermons={sermons}
-          require={q.required && (q.audience === staff.role || q.audience === 'all')}
+          require={q.required && (q.audience === job || q.audience === 'all')}
           onChange={v => setAnswer(q.id, v)}
         />
       ))}
 
       {sermonForm && (haveQ || pasteQ || aiQ) && (
         <NotesFlow
+          stepStart={job === 'hub' ? stepStart : 0}
           haveQ={haveQ}
           pasteQ={pasteQ}
           aiQ={aiQ}
-          haveNotes={haveQ ? answers[haveQ.id] : (staff.role === 'media' ? true : '')}
+          haveNotes={haveQ ? answers[haveQ.id] : true}
           paste={paste}
           wantAI={aiQ ? answers[aiQ.id] : ''}
           showPaste={showPaste}
           showAI={showAI}
           busy={busy}
           preview={preview}
-          previewSource={previewSource}
           signedOff={signedOff}
           onHave={v => haveQ && setAnswer(haveQ.id, v)}
           onPaste={v => pasteQ && setAnswer(pasteQ.id, v)}
@@ -515,25 +609,30 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
             setPreview(null);
             setSignedOff(false);
             setDone(false);
+            setPublished(false);
             if (v === true) runPreview(next);
           }}
           onFormat={runPreview}
-          onSignOff={() => submit(undefined, true)}
+          onSignOff={() => setSignedOff(true)}
         />
       )}
 
       {questions.length === 0 && (
-        <p style={helpStyle}>No questions on the form yet. Ashley adds them under Questions.</p>
+        <p style={helpStyle}>No questions on this form yet.</p>
       )}
 
-      {(!needsSignOff) && (
+      {(!needsSignOff || signedOff) && (
         <button type="submit" disabled={busy || questions.length === 0} style={{ ...btnPrimary, marginTop: 8 }}>
-          {busy ? 'Sending…' : 'Submit for review'}
+          {busy ? 'Working…' : staff.isAdmin
+            ? (job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page')
+            : 'Send to Ashley to go live'}
         </button>
       )}
       {done && (
         <p style={{ marginTop: 12, color: 'var(--dw-info)', fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-          Sent. It goes live after Ashley accepts it.
+          {published
+            ? (job === 'campus' ? 'It’s on the campus corner.' : 'It’s on the congregation page.')
+            : 'Sent to Ashley. It goes live when he accepts it.'}
         </p>
       )}
 
@@ -564,9 +663,10 @@ function Field({ label, help, children }: { label: string; help?: string; childr
 }
 
 function NotesFlow({
-  haveQ, pasteQ, aiQ, haveNotes, paste, wantAI, showPaste, showAI,
-  busy, preview, previewSource, signedOff, onHave, onPaste, onAI, onFormat, onSignOff,
+  stepStart = 0, haveQ, pasteQ, aiQ, haveNotes, paste, wantAI, showPaste, showAI,
+  busy, preview, signedOff, onHave, onPaste, onAI, onFormat, onSignOff,
 }: {
+  stepStart?: number;
   haveQ?: Question;
   pasteQ?: Question;
   aiQ?: Question;
@@ -577,7 +677,6 @@ function NotesFlow({
   showAI: boolean;
   busy: boolean;
   preview: FormattedSermon | null;
-  previewSource: string;
   signedOff: boolean;
   onHave: (v: boolean) => void;
   onPaste: (v: string) => void;
@@ -585,27 +684,30 @@ function NotesFlow({
   onFormat: () => void;
   onSignOff: () => void;
 }) {
+  let step = stepStart;
+  const haveLabel = haveQ ? withStep(++step, 'Do you have your notes?') : '';
+  const pasteLabel = pasteQ ? withStep(++step, 'Paste your notes.') : '';
+  const aiLabel = aiQ ? withStep(++step, 'Would you like AI to format these for the congregation?') : '';
   return (
     <div>
       {haveQ && (
-        <Field label={haveQ.label} help={haveQ.help}>
+        <Field label={haveLabel} help={haveQ.help}>
           <YesNo value={haveNotes} onChange={onHave} required={haveQ.required} />
         </Field>
       )}
       {showPaste && pasteQ && (
-        <Field label={pasteQ.label || 'Paste your notes.'} help={pasteQ.help || 'Whatever you have — outline, Word dump, bullets.'}>
+        <Field label={pasteLabel} help="Whatever you have is fine.">
           <textarea
             value={paste}
             onChange={e => onPaste(e.target.value)}
             rows={10}
-            className="staff-input"
             placeholder="Paste your notes"
             style={{ ...inputStyle, minHeight: 180, resize: 'vertical' as const }}
           />
         </Field>
       )}
       {showAI && aiQ && (
-        <Field label={aiQ.label || 'Would you like AI to format these for the congregation?'} help={aiQ.help}>
+        <Field label={aiLabel} help={aiQ.help}>
           <YesNo value={wantAI} onChange={onAI} />
         </Field>
       )}
@@ -615,17 +717,17 @@ function NotesFlow({
           {preview && (
             <>
               <p style={{ ...helpStyle, marginBottom: 12 }}>
-                This is the congregation page{previewSource === 'deterministic' ? ' · simple layout' : ''}. Sign off this version, or regenerate another option.
+                This is what people will write in on Sunday. Sign off this version, or make another.
               </p>
               <div className="dw-sermon-notes-phone">
                 <SermonNotesSurface sermon={preview as SermonNotesData} persist={false} />
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
                 <button type="button" style={btnPrimary} disabled={busy || signedOff} onClick={onSignOff}>
-                  {signedOff ? 'Signed off' : 'Sign off (this version)'}
+                  {signedOff ? 'Signed off' : 'Sign off this version'}
                 </button>
                 <button type="button" style={btnGhost} disabled={busy} onClick={onFormat}>
-                  {busy ? 'Working…' : 'Regenerate'}
+                  {busy ? 'Working…' : 'Make another'}
                 </button>
               </div>
             </>
@@ -802,7 +904,7 @@ function FormBuilder({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Questions</h2>
       <p style={{ ...helpStyle, marginBottom: 20 }}>
-        This is the form pastors fill. Add a field when you need a new kind of update — no code change.
+        These are the prompts on each job. Change them when the form needs a new question.
       </p>
       {questions.map((q, i) => (
         <div key={q.id} style={{
@@ -915,7 +1017,7 @@ function FormBuilder({ onError }: { onError: (s: string) => void }) {
   );
 }
 
-function ReviewQueue({ onError }: { onError: (s: string) => void }) {
+function ReviewQueue({ onError, onPutUpNotes }: { onError: (s: string) => void; onPutUpNotes: () => void }) {
   const [status, setStatus] = useState<'pending' | 'approved' | 'declined'>('pending');
   const [rows, setRows] = useState<Submission[]>([]);
   const [open, setOpen] = useState<Submission | null>(null);
@@ -951,7 +1053,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
 
   return (
     <div>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Review</h2>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Review what staff sent</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>Accept a submission to put it on the live campus corner or Sermon Notes.</p>
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {(['pending', 'approved', 'declined'] as const).map(s => (
@@ -970,7 +1072,13 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
           </button>
         ))}
       </div>
-      {rows.length === 0 && <p style={helpStyle}>Nothing in {status}.</p>}
+      {rows.length === 0 && status === 'pending' && (
+        <div style={{ margin: '12px 0 24px' }}>
+          <p style={helpStyle}>No notes waiting. Put this week’s message up.</p>
+          <button type="button" style={btnPrimary} onClick={onPutUpNotes}>Put this week’s message up</button>
+        </div>
+      )}
+      {rows.length === 0 && status !== 'pending' && <p style={helpStyle}>Nothing in {status}.</p>}
       {rows.map(row => (
         <button
           key={row.id}
@@ -1057,7 +1165,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>People</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>
-        Ashley Evans (ae@futures.global) is the only admin — he owns questions, review, and this roster. Hub pastors put up notes when they preach; media can add the YouTube after Sunday and clean the notes if needed. Other staff set their own password on first visit.
+        Who can sign in. If someone has not set a password yet, they set one on first visit.
       </p>
       {rows.map(r => (
         <div key={r.email} style={{ border: '1px solid var(--dw-border)', borderRadius: 14, padding: 14, marginBottom: 8 }}>

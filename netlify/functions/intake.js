@@ -11,7 +11,7 @@ const {
   normalizeEmail,
   isAllowlistedEmail,
   fallbackStaff,
-  questionVisible,
+  questionVisibleForJob,
   isCampusId,
   lockCampus,
   sanitize,
@@ -419,7 +419,12 @@ exports.handler = async (event) => {
     }
 
     if (action === "me") {
-      return json(event, 200, { staff: publicStaff(staff) });
+      let pendingCount = 0;
+      if (staff.role === "admin") {
+        const { count } = await db().from("intake_submissions").select("id", { count: "exact", head: true }).eq("status", "pending");
+        pendingCount = count || 0;
+      }
+      return json(event, 200, { staff: publicStaff(staff), pendingCount });
     }
 
     if (action === "form") {
@@ -429,7 +434,8 @@ exports.handler = async (event) => {
         .eq("enabled", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      const visible = (questions || []).filter((q) => questionVisible(q, staff.role));
+      const job = body.job === "hub" || body.job === "media" || body.job === "campus" ? body.job : null;
+      const visible = (questions || []).filter((q) => questionVisibleForJob(q, staff.role, job));
       let cornerItems = [];
       const campusId = staff.role === "campus" ? staff.campusId : null;
       if (campusId) {
@@ -474,12 +480,14 @@ exports.handler = async (event) => {
         .eq("enabled", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      const visible = (questions || []).filter((q) => questionVisible(q, staff.role));
+      const job = body.job === "hub" || body.job === "media" || body.job === "campus" ? body.job : null;
+      const visible = (questions || []).filter((q) => questionVisibleForJob(q, staff.role, job));
       const answersIn = body.answers && typeof body.answers === "object" ? body.answers : {};
       const answers = {};
+      const viewAs = job || staff.role;
       for (const q of visible) {
         if (answersIn[q.id] !== undefined) answers[q.id] = answersIn[q.id];
-        if (q.required && (q.audience === staff.role || q.audience === "all")) {
+        if (q.required && (q.audience === viewAs || q.audience === "all")) {
           const v = answers[q.id];
           const empty = v == null || v === "" || (Array.isArray(v) && !v.length);
           if (empty && q.type !== "corner_remove" && q.type !== "yes_no") {
@@ -548,6 +556,18 @@ exports.handler = async (event) => {
         status: "pending"
       }).select("id, status, created_at, formatted_sermon").single();
       if (insErr) throw insErr;
+      const publishNow = staff.role === "admin" && body.publishNow === true;
+      if (publishNow) {
+        const publish_result = await publishApproved({ ...row, answers, formatted_sermon, campus_id: campusId, email: staff.email, role: staff.role }, staff);
+        const { data: updated, error: upErr } = await db().from("intake_submissions").update({
+          status: "approved",
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: staff.email,
+          publish_result
+        }).eq("id", row.id).select("id, status, created_at, formatted_sermon").single();
+        if (upErr) throw upErr;
+        return json(event, 200, { ok: true, submission: updated, preview: formatted_sermon, format_source, published: true, publish_result });
+      }
       return json(event, 200, { ok: true, submission: row, preview: formatted_sermon, format_source });
     }
 
@@ -558,7 +578,8 @@ exports.handler = async (event) => {
         .eq("enabled", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      const visible = (questions || []).filter((q) => questionVisible(q, staff.role));
+      const job = body.job === "hub" || body.job === "media" || body.job === "campus" ? body.job : null;
+      const visible = (questions || []).filter((q) => questionVisibleForJob(q, staff.role, job));
       const answersIn = body.answers && typeof body.answers === "object" ? body.answers : {};
       const answers = {};
       for (const q of visible) {
