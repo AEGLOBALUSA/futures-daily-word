@@ -20,7 +20,10 @@ const {
   ROLES,
   collectCampusFromAnswers,
   applyAnswers,
-  publicStaff
+  publicStaff,
+  passwordIssue,
+  hashPassword,
+  verifyPassword
 } = require("./lib/intake-core");
 
 let supabase;
@@ -47,16 +50,6 @@ function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
-function hashOtp(email, code) {
-  const secret = process.env.STAFF_SESSION_SECRET || process.env.PASTOR_SECRET || "intake";
-  return hashToken(`${email}:${String(code).trim()}:${secret}`);
-}
-
-function safeEq(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || !a || !b || a.length !== b.length) return false;
-  try { return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b)); } catch { return false; }
-}
-
 function clientIp(event) {
   return (event.headers["x-forwarded-for"] || event.headers["client-ip"] || "unknown").split(",")[0].trim();
 }
@@ -65,11 +58,21 @@ async function resolveStaff(email) {
   const e = normalizeEmail(email);
   if (!isAllowlistedEmail(e)) return null;
   const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name").eq("email", e).maybeSingle();
-  if (data) {
-    const named = fallbackStaff(e);
+  // Ashley is the only admin — lock it even if the roster row was edited.
+  if (e === "ae@futures.global") {
     return {
       email: e,
-      role: data.role,
+      role: "admin",
+      campusId: (data && data.campus_id) || null,
+      name: (data && data.display_name) || "Ashley Evans"
+    };
+  }
+  if (data) {
+    const named = fallbackStaff(e);
+    const role = data.role === "admin" ? (named && named.role) || "campus" : data.role;
+    return {
+      email: e,
+      role,
       campusId: data.campus_id || null,
       name: data.display_name || (named && named.name) || ""
     };
@@ -112,39 +115,8 @@ async function issueSession(email) {
   // Opportunistic cleanup
   if (Math.random() < 0.1) {
     await db().from("staff_sessions").delete().lt("expires_at", new Date().toISOString());
-    await db().from("staff_otp").delete().lt("expires_at", new Date().toISOString());
   }
   return raw;
-}
-
-function sixDigit() {
-  return String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-}
-
-async function sendOtpEmail(to, code) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return "logged";
-  const from = process.env.STAFF_OTP_FROM || "Futures Daily Word <noreply@futuresdailyword.com>";
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject: "Your Daily Word sign-in code",
-        text: `Your sign-in code is ${code}. It expires in 10 minutes.\n\nIf you did not request this, ignore this email.`
-      })
-    });
-    if (!res.ok) {
-      console.error("intake otp email failed", res.status);
-      return "failed";
-    }
-    return "sent";
-  } catch (err) {
-    console.error("intake otp email error", err);
-    return "failed";
-  }
 }
 
 async function publishApproved(submission, staff) {
@@ -221,56 +193,60 @@ exports.handler = async (event) => {
   const ip = clientIp(event);
 
   try {
-    // ── request_otp ──
-    if (action === "request_otp") {
-      if (await isSharedRateLimited("intake-otp", ip, 8, 15 * 60 * 1000)) {
+    // ── auth_status ── First visit: set your own password. After that: sign in.
+    if (action === "auth_status") {
+      if (await isSharedRateLimited("intake-auth", ip, 20, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
       }
       const email = normalizeEmail(body.email);
-      // Same response whether or not the email is allowlisted.
-      if (isAllowlistedEmail(email)) {
-        const code = sixDigit();
-        await db().from("staff_otp").upsert({
-          email,
-          code_hash: hashOtp(email, code),
-          expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-          attempts: 0
-        }, { onConflict: "email" });
-        const mail = await sendOtpEmail(email, code);
-        if (mail === "logged") {
-          console.log("intake otp issued (no mailer configured) for", email);
-        }
+      if (!isAllowlistedEmail(email)) {
+        return json(event, 200, { setup: false });
       }
-      return json(event, 200, { ok: true });
+      const { data } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      return json(event, 200, { setup: !data || !data.password_hash });
     }
 
-    // ── verify_otp ──
-    if (action === "verify_otp") {
-      if (await isSharedRateLimited("intake-verify", ip, 20, 15 * 60 * 1000)) {
+    // ── set_password ── First-time only. Each person chooses their own.
+    if (action === "set_password") {
+      if (await isSharedRateLimited("intake-set-password", ip, 10, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
       }
       const email = normalizeEmail(body.email);
-      const code = String(body.code || "").trim();
+      const password = String(body.password || "");
       const staff = await resolveStaff(email);
-      if (!staff || !code) return json(event, 403, { error: "Invalid code" });
-
-      const pin = process.env.ADMIN_PIN || "";
-      const pinOk = staff.role === "admin" && pin && safeEq(code, pin);
-
-      if (!pinOk) {
-        const { data: otp } = await db().from("staff_otp").select("*").eq("email", email).maybeSingle();
-        if (!otp || new Date(otp.expires_at).getTime() < Date.now()) {
-          return json(event, 403, { error: "Invalid code" });
-        }
-        if ((otp.attempts || 0) >= 5) return json(event, 403, { error: "Invalid code" });
-        if (!safeEq(otp.code_hash, hashOtp(email, code))) {
-          await db().from("staff_otp").update({ attempts: (otp.attempts || 0) + 1 }).eq("email", email);
-          return json(event, 403, { error: "Invalid code" });
-        }
-        await db().from("staff_otp").delete().eq("email", email);
+      if (!staff) return json(event, 403, { error: "Invalid email or password" });
+      const issue = passwordIssue(password, email);
+      if (issue) return json(event, 400, { error: issue });
+      const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      if (row && row.password_hash) {
+        return json(event, 403, { error: "Password already set. Sign in with email and password." });
       }
-
       await ensureRoster(staff);
+      const { error } = await db().from("staff_roster").update({
+        password_hash: hashPassword(password),
+        updated_at: new Date().toISOString()
+      }).eq("email", email);
+      if (error) throw error;
+      const token = await issueSession(staff.email);
+      return json(event, 200, { token, staff: publicStaff(staff) });
+    }
+
+    // ── login ── Returning staff: email + the password they set.
+    if (action === "login") {
+      if (await isSharedRateLimited("intake-login", ip, 20, 15 * 60 * 1000)) {
+        return json(event, 429, { error: "Too many attempts. Try again later." });
+      }
+      const email = normalizeEmail(body.email);
+      const password = String(body.password || "");
+      const staff = await resolveStaff(email);
+      if (!staff || !password) return json(event, 403, { error: "Invalid email or password" });
+      const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      if (!row || !row.password_hash) {
+        return json(event, 403, { error: "Set your own password first.", setup: true });
+      }
+      if (!verifyPassword(password, row.password_hash)) {
+        return json(event, 403, { error: "Invalid email or password" });
+      }
       const token = await issueSession(staff.email);
       return json(event, 200, { token, staff: publicStaff(staff) });
     }
@@ -459,9 +435,19 @@ exports.handler = async (event) => {
     }
 
     if (action === "roster_list") {
-      const { data, error } = await db().from("staff_roster").select("*").order("email");
+      const { data, error } = await db()
+        .from("staff_roster")
+        .select("email, role, campus_id, display_name, password_hash")
+        .order("email");
       if (error) throw error;
-      return json(event, 200, { roster: data || [] });
+      const roster = (data || []).map((row) => ({
+        email: row.email,
+        role: row.role,
+        campus_id: row.campus_id,
+        display_name: row.display_name,
+        has_password: !!row.password_hash
+      }));
+      return json(event, 200, { roster });
     }
 
     if (action === "roster_save") {
@@ -473,6 +459,9 @@ exports.handler = async (event) => {
       if (email === "ae@futures.global" && role !== "admin") {
         return json(event, 400, { error: "Ashley stays admin." });
       }
+      if (role === "admin" && email !== "ae@futures.global") {
+        return json(event, 400, { error: "Ashley Evans (ae@futures.global) is the only admin." });
+      }
       const campus_id = isCampusId(body.campusId) ? body.campusId : null;
       const named = fallbackStaff(email);
       const { data, error } = await db().from("staff_roster").upsert({
@@ -481,9 +470,21 @@ exports.handler = async (event) => {
         campus_id,
         display_name: sanitize(body.name || (named && named.name) || "", 80),
         updated_at: new Date().toISOString()
-      }, { onConflict: "email" }).select().single();
+      }, { onConflict: "email" }).select("email, role, campus_id, display_name").single();
       if (error) throw error;
       return json(event, 200, { person: data });
+    }
+
+    if (action === "roster_clear_password") {
+      const email = normalizeEmail(body.email);
+      if (!email) return json(event, 400, { error: "Email required" });
+      const { error } = await db().from("staff_roster").update({
+        password_hash: null,
+        updated_at: new Date().toISOString()
+      }).eq("email", email);
+      if (error) throw error;
+      await db().from("staff_sessions").delete().eq("email", email);
+      return json(event, 200, { ok: true });
     }
 
     if (action === "roster_delete") {

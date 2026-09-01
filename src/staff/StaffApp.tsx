@@ -208,77 +208,102 @@ export function StaffApp() {
 
 function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => void }) {
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [setup, setSetup] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const request = async (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true); setError('');
     try {
-      await intake('request_otp', { email });
-      setSent(true);
+      const status = await intake<{ setup: boolean }>('auth_status', { email });
+      if (status.setup) {
+        if (!setup) {
+          setSetup(true);
+          setBusy(false);
+          return;
+        }
+        if (password !== confirm) {
+          setError('Passwords do not match.');
+          setBusy(false);
+          return;
+        }
+        const data = await intake<{ token: string; staff: Staff }>('set_password', { email, password });
+        onSignedIn(data.token, data.staff);
+      } else {
+        const data = await intake<{ token: string; staff: Staff }>('login', { email, password });
+        onSignedIn(data.token, data.staff);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send a code');
-    }
-    setBusy(false);
-  };
-
-  const verify = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true); setError('');
-    try {
-      const data = await intake<{ token: string; staff: Staff }>('verify_otp', { email, code });
-      onSignedIn(data.token, data.staff);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid code');
+      const msg = err instanceof Error ? err.message : 'Invalid email or password';
+      const needsSetup = (err as { data?: { setup?: boolean } })?.data?.setup;
+      if (needsSetup) setSetup(true);
+      if (/already set/i.test(msg)) setSetup(false);
+      setError(msg);
     }
     setBusy(false);
   };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <form onSubmit={sent ? verify : request} style={{ width: 'min(420px, 100%)' }}>
+      <form onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
         <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
           Futures Daily Word
         </p>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>Staff sign-in</h1>
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
-          One form. Campus pastors update their campus corner. Hub pastors put up sermon notes when they preach. Nothing goes live until Ashley reviews it.
+          Email and password. Other staff set their own password on first visit. Ashley reviews before anything goes live.
         </p>
         <label style={labelStyle} htmlFor="staff-email">Work email</label>
         <input
           id="staff-email"
           type="email"
-          autoComplete="email"
+          autoComplete="username"
           required
           value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="you@futures.church"
+          onChange={e => { setEmail(e.target.value); setSetup(false); }}
+          onBlur={async () => {
+            if (!email.includes('@')) return;
+            try {
+              const status = await intake<{ setup: boolean }>('auth_status', { email });
+              setSetup(!!status.setup);
+            } catch { /* keep password sign-in */ }
+          }}
+          placeholder="ae@futures.global"
           style={{ ...inputStyle, marginBottom: 14 }}
         />
-        {sent && (
+        <label style={labelStyle} htmlFor="staff-password">{setup ? 'New password' : 'Password'}</label>
+        <input
+          id="staff-password"
+          type="password"
+          autoComplete={setup ? 'new-password' : 'current-password'}
+          required
+          minLength={setup ? 10 : undefined}
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          style={{ ...inputStyle, marginBottom: 14 }}
+        />
+        {setup && (
           <>
-            <label style={labelStyle} htmlFor="staff-code">Code</label>
+            <p style={helpStyle}>First visit — set your own password (at least 10 characters). You will use it to sign in next time.</p>
+            <label style={labelStyle} htmlFor="staff-confirm">Confirm password</label>
             <input
-              id="staff-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
+              id="staff-confirm"
+              type="password"
+              autoComplete="new-password"
               required
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              placeholder="6-digit code"
-              style={{ ...inputStyle, marginBottom: 8, letterSpacing: '0.12em' }}
+              minLength={10}
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              style={{ ...inputStyle, marginBottom: 8 }}
             />
-            <p style={helpStyle}>
-              Check your email. If mail is not set up yet, Ashley can enter the Daily Word admin PIN as her code.
-            </p>
           </>
         )}
         {error && <p style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)' }}>{error}</p>}
         <button type="submit" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
-          {busy ? 'Please wait…' : sent ? 'Sign in' : 'Send code'}
+          {busy ? 'Please wait…' : setup ? 'Save password and sign in' : 'Sign in'}
         </button>
         <p style={{ marginTop: 20, textAlign: 'center' }}>
           <a href="/" style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>← Daily Word</a>
@@ -832,7 +857,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
 }
 
 function Roster({ onError }: { onError: (s: string) => void }) {
-  const [rows, setRows] = useState<{ email: string; role: Role; campus_id: string | null; display_name: string }[]>([]);
+  const [rows, setRows] = useState<{ email: string; role: Role; campus_id: string | null; display_name: string; has_password?: boolean }[]>([]);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('campus');
   const [campusId, setCampusId] = useState('');
@@ -848,14 +873,33 @@ function Roster({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>People</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>
-        Named staff are Ashley, Josh Greenwood, and Ryan Rolls. Other futures.church emails sign in as campus pastors. Pin a campus here so they only see theirs.
+        Ashley Evans (ae@futures.global) is the only admin — he owns questions, review, and this roster. Everyone else fills the intake form. Other staff set their own password on first visit. Pin a campus here so they only see theirs.
       </p>
       {rows.map(r => (
         <div key={r.email} style={{ border: '1px solid var(--dw-border)', borderRadius: 14, padding: 14, marginBottom: 8 }}>
           <p style={{ margin: 0, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{r.display_name || r.email}</p>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
             {r.email} · {r.role}{r.campus_id ? ` · ${campusName(r.campus_id)}` : ''}
+            {r.has_password ? ' · password set' : ' · has not set a password yet'}
           </p>
+          {r.has_password && (
+            <button
+              type="button"
+              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }}
+              onClick={async () => {
+                if (!confirm(`Clear ${r.email}'s password so they can set a new one?`)) return;
+                onError('');
+                try {
+                  await intake('roster_clear_password', { email: r.email });
+                  await load();
+                } catch (err) {
+                  onError(err instanceof Error ? err.message : 'Could not clear password');
+                }
+              }}
+            >
+              Let them set a new password
+            </button>
+          )}
         </div>
       ))}
       <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, margin: '24px 0 12px' }}>Add or update</h3>

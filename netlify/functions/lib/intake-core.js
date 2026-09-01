@@ -1,8 +1,11 @@
 /**
  * Pure helpers for staff intake: allowlist, question visibility, campus lock,
- * and turning approved answers into campus-corner rows / sermon JSON.
+ * turning approved answers into campus-corner rows / sermon JSON, and
+ * password hashing (each pastor sets their own).
  * No I/O — Netlify functions and vitest both require this file.
  */
+
+const crypto = require("crypto");
 
 const CAMPUS_IDS = [
   "au-paradise", "au-adelaide-city", "au-salisbury", "au-south",
@@ -233,6 +236,32 @@ function publicStaff(staff) {
   };
 }
 
+function passwordIssue(password, email) {
+  const p = String(password || "");
+  if (p.length < 10) return "Use at least 10 characters.";
+  if (p.length > 200) return "Password is too long.";
+  if (email && p.toLowerCase() === String(email).toLowerCase()) return "Do not use your email as the password.";
+  return null;
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(String(password), salt, 32).toString("hex");
+  return `scrypt:${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+  if (!stored || typeof stored !== "string" || typeof password !== "string") return false;
+  const parts = stored.split(":");
+  if (parts.length !== 3 || parts[0] !== "scrypt") return false;
+  const salt = parts[1];
+  let prev;
+  try { prev = Buffer.from(parts[2], "hex"); } catch { return false; }
+  const next = crypto.scryptSync(password, salt, 32);
+  if (next.length !== prev.length) return false;
+  return crypto.timingSafeEqual(next, prev);
+}
+
 module.exports = {
   CAMPUS_IDS,
   NAMED_STAFF,
@@ -254,5 +283,8 @@ module.exports = {
   sermonFromNotes,
   collectCampusFromAnswers,
   applyAnswers,
-  publicStaff
+  publicStaff,
+  passwordIssue,
+  hashPassword,
+  verifyPassword
 };

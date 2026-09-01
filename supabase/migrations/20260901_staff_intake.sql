@@ -6,9 +6,12 @@ create table if not exists public.staff_roster (
   role text not null check (role in ('admin', 'hub', 'campus')),
   campus_id text,
   display_name text not null default '',
+  password_hash text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- OTP table left from the first draft; unused. Passwords live on staff_roster.
 
 create table if not exists public.staff_otp (
   email text primary key,
@@ -63,3 +66,12 @@ create table if not exists public.published_sermons (
   published_at timestamptz not null default now(),
   published_by text not null default ''
 );
+
+-- Ashley Evans is the only seeded admin. Password is set out of band (hashed).
+-- Other staff are not invented here; they sign in on /staff and set their own password.
+insert into public.staff_roster (email, role, campus_id, display_name)
+values ('ae@futures.global', 'admin', null, 'Ashley Evans')
+on conflict (email) do update
+  set role = 'admin',
+      display_name = 'Ashley Evans',
+      updated_at = now();

@@ -25,6 +25,10 @@ describe('staff allowlist', () => {
     expect(core.isAllowlistedEmail('someone@gmail.com')).toBe(false);
     expect(core.fallbackStaff('josh@futures.church').role).toBe('hub');
     expect(core.fallbackStaff('ae@futures.global').role).toBe('admin');
+    expect(core.fallbackStaff('ae@futures.global').name).toBe('Ashley Evans');
+    const named = core.NAMED_STAFF as Record<string, { role: string; name: string }>;
+    const admins = Object.entries(named).filter(([, v]) => v.role === 'admin');
+    expect(admins).toEqual([['ae@futures.global', { role: 'admin', name: 'Ashley Evans' }]]);
   });
 });
 
@@ -88,5 +92,21 @@ describe('applyAnswers', () => {
     expect(plan.sermon.speaker).toBe('Josh Greenwood');
     expect(plan.sermon.sections[0].title).toBe('God is near');
     expect(plan.sermon.sections[0].content.some((c: { type: string }) => c.type === 'blank')).toBe(true);
+  });
+});
+
+describe('staff passwords', () => {
+  it('rejects short passwords and email-as-password', () => {
+    expect(core.passwordIssue('short', 'josh@futures.church')).toMatch(/10/);
+    expect(core.passwordIssue('josh@futures.church', 'josh@futures.church')).toMatch(/email/i);
+    expect(core.passwordIssue('a-real-password', 'josh@futures.church')).toBeNull();
+  });
+
+  it('hashes so the same password verifies and a wrong one does not', () => {
+    const stored = core.hashPassword('a-real-password');
+    expect(stored.startsWith('scrypt:')).toBe(true);
+    expect(core.verifyPassword('a-real-password', stored)).toBe(true);
+    expect(core.verifyPassword('wrong-password', stored)).toBe(false);
+    expect(core.verifyPassword('a-real-password', 'not-a-hash')).toBe(false);
   });
 });
