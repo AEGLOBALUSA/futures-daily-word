@@ -11,9 +11,11 @@
 import { useState, useEffect } from 'react';
 import { PenLine, Bookmark, Flame, MapPin, FileText, Settings, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { getLang } from '../utils/i18n';
+import { getLang, t as tI18n, dateLocale } from '../utils/i18n';
 import { getStreak } from '../utils/streak';
 import { hapticTap } from '../utils/haptics';
+import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
+import { FeedbackPoll } from '../components/FeedbackPoll';
 import type { TabId } from '../components/TabBar';
 
 type Dest = { tab: TabId; journalTab?: 'today' | 'saved' | 'prayer' | 'sermon' };
@@ -29,6 +31,31 @@ const COPY: Record<string, Record<string, string>> = {
   days:     { en: 'day streak',    es: 'días seguidos',   pt: 'dias seguidos',   id: 'hari berturut' },
 };
 const c = (k: string, lang: string) => COPY[k]?.[lang] || COPY[k]?.en || k;
+
+/* ── Weekly review — moved here from the old Home screen (1 Sep 2026). Looking
+   back over your week is personal, not part of "what is God saying to me
+   today", so it lives under Me with the rest of your progress. ── */
+const WEEK_REVIEW_QUESTIONS = [
+  'What stood out most in what you read this week?',
+  'Was there a verse that stayed with you?',
+  'What is one thing God is saying to you?',
+  'How did your reading shape your week?',
+];
+
+function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: number; question: string } | null {
+  try {
+    const today = new Date();
+    if (today.getDay() !== 0) return null; // Sundays only
+    const weekKey = `${today.getFullYear()}-W${Math.ceil(today.getDate() / 7)}-${today.getMonth()}`;
+    if (localStorage.getItem('dw_week_review_dismissed') === weekKey) return null;
+    const streak = getStreak().count;
+    if (streak < 3) return null;
+    const daysRead = Math.min(streak, 7);
+    const question = WEEK_REVIEW_QUESTIONS[Math.floor(today.getDate() / 7) % WEEK_REVIEW_QUESTIONS.length];
+    const weekLabel = today.toLocaleDateString(dateLocale(), { month: 'long', day: 'numeric' });
+    return { weekLabel, daysRead, streak, question };
+  } catch { return null; }
+}
 
 const ROWS: { key: string; icon: LucideIcon; dest: Dest }[] = [
   { key: 'notes',    icon: PenLine,  dest: { tab: 'journal', journalTab: 'today' } },
@@ -47,6 +74,8 @@ export function MeScreen({ onNavigate }: { onNavigate: (tab: TabId, journalTab?:
   }, []);
 
   const streak = getStreak();
+  const [weekReview, setWeekReview] = useState(getWeekReviewData);
+  const campus = (() => { try { return JSON.parse(localStorage.getItem('dw_profile') || '{}').campus || null; } catch { return null; } })();
 
   return (
     <div className="screen-container me-screen">
@@ -58,6 +87,14 @@ export function MeScreen({ onNavigate }: { onNavigate: (tab: TabId, journalTab?:
           <span className="me-streak-n">{streak.count}</span>
           <span className="me-streak-label">{c('days', lang)}</span>
         </div>
+
+        {weekReview && (
+          <WeeklyReviewCard
+            weekReview={weekReview}
+            onDismiss={() => setWeekReview(null)}
+            t={(k: string) => tI18n(k, lang)}
+          />
+        )}
 
         <nav className="me-list">
           {ROWS.map(({ key, icon: Icon, dest }) => (
@@ -73,6 +110,8 @@ export function MeScreen({ onNavigate }: { onNavigate: (tab: TabId, journalTab?:
           ))}
         </nav>
       </div>
+      {/* Product feedback belongs where the personal stuff is, not on Today. */}
+      <FeedbackPoll userCampus={campus} />
     </div>
   );
 }

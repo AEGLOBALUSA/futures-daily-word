@@ -762,15 +762,6 @@ h2.text-section-header {
   100% { transform: scale(1.09); }
 }
 
-@keyframes sermonPulse {
-  0%   { background: rgba(37, 99, 235, 0.08); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
-  50%  { background: rgba(37, 99, 235, 0.18); box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
-  100% { background: rgba(37, 99, 235, 0.08); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
-}
-.sermon-tab-pulse {
-  animation: sermonPulse 2s ease-in-out infinite;
-}
-
 /* Tactile press feedback — a subtle scale-down on any interactive control gives
    the app a responsive, native feel instead of flat web taps. Purely additive
    (only an :active state, no transition override), so it can't break existing
@@ -1046,6 +1037,25 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   font-weight: 600;
   cursor: pointer;
 }
+.today-pathway-nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.today-prevday {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 30px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dw-text-muted);
+  cursor: pointer;
+}
+.today-prevday:hover { color: var(--dw-text-secondary); }
+
 .today-complete.is-done {
   border-color: transparent;
   background: var(--dw-accent-bg);
@@ -1053,30 +1063,7 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   cursor: default;
 }
 
-/* ── 3. Today's Prayer ── */
-.today-prayer {
-  margin-top: 40px;
-  padding-top: 28px;
-  border-top: 1px solid var(--dw-border-subtle);
-}
-.today-prayer-label {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--dw-text-muted);
-  margin: 0 0 12px;
-}
-.today-prayer-body {
-  font-family: var(--font-serif-text);
-  font-size: 18px;
-  line-height: 1.68;
-  color: var(--dw-text-primary);
-  margin: 0;
-}
-
-/* ── 4. One next step. ── */
+/* ── 3. One next step. ── */
 .today-next { margin-top: 40px; }
 .today-next-label {
   font-family: var(--font-sans);

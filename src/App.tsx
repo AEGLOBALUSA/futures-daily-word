@@ -283,6 +283,15 @@ function AppContent() {
     }
   }, [userProfile?.email]);
 
+  // Screens open the app-level Bible AI through this event (the Bible tab's
+  // search hands it a prefilled prompt). Previously this was mounted by
+  // HomeScreen, which no longer exists.
+  useEffect(() => {
+    const open = () => setShowBibleAI(true);
+    window.addEventListener('dw-open-ai', open);
+    return () => window.removeEventListener('dw-open-ai', open);
+  }, []);
+
   // Auto-open AI when Go Deeper is triggered from a selection
   useEffect(() => {
     if (selection?.text && selection.source === 'range') {
@@ -319,7 +328,7 @@ function AppContent() {
     me: <MeScreen onNavigate={(tab, journalTab) => { if (journalTab) meJournalTabRef.current = journalTab as typeof meJournalTab; navigateTab(tab); }} />,
     journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : meJournalTab} />,
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
-    plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
+    plans: <PlansScreen />,
     more: <MoreScreen onBack={goBack} />,
     'sermon-notes': <SermonNotesScreen onBack={() => navigateTab('home')} />,
   };

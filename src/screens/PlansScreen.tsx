@@ -2,17 +2,18 @@ import { trackBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
-import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { CheckCircle, Clock, ArrowRight, Play, RotateCcw, BookOpen, MapPin, Video, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar, Search } from 'lucide-react';
-import type { TabId } from '../components/TabBar';
 import { LibraryScreen } from './LibraryScreen';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
 import { EmptyState } from '../components/EmptyState';
 import { StopAllAudio } from '../components/StopAllAudio';
+import { BibleSearch } from '../components/BibleSearch';
+import { DailyWordCard } from '../components/DailyWordCard';
+import { getDailyWord } from '../data/daily-words';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
 import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
@@ -137,9 +138,11 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
   }
 }
 
-export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
+export function PlansScreen() {
   const { userProfile } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
+  // Bible search lives on the Bible tab now — it used to be mounted by HomeScreen.
+  const [showSearch, setShowSearch] = useState(false);
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   // plansView removed — single unified view, no tabs
@@ -361,7 +364,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
     }
     return (
       <div className="screen-container">
-      <ScreenHeader title={t('plans_title', getLang())} onBack={onBack} />
       {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -446,24 +448,15 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             color: 'var(--dw-text-primary)',
             letterSpacing: '-0.02em', marginBottom: 4,
           }}>
-            {t('tab_plans', lang)}
+            {t('plans_title', lang)}
           </h1>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 24, fontFamily: 'var(--font-sans)' }}>
             {t('p_plans_subtitle', lang)}
           </p>
 
-          {/* Search the Bible — surfaces the Home-mounted BibleSearch (the tab must
-              be switched first: only the active tab's screen is mounted). */}
+          {/* Search the Bible — mounted by this screen (see the bottom of the file). */}
           <button
-            onClick={() => {
-              track('plans_search_row');
-              if (onNavigate) {
-                onNavigate('home');
-                window.setTimeout(() => window.dispatchEvent(new CustomEvent('dw-open-search')), 60);
-              } else {
-                window.dispatchEvent(new CustomEvent('dw-open-search'));
-              }
-            }}
+            onClick={() => { track('plans_search_row'); setShowSearch(true); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 10, width: '100%',
               background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
@@ -583,7 +576,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
                           style={{
                             background: isActive ? 'rgba(37,99,235,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
                             border: isActive ? '2px solid rgba(37,99,235,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                            borderLeft: !isActive ? `3px solid ${(() => { const _cc: Record<string, string> = { 'Featured': '#C8920E', 'Books': '#7B1FA2', 'Gospels & Acts': '#2196F3', 'New Testament': '#4CAF50', 'Wisdom': '#5C6BC0', 'Full Bible': '#DC535D' }; return _cc[cat] || 'var(--dw-accent)'; })()}` : undefined,
+                            borderLeft: !isActive ? '3px solid var(--dw-accent)' : undefined,
                             borderRadius: 14,
                             padding: '14px 16px',
                             cursor: 'pointer',
@@ -874,8 +867,21 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             </Card>
           </div>
 
+          {/* Word of the day — Greek/Hebrew study, re-homed here from the old Home
+              screen (1 Sep 2026): it is exploration, not "what is God saying today". */}
+          <DailyWordCard dailyWord={getDailyWord()} />
+
           <PromoAds />
         </div>
+        <BibleSearch
+          isOpen={showSearch}
+          onClose={() => setShowSearch(false)}
+          onSearch={(query) => {
+            localStorage.setItem('dw_ai_prefill', query);
+            setShowSearch(false);
+            window.dispatchEvent(new CustomEvent('dw-open-ai'));
+          }}
+        />
       </div>
     );
   }
@@ -1046,7 +1052,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
                           style={{
                             background: isActive ? 'rgba(37,99,235,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
                             border: isActive ? '2px solid rgba(37,99,235,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                            borderLeft: !isActive ? `3px solid ${(() => { const _cc: Record<string, string> = { 'Featured': '#C8920E', 'Books': '#7B1FA2', 'Gospels & Acts': '#2196F3', 'New Testament': '#4CAF50', 'Wisdom': '#5C6BC0', 'Full Bible': '#DC535D' }; return _cc[cat] || 'var(--dw-accent)'; })()}` : undefined,
+                            borderLeft: !isActive ? '3px solid var(--dw-accent)' : undefined,
                             borderRadius: 14,
                             padding: '14px 16px',
                             cursor: 'pointer',

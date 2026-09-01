@@ -97,6 +97,7 @@ const UI: Translations = {
   // ââ PLANS SCREEN ââ
   // Matches the tab label — the screen and its tab must never disagree (Ashley, 1 Sep 2026).
   plans_title: { en: 'Bible', es: 'Biblia', pt: 'B\u00edblia', id: 'Alkitab' },
+  j_add_plan_hint: { en: 'Tap Bible to add a reading plan.', es: 'Toca Biblia para a\u00f1adir un plan de lectura.', pt: 'Toque em B\u00edblia para adicionar um plano de leitura.', id: 'Ketuk Alkitab untuk menambahkan rencana bacaan.' },
   plans_and_more: { en: 'Plans & More', es: 'Planes y m\u00e1s', pt: 'Planos e mais', id: 'Rencana & Lainnya' },
   plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devo\u00e7\u00e3o e comunidade', id: 'Rencana bacaan, devosi, dan komunitas Anda' },
   your_plans: { en: 'YOUR PLANS', es: 'TUS PLANES', pt: 'SEUS PLANOS', id: 'RENCANA ANDA' },
@@ -423,7 +424,7 @@ const UI: Translations = {
   choose_campus_here: { en: 'Choose your campus to see updates from your pastor.', es: 'Elige tu sede para ver actualizaciones de tu pastor.', pt: 'Escolha seu campus para ver atualiza\u00e7\u00f5es do seu pastor.', id: 'Pilih kampus Anda untuk melihat pembaruan dari pendeta Anda.' },
 
   // \u2500\u2500 JOURNAL SERMON TAB \u2500\u2500
-  j_from_campus_tab: { en: 'From the Campus tab', es: 'De la pesta\u00f1a Sede', pt: 'Da aba Campus', id: 'Dari tab Kampus' },
+  j_from_campus_tab: { en: 'From My campus', es: 'De Mi sede', pt: 'De Meu campus', id: 'Dari Kampus saya' },
 
   // \u2500\u2500 PATHWAY PICKER (first-run bottom actions) \u2500\u2500
   keep_current_path: { en: 'Keep my current path \u2192', es: 'Mantener mi camino actual \u2192', pt: 'Manter meu caminho atual \u2192', id: 'Pertahankan jalurku saat ini \u2192' },

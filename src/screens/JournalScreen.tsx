@@ -757,8 +757,8 @@ function ScriptureModal({
     }, 100);
   }
 
-  const authorColor = (author: string) =>
-    author === 'Ashley' ? '#9A6A08' : author === 'Jane' ? '#4A5568' : '#6B5C3E';
+  // One neutral for every byline — the name does the distinguishing, not a hue.
+  const authorColor = () => 'var(--dw-text-muted)';
 
   return (
     <>
@@ -851,7 +851,7 @@ function ScriptureModal({
                 background: 'var(--dw-card)',
                 border: '1px solid var(--dw-border)',
                 borderLeft: '4px solid',
-                borderLeftColor: authorColor(devotional.author),
+                borderLeftColor: authorColor(),
                 overflow: 'hidden',
                 cursor: 'pointer',
                 WebkitUserSelect: 'text',
@@ -891,8 +891,8 @@ function ScriptureModal({
                 </p>
                 <span style={{
                   display: 'inline-block',
-                  background: authorColor(devotional.author) + '18',
-                  color: authorColor(devotional.author),
+                  background: 'var(--dw-surface-hover)',
+                  color: authorColor(),
                   fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
                   padding: '3px 10px', borderRadius: 999,
                   fontFamily: 'var(--font-sans)',
@@ -954,8 +954,8 @@ function ScriptureModal({
                         <span style={{
                           flexShrink: 0,
                           width: 24, height: 24, borderRadius: '50%',
-                          background: authorColor(devotional.author) + '20',
-                          color: authorColor(devotional.author),
+                          background: 'var(--dw-surface-hover)',
+                          color: authorColor(),
                           fontSize: 11, fontWeight: 800,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontFamily: 'var(--font-sans)',
@@ -974,7 +974,7 @@ function ScriptureModal({
                           </p>
                           <span style={{
                             fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
-                            color: authorColor(devotional.author),
+                            color: authorColor(),
                             fontFamily: 'var(--font-sans)',
                             textTransform: 'uppercase',
                           }}>
@@ -1329,7 +1329,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
           {t('no_passages', lang)}
         </p>
         <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-          Tap the Plans tab to add a reading plan.
+          {t('j_add_plan_hint', lang)}
         </p>
       </Card>
     );
@@ -1341,7 +1341,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
         {passages.map(({ ref, planTitle, dayNum, devotional, isBookChapter }) => {
           const existingNote = getExistingNote(ref);
           const wasSaved = saved.has(ref);
-          const authorColor = devotional?.author === 'Ashley' ? '#9A6A08' : devotional?.author === 'Jane' ? '#4A5568' : '#6B5C3E';
+          const authorColor = 'var(--dw-text-muted)';
 
           return (
             <div
@@ -1886,14 +1886,11 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           borderRadius: 12, padding: 4, marginBottom: 24,
         }}>
           {tabs.map(({ id, label, icon: Icon }) => {
-            const isSermon = id === 'sermon';
             const isActive = activeTab === id;
-            const shouldPulse = isSermon && !isActive;
             return (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={shouldPulse ? 'sermon-tab-pulse' : undefined}
                 style={{
                   flex: 1,
                   background: isActive ? 'var(--dw-accent)' : 'transparent',

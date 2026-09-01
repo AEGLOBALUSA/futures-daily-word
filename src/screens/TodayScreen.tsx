@@ -11,7 +11,6 @@
  *   Scripture reference
  *   ▶ Listen   Read
  *   [the devotional, immediately — no cards asking what you want to do first]
- *   Today's Prayer
  *   [New to faith? Start here]
  *
  * What deliberately is NOT here: plan selection, feature cards, competing
@@ -24,13 +23,12 @@
  * instead of the daily devotional. Same layout, different content.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Check, Loader2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, Loader2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { getLang } from '../utils/i18n';
 import { getDayNumber } from '../utils/daily-passages';
 import { ALL_ASHLEY_JANE_DEVOTIONALS, ALL_ASHLEY_JANE_PASSAGES } from '../data/ashley-jane-plan';
 import type { PathwayData, PathwayDay, PathwayProgress } from '../data/pathway-types';
-import { getPrayer } from '../data/prayers';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { recordStreakToday } from '../utils/streak';
@@ -49,10 +47,11 @@ const COPY: Record<string, Record<string, string>> = {
   listen:  { en: 'Listen',           es: 'Escuchar',         pt: 'Ouvir',           id: 'Dengarkan' },
   read:    { en: 'Read',             es: 'Leer',             pt: 'Ler',             id: 'Baca' },
   hide:    { en: 'Hide',             es: 'Ocultar',          pt: 'Ocultar',         id: 'Sembunyikan' },
-  prayer:  { en: "Today's Prayer",   es: 'Oración de Hoy',   pt: 'Oração de Hoje',  id: 'Doa Hari Ini' },
   step:    { en: 'Take a Next Step', es: 'Da el Siguiente Paso', pt: 'Dê o Próximo Passo', id: 'Ambil Langkah Berikutnya' },
   day:     { en: 'Day',              es: 'Día',              pt: 'Dia',             id: 'Hari' },
-  done:    { en: 'Mark today complete', es: 'Marcar como completado', pt: 'Marcar como concluído', id: 'Tandai selesai' },
+  nextDay: { en: 'Read the next day', es: 'Leer el siguiente día', pt: 'Ler o próximo dia', id: 'Baca hari berikutnya' },
+  prevDay: { en: 'Previous day', es: 'Día anterior', pt: 'Dia anterior', id: 'Hari sebelumnya' },
+  done:    { en: 'Mark complete', es: 'Marcar como completado', pt: 'Marcar como concluído', id: 'Tandai selesai' },
   doneOk:  { en: 'Complete',         es: 'Completado',       pt: 'Concluído',       id: 'Selesai' },
   failed:  { en: "Couldn't load the passage. Tap to try again.", es: 'No se pudo cargar el pasaje. Toca para reintentar.', pt: 'Não foi possível carregar a passagem. Toque para tentar novamente.', id: 'Tidak dapat memuat bacaan. Ketuk untuk mencoba lagi.' },
 };
@@ -64,8 +63,6 @@ function todayLabel(lang: string): string {
 }
 
 interface TodayContent {
-  /** Prayer lookup key */
-  key: string;
   title: string;
   /** Scripture reference, e.g. "Ephesians 2:8-9" */
   reference: string;
@@ -82,7 +79,6 @@ function devotionalForToday(lang: string): TodayContent {
   const i = ((getDayNumber(0) % n) + n) % n;
   const d = ALL_ASHLEY_JANE_DEVOTIONALS[i];
   return {
-    key: `devotional:${i + 1}`,
     title: lang === 'id' ? d.titleId : d.title,
     reference: ALL_ASHLEY_JANE_PASSAGES[i] || '',
     body: lang === 'id' ? d.bodyId : d.body,
@@ -95,7 +91,6 @@ function pathwayContent(data: PathwayData, day: number, lang: string): TodayCont
   const localized = <T extends string>(base: T, es?: string, pt?: string, id?: string) =>
     (lang === 'es' && es) || (lang === 'pt' && pt) || (lang === 'id' && id) || base;
   return {
-    key: `pathway:${day}`,
     title: localized(d.title, d.titleEs, d.titlePt, d.titleId),
     reference: d.reading?.ref || d.passages?.[0] || '',
     body: localized(d.lesson || '', d.lessonEs, d.lessonPt, d.lessonId),
@@ -148,32 +143,46 @@ export function TodayScreen() {
     syncMisc('dw_pathway_progress', JSON.stringify(next));
   }, [isNewToFaith, progress]);
 
+  // Which pathway day is on screen. Progress says where they got to; viewDay
+  // says what they're reading — Ashley (1 Sep 2026): they choose how much they
+  // want to read, so finishing a day offers the next one immediately and they
+  // can go back over any day they've already opened.
+  const [viewDay, setViewDay] = useState<number | null>(null);
+  const lastDay = pathway?.days?.length || 40;
+  const day = Math.min(viewDay ?? progress.currentDay ?? 1, lastDay);
+
   const content: TodayContent | null = isNewToFaith
-    ? (pathway ? pathwayContent(pathway, progress.currentDay || 1, lang) : null)
+    ? (pathway ? pathwayContent(pathway, day, lang) : null)
     : devotionalForToday(lang);
 
-  const completedToday = !!content?.day && progress.completedDays.includes(content.day);
+  const dayComplete = !!content?.day && progress.completedDays.includes(content.day);
+  const hasNextDay = !!content?.day && content.day < lastDay;
+
+  const goToDay = (n: number) => {
+    setViewDay(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try { document.querySelector('.screen-container')?.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* ignore */ }
+  };
 
   const completeDay = () => {
     if (!content?.day) return;
     hapticTap();
-    const day = content.day;
-    const completedDays = progress.completedDays.includes(day)
+    const d = content.day;
+    const completedDays = progress.completedDays.includes(d)
       ? progress.completedDays
-      : [...progress.completedDays, day];
-    // The pathway "opens up" one day at a time — currentDay only ever advances,
-    // and never past the last day in the file.
-    const last = pathway?.days?.length || 40;
+      : [...progress.completedDays, d];
+    // currentDay is the furthest they've reached — it only ever moves forward,
+    // so re-reading an earlier day can never pull their progress backwards.
     const next: PathwayProgress = {
       completedDays,
-      currentDay: Math.min(day + 1, last),
+      currentDay: Math.min(Math.max(progress.currentDay || 1, d + 1), lastDay),
       enrolled: true,
     };
     setProgress(next);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(next)); } catch { /* quota */ }
     syncMisc('dw_pathway_progress', JSON.stringify(next));
     recordStreakToday();
-    track('pathway_day_complete', String(day));
+    track('pathway_day_complete', String(d));
   };
 
   // ── Scripture: hidden until asked for ("Read"), then it stays open ──
@@ -214,8 +223,6 @@ export function TodayScreen() {
     saveSetup({ persona: 'new_to_faith', source: 'onboarding' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const prayer = content ? getPrayer(content.key, lang) : null;
 
   if (!content) {
     return (
@@ -271,27 +278,33 @@ export function TodayScreen() {
         {/* ── 2. The devotional itself, immediately. ── */}
         <MarkdownText text={content.body} style={{ marginTop: 28 }} />
 
-        {/* Pathway only: the one thing that moves them forward. */}
+        {/* Pathway only: finish this day, then read on if they want to. */}
         {content.day ? (
-          <button
-            className={`today-complete ${completedToday ? 'is-done' : ''}`}
-            onClick={completeDay}
-            disabled={completedToday}
-          >
-            <Check size={18} strokeWidth={2.2} aria-hidden="true" />
-            <span>{completedToday ? c('doneOk', lang) : c('done', lang)}</span>
-          </button>
+          <div className="today-pathway-nav">
+            {dayComplete && hasNextDay ? (
+              <button className="today-complete" onClick={() => { hapticTap(); goToDay(content.day! + 1); }}>
+                <span>{c('nextDay', lang)}</span>
+                <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
+              </button>
+            ) : (
+              <button
+                className={`today-complete ${dayComplete ? 'is-done' : ''}`}
+                onClick={completeDay}
+                disabled={dayComplete}
+              >
+                <Check size={18} strokeWidth={2.2} aria-hidden="true" />
+                <span>{dayComplete ? c('doneOk', lang) : c('done', lang)}</span>
+              </button>
+            )}
+            {content.day > 1 ? (
+              <button className="today-prevday" onClick={() => { hapticTap(); goToDay(content.day! - 1); }}>
+                {c('prevDay', lang)}
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
-        {/* ── 3. Today's Prayer ── */}
-        {prayer && (
-          <section className="today-prayer">
-            <h2 className="today-prayer-label">{c('prayer', lang)}</h2>
-            <p className="today-prayer-body">{prayer}</p>
-          </section>
-        )}
-
-        {/* ── 4. One next step. Never two. ── */}
+        {/* ── 3. One next step. Never two. ── */}
         {!isNewToFaith && (
           <section className="today-next">
             <h2 className="today-next-label">{c('step', lang)}</h2>
