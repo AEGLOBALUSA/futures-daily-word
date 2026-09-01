@@ -1,5 +1,5 @@
 /**
- * Staff intake API — one form, Ashley reviews, then campus corner / sermon notes go live.
+ * Staff intake API — one form. Save publishes to campus corner / sermon notes.
  *
  * POST /.netlify/functions/intake  { action, ... }
  */
@@ -27,7 +27,7 @@ const {
   youtubeWatchUrl,
   hasNotesContent
 } = require("./lib/intake-core");
-const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon } = require("./lib/sermon-format");
+const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 
 let supabase;
 function db() {
@@ -154,12 +154,6 @@ async function listSermonChoices() {
     .select("id, sermon, is_current, published_at")
     .order("published_at", { ascending: false })
     .limit(20);
-  const { data: pending } = await db()
-    .from("intake_submissions")
-    .select("id, formatted_sermon, created_at, status, role")
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(20);
   const out = [];
   if ((published || []).some((r) => r.is_current)) {
     out.push({ id: "__current__", title: "This week's published message", source: "current" });
@@ -173,18 +167,6 @@ async function listSermonChoices() {
       speaker: s.speaker || "",
       current: !!r.is_current,
       source: "published"
-    });
-  }
-  for (const r of pending || []) {
-    const s = r.formatted_sermon || {};
-    if (!s.title && !s.id) continue;
-    out.push({
-      id: "pending:" + r.id,
-      title: (s.title || "Pending notes") + " (awaiting review)",
-      date: s.date || "",
-      speaker: s.speaker || "",
-      current: false,
-      source: "pending"
     });
   }
   return out;
@@ -216,13 +198,15 @@ async function buildFormattedFromPlan(plan, { useAI }) {
   }
 
   const outline = answersToOutline(patch) || patch.outline || patch.body || "";
+  const notesContent = hasNotesContent(patch);
+  const fromNotes = extractKeyVerseFromNotes(outline);
   const fields = {
     title: patch.title || (base && base.title) || "",
     speaker: patch.speaker || (base && base.speaker) || "",
     date: patch.date || (base && base.date) || "",
     series: patch.series || (base && base.series) || "",
-    keyVerse: patch.keyVerse || (base && base.keyVerse) || "",
-    keyVerseText: patch.keyVerseText || (base && base.keyVerseText) || "",
+    keyVerse: patch.keyVerse || (notesContent ? fromNotes.keyVerse : (base && base.keyVerse)) || "",
+    keyVerseText: patch.keyVerseText || (notesContent ? fromNotes.keyVerseText : (base && base.keyVerseText)) || "",
     outline,
     bigIdea: patch.bigIdea || "",
     point1Heading: patch.point1Heading || "",
@@ -515,10 +499,7 @@ exports.handler = async (event) => {
       let format_source = null;
       try {
         const wantAI = plan.sermonPatch && plan.sermonPatch.reformat === true && hasNotesContent(plan.sermonPatch);
-        if (wantAI) {
-          if (!body.signedOff || !body.formatted_sermon || typeof body.formatted_sermon !== "object") {
-            return json(event, 400, { error: "Sign off on the formatted notes before sending to Ashley." });
-          }
+        if (wantAI && body.formatted_sermon && typeof body.formatted_sermon === "object") {
           const row = await findPublished(plan.sermonPatch.target);
           const base = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
           formatted_sermon = sanitizeAiSermon(body.formatted_sermon, {
@@ -526,20 +507,13 @@ exports.handler = async (event) => {
             speaker: plan.sermonPatch.speaker || "",
             date: plan.sermonPatch.date || "",
             series: plan.sermonPatch.series || "",
-            keyVerse: plan.sermonPatch.keyVerse || "",
-            keyVerseText: plan.sermonPatch.keyVerseText || "",
             youtubeUrl: plan.sermonPatch.youtubeUrl || "",
             outline: plan.sermonPatch.outline || ""
           }, base);
-          if (!formatted_sermon) {
-            const built = await buildFormattedFromPlan(plan, { useAI: true });
-            formatted_sermon = built.sermon;
-            format_source = built.source;
-          } else {
-            format_source = "signed-off";
-          }
-        } else {
-          const built = await buildFormattedFromPlan(plan, { useAI: false });
+          if (formatted_sermon) format_source = "preview";
+        }
+        if (!formatted_sermon) {
+          const built = await buildFormattedFromPlan(plan, { useAI: wantAI });
           formatted_sermon = built.sermon;
           format_source = built.source;
         }
@@ -556,19 +530,21 @@ exports.handler = async (event) => {
         status: "pending"
       }).select("id, status, created_at, formatted_sermon").single();
       if (insErr) throw insErr;
-      const publishNow = staff.role === "admin" && body.publishNow === true;
-      if (publishNow) {
-        const publish_result = await publishApproved({ ...row, answers, formatted_sermon, campus_id: campusId, email: staff.email, role: staff.role }, staff);
-        const { data: updated, error: upErr } = await db().from("intake_submissions").update({
-          status: "approved",
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: staff.email,
-          publish_result
-        }).eq("id", row.id).select("id, status, created_at, formatted_sermon").single();
-        if (upErr) throw upErr;
-        return json(event, 200, { ok: true, submission: updated, preview: formatted_sermon, format_source, published: true, publish_result });
+      let publish_result;
+      try {
+        publish_result = await publishApproved({ ...row, answers, formatted_sermon, campus_id: campusId, email: staff.email, role: staff.role }, staff);
+      } catch (pubErr) {
+        await db().from("intake_submissions").delete().eq("id", row.id);
+        throw pubErr;
       }
-      return json(event, 200, { ok: true, submission: row, preview: formatted_sermon, format_source });
+      const { data: updated, error: upErr } = await db().from("intake_submissions").update({
+        status: "approved",
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: staff.email,
+        publish_result
+      }).eq("id", row.id).select("id, status, created_at, formatted_sermon").single();
+      if (upErr) throw upErr;
+      return json(event, 200, { ok: true, submission: updated, preview: formatted_sermon, format_source, published: true, publish_result });
     }
 
     if (action === "format_preview") {
@@ -601,7 +577,7 @@ exports.handler = async (event) => {
     }
 
     // ── Admin-only ──
-    if (staff.role !== "admin") return json(event, 403, { error: "Ashley reviews and publishes from here." });
+    if (staff.role !== "admin") return json(event, 403, { error: "Only Ashley can change this." });
 
     if (action === "questions_list") {
       const { data, error } = await db().from("intake_questions").select("*").order("sort_order", { ascending: true });

@@ -48,13 +48,13 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ items }) };
     }
 
-    // Live writes go through staff intake + Ashley's review.
+    // Live writes go through staff intake. Save publishes.
     if (event.httpMethod === "POST") {
       return {
         statusCode: 403,
         headers,
         body: JSON.stringify({
-          error: "Campus updates go through the staff intake form and go live after review.",
+          error: "Campus updates go through the staff form at /staff. Save puts them on the campus corner.",
           intake: "/staff"
         })
       };

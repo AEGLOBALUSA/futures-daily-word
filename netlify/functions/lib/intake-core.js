@@ -70,12 +70,25 @@ function questionVisible(question, role) {
   return questionVisibleForJob(question, role, null);
 }
 
+function isKeyVerseField(question) {
+  const key = question && question.config && question.config.sermonKey;
+  return key === "keyVerse" || key === "keyVerseText";
+}
+
 /** When a job is set (hub / media / campus), only that audience’s questions show — even for Ashley. */
 function questionVisibleForJob(question, role, job) {
   if (!question || question.enabled === false) return false;
+  // Pastor form has no key-verse boxes. AI pulls a verse from pasted notes if one is there.
+  if (isKeyVerseField(question)) return false;
   const aud = question.audience || "all";
   if (aud === "all") return true;
   if (aud === "admin") return role === "admin";
+  if (aud === "hub") {
+    if (role === "campus") return false;
+    if (job === "media" || job === "campus") return false;
+    if (job === "hub") return role === "admin" || role === "hub" || role === "media";
+    return role === "hub" || role === "media";
+  }
   const viewAs = job === "hub" || job === "media" || job === "campus" ? job : role;
   return aud === viewAs;
 }
@@ -242,6 +255,22 @@ function sermonKeyFromConfig(cfg) {
   return null;
 }
 
+/** First line = title (max 80). Rest = body. One line is both. */
+function splitCampusCorner(raw) {
+  const text = sanitize(String(raw || ""), 5000);
+  if (!text) return null;
+  const nl = text.search(/\r?\n/);
+  if (nl < 0) {
+    return { title: sanitize(text, 80), content: text };
+  }
+  const first = text.slice(0, nl).trim();
+  const rest = text.slice(nl).replace(/^\r?\n/, "").trim();
+  const title = sanitize(first || rest, 80);
+  const content = rest || first;
+  if (!title) return null;
+  return { title, content: content || title };
+}
+
 function applyAnswers(questions, answers, ctx) {
   const sermonPatch = { reformat: false };
   let hasSermon = false;
@@ -290,12 +319,10 @@ function applyAnswers(questions, answers, ctx) {
       campusBody = typeof val === "string" ? sanitize(val, 5000) : "";
     }
     if (cfg.publish === "campus_corner") {
-      const content = typeof val === "string" ? sanitize(val, 5000) : "";
-      if (q.type === "text") campusTitle = campusTitle || content;
-      else if (q.type === "long_text") campusBody = campusBody || content;
-      else if (content) {
-        const type = CORNER_TYPES.includes(cfg.itemType) ? cfg.itemType : "note";
-        cornerAdds.push({ type, title: sanitize(q.label || "Update", 200), content, author });
+      const split = splitCampusCorner(typeof val === "string" ? val : "");
+      if (split) {
+        const type = CORNER_TYPES.includes(cfg.itemType) ? cfg.itemType : "announcement";
+        cornerAdds.push({ type, title: split.title, content: split.content, author });
       }
     }
 
@@ -387,6 +414,7 @@ module.exports = {
   fallbackStaff,
   questionVisible,
   questionVisibleForJob,
+  isKeyVerseField,
   isCampusId,
   lockCampus,
   sanitize,
@@ -395,6 +423,7 @@ module.exports = {
   sermonFromNotes,
   collectCampusFromAnswers,
   applyAnswers,
+  splitCampusCorner,
   publicStaff,
   passwordIssue,
   hashPassword,

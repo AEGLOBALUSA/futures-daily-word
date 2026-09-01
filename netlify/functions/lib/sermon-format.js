@@ -177,6 +177,39 @@ function answersToOutline(fields) {
   return parts.join("\n\n");
 }
 
+/** Pull a scripture reference out of pasted notes. Empty if none — never invent. */
+function extractKeyVerseFromNotes(notes) {
+  const raw = String(notes || "").replace(/\r\n/g, "\n");
+  if (!raw.trim()) return { keyVerse: "", keyVerseText: "" };
+  const labeled = raw.match(/(?:^|\n)\s*(?:key\s*verse|scripture|passage)\s*[:.\-–]\s*([^\n]+)/i);
+  const hay = labeled ? labeled[1] : raw;
+  const ref = hay.match(
+    /\b(?:(?:[1-3]|I{1,3})\s+)?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Samuel|Kings|Chronicles|Ezra|Nehemiah|Esther|Job|Psalm|Psalms|Proverbs|Ecclesiastes|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation|Gen|Ex|Lev|Num|Deut|Josh|Ps|Prov|Isa|Jer|Ezek|Dan|Matt|Rom|Cor|Gal|Eph|Phil|Col|Thess|Tim|Heb|Rev)\.?\s+\d{1,3}:\d{1,3}(?:\s*[–\-]\s*\d{1,3})?\b/i
+  );
+  const keyVerse = ref ? sanitize(ref[0].replace(/\s+/g, " "), 80) : "";
+  const textLine = raw.match(/(?:^|\n)\s*(?:verse\s*text|text)\s*[:.\-–]\s*["“]?([^\n"”]+)["”]?/i);
+  const keyVerseText = textLine ? sanitize(textLine[1], 2000) : "";
+  return { keyVerse, keyVerseText };
+}
+
+function verseFromFieldsOrNotes(fields, notes, { keepExisting } = {}) {
+  const f = fields || {};
+  const fromField = {
+    keyVerse: sanitize(f.keyVerse || "", 80),
+    keyVerseText: sanitize(f.keyVerseText || "", 2000)
+  };
+  if (fromField.keyVerse || fromField.keyVerseText) return fromField;
+  const fromNotes = extractKeyVerseFromNotes(notes || answersToOutline(f) || f.outline || "");
+  if (fromNotes.keyVerse || fromNotes.keyVerseText) return fromNotes;
+  if (keepExisting) {
+    return {
+      keyVerse: sanitize(f.keyVerse || "", 80),
+      keyVerseText: sanitize(f.keyVerseText || "", 2000)
+    };
+  }
+  return { keyVerse: "", keyVerseText: "" };
+}
+
 function splitBody(text) {
   return String(text || "").replace(/\r\n/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean).map((t) => {
     if (/^[-*•]\s+/.test(t)) return { type: "bullet", value: sanitize(t.replace(/^[-*•]\s+/, ""), 2000) };
@@ -223,6 +256,11 @@ function formatSermonDeterministic(fields, base) {
   } else if (!Array.isArray(src.sections) || !src.sections.length) {
     src.sections = parseOutline("");
   }
+  if (hasNotesContent(fields)) {
+    const verse = verseFromFieldsOrNotes(fields, answersToOutline(fields) || fields.outline);
+    src.keyVerse = verse.keyVerse;
+    src.keyVerseText = verse.keyVerseText;
+  }
   const sermon = sermonFromNotes(src);
   sermon.title = displayTitle(sermon.title);
   const tightened = tightenSermon(sermon);
@@ -251,14 +289,16 @@ function sanitizeAiSermon(parsed, fields, base) {
   const prompts = Array.isArray(parsed.responsePrompts)
     ? parsed.responsePrompts.map((s) => sanitize(String(s), 180)).filter(Boolean).slice(0, MAX_PROMPTS)
     : [];
+  const notes = answersToOutline(fields) || String((fields && fields.outline) || "").trim();
+  const fromNotes = extractKeyVerseFromNotes(notes);
   const sermon = tightenSermon({
     id: (base && base.id) || slugify(title) + "-" + date,
     title,
     series: sanitize(parsed.series || fallback.series || "", 200),
     date,
     speaker: sanitize(parsed.speaker || fallback.speaker || "", 120),
-    keyVerse: sanitize(parsed.keyVerse || fallback.keyVerse || "", 80),
-    keyVerseText: sanitize(parsed.keyVerseText || fallback.keyVerseText || "", 2000),
+    keyVerse: sanitize(parsed.keyVerse || "", 80) || fromNotes.keyVerse,
+    keyVerseText: sanitize(parsed.keyVerseText || "", 2000) || fromNotes.keyVerseText,
     sections,
     responsePrompts: (prompts.length ? prompts : fallback.responsePrompts).slice(0, MAX_PROMPTS),
     commitments: [],
@@ -277,7 +317,8 @@ Rules:
 - Content types: bullet (short points), bold (weight, not a new heading), quote (max one in the whole message), note (small muted line), blank.
 - After EVERY section include {"type":"blank","before":""}.
 - 1–3 responsePrompts that are questions. No recap, no "In conclusion", no emoji, no prayer box unless the pastor typed a prayer as a final section.
-- Do not invent points. Keep the pastor's meaning. youtubeUrl is a YouTube watch URL or empty — video is block 1 only, never inside a section.`;
+- Do not invent points. Keep the pastor's meaning. youtubeUrl is a YouTube watch URL or empty — video is block 1 only, never inside a section.
+- keyVerse is a short reference (e.g. John 21:15-19) taken from the pasted notes. keyVerseText is the verse wording only if it is in the notes. If the notes have no scripture, leave both "". Never invent a verse.`;
 
 async function formatSermon(fields, { useAI, base } = {}) {
   const fallback = formatSermonDeterministic(fields, base);
@@ -290,8 +331,6 @@ async function formatSermon(fields, { useAI, base } = {}) {
     speaker: fields.speaker || "",
     date: fields.date || "",
     series: fields.series || "",
-    keyVerse: fields.keyVerse || "",
-    keyVerseText: fields.keyVerseText || "",
     youtubeUrl: fields.youtubeUrl || "",
     notes: notes.slice(0, 12000)
   });
@@ -322,6 +361,8 @@ function mergeYoutube(existing, youtubeUrl) {
 module.exports = {
   defaultPrompts,
   defaultCommitments,
+  extractKeyVerseFromNotes,
+  verseFromFieldsOrNotes,
   formatSermonDeterministic,
   formatSermon,
   mergeYoutube,

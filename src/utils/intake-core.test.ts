@@ -56,6 +56,15 @@ describe('question visibility', () => {
     expect(core.questionVisible(q, 'admin')).toBe(false);
   });
 
+  it('lets media fill the same hub sermon form, not campus', () => {
+    const q = { type: 'long_text', audience: 'hub', enabled: true };
+    expect(core.questionVisible(q, 'media')).toBe(true);
+    expect(core.questionVisibleForJob(q, 'media', 'hub')).toBe(true);
+    expect(core.questionVisibleForJob(q, 'media', 'media')).toBe(false);
+    expect(core.questionVisibleForJob(q, 'campus', 'hub')).toBe(false);
+    expect(core.questionVisibleForJob(q, 'admin', 'hub')).toBe(true);
+  });
+
   it('hides campus-corner questions from hub pastors', () => {
     const q = { type: 'text', audience: 'campus', enabled: true };
     expect(core.questionVisible(q, 'hub')).toBe(false);
@@ -79,6 +88,13 @@ describe('question visibility', () => {
     expect(core.questionVisibleForJob(q, 'admin', 'media')).toBe(true);
     expect(core.questionVisible(q, 'admin')).toBe(false);
   });
+
+  it('never shows key-verse boxes on the pastor form', () => {
+    const q = { type: 'text', audience: 'hub', enabled: true, config: { sermonKey: 'keyVerse' } };
+    expect(core.questionVisibleForJob(q, 'hub', 'hub')).toBe(false);
+    expect(core.questionVisibleForJob(q, 'admin', 'hub')).toBe(false);
+    expect(core.isKeyVerseField(q)).toBe(true);
+  });
 });
 
 describe('applyAnswers', () => {
@@ -98,6 +114,28 @@ describe('applyAnswers', () => {
     ]);
     expect(plan.cornerRemoves).toEqual(['aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee']);
     expect(plan.sermon).toBeNull();
+  });
+
+  it('splits a campus_corner long_text: first line title, rest body', () => {
+    const questions = [
+      { id: 'w', type: 'long_text', config: { publish: 'campus_corner', itemType: 'announcement' } },
+      { id: 'p', type: 'long_text', config: { publish: 'campus_corner', itemType: 'prayer_point' } },
+    ];
+    const plan = core.applyAnswers(questions, {
+      w: 'Youth night Friday\nDoors 7pm. Bring a friend.',
+      p: 'Pray for the Year 12s.',
+    }, { name: 'Pastor' });
+    expect(plan.cornerAdds).toEqual([
+      { type: 'announcement', title: 'Youth night Friday', content: 'Doors 7pm. Bring a friend.', author: 'Pastor' },
+      { type: 'prayer_point', title: 'Pray for the Year 12s.', content: 'Pray for the Year 12s.', author: 'Pastor' },
+    ]);
+  });
+
+  it('uses one campus line as both title and body, and caps title at 80', () => {
+    const long = 'A'.repeat(90);
+    expect(core.splitCampusCorner(long)).toEqual({ title: 'A'.repeat(80), content: long });
+    expect(core.splitCampusCorner('Just this')).toEqual({ title: 'Just this', content: 'Just this' });
+    expect(core.splitCampusCorner('')).toBeNull();
   });
 
   it('maps pasted notes and youtube onto sermon JSON', () => {
@@ -202,5 +240,27 @@ describe('deterministic sermon formatter', () => {
     });
     const points = sermon.sections[0].content.filter((c: { type: string }) => c.type !== 'blank');
     expect(points.every((c: { value: string }) => c.value.split(/\s+/).length <= 18)).toBe(true);
+  });
+
+  it('pulls a verse from pasted notes and omits one if none is there', () => {
+    const fmt = require('../../netlify/functions/lib/sermon-format.js');
+    expect(fmt.extractKeyVerseFromNotes('Key verse: John 21:15-19\nLove asks again.')).toEqual({
+      keyVerse: 'John 21:15-19',
+      keyVerseText: '',
+    });
+    const withVerse = fmt.formatSermonDeterministic({
+      title: 'Love Asks Again',
+      date: '2026-08-31',
+      outline: 'John 21:15-19\n1. Love asks again\nFeed my sheep.',
+    });
+    expect(withVerse.keyVerse).toBe('John 21:15-19');
+    const none = fmt.formatSermonDeterministic({
+      title: 'Hope',
+      date: '2026-09-06',
+      outline: '1. God is near\nHe stays.',
+      keyVerse: '',
+    }, { keyVerse: 'Romans 8:28', keyVerseText: 'old' });
+    expect(none.keyVerse).toBe('');
+    expect(none.keyVerseText).toBe('');
   });
 });

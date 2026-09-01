@@ -66,13 +66,13 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ valid, campusId }) };
   }
 
-  // Live campus-corner writes go through staff intake + Ashley's review.
+  // Live campus-corner writes go through staff intake. Save publishes.
   if (action === "post" || action === "delete") {
     return {
       statusCode: 403,
       headers: corsHeaders,
       body: JSON.stringify({
-        error: "Campus updates go through the staff intake form and go live after review.",
+        error: "Campus updates go through the staff form at /staff. Save puts them on the campus corner.",
         intake: "/staff"
       })
     };
