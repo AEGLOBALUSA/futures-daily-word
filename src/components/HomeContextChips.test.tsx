@@ -60,6 +60,56 @@ describe('HomeContextChips', () => {
     act(() => root.unmount());
   });
 
+  it('paints I\'m New to This green in the persona list', () => {
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="congregation"
+        campusId="us-gwinnett"
+        onPersonaChange={vi.fn()}
+        onCampusChange={vi.fn()}
+      />,
+    );
+    const personaChip = [...el.querySelectorAll('button')].find(b => /church member/i.test(b.textContent || ''));
+    click(personaChip!);
+    const newOption = [...document.querySelectorAll('[role="option"]')].find(b => /i'm new to this/i.test(b.textContent || '')) as HTMLElement;
+    const memberOption = [...document.querySelectorAll('[role="option"]')].find(b => /church member/i.test(b.textContent || '')) as HTMLElement;
+    expect(newOption).toBeTruthy();
+    expect((newOption.querySelector('span') as HTMLElement).style.color).toBe('var(--dw-new)');
+    expect(memberOption.style.background).toBe('var(--dw-accent)');
+    expect(newOption.style.background).toBe('transparent');
+    act(() => root.unmount());
+  });
+
+  it('uses the new-life green token on the I\'m New to This chip', () => {
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="new_to_faith"
+        campusId="us-gwinnett"
+        onPersonaChange={vi.fn()}
+        onCampusChange={vi.fn()}
+      />,
+    );
+    const personaChip = [...el.querySelectorAll('button')].find(b => /i'm new to this/i.test(b.textContent || ''));
+    expect(personaChip).toBeTruthy();
+    expect((personaChip as HTMLElement).style.color).toBe('var(--dw-new)');
+    act(() => root.unmount());
+  });
+
+  it('keeps terracotta on other persona chips', () => {
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="congregation"
+        campusId="us-gwinnett"
+        onPersonaChange={vi.fn()}
+        onCampusChange={vi.fn()}
+      />,
+    );
+    const personaChip = [...el.querySelectorAll('button')].find(b => /church member/i.test(b.textContent || ''));
+    expect(personaChip).toBeTruthy();
+    expect((personaChip as HTMLElement).style.color).toBe('var(--dw-accent)');
+    act(() => root.unmount());
+  });
+
   it('still shows a campus chip when none is set', () => {
     const { el, root } = mount(
       <HomeContextChips

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
-import { ALL_PERSONAS } from '../utils/persona-config';
+import { ALL_PERSONAS, isNewChristianPersona } from '../utils/persona-config';
 import type { Persona } from '../utils/persona-config';
 import { CAMPUSES } from '../data/tokens';
 import { useSubView } from '../utils/useSubView';
@@ -56,6 +56,7 @@ export function HomeContextChips({
   const campus = CAMPUSES.find(c => c.id === campusId);
   const personaKey = PERSONA_LABEL[(persona as Persona)] || 'persona_member';
   const personaLabel = t(personaKey, lang);
+  const newPathChip = isNewChristianPersona(persona);
   const campusLabel = campus
     ? campus.name.replace(/^Futures /, '').replace(/^Futuros /, '')
     : t('campus_chip', lang);
@@ -116,7 +117,7 @@ export function HomeContextChips({
         aria-expanded={open === 'persona'}
         aria-label={personaLabel}
         onClick={() => toggle('persona', personaBtnRef.current)}
-        style={{ ...chipStyle, fontSize: 11, fontWeight: 600, color: 'var(--dw-accent)' }}
+        style={{ ...chipStyle, fontSize: 11, fontWeight: 600, color: newPathChip ? 'var(--dw-new)' : 'var(--dw-accent)' }}
       >
         {personaLabel}
         <ChevronDown size={11} style={{ opacity: 0.7, transform: open === 'persona' ? 'rotate(180deg)' : undefined }} />
@@ -158,6 +159,8 @@ export function HomeContextChips({
           >
             {open === 'persona' && ALL_PERSONAS.map(id => {
               const active = id === persona;
+              const isNewOption = isNewChristianPersona(id);
+              const optionFill = isNewOption ? 'var(--dw-new)' : 'var(--dw-accent)';
               return (
                 <button
                   key={id}
@@ -170,14 +173,14 @@ export function HomeContextChips({
                   }}
                   style={{
                     display: 'block', width: '100%', textAlign: 'left',
-                    background: active ? 'var(--dw-accent)' : 'transparent',
+                    background: active ? optionFill : 'transparent',
                     color: active ? '#fff' : 'var(--dw-text-primary)',
                     border: 'none', borderRadius: 10, cursor: 'pointer',
                     padding: '10px 12px', marginBottom: 2,
                     fontFamily: 'var(--font-sans)', minHeight: 44,
                   }}
                 >
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>{t(PERSONA_LABEL[id], lang)}</span>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: !active && isNewOption ? 'var(--dw-new)' : undefined }}>{t(PERSONA_LABEL[id], lang)}</span>
                   <span style={{ display: 'block', fontSize: 12, opacity: 0.75, marginTop: 2 }}>{t(PERSONA_DESC[id], lang)}</span>
                 </button>
               );

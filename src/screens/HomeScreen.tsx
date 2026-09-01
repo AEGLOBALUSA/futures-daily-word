@@ -30,7 +30,7 @@ import { FeedbackPoll } from '../components/FeedbackPoll';
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { personalize } from '../utils/personalization';
-import { getPersonaConfig, getGreeting } from '../utils/persona-config';
+import { getPersonaConfig, getGreeting, isNewChristianPersona } from '../utils/persona-config';
 import type { Persona } from '../utils/persona-config';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
@@ -2287,7 +2287,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '12px 8px', minHeight: 44,
                         background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-text-primary)' : 'var(--dw-text-muted)',
+                        color: isNewChristianPersona(personaConfig.persona)
+                          ? 'var(--dw-new)'
+                          : isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-text-primary)' : 'var(--dw-text-muted)',
                         fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
                         letterSpacing: '0.03em', transition: 'color 0.2s ease',
                         borderRight: '1px solid var(--dw-border)',

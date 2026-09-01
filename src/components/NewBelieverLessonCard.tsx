@@ -70,13 +70,13 @@ export function NewBelieverLessonCard({
     // The wrapper carries the scroll anchor deep links target (Card does not
     // forward an id prop).
     <div id="pathway-lesson-card">
-    <Card style={{ marginBottom: 16 }}>
+    <Card className="dw-new-journey" style={{ marginBottom: 16 }}>
       {/* Header: plan name + progress */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <h2 className="text-section-header" style={{ margin: 0 }}>
+        <h2 className="text-section-header" style={{ margin: 0, color: 'var(--dw-new)' }}>
           {t('day_label')} {currentDay} {t('of_label')} {totalDays}
         </h2>
-        <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+        <span style={{ fontSize: 11, color: 'var(--dw-new)', fontFamily: 'var(--font-sans)' }}>
           {pathTitle}
         </span>
       </div>
@@ -85,7 +85,7 @@ export function NewBelieverLessonCard({
         <div style={{
           width: `${(completed / totalDays) * 100}%`,
           height: '100%',
-          background: 'var(--dw-accent)',
+          background: 'var(--dw-new)',
           borderRadius: 2,
           transition: 'width 0.3s',
         }} />
@@ -97,7 +97,7 @@ export function NewBelieverLessonCard({
       </p>
       {/* Scripture reference — the chapter itself is in the hero above */}
       {dayReading?.ref && (
-        <p style={{ color: 'var(--dw-accent)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
+        <p style={{ color: 'var(--dw-new)', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
           📖 {dayReading.ref}
         </p>
       )}
@@ -125,7 +125,7 @@ export function NewBelieverLessonCard({
           }}
           style={{
             padding: '8px 16px',
-            background: isCompleted ? 'var(--dw-surface)' : 'var(--dw-accent)',
+            background: isCompleted ? 'var(--dw-surface)' : 'var(--dw-new)',
             color: isCompleted ? 'var(--dw-text-muted)' : '#fff',
             border: isCompleted ? '1px solid var(--dw-border)' : 'none',
             borderRadius: 10,
@@ -176,7 +176,7 @@ export function NewBelieverLessonCard({
               style={{
                 background: 'transparent', border: 'none', padding: '4px 6px',
                 fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                color: 'var(--dw-new)', fontFamily: 'var(--font-sans)',
                 textDecoration: 'underline', whiteSpace: 'nowrap',
               }}
             >
