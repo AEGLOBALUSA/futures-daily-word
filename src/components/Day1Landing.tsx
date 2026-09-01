@@ -39,9 +39,6 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
     const node = readingRef.current;
     if (!node) return;
     node.focus({ preventScroll: true });
-    if (typeof node.scrollIntoView === 'function') {
-      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
   }, [readingOpen]);
 
   function handleRead() {
