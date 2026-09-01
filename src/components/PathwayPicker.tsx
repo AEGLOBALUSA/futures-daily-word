@@ -63,8 +63,8 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona, embedded 
               className={`dw-path-card${isCurrent ? ' is-current' : ''}${isNewChristianPersona(persona) ? ' dw-path-new' : ''}`}
               onClick={() => handleSelect(persona)}
             >
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
-                <span className="dw-path-card-label">{t(PERSONA_I18N[persona], lang)}</span>
+              <span className="dw-path-card-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+                {t(PERSONA_I18N[persona], lang)}
                 {isCurrent && isNewChristianPersona(persona) && (
                   <Check size={18} strokeWidth={2.5} color="var(--dw-new-on-fill)" aria-hidden />
                 )}

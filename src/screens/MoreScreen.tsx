@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
-import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
+import { ALL_PERSONAS, PERSONA_CONFIGS, isNewChristianPersona } from '../utils/persona-config';
 import { t, getLang, setLangPref } from '../utils/i18n';
 
 // Bible translations filtered by selected language
@@ -339,7 +339,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             {displayName}
           </p>
           {currentPersona && (
-            <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+            <p style={{ color: isNewChristianPersona(setup?.persona) ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
               {currentPersona.label}
             </p>
           )}
@@ -377,14 +377,20 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               {PERSONAS.map(p => {
                 const isActive = setup?.persona === p.id && !pendingPersona;
                 const isPending = pendingPersona === p.id;
+                const isNewOption = isNewChristianPersona(p.id);
+                const newFilled = isNewOption && (isActive || isPending);
                 return (
                   <button
                     key={p.id}
                     onClick={() => handlePersonaSelect(p.id)}
                     style={{
-                      background: isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)',
-                      color: isActive || isPending ? '#fff' : 'var(--dw-text-primary)',
-                      border: isPending ? '2px solid var(--dw-gold)' : 'none',
+                      background: isNewOption
+                        ? (newFilled ? 'var(--dw-new)' : 'var(--dw-new-soft)')
+                        : (isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)'),
+                      color: newFilled
+                        ? 'var(--dw-new-on-fill)'
+                        : (isActive || isPending ? '#fff' : 'var(--dw-text-primary)'),
+                      border: isPending && !isNewOption ? '2px solid var(--dw-gold)' : 'none',
                       borderRadius: 10,
                       padding: '12px 16px',
                       fontSize: 14,
@@ -396,8 +402,8 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
+                    <div style={{ fontWeight: 500, marginBottom: 2, color: isNewOption && !newFilled ? 'var(--dw-new)' : undefined }}>{p.label}</div>
+                    <div style={{ fontSize: 12, opacity: newFilled ? 1 : 0.7 }}>{p.desc}</div>
                   </button>
                 );
               })}

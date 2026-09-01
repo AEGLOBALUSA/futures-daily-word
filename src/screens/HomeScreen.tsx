@@ -1773,7 +1773,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 display: 'block',
                 fontSize: 12,
                 fontWeight: 600,
-                color: 'var(--dw-accent)',
+                color: isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)',
                 fontFamily: 'var(--font-sans)',
                 letterSpacing: '0.04em',
                 marginBottom: 2,
@@ -2359,9 +2359,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           letterSpacing: '0.04em',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
-                          border: t === translation ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
-                          background: t === translation ? 'rgba(168,85,47,0.15)' : 'transparent',
-                          color: t === translation ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
+                          border: t === translation ? `1.5px solid ${isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)'}` : '1.5px solid var(--dw-border)',
+                          background: t === translation ? (isNewPath ? 'var(--dw-new-soft)' : 'rgba(168,85,47,0.15)') : 'transparent',
+                          color: t === translation ? (isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)') : 'var(--dw-text-muted)',
                         }}
                       >
                         {t}
@@ -2472,8 +2472,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           style={{
                             width: '100%', marginTop: 14, padding: '12px', borderRadius: 12,
                             border: readDoneToday ? '1px solid rgba(150,112,72,0.3)' : 'none',
-                            background: readDoneToday ? 'transparent' : 'var(--dw-success)',
-                            color: readDoneToday ? '#A06A42' : '#fff',
+                            background: readDoneToday ? 'transparent' : (isNewPath ? 'var(--dw-new)' : 'var(--dw-success)'),
+                            color: readDoneToday ? '#A06A42' : (isNewPath ? 'var(--dw-new-on-fill)' : '#fff'),
                             fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
                             cursor: readDoneToday ? 'default' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
