@@ -54,7 +54,7 @@ const UI: Translations = {
   tab_home: { en: 'Home', es: 'Inicio', pt: 'In\u00edcio', id: 'Beranda' },
   tab_notes: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   tab_campus: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
-  tab_plans: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
+  tab_plans: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
   tab_settings: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 
   // ââ SETTINGS / MORE SCREEN ââ
@@ -733,6 +733,8 @@ const UI: Translations = {
   not_sure_begin_day1: { en: 'Not sure? Begin Day 1', es: '\u00bfNo est\u00e1s seguro? Comenzar D\u00eda 1', pt: 'N\u00e3o tem certeza? Come\u00e7ar o Dia 1', id: 'Belum yakin? Mulai Hari 1' },
   change_path: { en: 'Change path', es: 'Cambiar camino', pt: 'Mudar caminho', id: 'Ubah jalur' },
   start_this_plan: { en: 'Start This Plan', es: 'Comenzar este plan', pt: 'Come\u00e7ar este plano', id: 'Mulai Rencana Ini' },
+  plan_days: { en: '{n} DAYS', es: '{n} D\u00cdAS', pt: '{n} DIAS', id: '{n} HARI' },
+  plan_active: { en: 'Active', es: 'Activo', pt: 'Ativo', id: 'Aktif' },
   plans_start_hint: { en: 'Start This Plan to begin. Your chosen plan sets your daily reading.', es: 'Toca Comenzar este plan para empezar. El plan que elijas fija tu lectura diaria.', pt: 'Toque em Come\u00e7ar este plano para come\u00e7ar. O plano escolhido define sua leitura di\u00e1ria.', id: 'Ketuk Mulai Rencana Ini untuk memulai. Rencana yang Anda pilih mengatur bacaan harian Anda.' },
 };
 

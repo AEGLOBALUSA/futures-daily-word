@@ -1174,3 +1174,86 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 .dw-path-embedded .dw-path-secondary {
   margin: 12px 0 0;
 }
+
+/* ---------- Superdesign Plans catalog ---------- */
+.dw-plans-sd {
+  background: #FAF6EF;
+}
+.dw-plans-sd-kicker {
+  margin: 8px 0 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+.dw-plans-sd-title {
+  margin: 0 0 20px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  color: #241E17;
+}
+.dw-plans-sd-section {
+  margin: 8px 0 16px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+.dw-plans-sd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dw-plan-sd-card {
+  background: #FFFFFF;
+  border: 1px solid #ECE3D4;
+  border-radius: 12px;
+  padding: 20px 20px 18px;
+}
+.dw-plan-sd-days {
+  margin: 0 0 8px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+.dw-plan-sd-name {
+  margin: 0 0 16px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #241E17;
+}
+.dw-plan-sd-start {
+  display: block;
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #A8552F;
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dw-plan-sd-start:active { transform: scale(0.98); }
+.dw-plan-sd-active {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #C98A2E;
+}

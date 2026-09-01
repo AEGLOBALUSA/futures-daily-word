@@ -38,12 +38,22 @@ describe('PERSONA_CONFIGS', () => {
     }
   });
 
-  it('each path filters to a matching plan list (not the full catalog)', () => {
-    expect(PERSONA_PLAN_IDS.new_to_faith).toContain('faith-pathway');
-    expect(PERSONA_PLAN_IDS.new_to_faith).toContain('ashley-jane-daily-word');
-    for (const key of ALL_PERSONAS) {
-      expect(PERSONA_PLAN_IDS[key].length).toBeGreaterThan(0);
-    }
+  it('each path filters to the live matching plan ids', () => {
+    expect([...PERSONA_PLAN_IDS.new_to_faith]).toEqual([
+      'ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ',
+    ]);
+    expect([...PERSONA_PLAN_IDS.congregation]).toEqual([
+      'ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling',
+    ]);
+    expect([...PERSONA_PLAN_IDS.deeper_study]).toEqual([
+      'new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ',
+    ]);
+    expect([...PERSONA_PLAN_IDS.pastor_leader]).toEqual([
+      'book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john',
+    ]);
+    expect([...PERSONA_PLAN_IDS.comfort]).toEqual([
+      'peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway',
+    ]);
   });
 });
 

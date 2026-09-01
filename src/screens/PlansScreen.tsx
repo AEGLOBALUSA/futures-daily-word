@@ -2,7 +2,6 @@ import { trackBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
-import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { CAMPUSES } from '../data/tokens';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -138,7 +137,7 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
   }
 }
 
-export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
+export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
   const { userProfile, setup, saveSetup } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
   const [lang, setLang] = useState(getLang());
@@ -374,8 +373,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
       return <LibraryScreen onBack={() => setShowLibrary(false)} />;
     }
     return (
-      <div className="screen-container">
-      <ScreenHeader title={t('plans_title', getLang())} onBack={onBack} />
+      <div className="screen-container dw-plans-sd">
       {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -453,18 +451,19 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
       )}
 
         <div style={{ padding: '24px 24px 0' }}>
-          {/* Header */}
-          <h1 style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 26, fontWeight: 400,
-            color: 'var(--dw-text-primary)',
-            letterSpacing: '-0.02em', marginBottom: 4,
-          }}>
-            {t('tab_plans', lang)}
-          </h1>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 24, fontFamily: 'var(--font-sans)' }}>
-            {t('p_plans_subtitle', lang)}
-          </p>
+          <p className="dw-plans-sd-kicker">{t('browse_plans', lang)}</p>
+          <h1 className="dw-plans-sd-title">{t('p_your_plans_header', lang)}</h1>
+
+          <PathwayPicker
+            embedded
+            currentPersona={persona}
+            onSelect={(p: Persona) => {
+              const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
+              saveSetup({ persona: p, source: src });
+              setPersona(p);
+            }}
+            onBeginDay1={() => onNavigate?.('home')}
+          />
 
           {/* Search the Bible — surfaces the Home-mounted BibleSearch (the tab must
               be switched first: only the active tab's screen is mounted). */}
@@ -527,17 +526,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             </Card>
           )}
 
-          <PathwayPicker
-            embedded
-            currentPersona={persona}
-            onSelect={(p: Persona) => {
-              const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
-              saveSetup({ persona: p, source: src });
-              setPersona(p);
-            }}
-            onBeginDay1={() => onNavigate?.('home')}
-          />
-
           {/* Your Plans */}
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('your_plans', lang)}</h2>
@@ -597,193 +585,32 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             )}
           </div>
 
-          {/* ── All Reading Plans ── */}
+          {/* ── Browse Plans (Superdesign) ── */}
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('browse_plans', getLang())}</h2>
-            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 16, fontFamily: 'var(--font-sans)', paddingLeft: 4 }}>
-              {t('plans_start_hint', lang)}
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(() => {
-                const categories = Array.from(new Set(browsePlans.map(p => p.category)));
-                return categories.map(cat => (
-                  <div key={cat}>
-                    <p style={{
-                      fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-                      textTransform: 'uppercase', color: 'var(--dw-text-muted)',
-                      fontFamily: 'var(--font-sans)', margin: '8px 0 8px',
-                    }}>{cat}</p>
-                    {browsePlans.filter(p => p.category === cat).map(plan => {
-                      const isActive = activePlanIds.includes(plan.id);
-                      const isSelected = selectedToStart.includes(plan.id);
-                      const isPreviewOpen = expandedBrowsePlan === plan.id;
-                      const isConfirmingDeactivate = deactivateConfirm === plan.id;
-                      const progress = activePlans[plan.id];
-                      const bookPlanData = plan.bookId ? bookPlans[plan.bookId] : undefined;
-
-                      return (
-                        <div
-                          key={plan.id}
-                          style={{
-                            background: isActive ? 'rgba(37,99,235,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
-                            border: isActive ? '2px solid rgba(37,99,235,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                            borderLeft: !isActive ? `3px solid ${(() => { const _cc: Record<string, string> = { 'Featured': '#C8920E', 'Books': '#7B1FA2', 'Gospels & Acts': '#2196F3', 'New Testament': '#4CAF50', 'Wisdom': '#5C6BC0', 'Full Bible': '#DC535D' }; return _cc[cat] || 'var(--dw-accent)'; })()}` : undefined,
-                            borderRadius: 14,
-                            padding: '14px 16px',
-                            cursor: 'pointer',
-                            transition: 'border 0.15s, background 0.15s',
-                            position: 'relative',
-                            marginBottom: 10,
-                          }}
-                          onClick={() => {
-                            if (isActive) {
-                              if (isConfirmingDeactivate) {
-                                resetPlan(plan.id);
-                                setDeactivateConfirm(null);
-                              } else {
-                                setDeactivateConfirm(plan.id);
-                                setTimeout(() => setDeactivateConfirm(null), 6000);
-                              }
-                              return;
-                            }
-                            setSelectedToStart(prev =>
-                              prev.includes(plan.id) ? prev.filter(id => id !== plan.id) : [plan.id]
-                            );
-                          }}
-                        >
-                          {isActive ? (
-                            <div style={{
-                              position: 'absolute', top: 14, right: 14,
-                              background: isConfirmingDeactivate ? '#c0392b' : 'var(--dw-plan)',
-                              borderRadius: 999, padding: '2px 9px',
-                              fontSize: 10, fontWeight: 700, color: '#fff',
-                              fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
-                              textTransform: 'uppercase', transition: 'background 0.2s',
-                            }}>
-                              {isConfirmingDeactivate ? t('p_tap_remove', lang) : '✓ ' + t('p_active', lang)}
-                            </div>
-                          ) : (
-                            <div style={{
-                              position: 'absolute', top: 14, right: 14,
-                              width: 22, height: 22, borderRadius: '50%',
-                              border: isSelected ? 'none' : '2px solid var(--dw-text-muted)',
-                              background: isSelected ? 'var(--dw-accent)' : 'transparent',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.15s', flexShrink: 0,
-                            }}>
-                              {isSelected && (
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              )}
-                            </div>
-                          )}
-
-                          <p className="text-card-title" style={{ marginTop: 0, paddingRight: 80, marginBottom: 6 }}>{tField(plan, 'title', lang)}</p>
-                          <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.5, marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
-                            {tField(plan, 'description', lang)}
-                          </p>
-
-                          {isActive && progress && !plan.bookId && (
-                            <div style={{ marginBottom: 8 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                                  Day {calcPlanDay(progress.startedAt, plan.totalDays)} of {plan.totalDays}
-                                </span>
-                                <span style={{ fontSize: 11, color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-                                  {Math.round((progress.completedDays.length / plan.totalDays) * 100)}%
-                                </span>
-                              </div>
-                              <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${(progress.completedDays.length / plan.totalDays) * 100}%`, height: '100%', background: 'var(--dw-plan)', borderRadius: 2 }} />
-                              </div>
-                            </div>
-                          )}
-                          {isActive && bookPlanData && (
-                            <div style={{ marginBottom: 8 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                                  Chapter {bookPlanData.currentChapter + 1} of {bookPlanData.totalChapters}
-                                </span>
-                                <span style={{ fontSize: 11, color: 'var(--dw-info)', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-                                  {Math.round(((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100)}%
-                                </span>
-                              </div>
-                              <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${((bookPlanData.currentChapter + 1) / bookPlanData.totalChapters) * 100}%`, height: '100%', background: 'var(--dw-plan)', borderRadius: 2 }} />
-                              </div>
-                            </div>
-                          )}
-
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', margin: 0 }}>
-                              {plan.totalDays} {plan.bookId ? 'chapters' : 'days'}
-                            </p>
-                            <button
-                              onClick={e => { e.stopPropagation(); setExpandedBrowsePlan(isPreviewOpen ? null : plan.id); }}
-                              style={{
-                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                                fontSize: 11, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
-                                fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
-                              }}
-                            >
-                              {isPreviewOpen ? t('p_hide_schedule', lang) + ' ▲' : t('p_see_schedule', lang) + ' ▼'}
-                            </button>
-                          </div>
-
-                          {!isActive && (
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                startPlan(plan.id);
-                                setSelectedToStart([]);
-                              }}
-                              style={{
-                                width: '100%', marginTop: 12,
-                                background: '#A8552F', color: '#fff',
-                                border: 'none', borderRadius: 10,
-                                padding: '14px 20px', fontSize: 14, fontWeight: 700,
-                                fontFamily: 'var(--font-sans)', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                              }}
-                            >
-                              {t('start_this_plan', lang)}
-                            </button>
-                          )}
-
-                          {isPreviewOpen && (
-                            <div
-                              onClick={e => e.stopPropagation()}
-                              style={{ marginTop: 12, borderTop: '1px solid var(--dw-border)', paddingTop: 12 }}
-                            >
-                              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, textTransform: 'uppercase' }}>
-                                {plan.bookId ? t('p_reading_schedule', lang) : t('p_daily_schedule', lang)}
-                              </p>
-                              {plan.passages.map((passage, i) => (
-                                <div key={i} style={{
-                                  display: 'flex', gap: 10, alignItems: 'flex-start',
-                                  padding: '5px 0',
-                                  borderBottom: i < plan.passages.length - 1 ? '1px solid var(--dw-border-subtle)' : 'none',
-                                }}>
-                                  <span style={{
-                                    minWidth: 42, fontSize: 10, fontWeight: 700,
-                                    color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', paddingTop: 1,
-                                  }}>
-                                    {plan.bookId ? `Ch ${i + 1}` : `Day ${i + 1}`}
-                                  </span>
-                                  <span style={{ fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: plan.bookId ? 'var(--font-serif-text)' : 'var(--font-sans)', lineHeight: 1.4 }}>
-                                    {passage}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+            <h2 className="dw-plans-sd-section">{t('browse_plans', lang)}</h2>
+            <div className="dw-plans-sd-list">
+              {browsePlans.map(plan => {
+                const isActive = activePlanIds.includes(plan.id);
+                return (
+                  <div key={plan.id} className="dw-plan-sd-card">
+                    <p className="dw-plan-sd-days">
+                      {t('plan_days', lang).replace('{n}', String(plan.totalDays))}
+                    </p>
+                    <h3 className="dw-plan-sd-name">{tField(plan, 'title', lang)}</h3>
+                    {isActive ? (
+                      <p className="dw-plan-sd-active">{t('plan_active', lang)}</p>
+                    ) : (
+                      <button
+                        type="button"
+                        className="dw-plan-sd-start"
+                        onClick={() => startPlan(plan.id)}
+                      >
+                        {t('start_this_plan', lang)}
+                      </button>
+                    )}
                   </div>
-                ));
-              })()}
+                );
+              })}
             </div>
           </div>
 
