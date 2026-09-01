@@ -24,7 +24,7 @@ import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { displayPassage } from '../data/translations';
 import { SetupPromptModal } from '../components/SetupPromptModal';
-import { StopAllAudio } from '../components/StopAllAudio';
+import { PWAInstallBanner } from '../components/PWAInstall';
 import { FeedbackPoll } from '../components/FeedbackPoll';
 // audioManager replaced by audioPlayer (AP) imported above
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
@@ -168,14 +168,31 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [translation, setTranslation] = useState<TranslationCode>(() => {
     return (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
   });
+  useEffect(() => {
+    const sync = () => {
+      const next = (localStorage.getItem('dw_translation') as TranslationCode) || 'ESV';
+      setTranslation(prev => prev === next ? prev : next);
+    };
+    window.addEventListener('dw-translation-changed', sync);
+    return () => window.removeEventListener('dw-translation-changed', sync);
+  }, []);
   // ── Font size control ──
   const FONT_MIN = 13;
   const FONT_MAX = 32;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [scriptureFontSize, _setScriptureFontSize] = useState<number>(() => {
+  const [scriptureFontSize, setScriptureFontSize] = useState<number>(() => {
     const saved = localStorage.getItem('dw_font_size');
     return saved ? Math.min(FONT_MAX, Math.max(FONT_MIN, parseInt(saved, 10))) : 15;
   });
+  // Settings writes dw_font_size without remounting Home (tabs stay mounted).
+  useEffect(() => {
+    const sync = () => {
+      const saved = localStorage.getItem('dw_font_size');
+      setScriptureFontSize(saved ? Math.min(FONT_MAX, Math.max(FONT_MIN, parseInt(saved, 10))) : 15);
+    };
+    window.addEventListener('dw-font-size-changed', sync);
+    return () => window.removeEventListener('dw-font-size-changed', sync);
+  }, []);
 
   const [compareMode, setCompareMode] = useState(false);
   const [compareTranslation, setCompareTranslation] = useState<TranslationCode>('KJV');
@@ -340,8 +357,20 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // via a body class — the reading bar already offers "Ask AI". A body class reaches
   // both instances without prop-drilling; cleanup also covers a tab-switch mid-read.
   useEffect(() => {
-    document.body.classList.toggle('dw-reading-active', readingBarVisible);
-    return () => { document.body.classList.remove('dw-reading-active'); };
+    const apply = () => {
+      const onHome = document.body.dataset.activeTab !== 'journal'
+        && document.body.dataset.activeTab !== 'messages'
+        && document.body.dataset.activeTab !== 'plans'
+        && document.body.dataset.activeTab !== 'more'
+        && document.body.dataset.activeTab !== 'sermon-notes';
+      document.body.classList.toggle('dw-reading-active', readingBarVisible && onHome);
+    };
+    apply();
+    window.addEventListener('dw-tab-changed', apply);
+    return () => {
+      window.removeEventListener('dw-tab-changed', apply);
+      document.body.classList.remove('dw-reading-active');
+    };
   }, [readingBarVisible]);
 
   // If the user leaves Home (e.g. taps a tab) while a bar-initiated chapter selection
@@ -361,6 +390,15 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       setAudioLoading(st === 'loading');
       setAudioCurrentPassage(passage ?? null);
     });
+  }, []);
+
+  useEffect(() => {
+    const stopHero = () => {
+      heroQueueRef.current = [];
+      heroQueueActiveRef.current = false;
+    };
+    window.addEventListener('dw-stop-hero-audio', stopHero);
+    return () => window.removeEventListener('dw-stop-hero-audio', stopHero);
   }, []);
 
   // Other screens (e.g. the Plans hub's "Search the Bible" row) open the
@@ -2047,7 +2085,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         : `${t('listen_now')} — ${allLabels.join(', ')}`
                     }
                     style={{
-                      pointerEvents: 'auto', width: 78, height: 78, borderRadius: '50%', flexShrink: 0,
+                      pointerEvents: 'auto', width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
                       background: isLoadingHero ? 'rgba(168,85,47,0.55)' : 'rgba(20,14,8,0.42)',
                       border: '2px solid rgba(255,255,255,0.92)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2058,10 +2096,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     }}
                   >
                     {isLoadingHero
-                      ? <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
+                      ? <Loader2 size={26} style={{ animation: 'spin 1s linear infinite' }} />
                       : isPlayingHero && !isPausedHero
-                      ? <Pause size={32} />
-                      : <Play size={34} style={{ marginLeft: 4 }} />
+                      ? <Pause size={26} />
+                      : <Play size={28} style={{ marginLeft: 3 }} />
                     }
                   </button>
                   {hasActivePlans && (
@@ -2358,7 +2396,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                             passageRef={readRef}
                             renderScripture={renderScripture}
                             greekHebrewMode={greekHebrewMode}
-                            fontSize={19}
+                            fontSize={scriptureFontSize}
                           />
                         </div>
                         {/* Read → reflect, in place: a one-tap journal capture right under the passage.
@@ -2509,6 +2547,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
         {/* Post-first-reading backup nudge — appears only after the push prompt
             is resolved, so the two post-reading moments never stack. */}
+        <PWAInstallBanner />
+
         <EmailNudgeCard />
 
         {/* ── Choose Your Plan — only while nothing is set up yet. Mid-plan users
@@ -4208,7 +4248,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           setShowBibleAI(true);
         }}
       />
-      <StopAllAudio onStop={() => { heroQueueRef.current = []; heroQueueActiveRef.current = false; }} />
+      {/* Stop-all lives at App level so keep-alive tabs don't stack three FABs.
+          This listener still clears the hero chapter queue. */}
       <div style={{ height: 80 }} />
     </div>
   );

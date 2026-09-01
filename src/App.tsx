@@ -6,22 +6,20 @@ import { ScriptureSelectionProvider, useScriptureSelection } from './contexts/Sc
 import { TabBar } from './components/TabBar';
 import { SeamBar } from './components/Seam';
 import { EmailGate } from './components/EmailGate';
-import { PathwayPicker } from './components/PathwayPicker';
 import { PushOptIn } from './components/PushOptIn';
 import { isPushSubscribed } from './utils/push';
-import { schedulePush } from './utils/cloudSync';
 import { ScreenSkeleton } from './components/Skeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CookieConsent } from './components/CookieConsent';
 import type { TabId } from './components/TabBar';
-import type { Persona } from './utils/persona-config';
-import { isSundayWindow, activateSundayGuest, isSundayGuest } from './utils/sunday';
+import { activateSundayGuest, isSundayGuest } from './utils/sunday';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
 import { API_BASE } from './utils/api-base';
 import { track } from './utils/analytics';
 import { t, getLang } from './utils/i18n';
-import { syncMisc } from './utils/cloudSync';
 import { closeSubViewsTo, openSubViewCount } from './utils/useSubView';
+import { StopAllAudio } from './components/StopAllAudio';
+import { startGraceSeriesIfCold, consumeLandingParam } from './utils/coldStart';
 
 // ── Pre-render deep link setup — must run before any React component initializes ──
 const SERMON_DEEP_LINK = (() => {
@@ -40,6 +38,12 @@ const SERMON_DEEP_LINK = (() => {
   } catch { /* ignore */ }
   return false;
 })();
+
+// Cold start (no real persona choice) → Day 1 of the 40-day grace series.
+// Must run before UserProvider / HomeScreen read localStorage. `from=church`
+// is attribution only and is stripped here; it never invents a new pathway.
+const LANDING_FROM = consumeLandingParam();
+const COLD_STARTED = startGraceSeriesIfCold('default');
 
 // ── Embedded mode — the app is being framed inside the Futures Church site
 // (futures.church/daily-word/app). Hide the app's own "part of Futures Church"
@@ -171,63 +175,24 @@ function AppContent() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-  const { userProfile, setup, saveSetup } = useUser();
+  const { userProfile, setup } = useUser();
   const { selection } = useScriptureSelection();
 
-  // Track app open — intentionally fires once on mount with initial persona
+  // Track app open — once on mount. Detail is the persona, plus church-homepage
+  // attribution when the visitor arrived via ?from=church (real track(), not a pixel).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    track('app_open', setup?.persona || 'none');
+    const detail = LANDING_FROM === 'church' || LANDING_FROM === 'day1'
+      ? `church:${setup?.persona || 'new_to_faith'}`
+      : (setup?.persona || (COLD_STARTED ? 'new_to_faith' : 'none'));
+    track('app_open', detail);
   }, []);
 
   const sundayGuest = isSundayGuest();
 
-  // Scripture-first onboarding: the persona picker is NO LONGER a full-screen tollgate.
-  // On first run we default to "congregation" so the user lands on content immediately,
-  // and surface the picker as an opt-in "Personalize" prompt they can take or dismiss.
-  const onboardingActive = !sundayGuest && !SERMON_DEEP_LINK && !isSundayWindow();
-  // First launch (a real onboarding session that hasn't chosen a pathway yet) → show the
-  // PathwayPicker as a welcome moment, instead of silently defaulting + a dismissible banner.
-  const needsFirstRunPicker = onboardingActive && !localStorage.getItem('dw_v7_pathway_done');
-
-  // Silently default to "congregation" only for sessions that DON'T get the picker
-  // (sunday-guest / sermon deep-link / Sunday window), so their content still renders.
-  useEffect(() => {
-    if (!needsFirstRunPicker && !setup?.persona) {
-      saveSetup({ persona: 'congregation', source: 'default' });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function handlePathwaySelect(persona: Persona) {
-    saveSetup({ persona, source: 'onboarding' });
-    localStorage.setItem('dw_v7_pathway_done', 'true');
-    // Church Member auto-starts the editorial default plan (Ashley, 26 Aug 2026):
-    // it was the ONLY pathway that landed with zero scripture — 6-8 decisions to
-    // the first verse. Exact startPlanFromHome write shape (full ISO startedAt);
-    // never touches an existing plan set. Not a book plan, so the book-plan
-    // hero-exclusion invariant is unaffected.
-    if (persona === 'congregation') {
-      try {
-        const existing: Record<string, unknown> = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
-        if (Object.keys(existing).length === 0) {
-          existing['ashley-jane-daily-word'] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
-          localStorage.setItem('dw_activeplans', JSON.stringify(existing));
-          try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch { /* ignore */ }
-        }
-      } catch { /* quota */ }
-    }
-    // Seed the daily reading volume from the pathway — the dead SetupPromptModal's
-    // PERSONA_CHAPTERS intent, now applied at the pick (deep-study/pastor read
-    // more; everyone else, comfort included, starts at a gentle 1). Fill-only:
-    // never overwrite a cadence the user already chose (synced via the misc bag).
-    try {
-      if (!localStorage.getItem('dw_chapters_per_day')) {
-        const seed = persona === 'deeper_study' || persona === 'pastor_leader' ? '3' : '1';
-        syncMisc('dw_chapters_per_day', seed);
-      }
-    } catch { /* quota */ }
-  }
+  // Push ask stays evidence-timed (after a finished reading). The five-choice
+  // picker is gone — it was the gate where people opened and never read.
+  const onboardingActive = !sundayGuest && !SERMON_DEEP_LINK;
 
   // After the pathway pick, a one-time "want a daily nudge?" step — the high-intent moment
   // to catch the notification opt-in, instead of burying it in Settings.
@@ -252,7 +217,7 @@ function AppContent() {
     window.addEventListener('dw-reading-completed', h);
     return () => window.removeEventListener('dw-reading-completed', h);
   }, []);
-  const needsPushOnboarding = onboardingActive && !needsFirstRunPicker && !pushOnboarded
+  const needsPushOnboarding = onboardingActive && !pushOnboarded
     && hasReadOnce && setup?.persona !== 'comfort';
   function handlePushOnboardingDone() {
     try { localStorage.setItem('dw_push_onboarded', '1'); } catch { /* quota */ }
@@ -310,6 +275,34 @@ function AppContent() {
     };
   }, []);
 
+  // Keep visited tabs mounted so switching is instant (no chunk refetch, no
+  // Home remount that killed audio + re-fetched today's chapters). First visit
+  // to a tab still lazy-loads; after that the panel is hidden, not destroyed.
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set([SERMON_DEEP_LINK ? 'sermon-notes' : 'home']));
+  useEffect(() => {
+    setMountedTabs(prev => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+    document.body.dataset.activeTab = activeTab;
+    try { window.dispatchEvent(new CustomEvent('dw-tab-changed', { detail: { tab: activeTab } })); } catch { /* ignore */ }
+  }, [activeTab]);
+
+  // Warm the other route chunks after first paint so the first tap on Notes /
+  // Campus / Read / Settings doesn't wait on the network.
+  useEffect(() => {
+    const warm = () => {
+      import('./screens/JournalScreen');
+      import('./screens/MessagesScreen');
+      import('./screens/PlansScreen');
+      import('./screens/MoreScreen');
+    };
+    const id = window.setTimeout(warm, 1600);
+    return () => clearTimeout(id);
+  }, []);
+
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} initialTab={SERMON_DEEP_LINK ? 'sermon' : undefined} />,
@@ -318,6 +311,8 @@ function AppContent() {
     more: <MoreScreen onBack={goBack} />,
     'sermon-notes': <SermonNotesScreen onBack={() => navigateTab('home')} />,
   };
+
+  const TAB_ORDER: TabId[] = ['home', 'journal', 'messages', 'plans', 'more', 'sermon-notes'];
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>
@@ -340,12 +335,25 @@ function AppContent() {
       {!IS_EMBEDDED && <SeamBar />}
       <ErrorBoundary label={activeTab}>
         <Suspense fallback={<ScreenLoader />}>
-          <main id="main-content" key={syncNonce} style={{ display: 'contents' }}>
-            {screens[activeTab]}
+          <main id="main-content" key={syncNonce} className="dw-tab-host">
+            {TAB_ORDER.map(id => (
+              mountedTabs.has(id) ? (
+                <div
+                  key={id}
+                  className={`dw-tab-panel${id === activeTab ? ' is-active' : ''}`}
+                  aria-hidden={id !== activeTab}
+                  // @ts-expect-error inert is valid on HTMLElement, not yet in React's types
+                  inert={id !== activeTab ? '' : undefined}
+                >
+                  {screens[id]}
+                </div>
+              ) : null
+            ))}
           </main>
         </Suspense>
       </ErrorBoundary>
       <TabBar activeTab={activeTab} onTabChange={navigateTab} />
+      <StopAllAudio onStop={() => { try { window.dispatchEvent(new Event('dw-stop-hero-audio')); } catch { /* ignore */ } }} />
       {!sundayGuest && !SERMON_DEEP_LINK && <EmailGate />}
       {/* Home and Notes mount their own BibleAI (they need to pass an initialContext
           from a highlight / Greek-Hebrew tap). Rendering this global one on top of
@@ -364,7 +372,7 @@ function AppContent() {
       )}
       {/* Cookie banner waits until no full-screen gate is active — a brand-new
           visitor was hitting picker + push + banner inside ~30 seconds. */}
-      {!needsFirstRunPicker && !needsPushOnboarding && <CookieConsent />}
+      {!needsPushOnboarding && <CookieConsent />}
       <AudioAnnouncer />
 
       {/* Cross-device merge notice — fired by cloudSync when the same entry was
@@ -401,12 +409,7 @@ function AppContent() {
         </div>
       )}
 
-      {/* First-run welcome gate — choose a reading pathway in one tap. The picker has a
-          "Not sure? → Church Member" escape, so it's a moment, not a dead-end tollgate. */}
-      {needsFirstRunPicker && (
-        <PathwayPicker onSelect={handlePathwaySelect} />
-      )}
-      {!needsFirstRunPicker && needsPushOnboarding && (
+      {needsPushOnboarding && (
         <PushOptIn onDone={handlePushOnboardingDone} />
       )}
     </div>

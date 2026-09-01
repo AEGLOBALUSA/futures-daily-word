@@ -1,0 +1,118 @@
+/**
+ * Cold start → Day 1 of the existing 40-day "New & Returning to Faith" series.
+ *
+ * Live usage (Ashley, 2026-09): the five-choice PathwayPicker is where people
+ * open and never read. 23 of 28 pathway enrollments are still on day 1 with
+ * nothing completed; plan enrollments are 0. This helper is fill-only: a real
+ * persona choice (onboarding / settings / upgrade) is never overwritten.
+ *
+ * Sources `default` and `sunday-guest` write locally only (must NOT stamp).
+ */
+
+import type { Persona } from './persona-config';
+import type { PathwayProgress } from '../data/pathway-types';
+
+export const GRACE_SERIES_PERSONA: Persona = 'new_to_faith';
+export const GRACE_SERIES_TITLE = 'New & Returning to Faith';
+export const GRACE_SERIES_TOTAL_DAYS = 40;
+
+const REAL_CHOICE_SOURCES = new Set(['onboarding', 'settings', 'upgrade']);
+
+export function readSetup(): { persona?: string; source?: string } {
+  try {
+    return JSON.parse(localStorage.getItem('dw_setup') || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+export function readPathwayProgress(): PathwayProgress {
+  try {
+    const raw = JSON.parse(localStorage.getItem('dw_pathway_progress') || '{}');
+    return {
+      enrolled: !!raw.enrolled,
+      currentDay: Number(raw.currentDay) || 1,
+      completedDays: Array.isArray(raw.completedDays) ? raw.completedDays : [],
+      lastCompletedDay: raw.lastCompletedDay,
+      lastCompletedDate: raw.lastCompletedDate,
+      totalDays: raw.totalDays,
+      title: raw.title,
+    };
+  } catch {
+    return { enrolled: false, currentDay: 1, completedDays: [] };
+  }
+}
+
+/** True when this device has never made a real pathway/persona choice. */
+export function isColdStart(): boolean {
+  try {
+    const setup = readSetup();
+    if (setup.source && REAL_CHOICE_SOURCES.has(setup.source) && setup.persona) {
+      return false;
+    }
+    if (setup.persona && localStorage.getItem('dw_v7_pathway_done') === 'true'
+      && setup.source && REAL_CHOICE_SOURCES.has(setup.source)) {
+      return false;
+    }
+    // Already mid-series — never reset them back to day 1.
+    const progress = readPathwayProgress();
+    if (progress.enrolled && (progress.completedDays.length > 0 || progress.currentDay > 1)) {
+      return false;
+    }
+    if (!setup.persona) return true;
+    if (!localStorage.getItem('dw_v7_pathway_done')) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+export type ColdStartSource = 'default' | 'sunday-guest';
+
+/**
+ * If this is a cold device, write new_to_faith + enroll Day 1 of the
+ * 40-day series. Returns true when it applied. Never stamps cloud
+ * (source is always default / sunday-guest).
+ */
+export function startGraceSeriesIfCold(source: ColdStartSource = 'default'): boolean {
+  if (!isColdStart()) return false;
+  try {
+    const setup = { persona: GRACE_SERIES_PERSONA, source };
+    localStorage.setItem('dw_setup', JSON.stringify(setup));
+    localStorage.setItem('dw_v7_pathway_done', 'true');
+
+    const existing = readPathwayProgress();
+    if (!existing.enrolled) {
+      const progress: PathwayProgress = {
+        enrolled: true,
+        currentDay: 1,
+        completedDays: [],
+        totalDays: GRACE_SERIES_TOTAL_DAYS,
+        title: GRACE_SERIES_TITLE,
+      };
+      localStorage.setItem('dw_pathway_progress', JSON.stringify(progress));
+    }
+
+    if (!localStorage.getItem('dw_chapters_per_day')) {
+      localStorage.setItem('dw_chapters_per_day', '1');
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Read-and-strip church/homepage attribution. Does not invent numbers. */
+export function consumeLandingParam(): string | null {
+  try {
+    const url = new URL(window.location.href);
+    const from = url.searchParams.get('from') || url.searchParams.get('start');
+    if (!from) return null;
+    url.searchParams.delete('from');
+    url.searchParams.delete('start');
+    window.history.replaceState({}, '', url.toString());
+    return from;
+  } catch {
+    return null;
+  }
+}

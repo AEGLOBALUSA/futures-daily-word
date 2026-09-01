@@ -13,7 +13,6 @@ import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { ListenButton } from '../components/ListenButton';
-import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
 import { recordStreakToday } from '../utils/streak';
@@ -2139,7 +2138,6 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
       )}
 
       <PromoAds />
-      <StopAllAudio />
     </div>
   );
 }

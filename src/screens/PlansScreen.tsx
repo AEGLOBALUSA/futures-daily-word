@@ -12,7 +12,6 @@ import { LibraryScreen } from './LibraryScreen';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
 import { EmptyState } from '../components/EmptyState';
-import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
 import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
@@ -1296,7 +1295,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             offered a SECOND, differently-numbered faith pathway on the one screen
             they visit to find something to read. */}
       </div>
-      <StopAllAudio />
     </div>
   );
 }

@@ -879,10 +879,41 @@ button:not(:disabled):active,
 /* ---------- Reading surface (hero expanded chapter) ----------
    The chapter expands to its full height — the page is the only scrollbar.
    Padding lives here (not inline) so desktop gets generous margins. */
-.dw-reading-surface { padding: 28px 24px 44px; }
+.dw-reading-surface { padding: 32px 22px 96px; }
 @media (min-width: 700px) {
-  .dw-reading-surface { padding: 40px 64px 56px; }
+  .dw-reading-surface { padding: 48px 72px 112px; }
 }
+
+/* Tab keep-alive: hide inactive screens without unmounting (preserves scroll + audio). */
+.dw-tab-host {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+.dw-tab-panel {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.dw-tab-panel.is-active {
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dw-tab-panel.is-active { animation: dwTabIn 0.16s ease; }
+}
+@keyframes dwTabIn {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+/* Reading chrome belongs on Home only — keep-alive Home would otherwise
+   leave the action bar / hide-AI class active on Notes / Campus / Read. */
+body:not([data-active-tab="home"]) .dw-reading-bar { display: none !important; }
+body:not([data-active-tab="home"]) .dw-ai-launcher { display: revert; }
 
 /* Gentle cross-fade when the chapter (or translation) changes — remounted via key */
 .dw-reading-fade { animation: dwReadingFadeIn 0.4s ease; }

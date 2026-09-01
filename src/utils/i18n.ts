@@ -712,6 +712,17 @@ const UI: Translations = {
   stop_audio_label: { en: 'Stop audio playback', es: 'Detener reproducci\u00f3n de audio', pt: 'Parar reprodu\u00e7\u00e3o de \u00e1udio', id: 'Hentikan pemutaran audio' },
   sync_notice_one: { en: 'Synced across your devices \u2014 kept the newest version of 1 note.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de 1 nota.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de 1 nota.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari 1 catatan disimpan.' },
   sync_notice_many: { en: 'Synced across your devices \u2014 kept the newest version of {n} notes.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de {n} notas.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de {n} notas.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari {n} catatan disimpan.' },
+
+  // \u2500\u2500 PWA / ADD TO HOME SCREEN \u2500\u2500
+  pwa_install_title: { en: 'Add to Home Screen', es: 'A\u00f1adir a inicio', pt: 'Adicionar \u00e0 tela inicial', id: 'Tambahkan ke layar utama' },
+  pwa_install_body: { en: 'Open Daily Word like an app \u2014 one tap, no browser chrome.', es: 'Abre Daily Word como una app \u2014 un toque, sin el navegador.', pt: 'Abra o Daily Word como um app \u2014 um toque, sem o navegador.', id: 'Buka Daily Word seperti aplikasi \u2014 satu ketukan, tanpa bilah browser.' },
+  pwa_install_cta: { en: 'Add', es: 'A\u00f1adir', pt: 'Adicionar', id: 'Tambahkan' },
+  pwa_install_dismiss: { en: 'Not now', es: 'Ahora no', pt: 'Agora n\u00e3o', id: 'Nanti saja' },
+  pwa_ios_intro: { en: 'Safari doesn\u2019t show an install button. Two taps:', es: 'Safari no muestra un bot\u00f3n de instalaci\u00f3n. Dos toques:', pt: 'O Safari n\u00e3o mostra um bot\u00e3o de instala\u00e7\u00e3o. Dois toques:', id: 'Safari tidak menampilkan tombol pasang. Dua ketukan:' },
+  pwa_ios_step1: { en: 'Tap the Share button in Safari', es: 'Toca el bot\u00f3n Compartir en Safari', pt: 'Toque em Compartilhar no Safari', id: 'Ketuk tombol Bagikan di Safari' },
+  pwa_ios_step2: { en: 'Scroll and tap Add to Home Screen', es: 'Despl\u00e1zate y toca A\u00f1adir a pantalla de inicio', pt: 'Role e toque em Adicionar \u00e0 Tela de In\u00edcio', id: 'Gulir dan ketuk Tambah ke Layar Utama' },
+  pwa_browser_intro: { en: 'Your browser will offer an install prompt, or use the browser menu.', es: 'Tu navegador ofrecer\u00e1 instalar, o usa el men\u00fa del navegador.', pt: 'Seu navegador oferecer\u00e1 instalar, ou use o menu do navegador.', id: 'Browser Anda akan menawarkan pemasangan, atau gunakan menu browser.' },
+  pwa_browser_menu: { en: 'Look for Install app or Add to Home Screen in the browser menu.', es: 'Busca Instalar app o A\u00f1adir a inicio en el men\u00fa del navegador.', pt: 'Procure Instalar app ou Adicionar \u00e0 tela inicial no menu do navegador.', id: 'Cari Pasang aplikasi atau Tambah ke Layar Utama di menu browser.' },
 };
 
 export function t(key: string, lang?: string): string {
