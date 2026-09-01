@@ -7,6 +7,23 @@ import { t } from './i18n';
 
 export type Persona = 'new_to_faith' | 'congregation' | 'deeper_study' | 'pastor_leader' | 'comfort';
 
+/** Plans tab filter — each path shows matching plans, not the full unfiltered catalog.
+ *  new_to_faith is empty on purpose: that path is the 40-day New & Returning to
+ *  Faith journey (`dw_pathway_progress`), not a catalog list. Do not put
+ *  catalog `faith-pathway` (30-day Foundations of Faith) here. */
+export const PERSONA_PLAN_IDS: Record<Persona, readonly string[]> = {
+  new_to_faith: [],
+  congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
+  deeper_study: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
+  pastor_leader: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
+  comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
+};
+
+/** I'm New to This / New & Returning — one 40-day journey, not a catalog. */
+export function isNewChristianPersona(persona: string | null | undefined): boolean {
+  return persona === 'new_to_faith' || persona === 'new_returning' || persona === 'new_believer';
+}
+
 export interface PersonaConfig {
   persona: Persona;
   label: string;

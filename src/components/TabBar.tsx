@@ -15,7 +15,7 @@ const TAB_LABELS: Record<string, Record<string, string>> = {
   messages: { en: 'Campus',   es: 'Sede',           pt: 'Campus',         id: 'Kampus' },
   // 'Read' (Ashley, 26 Aug 2026): the tab already IS the reading library —
   // plans + books + essays + reference — not just plan management.
-  plans:    { en: 'Read',     es: 'Leer',           pt: 'Ler',            id: 'Baca' },
+  plans:    { en: 'Plans',    es: 'Planes',         pt: 'Planos',         id: 'Rencana' },
   more:     { en: 'Settings', es: 'Ajustes',        pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 };
 

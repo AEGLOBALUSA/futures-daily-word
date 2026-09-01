@@ -34,6 +34,7 @@ const TRACKED_EVENTS = [
   'book_chapter', 'plan_start', 'plan_complete', 'pathway_complete',
   'campus_switched', 'profile_update', 'push_subscribe', 'share',
   'app_open', 'page_view', 'persona_change', 'language_change',
+  'pwa_install', 'pwa_install_prompt_shown', 'pwa_ios_hint',
 ];
 
 export async function trackActivity(

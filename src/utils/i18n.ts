@@ -54,7 +54,7 @@ const UI: Translations = {
   tab_home: { en: 'Home', es: 'Inicio', pt: 'In\u00edcio', id: 'Beranda' },
   tab_notes: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   tab_campus: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
-  tab_plans: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
+  tab_plans: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
   tab_settings: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 
   // ââ SETTINGS / MORE SCREEN ââ
@@ -95,7 +95,7 @@ const UI: Translations = {
   characters: { en: 'characters', es: 'caracteres', pt: 'caracteres', id: 'karakter' },
 
   // ââ PLANS SCREEN ââ
-  plans_title: { en: 'Read', es: 'Leer', pt: 'Ler', id: 'Baca' },
+  plans_title: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
   plans_and_more: { en: 'Plans & More', es: 'Planes y m\u00e1s', pt: 'Planos e mais', id: 'Rencana & Lainnya' },
   plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devo\u00e7\u00e3o e comunidade', id: 'Rencana bacaan, devosi, dan komunitas Anda' },
   your_plans: { en: 'YOUR PLANS', es: 'TUS PLANES', pt: 'SEUS PLANOS', id: 'RENCANA ANDA' },
@@ -712,6 +712,30 @@ const UI: Translations = {
   stop_audio_label: { en: 'Stop audio playback', es: 'Detener reproducci\u00f3n de audio', pt: 'Parar reprodu\u00e7\u00e3o de \u00e1udio', id: 'Hentikan pemutaran audio' },
   sync_notice_one: { en: 'Synced across your devices \u2014 kept the newest version of 1 note.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de 1 nota.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de 1 nota.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari 1 catatan disimpan.' },
   sync_notice_many: { en: 'Synced across your devices \u2014 kept the newest version of {n} notes.', es: 'Sincronizado entre tus dispositivos \u2014 se conserv\u00f3 la versi\u00f3n m\u00e1s reciente de {n} notas.', pt: 'Sincronizado entre seus dispositivos \u2014 mantida a vers\u00e3o mais recente de {n} notas.', id: 'Tersinkron di semua perangkatmu \u2014 versi terbaru dari {n} catatan disimpan.' },
+
+  // \u2500\u2500 PWA / ADD TO HOME SCREEN \u2500\u2500
+  pwa_install_title: { en: 'Add to Home Screen', es: 'A\u00f1adir a inicio', pt: 'Adicionar \u00e0 tela inicial', id: 'Tambahkan ke layar utama' },
+  pwa_install_body: { en: 'Open Daily Word like an app \u2014 one tap, no browser chrome.', es: 'Abre Daily Word como una app \u2014 un toque, sin el navegador.', pt: 'Abra o Daily Word como um app \u2014 um toque, sem o navegador.', id: 'Buka Daily Word seperti aplikasi \u2014 satu ketukan, tanpa bilah browser.' },
+  pwa_install_cta: { en: 'Add', es: 'A\u00f1adir', pt: 'Adicionar', id: 'Tambahkan' },
+  pwa_install_dismiss: { en: 'Not now', es: 'Ahora no', pt: 'Agora n\u00e3o', id: 'Nanti saja' },
+  pwa_ios_intro: { en: 'Safari doesn\u2019t show an install button. Two taps:', es: 'Safari no muestra un bot\u00f3n de instalaci\u00f3n. Dos toques:', pt: 'O Safari n\u00e3o mostra um bot\u00e3o de instala\u00e7\u00e3o. Dois toques:', id: 'Safari tidak menampilkan tombol pasang. Dua ketukan:' },
+  pwa_ios_step1: { en: 'Tap the Share button in Safari', es: 'Toca el bot\u00f3n Compartir en Safari', pt: 'Toque em Compartilhar no Safari', id: 'Ketuk tombol Bagikan di Safari' },
+  pwa_ios_step2: { en: 'Scroll and tap Add to Home Screen', es: 'Despl\u00e1zate y toca A\u00f1adir a pantalla de inicio', pt: 'Role e toque em Adicionar \u00e0 Tela de In\u00edcio', id: 'Gulir dan ketuk Tambah ke Layar Utama' },
+  pwa_browser_intro: { en: 'Your browser will offer an install prompt, or use the browser menu.', es: 'Tu navegador ofrecer\u00e1 instalar, o usa el men\u00fa del navegador.', pt: 'Seu navegador oferecer\u00e1 instalar, ou use o menu do navegador.', id: 'Browser Anda akan menawarkan pemasangan, atau gunakan menu browser.' },
+  pwa_browser_menu: { en: 'Look for Install app or Add to Home Screen in the browser menu.', es: 'Busca Instalar app o A\u00f1adir a inicio en el men\u00fa del navegador.', pt: 'Procure Instalar app ou Adicionar \u00e0 tela inicial no menu do navegador.', id: 'Cari Pasang aplikasi atau Tambah ke Layar Utama di menu browser.' },
+
+  // \u2500\u2500 DAY 1 LANDING (Superdesign-locked) \u2500\u2500
+  day1_eyebrow: { en: 'Day 1 of 40 \u00b7 {series}', es: 'D\u00eda 1 de 40 \u00b7 {series}', pt: 'Dia 1 de 40 \u00b7 {series}', id: 'Hari 1 dari 40 \u00b7 {series}' },
+  begin_day1: { en: 'Begin Day 1', es: 'Comenzar D\u00eda 1', pt: 'Come\u00e7ar o Dia 1', id: 'Mulai Hari 1' },
+  day1_of_40: { en: 'Day 1 of 40', es: 'D\u00eda 1 de 40', pt: 'Dia 1 de 40', id: 'Hari 1 dari 40' },
+  path_chooser_title: { en: 'Where are you right now?', es: '\u00bfD\u00f3nde est\u00e1s ahora?', pt: 'Onde voc\u00ea est\u00e1 agora?', id: 'Di mana Anda sekarang?' },
+  path_chooser_sub: { en: 'Pick one to see matching plans.', es: 'Elige uno para ver planes que coincidan.', pt: 'Escolha um para ver planos correspondentes.', id: 'Pilih satu untuk melihat rencana yang cocok.' },
+  not_sure_begin_day1: { en: 'Not sure? Begin Day 1', es: '\u00bfNo est\u00e1s seguro? Comenzar D\u00eda 1', pt: 'N\u00e3o tem certeza? Come\u00e7ar o Dia 1', id: 'Belum yakin? Mulai Hari 1' },
+  change_path: { en: 'Change path', es: 'Cambiar camino', pt: 'Mudar caminho', id: 'Ubah jalur' },
+  start_this_plan: { en: 'Start This Plan', es: 'Comenzar este plan', pt: 'Come\u00e7ar este plano', id: 'Mulai Rencana Ini' },
+  plan_days: { en: '{n} DAYS', es: '{n} D\u00cdAS', pt: '{n} DIAS', id: '{n} HARI' },
+  plan_active: { en: 'Active', es: 'Activo', pt: 'Ativo', id: 'Aktif' },
+  plans_start_hint: { en: 'Start This Plan to begin. Your chosen plan sets your daily reading.', es: 'Toca Comenzar este plan para empezar. El plan que elijas fija tu lectura diaria.', pt: 'Toque em Come\u00e7ar este plano para come\u00e7ar. O plano escolhido define sua leitura di\u00e1ria.', id: 'Ketuk Mulai Rencana Ini untuk memulai. Rencana yang Anda pilih mengatur bacaan harian Anda.' },
 };
 
 export function t(key: string, lang?: string): string {

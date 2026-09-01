@@ -51,12 +51,23 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Capture install prompt for PWA install banner
+// Capture install prompt for PWA install banner.
+// preventDefault suppresses Chrome's mini-infobar — the in-app UI
+// (PWAInstall) is what actually calls __pwaInstall. Without that UI
+// the prompt was captured and then never shown.
 let deferredPrompt: Event | null = null;
+(window as any).__pwaCanInstall = false;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
+  (window as any).__pwaCanInstall = true;
   window.dispatchEvent(new CustomEvent('pwa-install-available'));
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  (window as any).__pwaCanInstall = false;
+  window.dispatchEvent(new CustomEvent('pwa-installed'));
 });
 
 // Expose install trigger for components
@@ -65,6 +76,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   (deferredPrompt as any).prompt();
   const result = await (deferredPrompt as any).userChoice;
   deferredPrompt = null;
+  (window as any).__pwaCanInstall = false;
   return result.outcome === 'accepted';
 };
 

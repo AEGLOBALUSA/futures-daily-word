@@ -15,6 +15,7 @@ import { API_BASE } from '../utils/api-base';
 import { CampusSelect } from '../components/CampusSelect';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
+import { PWAInstallSettingsBlock } from '../components/PWAInstall';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
@@ -195,12 +196,14 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     localStorage.setItem('dw_translation', t);
     localStorage.setItem('dw_translation_manual', 'true');
     track('translation_switch', t);
-    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_translation on return
+    setSettingsRev(r => r + 1);
+    try { window.dispatchEvent(new Event('dw-translation-changed')); } catch { /* ignore */ }
   };
 
   const handleFontSelect = (val: number) => {
     localStorage.setItem('dw_font_size', String(val));
-    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_font_size on return
+    setSettingsRev(r => r + 1);
+    try { window.dispatchEvent(new Event('dw-font-size-changed')); } catch { /* ignore */ }
   };
 
   const handleLangSelect = (val: string) => {
@@ -812,6 +815,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <PWAInstallSettingsBlock rowStyle={rowStyle} iconStyle={iconStyle} valStyle={valStyle} dividerStyle={dividerStyle} />
             <button onClick={handleKJVDownload} style={rowStyle}>
               <Download size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>{t("offline_bible", lang)}</span>
