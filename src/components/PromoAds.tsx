@@ -1,13 +1,12 @@
 /**
- * PromoAds — house ads for the two Futures offers (Ashley, 26 Aug 2026):
- * the free books on futures.church and Futures Leadership College. Rendered on
- * every tab, styled like the paid ad creative: the whole graphic is the link.
- * Real brand assets only (covers + FLC lockup copied from the church repo) —
- * never redrawn. Self-contained colors so the cards read identically in both
- * themes.
+ * PromoAds — quiet house ads for Futures offers. Rendered on every congregation
+ * tab (Home, Plans, Journal, Messages, More, Sermon Notes). Staff /staff does
+ * not use this. One college card by IP (AU vs US), never both.
  */
+import { useEffect, useState, type CSSProperties } from 'react';
 import { track } from '../utils/analytics';
 import { t, getLang } from '../utils/i18n';
+import { campusFromTimezone, campusFromCountry, detectCountry, COLLEGE, type CollegeCampus } from '../utils/geo';
 
 const COVERS = [
   '/promos/book-no-more-fear.jpg',
@@ -15,8 +14,32 @@ const COVERS = [
   '/promos/book-multiply-or-die.jpg',
 ];
 
+const SELAH_HREF = 'https://futures.church/';
+
+const card: CSSProperties = {
+  display: 'block',
+  borderRadius: 14,
+  padding: '16px 18px',
+  marginBottom: 12,
+  textDecoration: 'none',
+  overflow: 'hidden',
+};
+
 export function PromoAds() {
   const lang = getLang();
+  const [campus, setCampus] = useState<CollegeCampus>(() => campusFromTimezone());
+
+  useEffect(() => {
+    let cancelled = false;
+    detectCountry().then((country) => {
+      if (cancelled) return;
+      setCampus(campusFromCountry(country));
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const college = COLLEGE[campus];
+
   return (
     <div style={{ margin: '8px 0 24px' }}>
       {/* ── Books ── */}
@@ -27,10 +50,9 @@ export function PromoAds() {
         onClick={() => track('house_ad_books')}
         aria-label={`${t('promo_books_title', lang)} — ${t('promo_books_sub', lang)}`}
         style={{
+          ...card,
           display: 'flex', alignItems: 'center', gap: 16,
           background: '#17130F',
-          borderRadius: 14, padding: '16px 18px', marginBottom: 12,
-          textDecoration: 'none', overflow: 'hidden',
         }}
       >
         <div style={{ display: 'flex', flexShrink: 0 }}>
@@ -65,27 +87,57 @@ export function PromoAds() {
         </div>
       </a>
 
-      {/* ── College ── */}
+      {/* ── College — one card, geo AU vs US ── */}
       <a
-        href="https://futuresglobal.college"
+        href={college.href}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={() => track('house_ad_college')}
-        aria-label={`Futures Leadership College — ${t('promo_college_sub', lang)}`}
+        onClick={() => track('house_ad_college', campus)}
+        aria-label={`Futures Leadership College — ${t(college.locKey, lang)}`}
         style={{
-          display: 'block',
+          ...card,
           background: 'linear-gradient(120deg, #232A24 0%, #35403A 100%)',
-          borderRadius: 14, padding: '18px 18px 16px',
-          textDecoration: 'none', overflow: 'hidden',
+          padding: '18px 18px 16px',
         }}
       >
         <img
           src="/promos/logo-flc-horizontal-cream.svg"
           alt="Futures Leadership College"
-          style={{ height: 26, width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 8 }}
+          style={{ height: 26, width: 'auto', maxWidth: '100%', display: 'block', marginBottom: 6 }}
         />
-        <p style={{ fontSize: 12, color: 'rgba(245,239,230,0.8)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-          {t('promo_college_sub', lang)} <span style={{ color: '#DCC9A8', fontWeight: 600 }}>{t('promo_college_cta', lang)} →</span>
+        <p style={{ fontSize: 12, color: 'rgba(245,239,230,0.88)', fontFamily: 'var(--font-sans)', margin: '0 0 4px' }}>
+          {t(college.locKey, lang)}
+        </p>
+        <p style={{ fontSize: 12, color: 'rgba(245,239,230,0.75)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+          {t('promo_college_sub', lang)}{' '}
+          <span style={{ color: '#DCC9A8', fontWeight: 600 }}>{t('promo_college_cta', lang)} →</span>
+        </p>
+      </a>
+
+      {/* ── Selah — coming 1 October (learn more, not a fake download) ── */}
+      <a
+        href={SELAH_HREF}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => track('house_ad_selah')}
+        aria-label={`${t('promo_selah_label', lang)} — ${t('promo_selah_title', lang)}`}
+        style={{
+          ...card,
+          background: '#1A1612',
+          marginBottom: 0,
+        }}
+      >
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C8926E', fontFamily: 'var(--font-sans)', margin: '0 0 3px' }}>
+          {t('promo_selah_label', lang)}
+        </p>
+        <p style={{ fontSize: 15, fontWeight: 700, color: '#F5EFE6', fontFamily: 'var(--font-serif)', margin: '0 0 3px', lineHeight: 1.25 }}>
+          {t('promo_selah_title', lang)}
+        </p>
+        <p style={{ fontSize: 12, color: 'rgba(245,239,230,0.75)', fontFamily: 'var(--font-sans)', margin: '0 0 6px', lineHeight: 1.4 }}>
+          {t('promo_selah_sub', lang)}
+        </p>
+        <p style={{ fontSize: 12, color: '#DCC9A8', fontWeight: 600, fontFamily: 'var(--font-sans)', margin: 0 }}>
+          {t('promo_selah_cta', lang)} →
         </p>
       </a>
     </div>
