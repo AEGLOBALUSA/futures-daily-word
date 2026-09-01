@@ -15,8 +15,9 @@ import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
 import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
 import { t, getLang, tField } from '../utils/i18n';
-import { PERSONA_PLAN_IDS, type Persona } from '../utils/persona-config';
+import { PERSONA_PLAN_IDS, isNewChristianPersona, type Persona } from '../utils/persona-config';
 import { PathwayPicker } from '../components/PathwayPicker';
+import { ensureGraceSeriesEnrolled, GRACE_SERIES_TITLE, GRACE_SERIES_TOTAL_DAYS } from '../utils/coldStart';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -361,11 +362,12 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
     deeper: PERSONA_PLAN_IDS.deeper_study,
     difficult: PERSONA_PLAN_IDS.comfort,
   };
-  const priorityIds = [...(PERSONA_PRIORITY[persona] || PERSONA_PLAN_IDS.new_to_faith)];
+  const priorityIds = [...(PERSONA_PRIORITY[persona] || PERSONA_PLAN_IDS.congregation)];
   const browsePlans = PLAN_CATALOGUE
     .filter(p => priorityIds.includes(p.id))
     .sort((a, b) => priorityIds.indexOf(a.id) - priorityIds.indexOf(b.id));
   const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
+  const isNewChristian = isNewChristianPersona(persona);
 
   // Hub view (V1 structure) - the main Plans & More page
   if (!showPlanDetail) {
@@ -460,13 +462,13 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
             onSelect={(p: Persona) => {
               const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
               saveSetup({ persona: p, source: src });
+              if (p === 'new_to_faith') ensureGraceSeriesEnrolled();
               setPersona(p);
             }}
             onBeginDay1={() => onNavigate?.('home')}
           />
 
-          {/* Search the Bible — surfaces the Home-mounted BibleSearch (the tab must
-              be switched first: only the active tab's screen is mounted). */}
+          {!isNewChristian && (
           <button
             onClick={() => {
               track('plans_search_row');
@@ -490,11 +492,12 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
             </span>
             <ChevronRight size={16} style={{ color: 'var(--dw-text-muted)' }} />
           </button>
+          )}
 
 {/* Devotion removed from Plans page — devotion lives on the home screen only */}
 
           {/* My Campus */}
-          {campusData && (
+          {!isNewChristian && campusData && (
             <Card style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -526,29 +529,12 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
             </Card>
           )}
 
-          {/* Your Plans */}
+          {/* Your Plans — catalog progress. New Christians get the one 40-day
+              card below instead (the pathway is not a dw_activeplans entry). */}
+          {!isNewChristian && (
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('your_plans', lang)}</h2>
-            {myPlans.length === 0 && faithJourney ? (
-              /* New believers are auto-enrolled in the Faith Pathway on Home, which
-                 is not a dw_activeplans entry — so this tab used to tell them
-                 "No active plans" while Home said "Day 1 of 40". Show the journey
-                 they are actually on, and send them back to it. */
-              <Card style={{ cursor: 'pointer' }} onClick={() => onNavigate?.('home')}>
-                <p className="text-card-title" style={{ marginBottom: 8 }}>{faithJourney.title}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ flex: 1, height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{
-                      width: `${Math.min(100, (faithJourney.completed / faithJourney.total) * 100)}%`,
-                      height: '100%', background: 'var(--dw-accent)', borderRadius: 2,
-                    }} />
-                  </div>
-                  <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                    {t('p_day_of', lang)} {faithJourney.currentDay} {t('p_of', lang)} {faithJourney.total}
-                  </span>
-                </div>
-              </Card>
-            ) : myPlans.length === 0 ? (
+            {myPlans.length === 0 ? (
               <EmptyState
                 compact
                 icon={Calendar}
@@ -584,36 +570,64 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
               </div>
             )}
           </div>
+          )}
 
-          {/* ── Browse Plans (Superdesign) ── */}
+          {/* ── Matching plans (Superdesign) ── */}
           <div style={{ marginBottom: 24 }}>
-            <h2 className="dw-plans-sd-section">{t('browse_plans', lang)}</h2>
+            {!isNewChristian && <h2 className="dw-plans-sd-section">{t('browse_plans', lang)}</h2>}
             <div className="dw-plans-sd-list">
-              {browsePlans.map(plan => {
-                const isActive = activePlanIds.includes(plan.id);
-                return (
-                  <div key={plan.id} className="dw-plan-sd-card">
-                    <p className="dw-plan-sd-days">
-                      {t('plan_days', lang).replace('{n}', String(plan.totalDays))}
+              {isNewChristian ? (
+                <div className="dw-plan-sd-card">
+                  <p className="dw-plan-sd-days">
+                    {t('plan_days', lang).replace('{n}', String(GRACE_SERIES_TOTAL_DAYS))}
+                  </p>
+                  <h3 className="dw-plan-sd-name">{faithJourney?.title || GRACE_SERIES_TITLE}</h3>
+                  {faithJourney && (
+                    <p className="dw-plan-sd-active">
+                      {t('p_day_of', lang)} {faithJourney.currentDay} {t('p_of', lang)} {faithJourney.total}
                     </p>
-                    <h3 className="dw-plan-sd-name">{tField(plan, 'title', lang)}</h3>
-                    {isActive ? (
-                      <p className="dw-plan-sd-active">{t('plan_active', lang)}</p>
-                    ) : (
-                      <button
-                        type="button"
-                        className="dw-plan-sd-start"
-                        onClick={() => startPlan(plan.id)}
-                      >
-                        {t('start_this_plan', lang)}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                  )}
+                  <button
+                    type="button"
+                    className="dw-plan-sd-start"
+                    onClick={() => {
+                      ensureGraceSeriesEnrolled();
+                      onNavigate?.('home');
+                    }}
+                    style={faithJourney ? { marginTop: 16 } : undefined}
+                  >
+                    {faithJourney ? t('continue_journey', lang) : t('start_this_plan', lang)}
+                  </button>
+                </div>
+              ) : (
+                browsePlans.map(plan => {
+                  const isActive = activePlanIds.includes(plan.id);
+                  return (
+                    <div key={plan.id} className="dw-plan-sd-card">
+                      <p className="dw-plan-sd-days">
+                        {t('plan_days', lang).replace('{n}', String(plan.totalDays))}
+                      </p>
+                      <h3 className="dw-plan-sd-name">{tField(plan, 'title', lang)}</h3>
+                      {isActive ? (
+                        <p className="dw-plan-sd-active">{t('plan_active', lang)}</p>
+                      ) : (
+                        <button
+                          type="button"
+                          className="dw-plan-sd-start"
+                          onClick={() => startPlan(plan.id)}
+                        >
+                          {t('start_this_plan', lang)}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
+          {!isNewChristian && (
+          <>
           {/* Ps A's Books */}
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>PASTOR ASHLEY'S BOOKS</h2>
@@ -746,6 +760,8 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
           </div>
 
           <PromoAds />
+          </>
+          )}
         </div>
       </div>
     );

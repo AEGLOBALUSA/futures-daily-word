@@ -8,8 +8,10 @@ import {
   beginDay1,
   markDay1Read,
   hasBegunDay1,
+  ensureGraceSeriesEnrolled,
   GRACE_SERIES_PERSONA,
   GRACE_SERIES_TOTAL_DAYS,
+  GRACE_SERIES_TITLE,
 } from './coldStart';
 
 beforeEach(() => {
@@ -100,5 +102,28 @@ describe('Day 1 reading surface', () => {
     const p = readPathwayProgress();
     expect(p.completedDays).toContain(1);
     expect(p.currentDay).toBe(2);
+  });
+});
+
+describe('ensureGraceSeriesEnrolled', () => {
+  it('enrolls the 40-day journey without changing persona', () => {
+    localStorage.setItem('dw_setup', JSON.stringify({ persona: 'congregation', source: 'settings' }));
+    ensureGraceSeriesEnrolled();
+    expect(JSON.parse(localStorage.getItem('dw_setup') || '{}').persona).toBe('congregation');
+    const p = readPathwayProgress();
+    expect(p.enrolled).toBe(true);
+    expect(p.totalDays).toBe(GRACE_SERIES_TOTAL_DAYS);
+    expect(p.title).toBe(GRACE_SERIES_TITLE);
+    expect(p.currentDay).toBe(1);
+  });
+
+  it('does not reset a series already in progress', () => {
+    localStorage.setItem('dw_pathway_progress', JSON.stringify({
+      enrolled: true, currentDay: 12, completedDays: [1, 2, 3], totalDays: 40, title: GRACE_SERIES_TITLE,
+    }));
+    ensureGraceSeriesEnrolled();
+    const p = readPathwayProgress();
+    expect(p.currentDay).toBe(12);
+    expect(p.completedDays).toEqual([1, 2, 3]);
   });
 });

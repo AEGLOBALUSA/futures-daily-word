@@ -83,17 +83,7 @@ export function startGraceSeriesIfCold(source: ColdStartSource = 'default'): boo
     localStorage.setItem('dw_setup', JSON.stringify(setup));
     localStorage.setItem('dw_v7_pathway_done', 'true');
 
-    const existing = readPathwayProgress();
-    if (!existing.enrolled) {
-      const progress: PathwayProgress = {
-        enrolled: true,
-        currentDay: 1,
-        completedDays: [],
-        totalDays: GRACE_SERIES_TOTAL_DAYS,
-        title: GRACE_SERIES_TITLE,
-      };
-      localStorage.setItem('dw_pathway_progress', JSON.stringify(progress));
-    }
+    ensureGraceSeriesEnrolled();
 
     if (!localStorage.getItem('dw_chapters_per_day')) {
       localStorage.setItem('dw_chapters_per_day', '1');
@@ -102,6 +92,35 @@ export function startGraceSeriesIfCold(source: ColdStartSource = 'default'): boo
   } catch {
     return false;
   }
+}
+
+/**
+ * Fill-only enroll in the 40-day New & Returning to Faith journey.
+ * Does not change persona, does not reset a series already in progress,
+ * and does not start catalog plan `faith-pathway` (that's 30-day Foundations).
+ */
+export function ensureGraceSeriesEnrolled(): void {
+  try {
+    const existing = readPathwayProgress();
+    if (existing.enrolled) {
+      if (!existing.totalDays || !existing.title) {
+        localStorage.setItem('dw_pathway_progress', JSON.stringify({
+          ...existing,
+          totalDays: existing.totalDays || GRACE_SERIES_TOTAL_DAYS,
+          title: existing.title || GRACE_SERIES_TITLE,
+        }));
+      }
+      return;
+    }
+    const progress: PathwayProgress = {
+      enrolled: true,
+      currentDay: existing.currentDay || 1,
+      completedDays: existing.completedDays || [],
+      totalDays: GRACE_SERIES_TOTAL_DAYS,
+      title: GRACE_SERIES_TITLE,
+    };
+    localStorage.setItem('dw_pathway_progress', JSON.stringify(progress));
+  } catch { /* quota */ }
 }
 
 export function hasBegunDay1(): boolean {

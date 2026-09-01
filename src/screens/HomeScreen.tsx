@@ -816,6 +816,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   const todaysPlanPassages = (() => {
     try {
+      // New Christians read the 40-day pathway, not catalog plans (Ashley).
+      if (personaConfig.persona === 'new_to_faith') {
+        try { localStorage.setItem('dw_todays_plan_passages', '[]'); } catch {}
+        return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; titleId?: string; author: string; body: string; bodyId?: string } }>;
+      }
       const ap: Record<string, { startedAt: string; completedDays: number[]; lastDay: number }> =
         JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
       const out: Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; titleId?: string; author: string; body: string; bodyId?: string } }> = [];

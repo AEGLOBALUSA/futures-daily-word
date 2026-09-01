@@ -3,6 +3,8 @@ import { X, Check, ChevronRight } from 'lucide-react';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { t, getLang, tField } from '../utils/i18n';
 import { useModalA11y } from '../utils/useModalA11y';
+import { isNewChristianPersona } from '../utils/persona-config';
+import { ensureGraceSeriesEnrolled, GRACE_SERIES_TITLE, GRACE_SERIES_TOTAL_DAYS } from '../utils/coldStart';
 
 interface Props {
   onComplete: (chaptersPerDay: number, planIds: string[]) => void;
@@ -21,12 +23,12 @@ const DEFAULT_FEATURED = [
 
 // Persona-specific plans surfaced at the top (V7 + legacy)
 const PERSONA_PLANS: Record<string, string[]> = {
-  new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
+  new_to_faith: [],
   congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
   deeper_study: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
   pastor_leader: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
   comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
-  new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
+  new_returning: [],
   pastor: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
   deeper: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
   difficult: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
@@ -66,9 +68,11 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
   // Reading volume is a smart default now, not an onboarding decision.
   const chapters = PERSONA_CHAPTERS[persona] ?? 2;
 
-  const featuredIds = PERSONA_PLANS[persona] || DEFAULT_FEATURED;
+  const isNewChristian = isNewChristianPersona(persona);
+  const featuredIds = isNewChristian ? [] : (PERSONA_PLANS[persona] || DEFAULT_FEATURED);
   const featuredPlans = featuredIds.map(id => PLAN_CATALOGUE.find(p => p.id === id)).filter(Boolean) as typeof PLAN_CATALOGUE;
-  const otherPlans = PLAN_CATALOGUE.filter(p => !featuredIds.includes(p.id));
+  // Empty featuredIds would otherwise dump the whole catalog into "more plans".
+  const otherPlans = isNewChristian ? [] : PLAN_CATALOGUE.filter(p => !featuredIds.includes(p.id));
   const planLabel = t(PERSONA_LABELS[persona] || 'pick_reading_plan', lang);
 
   const togglePlan = (id: string) => {
@@ -78,6 +82,11 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
   };
 
   const handleDone = () => {
+    if (isNewChristian) {
+      ensureGraceSeriesEnrolled();
+      onComplete(chapters, []);
+      return;
+    }
     onComplete(chapters, selectedPlans);
   };
 
@@ -147,6 +156,15 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
 
         {/* Scrollable content — plan picker */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+          {isNewChristian ? (
+            <div className="dw-plan-sd-card" style={{ marginBottom: 20 }}>
+              <p className="dw-plan-sd-days">
+                {t('plan_days', lang).replace('{n}', String(GRACE_SERIES_TOTAL_DAYS))}
+              </p>
+              <h3 className="dw-plan-sd-name">{GRACE_SERIES_TITLE}</h3>
+            </div>
+          ) : (
+          <>
           {/* Featured */}
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--dw-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
             {persona ? t('p_recommended', lang) : t('popular_label', lang)}
@@ -242,6 +260,8 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
               </div>
             </>
           )}
+          </>
+          )}
         </div>
 
         {/* Footer CTA */}
@@ -255,7 +275,9 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
               color: '#fff', fontFamily: 'var(--font-sans)', minHeight: 50,
             }}
           >
-            {selectedPlans.length > 0
+            {isNewChristian
+              ? t('start_this_plan', lang)
+              : selectedPlans.length > 0
               ? (selectedPlans.length === 1 ? t('start_plans_one', lang) : t('start_plans_many', lang).replace('{n}', String(selectedPlans.length)))
               : t('skip_plans', lang)}
             <ChevronRight size={18} />

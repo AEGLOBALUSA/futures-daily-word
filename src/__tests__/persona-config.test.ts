@@ -5,6 +5,7 @@ import {
   PERSONA_CONFIGS,
   PERSONA_PLAN_IDS,
   ALL_PERSONAS,
+  isNewChristianPersona,
 } from '../utils/persona-config';
 import type { Persona } from '../utils/persona-config';
 
@@ -39,9 +40,7 @@ describe('PERSONA_CONFIGS', () => {
   });
 
   it('each path filters to the live matching plan ids', () => {
-    expect([...PERSONA_PLAN_IDS.new_to_faith]).toEqual([
-      'ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ',
-    ]);
+    expect([...PERSONA_PLAN_IDS.new_to_faith]).toEqual([]);
     expect([...PERSONA_PLAN_IDS.congregation]).toEqual([
       'ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling',
     ]);
@@ -54,6 +53,12 @@ describe('PERSONA_CONFIGS', () => {
     expect([...PERSONA_PLAN_IDS.comfort]).toEqual([
       'peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway',
     ]);
+  });
+
+  it('treats I\'m New / new_returning as the one-journey path', () => {
+    expect(isNewChristianPersona('new_to_faith')).toBe(true);
+    expect(isNewChristianPersona('new_returning')).toBe(true);
+    expect(isNewChristianPersona('congregation')).toBe(false);
   });
 });
 
