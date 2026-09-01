@@ -287,6 +287,16 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* /staff is a separate full page. Congregation tabs still need the lock above. */
+html.staff-route,
+html.staff-route body,
+html.staff-route #root {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--dw-canvas);
@@ -1270,4 +1280,177 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #C98A2E;
+}
+
+/* Locked Sermon Notes surface (live page + staff preview). Ivory even in dark theme. */
+.dw-sermon-notes-phone {
+  width: 390px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #FAF6EF;
+}
+.dw-sermon-notes {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #FAF6EF;
+  color: #241E17;
+  caret-color: #A8552F;
+}
+.dw-sermon-notes-video {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 0 28px;
+  background: #000;
+}
+.dw-sermon-notes-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.dw-sermon-notes-meta {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7A6A54;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+.dw-sermon-notes-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #241E17;
+  margin: 0 0 8px;
+  text-transform: none;
+  text-decoration: none;
+  letter-spacing: 0;
+}
+.dw-sermon-notes-ref {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: #7A6A54;
+  margin: 0 0 32px;
+  line-height: 1.4;
+}
+.dw-sermon-notes-section {
+  margin: 0 0 36px;
+}
+.dw-sermon-notes-subhead {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #241E17;
+  margin: 0 0 14px;
+}
+.dw-sermon-notes-point {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: #241E17;
+  margin: 0 0 8px;
+}
+.dw-sermon-notes-point::before {
+  content: "·  ";
+}
+.dw-sermon-notes-point.is-bold {
+  font-weight: 600;
+}
+.dw-sermon-notes-quote {
+  font-family: var(--font-serif-text);
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #241E17;
+  border: none;
+  border-left: 2px solid #A8552F;
+  padding: 8px 0 8px 12px;
+  margin: 0 0 16px;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+.dw-sermon-notes-quote cite {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-style: normal;
+  color: #7A6A54;
+  margin-top: 6px;
+}
+.dw-sermon-notes-note {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #7A6A54;
+  margin: 0 0 8px;
+}
+.dw-sermon-notes-blank {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: 12px 0 0;
+  border: 1.5px solid #ECE3D4;
+  border-radius: 10px;
+  background: #FFF;
+  box-shadow: none;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: #241E17;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  caret-color: #A8552F;
+  box-sizing: border-box;
+}
+.dw-sermon-notes-blank.is-response {
+  min-height: 88px;
+}
+.dw-sermon-notes-blank::placeholder {
+  color: #7A6A54;
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 1;
+}
+.dw-sermon-notes-response {
+  margin: 8px 0 0;
+}
+.dw-sermon-notes-response-label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7A6A54;
+  margin: 8px 0 20px;
+}
+.dw-sermon-notes-prompt {
+  margin: 0 0 24px;
+}
+.dw-sermon-notes-prompt-q {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: #241E17;
+  margin: 0 0 8px;
 }

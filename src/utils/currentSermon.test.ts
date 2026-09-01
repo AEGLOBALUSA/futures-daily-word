@@ -12,12 +12,23 @@ afterEach(() => {
 });
 
 describe('sermon archive vs current feed', () => {
-  it('keeps Tying Up Loose Ends in the archive, not as latest.json', () => {
+  it('keeps Tying Up Loose Ends in the archive', () => {
     expect(existsSync(ARCHIVE)).toBe(true);
     const archived = JSON.parse(readFileSync(ARCHIVE, 'utf-8'));
     expect(archived.id).toBe('tying-up-loose-ends-2026-04-05');
     expect(String(archived.title).toUpperCase()).toContain('TYING UP LOOSE ENDS');
-    expect(existsSync(LATEST)).toBe(false);
+  });
+
+  it('ships a SAMPLE latest.json for the preview congregation page', () => {
+    expect(existsSync(LATEST)).toBe(true);
+    const latest = JSON.parse(readFileSync(LATEST, 'utf-8'));
+    expect(latest.id).toBe('sample-love-asks-again-2026-08-31');
+    expect(latest.series).toBe('SAMPLE');
+    expect(latest.title).toBe('Love Asks Again');
+    expect(latest.youtubeUrl).toBe('');
+    expect(latest.sections.length).toBeLessThanOrEqual(4);
+    expect(latest.sections.every((s: { content: { type: string }[] }) => s.content.some(c => c.type === 'blank'))).toBe(true);
+    expect(latest.responsePrompts.length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -33,6 +44,32 @@ describe('fetchCurrentSermon', () => {
       json: async () => ({ title: 'Untitled' }),
     }));
     await expect(fetchCurrentSermon()).resolves.toBeNull();
+  });
+
+  it('on deploy-preview prefers latest.json so sample notes never need the shared DB', async () => {
+    const sample = { id: 'sample-love-asks-again-2026-08-31', title: 'Love Asks Again' };
+    vi.stubGlobal('location', { hostname: 'deploy-preview-69--futures-daily-word.netlify.app' });
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('latest.json')) {
+        return { ok: true, json: async () => sample };
+      }
+      return { ok: true, json: async () => ({ sermon: { id: 'live-from-db', title: 'Live' } }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(fetchCurrentSermon()).resolves.toEqual(sample);
+    expect(fetchMock.mock.calls.some((c: unknown[]) => String(c[0]).includes('published-sermon'))).toBe(false);
+  });
+
+  it('prefers the approved intake sermon over a static file', async () => {
+    const sermon = { id: 'hope-2026-09-06', title: 'Hope' };
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('published-sermon')) {
+        return { ok: true, json: async () => ({ sermon }) };
+      }
+      return { ok: true, json: async () => ({ id: 'stale', title: 'Stale' }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(fetchCurrentSermon()).resolves.toEqual(sermon);
   });
 
   it('returns the sermon when latest.json is a real message', async () => {

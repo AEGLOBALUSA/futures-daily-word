@@ -11,7 +11,7 @@ import { pushNow, syncMisc, flushNow } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
-import { API_BASE } from '../utils/api-base';
+import { API_BASE, staffPortalUrl } from '../utils/api-base';
 import { CampusSelect } from '../components/CampusSelect';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
@@ -20,7 +20,7 @@ import { PWAInstallSettingsBlock } from '../components/PWAInstall';
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
   Download, Languages, MapPin, Heart,
-  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send
+  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send, ClipboardList
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
@@ -1079,6 +1079,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
             }}>{t('admin_label', lang)}</p>
             <Card style={{ padding: 0, overflow: 'hidden' }}>
+              <a href={staffPortalUrl()} style={{ ...rowStyle, textDecoration: 'none', color: 'inherit' }}>
+                <ClipboardList size={18} style={iconStyle} />
+                <span style={{ flex: 1 }}>{t('staff_intake', lang)}</span>
+                <span style={valStyle}>→</span>
+              </a>
+              <div style={dividerStyle} />
               {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor') && (
                 <>
                   <button

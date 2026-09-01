@@ -19,14 +19,6 @@ const ALLOWED_ORIGINS = [
   'https://futures-church.netlify.app'
 ];
 
-/**
- * Returns the matching CORS origin header value.
- * Falls back to the primary origin if the request origin isn't in the list.
- */
-function getAllowedOrigin(origin) {
-  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-}
-
 /** Parse Origin (or Referer URL) into an origin string for allowlist checks. */
 function parseRequestOrigin(originOrReferer) {
   if (!originOrReferer) return '';
@@ -38,10 +30,27 @@ function parseRequestOrigin(originOrReferer) {
   }
 }
 
+/** Netlify deploy-preview / branch deploys of this site only — exact host shape. */
+function isDailyWordPreviewOrigin(origin) {
+  return /^https:\/\/[a-z0-9-]+--futures-daily-word\.netlify\.app$/.test(origin || '');
+}
+
+/**
+ * Returns the matching CORS origin header value.
+ * Falls back to the primary origin if the request origin isn't in the list.
+ */
+function getAllowedOrigin(origin) {
+  const parsed = parseRequestOrigin(origin);
+  if (ALLOWED_ORIGINS.includes(parsed) || isDailyWordPreviewOrigin(parsed)) return parsed;
+  return ALLOWED_ORIGINS.includes(origin) || isDailyWordPreviewOrigin(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+}
+
 /** Exact-match allowlist check — never use startsWith (prefix bypass risk). */
 function isAllowedOrigin(originOrReferer) {
   const origin = parseRequestOrigin(originOrReferer);
-  return !!origin && ALLOWED_ORIGINS.includes(origin);
+  return !!origin && (ALLOWED_ORIGINS.includes(origin) || isDailyWordPreviewOrigin(origin));
 }
 
-module.exports = { ALLOWED_ORIGINS, getAllowedOrigin, parseRequestOrigin, isAllowedOrigin };
+module.exports = { ALLOWED_ORIGINS, getAllowedOrigin, parseRequestOrigin, isAllowedOrigin, isDailyWordPreviewOrigin };

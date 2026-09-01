@@ -423,6 +423,9 @@ const UI: Translations = {
 
   // \u2500\u2500 CAMPUS PICKER (Campus tab empty state) \u2500\u2500
   choose_campus_here: { en: 'Choose your campus to see updates from your pastor.', es: 'Elige tu sede para ver actualizaciones de tu pastor.', pt: 'Escolha seu campus para ver atualiza\u00e7\u00f5es do seu pastor.', id: 'Pilih kampus Anda untuk melihat pembaruan dari pendeta Anda.' },
+  staff_intake: { en: 'Staff intake', es: 'Formulario del equipo', pt: 'Formul\u00e1rio da equipe', id: 'Formulir staf' },
+  staff_intake_hint: { en: 'Campus updates and sermon notes go through one form. Save puts them live.', es: 'Las actualizaciones del campus y las notas del serm\u00f3n pasan por un formulario. Se publican al guardar.', pt: 'Atualiza\u00e7\u00f5es do campus e notas do serm\u00e3o passam por um formul\u00e1rio. Entram no ar ao salvar.', id: 'Pembaruan kampus dan catatan khotbah lewat satu formulir. Tayang saat disimpan.' },
+  pastors_submit_staff: { en: 'Pastors put campus updates on the staff form. Save puts them on the campus corner.', es: 'Los pastores env\u00edan actualizaciones del campus a trav\u00e9s del formulario del equipo. Se publican al guardar.', pt: 'Pastores enviam atualiza\u00e7\u00f5es do campus pelo formul\u00e1rio da equipe. Entram no ar ao salvar.', id: 'Pendeta mengirim pembaruan kampus lewat formulir staf. Tayang saat disimpan.' },
 
   // \u2500\u2500 JOURNAL SERMON TAB \u2500\u2500
   j_from_campus_tab: { en: 'From the Campus tab', es: 'De la pesta\u00f1a Sede', pt: 'Da aba Campus', id: 'Dari tab Kampus' },
@@ -603,6 +606,13 @@ const UI: Translations = {
   promo_books_sub: { en: 'Read them free at futures.church', es: 'L\u00e9elos gratis en futures.church', pt: 'Leia gr\u00e1tis em futures.church', id: 'Baca gratis di futures.church' },
   promo_college_sub: { en: 'Train for what God has called you to.', es: 'F\u00f3rmate para lo que Dios te ha llamado a hacer.', pt: 'Prepare-se para o que Deus te chamou a fazer.', id: 'Bersiaplah untuk panggilan Tuhan atasmu.' },
   promo_college_cta: { en: 'Explore the college', es: 'Conoce el instituto', pt: 'Conhe\u00e7a a faculdade', id: 'Jelajahi kampusnya' },
+  promo_college_loc_au: { en: 'Paradise, Adelaide + Online', es: 'Paradise, Adelaida + en l\u00ednea', pt: 'Paradise, Adelaide + online', id: 'Paradise, Adelaide + Online' },
+  promo_college_loc_us: { en: 'Alpharetta, GA + Online', es: 'Alpharetta, GA + en l\u00ednea', pt: 'Alpharetta, GA + online', id: 'Alpharetta, GA + Online' },
+  promo_college_choose: { en: 'Choose your campus', es: 'Elige tu campus', pt: 'Escolha seu campus', id: 'Pilih kampusmu' },
+  promo_selah_label: { en: 'Selah, our app', es: 'Selah, nuestra app', pt: 'Selah, nosso app', id: 'Selah, aplikasi kami' },
+  promo_selah_title: { en: 'Coming 1 October', es: 'Llega el 1 de octubre', pt: 'Chega em 1\u00ba de outubro', id: 'Hadir 1 Oktober' },
+  promo_selah_sub: { en: 'A daily pastoral companion. For the questions you can\u2019t google.', es: 'Un acompa\u00f1ante pastoral diario. Para las preguntas que no puedes googlear.', pt: 'Um companheiro pastoral di\u00e1rio. Para as perguntas que voc\u00ea n\u00e3o googleia.', id: 'Pendamping pastoral harian. Untuk pertanyaan yang tak bisa digoogle.' },
+  promo_selah_cta: { en: 'Learn more', es: 'Saber m\u00e1s', pt: 'Saiba mais', id: 'Pelajari' },
   continue_journey: { en: 'Continue Journey', es: 'Continuar el camino', pt: 'Continuar a jornada', id: 'Lanjutkan Perjalanan' },
   todays_study: { en: "TODAY'S STUDY", es: 'ESTUDIO DE HOY', pt: 'ESTUDO DE HOJE', id: 'STUDI HARI INI' },
   for_you: { en: 'FOR YOU', es: 'PARA TI', pt: 'PARA VOC\u00ca', id: 'UNTUKMU' },
