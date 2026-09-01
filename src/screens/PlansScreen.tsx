@@ -231,12 +231,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
     } catch { return ''; }
   });
   const REAL_PATH = new Set(['onboarding', 'settings', 'upgrade']);
-  const [showChooser, setShowChooser] = useState(() => {
-    try {
-      const src = JSON.parse(localStorage.getItem('dw_setup') || '{}').source || '';
-      return !REAL_PATH.has(src);
-    } catch { return true; }
-  });
 
   // The auto-enrolled Faith Pathway lives in dw_pathway_progress, not in
   // dw_activeplans — totalDays is mirrored there by HomeScreen when the pathway
@@ -378,22 +372,6 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
   if (!showPlanDetail) {
     if (showLibrary) {
       return <LibraryScreen onBack={() => setShowLibrary(false)} />;
-    }
-    if (showChooser) {
-      return (
-        <div className="screen-container" style={{ background: '#FAF6EF' }}>
-          <PathwayPicker
-            currentPersona={persona}
-            onSelect={(p: Persona) => {
-              const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
-              saveSetup({ persona: p, source: src });
-              setPersona(p);
-              setShowChooser(false);
-            }}
-            onBeginDay1={() => onNavigate?.('home')}
-          />
-        </div>
-      );
     }
     return (
       <div className="screen-container">
@@ -549,6 +527,17 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
             </Card>
           )}
 
+          <PathwayPicker
+            embedded
+            currentPersona={persona}
+            onSelect={(p: Persona) => {
+              const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
+              saveSetup({ persona: p, source: src });
+              setPersona(p);
+            }}
+            onBeginDay1={() => onNavigate?.('home')}
+          />
+
           {/* Your Plans */}
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('your_plans', lang)}</h2>
@@ -610,22 +599,10 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
 
           {/* ── All Reading Plans ── */}
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('reading_plans_header', getLang())}</h2>
-            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 8, fontFamily: 'var(--font-sans)', paddingLeft: 4 }}>
+            <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('browse_plans', getLang())}</h2>
+            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 16, fontFamily: 'var(--font-sans)', paddingLeft: 4 }}>
               {t('plans_start_hint', lang)}
             </p>
-            <button
-              type="button"
-              onClick={() => setShowChooser(true)}
-              style={{
-                background: 'none', border: 'none', padding: '0 4px 12px',
-                fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
-                color: '#A8552F', cursor: 'pointer', textDecoration: 'underline',
-                textUnderlineOffset: 3,
-              }}
-            >
-              {t('change_path', lang)}
-            </button>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {(() => {
                 const categories = Array.from(new Set(browsePlans.map(p => p.category)));

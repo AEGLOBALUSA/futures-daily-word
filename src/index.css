@@ -1164,3 +1164,13 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.dw-path-embedded {
+  padding: 8px 4px 28px;
+}
+.dw-path-embedded .dw-path-title {
+  margin-top: 0;
+  font-size: 26px;
+}
+.dw-path-embedded .dw-path-secondary {
+  margin: 12px 0 0;
+}

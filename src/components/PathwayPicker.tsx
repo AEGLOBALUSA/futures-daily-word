@@ -22,11 +22,13 @@ interface Props {
   onSelect: (persona: Persona) => void;
   onBeginDay1?: () => void;
   currentPersona?: string;
+  /** Inline on the Plans screen — buttons and catalog stay visible together. */
+  embedded?: boolean;
 }
 
-export function PathwayPicker({ onSelect, onBeginDay1, currentPersona }: Props) {
+export function PathwayPicker({ onSelect, onBeginDay1, currentPersona, embedded }: Props) {
   const lang = getLang();
-  const dialogRef = useModalA11y(true);
+  const dialogRef = useModalA11y(!embedded);
 
   function handleSelect(persona: Persona) {
     const hasManualTranslation = localStorage.getItem('dw_translation_manual');
@@ -42,6 +44,44 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona }: Props) 
       if (suggested) localStorage.setItem('dw_translation', suggested);
     }
     onSelect(persona);
+  }
+
+  const body = (
+    <>
+      <h1 id="dw-path-chooser-title" className="dw-path-title">
+        {t('path_chooser_title', lang)}
+      </h1>
+      <p className="dw-path-sub">{t('path_chooser_sub', lang)}</p>
+      <div className="dw-path-list">
+        {ALL_PERSONAS.map(persona => {
+          const isCurrent = currentPersona === persona;
+          return (
+            <button
+              key={persona}
+              type="button"
+              className={`dw-path-card${isCurrent ? ' is-current' : ''}`}
+              onClick={() => handleSelect(persona)}
+            >
+              <span className="dw-path-card-label">{t(PERSONA_I18N[persona], lang)}</span>
+              <span className="dw-path-card-desc">{t(PERSONA_I18N[persona] + '_desc', lang)}</span>
+            </button>
+          );
+        })}
+      </div>
+      {onBeginDay1 && (
+        <button type="button" className="dw-path-secondary" onClick={onBeginDay1}>
+          {t('not_sure_begin_day1', lang)}
+        </button>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <section className="dw-path-embedded" aria-labelledby="dw-path-chooser-title">
+        {body}
+      </section>
+    );
   }
 
   return (
@@ -61,33 +101,7 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona }: Props) 
           height={16}
         />
       </header>
-      <main className="dw-path-main">
-        <h1 id="dw-path-chooser-title" className="dw-path-title">
-          {t('path_chooser_title', lang)}
-        </h1>
-        <p className="dw-path-sub">{t('path_chooser_sub', lang)}</p>
-        <div className="dw-path-list">
-          {ALL_PERSONAS.map(persona => {
-            const isCurrent = currentPersona === persona;
-            return (
-              <button
-                key={persona}
-                type="button"
-                className={`dw-path-card${isCurrent ? ' is-current' : ''}`}
-                onClick={() => handleSelect(persona)}
-              >
-                <span className="dw-path-card-label">{t(PERSONA_I18N[persona], lang)}</span>
-                <span className="dw-path-card-desc">{t(PERSONA_I18N[persona] + '_desc', lang)}</span>
-              </button>
-            );
-          })}
-        </div>
-        {onBeginDay1 && (
-          <button type="button" className="dw-path-secondary" onClick={onBeginDay1}>
-            {t('not_sure_begin_day1', lang)}
-          </button>
-        )}
-      </main>
+      <main className="dw-path-main">{body}</main>
     </div>
   );
 }
