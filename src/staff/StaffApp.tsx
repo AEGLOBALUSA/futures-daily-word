@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { CAMPUSES } from '../data/tokens';
 import { getStaffToken, intake, setStaffToken } from './api';
-import { youtubeEmbedUrl } from '../utils/youtube';
+import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Staff = { email: string; role: Role; campusId: string | null; name: string; isAdmin: boolean };
@@ -20,7 +20,7 @@ type Question = {
   audience: string;
   required: boolean;
   enabled: boolean;
-  config: { publish?: string; itemType?: string; sermonKey?: string; default?: boolean };
+  config: { publish?: string; itemType?: string; sermonKey?: string; default?: boolean; flow?: string };
 };
 type CornerItem = { id: string; type: string; title: string; created_at?: string };
 type SermonChoice = { id: string; title: string; date?: string; speaker?: string; current?: boolean; source?: string };
@@ -58,9 +58,7 @@ const TYPES = [
   { id: 'yes_no', label: 'Yes / no' },
   { id: 'campus', label: 'Campus picker' },
   { id: 'date', label: 'Date' },
-  { id: 'corner_add', label: 'Add to campus corner' },
-  { id: 'corner_remove', label: 'Remove from campus corner' },
-  { id: 'sermon_notes', label: 'Sermon notes (legacy blob)' },
+  { id: 'corner_remove', label: 'Take one item down' },
   { id: 'sermon_pick', label: 'Which sermon' },
 ];
 const AUDIENCES = [
@@ -77,11 +75,11 @@ const inputStyle: CSSProperties = {
   color: 'var(--dw-text-primary)', fontSize: 15, fontFamily: 'var(--font-sans)', outline: 'none',
 };
 const labelStyle: CSSProperties = {
-  display: 'block', fontSize: 13, fontWeight: 700, margin: '0 0 6px',
-  color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)',
+  display: 'block', fontSize: 18, fontWeight: 700, margin: '0 0 6px',
+  color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1.3,
 };
 const helpStyle: CSSProperties = {
-  fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
+  fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
 };
 const btnPrimary: CSSProperties = {
   background: 'var(--dw-accent)', color: '#fff', border: 'none', borderRadius: 12,
@@ -100,12 +98,8 @@ function campusName(id: string | null | undefined) {
 }
 
 function emptyAnswer(q: Question): unknown {
-  if (q.type === 'corner_add') return [{ type: 'announcement', title: '', content: '' }];
-  if (q.type === 'corner_remove') return [];
-  if (q.type === 'sermon_notes') {
-    return { title: '', speaker: '', date: '', series: '', keyVerse: '', keyVerseText: '', outline: '' };
-  }
-  if (q.type === 'yes_no') return q.config?.default === true;
+  if (q.type === 'corner_remove') return '';
+  if (q.type === 'yes_no') return q.config?.default === true ? true : '';
   return '';
 }
 
@@ -333,17 +327,21 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   );
 }
 
+function isFlowQuestion(q: Question) {
+  return !!q.config?.flow;
+}
+
 function formIntro(role: Role) {
   if (role === 'hub') {
-    return 'Hub pastors put up notes when they preach. Paste whatever you have — AI formats it into the Sermon Notes page the congregation writes in. You can add the YouTube after Sunday. Ashley reviews before it goes live.';
+    return 'Answer each question, then paste your notes. If you want AI to format them, you will see the congregation page and sign off before Ashley reviews.';
   }
   if (role === 'media') {
-    return 'Media can add the YouTube after Sunday and clean the notes if the hub pastor needs a hand. Leave notes blank to keep the live outline and only attach the video. Ashley still reviews first.';
+    return 'Pick the sermon and add the YouTube if you have it. Paste notes only if you are cleaning them up. YouTube alone does not change the notes.';
   }
   if (role === 'campus') {
-    return 'Fill what applies for your campus. Ashley reviews it, then it appears on the campus corner.';
+    return 'Answer each question for your campus. Ashley reviews, then it appears on the campus corner.';
   }
-  return 'Hub pastors put up notes when they preach; media can add the YouTube after Sunday and clean the notes if needed. Campus pastors update their campus corner. Ashley reviews before anything goes live.';
+  return 'Hub pastors put up notes when they preach; media can add the YouTube after Sunday; campus pastors update their campus corner. Ashley reviews first.';
 }
 
 function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => void }) {
@@ -356,6 +354,7 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
   const [done, setDone] = useState(false);
   const [preview, setPreview] = useState<FormattedSermon | null>(null);
   const [previewSource, setPreviewSource] = useState('');
+  const [signedOff, setSignedOff] = useState(false);
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
 
   const load = useCallback(async (campusId?: string) => {
@@ -388,26 +387,65 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
 
   const campusLocked = staff.role === 'campus' && !!staff.campusId;
   const sermonForm = staff.role === 'hub' || staff.role === 'media' || staff.role === 'admin';
+  const flowQs = questions.filter(isFlowQuestion);
+  const formQs = questions.filter(q => !isFlowQuestion(q));
+  const haveQ = flowQs.find(q => q.config?.flow === 'notes_have');
+  const pasteQ = flowQs.find(q => q.config?.flow === 'notes_paste');
+  const aiQ = flowQs.find(q => q.config?.flow === 'notes_ai');
+  const haveNotes = haveQ ? answers[haveQ.id] === true : staff.role !== 'hub';
+  const paste = pasteQ ? String(answers[pasteQ.id] || '') : '';
+  const wantAI = aiQ ? answers[aiQ.id] === true : false;
+  const showPaste = !haveQ || haveNotes === true;
+  const showAI = showPaste && paste.trim().length > 0;
+  const needsSignOff = sermonForm && wantAI && paste.trim().length > 0;
 
-  const runPreview = async () => {
-    setBusy(true); onError('');
+  const setAnswer = (id: string, v: unknown) => {
+    setAnswers(a => ({ ...a, [id]: v }));
+    setPreview(null);
+    setSignedOff(false);
+    setDone(false);
+  };
+
+  const runPreview = async (override?: Record<string, unknown>) => {
+    setBusy(true); onError(''); setSignedOff(false);
     try {
-      const data = await intake<{ preview: FormattedSermon | null; source?: string }>('format_preview', { answers });
+      const data = await intake<{ preview: FormattedSermon | null; source?: string }>('format_preview', {
+        answers: override || answers,
+        useAI: true,
+      });
       setPreview(data.preview);
       setPreviewSource(data.source || '');
-      if (!data.preview) onError('Nothing to format yet — add notes or a YouTube link.');
+      if (!data.preview) onError('Nothing to format yet — paste your notes first.');
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Could not preview');
     }
     setBusy(false);
   };
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submit = async (e?: FormEvent, signed = false) => {
+    e?.preventDefault();
+    if (needsSignOff && !signed && !signedOff) {
+      onError('Sign off on the formatted notes before sending to Ashley.');
+      return;
+    }
+    if (haveQ && answers[haveQ.id] !== true && answers[haveQ.id] !== false) {
+      onError('Do you have your notes?');
+      return;
+    }
+    if (haveNotes && pasteQ && !paste.trim() && staff.role === 'hub') {
+      onError('Paste your notes.');
+      return;
+    }
     setBusy(true); onError(''); setDone(false);
     try {
-      const data = await intake<{ preview?: FormattedSermon | null }>('submit', { answers, campusId: pickCampus || staff.campusId });
+      const data = await intake<{ preview?: FormattedSermon | null }>('submit', {
+        answers,
+        campusId: pickCampus || staff.campusId,
+        signedOff: signed || signedOff,
+        formatted_sermon: (signed || signedOff) ? preview : undefined,
+      });
       if (data.preview) setPreview(data.preview);
+      setSignedOff(true);
       setDone(true);
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
@@ -440,7 +478,7 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
         </Field>
       )}
 
-      {questions.map(q => (
+      {formQs.map(q => (
         <QuestionField
           key={q.id}
           q={q}
@@ -450,29 +488,48 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
           cornerItems={cornerItems}
           sermons={sermons}
           require={q.required && (q.audience === staff.role || q.audience === 'all')}
-          onChange={v => { setAnswers(a => ({ ...a, [q.id]: v })); setPreview(null); }}
+          onChange={v => setAnswer(q.id, v)}
         />
       ))}
+
+      {sermonForm && (haveQ || pasteQ || aiQ) && (
+        <NotesFlow
+          haveQ={haveQ}
+          pasteQ={pasteQ}
+          aiQ={aiQ}
+          haveNotes={haveQ ? answers[haveQ.id] : (staff.role === 'media' ? true : '')}
+          paste={paste}
+          wantAI={aiQ ? answers[aiQ.id] : ''}
+          showPaste={showPaste}
+          showAI={showAI}
+          busy={busy}
+          preview={preview}
+          previewSource={previewSource}
+          signedOff={signedOff}
+          onHave={v => haveQ && setAnswer(haveQ.id, v)}
+          onPaste={v => pasteQ && setAnswer(pasteQ.id, v)}
+          onAI={v => {
+            if (!aiQ) return;
+            const next = { ...answers, [aiQ.id]: v };
+            setAnswers(next);
+            setPreview(null);
+            setSignedOff(false);
+            setDone(false);
+            if (v === true) runPreview(next);
+          }}
+          onFormat={runPreview}
+          onSignOff={() => submit(undefined, true)}
+        />
+      )}
 
       {questions.length === 0 && (
         <p style={helpStyle}>No questions on the form yet. Ashley adds them under Questions.</p>
       )}
 
-      {sermonForm && (
-        <button type="button" disabled={busy || questions.length === 0} onClick={runPreview} style={{ ...btnGhost, marginTop: 8, marginRight: 8 }}>
-          {busy ? 'Working…' : 'Preview formatted notes'}
+      {(!needsSignOff) && (
+        <button type="submit" disabled={busy || questions.length === 0} style={{ ...btnPrimary, marginTop: 8 }}>
+          {busy ? 'Sending…' : 'Submit for review'}
         </button>
-      )}
-      <button type="submit" disabled={busy || questions.length === 0} style={{ ...btnPrimary, marginTop: 8 }}>
-        {busy ? 'Sending…' : 'Submit for review'}
-      </button>
-      {preview && (
-        <div style={{ marginTop: 20 }}>
-          <p style={{ ...helpStyle, marginBottom: 8 }}>
-            Preview{previewSource === 'ai' ? ' · formatted with AI' : previewSource === 'merge' ? ' · video on the existing notes' : ' · formatted'} — Ashley still has to accept this.
-          </p>
-          <SermonPreview sermon={preview} />
-        </div>
       )}
       {done && (
         <p style={{ marginTop: 12, color: 'var(--dw-info)', fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
@@ -498,7 +555,7 @@ function IntakeForm({ staff, onError }: { staff: Staff; onError: (s: string) => 
 
 function Field({ label, help, children }: { label: string; help?: string; children: ReactNode }) {
   return (
-    <div style={{ marginBottom: 18 }}>
+    <div style={{ marginBottom: 32 }}>
       <label style={labelStyle}>{label}</label>
       {help ? <p style={helpStyle}>{help}</p> : null}
       {children}
@@ -506,45 +563,99 @@ function Field({ label, help, children }: { label: string; help?: string; childr
   );
 }
 
-function SermonPreview({ sermon }: { sermon: FormattedSermon }) {
-  const embed = youtubeEmbedUrl(sermon.youtubeUrl);
+function NotesFlow({
+  haveQ, pasteQ, aiQ, haveNotes, paste, wantAI, showPaste, showAI,
+  busy, preview, previewSource, signedOff, onHave, onPaste, onAI, onFormat, onSignOff,
+}: {
+  haveQ?: Question;
+  pasteQ?: Question;
+  aiQ?: Question;
+  haveNotes: unknown;
+  paste: string;
+  wantAI: unknown;
+  showPaste: boolean;
+  showAI: boolean;
+  busy: boolean;
+  preview: FormattedSermon | null;
+  previewSource: string;
+  signedOff: boolean;
+  onHave: (v: boolean) => void;
+  onPaste: (v: string) => void;
+  onAI: (v: boolean) => void;
+  onFormat: () => void;
+  onSignOff: () => void;
+}) {
   return (
-    <div style={{ border: '1px solid var(--dw-border)', borderRadius: 16, padding: 16, background: 'var(--dw-card)' }}>
-      <p style={{ margin: 0, fontSize: 12, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-        {sermon.series || 'Sermon Notes'}{sermon.date ? ` · ${sermon.date}` : ''}
-      </p>
-      <h3 style={{ margin: '6px 0 4px', fontFamily: 'var(--font-serif)', fontSize: 22 }}>{sermon.title}</h3>
-      <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>{sermon.speaker}</p>
-      {embed && (
-        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, marginBottom: 16, borderRadius: 12, overflow: 'hidden' }}>
-          <iframe
-            title="Sermon video"
-            src={embed}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+    <div>
+      {haveQ && (
+        <Field label={haveQ.label} help={haveQ.help}>
+          <YesNo value={haveNotes} onChange={onHave} required={haveQ.required} />
+        </Field>
+      )}
+      {showPaste && pasteQ && (
+        <Field label={pasteQ.label || 'Paste your notes.'} help={pasteQ.help || 'Whatever you have — outline, Word dump, bullets.'}>
+          <textarea
+            value={paste}
+            onChange={e => onPaste(e.target.value)}
+            rows={10}
+            className="staff-input"
+            placeholder="Paste your notes"
+            style={{ ...inputStyle, minHeight: 180, resize: 'vertical' as const }}
           />
+        </Field>
+      )}
+      {showAI && aiQ && (
+        <Field label={aiQ.label || 'Would you like AI to format these for the congregation?'} help={aiQ.help}>
+          <YesNo value={wantAI} onChange={onAI} />
+        </Field>
+      )}
+      {showAI && wantAI === true && (
+        <div style={{ marginBottom: 32 }}>
+          {busy && !preview && <p style={helpStyle}>Formatting…</p>}
+          {preview && (
+            <>
+              <p style={{ ...helpStyle, marginBottom: 12 }}>
+                This is the congregation page{previewSource === 'deterministic' ? ' · simple layout' : ''}. Sign off this version, or regenerate another option.
+              </p>
+              <div className="dw-sermon-notes-phone">
+                <SermonNotesSurface sermon={preview as SermonNotesData} persist={false} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                <button type="button" style={btnPrimary} disabled={busy || signedOff} onClick={onSignOff}>
+                  {signedOff ? 'Signed off' : 'Sign off (this version)'}
+                </button>
+                <button type="button" style={btnGhost} disabled={busy} onClick={onFormat}>
+                  {busy ? 'Working…' : 'Regenerate'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
-      {sermon.keyVerseText && (
-        <p style={{ fontFamily: 'var(--font-serif-text)', fontSize: 15, lineHeight: 1.55, color: 'var(--dw-text-secondary)' }}>
-          “{sermon.keyVerseText}”{sermon.keyVerse ? ` — ${sermon.keyVerse}` : ''}
-        </p>
-      )}
-      {(sermon.sections || []).map(sec => (
-        <div key={sec.num} style={{ marginTop: 14 }}>
-          <p style={{ margin: '0 0 6px', fontWeight: 700, fontFamily: 'var(--font-serif)', color: 'var(--dw-accent)' }}>
-            {sec.num}. {sec.title}
-          </p>
-          {(sec.content || []).map((c, i) => (
-            c.type === 'blank'
-              ? <p key={i} style={{ ...helpStyle, fontStyle: 'italic' }}>Write-in space</p>
-              : <p key={i} style={{ margin: '0 0 6px', fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)' }}>
-                  {c.type === 'bullet' ? `• ${c.value}` : c.value || c.before}
-                </p>
-          ))}
-        </div>
-      ))}
+    </div>
+  );
+}
+
+function YesNo({ value, onChange, required }: { value: unknown; onChange: (v: boolean) => void; required?: boolean }) {
+  const v = value === true ? 'yes' : value === false ? 'no' : '';
+  return (
+    <select
+      required={required}
+      value={v}
+      onChange={e => onChange(e.target.value === 'yes')}
+      style={inputStyle}
+    >
+      <option value="">Choose…</option>
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  );
+}
+
+function SermonPreview({ sermon }: { sermon: FormattedSermon }) {
+  return (
+    <div className="dw-sermon-notes-phone">
+      <SermonNotesSurface sermon={sermon as SermonNotesData} persist={false} />
     </div>
   );
 }
@@ -584,10 +695,7 @@ function QuestionField({
   if (q.type === 'yes_no') {
     return (
       <Field label={q.label} help={q.help}>
-        <label style={{ display: 'flex', gap: 10, alignItems: 'center', fontFamily: 'var(--font-sans)', fontSize: 15 }}>
-          <input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} style={{ width: 20, height: 20 }} />
-          Yes
-        </label>
+        <YesNo value={value} onChange={v => onChange(v)} required={required} />
       </Field>
     );
   }
@@ -598,31 +706,31 @@ function QuestionField({
       </Field>
     );
   }
-  if (q.type === 'long_text' || q.type === 'text' || q.type === 'sermon_pick') {
-    if (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target') {
-      const choices = sermons || [];
-      return (
-        <Field label={q.label} help={q.help}>
-          <select
-            required={required}
-            value={String(value || '')}
-            onChange={e => onChange(e.target.value)}
-            style={{ ...inputStyle, marginBottom: 8 }}
-          >
+  if (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target') {
+    const choices = sermons || [];
+    return (
+      <Field label={q.label} help={q.help}>
+        {choices.length > 0 ? (
+          <select required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle}>
             <option value="">Select this week's message</option>
             {choices.map(s => (
               <option key={s.id} value={s.id}>{s.title}{s.date ? ` · ${s.date}` : ''}</option>
             ))}
           </select>
+        ) : (
           <input
-            placeholder="Or paste a title / sermon id"
-            value={choices.some(s => s.id === value) ? '' : String(value || '')}
+            type="text"
+            required={required}
+            value={String(value || '')}
             onChange={e => onChange(e.target.value)}
+            placeholder="Sermon title"
             style={inputStyle}
           />
-        </Field>
-      );
-    }
+        )}
+      </Field>
+    );
+  }
+  if (q.type === 'long_text' || q.type === 'text') {
     const Comp = q.type === 'long_text' ? 'textarea' : 'input';
     return (
       <Field label={q.label} help={q.help}>
@@ -636,87 +744,19 @@ function QuestionField({
       </Field>
     );
   }
-  if (q.type === 'corner_add') {
-    const items = Array.isArray(value) ? value as { type: string; title: string; content: string }[] : [];
-    return (
-      <Field label={q.label} help={q.help}>
-        {items.map((it, i) => (
-          <div key={i} style={{ border: '1px solid var(--dw-border)', borderRadius: 14, padding: 14, marginBottom: 10 }}>
-            <select value={it.type} onChange={e => {
-              const next = items.slice();
-              next[i] = { ...it, type: e.target.value };
-              onChange(next);
-            }} style={{ ...inputStyle, marginBottom: 8 }}>
-              <option value="announcement">Announcement</option>
-              <option value="note">Note</option>
-              <option value="prayer_point">Prayer point</option>
-            </select>
-            <input placeholder="Title" value={it.title} onChange={e => {
-              const next = items.slice();
-              next[i] = { ...it, title: e.target.value };
-              onChange(next);
-            }} style={{ ...inputStyle, marginBottom: 8 }} />
-            <textarea placeholder="What should people at your campus see?" rows={4} value={it.content} onChange={e => {
-              const next = items.slice();
-              next[i] = { ...it, content: e.target.value };
-              onChange(next);
-            }} style={{ ...inputStyle, minHeight: 90, resize: 'vertical' }} />
-            {items.length > 1 && (
-              <button type="button" style={{ ...btnGhost, marginTop: 8, minHeight: 36 }} onClick={() => onChange(items.filter((_, j) => j !== i))}>
-                Remove this item
-              </button>
-            )}
-          </div>
-        ))}
-        <button type="button" style={btnGhost} onClick={() => onChange([...items, { type: 'announcement', title: '', content: '' }])}>
-          Add another
-        </button>
-      </Field>
-    );
-  }
   if (q.type === 'corner_remove') {
-    const selected = Array.isArray(value) ? value as string[] : [];
     return (
       <Field label={q.label} help={q.help}>
         {cornerItems.length === 0 ? (
           <p style={helpStyle}>Nothing is on the campus corner yet.</p>
-        ) : cornerItems.map(item => (
-          <label key={item.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, fontFamily: 'var(--font-sans)', fontSize: 14 }}>
-            <input
-              type="checkbox"
-              checked={selected.includes(item.id)}
-              onChange={e => {
-                onChange(e.target.checked ? [...selected, item.id] : selected.filter(id => id !== item.id));
-              }}
-              style={{ width: 18, height: 18, marginTop: 2 }}
-            />
-            <span>
-              <strong>{item.title}</strong>
-              <span style={{ color: 'var(--dw-text-muted)' }}> · {item.type}</span>
-            </span>
-          </label>
-        ))}
-      </Field>
-    );
-  }
-  if (q.type === 'sermon_notes') {
-    const s = (value && typeof value === 'object' ? value : {}) as Record<string, string>;
-    const set = (k: string, v: string) => onChange({ ...s, [k]: v });
-    return (
-      <Field label={q.label} help={q.help}>
-        <input placeholder="Title" value={s.title || ''} onChange={e => set('title', e.target.value)} style={{ ...inputStyle, marginBottom: 8 }} />
-        <input placeholder="Speaker" value={s.speaker || ''} onChange={e => set('speaker', e.target.value)} style={{ ...inputStyle, marginBottom: 8 }} />
-        <input type="date" value={s.date || ''} onChange={e => set('date', e.target.value)} style={{ ...inputStyle, marginBottom: 8 }} />
-        <input placeholder="Series (optional)" value={s.series || ''} onChange={e => set('series', e.target.value)} style={{ ...inputStyle, marginBottom: 8 }} />
-        <input placeholder="Key verse (e.g. John 11:25)" value={s.keyVerse || ''} onChange={e => set('keyVerse', e.target.value)} style={{ ...inputStyle, marginBottom: 8 }} />
-        <textarea placeholder="Key verse text" rows={2} value={s.keyVerseText || ''} onChange={e => set('keyVerseText', e.target.value)} style={{ ...inputStyle, marginBottom: 8, resize: 'vertical' }} />
-        <textarea
-          placeholder={'Outline — use headings like:\n1. First point\nA sentence of notes\n- A bullet'}
-          rows={10}
-          value={s.outline || ''}
-          onChange={e => set('outline', e.target.value)}
-          style={{ ...inputStyle, minHeight: 180, resize: 'vertical', fontFamily: 'var(--font-sans)' }}
-        />
+        ) : (
+          <select value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)} style={inputStyle}>
+            <option value="">Leave everything up</option>
+            {cornerItems.map(item => (
+              <option key={item.id} value={item.id}>{item.title}{item.type ? ` · ${item.type}` : ''}</option>
+            ))}
+          </select>
+        )}
       </Field>
     );
   }
@@ -818,6 +858,8 @@ function FormBuilder({ onError }: { onError: (s: string) => void }) {
                 style={inputStyle}
               >
                 <option value="">Review only (do not publish automatically)</option>
+                <option value="campus_title">Campus corner title</option>
+                <option value="campus_body">Campus corner body</option>
                 <option value="campus_corner">Campus corner as a note</option>
                 <option value="sermon_field">A sermon-notes field</option>
               </select>
@@ -836,7 +878,7 @@ function FormBuilder({ onError }: { onError: (s: string) => void }) {
                 <option value="series">Series</option>
                 <option value="keyVerse">Key verse</option>
                 <option value="keyVerseText">Key verse text</option>
-                <option value="outline">Outline body</option>
+                <option value="outline">Pasted notes</option>
                 <option value="youtubeUrl">YouTube URL</option>
               </select>
             </Field>

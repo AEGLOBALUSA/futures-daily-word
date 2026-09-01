@@ -39,7 +39,9 @@ const AUDIENCES = ["all", "campus", "hub", "admin", "media"];
 const ROLES = ["admin", "hub", "campus", "media"];
 const CORNER_TYPES = ["announcement", "note", "prayer_point", "essay"];
 const SERMON_FIELD_KEYS = [
-  "title", "speaker", "date", "series", "keyVerse", "keyVerseText", "outline", "youtubeUrl"
+  "title", "speaker", "date", "series", "keyVerse", "keyVerseText", "outline", "youtubeUrl",
+  "bigIdea", "point1Heading", "point1Body", "point2Heading", "point2Body",
+  "point3Heading", "point3Body", "weeklyAction"
 ];
 
 function normalizeEmail(email) {
@@ -215,40 +217,56 @@ function collectCampusFromAnswers(questions, answers) {
   return null;
 }
 
+function hasNotesContent(patch) {
+  const p = patch && typeof patch === "object" ? patch : {};
+  return !!(p.bigIdea || p.outline || p.body
+    || p.point1Heading || p.point1Body
+    || p.point2Heading || p.point2Body
+    || p.point3Heading || p.point3Body
+    || p.weeklyAction);
+}
+
+function sermonKeyFromConfig(cfg) {
+  const c = cfg && typeof cfg === "object" ? cfg : {};
+  if (c.sermonKey === "commitments") return "weeklyAction";
+  if (SERMON_FIELD_KEYS.includes(c.sermonKey)) return c.sermonKey;
+  const n = Number(c.point);
+  if (n >= 1 && n <= 3 && (c.part === "heading" || c.part === "body")) {
+    return c.part === "heading" ? ("point" + n + "Heading") : ("point" + n + "Body");
+  }
+  return null;
+}
+
 function applyAnswers(questions, answers, ctx) {
-  const sermonPatch = { reformat: true };
+  const sermonPatch = { reformat: false };
   let hasSermon = false;
   const cornerAdds = [];
   const cornerRemoves = [];
   const author = sanitize((ctx && ctx.name) || "", 100);
+  let campusTitle = "";
+  let campusBody = "";
 
   for (const q of questions || []) {
     const val = answers ? answers[q.id] : undefined;
     if (val == null || val === "") continue;
     const cfg = q.config && typeof q.config === "object" ? q.config : {};
 
-    if (q.type === "corner_add") {
-      const items = Array.isArray(val) ? val : [val];
-      for (const it of items) {
-        if (!it || typeof it !== "object") continue;
-        const title = sanitize(it.title || "", 200);
-        const content = sanitize(it.content || "", 5000);
-        if (!title || !content) continue;
-        const type = CORNER_TYPES.includes(it.type) ? it.type : "announcement";
-        cornerAdds.push({ type, title, content, author });
-      }
-    }
-
     if (q.type === "corner_remove") {
-      const ids = Array.isArray(val) ? val : (val && val.ids) || [];
+      const ids = Array.isArray(val) ? val : (typeof val === "string" ? [val] : (val && val.ids) || []);
       for (const id of ids) {
         if (typeof id === "string" && id.length > 8 && id.length < 80) cornerRemoves.push(id);
       }
     }
 
-    if (q.type === "sermon_notes" && val && typeof val === "object") {
-      Object.assign(sermonPatch, val);
-      hasSermon = true;
+    if (q.type === "corner_add" && Array.isArray(val)) {
+      for (const item of val) {
+        if (!item || typeof item !== "object") continue;
+        const title = sanitize(item.title || "", 200);
+        const content = sanitize(item.content || item.body || "", 5000);
+        if (!title && !content) continue;
+        const type = CORNER_TYPES.includes(item.type) ? item.type : "announcement";
+        cornerAdds.push({ type, title: title || "Campus update", content: content || title, author });
+      }
     }
 
     if (q.type === "sermon_pick" || cfg.publish === "sermon_target") {
@@ -257,16 +275,20 @@ function applyAnswers(questions, answers, ctx) {
     }
 
     if (cfg.publish === "sermon_reformat") {
-      sermonPatch.reformat = val !== false && val !== "false" && val !== 0;
+      sermonPatch.reformat = val === true || val === "yes";
     }
 
-    if (q.type === "yes_no" && cfg.publish === "sermon_reformat") {
-      sermonPatch.reformat = !!val;
+    if (cfg.publish === "campus_title") {
+      campusTitle = typeof val === "string" ? sanitize(val, 200) : "";
     }
-
+    if (cfg.publish === "campus_body") {
+      campusBody = typeof val === "string" ? sanitize(val, 5000) : "";
+    }
     if (cfg.publish === "campus_corner") {
       const content = typeof val === "string" ? sanitize(val, 5000) : "";
-      if (content) {
+      if (q.type === "text") campusTitle = campusTitle || content;
+      else if (q.type === "long_text") campusBody = campusBody || content;
+      else if (content) {
         const type = CORNER_TYPES.includes(cfg.itemType) ? cfg.itemType : "note";
         cornerAdds.push({ type, title: sanitize(q.label || "Update", 200), content, author });
       }
@@ -274,10 +296,20 @@ function applyAnswers(questions, answers, ctx) {
 
     if (val === false) continue;
 
-    if (cfg.publish === "sermon_field" && SERMON_FIELD_KEYS.includes(cfg.sermonKey)) {
-      sermonPatch[cfg.sermonKey] = typeof val === "string" || typeof val === "boolean" ? val : String(val);
+    const sermonKey = sermonKeyFromConfig(cfg);
+    if ((cfg.publish === "sermon_field" || sermonKey) && sermonKey && SERMON_FIELD_KEYS.includes(sermonKey)) {
+      sermonPatch[sermonKey] = typeof val === "string" || typeof val === "boolean" ? val : String(val);
       hasSermon = true;
     }
+  }
+
+  if (campusTitle || campusBody) {
+    cornerAdds.push({
+      type: "announcement",
+      title: campusTitle || "Campus update",
+      content: campusBody || campusTitle,
+      author
+    });
   }
 
   if (sermonPatch.youtubeUrl) {
@@ -288,12 +320,12 @@ function applyAnswers(questions, answers, ctx) {
     sermonPatch.youtubeUrl = yt;
   }
 
-  const sermon = hasSermon && (sermonPatch.title || sermonPatch.outline || sermonPatch.body || sermonPatch.speaker)
+  const sermon = hasSermon && (sermonPatch.title || hasNotesContent(sermonPatch) || sermonPatch.speaker)
     ? sermonFromNotes(sermonPatch)
     : null;
 
-  const youtubeOnly = !!(sermonPatch.youtubeUrl && !sermonPatch.outline && !sermonPatch.title);
-  const notesPolish = !!(sermonPatch.outline && !sermonPatch.title);
+  const youtubeOnly = !!(sermonPatch.youtubeUrl && !hasNotesContent(sermonPatch) && !sermonPatch.title);
+  const notesPolish = !!(hasNotesContent(sermonPatch) && !sermonPatch.title);
 
   return { sermon, sermonPatch, cornerAdds, cornerRemoves, youtubeOnly, notesPolish };
 }
@@ -364,5 +396,6 @@ module.exports = {
   isYoutubeId,
   parseYoutubeId,
   youtubeWatchUrl,
-  youtubeEmbedUrl
+  youtubeEmbedUrl,
+  hasNotesContent
 };

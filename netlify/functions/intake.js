@@ -24,9 +24,10 @@ const {
   passwordIssue,
   hashPassword,
   verifyPassword,
-  youtubeWatchUrl
+  youtubeWatchUrl,
+  hasNotesContent
 } = require("./lib/intake-core");
-const { formatSermon, mergeYoutube } = require("./lib/sermon-format");
+const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon } = require("./lib/sermon-format");
 
 let supabase;
 function db() {
@@ -214,6 +215,7 @@ async function buildFormattedFromPlan(plan, { useAI }) {
     return { sermon: mergeYoutube({ id: "current", title: "This week's message" }, youtubeUrl), source: "merge" };
   }
 
+  const outline = answersToOutline(patch) || patch.outline || patch.body || "";
   const fields = {
     title: patch.title || (base && base.title) || "",
     speaker: patch.speaker || (base && base.speaker) || "",
@@ -221,18 +223,26 @@ async function buildFormattedFromPlan(plan, { useAI }) {
     series: patch.series || (base && base.series) || "",
     keyVerse: patch.keyVerse || (base && base.keyVerse) || "",
     keyVerseText: patch.keyVerseText || (base && base.keyVerseText) || "",
-    outline: patch.outline || patch.body || "",
+    outline,
+    bigIdea: patch.bigIdea || "",
+    point1Heading: patch.point1Heading || "",
+    point1Body: patch.point1Body || "",
+    point2Heading: patch.point2Heading || "",
+    point2Body: patch.point2Body || "",
+    point3Heading: patch.point3Heading || "",
+    point3Body: patch.point3Body || "",
+    weeklyAction: patch.weeklyAction || "",
     youtubeUrl,
     responsePrompts: base && base.responsePrompts,
     commitments: base && base.commitments,
-    sections: !patch.outline && base ? base.sections : undefined
+    sections: !hasNotesContent(patch) && base ? base.sections : undefined
   };
 
-  const shouldAI = useAI !== false && patch.reformat !== false && !!String(fields.outline || "").trim();
-  if (!fields.outline && !fields.title && youtubeUrl && base) {
+  const shouldAI = useAI === true && hasNotesContent(patch);
+  if (!hasNotesContent(patch) && !fields.title && youtubeUrl && base) {
     return { sermon: mergeYoutube(base, youtubeUrl), source: "merge" };
   }
-  if (!fields.outline && !fields.title && !youtubeUrl) return { sermon: null, source: "none" };
+  if (!hasNotesContent(patch) && !fields.title && !youtubeUrl) return { sermon: null, source: "none" };
 
   const formatted = await formatSermon(fields, { useAI: shouldAI, base });
   if (youtubeUrl) formatted.sermon.youtubeUrl = youtubeUrl;
@@ -496,9 +506,35 @@ exports.handler = async (event) => {
       let formatted_sermon = null;
       let format_source = null;
       try {
-        const built = await buildFormattedFromPlan(plan, { useAI: true });
-        formatted_sermon = built.sermon;
-        format_source = built.source;
+        const wantAI = plan.sermonPatch && plan.sermonPatch.reformat === true && hasNotesContent(plan.sermonPatch);
+        if (wantAI) {
+          if (!body.signedOff || !body.formatted_sermon || typeof body.formatted_sermon !== "object") {
+            return json(event, 400, { error: "Sign off on the formatted notes before sending to Ashley." });
+          }
+          const row = await findPublished(plan.sermonPatch.target);
+          const base = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
+          formatted_sermon = sanitizeAiSermon(body.formatted_sermon, {
+            title: plan.sermonPatch.title || "",
+            speaker: plan.sermonPatch.speaker || "",
+            date: plan.sermonPatch.date || "",
+            series: plan.sermonPatch.series || "",
+            keyVerse: plan.sermonPatch.keyVerse || "",
+            keyVerseText: plan.sermonPatch.keyVerseText || "",
+            youtubeUrl: plan.sermonPatch.youtubeUrl || "",
+            outline: plan.sermonPatch.outline || ""
+          }, base);
+          if (!formatted_sermon) {
+            const built = await buildFormattedFromPlan(plan, { useAI: true });
+            formatted_sermon = built.sermon;
+            format_source = built.source;
+          } else {
+            format_source = "signed-off";
+          }
+        } else {
+          const built = await buildFormattedFromPlan(plan, { useAI: false });
+          formatted_sermon = built.sermon;
+          format_source = built.source;
+        }
       } catch (fmtErr) {
         if (fmtErr && fmtErr.status === 400) return json(event, 400, { error: fmtErr.message });
         throw fmtErr;
@@ -530,7 +566,8 @@ exports.handler = async (event) => {
       }
       const plan = applyAnswers(visible, answers, { name: staff.name || staff.email });
       try {
-        const built = await buildFormattedFromPlan(plan, { useAI: true });
+        const useAI = body.useAI === true;
+        const built = await buildFormattedFromPlan(plan, { useAI });
         return json(event, 200, { preview: built.sermon, source: built.source });
       } catch (fmtErr) {
         if (fmtErr && fmtErr.status === 400) return json(event, 400, { error: fmtErr.message });

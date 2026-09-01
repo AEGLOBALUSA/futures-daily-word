@@ -49,14 +49,14 @@ describe('campus lock', () => {
 
 describe('question visibility', () => {
   it('hides hub sermon questions from campus pastors', () => {
-    const q = { type: 'sermon_notes', audience: 'hub', enabled: true };
+    const q = { type: 'long_text', audience: 'hub', enabled: true };
     expect(core.questionVisible(q, 'campus')).toBe(false);
     expect(core.questionVisible(q, 'hub')).toBe(true);
     expect(core.questionVisible(q, 'admin')).toBe(true);
   });
 
   it('hides campus-corner questions from hub pastors', () => {
-    const q = { type: 'corner_add', audience: 'campus', enabled: true };
+    const q = { type: 'text', audience: 'campus', enabled: true };
     expect(core.questionVisible(q, 'hub')).toBe(false);
     expect(core.questionVisible(q, 'campus')).toBe(true);
   });
@@ -71,16 +71,17 @@ describe('question visibility', () => {
 });
 
 describe('applyAnswers', () => {
-  it('turns corner add/remove into publish actions', () => {
+  it('combines campus title and body into one corner item', () => {
     const questions = [
-      { id: 'a', type: 'corner_add', config: {} },
+      { id: 't', type: 'text', config: { publish: 'campus_title' } },
+      { id: 'b', type: 'long_text', config: { publish: 'campus_body' } },
       { id: 'r', type: 'corner_remove', config: {} },
     ];
-    const answers = {
-      a: [{ type: 'announcement', title: 'Easter', content: 'Sunrise at 7am' }],
-      r: ['aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'],
-    };
-    const plan = core.applyAnswers(questions, answers, { name: 'Pastor' });
+    const plan = core.applyAnswers(questions, {
+      t: 'Easter',
+      b: 'Sunrise at 7am',
+      r: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    }, { name: 'Pastor' });
     expect(plan.cornerAdds).toEqual([
       { type: 'announcement', title: 'Easter', content: 'Sunrise at 7am', author: 'Pastor' },
     ]);
@@ -88,13 +89,14 @@ describe('applyAnswers', () => {
     expect(plan.sermon).toBeNull();
   });
 
-  it('maps field questions including youtube onto sermon JSON', () => {
+  it('maps pasted notes and youtube onto sermon JSON', () => {
     const questions = [
       { id: 't', type: 'text', config: { publish: 'sermon_field', sermonKey: 'title' } },
       { id: 's', type: 'text', config: { publish: 'sermon_field', sermonKey: 'speaker' } },
       { id: 'd', type: 'date', config: { publish: 'sermon_field', sermonKey: 'date' } },
       { id: 'o', type: 'long_text', config: { publish: 'sermon_field', sermonKey: 'outline' } },
       { id: 'y', type: 'text', config: { publish: 'sermon_field', sermonKey: 'youtubeUrl' } },
+      { id: 'ai', type: 'yes_no', config: { publish: 'sermon_reformat' } },
     ];
     const plan = core.applyAnswers(questions, {
       t: 'Hope',
@@ -102,10 +104,26 @@ describe('applyAnswers', () => {
       d: '2026-09-06',
       o: '1. God is near\nHe stays.\n- Trust Him',
       y: 'https://youtu.be/dQw4w9WgXcQ',
+      ai: true,
     }, { name: 'Josh' });
-    expect(plan.sermon.id).toBe('hope-2026-09-06');
+    expect(plan.sermonPatch.outline).toContain('God is near');
+    expect(plan.sermonPatch.reformat).toBe(true);
     expect(plan.sermon.youtubeUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-    expect(plan.sermon.sections[0].content.some((c: { type: string }) => c.type === 'blank')).toBe(true);
+    expect(plan.youtubeOnly).toBe(false);
+  });
+
+  it('treats youtube without notes as youtube-only', () => {
+    const questions = [
+      { id: 'p', type: 'sermon_pick', config: { publish: 'sermon_target' } },
+      { id: 'y', type: 'text', config: { publish: 'sermon_field', sermonKey: 'youtubeUrl' } },
+    ];
+    const plan = core.applyAnswers(questions, {
+      p: 'hope-2026-09-06',
+      y: 'https://youtu.be/dQw4w9WgXcQ',
+    }, { name: 'Alexi' });
+    expect(plan.youtubeOnly).toBe(true);
+    expect(plan.sermonPatch.youtubeUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    expect(core.hasNotesContent(plan.sermonPatch)).toBe(false);
   });
 });
 
@@ -145,19 +163,33 @@ describe('youtube urls', () => {
 });
 
 describe('deterministic sermon formatter', () => {
-  it('adds write-in blanks, prompts, and commitments', () => {
+  it('adds a write-in blank after each section and caps at 4', () => {
     const fmt = require('../../netlify/functions/lib/sermon-format.js');
     const sermon = fmt.formatSermonDeterministic({
       title: 'Hope',
       speaker: 'Ryan Rolls',
       date: '2026-09-06',
-      outline: '1. God is near\nHe stays.\n- Trust Him\n2. God provides\n- Ask Him',
+      outline: '1. God is near\nHe stays with us.\n- Trust Him\n2. God provides\n- Ask Him\n3. God sends\nGo.\n4. God stays\nRemain.\n5. Extra should drop\nNope.',
       youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     });
-    expect(sermon.sections.length).toBeGreaterThanOrEqual(2);
+    expect(sermon.sections.length).toBeLessThanOrEqual(4);
     expect(sermon.sections.every((s: { content: { type: string }[] }) => s.content.some(c => c.type === 'blank'))).toBe(true);
-    expect(sermon.responsePrompts.length).toBeGreaterThanOrEqual(2);
-    expect(sermon.commitments.length).toBeGreaterThanOrEqual(2);
+    expect(sermon.responsePrompts.length).toBeGreaterThanOrEqual(1);
+    expect(sermon.responsePrompts.length).toBeLessThanOrEqual(3);
     expect(sermon.youtubeUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    expect(fmt.pointWordCount(sermon)).toBeLessThanOrEqual(400);
+  });
+
+  it('splits bullets longer than 18 words', () => {
+    const fmt = require('../../netlify/functions/lib/sermon-format.js');
+    const long = 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty';
+    const sermon = fmt.tightenSermon({
+      title: 'Hope',
+      date: '2026-09-06',
+      sections: [{ num: '1', title: 'Near', content: [{ type: 'bullet', value: long }] }],
+      responsePrompts: ['What is God saying to you through this message?'],
+    });
+    const points = sermon.sections[0].content.filter((c: { type: string }) => c.type !== 'blank');
+    expect(points.every((c: { value: string }) => c.value.split(/\s+/).length <= 18)).toBe(true);
   });
 });
