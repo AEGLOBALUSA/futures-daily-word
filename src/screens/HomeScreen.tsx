@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'; 
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { HeroPhotoCarousel } from '../components/HeroPhotoCarousel';
@@ -374,6 +374,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       document.body.classList.remove('dw-reading-active');
     };
   }, [readingBarVisible]);
+
+  // The I'm-New home carries nothing unrelated to the 40-day journey — that
+  // includes the floating gold AI launcher (all mounted instances, hence a body
+  // class like dw-reading-active above). CSS scopes it to the home tab, so the
+  // launcher still shows for this persona on Journal etc. Layout effect, not
+  // effect: the class must land before first paint or the launcher flashes for
+  // a frame on cold boot.
+  useLayoutEffect(() => {
+    document.body.classList.toggle('dw-new-home', isNewChristianPersona(personaConfig.persona));
+    return () => { document.body.classList.remove('dw-new-home'); };
+  }, [personaConfig.persona]);
 
   // If the user leaves Home (e.g. taps a tab) while a bar-initiated chapter selection
   // is still set, clear it so returning doesn't show a gold-washed passage.
@@ -1716,8 +1727,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 <ChevronLeft size={20} /> {tI18n('back', lang)}
               </button>
             )}
-            {/* {t('bible_ai')} button — burnished gold + glass */}
-            <button
+            {/* {t('bible_ai')} button — burnished gold + glass. Not on the I'm-New
+                home: nothing there may compete with the sage journey button; Bible AI
+                stays reachable from the reading action bar while a chapter is open. */}
+            {!isNewPath && <button
               onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}
               style={{
                 position: 'relative',
@@ -1762,7 +1775,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 position: 'relative',
                 textShadow: '0 1px 3px rgba(80,40,0,0.6)',
               }}>{t('bible_ai')}</span>
-            </button>
+            </button>}
             {/* minWidth keeps "Daily Word" legible at 320px: rather than let the row
                 crush this column to ~43px (which truncated the title to "Da…"), the
                 header wraps the streak block onto a second line instead. */}
@@ -1801,8 +1814,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               }}>
                 Daily Word
               </h1>
-              {/* Compact context chips — tap to change persona or campus in place */}
-              <HomeContextChips
+              {/* Compact context chips — tap to change persona or campus in place.
+                  Hidden on the I'm-New path: the chip was one accidental tap off the
+                  40-day journey, and its labels aren't about the journey. Persona and
+                  campus remain changeable in Settings (two-step Save & Apply). */}
+              {!isNewPath && <HomeContextChips
                 persona={personaConfig.persona}
                 campusId={userProfile?.campus || ''}
                 onPersonaChange={(id: Persona) => {
@@ -1823,7 +1839,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   });
                   track('campus_switched', id);
                 }}
-              />
+              />}
             </div>
           </div>
           {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
@@ -1913,8 +1929,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         </div>
 
         {/* Sermon notes — one tap from Home, not buried in Notes. Slim so it
-            does not compete with the new-Christian closed parchment hero. */}
-        <button
+            does not compete with the new-Christian closed parchment hero.
+            On the I'm-New path it shows ONLY in the Sunday window: the Sunday QR
+            guest flow lands people as new_to_faith and they need this row, but on
+            a weekday the journey home carries nothing unrelated to the journey. */}
+        {(!isNewPath || isSundayWindow()) && <button
           onClick={() => onNavigate?.('sermon-notes')}
           aria-label={tI18n('sermon_notes_title', lang)}
           style={{
@@ -1935,7 +1954,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             </span>
           </span>
           <span style={{ color: 'var(--dw-text-faint)', fontSize: 14, flexShrink: 0 }}>→</span>
-        </button>
+        </button>}
 
         {/* What this actually is — one line, for the persona that has never used
             a Bible app. Only while they are early in the pathway. */}
@@ -2534,8 +2553,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           );
         })()}
 
-        {/* ── Date Navigation — directly under hero so users connect the two ── */}
-        <div className="dw-dark-surface" style={{
+        {/* ── Date Navigation — directly under hero so users connect the two ──
+            Not on the I'm-New path: their reading is the pathway day, which these
+            chevrons never move (they drive the legacy dayOffset axis), and the date
+            already sits on the hero plate. */}
+        {!isNewPath && <div className="dw-dark-surface" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -2590,7 +2612,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           >
             <ChevronRight size={20} />
           </button>
-        </div>
+        </div>}
 
         {/* ── Today's lesson (new_to_faith) — sits under the hero AFTER Read, so
              the day is one unit: hero first, Read reveals scripture, then the
@@ -3691,8 +3713,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
 
 
-        {/* ── Daily Quote — below the fold ── */}
-        <div style={{
+        {/* ── Daily Quote — below the fold. Not on the I'm-New path: on the journey
+            home every line of text relates to the 40-day journey. ── */}
+        {!isNewPath && <div style={{
           marginBottom: 20,
           padding: '8px 0',
           textAlign: 'center',
@@ -3724,7 +3747,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           }}>
             — {quote.author}
           </p>
-        </div>
+        </div>}
 
         {/* ── Daily Word of the Day — persona-gated ── */}
         {pf.wordOfDay !== 'hidden' && (
@@ -3833,8 +3856,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           )}
         </Card>}
 
-        {/* ── Active Plans Strip ── */}
-        {homeActivePlans.length > 0 && (
+        {/* ── Active Plans Strip ──
+            Not on the I'm-New path: their path is the 40-day journey, not catalog
+            plans (todaysPlanPassages is already forced empty for them) — but plans
+            started earlier or synced from another device would still leak in here. */}
+        {!isNewPath && homeActivePlans.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <h2 className="text-section-header" style={{ marginBottom: 10 }}>{tI18n('j_your_active_plans', lang)}</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -4314,7 +4340,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       {pf.highlighting !== 'none' && (
         <HighlightToolbar onOpenNotes={() => setShowNoteDrawer(true)} onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }} basicMode={pf.highlighting === 'basic'} />
       )}
-      <PromoAds />
+      {/* House ads stay off the I'm-New home (journey only); the other five tabs and
+          personas keep them — gate the mount here, never inside PromoAds itself. */}
+      {!isNewPath && <PromoAds />}
       {pf.greekHebrew !== 'hidden' && (
         <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
       )}
