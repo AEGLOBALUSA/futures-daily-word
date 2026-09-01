@@ -4,9 +4,8 @@
  * props; completion routes through the savePathwayProgress callback.
  *
  * The card deliberately does NOT render the day's chapter: the hero directly
- * above it already serves that exact chapter, expanded, with its own
- * translation picker, audio and "Mark as read". Rendering it here too put the
- * same chapter on screen twice with two sets of controls.
+ * above it serves that chapter once the reader taps Read. Rendering it here
+ * too put the same chapter on screen twice with two sets of controls.
  */
 import { useEffect, useState } from 'react';
 import { Share2 } from 'lucide-react';
