@@ -16,6 +16,16 @@ describe('staff save is live', () => {
     expect(src).toMatch(/Save puts it on the congregation page/);
   });
 
+  it('does not ship the Questions admin page', () => {
+    expect(src).not.toMatch(/These are the prompts on each job/);
+    expect(src).not.toMatch(/function FormBuilder/);
+    expect(src).not.toMatch(/onQuestions/);
+    expect(src).not.toMatch(/>Questions</);
+    expect(src).toMatch(/People/);
+    expect(src).toMatch(/History/);
+    expect(src).toMatch(/Put this on the congregation page/);
+  });
+
   it('always publishes on submit instead of leaving pending for review', () => {
     expect(api).toMatch(/publishApproved/);
     expect(api).not.toMatch(/publishNow/);
