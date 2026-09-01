@@ -15,6 +15,7 @@ import type { PathwayProgress } from '../data/pathway-types';
 export const GRACE_SERIES_PERSONA: Persona = 'new_to_faith';
 export const GRACE_SERIES_TITLE = 'New & Returning to Faith';
 export const GRACE_SERIES_TOTAL_DAYS = 40;
+export const DAY1_BEGUN_KEY = 'dw_day1_begun';
 
 const REAL_CHOICE_SOURCES = new Set(['onboarding', 'settings', 'upgrade']);
 
@@ -100,6 +101,32 @@ export function startGraceSeriesIfCold(source: ColdStartSource = 'default'): boo
   } catch {
     return false;
   }
+}
+
+export function hasBegunDay1(): boolean {
+  try { return localStorage.getItem(DAY1_BEGUN_KEY) === '1'; } catch { return false; }
+}
+
+/**
+ * Superdesign Day 1 screen: first visit until they tap Begin Day 1.
+ * Not shown after a real persona choice, mid-series progress, or a finished reading.
+ */
+export function needsDay1Landing(): boolean {
+  if (hasBegunDay1()) return false;
+  try {
+    if (localStorage.getItem('dw_reading_done')) return false;
+  } catch { /* ignore */ }
+  const setup = readSetup();
+  if (setup.source && REAL_CHOICE_SOURCES.has(setup.source) && setup.persona) return false;
+  const progress = readPathwayProgress();
+  if (progress.completedDays.length > 0 || (progress.currentDay || 1) > 1) return false;
+  return true;
+}
+
+/** Enroll fill-only, then mark the locked landing as complete. */
+export function beginDay1(source: ColdStartSource = 'default'): void {
+  startGraceSeriesIfCold(source);
+  try { localStorage.setItem(DAY1_BEGUN_KEY, '1'); } catch { /* quota */ }
 }
 
 /** Read-and-strip church/homepage attribution. Does not invent numbers. */

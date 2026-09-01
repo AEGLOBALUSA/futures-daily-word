@@ -14,8 +14,8 @@ exact homepage CTA that site needs. Nothing here invents traffic numbers.
 | **URL** | `https://futuresdailyword.com/?from=church` |
 | **Also works** | `https://futuresdailyword.com/` (same Day 1; `from=church` is attribution only) |
 | **Sunday** | Same URL. Do not send people to `?sunday=1` / `?sermon=1` for this hop — those open sermon-notes / guest chrome. Day 1 is the product. |
-| **What they see** | Home, Day 1 lesson + Ephesians 2 already open. No persona picker. |
-| **What they do not see** | I'm New / Church Member / Deep Study / Leader / Comfort. |
+| **What they see** | Superdesign Day 1 landing (wordmark, Day 1 of 40, **Grace Changes Everything**, Ephesians 2:8-9, pastoral word). One tap: **Begin Day 1**. No persona picker, tabs, or settings. |
+| **What they do not see** | I'm New / Church Member / Deep Study / Leader / Comfort. No skip. |
 
 `from=church` is stripped from the address bar after read, and fires a real
 `app_open` detail (`church`) through the existing `track()` helper. It does
@@ -50,7 +50,8 @@ footer. Not an iframe of the five-choice picker.
 
 ## Verify after the church change
 
-1. Incognito → church homepage → tap CTA → Daily Word Home with Day 1
-   ("Grace Changes Everything") and Ephesians 2, no picker.
+1. Incognito → church homepage → tap CTA → Daily Word Day 1 landing
+   ("Grace Changes Everything", Ephesians 2:8-9, **Begin Day 1**). No picker.
+2. Tap **Begin Day 1** → Home with the same day's reading.
 2. Same user, Settings → change persona → still their choice on reload.
 3. `?from=church` disappears from the URL after load.

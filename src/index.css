@@ -941,3 +941,123 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 /* Global spin keyframes for the inline "Saving…" / loading spinners (previously
    only injected per-screen, so a spinner could sit static before any such screen mounted). */
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Superdesign-locked Day 1 cold start ----------
+   Visual source: https://p.superdesign.dev/draft/455f03e1-0e76-4fb9-81ce-2d00e807caef
+   Hardcoded locked tokens (not theme vars) so dark mode cannot recolor it. */
+.dw-day1-landing {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #FAF6EF;
+  color: #241E17;
+  font-family: var(--font-sans);
+}
+.dw-day1-header {
+  flex-shrink: 0;
+  padding: calc(56px + var(--safe-top, env(safe-area-inset-top, 0px))) 32px 16px;
+  display: flex;
+  justify-content: center;
+}
+.dw-day1-wordmark {
+  height: 16px;
+  width: auto;
+  opacity: 0.8;
+  mix-blend-mode: multiply;
+  display: block;
+}
+.dw-day1-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 32px calc(32px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  display: flex;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+}
+.dw-day1-eyebrow {
+  margin: 32px 0 16px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+.dw-day1-title {
+  margin: 0 0 40px;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  color: #241E17;
+}
+.dw-day1-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid #ECE3D4;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 0 0 40px;
+}
+.dw-day1-gold-rule {
+  position: absolute;
+  left: 0;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  background: #C98A2E;
+  border-radius: 0 999px 999px 0;
+}
+.dw-day1-verse {
+  margin: 0 0 16px;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.65;
+  color: #1F2A23;
+}
+.dw-day1-ref {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7A6A54;
+}
+.dw-day1-pastoral {
+  margin: 0 0 48px;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(36, 30, 23, 0.9);
+}
+.dw-day1-spacer { flex: 1 1 0; min-height: 8px; }
+.dw-day1-cta-wrap {
+  margin-top: auto;
+  padding: 16px 0 34px;
+}
+.dw-day1-cta {
+  display: block;
+  width: 100%;
+  height: 56px;
+  border: none;
+  border-radius: 14px;
+  background: #A8552F;
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dw-day1-cta:active { transform: scale(0.98); }

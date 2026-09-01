@@ -38,6 +38,7 @@ export const LS = {
   prayedFor:          'dw_prayed_for',
   sermonNotes:        'dw_sermon_notes',
   pwaInstallDismissed: 'dw_pwa_install_dismissed',
+  day1Begun:          'dw_day1_begun',
 } as const;
 
 export type StorageKey = (typeof LS)[keyof typeof LS] | (string & {});

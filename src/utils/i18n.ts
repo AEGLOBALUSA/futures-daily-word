@@ -723,6 +723,10 @@ const UI: Translations = {
   pwa_ios_step2: { en: 'Scroll and tap Add to Home Screen', es: 'Despl\u00e1zate y toca A\u00f1adir a pantalla de inicio', pt: 'Role e toque em Adicionar \u00e0 Tela de In\u00edcio', id: 'Gulir dan ketuk Tambah ke Layar Utama' },
   pwa_browser_intro: { en: 'Your browser will offer an install prompt, or use the browser menu.', es: 'Tu navegador ofrecer\u00e1 instalar, o usa el men\u00fa del navegador.', pt: 'Seu navegador oferecer\u00e1 instalar, ou use o menu do navegador.', id: 'Browser Anda akan menawarkan pemasangan, atau gunakan menu browser.' },
   pwa_browser_menu: { en: 'Look for Install app or Add to Home Screen in the browser menu.', es: 'Busca Instalar app o A\u00f1adir a inicio en el men\u00fa del navegador.', pt: 'Procure Instalar app ou Adicionar \u00e0 tela inicial no menu do navegador.', id: 'Cari Pasang aplikasi atau Tambah ke Layar Utama di menu browser.' },
+
+  // \u2500\u2500 DAY 1 LANDING (Superdesign-locked) \u2500\u2500
+  day1_eyebrow: { en: 'Day 1 of 40 \u00b7 {series}', es: 'D\u00eda 1 de 40 \u00b7 {series}', pt: 'Dia 1 de 40 \u00b7 {series}', id: 'Hari 1 dari 40 \u00b7 {series}' },
+  begin_day1: { en: 'Begin Day 1', es: 'Comenzar D\u00eda 1', pt: 'Come\u00e7ar o Dia 1', id: 'Mulai Hari 1' },
 };
 
 export function t(key: string, lang?: string): string {

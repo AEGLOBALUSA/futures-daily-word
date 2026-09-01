@@ -3,6 +3,9 @@ import {
   isColdStart,
   startGraceSeriesIfCold,
   readPathwayProgress,
+  needsDay1Landing,
+  beginDay1,
+  hasBegunDay1,
   GRACE_SERIES_PERSONA,
   GRACE_SERIES_TOTAL_DAYS,
 } from './coldStart';
@@ -60,5 +63,26 @@ describe('cold start → 40-day grace series', () => {
     localStorage.setItem('dw_chapters_per_day', '3');
     startGraceSeriesIfCold();
     expect(localStorage.getItem('dw_chapters_per_day')).toBe('3');
+  });
+
+  it('shows the Superdesign landing until Begin Day 1', () => {
+    expect(needsDay1Landing()).toBe(true);
+    startGraceSeriesIfCold();
+    expect(needsDay1Landing()).toBe(true); // enrolled is not the same as begun
+    beginDay1();
+    expect(hasBegunDay1()).toBe(true);
+    expect(needsDay1Landing()).toBe(false);
+  });
+
+  it('does not show the landing after a real Settings persona choice', () => {
+    localStorage.setItem('dw_setup', JSON.stringify({ persona: 'congregation', source: 'settings' }));
+    expect(needsDay1Landing()).toBe(false);
+  });
+
+  it('does not show the landing mid-series', () => {
+    localStorage.setItem('dw_pathway_progress', JSON.stringify({
+      enrolled: true, currentDay: 4, completedDays: [1, 2, 3],
+    }));
+    expect(needsDay1Landing()).toBe(false);
   });
 });

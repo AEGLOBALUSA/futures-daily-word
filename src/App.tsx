@@ -19,7 +19,8 @@ import { track } from './utils/analytics';
 import { t, getLang } from './utils/i18n';
 import { closeSubViewsTo, openSubViewCount } from './utils/useSubView';
 import { StopAllAudio } from './components/StopAllAudio';
-import { startGraceSeriesIfCold, consumeLandingParam } from './utils/coldStart';
+import { consumeLandingParam, needsDay1Landing, startGraceSeriesIfCold } from './utils/coldStart';
+import { Day1Landing } from './components/Day1Landing';
 
 // ── Pre-render deep link setup — must run before any React component initializes ──
 const SERMON_DEEP_LINK = (() => {
@@ -43,7 +44,10 @@ const SERMON_DEEP_LINK = (() => {
 // Must run before UserProvider / HomeScreen read localStorage. `from=church`
 // is attribution only and is stripped here; it never invents a new pathway.
 const LANDING_FROM = consumeLandingParam();
-const COLD_STARTED = startGraceSeriesIfCold('default');
+// Enroll fill-only before UserProvider reads localStorage, so Home (after
+// Begin Day 1) already has new_to_faith. The Superdesign screen is the gate;
+// it does not mount Home, so no streak is recorded until they tap through.
+startGraceSeriesIfCold('default');
 
 // ── Embedded mode — the app is being framed inside the Futures Church site
 // (futures.church/daily-word/app). Hide the app's own "part of Futures Church"
@@ -178,13 +182,17 @@ function AppContent() {
   const { userProfile, setup } = useUser();
   const { selection } = useScriptureSelection();
 
+  const [showDay1Landing, setShowDay1Landing] = useState(
+    () => !SERMON_DEEP_LINK && needsDay1Landing()
+  );
+
   // Track app open — once on mount. Detail is the persona, plus church-homepage
   // attribution when the visitor arrived via ?from=church (real track(), not a pixel).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const detail = LANDING_FROM === 'church' || LANDING_FROM === 'day1'
-      ? `church:${setup?.persona || 'new_to_faith'}`
-      : (setup?.persona || (COLD_STARTED ? 'new_to_faith' : 'none'));
+      ? `church:${showDay1Landing ? 'day1_landing' : (setup?.persona || 'new_to_faith')}`
+      : (showDay1Landing ? 'day1_landing' : (setup?.persona || 'none'));
     track('app_open', detail);
   }, []);
 
@@ -313,6 +321,12 @@ function AppContent() {
   };
 
   const TAB_ORDER: TabId[] = ['home', 'journal', 'messages', 'plans', 'more', 'sermon-notes'];
+
+  if (showDay1Landing) {
+    return (
+      <Day1Landing onBegin={() => setShowDay1Landing(false)} />
+    );
+  }
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', background: 'var(--dw-canvas)' }}>
