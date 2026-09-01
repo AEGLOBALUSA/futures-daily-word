@@ -1,8 +1,8 @@
 /**
  * Staff portal at /staff — one login, one job at a time.
  * Hub / media put sermon notes on the congregation page; campus pastors
- * put updates on the campus corner. Save publishes. Ashley owns questions
- * and people, not a review step.
+ * put updates on the campus corner. Save publishes. Ashley owns people,
+ * not a review step. Form prompts live in the database — change them in SQL.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
@@ -11,7 +11,37 @@ import { getStaffToken, intake, setStaffToken } from './api';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
-type Tab = 'home' | 'form' | 'questions' | 'review' | 'people';
+type Tab = 'home' | 'form' | 'review' | 'people';
+
+/** Dead /staff?tab=questions (or #questions) must land on home, not an empty page. */
+export function staffTabFromRaw(raw: string | null | undefined): Tab {
+  const v = (raw || '').trim().toLowerCase();
+  if (v === 'form' || v === 'review' || v === 'people' || v === 'home') return v;
+  return 'home';
+}
+
+function readStaffTabParam(): string {
+  try {
+    const q = new URLSearchParams(window.location.search).get('tab');
+    if (q) return q;
+    return window.location.hash.replace(/^#/, '');
+  } catch {
+    return '';
+  }
+}
+
+function stripQuestionsDeepLink() {
+  try {
+    const url = new URL(window.location.href);
+    const tab = (url.searchParams.get('tab') || '').toLowerCase();
+    const hash = url.hash.replace(/^#/, '').toLowerCase();
+    if (tab !== 'questions' && hash !== 'questions') return;
+    if (tab === 'questions') url.searchParams.delete('tab');
+    if (hash === 'questions') url.hash = '';
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  } catch { /* */ }
+}
+
 type Job = 'hub' | 'media' | 'campus';
 type Staff = { email: string; role: Role; campusId: string | null; name: string; isAdmin: boolean };
 type Question = {
@@ -55,23 +85,6 @@ type Submission = {
   publish_result?: { cornerAdded?: number; cornerRemoved?: number; sermon?: { id: string; title: string } | null } | null;
 };
 
-const TYPES = [
-  { id: 'text', label: 'Short text' },
-  { id: 'long_text', label: 'Long text' },
-  { id: 'yes_no', label: 'Yes / no' },
-  { id: 'campus', label: 'Campus picker' },
-  { id: 'date', label: 'Date' },
-  { id: 'corner_remove', label: 'Take one item down' },
-  { id: 'sermon_pick', label: 'Which sermon' },
-];
-const AUDIENCES = [
-  { id: 'campus', label: 'Campus pastors' },
-  { id: 'hub', label: 'Hub pastors (when they preach)' },
-  { id: 'media', label: 'Media (YouTube + notes polish)' },
-  { id: 'all', label: 'Everyone on the form' },
-  { id: 'admin', label: 'Ashley only' },
-];
-
 const inputStyle: CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: 12, boxSizing: 'border-box',
   border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
@@ -110,13 +123,15 @@ export function StaffApp() {
   const [token, setToken] = useState(() => getStaffToken());
   const [staff, setStaff] = useState<Staff | null>(null);
   const [boot, setBoot] = useState(!!getStaffToken());
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useState<Tab>(() => staffTabFromRaw(readStaffTabParam()));
   const [job, setJob] = useState<Job>('hub');
   const [error, setError] = useState('');
+  const view: Tab = tab === 'form' || tab === 'review' || tab === 'people' ? tab : 'home';
 
   useEffect(() => {
     document.title = 'Staff — Futures Daily Word';
     document.documentElement.setAttribute('data-theme', localStorage.getItem('dw_dark') === 'true' ? 'dark' : 'light');
+    stripQuestionsDeepLink();
   }, []);
 
   const loadMe = useCallback(async () => {
@@ -180,7 +195,7 @@ export function StaffApp() {
             {staff.name || staff.email}
             {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
           </p>
-          {tab !== 'home' && (
+          {view !== 'home' && (
             <button
               type="button"
               onClick={() => { setTab('home'); setError(''); }}
@@ -196,21 +211,19 @@ export function StaffApp() {
         {error && (
           <p style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 16 }}>{error}</p>
         )}
-        {tab === 'home' && (
+        {view === 'home' && (
           <StaffHome
             staff={staff}
             onJob={j => { setJob(j); setTab('form'); setError(''); }}
             onReview={() => { setTab('review'); setError(''); }}
-            onQuestions={() => { setTab('questions'); setError(''); }}
             onPeople={() => { setTab('people'); setError(''); }}
           />
         )}
-        {tab === 'form' && <IntakeForm staff={staff} job={job} onError={setError} />}
-        {tab === 'questions' && staff.isAdmin && <FormBuilder onError={setError} />}
-        {tab === 'review' && staff.isAdmin && (
+        {view === 'form' && <IntakeForm staff={staff} job={job} onError={setError} />}
+        {view === 'review' && staff.isAdmin && (
           <ReviewQueue onError={setError} />
         )}
-        {tab === 'people' && staff.isAdmin && <Roster onError={setError} />}
+        {view === 'people' && staff.isAdmin && <Roster onError={setError} />}
       </main>
     </div>
   );
@@ -332,12 +345,11 @@ function withStep(n: number, label: string) {
 }
 
 function StaffHome({
-  staff, onJob, onReview, onQuestions, onPeople,
+  staff, onJob, onReview, onPeople,
 }: {
   staff: Staff;
   onJob: (job: Job) => void;
   onReview: () => void;
-  onQuestions: () => void;
   onPeople: () => void;
 }) {
   const jobs: { id: Job; title: string; body: string }[] = [
@@ -377,7 +389,6 @@ function StaffHome({
             Settings
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" style={btnGhost} onClick={onQuestions}>Questions</button>
             <button type="button" style={btnGhost} onClick={onPeople}>People</button>
             <button type="button" style={btnGhost} onClick={onReview}>History</button>
           </div>
@@ -804,156 +815,6 @@ function QuestionField({
     );
   }
   return null;
-}
-
-function FormBuilder({ onError }: { onError: (s: string) => void }) {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [editing, setEditing] = useState<Partial<Question> | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    const data = await intake<{ questions: Question[] }>('questions_list');
-    setQuestions(data.questions || []);
-  }, []);
-  useEffect(() => { load().catch(err => onError(err.message)); }, [load, onError]);
-
-  const save = async () => {
-    if (!editing || !editing.label) return;
-    setBusy(true); onError('');
-    try {
-      await intake('question_save', { question: editing });
-      setEditing(null);
-      await load();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : 'Could not save');
-    }
-    setBusy(false);
-  };
-
-  const move = async (id: string, dir: -1 | 1) => {
-    const ids = questions.map(q => q.id);
-    const i = ids.indexOf(id);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= ids.length) return;
-    const next = ids.slice();
-    [next[i], next[j]] = [next[j], next[i]];
-    await intake('question_reorder', { ids: next });
-    await load();
-  };
-
-  return (
-    <div>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Questions</h2>
-      <p style={{ ...helpStyle, marginBottom: 20 }}>
-        These are the prompts on each job. Change them when the form needs a new question.
-      </p>
-      {questions.map((q, i) => (
-        <div key={q.id} style={{
-          border: '1px solid var(--dw-border)', borderRadius: 14, padding: 14, marginBottom: 10,
-          opacity: q.enabled ? 1 : 0.55,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ margin: 0, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{q.label}</p>
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                {TYPES.find(t => t.id === q.type)?.label || q.type} · {AUDIENCES.find(a => a.id === q.audience)?.label || q.audience}
-                {q.required ? ' · required' : ''}
-                {!q.enabled ? ' · hidden' : ''}
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button type="button" style={{ ...btnGhost, minHeight: 36, padding: '4px 10px' }} disabled={i === 0} onClick={() => move(q.id, -1)}>↑</button>
-              <button type="button" style={{ ...btnGhost, minHeight: 36, padding: '4px 10px' }} disabled={i === questions.length - 1} onClick={() => move(q.id, 1)}>↓</button>
-              <button type="button" style={{ ...btnGhost, minHeight: 36, padding: '4px 10px' }} onClick={() => setEditing(q)}>Edit</button>
-            </div>
-          </div>
-        </div>
-      ))}
-      <button type="button" style={{ ...btnPrimary, marginTop: 8 }} onClick={() => setEditing({
-        label: '', help: '', type: 'text', audience: 'campus', required: false, enabled: true, sort_order: (questions.length + 1) * 10, config: {},
-      })}>
-        Add question
-      </button>
-
-      {editing && (
-        <div style={{ marginTop: 20, padding: 16, border: '1px solid var(--dw-border)', borderRadius: 16, background: 'var(--dw-card)' }}>
-          <Field label="Question">
-            <input value={editing.label || ''} onChange={e => setEditing({ ...editing, label: e.target.value })} style={inputStyle} />
-          </Field>
-          <Field label="Help text">
-            <input value={editing.help || ''} onChange={e => setEditing({ ...editing, help: e.target.value })} style={inputStyle} />
-          </Field>
-          <Field label="Type">
-            <select value={editing.type || 'text'} onChange={e => setEditing({ ...editing, type: e.target.value })} style={inputStyle}>
-              {TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </select>
-          </Field>
-          <Field label="Who sees this">
-            <select value={editing.audience || 'campus'} onChange={e => setEditing({ ...editing, audience: e.target.value })} style={inputStyle}>
-              {AUDIENCES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </select>
-          </Field>
-          {(editing.type === 'text' || editing.type === 'long_text' || editing.type === 'date') && (
-            <Field label="When I approve, put this on">
-              <select
-                value={editing.config?.publish || ''}
-                onChange={e => setEditing({ ...editing, config: { ...editing.config, publish: e.target.value } })}
-                style={inputStyle}
-              >
-                <option value="">Review only (do not publish automatically)</option>
-                <option value="campus_title">Campus corner title</option>
-                <option value="campus_body">Campus corner body</option>
-                <option value="campus_corner">Campus corner as a note</option>
-                <option value="sermon_field">A sermon-notes field</option>
-              </select>
-            </Field>
-          )}
-          {editing.config?.publish === 'sermon_field' && (
-            <Field label="Sermon field">
-              <select
-                value={editing.config?.sermonKey || 'outline'}
-                onChange={e => setEditing({ ...editing, config: { ...editing.config, sermonKey: e.target.value } })}
-                style={inputStyle}
-              >
-                <option value="title">Title</option>
-                <option value="speaker">Speaker</option>
-                <option value="date">Date</option>
-                <option value="series">Series</option>
-                <option value="outline">Pasted notes</option>
-                <option value="youtubeUrl">YouTube URL</option>
-              </select>
-            </Field>
-          )}
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontFamily: 'var(--font-sans)', fontSize: 14, marginBottom: 10 }}>
-            <input type="checkbox" checked={!!editing.required} onChange={e => setEditing({ ...editing, required: e.target.checked })} />
-            Required
-          </label>
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontFamily: 'var(--font-sans)', fontSize: 14, marginBottom: 16 }}>
-            <input type="checkbox" checked={editing.enabled !== false} onChange={e => setEditing({ ...editing, enabled: e.target.checked })} />
-            Show on the form
-          </label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save question</button>
-            <button type="button" style={btnGhost} onClick={() => setEditing(null)}>Cancel</button>
-            {editing.id && (
-              <button
-                type="button"
-                style={{ ...btnGhost, color: '#B42318' }}
-                onClick={async () => {
-                  if (!confirm('Remove this question from the form?')) return;
-                  await intake('question_delete', { id: editing.id });
-                  setEditing(null);
-                  await load();
-                }}
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 function ReviewQueue({ onError }: { onError: (s: string) => void }) {
