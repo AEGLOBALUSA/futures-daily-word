@@ -696,14 +696,21 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   };
 
   const handleRead = (passage: string) => {
-    // If already open, close it (toggle)
-    if (expandedPassages.has(passage)) {
+    // Chapter vs verse-range are the same reading (hero uses "John 3", plan
+    // cards may pass "John 3:16-21"). Collapse if either form is already open.
+    const chapter = passage.replace(/:\d+(-\d+)?$/, '').trim();
+    const isOpen = [...expandedPassages].some((e) => {
+      const eCh = e.replace(/:\d+(-\d+)?$/, '').trim();
+      return e === passage || e === chapter || eCh === chapter;
+    });
+    if (isOpen) {
       setExpandedPassages(new Set());
       return;
     }
     // Open this passage — audio keeps playing so user can listen + read together
-    setExpandedPassages(new Set([passage]));
-    loadPassage(passage);
+    setExpandedPassages(new Set([chapter]));
+    loadPassage(chapter);
+    if (passage !== chapter) loadPassage(passage);
     trackBehavior('passage_read', passage);
     track('daily_reading', passage);
     // Mark this plan day as completed — and if that completion FINISHED the whole
@@ -761,15 +768,16 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     }
   }, []);
 
-  // Reset expanded passages when day or translation changes. Deliberately does
-  // NOT stop audio: with a plan active the strip below drives planDayOffset (its
-  // own effect handles the day change), so a dayOffset tick here is a no-op for
-  // the plan reading and killing commute audio for it was pure loss.
+  // Reset expanded passages when the day or translation changes so the next
+  // reading starts hidden (Read reveals it). Does NOT stop audio: with a plan
+  // active the strip below drives planDayOffset (its own effect handles the day
+  // change), so a dayOffset tick here is a no-op for the plan reading and killing
+  // commute audio for it was pure loss.
   useEffect(() => {
     setExpandedPassages(new Set());
     setPassageTexts({});
     setCompareTexts({});
-  }, [dayOffset, translation]);
+  }, [dayOffset, translation, planDayOffset]);
 
   // Persist planDayOffset (date-keyed so it resets on a new calendar day)
   useEffect(() => {
@@ -1223,6 +1231,16 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     return refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
   }, [todaysPlanPassages, readingSlots, chaptersPerDay, passages, expandChapterRef, personaConfig.persona, pathwayProgress, pathwayDisplayDay, pathwayData]);
   const heroKey = heroChapterRefs.join('|');
+  const isReadingOpen = useCallback((ref: string) => {
+    if (!ref || expandedPassages.size === 0) return false;
+    if (expandedPassages.has(ref)) return true;
+    const ch = expandChapterRef(ref);
+    if (expandedPassages.has(ch)) return true;
+    for (const e of expandedPassages) {
+      if (expandChapterRef(e) === ch) return true;
+    }
+    return false;
+  }, [expandedPassages, expandChapterRef]);
 
   // Fetch compare text when compare mode or translation changes. Covers BOTH the
   // raw plan passages (plan cards key compareTexts by the un-expanded ref) AND
@@ -1321,7 +1339,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     }
   }, [heroKey]);
 
-  // Auto-follow: when audio advances to next chapter, update the Read text panel too
+  // Auto-follow: when audio advances to next chapter, update the Read text panel
+  // too — but only if the reader already tapped Read (do not dump scripture
+  // just because the chapter pill moved).
   useEffect(() => {
     if (expandedPassages.size > 0 && heroChapterRefs[heroChapterIndex]) {
       const newRef = heroChapterRefs[heroChapterIndex];
@@ -1333,20 +1353,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroChapterIndex]);
 
-  // Read-first: open today's current scripture so the Word is front-and-center on load
-  // (and after a day/translation change) instead of hidden behind a "Read" tap. Defined
-  // AFTER the reset-on-day/translation effect above and sharing its triggers, so it
-  // re-opens right after that effect clears. A manual collapse within the same
-  // day/translation sticks (none of these deps change then). Completion is now a
-  // DELIBERATE action ("Mark as read" → handleMarkRead), not a side effect of opening
-  // (focus-group: the "done" moment needs intent to feel earned + keep streaks honest).
-  useEffect(() => {
-    const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
-    if (!ref) return;
-    setExpandedPassages(new Set([ref]));
-    loadPassage(ref);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heroKey, dayOffset, translation]);
+  // Hero scripture stays collapsed until Read. Do not auto-open on load — the
+  // previous Read-first effect dumped today's chapter for every persona, so the
+  // control arrived as Hide. Arrival is hero + Read; tapping Read reveals it.
 
   useEffect(() => {
     return AP.onStateChange((st) => {
@@ -2278,14 +2287,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '12px 8px', minHeight: 44,
                         background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: expandedPassages.has(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-text-primary)' : 'var(--dw-text-muted)',
+                        color: isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? 'var(--dw-text-primary)' : 'var(--dw-text-muted)',
                         fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
                         letterSpacing: '0.03em', transition: 'color 0.2s ease',
                         borderRight: '1px solid var(--dw-border)',
                       }}
                     >
                       <BookOpen size={13} />
-                      {expandedPassages.has(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? t('hide_reading') : t('read_btn')}
+                      {isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') ? t('hide_reading') : t('read_btn')}
                     </button>
                   )}
                   {/* Restart button — resets to chapter 1 and replays */}
@@ -2378,7 +2387,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     and become invisible against the light background. */}
                 {(() => {
                   const readRef = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '';
-                  const isReadExpanded = readRef && expandedPassages.has(readRef);
+                  const isReadExpanded = Boolean(readRef && isReadingOpen(readRef));
                   const readKey = `${readRef}_${translation}`;
                   const readText = passageTexts[readKey];
                   if (!isReadExpanded) return null;
@@ -2565,10 +2574,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </button>
         </div>
 
-        {/* ── Today's lesson (new_to_faith) — immediately under the reading it
-             teaches, so the day is one unit: read it, then read about it, then
-             one button finishes both. ── */}
-        {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (
+        {/* ── Today's lesson (new_to_faith) — sits under the hero AFTER Read, so
+             the day is one unit: hero first, Read reveals scripture, then the
+             pastoral word. Do not dump the lesson on a closed hero. ── */}
+        {!personaConfig.sectionOrder.includes('devotion') && pf.faithPathway && pathwayProgress.enrolled && pathwayData
+          && isReadingOpen(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '') && (
           <NewBelieverLessonCard
             pathwayData={pathwayData}
             pathwayProgress={pathwayProgress}
@@ -2991,6 +3001,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 const isLoading = loadingPassages.has(passage);
                 const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
                 const isLoadingAudio = audioLoading && audioCurrentPassage === passage;
+                const isExpanded = isReadingOpen(passage);
 
                 return (
                   <Card key={planId + '_' + passage} style={{ marginBottom: 12 }}>
@@ -3026,13 +3037,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                       </button>
                     </div>
 
-                    {/* Scripture text — with word-tap for Greek/Hebrew */}
-                    {isLoading ? (
+                    {/* Scripture text — hidden until Read, same as the hero */}
+                    {isExpanded ? (
+                    isLoading ? (
                       <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
-                    ) : txt ? (
+                    ) : (txt || passageTexts[`${expandChapterRef(passage)}_${translation}`]) ? (
                       <>
                         <ScripturePassage
-                          text={txt}
+                          text={txt || passageTexts[`${expandChapterRef(passage)}_${translation}`]}
                           passageRef={passage}
                           renderScripture={renderScripture}
                           greekHebrewMode={greekHebrewMode}
@@ -3063,8 +3075,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         })()}
                       </>
                     ) : (
+                      <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
+                    )
+                    ) : (
                       <button
-                        onClick={() => loadPassage(passage)}
+                        onClick={() => handleRead(expandChapterRef(passage))}
                         style={{
                           background: 'var(--dw-accent-bg)', border: '1px solid var(--dw-accent)',
                           borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
@@ -3326,21 +3341,35 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   </button>
                 );
               })()}
-              {/* ── Scripture content ── */}
+              {/* ── Scripture content — hidden until Read (same as hero) ── */}
               <div style={{ padding: '14px 18px 16px' }}>
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
                   {displayPassage(passage, appLanguage)}
                 </div>
-                {txt ? (
+                {isReadingOpen(passage) ? (
+                  (txt || passageTexts[`${expandChapterRef(passage)}_${translation}`]) ? (
                   <ScripturePassage
-                    text={txt}
+                    text={txt || passageTexts[`${expandChapterRef(passage)}_${translation}`]}
                     passageRef={passage}
                     renderScripture={renderScripture}
                     greekHebrewMode={greekHebrewMode}
                     fontSize={scriptureFontSize}
                   />
-                ) : (
+                  ) : (
                   <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
+                  )
+                ) : (
+                  <button
+                    onClick={() => handleRead(expandChapterRef(passage))}
+                    style={{
+                      background: 'var(--dw-accent-bg)', border: '1px solid var(--dw-accent)',
+                      borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <BookOpen size={16} /> {t('read_btn')} {passage}
+                  </button>
                 )}
               </div>
               {/* Plan-level devotionals suppressed — single devotion shown in main card above */}
@@ -3354,7 +3383,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 const textKey = `${passage}_${translation}`;
                 const text = passageTexts[textKey];
                 const isLoading = loadingPassages.has(passage);
-                const isExpanded = expandedPassages.has(passage);
+                const isExpanded = isReadingOpen(passage);
                 const isPlayingThis = audioPlaying && audioCurrentPassage === passage;
                 const isLoadingThis = audioLoading && audioCurrentPassage === passage;
 
