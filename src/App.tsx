@@ -42,7 +42,7 @@ const SERMON_DEEP_LINK = (() => {
 })();
 
 // Cold start (no real persona choice) → Day 1 of the 40-day grace series.
-// Must run before UserProvider / HomeScreen read localStorage. `from=church`
+// Must run before UserProvider / the Today screen read localStorage. `from=church`
 // is attribution only and is stripped here; it never invents a new pathway.
 const LANDING_FROM = consumeLandingParam();
 // Enroll fill-only before UserProvider reads localStorage, so Home (after
@@ -67,7 +67,11 @@ if (typeof document !== 'undefined' && IS_EMBEDDED) {
 }
 
 // ── Lazy-loaded screens — only downloaded when the user navigates to them ──
-const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
+// Today replaced the persona-driven HomeScreen (Ashley, 1 Sep 2026): one hero,
+// one action, nothing to figure out. Me is the personal hub the 5→3 tab
+// collapse filed Notes / Campus / Sermon notes / Settings under.
+const TodayScreen = lazy(() => import('./screens/TodayScreen').then(m => ({ default: m.TodayScreen })));
+const MeScreen = lazy(() => import('./screens/MeScreen').then(m => ({ default: m.MeScreen })));
 const JournalScreen = lazy(() => import('./screens/JournalScreen').then(m => ({ default: m.JournalScreen })));
 const MessagesScreen = lazy(() => import('./screens/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
 const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ default: m.PlansScreen })));
@@ -104,6 +108,10 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>(SERMON_DEEP_LINK ? 'sermon-notes' : 'home');
   const tabHistoryRef = useRef<TabId[]>([SERMON_DEEP_LINK ? 'sermon-notes' : 'home']);
   const [showBibleAI, setShowBibleAI] = useState(false);
+  // Which Journal sub-tab the Me hub asked for (Notes vs Saved verses). A ref,
+  // so setting it can't re-render Me before navigateTab swaps the screen.
+  const meJournalTabRef = useRef<'today' | 'saved' | 'prayer' | undefined>(undefined);
+  const meJournalTab = meJournalTabRef.current;
   // Bumped when a cloud sync lands so the active screen remounts and re-reads the
   // freshly merged localStorage (previously dw-cloud-sync had no listeners and
   // screens showed stale, pre-sync state until the user force-navigated).
@@ -256,6 +264,14 @@ function AppContent() {
     }
   }, [userProfile?.email]);
 
+  // Screens open the app-level Bible AI through this event (the Bible tab's
+  // search hands it a prefilled prompt via dw_ai_prefill).
+  useEffect(() => {
+    const open = () => setShowBibleAI(true);
+    window.addEventListener('dw-open-ai', open);
+    return () => window.removeEventListener('dw-open-ai', open);
+  }, []);
+
   // Auto-open AI when Go Deeper is triggered from a selection
   useEffect(() => {
     if (selection?.text && selection.source === 'range') {
@@ -316,15 +332,16 @@ function AppContent() {
   }, []);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
-    journal: <JournalScreen onBack={goBack} onNavigate={navigateTab} />,
+    home: <TodayScreen />,
+    me: <MeScreen onNavigate={(tab, journalTab) => { if (journalTab) meJournalTabRef.current = journalTab as typeof meJournalTab; navigateTab(tab); }} />,
+    journal: <JournalScreen onBack={goBack} onNavigate={navigateTab} initialTab={meJournalTab} />,
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
     plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
     more: <MoreScreen onBack={goBack} />,
     'sermon-notes': <SermonNotesTab onBack={() => navigateTab('home')} />,
   };
 
-  const TAB_ORDER: TabId[] = ['home', 'journal', 'messages', 'plans', 'more', 'sermon-notes'];
+  const TAB_ORDER: TabId[] = ['home', 'me', 'journal', 'messages', 'plans', 'more', 'sermon-notes'];
 
   if (showDay1Landing) {
     return (
@@ -389,6 +406,8 @@ function AppContent() {
           those double-mounted the whole panel AND its floating button — two identical
           FABs stacked at the same coordinates. Only mount it for the screens that
           don't bring their own. */}
+      {/* Never on Today (one hero, one action — Ashley, 1 Sep 2026); Notes
+          mounts its own. */}
       {activeTab !== 'home' && activeTab !== 'journal' && (
         <Suspense fallback={null}>
           <BibleAI

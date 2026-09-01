@@ -14,8 +14,10 @@ describe('house ads placement', () => {
   });
 
   it('shows PromoAds on every congregation tab', () => {
+    // Today is exempt: one hero, one action (Ashley, 1 Sep 2026) — the ads
+    // moved one level down with everything else. Me inherits Home's slot.
     for (const file of [
-      'screens/HomeScreen.tsx',
+      'screens/MeScreen.tsx',
       'screens/PlansScreen.tsx',
       'screens/JournalScreen.tsx',
       'screens/MessagesScreen.tsx',

@@ -133,12 +133,12 @@ function PastorsCornerPanel({ userProfile }: { userProfile: any }) {
 
   // Type config: label, color, icon emoji
   const typeConfig: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-    announcement: { label: t('msg_announcement', lang), color: '#D97706', bg: 'rgba(217,119,6,0.10)', icon: '' },
-    sermon_note:  { label: t('msg_sermon_note', lang),  color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', icon: '' },
+    announcement: { label: t('msg_announcement', lang), color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
+    sermon_note:  { label: t('msg_sermon_note', lang),  color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
     essay:        { label: t('msg_essay', lang),         color: 'var(--dw-info)', bg: 'rgba(37,99,235,0.10)', icon: '' },
     note:         { label: t('msg_note', lang),          color: 'var(--dw-text-muted)', bg: 'var(--dw-surface-hover)', icon: '' },
-    prayer_point: { label: t('msg_prayer_point', lang),  color: '#059669', bg: 'rgba(5,150,105,0.10)', icon: '' },
-    video:        { label: t('msg_video', lang),         color: '#DC2626', bg: 'rgba(220,38,38,0.10)', icon: '' },
+    prayer_point: { label: t('msg_prayer_point', lang),  color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
+    video:        { label: t('msg_video', lang),         color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
   };
 
   return (

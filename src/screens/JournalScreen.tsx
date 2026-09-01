@@ -755,8 +755,8 @@ function ScriptureModal({
     }, 100);
   }
 
-  const authorColor = (author: string) =>
-    author === 'Ashley' ? '#9A6A08' : author === 'Jane' ? '#4A5568' : '#6B5C3E';
+  // One neutral for every byline — the name does the distinguishing, not a hue.
+  const authorColor = (_author: string) => 'var(--dw-text-muted)';
 
   return (
     <>
@@ -1327,7 +1327,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
           {t('no_passages', lang)}
         </p>
         <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-          Tap the Plans tab to add a reading plan.
+          {t('j_add_plan_hint', lang)}
         </p>
       </Card>
     );
@@ -1339,7 +1339,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
         {passages.map(({ ref, planTitle, dayNum, devotional, isBookChapter }) => {
           const existingNote = getExistingNote(ref);
           const wasSaved = saved.has(ref);
-          const authorColor = devotional?.author === 'Ashley' ? '#9A6A08' : devotional?.author === 'Jane' ? '#4A5568' : '#6B5C3E';
+          const authorColor = 'var(--dw-text-muted)';
 
           return (
             <div
