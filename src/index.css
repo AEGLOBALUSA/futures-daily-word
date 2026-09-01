@@ -1396,12 +1396,11 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   width: 100%;
   min-height: 44px;
   margin: 12px 0 0;
-  border: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--dw-border, #ECE3D4);
-  background: transparent;
+  border: 1.5px solid #ECE3D4;
+  border-radius: 10px;
+  background: #FFF;
   box-shadow: none;
-  padding: 8px 0;
+  padding: 10px 12px;
   font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 400;

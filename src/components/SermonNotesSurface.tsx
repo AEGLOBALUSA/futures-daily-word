@@ -2,7 +2,7 @@
  * Locked visual standard for congregation Sermon Notes (live page + staff preview).
  * Same CSS class: .dw-sermon-notes. Do not use this chrome on the rest of Daily Word.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { youtubeEmbedUrl } from '../utils/youtube';
 import { syncMisc } from '../utils/cloudSync';
 
@@ -60,7 +60,7 @@ function metaLine(sermon: SermonNotesData) {
   return lead || date;
 }
 
-function HairlineBlank({
+function ExpandingNoteBox({
   id,
   value,
   onChange,
@@ -80,7 +80,7 @@ function HairlineBlank({
     el.style.height = 'auto';
     el.style.height = Math.max(el.scrollHeight, response ? 88 : 44) + 'px';
   }, [response]);
-  useEffect(() => { resize(); }, [value, resize]);
+  useLayoutEffect(() => { resize(); }, [value, resize]);
   return (
     <textarea
       ref={ref}
@@ -89,6 +89,7 @@ function HairlineBlank({
       placeholder={placeholder || ''}
       rows={response ? 3 : 1}
       onChange={e => { onChange(id, e.target.value); resize(); }}
+      onInput={() => resize()}
     />
   );
 }
@@ -176,7 +177,7 @@ export function SermonNotesSurface({
               return (
                 <div key={i}>
                   {item.before ? <p className="dw-sermon-notes-point">{item.before}</p> : null}
-                  <HairlineBlank
+                  <ExpandingNoteBox
                     id={blankId}
                     value={responses[blankId] || ''}
                     onChange={update}
@@ -200,7 +201,7 @@ export function SermonNotesSurface({
           {prompts.map((prompt, i) => (
             <div key={i} className="dw-sermon-notes-prompt">
               <p className="dw-sermon-notes-prompt-q">{prompt}</p>
-              <HairlineBlank
+              <ExpandingNoteBox
                 id={`resp-${sermonId}-${i}`}
                 value={responses[`resp-${sermonId}-${i}`] || ''}
                 onChange={update}
