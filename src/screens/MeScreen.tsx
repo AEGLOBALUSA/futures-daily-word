@@ -17,6 +17,7 @@ import { hapticTap } from '../utils/haptics';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { FeedbackPoll } from '../components/FeedbackPoll';
 import { PromoAds } from '../components/PromoAds';
+import { PWAInstallBanner } from '../components/PWAInstall';
 import type { TabId } from '../components/TabBar';
 
 type Dest = { tab: TabId; journalTab?: 'today' | 'saved' | 'prayer' };
@@ -110,6 +111,7 @@ export function MeScreen({ onNavigate }: { onNavigate: (tab: TabId, journalTab?:
             </button>
           ))}
         </nav>
+        <PWAInstallBanner />
         <PromoAds />
       </div>
       {/* Product feedback belongs where the personal stuff is, not on Today. */}

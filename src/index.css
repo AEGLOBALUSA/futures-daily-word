@@ -1080,6 +1080,16 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 }
 
 /* Pathway: the single forward control. */
+.today-howitworks {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dw-text-muted);
+  margin: -4px 0 14px;
+}
+
+/* Pathway controls wear the New-Christian sage identity (PRs #72–77);
+   on-fill ink comes from the token so both themes stay correct. */
 .today-complete {
   display: inline-flex;
   align-items: center;
@@ -1116,9 +1126,17 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 
 .today-complete.is-done {
   border-color: transparent;
-  background: var(--dw-accent-bg);
-  color: var(--dw-accent);
+  background: var(--dw-new-soft);
+  color: var(--dw-new);
   cursor: default;
+}
+.today-pathway-nav .today-complete:not(.is-done) {
+  border-color: transparent;
+  background: var(--dw-new);
+  color: var(--dw-new-on-fill);
+}
+.today-pathway-nav .today-complete:not(.is-done):hover {
+  background: var(--dw-new-hover);
 }
 
 /* ── 3. One next step. ── */

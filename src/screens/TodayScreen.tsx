@@ -25,7 +25,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowRight, BookOpen, Check, Loader2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
-import { getLang } from '../utils/i18n';
+import { isNewChristianPersona } from '../utils/persona-config';
+import { getLang, t as tI18n } from '../utils/i18n';
 import { getDayNumber } from '../utils/daily-passages';
 import { ALL_ASHLEY_JANE_DEVOTIONALS, ALL_ASHLEY_JANE_PASSAGES } from '../data/ashley-jane-plan';
 import type { PathwayData, PathwayDay, PathwayProgress } from '../data/pathway-types';
@@ -110,7 +111,7 @@ export function TodayScreen() {
     return () => window.removeEventListener('dw-lang-changed', h);
   }, []);
 
-  const isNewToFaith = setup?.persona === 'new_to_faith';
+  const isNewToFaith = isNewChristianPersona(setup?.persona);
 
   // ── Faith Pathway (new_to_faith only) ──
   const [pathway, setPathway] = useState<PathwayData | null>(null);
@@ -159,22 +160,27 @@ export function TodayScreen() {
     if (!content?.day) return;
     hapticTap();
     const d = content.day;
-    const completedDays = progress.completedDays.includes(d)
-      ? progress.completedDays
-      : [...progress.completedDays, d];
     // currentDay is the furthest they've reached — it only ever moves forward,
     // so re-reading an earlier day can never pull their progress backwards.
     // LOCAL date (en-CA) — the date-axis rule; also what the Bible tab compares.
     const today = new Date().toLocaleDateString('en-CA');
+    // ‼️ Merge into the CURRENTLY-STORED record, not React state — a cloud sync
+    // may have landed since mount, and rebuilding from state clobbers it
+    // (the exact #64 review BLOCKER: never rebuild a synced dw_* record from
+    // React state). Only the keys this action owns change.
+    const stored = readPathwayProgress();
+    const storedCompleted = stored.completedDays.includes(d)
+      ? stored.completedDays
+      : [...stored.completedDays, d];
     const next: PathwayProgress = {
-      ...progress,
-      completedDays,
-      currentDay: Math.min(Math.max(progress.currentDay || 1, d + 1), lastDay),
+      ...stored,
+      completedDays: storedCompleted,
+      currentDay: Math.min(Math.max(stored.currentDay || 1, d + 1), lastDay),
       enrolled: true,
       lastCompletedDay: d,
       lastCompletedDate: today,
-      totalDays: progress.totalDays || GRACE_SERIES_TOTAL_DAYS,
-      title: progress.title || GRACE_SERIES_TITLE,
+      totalDays: stored.totalDays || GRACE_SERIES_TOTAL_DAYS,
+      title: stored.title || GRACE_SERIES_TITLE,
     };
     setProgress(next);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(next)); } catch { /* quota */ }
@@ -189,7 +195,22 @@ export function TodayScreen() {
   const [showScripture, setShowScripture] = useState(false);
   const [passageText, setPassageText] = useState('');
   const [passageState, setPassageState] = useState<'idle' | 'loading' | 'error'>('idle');
+  // Settings changes land live: MoreScreen fires these after writing localStorage.
+  const [settingsRev, setSettingsRev] = useState(0);
+  useEffect(() => {
+    const onTranslation = () => { setPassageText(''); setPassageState('idle'); setSettingsRev(r => r + 1); };
+    const onFont = () => setSettingsRev(r => r + 1);
+    window.addEventListener('dw-translation-changed', onTranslation);
+    window.addEventListener('dw-font-size-changed', onFont);
+    return () => {
+      window.removeEventListener('dw-translation-changed', onTranslation);
+      window.removeEventListener('dw-font-size-changed', onFont);
+    };
+  }, []);
   const translation = (localStorage.getItem('dw_translation') || 'ESV') as TranslationCode;
+  // dw_font_size: absolute px, 13–32, default 15 — same contract as Settings.
+  const scriptureFontSize = Math.min(32, Math.max(13, parseInt(localStorage.getItem('dw_font_size') || '15', 10) || 15));
+  void settingsRev; // read so the lint knows the state drives the re-render
   const reference = content?.reference || '';
 
   const loadPassage = useCallback(() => {
@@ -203,12 +224,24 @@ export function TodayScreen() {
   // A new day (or a pathway day advancing) invalidates the loaded passage.
   useEffect(() => { setShowScripture(false); setPassageText(''); setPassageState('idle'); }, [reference]);
 
+  // Re-fetch when the passage was cleared by a translation change while open.
+  useEffect(() => {
+    if (showScripture && !passageText && passageState === 'idle') loadPassage();
+  }, [showScripture, passageText, passageState, loadPassage]);
+
   const toggleRead = () => {
     hapticTap();
     if (showScripture) { setShowScripture(false); return; }
     setShowScripture(true);
     if (!passageText) loadPassage();
     recordStreakToday();
+    // Evidence for the push ask: they have read. Stamp only — the prompt
+    // surfaces on the NEXT open, never over the scripture they just opened.
+    try {
+      if (!localStorage.getItem('dw_reading_done')) {
+        localStorage.setItem('dw_reading_done', new Date().toLocaleDateString('en-CA'));
+      }
+    } catch { /* quota */ }
     track('today_read', reference);
   };
 
@@ -243,7 +276,10 @@ export function TodayScreen() {
         </p>
 
         {content.day ? (
-          <p className="today-daycount">{c('day', lang)} {content.day} / {pathway?.days?.length || 40}</p>
+          <p className="today-daycount">{c('day', lang)} {content.day} / {lastDay}</p>
+        ) : null}
+        {content.day && progress.completedDays.length < 3 ? (
+          <p className="today-howitworks">{tI18n('pathway_how_it_works', lang)}</p>
         ) : null}
 
         <h1 className="today-title">{content.title}</h1>
@@ -270,7 +306,7 @@ export function TodayScreen() {
               <button className="today-retry" onClick={loadPassage}>{c('failed', lang)}</button>
             )}
             {passageState === 'idle' && passageText && (
-              <ScripturePassage text={passageText} passageRef={reference} fontSize={16} />
+              <ScripturePassage text={passageText} passageRef={reference} fontSize={scriptureFontSize} newPath={isNewToFaith} />
             )}
           </div>
         )}
