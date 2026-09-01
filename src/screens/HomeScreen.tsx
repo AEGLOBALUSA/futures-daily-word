@@ -2132,10 +2132,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     }
                     style={{
                       pointerEvents: 'auto', width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-                      background: isLoadingHero ? 'rgba(168,85,47,0.55)' : 'rgba(20,14,8,0.42)',
+                      background: isLoadingHero
+                        ? (isNewPath ? 'var(--dw-new)' : 'rgba(168,85,47,0.55)')
+                        : 'rgba(20,14,8,0.42)',
                       border: '2px solid rgba(255,255,255,0.92)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#fff', cursor: 'pointer', padding: 0,
+                      color: isNewPath && isLoadingHero ? 'var(--dw-new-on-fill)' : '#fff', cursor: 'pointer', padding: 0,
                       backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
                       boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
                       transition: 'background 0.2s ease',
@@ -2194,7 +2196,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           if (idx !== heroChapterIndex) { (audioPlaying || audioPaused) ? handleHeroSkipTo(idx) : handleHeroSelect(idx); }
                         }}
                         style={{
-                          background: `linear-gradient(to right, rgba(168,85,47,0.9) 0%, rgba(168,85,47,0.9) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(150,130,105,0.42) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(150,130,105,0.42) 100%)`,
+                          background: isNewPath
+                            ? `linear-gradient(to right, var(--dw-new) 0%, var(--dw-new) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, var(--dw-new-soft) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, var(--dw-new-soft) 100%)`
+                            : `linear-gradient(to right, rgba(168,85,47,0.9) 0%, rgba(168,85,47,0.9) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(150,130,105,0.42) ${allLabels.length > 1 ? (heroChapterIndex / (allLabels.length - 1)) * 100 : 0}%, rgba(150,130,105,0.42) 100%)`,
                         }}
                       />
                     </div>
@@ -2360,8 +2364,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                           border: t === translation ? `1.5px solid ${isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)'}` : '1.5px solid var(--dw-border)',
-                          background: t === translation ? (isNewPath ? 'var(--dw-new-soft)' : 'rgba(168,85,47,0.15)') : 'transparent',
-                          color: t === translation ? (isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)') : 'var(--dw-text-muted)',
+                          background: t === translation ? (isNewPath ? 'var(--dw-new)' : 'rgba(168,85,47,0.15)') : 'transparent',
+                          color: t === translation ? (isNewPath ? 'var(--dw-new-on-fill)' : 'var(--dw-accent)') : 'var(--dw-text-muted)',
                         }}
                       >
                         {t}
@@ -2453,6 +2457,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                             renderScripture={renderScripture}
                             greekHebrewMode={greekHebrewMode}
                             fontSize={scriptureFontSize}
+                            newPath={isNewPath}
                           />
                         </div>
                         {/* Read → reflect, in place: a one-tap journal capture right under the passage.
@@ -2461,6 +2466,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         <InlineReflection
                           key={readRef}
                           tone="paper"
+                          newPath={isNewPath}
                           label={tI18n('reflect_label', lang)}
                           prompt={tI18n('reflect_prompt_default', lang)}
                           verseRef={readRef}
@@ -2473,7 +2479,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                             width: '100%', marginTop: 14, padding: '12px', borderRadius: 12,
                             border: readDoneToday ? '1px solid rgba(150,112,72,0.3)' : 'none',
                             background: readDoneToday ? 'transparent' : (isNewPath ? 'var(--dw-new)' : 'var(--dw-success)'),
-                            color: readDoneToday ? '#A06A42' : (isNewPath ? 'var(--dw-new-on-fill)' : '#fff'),
+                            color: readDoneToday ? (isNewPath ? 'var(--dw-new)' : '#A06A42') : (isNewPath ? 'var(--dw-new-on-fill)' : '#fff'),
                             fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
                             cursor: readDoneToday ? 'default' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -2965,6 +2971,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               {/* Reflection prompt — now an inline one-tap journal capture */}
               <InlineReflection
                 tone={isComfort ? 'comfort' : 'default'}
+                newPath={isNewPath}
                 label={isComfort ? tI18n('sit_with_this', lang) : tI18n('reflect_label', lang)}
                 prompt={isComfort
                   ? tI18n('reflect_prompt_comfort', lang)
@@ -3242,7 +3249,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     source: 'select-all',
                   });
                 }
-              }} style={{ background:'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color:'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>{t('select_all_passages')}</button>
+              }} style={{ background: isNewPath ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color: isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>{t('select_all_passages')}</button>
               <button onClick={() => {
                 const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
                 const passageRefs = [

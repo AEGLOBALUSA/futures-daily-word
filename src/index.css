@@ -618,10 +618,10 @@ h2.text-section-header {
 }
 
 /* === CONTRAST FIX: Bright white text on accent/pink buttons === */
-:root:not([data-theme="light"]) button[style*="var(--dw-accent)"],
+:root:not([data-theme="light"]) button[style*="var(--dw-accent)"]:not(.dw-journey-new),
 :root:not([data-theme="light"]) button[style*="DC535D"],
 :root:not([data-theme="light"]) button[style*="dc535d"],
-:root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"] {
+:root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"]:not(.dw-journey-new) {
   color: #FFFFFF !important;
   font-weight: 700;
 }
@@ -1331,6 +1331,26 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 }
 .dw-plan-sd-card-new .dw-plan-sd-start:hover {
   background: var(--dw-new-hover);
+}
+
+/* Settings Your Journey — I'm New is a sage object in BOTH themes.
+   Never inherit dark --dw-accent (#D89066) on the selected row. */
+.dw-journey-new {
+  background: var(--dw-new-soft) !important;
+  color: var(--dw-text-primary) !important;
+}
+.dw-journey-new .dw-journey-new-title {
+  color: var(--dw-new) !important;
+}
+.dw-journey-new.is-current,
+:root:not([data-theme="light"]) .dw-journey-new.is-current,
+:root[data-theme="light"] .dw-journey-new.is-current {
+  background: var(--dw-new) !important;
+  color: var(--dw-new-on-fill) !important;
+}
+.dw-journey-new.is-current .dw-journey-new-title,
+.dw-journey-new.is-current .dw-journey-new-desc {
+  color: var(--dw-new-on-fill) !important;
 }
 
 /* Filled I'm New chrome: white on sage in light, charcoal on sage in dark.

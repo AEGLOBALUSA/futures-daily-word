@@ -375,20 +375,25 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {PERSONAS.map(p => {
-                const isActive = setup?.persona === p.id && !pendingPersona;
-                const isPending = pendingPersona === p.id;
                 const isNewOption = isNewChristianPersona(p.id);
+                const isActive = (
+                  setup?.persona === p.id
+                  || (isNewOption && isNewChristianPersona(setup?.persona))
+                ) && !pendingPersona;
+                const isPending = pendingPersona === p.id;
                 const newFilled = isNewOption && (isActive || isPending);
                 return (
                   <button
                     key={p.id}
+                    type="button"
+                    className={isNewOption ? `dw-journey-new${newFilled ? ' is-current' : ''}` : undefined}
                     onClick={() => handlePersonaSelect(p.id)}
                     style={{
                       background: isNewOption
-                        ? (newFilled ? 'var(--dw-new)' : 'var(--dw-new-soft)')
+                        ? undefined
                         : (isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)'),
-                      color: newFilled
-                        ? 'var(--dw-new-on-fill)'
+                      color: isNewOption
+                        ? undefined
                         : (isActive || isPending ? '#fff' : 'var(--dw-text-primary)'),
                       border: isPending && !isNewOption ? '2px solid var(--dw-gold)' : 'none',
                       borderRadius: 10,
@@ -402,8 +407,8 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <div style={{ fontWeight: 500, marginBottom: 2, color: isNewOption && !newFilled ? 'var(--dw-new)' : undefined }}>{p.label}</div>
-                    <div style={{ fontSize: 12, opacity: newFilled ? 1 : 0.7 }}>{p.desc}</div>
+                    <div className={isNewOption ? 'dw-journey-new-title' : undefined} style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
+                    <div className={isNewOption ? 'dw-journey-new-desc' : undefined} style={{ fontSize: 12, opacity: newFilled ? 1 : 0.7 }}>{p.desc}</div>
                   </button>
                 );
               })}
