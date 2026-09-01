@@ -14,6 +14,9 @@ const IS_STAFF = (() => {
     return false;
   }
 })();
+if (IS_STAFF) {
+  document.documentElement.classList.add('staff-route');
+}
 
 // Apply saved theme or OS preference before React renders (avoids flash).
 // Must read the SAME key ThemeContext writes (dw_dark = 'true'|'false'); the old

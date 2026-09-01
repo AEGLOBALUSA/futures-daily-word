@@ -287,6 +287,16 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* /staff is a separate full page. Congregation tabs still need the lock above. */
+html.staff-route,
+html.staff-route body,
+html.staff-route #root {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--dw-canvas);
