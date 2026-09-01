@@ -16,6 +16,8 @@ import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
 import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
 import { t, getLang, tField } from '../utils/i18n';
+import { PERSONA_PLAN_IDS, type Persona } from '../utils/persona-config';
+import { PathwayPicker } from '../components/PathwayPicker';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -137,7 +139,7 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
 }
 
 export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
-  const { userProfile } = useUser();
+  const { userProfile, setup, saveSetup } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
@@ -222,12 +224,19 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
   const [showLibrary, setShowLibrary] = useState(false);
   useSubView(showLibrary, () => setShowLibrary(false));
 
-  // Persona-based plan suggestions
-  const persona = (() => {
+  // Persona-based plan suggestions — the five path buttons filter this list.
+  const [persona, setPersona] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || '';
     } catch { return ''; }
-  })();
+  });
+  const REAL_PATH = new Set(['onboarding', 'settings', 'upgrade']);
+  const [showChooser, setShowChooser] = useState(() => {
+    try {
+      const src = JSON.parse(localStorage.getItem('dw_setup') || '{}').source || '';
+      return !REAL_PATH.has(src);
+    } catch { return true; }
+  });
 
   // The auto-enrolled Faith Pathway lives in dw_pathway_progress, not in
   // dw_activeplans — totalDays is mirrored there by HomeScreen when the pathway
@@ -352,39 +361,39 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
 
   const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
 
-  // Persona-based plan filtering + ordering
-  const PERSONA_PRIORITY: Record<string, string[]> = {
-    // faith-pathway removed for new believers: they are auto-enrolled in the
-    // 40-day Faith Pathway on Home — surfacing a second, different-length
-    // 'faith pathway' here put people on two parallel journeys (Ashley, 26 Aug).
-    new_to_faith: ['ashley-jane-daily-word', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
-    congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
-    deeper_study: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
-    pastor_leader: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
-    comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
-    // Legacy
-    new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
-    pastor: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
-    deeper: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
-    difficult: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
+  const PERSONA_PRIORITY: Record<string, readonly string[]> = {
+    ...PERSONA_PLAN_IDS,
+    new_returning: PERSONA_PLAN_IDS.new_to_faith,
+    pastor: PERSONA_PLAN_IDS.pastor_leader,
+    deeper: PERSONA_PLAN_IDS.deeper_study,
+    difficult: PERSONA_PLAN_IDS.comfort,
   };
-  const priorityIds = PERSONA_PRIORITY[persona] || [];
-  // Always show every plan — priority plans are sorted to the top
-  const catalogBase = PLAN_CATALOGUE;
-  const browsePlans = [...catalogBase].sort((a, b) => {
-    const ai = priorityIds.indexOf(a.id);
-    const bi = priorityIds.indexOf(b.id);
-    if (ai !== -1 && bi === -1) return -1;
-    if (ai === -1 && bi !== -1) return 1;
-    if (ai !== -1 && bi !== -1) return ai - bi;
-    return 0;
-  });
+  const priorityIds = [...(PERSONA_PRIORITY[persona] || PERSONA_PLAN_IDS.new_to_faith)];
+  const browsePlans = PLAN_CATALOGUE
+    .filter(p => priorityIds.includes(p.id))
+    .sort((a, b) => priorityIds.indexOf(a.id) - priorityIds.indexOf(b.id));
   const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
 
   // Hub view (V1 structure) - the main Plans & More page
   if (!showPlanDetail) {
     if (showLibrary) {
       return <LibraryScreen onBack={() => setShowLibrary(false)} />;
+    }
+    if (showChooser) {
+      return (
+        <div className="screen-container" style={{ background: '#FAF6EF' }}>
+          <PathwayPicker
+            currentPersona={persona}
+            onSelect={(p: Persona) => {
+              const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
+              saveSetup({ persona: p, source: src });
+              setPersona(p);
+              setShowChooser(false);
+            }}
+            onBeginDay1={() => onNavigate?.('home')}
+          />
+        </div>
+      );
     }
     return (
       <div className="screen-container">
@@ -602,9 +611,21 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
           {/* ── All Reading Plans ── */}
           <div style={{ marginBottom: 24 }}>
             <h2 className="text-section-header" style={{ marginBottom: 12, paddingLeft: 4 }}>{t('reading_plans_header', getLang())}</h2>
-            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 16, fontFamily: 'var(--font-sans)', paddingLeft: 4 }}>
-              Tap a plan, then tap Start This Plan to begin. Your chosen plan sets your daily reading.
+            <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 8, fontFamily: 'var(--font-sans)', paddingLeft: 4 }}>
+              {t('plans_start_hint', lang)}
             </p>
+            <button
+              type="button"
+              onClick={() => setShowChooser(true)}
+              style={{
+                background: 'none', border: 'none', padding: '0 4px 12px',
+                fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
+                color: '#A8552F', cursor: 'pointer', textDecoration: 'underline',
+                textUnderlineOffset: 3,
+              }}
+            >
+              {t('change_path', lang)}
+            </button>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {(() => {
                 const categories = Array.from(new Set(browsePlans.map(p => p.category)));
@@ -733,7 +754,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
                             </button>
                           </div>
 
-                          {isSelected && (
+                          {!isActive && (
                             <button
                               onClick={e => {
                                 e.stopPropagation();
@@ -742,14 +763,14 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
                               }}
                               style={{
                                 width: '100%', marginTop: 12,
-                                background: 'var(--dw-accent)', color: '#fff',
+                                background: '#A8552F', color: '#fff',
                                 border: 'none', borderRadius: 10,
                                 padding: '14px 20px', fontSize: 14, fontWeight: 700,
                                 fontFamily: 'var(--font-sans)', cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                               }}
                             >
-                              ▶ Start This Plan
+                              {t('start_this_plan', lang)}
                             </button>
                           )}
 
@@ -959,7 +980,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
           Reading Plans
         </h1>
         <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, marginBottom: 20, fontFamily: 'var(--font-sans)' }}>
-          Tap a plan, then tap Start This Plan to begin. Your active plan drives the hero button on the home screen.
+          {t('plans_start_hint', lang)}
         </p>
 
         {/* Single unified view — no tabs */}
@@ -1202,8 +1223,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
                             </button>
                           </div>
 
-                          {/* Inline Start button — appears when this plan is selected */}
-                          {isSelected && (
+                          {!isActive && (
                             <button
                               onClick={e => {
                                 e.stopPropagation();
@@ -1213,7 +1233,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
                               style={{
                                 width: '100%',
                                 marginTop: 12,
-                                background: 'var(--dw-accent)',
+                                background: '#A8552F',
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: 10,
@@ -1228,7 +1248,7 @@ export function PlansScreen({ onBack, onNavigate }: { onBack?: () => void; onNav
                                 gap: 8,
                               }}
                             >
-                              ▶ Start This Plan
+                              {t('start_this_plan', lang)}
                             </button>
                           )}
 

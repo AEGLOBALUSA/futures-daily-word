@@ -4,7 +4,9 @@ import {
   startGraceSeriesIfCold,
   readPathwayProgress,
   needsDay1Landing,
+  needsDay1Reading,
   beginDay1,
+  markDay1Read,
   hasBegunDay1,
   GRACE_SERIES_PERSONA,
   GRACE_SERIES_TOTAL_DAYS,
@@ -84,5 +86,19 @@ describe('cold start → 40-day grace series', () => {
       enrolled: true, currentDay: 4, completedDays: [1, 2, 3],
     }));
     expect(needsDay1Landing()).toBe(false);
+  });
+});
+
+describe('Day 1 reading surface', () => {
+  it('shows the reading screen after Begin until Mark as read', () => {
+    expect(needsDay1Reading()).toBe(false);
+    beginDay1();
+    expect(needsDay1Reading()).toBe(true);
+    markDay1Read();
+    expect(needsDay1Reading()).toBe(false);
+    expect(localStorage.getItem('dw_reading_done')).toBeTruthy();
+    const p = readPathwayProgress();
+    expect(p.completedDays).toContain(1);
+    expect(p.currentDay).toBe(2);
   });
 });

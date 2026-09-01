@@ -3,6 +3,7 @@ import {
   getPersonaConfig,
   getGreeting,
   PERSONA_CONFIGS,
+  PERSONA_PLAN_IDS,
   ALL_PERSONAS,
 } from '../utils/persona-config';
 import type { Persona } from '../utils/persona-config';
@@ -34,6 +35,14 @@ describe('PERSONA_CONFIGS', () => {
   it('every persona has a non-empty AI system prompt addition', () => {
     for (const key of ALL_PERSONAS) {
       expect(PERSONA_CONFIGS[key].ai.systemPromptAddition.length).toBeGreaterThan(10);
+    }
+  });
+
+  it('each path filters to a matching plan list (not the full catalog)', () => {
+    expect(PERSONA_PLAN_IDS.new_to_faith).toContain('faith-pathway');
+    expect(PERSONA_PLAN_IDS.new_to_faith).toContain('ashley-jane-daily-word');
+    for (const key of ALL_PERSONAS) {
+      expect(PERSONA_PLAN_IDS[key].length).toBeGreaterThan(0);
     }
   });
 });

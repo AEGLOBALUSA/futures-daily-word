@@ -18,4 +18,10 @@ describe('Day 1 landing copy (existing series, not Superdesign placeholders)', (
     expect(day1Copy('en').pastoral).toMatch(/LIVE saved/i);
     expect(day1Copy('en').pastoral).not.toMatch(/no distance too great/i);
   });
+
+  it('reading surface uses the first paragraph of the real lesson', () => {
+    expect(day1Copy('en').readingPastoral).toMatch(/LIVE saved/i);
+    expect(day1Copy('en').readingPastoral).toMatch(/gift you don.t deserve/i);
+    expect(day1Copy('en').readingPastoral).not.toMatch(/Take a deep breath/i);
+  });
 });

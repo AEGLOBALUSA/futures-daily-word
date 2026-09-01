@@ -19,8 +19,9 @@ import { track } from './utils/analytics';
 import { t, getLang } from './utils/i18n';
 import { closeSubViewsTo, openSubViewCount } from './utils/useSubView';
 import { StopAllAudio } from './components/StopAllAudio';
-import { consumeLandingParam, needsDay1Landing, startGraceSeriesIfCold } from './utils/coldStart';
+import { consumeLandingParam, needsDay1Landing, needsDay1Reading, startGraceSeriesIfCold } from './utils/coldStart';
 import { Day1Landing } from './components/Day1Landing';
+import { Day1Reading } from './components/Day1Reading';
 
 // ── Pre-render deep link setup — must run before any React component initializes ──
 const SERMON_DEEP_LINK = (() => {
@@ -185,6 +186,9 @@ function AppContent() {
   const [showDay1Landing, setShowDay1Landing] = useState(
     () => !SERMON_DEEP_LINK && needsDay1Landing()
   );
+  const [showDay1Reading, setShowDay1Reading] = useState(
+    () => !SERMON_DEEP_LINK && !needsDay1Landing() && needsDay1Reading()
+  );
 
   // Track app open — once on mount. Detail is the persona, plus church-homepage
   // attribution when the visitor arrived via ?from=church (real track(), not a pixel).
@@ -324,7 +328,16 @@ function AppContent() {
 
   if (showDay1Landing) {
     return (
-      <Day1Landing onBegin={() => setShowDay1Landing(false)} />
+      <Day1Landing onBegin={() => {
+        setShowDay1Landing(false);
+        setShowDay1Reading(true);
+      }} />
+    );
+  }
+
+  if (showDay1Reading) {
+    return (
+      <Day1Reading onDone={() => setShowDay1Reading(false)} />
     );
   }
 

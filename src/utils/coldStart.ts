@@ -11,6 +11,7 @@
 
 import type { Persona } from './persona-config';
 import type { PathwayProgress } from '../data/pathway-types';
+import { recordStreakToday } from './streak';
 
 export const GRACE_SERIES_PERSONA: Persona = 'new_to_faith';
 export const GRACE_SERIES_TITLE = 'New & Returning to Faith';
@@ -127,6 +128,42 @@ export function needsDay1Landing(): boolean {
 export function beginDay1(source: ColdStartSource = 'default'): void {
   startGraceSeriesIfCold(source);
   try { localStorage.setItem(DAY1_BEGUN_KEY, '1'); } catch { /* quota */ }
+}
+
+/** After Begin Day 1: the Superdesign reading surface until they Mark as read. */
+export function needsDay1Reading(): boolean {
+  if (!hasBegunDay1()) return false;
+  try {
+    if (localStorage.getItem('dw_reading_done')) return false;
+  } catch { /* ignore */ }
+  const progress = readPathwayProgress();
+  if (progress.completedDays.length > 0 || (progress.currentDay || 1) > 1) return false;
+  return true;
+}
+
+/** Mark Day 1 read — stamps the day, advances the 40-day series, records streak. */
+export function markDay1Read(): void {
+  const today = new Date().toLocaleDateString('en-CA');
+  try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
+  try {
+    const progress = readPathwayProgress();
+    const day = progress.currentDay || 1;
+    if (!progress.completedDays.includes(day)) {
+      const next: PathwayProgress = {
+        ...progress,
+        enrolled: true,
+        completedDays: [...progress.completedDays, day],
+        currentDay: Math.min(GRACE_SERIES_TOTAL_DAYS, day + 1),
+        lastCompletedDay: day,
+        lastCompletedDate: today,
+        totalDays: progress.totalDays || GRACE_SERIES_TOTAL_DAYS,
+        title: progress.title || GRACE_SERIES_TITLE,
+      };
+      localStorage.setItem('dw_pathway_progress', JSON.stringify(next));
+    }
+  } catch { /* quota */ }
+  recordStreakToday();
+  try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* ignore */ }
 }
 
 /** Read-and-strip church/homepage attribution. Does not invent numbers. */

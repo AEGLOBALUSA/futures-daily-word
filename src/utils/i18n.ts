@@ -727,6 +727,13 @@ const UI: Translations = {
   // \u2500\u2500 DAY 1 LANDING (Superdesign-locked) \u2500\u2500
   day1_eyebrow: { en: 'Day 1 of 40 \u00b7 {series}', es: 'D\u00eda 1 de 40 \u00b7 {series}', pt: 'Dia 1 de 40 \u00b7 {series}', id: 'Hari 1 dari 40 \u00b7 {series}' },
   begin_day1: { en: 'Begin Day 1', es: 'Comenzar D\u00eda 1', pt: 'Come\u00e7ar o Dia 1', id: 'Mulai Hari 1' },
+  day1_of_40: { en: 'Day 1 of 40', es: 'D\u00eda 1 de 40', pt: 'Dia 1 de 40', id: 'Hari 1 dari 40' },
+  path_chooser_title: { en: 'Where are you right now?', es: '\u00bfD\u00f3nde est\u00e1s ahora?', pt: 'Onde voc\u00ea est\u00e1 agora?', id: 'Di mana Anda sekarang?' },
+  path_chooser_sub: { en: 'Pick one to see matching plans.', es: 'Elige uno para ver planes que coincidan.', pt: 'Escolha um para ver planos correspondentes.', id: 'Pilih satu untuk melihat rencana yang cocok.' },
+  not_sure_begin_day1: { en: 'Not sure? Begin Day 1', es: '\u00bfNo est\u00e1s seguro? Comenzar D\u00eda 1', pt: 'N\u00e3o tem certeza? Come\u00e7ar o Dia 1', id: 'Belum yakin? Mulai Hari 1' },
+  change_path: { en: 'Change path', es: 'Cambiar camino', pt: 'Mudar caminho', id: 'Ubah jalur' },
+  start_this_plan: { en: 'Start This Plan', es: 'Comenzar este plan', pt: 'Come\u00e7ar este plano', id: 'Mulai Rencana Ini' },
+  plans_start_hint: { en: 'Start This Plan to begin. Your chosen plan sets your daily reading.', es: 'Toca Comenzar este plan para empezar. El plan que elijas fija tu lectura diaria.', pt: 'Toque em Come\u00e7ar este plano para come\u00e7ar. O plano escolhido define sua leitura di\u00e1ria.', id: 'Ketuk Mulai Rencana Ini untuk memulai. Rencana yang Anda pilih mengatur bacaan harian Anda.' },
 };
 
 export function t(key: string, lang?: string): string {
