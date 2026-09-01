@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-/* =====================================   Self-hosted DM fonts — eliminates Google CDN dependency
+/* ============================================
+   Self-hosted DM fonts — eliminates Google CDN dependency
    ============================================ */
 
 /* DM Sans — Latin */
@@ -789,6 +790,15 @@ h2.text-section-header {
   100% { transform: scale(1.09); }
 }
 
+@keyframes sermonPulse {
+  0%   { background: rgba(37, 99, 235, 0.08); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  50%  { background: rgba(37, 99, 235, 0.18); box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
+  100% { background: rgba(37, 99, 235, 0.08); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+}
+.sermon-tab-pulse {
+  animation: sermonPulse 2s ease-in-out infinite;
+}
+
 /* Tactile press feedback — a subtle scale-down on any interactive control gives
    the app a responsive, native feel instead of flat web taps. Purely additive
    (only an :active state, no transition override), so it can't break existing
@@ -960,266 +970,6 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
    only injected per-screen, so a spinner could sit static before any such screen mounted). */
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   TODAY · ME  —  the one-hero, one-action screens (Ashley, 1 Sep 2026)
-
-   One primary colour (--dw-accent), one neutral, one border radius, one
-   button style. If a new control here needs its own colour or shape, the
-   control is wrong. Apple Books meets a printed devotional.
-   ───────────────────────────────────────────────────────────────────────── */
-
-.dw-spin { animation: spin 1s linear infinite; }
-
-.today-screen,
-.me-screen {
-  /* Layout/scroll/seam offsets come from .screen-container; this only sets the
-     ground and the breathing room above the first line. */
-  background: var(--dw-canvas);
-  padding-top: calc(var(--safe-top) + 58px);
-}
-
-.today-inner,
-.me-inner {
-  width: min(640px, 100%);
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-/* ── 1. TODAY — September 1 ── */
-.today-eyebrow {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--dw-accent);
-  margin: 0 0 14px;
-}
-.today-date { color: var(--dw-text-muted); font-weight: 600; letter-spacing: 0.08em; }
-
-.today-daycount {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--dw-text-muted);
-  margin: -6px 0 12px;
-}
-
-.today-title {
-  font-family: var(--font-serif);
-  font-size: clamp(30px, 7.5vw, 42px);
-  line-height: 1.12;
-  font-weight: 700;
-  color: var(--dw-text-primary);
-  margin: 0 0 10px;
-  text-wrap: balance;
-}
-
-.today-ref {
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--dw-text-muted);
-  margin: 0 0 24px;
-}
-
-/* ── The only two controls on the screen. Identical weight — neither shouts. ── */
-.today-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding-bottom: 26px;
-  border-bottom: 1px solid var(--dw-border-subtle);
-}
-
-.today-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 18px;
-  border: 1px solid var(--dw-border);
-  border-radius: 999px;
-  background: var(--dw-surface);
-  color: var(--dw-text-primary);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.today-action:hover { background: var(--dw-surface-hover); }
-.today-action:active { background: var(--dw-surface-active); }
-
-.today-scripture {
-  margin-top: 22px;
-  padding: 20px;
-  background: var(--dw-surface);
-  border: 1px solid var(--dw-border-subtle);
-  border-radius: 16px;
-}
-
-.today-retry {
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  color: var(--dw-accent);
-  cursor: pointer;
-  text-align: left;
-}
-
-/* ── 2. The devotional. Reading typography, nothing competing with it. ── */
-.today-inner > p,
-.today-inner > blockquote {
-  font-family: var(--font-serif-text);
-  font-size: 17px;
-  line-height: 1.72;
-  color: var(--dw-text-secondary);
-}
-
-/* Pathway: the single forward control. */
-.today-howitworks {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--dw-text-muted);
-  margin: -4px 0 14px;
-}
-
-/* Pathway controls wear the New-Christian sage identity (PRs #72–77);
-   on-fill ink comes from the token so both themes stay correct. */
-.today-complete {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: 30px;
-  padding: 13px 22px;
-  border: 1px solid var(--dw-border);
-  border-radius: 999px;
-  background: var(--dw-surface);
-  color: var(--dw-text-primary);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.today-pathway-nav {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
-}
-.today-prevday {
-  background: none;
-  border: none;
-  padding: 0;
-  margin-top: 30px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--dw-text-muted);
-  cursor: pointer;
-}
-.today-prevday:hover { color: var(--dw-text-secondary); }
-
-.today-complete.is-done {
-  border-color: transparent;
-  background: var(--dw-new-soft);
-  color: var(--dw-new);
-  cursor: default;
-}
-.today-pathway-nav .today-complete:not(.is-done) {
-  border-color: transparent;
-  background: var(--dw-new);
-  color: var(--dw-new-on-fill);
-}
-.today-pathway-nav .today-complete:not(.is-done):hover {
-  background: var(--dw-new-hover);
-}
-
-/* ── 3. One next step. ── */
-.today-next { margin-top: 40px; }
-.today-next-label {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--dw-text-muted);
-  margin: 0 0 14px;
-}
-
-/* THE New-to-Faith button. One definition, every screen. Do not fork it.
-   Sage (--dw-new) is the New-Christian identity across the app (PRs #72–77);
-   --dw-new-on-fill keeps the ink correct in both themes. */
-.dw-new-to-faith {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 17px 22px;
-  border: none;
-  border-radius: 16px;
-  background: var(--dw-new);
-  color: var(--dw-new-on-fill);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.dw-new-to-faith:hover { background: var(--dw-new-hover); }
-
-/* ── Me ── */
-.me-title {
-  font-family: var(--font-serif);
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--dw-text-primary);
-  width: min(640px, 100%);
-  margin: 0 auto 20px;
-  padding: 0 24px;
-}
-
-.me-streak {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-  padding: 18px 20px;
-  margin-bottom: 22px;
-  border-radius: 16px;
-  background: var(--dw-accent-bg);
-  color: var(--dw-accent);
-  font-family: var(--font-sans);
-}
-.me-streak svg { align-self: center; }
-.me-streak-n { font-size: 26px; font-weight: 700; }
-.me-streak-label { font-size: 14px; font-weight: 600; }
-
-.me-list { display: flex; flex-direction: column; }
-.me-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 18px 4px;
-  border: none;
-  border-bottom: 1px solid var(--dw-border-subtle);
-  background: none;
-  color: var(--dw-text-primary);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  text-align: left;
-  cursor: pointer;
-}
-.me-row:last-child { border-bottom: none; }
-.me-row-label { flex: 1; font-weight: 600; }
-.me-row-chev { color: var(--dw-text-muted); }
-=======
 /* ---------- Superdesign-locked Day 1 cold start ----------
    Visual source: https://p.superdesign.dev/draft/455f03e1-0e76-4fb9-81ce-2d00e807caef
    Hardcoded locked tokens (not theme vars) so dark mode cannot recolor it. */

@@ -10,7 +10,6 @@ import type { TabId } from '../components/TabBar';
 import { LibraryScreen } from './LibraryScreen';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
-import { BibleSearch } from '../components/BibleSearch';
 import { EmptyState } from '../components/EmptyState';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
@@ -223,8 +222,6 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   // retired (Ashley, 26 Aug 2026): two readers over the same files had already
   // drifted. Back-gesture closes it like any sub-view.
   const [showLibrary, setShowLibrary] = useState(false);
-  // Bible search lives on this tab (it was mounted by the old HomeScreen).
-  const [showSearch, setShowSearch] = useState(false);
   useSubView(showLibrary, () => setShowLibrary(false));
 
   // Persona-based plan suggestions — the five path buttons filter this list.
@@ -473,7 +470,15 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
 
           {!isNewChristian && (
           <button
-            onClick={() => { track('plans_search_row'); setShowSearch(true); }}
+            onClick={() => {
+              track('plans_search_row');
+              if (onNavigate) {
+                onNavigate('home');
+                window.setTimeout(() => window.dispatchEvent(new CustomEvent('dw-open-search')), 60);
+              } else {
+                window.dispatchEvent(new CustomEvent('dw-open-search'));
+              }
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: 10, width: '100%',
               background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
@@ -758,15 +763,6 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
           )}
         </div>
         <PromoAds />
-        <BibleSearch
-          isOpen={showSearch}
-          onClose={() => setShowSearch(false)}
-          onSearch={(query) => {
-            localStorage.setItem('dw_ai_prefill', query);
-            setShowSearch(false);
-            window.dispatchEvent(new CustomEvent('dw-open-ai'));
-          }}
-        />
       </div>
     );
   }
@@ -937,7 +933,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                           style={{
                             background: isActive ? 'rgba(37,99,235,0.06)' : isSelected ? 'var(--dw-accent-bg)' : 'var(--dw-card)',
                             border: isActive ? '2px solid rgba(37,99,235,0.5)' : isSelected ? '2px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-                            borderLeft: !isActive ? '3px solid var(--dw-accent)' /* one accent — the label names the category */ : undefined,
+                            borderLeft: !isActive ? `3px solid ${(() => { const _cc: Record<string, string> = { 'Featured': '#C8920E', 'Books': '#7B1FA2', 'Gospels & Acts': '#2196F3', 'New Testament': '#4CAF50', 'Wisdom': '#5C6BC0', 'Full Bible': '#DC535D' }; return _cc[cat] || 'var(--dw-accent)'; })()}` : undefined,
                             borderRadius: 14,
                             padding: '14px 16px',
                             cursor: 'pointer',

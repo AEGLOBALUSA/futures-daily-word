@@ -35,6 +35,17 @@ function sharedKeys(): Map<string, string[]> {
   return map;
 }
 
+// Keys from HomeScreen's inline UI_STRINGS map.
+function homeScreenKeys(): Set<string> {
+  const src = readFileSync(join(SRC, 'screens', 'HomeScreen.tsx'), 'utf-8');
+  const start = src.indexOf('const UI_STRINGS');
+  const end = src.indexOf('\n  };', start);
+  const body = src.slice(start, end);
+  const keys = new Set<string>();
+  for (const m of body.matchAll(/^ {4}'([a-z0-9_]+)':\s*\{/gm)) keys.add(m[1]);
+  return keys;
+}
+
 describe('i18n key integrity', () => {
   const shared = sharedKeys();
 
@@ -70,18 +81,22 @@ describe('i18n key integrity', () => {
     expect(bad).toEqual([]);
   });
 
-  it('prop-t components only use keys the shared i18n map defines', () => {
-    // WeeklyReviewCard takes its `t` as a prop. MeScreen supplies the shared
-    // map (HomeScreen's local UI_STRINGS map went away with HomeScreen on
-    // 1 Sep 2026), so a key missing from the shared map renders literally.
+  it('prop-t components only use keys HomeScreen UI_STRINGS defines', () => {
+    // These receive HomeScreen's local t (UI_STRINGS lookup, falls back to the
+    // raw key) — a key missing there renders literally on screen.
     const propTComponents = [
+      join(SRC, 'components', 'NewBelieverLessonCard.tsx'),
+      join(SRC, 'components', 'ComfortSection.tsx'),
+      join(SRC, 'components', 'PastorStudyOnboarding.tsx'),
       join(SRC, 'components', 'WeeklyReviewCard.tsx'),
     ];
+    const home = homeScreenKeys();
+    expect(home.size).toBeGreaterThan(30);
     const bad: string[] = [];
     for (const file of propTComponents) {
       const src = readFileSync(file, 'utf-8');
       for (const m of src.matchAll(/(?<![A-Za-z0-9_.])t\(\s*'([a-z0-9_]+)'/g)) {
-        if (!shared.has(m[1])) bad.push(`${file}: ${m[1]}`);
+        if (!home.has(m[1])) bad.push(`${file}: ${m[1]}`);
       }
     }
     expect(bad).toEqual([]);

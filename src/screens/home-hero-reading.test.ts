@@ -1,25 +1,26 @@
 /**
- * Invariant: today's scripture starts hidden; Read reveals it.
- * Carried over from the old HomeScreen guard (PR #66/#68) when TodayScreen
- * replaced it (1 Sep 2026): the reading must never auto-open on load.
+ * Invariant: Home plan readings start hidden. Read reveals them.
+ * PR 66 only closed the new-Christian Day 1 landing; Home still auto-opened
+ * today's chapter for every persona (control arrived as Hide). This guard
+ * fails if that Read-first auto-open effect comes back.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const TODAY = readFileSync(join(__dirname, '../screens/TodayScreen.tsx'), 'utf-8');
+const HOME = readFileSync(join(__dirname, '../screens/HomeScreen.tsx'), 'utf-8');
 
-describe("Today's scripture starts hidden", () => {
-  it('showScripture initialises to false', () => {
-    expect(TODAY).toMatch(/const \[showScripture, setShowScripture\] = useState\(false\)/);
+describe('Home hero reading starts hidden', () => {
+  it('does not auto-open today\'s scripture on load', () => {
+    expect(HOME).toMatch(/Hero scripture stays collapsed until Read/);
+    expect(HOME).not.toMatch(/Read-first: open today's current scripture/);
   });
 
-  it('a new day resets the panel to hidden', () => {
-    expect(TODAY).toMatch(/setShowScripture\(false\); setPassageText\(''\)/);
+  it('expandedPassages still starts empty', () => {
+    expect(HOME).toMatch(/useState<Set<string>>\(new Set\(\)\)/);
   });
 
-  it('only the Read toggle opens it (no auto-open effect)', () => {
-    const opens = TODAY.match(/setShowScripture\(true\)/g) || [];
-    expect(opens.length).toBe(1);
+  it('Today\'s Chapters plan passages stay hidden until Read', () => {
+    expect(HOME).toMatch(/Scripture content — hidden until Read \(same as hero\)/);
   });
 });
