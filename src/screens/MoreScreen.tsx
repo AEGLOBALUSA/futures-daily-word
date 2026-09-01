@@ -320,6 +320,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             <img
               src={profilePic}
               alt="Profile"
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
               style={{
                 width: 72, height: 72, borderRadius: '50%',
                 objectFit: 'cover', marginBottom: 10,
@@ -327,12 +328,15 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               }}
             />
           ) : (
-            <div style={{
-              width: 72, height: 72, borderRadius: '50%',
-              background: newPathSettings ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 10, border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
-            }}>
+            <div
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: newPathSettings ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 10, border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
+              }}
+            >
               <User size={32} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)' }} />
             </div>
           )}
