@@ -1042,6 +1042,12 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   line-height: 1.6;
   color: rgba(36, 30, 23, 0.9);
 }
+.dw-day1-pastoral-stack {
+  margin-bottom: 18px;
+}
+.dw-day1-pastoral-stack:last-of-type {
+  margin-bottom: 48px;
+}
 .dw-day1-spacer { flex: 1 1 0; min-height: 8px; }
 .dw-day1-cta-wrap {
   margin-top: auto;

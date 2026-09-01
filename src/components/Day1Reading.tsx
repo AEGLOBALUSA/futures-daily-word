@@ -61,7 +61,7 @@ export function Day1Reading({ onDone }: Props) {
           <p className="dw-day1-ref">{copy.verseRef}</p>
         </div>
         {paragraphs.map((p, i) => (
-          <p key={i} className="dw-day1-pastoral">{p}</p>
+          <p key={i} className="dw-day1-pastoral dw-day1-pastoral-stack">{p}</p>
         ))}
         <div className="dw-day1-spacer" />
         <div className="dw-day1-cta-wrap">
