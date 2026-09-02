@@ -107,3 +107,82 @@ describe('StaffApp admin home', () => {
     act(() => root.unmount());
   });
 });
+
+describe('StaffApp hub save never fails silently', () => {
+  const HUB_QUESTIONS = [
+    { id: 'q-title', sort_order: 110, label: 'What is the title of this message?', help: '', type: 'text', audience: 'hub', required: false, enabled: true, config: { publish: 'sermon_field', sermonKey: 'title' } },
+    { id: 'q-yt', sort_order: 240, label: 'Do you already have the YouTube link? If yes, paste it.', help: '', type: 'text', audience: 'hub', required: false, enabled: true, config: { publish: 'sermon_field', sermonKey: 'youtubeUrl' } },
+  ];
+
+  async function setInput(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
+    const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  async function openHubForm(submitImpl: () => Promise<unknown>) {
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') {
+        return { staff: { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true } };
+      }
+      if (action === 'form') return { questions: HUB_QUESTIONS, cornerItems: [], submissions: [], sermons: [] };
+      if (action === 'submit') return submitImpl();
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    const job = [...el.querySelectorAll('button')].find(b => /Put up this week/.test(b.textContent || ''));
+    await act(async () => { job!.click(); });
+    await flush();
+    return { el, root };
+  }
+
+  it('shows a refused save as an alert beside the button, not only at the top of the page', async () => {
+    const { el, root } = await openHubForm(async () => { throw new Error('Missing: Who spoke?'); });
+    const inputs = [...el.querySelectorAll('input[type="text"], input:not([type])')] as HTMLInputElement[];
+    await setInput(inputs[0], 'Grace Wins');
+    const save = [...el.querySelectorAll('button')].find(b => /Put this on the congregation page/.test(b.textContent || ''))!;
+    await act(async () => { save.click(); });
+    await flush();
+    const alert = el.querySelector('[role="alert"]');
+    expect(alert?.textContent).toContain('Missing: Who spoke?');
+    expect(el.textContent).not.toContain('It’s on the congregation page');
+    act(() => root.unmount());
+  });
+
+  it('catches a bad YouTube link on the field and does not call submit', async () => {
+    const submit = vi.fn(async () => ({ ok: true }));
+    const { el, root } = await openHubForm(submit);
+    const inputs = [...el.querySelectorAll('input[type="text"], input:not([type])')] as HTMLInputElement[];
+    await setInput(inputs[1], 'https://www.youtube.com/@futureschurch');
+    expect(el.textContent).toContain('not a YouTube video link');
+    const save = [...el.querySelectorAll('button')].find(b => /Put this on the congregation page/.test(b.textContent || ''))!;
+    await act(async () => { save.click(); });
+    await flush();
+    expect(submit).not.toHaveBeenCalled();
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('not a YouTube video link');
+    act(() => root.unmount());
+  });
+
+  it('reads the published sermon back and names it when the save went live', async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => ({ sermon: { id: 'grace-wins-2026-09-06', title: 'Grace Wins' } }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { el, root } = await openHubForm(async () => ({
+      ok: true, published: true,
+      publish_result: { cornerAdded: 0, cornerRemoved: 0, sermon: { id: 'grace-wins-2026-09-06', title: 'Grace Wins', youtubeUrl: '' } },
+    }));
+    const inputs = [...el.querySelectorAll('input[type="text"], input:not([type])')] as HTMLInputElement[];
+    await setInput(inputs[0], 'Grace Wins');
+    const save = [...el.querySelectorAll('button')].find(b => /Put this on the congregation page/.test(b.textContent || ''))!;
+    await act(async () => { save.click(); });
+    await flush();
+    await flush();
+    expect(el.textContent).toContain('It’s on the congregation page: Grace Wins');
+    expect(el.querySelector('a[href*="sermon=1"]')).toBeTruthy();
+    expect(String(fetchMock.mock.calls[0][0])).toContain('published-sermon');
+    vi.unstubAllGlobals();
+    act(() => root.unmount());
+  });
+});
