@@ -209,30 +209,99 @@ The pastor's week, in one place, in this order:
 
 ## PART 5 — Prompt for a fresh session
 
-Paste this into a new Claude Code session started in `~/futures-daily-word`:
+Paste everything between the lines into a new Claude Code session started in
+`~/futures-daily-word`.
 
-> Read `docs/PASTOR-STUDY-PREACH-PLAN.md` in full before doing anything — it is the audit,
-> the licence-verified resource catalogue, and the design for this work, and it replaces
-> re-running that research. Also read `CLAUDE.md`.
->
-> The app is live at futuresdailyword.com and used by a real congregation. `main` is
-> production: push to `main` deploys. Build must be green (`npm run build`) and all tests
-> must pass (`npx vitest run`, 186 at commit `f7b302ad`) before any push. Push every commit.
->
-> Pastor sign-in shipped in `f7b302ad`. Now build **Phase 1** from Part 4.4 of that plan:
-> the pastor hero fallback, campus provisioning from `staff.campusId` at sign-in, the
-> persona-chip lock while signed in, removing the dead `devotion` / `congregation_stats`
-> section keys, and pastor quick-prompts in Bible AI. Keep every change persona-gated so
-> nothing changes for non-pastors. Add i18n keys in all four languages (en/es/pt/id) —
-> `src/__tests__/i18n-keys.test.ts` enforces this. Use `source: 'settings'` for any
-> `dw_setup` write; never `default` or `sunday-guest`.
->
-> Verify in the browser before pushing: `preview_start` the `dw-pastor-preview` entry
-> (port 4175 — it lives in `~/.claude/launch.json`, not this repo's, because the session's
-> working directory decides which launch.json is read), seed localStorage with
-> `dw_setup={persona:'pastor_leader',source:'settings'}` and a `dw_profile`, and confirm
-> the pastor home is not empty on a fresh install. If the Browser pane is hidden, pointer
-> clicks time out — drive the page with `javascript_tool` instead.
->
-> Then report what you changed and what you verified.
+---
 
+You are continuing work on **Futures Daily Word** — a devotional and Bible-study PWA,
+live at https://futuresdailyword.com, used by a real congregation. React 19, Vite 6,
+Tailwind 4, TypeScript. localStorage-first (~45 `dw_*` keys) with Supabase cloud backup
+through Netlify functions. Repo: https://github.com/AEGLOBALUSA/futures-daily-word.
+
+**Read `docs/PASTOR-STUDY-PREACH-PLAN.md` in full before doing anything.** It is the
+file-level audit of the pastor experience, a resource catalogue with every licence read at
+its primary source, and the design for this work. It replaces re-running that research —
+do not spawn agents to rediscover it. Then read `CLAUDE.md` for repo conventions.
+
+**Ground rules, no exceptions:**
+- `main` is production. Pushing to `main` deploys automatically. Verify the live bundle
+  hash matches your local `dist/assets/index-*.js` after every push.
+- `npm run build` must succeed and `npx vitest run` must pass before any push. The suite
+  was 186 green at commit `f7b302ad`. Never push red.
+- Push every commit.
+- Do not modify `netlify/functions/intake.js`, `user-sync.js`, or the `/staff` portal
+  unless the task explicitly calls for it.
+- Every change must be persona-gated so nothing changes for non-pastors. Most of the
+  congregation is not staff.
+
+**Already shipped (do not rebuild):** pastor sign-in at Settings → Pastor account.
+Staff sign in with their `@futures.church` email and a password they choose themselves on
+first use; the app stamps the `pastor_leader` persona and fills their name and email from
+the staff roster. See Part 1 of the plan for the four review-driven deviations from the
+original handoff — respect them, they each fix a real bug.
+
+**Your work — Phase 1 from Part 4.1 of the plan.** Small, high-value, roughly a day:
+1. Give `pastor_leader` a fallback reading in `heroChapterRefs` so a new pastor's home is
+   never empty on day one. Only the comfort and new-believer paths have one today.
+2. Write `staff.campusId` into `dw_profile.campus` and set `dw_pastor_code` at sign-in, so
+   a campus pastor stops being asked to hand-type an eight-character code the sign-in
+   already knows.
+3. Lock the persona chip in `src/components/HomeContextChips.tsx` while a pastor is signed
+   in. Offer "Sign out of pastor account" instead of a silent persona switch.
+4. Remove the dead `devotion` and `congregation_stats` keys from the pastor `sectionOrder`
+   (they render nothing), and retire the `FeedbackPoll` gate whose window closed in March.
+5. Add pastor quick-prompts to Bible AI: three teaching angles on this passage, find an
+   illustration for this idea, what's the Greek behind this word, turn my highlights into
+   an outline. The AI system prompt already promises these; nothing surfaces them.
+
+Then stop and report before starting Phase 2 (the study data layer) — Ashley wants to see
+Phase 1 land first.
+
+**Repo traps that will bite you:**
+- `sectionOrder` in `src/utils/persona-config.ts` is **not** an ordered renderer.
+  `HomeScreen.tsx` (4,544 lines) only calls `sectionOrder.includes(key)` inside a fixed
+  JSX order. Adding a key to the array does not place it anywhere.
+- Any `dw_setup` write from a real user action uses `source: 'settings'`. Never `default`
+  or `sunday-guest` — those are auto-detection sources and must not stamp a persona.
+- New UI strings go in `src/utils/i18n.ts` in **all four languages** (en/es/pt/id), as
+  single-line entries with `\uXXXX` escapes for non-ASCII.
+  `src/__tests__/i18n-keys.test.ts` enforces both rules and will fail the build otherwise.
+- The real stylesheet is `src/index.css`. The root `styles.css` is dead.
+
+**If you reach the resource work (Phase 2), the licence rules are hard limits:**
+bulk-load only public-domain and Creative Commons sources; never send NIV text to Claude
+(Biblica requires a licence for any AI use); ESV allows at most 500 stored verses and
+forbids derivative works; API.Bible forbids training on any of its content and requires
+FUMS reporting. Every bulk-loaded source needs its attribution on a Sources screen. The
+verified list is in Part 3 of the plan.
+
+**Verify in the browser before pushing.** Start the preview with `preview_start` using the
+`dw-pastor-preview` entry on port 4175. That entry lives in `~/.claude/launch.json`, not
+this repo's `.claude/launch.json`, because the session's working directory decides which
+file is read — a session started in the home directory silently served a different clone
+of this app once. Confirm the served bundle hash matches your build. Seed localStorage
+with `dw_setup={persona:'pastor_leader',source:'settings'}`, a `dw_profile` with an email
+and first name, `dw_cookie_consent='accepted'` and `dw_v7_pathway_done='true'`, then check
+the pastor home is not empty on a fresh install. If the Browser pane is hidden, pointer
+clicks time out after 30 seconds — drive the page with `javascript_tool` instead
+(click DOM buttons, set inputs with the native value setter plus an `input` event, read
+`document.body.innerText` back).
+
+**Before you push anything that changes behaviour, run an adversarial review of your own
+diff** and fix what it confirms. That gate caught a data-loss bug in the sign-in work.
+
+Report what you changed, what you verified, and what you deliberately left out.
+
+---
+
+## PART 6 — Open items
+
+- **Self-service password change.** No `change_password` action exists in `intake.js`.
+  Reset today = Ashley clears the password in `/staff → People`, the pastor sets a new one
+  on next sign-in. Adding it is additive: verify the old password with `verifyPassword`,
+  validate with `passwordIssue`, write `hashPassword`, revoke that email's other
+  `staff_sessions` rows.
+- **Bolls.Life dependency.** We currently pull Strong's from it. It redistributes
+  copyrighted translations with no stated rights. Phase 2's STEPBible load lets us drop it.
+- **Grace & Truth book card** renders with no content and just opens the Plans tab.
