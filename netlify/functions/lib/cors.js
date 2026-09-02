@@ -16,7 +16,11 @@ const ALLOWED_ORIGINS = [
   'https://www.futures.church',
   'https://futures.global',
   'https://www.futures.global',
-  'https://futures-church.netlify.app'
+  'https://futures-church.netlify.app',
+  // Pastors Sermon Prep — the standalone pastor app (AEGLOBALUSA/pastors-sermon-prep).
+  // It shares this backend's intake (staff sign-in, password change, Sunday
+  // publish), pastor-admin (campus code), published-sermon and user-sync.
+  'https://pastors-sermon-prep.netlify.app'
 ];
 
 /** Parse Origin (or Referer URL) into an origin string for allowlist checks. */
