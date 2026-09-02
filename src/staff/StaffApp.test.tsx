@@ -152,6 +152,28 @@ describe('StaffApp hub save never fails silently', () => {
     act(() => root.unmount());
   });
 
+  it('names an empty required field beside the button instead of relying on the browser bubble', async () => {
+    const submit = vi.fn(async () => ({ ok: true }));
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true } };
+      if (action === 'form') return { questions: [{ ...HUB_QUESTIONS[0], required: true }, HUB_QUESTIONS[1]], cornerItems: [], submissions: [], sermons: [] };
+      if (action === 'submit') return submit();
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    const job = [...el.querySelectorAll('button')].find(b => /Put up this week/.test(b.textContent || ''));
+    await act(async () => { job!.click(); });
+    await flush();
+    expect(el.querySelector('form')?.hasAttribute('novalidate')).toBe(true);
+    const save = [...el.querySelectorAll('button')].find(b => /Put this on the congregation page/.test(b.textContent || ''))!;
+    await act(async () => { save.click(); });
+    await flush();
+    expect(submit).not.toHaveBeenCalled();
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('What is the title of this message?');
+    act(() => root.unmount());
+  });
+
   it('catches a bad YouTube link on the field and does not call submit', async () => {
     const submit = vi.fn(async () => ({ ok: true }));
     const { el, root } = await openHubForm(submit);
@@ -167,6 +189,7 @@ describe('StaffApp hub save never fails silently', () => {
   });
 
   it('reads the published sermon back and names it when the save went live', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- typed so mock.calls[0][0] indexes
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => ({ sermon: { id: 'grace-wins-2026-09-06', title: 'Grace Wins' } }) }));
     vi.stubGlobal('fetch', fetchMock);
     const { el, root } = await openHubForm(async () => ({

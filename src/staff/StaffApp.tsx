@@ -523,6 +523,18 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       return;
     }
     if (youtubeProblem) { fail(youtubeProblem); return; }
+    // Our own required check (the form is noValidate): the browser's bubble is
+    // silent on iOS and easy to miss on a long page, and it never reaches submit().
+    const missing = formQs.find(q => {
+      if (!(q.required && (q.audience === job || q.audience === 'all'))) return false;
+      if (q.type === 'corner_remove') return false;
+      const v = answers[q.id];
+      return v == null || v === '' || (Array.isArray(v) && v.length === 0);
+    });
+    if (missing) {
+      fail(`Fill in “${missing.label}” first — it is empty.`);
+      return;
+    }
     setBusy(true); onError(''); setFormError(''); setDone(false); setLive(null);
     try {
       const data = await intake<{
@@ -560,7 +572,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   };
 
   return (
-    <form onSubmit={submit}>
+    <form onSubmit={submit} noValidate>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>
         {job === 'hub' ? 'This week’s sermon notes' : job === 'media' ? 'YouTube and notes' : 'Campus corner'}
       </h2>

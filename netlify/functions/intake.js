@@ -511,6 +511,7 @@ exports.handler = async (event) => {
           const v = answers[q.id];
           const empty = v == null || v === "" || (Array.isArray(v) && !v.length);
           if (empty && q.type !== "corner_remove" && q.type !== "yes_no") {
+            console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: "missing", field: q.label }));
             return json(event, 400, { error: `Missing: ${q.label}` });
           }
         }
@@ -518,8 +519,12 @@ exports.handler = async (event) => {
       const requested = collectCampusFromAnswers(visible, answers) || body.campusId;
       let campusId = lockCampus(staff, requested);
       if (staff.role === "campus") {
-        if (!campusId) return json(event, 400, { error: "Choose your campus" });
+        if (!campusId) {
+          console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: "no campus" }));
+          return json(event, 400, { error: "Choose your campus" });
+        }
         if (staff.campusId && campusId !== staff.campusId) {
+          console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: "other campus", campusId }));
           return json(event, 403, { error: "You can only update your own campus" });
         }
         if (!staff.campusId) {
@@ -572,9 +577,17 @@ exports.handler = async (event) => {
           format_source = built.source;
         }
       } catch (fmtErr) {
-        if (fmtErr && fmtErr.status === 400) return json(event, 400, { error: fmtErr.message });
+        if (fmtErr && fmtErr.status === 400) {
+          console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: fmtErr.message }));
+          return json(event, 400, { error: fmtErr.message });
+        }
         throw fmtErr;
       }
+      console.log("[intake] submit accepted", JSON.stringify({
+        email: staff.email, job, campusId, format_source,
+        sermon: formatted_sermon ? { id: formatted_sermon.id, title: formatted_sermon.title, sections: (formatted_sermon.sections || []).length } : null,
+        cornerAdds: plan.cornerAdds.length, cornerRemoves: plan.cornerRemoves.length
+      }));
       const { data: row, error: insErr } = await db().from("intake_submissions").insert({
         email: staff.email,
         role: staff.role,
@@ -598,6 +611,7 @@ exports.handler = async (event) => {
         publish_result
       }).eq("id", row.id).select("id, status, created_at, formatted_sermon").single();
       if (upErr) throw upErr;
+      console.log("[intake] submit published", JSON.stringify({ email: staff.email, job, submission: row.id, publish_result }));
       return json(event, 200, { ok: true, submission: updated, preview: formatted_sermon, format_source, published: true, publish_result });
     }
 
@@ -619,9 +633,13 @@ exports.handler = async (event) => {
       try {
         const useAI = body.useAI === true;
         const built = await buildFormattedFromPlan(plan, { useAI });
+        console.log("[intake] format_preview", JSON.stringify({ email: staff.email, job, useAI, source: built.source, id: built.sermon && built.sermon.id }));
         return json(event, 200, { preview: built.sermon, source: built.source });
       } catch (fmtErr) {
-        if (fmtErr && fmtErr.status === 400) return json(event, 400, { error: fmtErr.message });
+        if (fmtErr && fmtErr.status === 400) {
+          console.log("[intake] format_preview refused", JSON.stringify({ email: staff.email, job, reason: fmtErr.message }));
+          return json(event, 400, { error: fmtErr.message });
+        }
         throw fmtErr;
       }
     }
