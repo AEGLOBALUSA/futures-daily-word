@@ -40,6 +40,16 @@ export const DAY1_VERSE_REF = 'Ephesians 2:8-9';
 export const DAY1_VERSE_TEXT =
   'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast.';
 
+// BEGIN DAY1_QUESTIONS (generated from books/faith-pathway.json day 1 — keep in sync; day1-landing.test.ts pins it)
+/** Day 1's Reflect & Respond questions — part of the lesson, so the landing shows them too. */
+export const DAY1_QUESTIONS = {
+  en: ['Think about a time you felt like you had to earn someone\'s approval. How did that feel compared to being accepted unconditionally \u2014 and what does it feel like to know God accepts you the same way right now?', 'Is there something in your life you\'ve been trying to \'fix\' before feeling worthy of God\'s love? What would it look like to bring that to Him as-is today?'],
+  es: ['Piensa en un momento en que sentiste que ten\u00edas que ganarte la aprobaci\u00f3n de alguien. \u00bfC\u00f3mo se sinti\u00f3 eso comparado con ser aceptado sin condiciones \u2014 y qu\u00e9 se siente saber que Dios te acepta de la misma manera ahora mismo?', '\u00bfHay algo en tu vida que has estado tratando de \'arreglar\' antes de sentirte digno del amor de Dios? \u00bfC\u00f3mo ser\u00eda llevarle eso tal como est\u00e1, hoy?'],
+  pt: ['Pense em um momento em que voc\u00ea sentiu que precisava merecer a aprova\u00e7\u00e3o de algu\u00e9m. Como isso se comparava a ser aceito incondicionalmente \u2014 e como \u00e9 saber que Deus te aceita da mesma forma agora?', 'H\u00e1 algo na sua vida que voc\u00ea tem tentado \'consertar\' antes de se sentir digno do amor de Deus? Como seria trazer isso a Ele exatamente como est\u00e1, hoje?'],
+  id: ['Pikirkan tentang suatu waktu ketika Anda merasa harus mendapatkan persetujuan seseorang. Bagaimana rasanya dibandingkan dengan diterima tanpa syarat \u2014 dan bagaimana rasanya mengetahui bahwa Tuhan menerima Anda dengan cara yang sama sekarang juga?', 'Apakah ada sesuatu dalam hidup Anda yang selama ini Anda coba \'perbaiki\' sebelum merasa layak menerima kasih Tuhan? Seperti apa jadinya jika Anda membawanya kepada-Nya apa adanya hari ini?'],
+} as const;
+// END DAY1_QUESTIONS
+
 export function day1Copy(lang: string) {
   const l = (lang in DAY1_TITLE ? lang : 'en') as keyof typeof DAY1_TITLE;
   return {
@@ -49,5 +59,6 @@ export function day1Copy(lang: string) {
     readingPastoral: DAY1_READING_PASTORAL[l],
     verseRef: DAY1_VERSE_REF,
     verseText: DAY1_VERSE_TEXT,
+    questions: (DAY1_QUESTIONS as Record<string, readonly string[]>)[l] ?? DAY1_QUESTIONS.en,
   };
 }

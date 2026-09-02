@@ -1196,6 +1196,16 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   color: var(--dw-text-muted);
   opacity: 0.65;
 }
+/* Reflect & Respond sits INSIDE the lesson card on the Day N surface and under the
+   pastoral text on the Day 1 landing — tighter than the old end-of-page block. */
+.today-questions.dw-journey-questions {
+  margin-top: 24px;
+  padding-top: 20px;
+}
+.today-questions.dw-day1-questions {
+  margin-top: 28px;
+  padding-top: 24px;
+}
 
 /* ── 3. One next step. ── */
 .today-next { margin-top: 40px; }

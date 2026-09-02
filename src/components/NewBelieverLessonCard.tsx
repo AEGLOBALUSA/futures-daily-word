@@ -11,52 +11,17 @@
  * HomeScreen wires to savePathwayProgressFromLesson (stamps dw_reading_done,
  * fires dw-reading-completed — the ruled gate-stack timing is unchanged).
  */
-import { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, Loader2, Share2 } from 'lucide-react';
 import { t as trans } from '../utils/i18n';
 import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
 import { shareContent } from '../utils/share';
 import { useSubView } from '../utils/useSubView';
-import { syncMisc } from '../utils/cloudSync';
+import { PathwayQuestions } from './PathwayAnswer';
+import { localizedQuestions } from '../utils/pathwayQuestions';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 
-function PathwayAnswer({ day, idx, question, lang }: { day: number; idx: number; question: string; lang: string }) {
-  const storageKey = `dw_pathway_qa_${day}`;
-  function load(): Record<number, string> {
-    try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { return {}; }
-  }
-  const [val, setVal] = useState(() => load()[idx] || '');
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const resize = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.max(el.scrollHeight, 80) + 'px';
-  }, []);
-  useLayoutEffect(() => { resize(); }, [val, resize]);
-  function save(v: string) {
-    setVal(v);
-    const all = { ...load(), [idx]: v };
-    const json = JSON.stringify(all);
-    localStorage.setItem(storageKey, json);
-    syncMisc(storageKey, json);
-  }
-  return (
-    <div className="today-question">
-      <p className="today-question-text">{question}</p>
-      <textarea
-        ref={ref}
-        className="today-question-answer"
-        value={val}
-        placeholder={trans('pathway_answer_placeholder', lang)}
-        rows={3}
-        onChange={e => { save(e.target.value); resize(); }}
-        onInput={() => resize()}
-      />
-    </div>
-  );
-}
 
 interface NewBelieverLessonCardProps {
   pathwayData: PathwayData;
@@ -244,6 +209,9 @@ export function NewBelieverLessonCard({
           {dayLesson && (
             <p className="text-devotion" style={{ whiteSpace: 'pre-line', fontSize: scriptureFontSize + 2 }}>{dayLesson}</p>
           )}
+          {/* Reflect & Respond — part of the lesson (Ashley, 2 Sep 2026): directly
+              under the teaching, before Mark Complete, in the reader's language. */}
+          <PathwayQuestions day={currentDay} questions={localizedQuestions(dayData, lang)} lang={lang} className="dw-journey-questions" />
           {/* Actions row */}
           <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <button
@@ -326,15 +294,6 @@ export function NewBelieverLessonCard({
           )}
         </Card>
 
-        {/* Reflect & Respond — daily questions for new Christians */}
-        {!isPeek && dayData.questions && dayData.questions.length > 0 && (
-          <div className="today-questions">
-            <p className="today-questions-label">{trans('j_reflect_respond', lang)}</p>
-            {dayData.questions.map((q, i) => (
-              <PathwayAnswer key={i} day={currentDay} idx={i} question={q} lang={lang} />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

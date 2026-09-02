@@ -14,6 +14,9 @@ export interface PathwayDay {
   reflection?: string;
   lesson?: string;
   questions?: string[];
+  questionsEs?: string[];
+  questionsPt?: string[];
+  questionsId?: string[];
   lessonEs?: string;
   lessonPt?: string;
   lessonId?: string;

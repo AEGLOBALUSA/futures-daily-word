@@ -8,6 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { day1Copy } from '../data/day1-landing';
+import { PathwayQuestions } from './PathwayAnswer';
 import { t, getLang } from '../utils/i18n';
 import { beginDay1, markDay1Read } from '../utils/coldStart';
 import { isSundayGuest } from '../utils/sunday';
@@ -112,6 +113,9 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
             {paragraphs.map((p, i) => (
               <p key={i} className="dw-day1-pastoral dw-day1-pastoral-stack">{p}</p>
             ))}
+            {/* Part of the lesson (Ashley, 2 Sep 2026): Day 1's questions live here too,
+                same dw_pathway_qa_1 store as the Day N surface. */}
+            <PathwayQuestions day={1} questions={[...copy.questions]} lang={lang} className="dw-day1-questions" />
             <div className="dw-day1-spacer" />
             <div className="dw-day1-cta-wrap">
               <p className="dw-day1-cta-note">{t('day1_of_40', lang)}</p>
