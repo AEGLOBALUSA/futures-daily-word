@@ -6,7 +6,7 @@
  * and on the cold-visitor Day 1 landing header, so it is obvious on arrival.
  * No motion gimmicks, no emoji flags (they render as bare letters on Windows).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 import { LANGS, applyLanguage, type LangCode, type LangOption } from '../utils/language';
@@ -16,9 +16,18 @@ function toneRgba(hex: string, a: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
-function Marker({ short, size, color }: { short: string; size: number; color: string }) {
+/**
+ * The monogram. Its colour rides a CSS custom property, deliberately NOT an inline
+ * `color:` — index.css forces `[style*="color: rgb(176"]` to white in dark mode and
+ * EN's family tone #B06636 serialises to exactly rgb(176, 102, 54).
+ */
+function Marker({ short, size, tone }: { short: string; size: number; tone: string }) {
   return (
-    <span aria-hidden style={{ fontSize: size, fontWeight: 700, letterSpacing: '0.03em', lineHeight: 1, color, fontFamily: 'var(--font-sans)' }}>
+    <span
+      aria-hidden
+      className="dw-lang-marker"
+      style={{ fontSize: size, fontWeight: 700, letterSpacing: '0.03em', lineHeight: 1, fontFamily: 'var(--font-sans)', '--lang-tone': tone } as CSSProperties}
+    >
       {short}
     </span>
   );
@@ -32,7 +41,7 @@ function Swatch({ opt }: { opt: LangOption }) {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: opt.tone, border: '1px solid rgba(28,20,12,0.08)',
     }}>
-      <Marker short={opt.short} size={11} color="#FDFBF6" />
+      <Marker short={opt.short} size={11} tone="#FDFBF6" />
     </span>
   );
 }
@@ -46,7 +55,7 @@ function NodeMarker({ opt }: { opt: LangOption }) {
       background: '#FBF8F1', border: '1px solid rgba(28,20,12,0.10)',
       boxShadow: '0 2px 7px rgba(28,20,12,0.12)',
     }}>
-      <Marker short={opt.short} size={10} color={opt.tone} />
+      <Marker short={opt.short} size={10} tone={opt.tone} />
     </span>
   );
 }
@@ -139,7 +148,7 @@ export function LanguageSwitch({ className, align = 'right' }: { className?: str
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <NodeMarker opt={opt} />
-                    {active && <Check size={16} strokeWidth={2.4} style={{ color: opt.tone }} />}
+                    {active && <Check size={16} strokeWidth={2.4} className="dw-lang-marker" style={{ '--lang-tone': opt.tone } as CSSProperties} />}
                   </div>
                   <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, lineHeight: 1.15, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>
                     {opt.label}

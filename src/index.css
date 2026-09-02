@@ -1202,6 +1202,9 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   position: relative;
   flex-shrink: 0;
 }
+.dw-lang-marker {
+  color: var(--lang-tone);
+}
 
 /* Reflect & Respond sits INSIDE the lesson card on the Day N surface and under the
    pastoral text on the Day 1 landing — tighter than the old end-of-page block. */

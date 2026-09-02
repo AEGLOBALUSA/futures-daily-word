@@ -100,8 +100,14 @@ function capitalize(s: string): string {
 }
 
 export function getGreeting(persona: Persona, name: string, streak: number, lang?: string): string {
-  const first = capitalize(name) || (lang === 'id' ? 'teman' : 'friend');
+  const first = capitalize(name) || (lang === 'id' ? 'teman' : lang === 'es' || lang === 'pt' ? 'amigo' : 'friend');
   const tod = timeOfDay(lang);
+  // Spanish/Portuguese greet with one phrase (Buenos días / Bom dia), not "Good <tod>".
+  const opener = lang === 'es'
+    ? (tod === 'morning' ? 'Buenos días' : tod === 'afternoon' ? 'Buenas tardes' : 'Buenas noches')
+    : lang === 'pt'
+    ? (tod === 'morning' ? 'Bom dia' : tod === 'afternoon' ? 'Boa tarde' : 'Boa noite')
+    : '';
 
   // Streak memory: on a reset day, acknowledge the longest run rather than greeting
   // a long-time reader like a first-timer. Personas whose greetings never surface
@@ -109,8 +115,82 @@ export function getGreeting(persona: Persona, name: string, streak: number, lang
   if (streak === 1 && persona !== 'new_to_faith' && persona !== 'comfort') {
     const best = getStreak().bestCount;
     if (best >= 3) {
-      const prefix = lang === 'id' ? `Selamat ${tod}, ${first}. ` : `Good ${tod}, ${first}. `;
+      const prefix = lang === 'id' ? `Selamat ${tod}, ${first}. ` : opener ? `${opener}, ${first}. ` : `Good ${tod}, ${first}. `;
       return prefix + t('streak_reset_best', lang).replace('{best}', String(best));
+    }
+  }
+
+  if (lang === 'es') {
+    switch (persona) {
+      case 'new_to_faith':
+        return `Te damos la bienvenida, ${first}. Nos alegra que estés aquí.`;
+      case 'congregation':
+        return streak > 7
+          ? `${opener}, ${first}. ¡${streak} días seguidos!`
+          : streak > 1
+          ? `${opener}, ${first}. Día ${streak} — sigue así.`
+          : `${opener}, ${first}. Qué bueno que estés aquí.`;
+      case 'deeper_study':
+        return streak > 1
+          ? `${opener}, ${first}. Día ${streak}.`
+          : `${opener}, ${first}.`;
+      case 'pastor_leader':
+        return streak > 30
+          ? `${opener}, ${first}. ${streak} días. Lideras desde una copa llena.`
+          : streak > 7
+          ? `${opener}, ${first}. Día ${streak}. Este tiempo importa.`
+          : streak > 1
+          ? `${opener}, ${first}. Día ${streak}. Qué bueno que estés aquí.`
+          : `${opener}, ${first}. Este es tu tiempo — no es ministerio, solo tú y Dios.`;
+      case 'comfort': {
+        const comfortGreetings = [
+          `Dios está contigo hoy, ${first}.`,
+          `No estás a solas, ${first}.`,
+          `Él te sostiene cerca, ${first}.`,
+          `La paz sea contigo, ${first}.`,
+          `Dios te ama, ${first}.`,
+        ];
+        return comfortGreetings[new Date().getDate() % comfortGreetings.length];
+      }
+      default:
+        return `${opener}, ${first}.`;
+    }
+  }
+
+  if (lang === 'pt') {
+    switch (persona) {
+      case 'new_to_faith':
+        return `Boas-vindas, ${first}. Que bom ter você aqui.`;
+      case 'congregation':
+        return streak > 7
+          ? `${opener}, ${first}. ${streak} dias seguidos!`
+          : streak > 1
+          ? `${opener}, ${first}. Dia ${streak} — continue assim.`
+          : `${opener}, ${first}. Que bom ter você aqui.`;
+      case 'deeper_study':
+        return streak > 1
+          ? `${opener}, ${first}. Dia ${streak}.`
+          : `${opener}, ${first}.`;
+      case 'pastor_leader':
+        return streak > 30
+          ? `${opener}, ${first}. ${streak} dias. Você lidera com o copo cheio.`
+          : streak > 7
+          ? `${opener}, ${first}. Dia ${streak}. Este tempo importa.`
+          : streak > 1
+          ? `${opener}, ${first}. Dia ${streak}. Que bom ter você aqui.`
+          : `${opener}, ${first}. Este é o seu tempo — não é ministério, só você e Deus.`;
+      case 'comfort': {
+        const comfortGreetings = [
+          `Deus está com você hoje, ${first}.`,
+          `Você não está só, ${first}.`,
+          `Ele segura você bem perto, ${first}.`,
+          `A paz esteja com você, ${first}.`,
+          `Deus ama você, ${first}.`,
+        ];
+        return comfortGreetings[new Date().getDate() % comfortGreetings.length];
+      }
+      default:
+        return `${opener}, ${first}.`;
     }
   }
 
