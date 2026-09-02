@@ -104,7 +104,7 @@ window.addEventListener('appinstalled', () => {
 // bundle is served on the church origin (futures.church/daily-word proxy/embed),
 // /sw.js resolves to the church's own kill-switch worker — registering it there
 // wiped every church-origin cache (incl. the /listen offline shell) on each visit.
-const SW_VERSION = 'v65';
+const SW_VERSION = 'v66';
 const SW_HOSTS = ['futuresdailyword.com', 'www.futuresdailyword.com', 'futures-daily-word.netlify.app', 'localhost', '127.0.0.1'];
 if ('serviceWorker' in navigator && SW_HOSTS.includes(location.hostname)) {
   window.addEventListener('load', () => {

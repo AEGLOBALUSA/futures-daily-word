@@ -332,8 +332,18 @@ function AppContent() {
     return () => clearTimeout(id);
   }, []);
 
+  // HomeScreen reads the language at mount (greeting, hero, pathway copy). Key it
+  // on the language so the front-page LanguageSwitch remounts it in place — the
+  // same effect Settings gets from the tab switch back to Home, without a reload.
+  const [langKey, setLangKey] = useState(getLang);
+  useEffect(() => {
+    const h = () => setLangKey(getLang());
+    window.addEventListener('dw-lang-changed', h);
+    return () => window.removeEventListener('dw-lang-changed', h);
+  }, []);
+
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
+    home: <HomeScreen key={langKey} onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} onNavigate={navigateTab} />,
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
     plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
