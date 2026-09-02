@@ -10,9 +10,18 @@ interface HighlightToolbarProps {
   onOpenNotes: () => void;
   onGoDeeper: () => void;
   basicMode?: boolean;
+  /** I'm-New study sheet: the tap already highlighted + auto-saved, so the
+      sheet offers only "What this means" (plain-language AI) and Note.
+      Gated on the persona — NOT basicMode, which comfort shares. */
+  newPath?: boolean;
+  onWhatThisMeans?: () => void;
+  /** Comfort's gentle sheet: the tap saved the verse; the sheet offers only
+      Note (write / pray) and close — no Copy/Listen/Share, no AI gold button,
+      no Greek (persona-flow spec, 1 Sep). */
+  comfortMode?: boolean;
 }
 
-export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }: HighlightToolbarProps) {
+export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, newPath = false, onWhatThisMeans, comfortMode = false }: HighlightToolbarProps) {
   const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const lang = getLang();
   const [copied, setCopied] = useState(false);
@@ -132,13 +141,33 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
         maxWidth: '100%',
         pointerEvents: 'auto',
       }}>
-        {btn(handleCopy,
+        {/* I'm-New study sheet: one sage primary action + Note. The verse tap
+            already highlighted and auto-saved, so nothing else competes. */}
+        {newPath && onWhatThisMeans && (
+          <button
+            onClick={onWhatThisMeans}
+            style={{
+              display: 'flex', flexDirection: 'row', alignItems: 'center',
+              justifyContent: 'center', gap: 5, padding: '0 14px',
+              alignSelf: 'stretch',
+              background: 'var(--dw-new)', color: 'var(--dw-new-on-fill)',
+              border: 'none', cursor: 'pointer', minWidth: 58,
+            }}
+          >
+            <Sparkles size={14} strokeWidth={2} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+              {t('what_this_means', lang)}
+            </span>
+          </button>
+        )}
+        {newPath && btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
+        {!newPath && !comfortMode && btn(handleCopy,
           copied ? <Check size={16} color="var(--dw-success)" /> : <Copy size={16} />,
           copied ? t('copied_toast', lang) : t('copy_label', lang)
         )}
-        {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
-        {btn(handleShare, <Share2 size={16} />, t('j_share', lang))}
-        {btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
+        {!newPath && !comfortMode && btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
+        {!newPath && !comfortMode && btn(handleShare, <Share2 size={16} />, t('j_share', lang))}
+        {!newPath && btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
         {isPastorPersona() && btn(
           handleFileToSermon,
           filed ? <Check size={16} color="var(--dw-success)" /> : <FolderPlus size={16} />,
@@ -151,8 +180,9 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
           greekHebrewMode
         )}
 
-        {/* ── Ask AI — gold rectangle ── */}
-        <button
+        {/* ── Ask AI — gold rectangle (superseded by What-this-means on I'm New;
+            absent from comfort's gentle sheet) ── */}
+        {!newPath && !comfortMode && <button
           onClick={onGoDeeper}
           style={{
             position: 'relative', overflow: 'hidden',
@@ -185,7 +215,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
             letterSpacing: '0.05em',
             position: 'relative',
           }}>{t('ask_ai_label', lang)}</span>
-        </button>
+        </button>}
 
         <button aria-label={t('j_close', lang)}
           onClick={handleDismiss}

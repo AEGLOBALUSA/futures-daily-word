@@ -199,23 +199,27 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     description: 'Starting or reigniting my faith journey',
     descriptionId: 'Memulai atau menghidupkan kembali perjalanan iman saya',
     icon: 'Sprout',
+    // The I'm-New home is the 40-day journey and nothing else (Ashley, 1 Sep 2026):
+    // no 'ai_prompt' card and no search — every visible line relates to the sage
+    // journey button. Bible AI stays reachable from the reading action bar.
     sectionOrder: [
       'greeting',
       'hero_audio',
       'scripture',
-      'ai_prompt',
       'faith_pathway',
     ],
     features: {
       commentary: 'hidden',
       greekHebrew: 'hidden',
       highlighting: 'basic',
-      verseSelection: false,
+      // Verse tap is ON for I'm New (Ashley, 1 Sep): highlight + the simple
+      // study sheet on the Day N reading. Greek/Hebrew/commentary stay hidden.
+      verseSelection: true,
       wordOfDay: 'hidden',
       campusCount: 'hidden',
       weeklyReview: false,
       pollBanner: false,
-      searchEnabled: true,
+      searchEnabled: false,
       videoRecording: false,
       sermonNotes: false,
       wordStudies: false,

@@ -17,13 +17,14 @@ describe('UPGRADE_CONDITIONS', () => {
     expect(UPGRADE_CONDITIONS.some(u => u.label === 'Ready for More?')).toBe(false);
   });
 
-  it('keeps congregation → deeper_study and comfort → congregation', () => {
+  it('keeps congregation → deeper_study; comfort has NO graduation prompt', () => {
     const congregation = UPGRADE_CONDITIONS.find(u => u.from === 'congregation');
     expect(congregation?.to).toBe('deeper_study');
     expect(congregation?.label).toBe('Go Deeper?');
-    const comfort = UPGRADE_CONDITIONS.find(u => u.from === 'comfort');
-    expect(comfort?.to).toBe('congregation');
-    expect(comfort?.label).toBe('Feeling Stronger?');
+    // Persona-flow spec (1 Sep 2026): someone in a hard season is never nudged
+    // onward — 'Feeling Stronger?' must not come back.
+    expect(UPGRADE_CONDITIONS.some(u => u.from === 'comfort')).toBe(false);
+    expect(UPGRADE_CONDITIONS.some(u => u.label === 'Feeling Stronger?')).toBe(false);
   });
 });
 
@@ -58,14 +59,12 @@ describe('checkForUpgrade — other paths unchanged', () => {
     expect(upgrade?.to).toBe('deeper_study');
   });
 
-  it('offers Feeling Stronger? when comfort has been active 30+ days', () => {
-    localStorage.setItem('dw_first_open', daysAgo(30));
-    const upgrade = checkForUpgrade('comfort');
-    expect(upgrade?.label).toBe('Feeling Stronger?');
-    expect(upgrade?.to).toBe('congregation');
+  it('never offers comfort an upgrade, however long they have been active', () => {
+    localStorage.setItem('dw_first_open', daysAgo(365));
+    expect(checkForUpgrade('comfort')).toBeNull();
   });
 
-  it('does not offer Feeling Stronger? before 30 days', () => {
+  it('does not offer comfort an upgrade early either', () => {
     localStorage.setItem('dw_first_open', daysAgo(10));
     expect(checkForUpgrade('comfort')).toBeNull();
   });
