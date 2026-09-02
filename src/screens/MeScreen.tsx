@@ -112,7 +112,7 @@ export function MeScreen({ onNavigate }: { onNavigate: (tab: TabId, journalTab?:
           ))}
         </nav>
         <PWAInstallBanner />
-        <PromoAds />
+        <PromoAds variant="editorial" />
       </div>
       {/* Product feedback belongs where the personal stuff is, not on Today. */}
       <FeedbackPoll userCampus={campus} />

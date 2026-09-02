@@ -2145,7 +2145,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
         />
       )}
 
-      <PromoAds />
+      <PromoAds variant="compact" />
     </div>
   );
 }

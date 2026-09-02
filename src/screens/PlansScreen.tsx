@@ -762,7 +762,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
           </>
           )}
         </div>
-        <PromoAds />
+        <PromoAds variant="banner" />
         <BibleSearch
           isOpen={showSearch}
           onClose={() => setShowSearch(false)}

@@ -20,7 +20,7 @@ function AdsBelowNotes() {
       data-testid="sermon-notes-ads"
       style={{ padding: 0, background: 'var(--dw-bg)' }}
     >
-      <PromoAds />
+      <PromoAds variant="banner" />
     </div>
   );
 }
