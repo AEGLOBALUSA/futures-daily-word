@@ -22,7 +22,7 @@
  * (`/books/faith-pathway.json`) — one lesson a day, opening up as they go —
  * instead of the daily devotional. Same layout, different content.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowRight, BookOpen, Check, Loader2 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { isNewChristianPersona } from '../utils/persona-config';
@@ -113,6 +113,14 @@ export function TodayScreen() {
 
   const isNewToFaith = isNewChristianPersona(setup?.persona);
 
+  // ── Pathway Q&A answers (new_to_faith only) ──
+  function qaKey(day: number) { return `dw_pathway_qa_${day}`; }
+  function loadQA(day: number): Record<number, string> {
+    try { return JSON.parse(localStorage.getItem(qaKey(day)) || '{}'); } catch { return {}; }
+  }
+  const [qaAnswers, setQaAnswers] = useState<Record<number, string>>({});
+  const qaDay = useRef<number | null>(null);
+
   // ── Faith Pathway (new_to_faith only) ──
   const [pathway, setPathway] = useState<PathwayData | null>(null);
   const [progress, setProgress] = useState<PathwayProgress>(readPathwayProgress);
@@ -146,6 +154,32 @@ export function TodayScreen() {
   const content: TodayContent | null = isNewToFaith
     ? (pathway ? pathwayContent(pathway, day, lang) : null)
     : devotionalForToday(lang);
+
+  // Load saved Q&A answers whenever the day changes.
+  useEffect(() => {
+    if (!isNewToFaith || !content?.day) return;
+    if (qaDay.current !== content.day) {
+      qaDay.current = content.day;
+      setQaAnswers(loadQA(content.day));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNewToFaith, content?.day]);
+
+  const updateQA = (idx: number, value: string) => {
+    if (!content?.day) return;
+    const next = { ...qaAnswers, [idx]: value };
+    setQaAnswers(next);
+    const json = JSON.stringify(next);
+    try { localStorage.setItem(qaKey(content.day), json); } catch { /* quota */ }
+    syncMisc(qaKey(content.day), json);
+  };
+
+  // Questions for this day come from the pathway JSON.
+  const questions: string[] = (() => {
+    if (!isNewToFaith || !pathway || !content?.day) return [];
+    const d = pathway.days?.find(x => x.day === content.day);
+    return d?.questions || [];
+  })();
 
   const dayComplete = !!content?.day && progress.completedDays.includes(content.day);
   const hasNextDay = !!content?.day && content.day < lastDay;
@@ -207,7 +241,9 @@ export function TodayScreen() {
       window.removeEventListener('dw-font-size-changed', onFont);
     };
   }, []);
-  const translation = (localStorage.getItem('dw_translation') || 'ESV') as TranslationCode;
+  // New Christians read the NLT — clearest modern translation for someone just starting out.
+  // All other personas respect their stored preference.
+  const translation = (isNewToFaith ? 'NLT' : (localStorage.getItem('dw_translation') || 'ESV')) as TranslationCode;
   // dw_font_size: absolute px, 13–32, default 15 — same contract as Settings.
   const scriptureFontSize = Math.min(32, Math.max(13, parseInt(localStorage.getItem('dw_font_size') || '15', 10) || 15));
   void settingsRev; // read so the lint knows the state drives the re-render
@@ -314,6 +350,23 @@ export function TodayScreen() {
         {/* ── 2. The devotional itself, immediately. ── */}
         <MarkdownText text={content.body} style={{ marginTop: 28 }} />
 
+        {/* ── Personal questions — new_to_faith pathway only. ── */}
+        {isNewToFaith && questions.length > 0 && (
+          <section className="today-questions" aria-label="Personal reflection questions">
+            <h2 className="today-questions-label">Reflect &amp; Respond</h2>
+            {questions.map((q, i) => (
+              <div key={i} className="today-question">
+                <label className="today-question-text" htmlFor={`qa-${content.day}-${i}`}>{q}</label>
+                <PathwayAnswer
+                  id={`qa-${content.day}-${i}`}
+                  value={qaAnswers[i] || ''}
+                  onChange={val => updateQA(i, val)}
+                />
+              </div>
+            ))}
+          </section>
+        )}
+
         {/* Pathway only: finish this day, then read on if they want to. */}
         {content.day ? (
           <div className="today-pathway-nav">
@@ -349,5 +402,28 @@ export function TodayScreen() {
         )}
       </div>
     </div>
+  );
+}
+
+function PathwayAnswer({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const resize = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.max(el.scrollHeight, 72) + 'px';
+  };
+  useEffect(() => { resize(); }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      id={id}
+      className="today-question-answer"
+      value={value}
+      rows={3}
+      placeholder="Write your thoughts here…"
+      onChange={e => { onChange(e.target.value); resize(); }}
+      onInput={resize}
+    />
   );
 }

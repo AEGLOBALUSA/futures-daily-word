@@ -130,6 +130,17 @@ export function SermonNotesSurface({
 
   return (
     <article className="dw-sermon-notes">
+      <p style={{
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        color: 'var(--dw-info, #4C7E97)',
+        fontFamily: 'var(--font-sans)',
+        margin: '0 0 16px',
+      }}>
+        Sermon Notes
+      </p>
       {embed ? (
         <div className="dw-sermon-notes-video">
           <iframe

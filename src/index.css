@@ -1139,6 +1139,58 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
   background: var(--dw-new-hover);
 }
 
+/* ── Personal questions — new_to_faith pathway ── */
+.today-questions {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--dw-border);
+}
+.today-questions-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dw-info, #4C7E97);
+  margin: 0 0 22px;
+}
+.today-question {
+  margin-bottom: 22px;
+}
+.today-question-text {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dw-text-primary);
+  line-height: 1.45;
+  margin-bottom: 10px;
+  cursor: default;
+}
+.today-question-answer {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  background: var(--dw-card);
+  border: 1.5px solid var(--dw-border);
+  border-radius: 14px;
+  color: var(--dw-text-primary);
+  font-size: 15px;
+  font-family: var(--font-sans);
+  line-height: 1.65;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.today-question-answer:focus {
+  border-color: var(--dw-info, #4C7E97);
+}
+.today-question-answer::placeholder {
+  color: var(--dw-text-muted);
+  opacity: 0.65;
+}
+
 /* ── 3. One next step. ── */
 .today-next { margin-top: 40px; }
 .today-next-label {

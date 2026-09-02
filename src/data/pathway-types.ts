@@ -13,6 +13,7 @@ export interface PathwayDay {
   passages?: string[];
   reflection?: string;
   lesson?: string;
+  questions?: string[];
   lessonEs?: string;
   lessonPt?: string;
   lessonId?: string;
