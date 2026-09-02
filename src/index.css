@@ -2115,7 +2115,7 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
 .dw-cp-sheet {
   position: relative;
   width: min(560px, 100%);
-  max-height: min(90vh, 90dvh);
+  max-height: min(94vh, 94dvh);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background: var(--dw-card);
@@ -2123,20 +2123,21 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   border: 1px solid var(--dw-border);
   border-bottom: none;
   border-radius: 22px 22px 0 0;
-  padding: 10px 20px calc(20px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  padding: 8px 16px calc(14px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   box-shadow: 0 -18px 44px -22px rgba(28, 20, 12, 0.4);
   animation: dwPathSheetUp 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   outline: none;
 }
 @media (min-width: 640px) {
   .dw-cp-sheet-host { align-items: center; padding: 24px; }
-  .dw-cp-sheet { border-radius: 22px; border-bottom: 1px solid var(--dw-border); padding-bottom: 20px; }
+  .dw-cp-sheet { border-radius: 22px; border-bottom: 1px solid var(--dw-border); padding: 10px 20px 20px; }
 }
 @keyframes dwPathSheetUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-.dw-cp-sheet-grip { width: 36px; height: 4px; border-radius: 999px; background: var(--dw-border); margin: 0 auto 12px; }
+.dw-cp-sheet-grip { width: 36px; height: 4px; border-radius: 999px; background: var(--dw-border); margin: 0 auto 8px; }
+/* Very short viewports (SE-class phones with the toolbar up): the footer line goes before anything scrolls. */
+@media (max-height: 560px) { .dw-cp-sheet-foot { display: none; } }
 .dw-cp-card { -webkit-tap-highlight-color: transparent; transition: background 0.15s ease, border-color 0.15s ease; }
-.dw-cp-card:focus-visible, .dw-cp-cta:focus-visible, .dw-cp-swatch:focus-visible { outline: 2px solid var(--dw-new); outline-offset: 2px; }
-.dw-cp-cta:active { transform: scale(0.98); }
+.dw-cp-card:focus-visible, .dw-cp-swatch:focus-visible { outline: 2px solid var(--dw-new); outline-offset: 2px; }
 
 /* Door 1 — one quiet line under Read on the Day 1 landing (light-only surface, so a CSS hex is fine here). */
 .dw-day1-path-line {

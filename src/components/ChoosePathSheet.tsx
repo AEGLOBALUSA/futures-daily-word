@@ -21,6 +21,11 @@
  * off but goes nowhere"). The sheet used to tick the card and wait for a sage
  * CTA that sat below the fold on a phone, so the tap looked dead. Tapping a
  * card now saves and opens; tapping the path you already have just closes.
+ *
+ * Fits a phone without scrolling (Ashley, 2 Sep 2026: "fix the window so it
+ * all fits"): 30px nodes, 9/12 card padding, 14.5/12.5 type, 6px gaps — 481px
+ * at 390 wide (537 with the pastor sign-out row) against Safari's ~620px of
+ * 94dvh with its toolbars showing. Every headline stays on one line.
  */
 import { useEffect, useRef, useState, type CSSProperties, type ComponentType } from 'react';
 import { BookOpen, Check, ChevronDown, Church, Feather, Heart, Sprout } from 'lucide-react';
@@ -59,15 +64,15 @@ function PathIcon({ persona, size, tone }: { persona: Persona; size: number; ton
 }
 
 /** The cream node that carries the path icon inside a card (and the Settings row). */
-export function PathNode({ persona }: { persona: Persona }) {
+export function PathNode({ persona, size = 34 }: { persona: Persona; size?: number }) {
   return (
     <span style={{
-      width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: '#FBF8F1', border: '1px solid rgba(28,20,12,0.10)',
       boxShadow: '0 2px 7px rgba(28,20,12,0.12)',
     }}>
-      <PathIcon persona={persona} size={18} tone={NODE_TONE} />
+      <PathIcon persona={persona} size={Math.round(size * 18 / 34)} tone={NODE_TONE} />
     </span>
   );
 }
@@ -187,16 +192,16 @@ export function ChoosePathSheet({
       >
         <div className="dw-cp-sheet-grip" aria-hidden />
         <h2 id="dw-cp-sheet-title" style={{
-          margin: '6px 0 6px', fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 400,
+          margin: '4px 0 4px', fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400,
           lineHeight: 1.2, letterSpacing: '-0.02em', color: 'var(--dw-text)',
         }}>
           {t('path_sheet_title', lang)}
         </h2>
-        <p style={{ margin: '0 0 16px', fontSize: 14, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+        <p style={{ margin: '0 0 12px', fontSize: 13, lineHeight: 1.4, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
           {pastorSignedIn ? t('path_pastor_note', lang) : t('path_sheet_sub', lang)}
         </p>
 
-        <div role="listbox" aria-label={t('path_sheet_title', lang)} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div role="listbox" aria-label={t('path_sheet_title', lang)} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {PATHS.map(p => {
             const active = p.id === selected;
             return (
@@ -208,24 +213,24 @@ export function ChoosePathSheet({
                 onClick={() => commit(p.id)}
                 className={`dw-cp-card${active ? ' is-selected' : ''}`}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
-                  padding: '12px 14px', borderRadius: 14, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+                  padding: '9px 12px', borderRadius: 14, cursor: 'pointer',
                   background: active ? 'var(--dw-new-soft)' : 'transparent',
                   border: `1.5px solid ${active ? 'var(--dw-new)' : 'var(--dw-border)'}`,
-                  minHeight: 64,
+                  minHeight: 56,
                 }}
               >
-                <PathNode persona={p.id} />
+                <PathNode persona={p.id} size={30} />
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>
+                  <span style={{ display: 'block', fontSize: 14.5, fontWeight: 600, lineHeight: 1.2, color: 'var(--dw-text)', fontFamily: 'var(--font-sans)' }}>
                     {t(p.headKey, lang)}
                   </span>
-                  <span style={{ display: 'block', fontSize: 13, lineHeight: 1.4, marginTop: 3, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  <span style={{ display: 'block', fontSize: 12.5, lineHeight: 1.3, marginTop: 2, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
                     {t(p.promiseKey, lang)}
                   </span>
                 </span>
                 {active && (
-                  <Check size={18} strokeWidth={2.4} aria-hidden className="dw-cp-marker" style={{ '--cp-tone': 'var(--dw-new)', flexShrink: 0 } as CSSProperties} />
+                  <Check size={16} strokeWidth={2.4} aria-hidden className="dw-cp-marker" style={{ '--cp-tone': 'var(--dw-new)', flexShrink: 0 } as CSSProperties} />
                 )}
               </button>
             );
@@ -237,7 +242,7 @@ export function ChoosePathSheet({
             type="button"
             onClick={signOut}
             style={{
-              display: 'block', width: '100%', minHeight: 44, marginTop: 16,
+              display: 'block', width: '100%', minHeight: 44, marginTop: 12,
               background: 'transparent', color: 'var(--dw-text-secondary)',
               border: '1px solid var(--dw-border)', borderRadius: 12, cursor: 'pointer',
               padding: '10px 12px', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600,
@@ -246,7 +251,7 @@ export function ChoosePathSheet({
             {t('pastor_chip_sign_out', lang)}
           </button>
         )}
-        <p style={{ margin: '14px 0 0', textAlign: 'center', fontSize: 12, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+        <p className="dw-cp-sheet-foot" style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 12, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
           {t('path_sheet_footer', lang)}
         </p>
       </div>
