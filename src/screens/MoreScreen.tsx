@@ -16,6 +16,7 @@ import { CampusSelect } from '../components/CampusSelect';
 import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
 import { PWAInstallSettingsBlock } from '../components/PWAInstall';
+import { PastorSignIn } from '../components/PastorSignIn';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
@@ -446,6 +447,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             )}
           </Card>
         </div>
+
+        {/* ─── PASTOR ACCOUNT — staff sign-in; stamps the Leader / Pastor persona above ─── */}
+        <PastorSignIn lang={lang} />
 
         {/* ─── MY STORY ─── */}
         <div style={{ marginBottom: 24 }}>

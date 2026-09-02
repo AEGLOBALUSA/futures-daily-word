@@ -181,6 +181,25 @@ let pendingPush: { keepalive: boolean } | null = null;
 let pullRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let pullRetryDelayMs = 30000;
 
+/** Forget this session's sync state because the signed-in account changed.
+ *  pullSucceeded / lastSyncVersion / any queued push belong to the PREVIOUS
+ *  email. Left in place, the next push runs ungated under the NEW account's
+ *  token carrying the previous user's local data — and user-sync's push is a
+ *  wholesale upsert, so it would replace the new account's cloud row (with a
+ *  stale sync_version) before that account's own pull has ever landed. Closing
+ *  the gate again means every push queues until syncOnStartup(newEmail)
+ *  succeeds. A push already in flight can't be recalled; clearing pendingPush
+ *  stops it scheduling a follow-up. */
+export function resetSyncSession() {
+  if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+  if (pullRetryTimer) { clearTimeout(pullRetryTimer); pullRetryTimer = null; }
+  pullRetryDelayMs = 30000;
+  pullSucceeded = false;
+  pendingPush = null;
+  lastSyncVersion = 0;
+  lastCloudPrayedFor = null;
+}
+
 /** Atomically read-and-clear the coalesced push request (a helper function so TS
  *  can't stale-narrow the module variable across pushToCloud's await). */
 function takePendingPush(): { keepalive: boolean } | null {

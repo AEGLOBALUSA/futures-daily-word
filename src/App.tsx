@@ -22,6 +22,8 @@ import { StopAllAudio } from './components/StopAllAudio';
 import { consumeLandingParam, needsDay1Landing, needsDay1Reading, startGraceSeriesIfCold } from './utils/coldStart';
 import { Day1Landing } from './components/Day1Landing';
 import { Day1Reading } from './components/Day1Reading';
+import { restoreStaffSession } from './utils/staffIdentity';
+import { useStaffIdentity } from './utils/useStaffIdentity';
 
 // ── Pre-render deep link setup — must run before any React component initializes ──
 const SERMON_DEEP_LINK = (() => {
@@ -182,6 +184,21 @@ function AppContent() {
   }, []);
   const { userProfile, setup } = useUser();
   const { selection } = useScriptureSelection();
+
+  // Pastor sign-in (Settings → Pastor account): a stored staff session re-stamps
+  // the pastor identity on every open, so a signed-in pastor never logs in twice.
+  // A dead token is cleared by intake() itself; a network failure keeps it for
+  // next time. Idempotent — nothing is written when the identity already matches.
+  const { applyStaffIdentity } = useStaffIdentity();
+  const applyStaffRef = useRef(applyStaffIdentity);
+  applyStaffRef.current = applyStaffIdentity;
+  useEffect(() => {
+    let alive = true;
+    restoreStaffSession().then(staff => {
+      if (alive && staff) void applyStaffRef.current(staff, { boot: true });
+    });
+    return () => { alive = false; };
+  }, []);
 
   const [showDay1Landing, setShowDay1Landing] = useState(
     () => !SERMON_DEEP_LINK && needsDay1Landing()
