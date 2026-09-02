@@ -81,9 +81,9 @@ export function LanguageSwitch({ className, align = 'right' }: { className?: str
   const current = LANGS.find(l => l.code === lang) || LANGS[0];
   const menuLabel = t('change_language', lang);
 
+  // Positioning lives in CSS (.dw-lang-switch) so a host surface can override it —
+  // an inline position would beat .dw-day1-lang's absolute placement.
   return (
-    {/* Positioning lives in CSS (.dw-lang-switch), so a host surface can override it —
-        an inline position would beat .dw-day1-lang's absolute placement. */}
     <div ref={ref} className={className ? `dw-lang-switch ${className}` : 'dw-lang-switch'}>
       <button
         type="button"
