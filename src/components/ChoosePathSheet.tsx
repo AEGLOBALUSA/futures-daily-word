@@ -6,7 +6,7 @@
  * Grammar copies the front-page LanguageSwitch (Atelier Swatch): 36px pill trigger,
  * cream nodes carrying a stroke icon, selected chip = solid sage border + tint + check.
  * Dark-mode trap: index.css forces white on inline `color: rgb(176…/154…/110…)`, so
- * every tone rides a CSS custom property (.dw-path-marker), never an inline hex.
+ * every tone rides a CSS custom property (.dw-cp-marker), never an inline hex.
  *
  * Mount pattern (as NewBelieverLessonCard / BibleAI): the host keeps this mounted
  * with a live `open` prop and it owns exactly one history entry while open via
@@ -42,8 +42,8 @@ function PathIcon({ persona, size, tone }: { persona: Persona; size: number; ton
       size={size}
       strokeWidth={1.9}
       aria-hidden
-      className="dw-path-marker"
-      style={{ '--path-tone': tone, flexShrink: 0 } as CSSProperties}
+      className="dw-cp-marker"
+      style={{ '--cp-tone': tone, flexShrink: 0 } as CSSProperties}
     />
   );
 }
@@ -78,7 +78,7 @@ export function PathSwatch({ persona, className }: { persona: string; className?
       onClick={() => { hapticTap(); openChoosePath('home'); }}
       aria-label={`${t(path.labelKey, lang)} — ${t('path_swatch_label', lang)}`}
       aria-haspopup="dialog"
-      className={className ? `dw-path-swatch ${className}` : 'dw-path-swatch'}
+      className={className ? `dw-cp-swatch ${className}` : 'dw-cp-swatch'}
       style={{
         height: 36, padding: '0 8px 0 3px', borderRadius: 999,
         display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -93,7 +93,7 @@ export function PathSwatch({ persona, className }: { persona: string; className?
       }}>
         <PathIcon persona={path.id} size={14} tone="var(--dw-new-on-fill)" />
       </span>
-      <span className="dw-path-label" style={{
+      <span className="dw-cp-label" style={{
         fontSize: 12, fontWeight: 600, lineHeight: 1, fontFamily: 'var(--font-sans)',
         color: 'var(--dw-text)', whiteSpace: 'nowrap',
       }}>
@@ -167,17 +167,17 @@ export function ChoosePathSheet({
   }
 
   return (
-    <div className="dw-path-sheet-host">
-      <div className="dw-path-sheet-backdrop" onClick={onClose} aria-hidden />
+    <div className="dw-cp-sheet-host">
+      <div className="dw-cp-sheet-backdrop" onClick={onClose} aria-hidden />
       <div
         ref={panelRef}
         role="dialog"
-        aria-labelledby="dw-path-sheet-title"
+        aria-labelledby="dw-cp-sheet-title"
         tabIndex={-1}
-        className="dw-path-sheet"
+        className="dw-cp-sheet"
       >
-        <div className="dw-path-sheet-grip" aria-hidden />
-        <h2 id="dw-path-sheet-title" style={{
+        <div className="dw-cp-sheet-grip" aria-hidden />
+        <h2 id="dw-cp-sheet-title" style={{
           margin: '6px 0 6px', fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 400,
           lineHeight: 1.2, letterSpacing: '-0.02em', color: 'var(--dw-text)',
         }}>
@@ -200,7 +200,7 @@ export function ChoosePathSheet({
                 aria-disabled={disabled || undefined}
                 tabIndex={disabled ? -1 : 0}
                 onClick={() => { if (disabled) return; hapticTap(); setSelected(p.id); }}
-                className={`dw-path-card${active ? ' is-selected' : ''}`}
+                className={`dw-cp-card${active ? ' is-selected' : ''}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
                   padding: '12px 14px', borderRadius: 14, cursor: disabled ? 'default' : 'pointer',
@@ -219,7 +219,7 @@ export function ChoosePathSheet({
                   </span>
                 </span>
                 {active && (
-                  <Check size={18} strokeWidth={2.4} aria-hidden className="dw-path-marker" style={{ '--path-tone': 'var(--dw-new)', flexShrink: 0 } as CSSProperties} />
+                  <Check size={18} strokeWidth={2.4} aria-hidden className="dw-cp-marker" style={{ '--cp-tone': 'var(--dw-new)', flexShrink: 0 } as CSSProperties} />
                 )}
               </button>
             );
@@ -229,7 +229,7 @@ export function ChoosePathSheet({
         <button
           type="button"
           onClick={commit}
-          className="dw-path-cta"
+          className="dw-cp-cta"
           style={{
             display: 'block', width: '100%', height: 52, marginTop: 16,
             border: 'none', borderRadius: 14, cursor: 'pointer',

@@ -19,19 +19,19 @@ export function PathAskedOnce({ onKeepGoing, onSomethingElse }: { onKeepGoing: (
     <div
       ref={ref}
       role="dialog"
-      aria-labelledby="dw-path-ask-title"
+      aria-labelledby="dw-cp-ask-title"
       tabIndex={-1}
-      className="dw-path-ask"
+      className="dw-cp-ask"
     >
-      <div className="dw-path-ask-inner">
-        <span className="dw-path-ask-check" aria-hidden>
+      <div className="dw-cp-ask-inner">
+        <span className="dw-cp-ask-check" aria-hidden>
           <Check size={26} strokeWidth={2.6} />
         </span>
-        <h1 id="dw-path-ask-title" className="dw-path-ask-title">{t('path_ask_title', lang)}</h1>
-        <p className="dw-path-ask-body">{t('path_ask_body', lang)}</p>
+        <h1 id="dw-cp-ask-title" className="dw-cp-ask-title">{t('path_ask_title', lang)}</h1>
+        <p className="dw-cp-ask-body">{t('path_ask_body', lang)}</p>
         <button
           type="button"
-          className="dw-path-cta"
+          className="dw-cp-cta"
           onClick={() => { hapticTap(); onKeepGoing(); }}
           style={{
             display: 'block', width: '100%', height: 54, marginTop: 24,
@@ -44,13 +44,13 @@ export function PathAskedOnce({ onKeepGoing, onSomethingElse }: { onKeepGoing: (
         </button>
         <button
           type="button"
-          className="dw-path-ask-link"
+          className="dw-cp-ask-link"
           aria-haspopup="dialog"
           onClick={() => { hapticTap(); onSomethingElse(); }}
         >
           {t('path_ask_other', lang)}
         </button>
-        <p className="dw-path-ask-eyebrow">{t('path_ask_eyebrow', lang)}</p>
+        <p className="dw-cp-ask-eyebrow">{t('path_ask_eyebrow', lang)}</p>
       </div>
     </div>
   );

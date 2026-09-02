@@ -32,7 +32,7 @@ describe('the sheet', () => {
     expect(app).toMatch(/const homeKey = `\$\{langKey\}:\$\{setup\?\.persona \|\| ''\}`/);
   });
   it('keeps brand tones off inline color (dark-mode force-white trap)', () => {
-    expect(sheet).toMatch(/className="dw-path-marker"/);
+    expect(sheet).toMatch(/className="dw-cp-marker"/);
     expect(sheet).not.toMatch(/color:\s*'#[0-9A-Fa-f]{6}'/);
     expect(asked).not.toMatch(/color:\s*'#[0-9A-Fa-f]{6}'/);
   });
