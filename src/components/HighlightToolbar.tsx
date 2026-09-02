@@ -15,9 +15,13 @@ interface HighlightToolbarProps {
       Gated on the persona — NOT basicMode, which comfort shares. */
   newPath?: boolean;
   onWhatThisMeans?: () => void;
+  /** Comfort's gentle sheet: the tap saved the verse; the sheet offers only
+      Note (write / pray) and close — no Copy/Listen/Share, no AI gold button,
+      no Greek (persona-flow spec, 1 Sep). */
+  comfortMode?: boolean;
 }
 
-export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, newPath = false, onWhatThisMeans }: HighlightToolbarProps) {
+export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, newPath = false, onWhatThisMeans, comfortMode = false }: HighlightToolbarProps) {
   const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const lang = getLang();
   const [copied, setCopied] = useState(false);
@@ -157,12 +161,12 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, n
           </button>
         )}
         {newPath && btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
-        {!newPath && btn(handleCopy,
+        {!newPath && !comfortMode && btn(handleCopy,
           copied ? <Check size={16} color="var(--dw-success)" /> : <Copy size={16} />,
           copied ? t('copied_toast', lang) : t('copy_label', lang)
         )}
-        {!newPath && btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
-        {!newPath && btn(handleShare, <Share2 size={16} />, t('j_share', lang))}
+        {!newPath && !comfortMode && btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
+        {!newPath && !comfortMode && btn(handleShare, <Share2 size={16} />, t('j_share', lang))}
         {!newPath && btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
         {isPastorPersona() && btn(
           handleFileToSermon,
@@ -176,8 +180,9 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, n
           greekHebrewMode
         )}
 
-        {/* ── Ask AI — gold rectangle (superseded by What-this-means on I'm New) ── */}
-        {!newPath && <button
+        {/* ── Ask AI — gold rectangle (superseded by What-this-means on I'm New;
+            absent from comfort's gentle sheet) ── */}
+        {!newPath && !comfortMode && <button
           onClick={onGoDeeper}
           style={{
             position: 'relative', overflow: 'hidden',

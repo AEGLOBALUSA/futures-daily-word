@@ -27,13 +27,28 @@ describe("I'm New journey flow", () => {
     const mount = home.slice(home.indexOf('<NewBelieverLessonCard'));
     const mountBlock = mount.slice(0, mount.indexOf('/>'));
     expect(mountBlock).not.toContain('isReadingOpen');
-    expect(home).toContain('showJourneyDay &&');
+    expect(home).toContain('setShowJourneyDay(true)');
   });
 
   it('the Day N surface IS the reading — verses render on it', () => {
-    expect(card).toContain('ScripturePassage');
-    // Back gesture support: one history entry while open.
-    expect(card).toContain('useSubView');
+    // The actual JSX mount, not just an import or comment.
+    expect(card).toMatch(/<ScripturePassage\s/);
+    expect(card).toMatch(/text=\{passageText\}/);
+    // Back gesture support: one history entry while open, consumed on UI close
+    // (the card stays mounted and passes live open state — a hardcoded `true`
+    // leaked an entry per close).
+    expect(card).toMatch(/useSubView\(open, onClose\)/);
+    // No document-level focus trap: the study sheet / note drawer / Bible AI
+    // are DOM siblings above this surface and a trap made them unreachable.
+    expect(card).not.toContain('useModalA11y');
+    expect(card).not.toContain('aria-modal');
+  });
+
+  it('the journey overlay mount passes the day chapter text through', () => {
+    const mount = home.slice(home.indexOf('<NewBelieverLessonCard'));
+    const mountBlock = mount.slice(0, mount.indexOf('/>'));
+    expect(mountBlock).toMatch(/open=\{showJourneyDay\}/);
+    expect(mountBlock).toMatch(/passageText=\{/);
   });
 
   it('the journey surface speaks sage, not a second green', () => {
