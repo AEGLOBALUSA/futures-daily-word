@@ -130,17 +130,6 @@ export function SermonNotesSurface({
 
   return (
     <article className="dw-sermon-notes">
-      <p style={{
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: 'var(--dw-info, #4C7E97)',
-        fontFamily: 'var(--font-sans)',
-        margin: '0 0 16px',
-      }}>
-        Sermon Notes
-      </p>
       {embed ? (
         <div className="dw-sermon-notes-video">
           <iframe
@@ -149,8 +138,11 @@ export function SermonNotesSurface({
             allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+          <p className="dw-sermon-notes-badge">Sermon Notes</p>
         </div>
-      ) : null}
+      ) : (
+        <p className="dw-sermon-notes-badge dw-sermon-notes-badge--inline">Sermon Notes</p>
+      )}
 
       {meta ? <p className="dw-sermon-notes-meta">{meta}</p> : null}
 

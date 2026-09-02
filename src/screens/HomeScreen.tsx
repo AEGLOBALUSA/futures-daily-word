@@ -2029,9 +2029,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           )}
         </div>
 
-        {/* Sermon notes above the hero: I'm-New Sunday window only (QR guests).
-            Everyone else gets the row below the reading — see sermonNotesRow. */}
-        {isNewPath && isSundayWindow() && sermonNotesRow}
+        {/* Sermon notes — just below the greeting, always visible */}
+        {sermonNotesRow}
 
         {/* What this actually is — one line, for the persona that has never used
             a Bible app. Only while they are early in the pathway. */}
@@ -2768,10 +2767,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             setShowBibleAI={setShowBibleAI}
           />
         )}
-
-        {/* Sermon notes for the four returning personas — demoted below the
-            reading so nothing sits above it. */}
-        {!isNewPath && sermonNotesRow}
 
         {/* Post-first-reading backup nudge — appears only after the push prompt
             is resolved, so the two post-reading moments never stack. */}
