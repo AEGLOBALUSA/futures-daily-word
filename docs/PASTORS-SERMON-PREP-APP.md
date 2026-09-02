@@ -283,3 +283,27 @@ Report at the end: what changed, what you verified, what you left out, and the m
 and call count for every agent you ran.
 
 ---
+
+## PART C — What was built (2 Sep 2026, same day)
+
+The app exists: repo `AEGLOBALUSA/pastors-sermon-prep` (private), site
+https://pastors-sermon-prep.netlify.app (Netlify id `13a429f2-6403-4f01-9d2f-542a468febb4`,
+manual deploys), Supabase project `kbhyvrlbntnhdfzxgufj` (same org as this one) holding the
+11 `study_*` tables — all 18 source counts verified equal to Part A's table. Full account in
+that repo's `docs/HANDOFF.md`.
+
+**Shared-auth route (option 1) was taken.** The only change in this repo is the additive
+origin in `netlify/functions/lib/cors.js` (PR #88, `e25933e2`). The new app calls this
+backend cross-origin for `intake` (sign-in, password change, Sunday publish),
+`pastor-admin` (`my-campus-code`), `published-sermon`, `user-sync` / `user-profile` (the
+pastor's own misc-bag record — so an outline written there is the same record this app
+syncs), `track-activity`, `geo`, and `claude` (the commentary summariser; this repo's
+`ANTHROPIC_API_KEY` is a write-only secret, so it was not copied). `PASTOR_SECRET` and
+`ADMIN_PIN` stay here. `intake.js`, `pastor-admin.js`, `published-sermon.js` were NOT ported.
+
+Two things this repo should know:
+- The new app's `cloudSync.ts` misc-key whitelist must stay equal to this one's — a push
+  from either side rebuilds the bag from the keys the client sends (`user-sync.js`). PR #89
+  landed `dw_path_asked` mid-port; the new app was re-synced to `02bdefe9`.
+- Only the production origin is allow-listed; deploy previews of the new app cannot sign
+  in or sync (`isDailyWordPreviewOrigin` matches this site's previews only).
