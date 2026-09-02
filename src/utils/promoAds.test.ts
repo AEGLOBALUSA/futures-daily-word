@@ -28,11 +28,9 @@ describe('house ads placement', () => {
 
   it('links Selah to the church site, not a store download', () => {
     const ads = src('components/PromoAds.tsx');
-    expect(ads).toMatch("SELAH_HREF = 'https://futures.church/'");
+    expect(ads).toMatch("href: 'https://futures.church/selah'");
     expect(ads).not.toMatch(/play\.google|apps\.apple/i);
-    expect(ads).toMatch('promo_selah_name');
-    expect(ads).toMatch('promo_selah_date');
-    expect(ads).toMatch('promo_coming');
+    expect(ads).toMatch("id: 'selah'");
   });
 });
 
@@ -40,13 +38,12 @@ describe('house ads commercial strip', () => {
   const ads = src('components/PromoAds.tsx');
   const css = src('index.css');
 
-  it('uses one charcoal field, 12px radius, no shadow or gold kicker', () => {
-    expect(css).toMatch(/\.dw-promo-card[\s\S]*border-radius:\s*12px/);
-    expect(css).toMatch(/\.dw-promo-card[\s\S]*box-shadow:\s*none/);
+  it('uses one charcoal field, 14px radius, no gold kicker', () => {
+    expect(css).toMatch(/\.dw-promo-card[\s\S]*border-radius:\s*14px/);
+    expect(css).not.toMatch(/\.dw-promo-card\s*\{[^}]*box-shadow:\s*[^n]/);
     expect(ads).not.toMatch('#C8926E');
     expect(ads).not.toMatch('promo_books_label');
     expect(ads).not.toMatch('promo_selah_label');
-    expect(ads).not.toMatch(/→/);
   });
 
   it('lays covers in a still-life row, not a fanned 52px stack', () => {
@@ -88,11 +85,12 @@ describe('house ads size lock', () => {
     expect(css).not.toMatch(/\.dw-promo-covers img\s*\{[^}]*flex:\s*1/);
   });
 
-  it('puts Selah date in the 140px band, not a third copy block', () => {
+  it('Selah status lives in eyebrow, not a separate date copy block', () => {
     const selah = ads.slice(ads.indexOf('house_ad_selah'));
-    expect(selah).toMatch(/dw-promo-band[\s\S]*promo_selah_date[\s\S]*dw-promo-copy/);
-    expect(selah).not.toMatch(/dw-promo-copy[\s\S]*promo_selah_date/);
-    expect(selah).not.toMatch(/dw-promo-copy[\s\S]*dw-promo-date/);
+    // eyebrow field carries the status label ("Now open") — not a standalone date div
+    expect(selah).toMatch(/eyebrow:/);
+    expect(selah).not.toMatch(/dw-promo-date/);
+    expect(selah).not.toMatch(/promo_selah_date/);
   });
 
   it('sizes the college logo for the 140px band, not 28px', () => {

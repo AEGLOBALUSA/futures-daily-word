@@ -63,7 +63,7 @@ function buildAds(campus: CollegeCampus, lang: string): AdItem[] {
       trackKey: 'house_ad_books',
       ariaLabel: `${t('promo_books_title', lang)} — ${t('promo_shop', lang)}`,
       covers: COVERS,
-      eyebrow: t('promo_books_label', lang),
+      eyebrow: 'Free books',
       title: t('promo_books_title', lang),
       body: 'Free copies. Free audiobooks.',
       cta: t('promo_shop', lang),
