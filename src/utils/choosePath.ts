@@ -59,3 +59,30 @@ export function hasPathBeenAsked(): boolean {
 export function markPathAsked(): void {
   syncMisc(PATH_ASKED_KEY, '1');
 }
+
+/**
+ * Arrival strip (Ashley, 2 Sep 2026: "how do I know I'm in the right place?").
+ * Set when a path is saved; Home shows a one-line confirmation for that path
+ * on its next mount, dismissible, and only within ten minutes of the change.
+ * Session-scoped and never synced — it is a moment, not a record.
+ */
+const ARRIVAL_KEY = 'dw_path_arrival';
+const ARRIVAL_TTL_MS = 10 * 60 * 1000;
+export function markPathArrival(persona: Persona): void {
+  try { sessionStorage.setItem(ARRIVAL_KEY, JSON.stringify({ persona, at: Date.now() })); } catch { /* ignore */ }
+}
+export function readPathArrival(persona: string | null | undefined): boolean {
+  try {
+    const raw = sessionStorage.getItem(ARRIVAL_KEY);
+    if (!raw) return false;
+    const v = JSON.parse(raw) as { persona?: string; at?: number };
+    if (v.persona !== persona || Date.now() - (v.at || 0) > ARRIVAL_TTL_MS) {
+      sessionStorage.removeItem(ARRIVAL_KEY);
+      return false;
+    }
+    return true;
+  } catch { return false; }
+}
+export function clearPathArrival(): void {
+  try { sessionStorage.removeItem(ARRIVAL_KEY); } catch { /* ignore */ }
+}

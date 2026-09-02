@@ -53,6 +53,8 @@ import { InlineReflection } from '../components/InlineReflection';
 import { ReadingActionBar } from '../components/ReadingActionBar';
 import { HomeContextChips } from '../components/HomeContextChips';
 import { PathSwatch } from '../components/ChoosePathSheet';
+import { PathArrivalStrip } from '../components/PathArrivalStrip';
+import { readPathArrival, clearPathArrival } from '../utils/choosePath';
 import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
 import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
@@ -151,6 +153,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
   const personaConfig = useMemo(() => getPersonaConfig(setup?.persona), [setup?.persona]);
+  // "How do I know I'm in the right place?" — one dismissible confirmation line
+  // under the greeting on the first Home after a path is saved (Choose your path).
+  const [pathArrival, setPathArrival] = useState(() => readPathArrival(setup?.persona));
   const pf = personaConfig.features; // shorthand
   // Pastor sign-in (Settings → Pastor account): while this app holds a staff
   // session the persona chip is locked to "Sign out of pastor account" — a
@@ -1777,14 +1782,20 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         borderRadius: 14, cursor: 'pointer', textAlign: 'left', minHeight: 52,
       }}
     >
-      <FileText size={20} style={{ color: 'var(--dw-info, #4C7E97)', flexShrink: 0 }} />
+      {/* Pastors: the card reads PASTOR STUDY in sage so the top of Home names the
+          path before any scroll (class, not inline hex — dark-mode force-white trap). */}
+      <FileText
+        size={20}
+        className={personaConfig.persona === 'pastor_leader' ? 'dw-preach-eyebrow' : undefined}
+        style={{ color: personaConfig.persona === 'pastor_leader' ? undefined : 'var(--dw-info, #4C7E97)', flexShrink: 0 }}
+      />
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{
+        <span className={personaConfig.persona === 'pastor_leader' ? 'dw-preach-eyebrow' : undefined} style={{
           display: 'block', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: 'var(--dw-info, #4C7E97)',
+          textTransform: 'uppercase', color: personaConfig.persona === 'pastor_leader' ? undefined : 'var(--dw-info, #4C7E97)',
           fontFamily: 'var(--font-sans)', marginBottom: 2,
         }}>
-          {tI18n('this_week', lang)}
+          {personaConfig.persona === 'pastor_leader' ? tI18n('pastor_study_eyebrow', lang) : tI18n('this_week', lang)}
         </span>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#F5EFE6', fontFamily: 'var(--font-sans)' }}>
           {personaConfig.persona === 'pastor_leader' ? t('preach_card_title') : tI18n('sermon_notes_title', lang)}
@@ -2058,6 +2069,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             </button>
           )}
         </div>
+
+        {/* Path arrival — once, after Choose your path saved a new path. */}
+        {pathArrival && (
+          <PathArrivalStrip
+            persona={personaConfig.persona}
+            lang={lang}
+            campusId={userProfile?.campus || ''}
+            onNavigate={onNavigate}
+            onDismiss={() => { clearPathArrival(); setPathArrival(false); }}
+          />
+        )}
 
         {/* Sermon notes — just below the greeting, always visible */}
         {sermonNotesRow}

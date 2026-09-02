@@ -27,7 +27,7 @@ import { flushNow } from '../utils/cloudSync';
 import { track } from '../utils/analytics';
 import { hapticTap } from '../utils/haptics';
 import type { Persona } from '../utils/persona-config';
-import { PATHS, pathFor, choiceSourceFor, markPathAsked, openChoosePath, type PathDoor, type PathOption } from '../utils/choosePath';
+import { PATHS, pathFor, choiceSourceFor, markPathAsked, markPathArrival, openChoosePath, type PathDoor, type PathOption } from '../utils/choosePath';
 
 const ICONS: Record<Persona, ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: CSSProperties; 'aria-hidden'?: boolean }>> = {
   new_to_faith: Sprout,
@@ -155,6 +155,7 @@ export function ChoosePathSheet({
     const source = choiceSourceFor(setup?.source);
     saveSetup({ persona: selected, source });
     markPathAsked();
+    markPathArrival(selected); // Home confirms the new path on its next mount
     flushNow();
     track('persona_change', selected);
     track('path_chosen', `${door}:${selected}`);

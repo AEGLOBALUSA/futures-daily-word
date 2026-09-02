@@ -135,7 +135,7 @@ describe('PathSwatch', () => {
     act(() => a.root.unmount());
     signedIn.value = true;
     const b = mount(<PathSwatch persona="pastor_leader" />);
-    expect(b.el.textContent).toContain('Leader');
+    expect(b.el.textContent).toContain('Pastor');
     expect(b.el.querySelector('svg.lucide-chevron-down')).toBeTruthy();
     expect(b.el.querySelector('svg.lucide-lock')).toBeNull();
     act(() => b.root.unmount());
