@@ -5,6 +5,7 @@
  * Fallback chain: requested → KJV offline → WEB built-in.
  */
 import { API_BASE } from './api-base';
+import { fetchTaggedChapter } from './study';
 
 // Verse cache: keyed by passageName_TRANSLATION. Bounded to prevent memory leaks.
 const VERSE_CACHE_MAX = 500;
@@ -470,6 +471,12 @@ export async function fetchStrongsMap(passage: string): Promise<StrongsMap | nul
   const key = passage.trim().toLowerCase();
   const hit = strongsMapCache.get(key);
   if (hit) return hit;
+  // Bolls' KJV S-tags stay the primary word map: the public-domain WEB's
+  // word-level Strong's markup is misaligned for common words (Gen 1:1 tags
+  // "In" as H8064 "heavens"), so the study layer's tagged text is only the
+  // fallback when Bolls is unreachable. Lexicon DEFINITIONS come from the
+  // study layer first (GreekHebrewPopup) — that is the Bolls dependency the
+  // plan retires.
   try {
     const res = await fetch(`${API_BASE}/api/bolls?q=${encodeURIComponent(passage)}&strongs=1`);
     if (!res.ok) return null;
@@ -489,6 +496,22 @@ export async function fetchStrongsMap(passage: string): Promise<StrongsMap | nul
       for (const n of nums) if (!byWord[w].includes(n)) byWord[w].push(n);
     }
     const map = { byWord, testament };
+    strongsMapCache.set(key, map);
+    return map;
+  } catch { /* fall through to the study layer */ }
+  try {
+    const tagged = await fetchTaggedChapter(passage.replace(/:\d+(-\d+)?$/, ''));
+    if (!tagged || !tagged.verses.length) return null;
+    const byWord: Record<string, string[]> = {};
+    for (const v of tagged.verses) {
+      for (const item of v.words || []) {
+        const w = String(item.w || '').toLowerCase().replace(/[^a-z']/g, '');
+        if (!w || !item.s?.length) continue;
+        if (!byWord[w]) byWord[w] = [];
+        for (const n of item.s) if (!byWord[w].includes(n)) byWord[w].push(n);
+      }
+    }
+    const map = { byWord, testament: tagged.testament };
     strongsMapCache.set(key, map);
     return map;
   } catch { return null; }

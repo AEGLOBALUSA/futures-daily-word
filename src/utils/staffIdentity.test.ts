@@ -240,6 +240,19 @@ describe('campus pastor code provisioning', () => {
     expect(JSON.parse(String(init.body))).toEqual({ action: 'my-campus-code' });
   });
 
+  it('passes the server\'s reason through when a campus exists but no code is minted, and provisions nothing', async () => {
+    // A self-assigned campus (the pastor picked it on /staff) awaits Ashley's confirmation.
+    vi.stubGlobal('fetch', answer({ campusId: 'us-alpharetta', code: null, reason: 'campus_not_confirmed' }));
+    expect(await fetchMyCampusCode()).toStrictEqual({ campusId: 'us-alpharetta', code: null, reason: 'campus_not_confirmed' });
+    expect(await provisionPastorCode(CAMPUS_STAFF, { force: true })).toBe(false);
+    expect(getPastorCode()).toBe('');
+    expect(localStorage.getItem('dw_pastor_code_src')).toBeNull();
+    expect(localStorage.getItem('dw_pastor_code_campus')).toBeNull();
+    // No reason from the server → the key is absent, not undefined.
+    vi.stubGlobal('fetch', answer({ campusId: 'us-alpharetta', code: 'abcd1234' }));
+    expect(await fetchMyCampusCode()).toStrictEqual({ campusId: 'us-alpharetta', code: 'ABCD1234' });
+  });
+
   it('sign-in stores the roster code, marks it provisioned, and announces it', async () => {
     vi.stubGlobal('fetch', answer({ campusId: 'us-alpharetta', code: 'abcd1234' }));
     const heard = vi.fn();

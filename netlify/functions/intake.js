@@ -411,6 +411,42 @@ exports.handler = async (event) => {
       return json(event, 200, { staff: publicStaff(staff), pendingCount });
     }
 
+    // ── change_password ── Self-service: prove the current password, choose a new
+    // one. Every OTHER session for this email is revoked (a token taken from a
+    // lost device dies with the old password); the session making the change is
+    // kept, so the app / portal doing it stays signed in.
+    if (action === "change_password") {
+      if (await isSharedRateLimited("change_password", ip, 5)) {
+        return json(event, 429, { error: "Too many attempts. Try again later." });
+      }
+      const currentPassword = String(body.currentPassword || "");
+      const newPassword = String(body.newPassword || "");
+      const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", staff.email).maybeSingle();
+      if (!row || !row.password_hash) return json(event, 400, { error: "No password set yet." });
+      if (!verifyPassword(currentPassword, row.password_hash)) {
+        return json(event, 403, { error: "Current password is incorrect." });
+      }
+      const issue = passwordIssue(newPassword, staff.email);
+      if (issue) return json(event, 400, { error: issue });
+      if (newPassword === currentPassword) {
+        return json(event, 400, { error: "Choose a different password from the current one." });
+      }
+      const { error } = await db().from("staff_roster").update({
+        password_hash: hashPassword(newPassword),
+        updated_at: new Date().toISOString()
+      }).eq("email", staff.email);
+      if (error) throw error;
+      // Same token extraction as logout: keep this request's session, drop the rest.
+      const auth = event.headers.authorization || event.headers.Authorization || "";
+      const raw = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+      let revoke = db().from("staff_sessions").delete().eq("email", staff.email);
+      if (raw) revoke = revoke.neq("token_hash", hashToken(raw));
+      const { error: revokeErr } = await revoke;
+      // The password is already changed at this point — report, don't fail the call.
+      if (revokeErr) console.error("intake change_password: revoking other sessions failed", revokeErr);
+      return json(event, 200, { ok: true });
+    }
+
     if (action === "form") {
       const { data: questions, error } = await db()
         .from("intake_questions")
@@ -487,8 +523,13 @@ exports.handler = async (event) => {
           return json(event, 403, { error: "You can only update your own campus" });
         }
         if (!staff.campusId) {
+          // Self-assigned: the pastor picked it, Ashley has not confirmed it. A
+          // 'self' campus mints NO campus code (pastor-admin my-campus-code)
+          // until roster_save writes it as 'admin'. Needs migration
+          // 20260902_staff_campus_set_by applied first (column).
           await db().from("staff_roster").update({
             campus_id: campusId,
+            campus_set_by: "self",
             updated_at: new Date().toISOString()
           }).eq("email", staff.email);
           staff.campusId = campusId;
@@ -691,6 +732,9 @@ exports.handler = async (event) => {
         email,
         role,
         campus_id,
+        // Admin-confirmed (Ashley, 2 Sep 2026): the only kind of campus that mints
+        // a campus code. Goes with the campus when it is cleared.
+        campus_set_by: campus_id ? "admin" : null,
         display_name: sanitize(body.name || (named && named.name) || "", 80),
         updated_at: new Date().toISOString()
       }, { onConflict: "email" }).select("email, role, campus_id, display_name").single();

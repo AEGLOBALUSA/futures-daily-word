@@ -4,6 +4,7 @@ import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { t, getLang } from '../utils/i18n';
 import { API_BASE } from '../utils/api-base';
 import { useModalA11y } from '../utils/useModalA11y';
+import { fetchLexiconEntry } from '../utils/study';
 
 interface StrongsEntry {
   word: string;
@@ -22,19 +23,37 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
 
   useEffect(() => {
     if (!activePopupWord) { setEntry(null); return; }
+    let alive = true;
     setLoading(true);
     setExpanded(false);
-    fetch(`${API_BASE}/.netlify/functions/strongs?num=${encodeURIComponent(activePopupWord.strongsNum)}&testament=${activePopupWord.testament}`)
-      .then(r => r.json())
-      .then(d => setEntry(d))
-      .catch(() => setEntry({
-        word: activePopupWord.word,
-        transliteration: '',
-        definition: t('definition_unavailable', getLang()),
-        fullDefinition: '',
-        usage: '',
-      }))
-      .finally(() => setLoading(false));
+    const unavailable = (): StrongsEntry => ({
+      word: activePopupWord.word,
+      transliteration: '',
+      definition: t('definition_unavailable', getLang()),
+      fullDefinition: '',
+      usage: '',
+    });
+    // The study layer (STEPBible lexicons, CC BY) answers first; the old
+    // strongs.js inline set + Open Scriptures fallback covers a number the
+    // layer has not loaded yet.
+    fetchLexiconEntry(activePopupWord.strongsNum)
+      .then(lex => {
+        if (lex && lex.lemma) {
+          return {
+            word: lex.lemma,
+            transliteration: lex.translit || '',
+            definition: lex.gloss || lex.definition || '',
+            fullDefinition: lex.definition && lex.definition !== lex.gloss ? lex.definition : '',
+            usage: lex.usage || '',
+          } as StrongsEntry;
+        }
+        return fetch(`${API_BASE}/.netlify/functions/strongs?num=${encodeURIComponent(activePopupWord.strongsNum)}&testament=${activePopupWord.testament}`)
+          .then(r => r.json()) as Promise<StrongsEntry>;
+      })
+      .then(d => { if (alive) setEntry(d && d.word ? d : unavailable()); })
+      .catch(() => { if (alive) setEntry(unavailable()); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
   }, [activePopupWord]);
 
   // Dialog semantics: focus in, Tab trap, Escape → close, focus restore.

@@ -17,6 +17,7 @@ import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
 import { PWAInstallSettingsBlock } from '../components/PWAInstall';
 import { PastorSignIn } from '../components/PastorSignIn';
+import { StudySourcesCard } from '../components/StudySourcesCard';
 import { getPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
 
 import {
@@ -982,6 +983,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             </div>
           </Card>
         </div>
+
+        {/* ── STUDY SOURCES (pastor_leader only) ── */}
+        {setup?.persona === 'pastor_leader' && <StudySourcesCard lang={lang} />}
 
         {/* ── REPORT A BUG ── */}
         <div style={{ marginBottom: 24 }}>

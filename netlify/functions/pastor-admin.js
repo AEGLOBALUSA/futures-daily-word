@@ -98,15 +98,28 @@ exports.handler = async (event) => {
         return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Sign in required" }) };
       }
       const email = String(session.email || "").trim().toLowerCase();
-      const { data: roster } = await getSupabase()
-        .from("staff_roster").select("campus_id").eq("email", email).maybeSingle();
+      // Migration 20260902_staff_campus_set_by is applied (2 Sep 2026). Any
+      // error here is a real failure and answers 500 — never a dropped gate.
+      const rosterRes = await getSupabase()
+        .from("staff_roster").select("campus_id, campus_set_by").eq("email", email).maybeSingle();
+      if (rosterRes.error) throw rosterRes.error;
+      const roster = rosterRes.data;
       const rosterCampus = roster && typeof roster.campus_id === "string" ? roster.campus_id : "";
       const campusId = isCampusId(rosterCampus) ? rosterCampus : null;
-      const code = campusId ? generateCode(campusId) : null;
+      // Only an ADMIN-confirmed campus mints a code (Ashley, 2 Sep 2026).
+      // campus_set_by is 'admin' (Ashley, /staff → People → roster_save) or
+      // 'self' (the pastor's own first /staff submission). The migration's
+      // backfill stamped every earlier assignment 'admin'; a null is only a
+      // row written by a path that predates the column, treated as 'admin'.
+      const setBy = roster && roster.campus_set_by ? String(roster.campus_set_by) : "admin";
+      const confirmed = setBy === "admin";
+      const code = campusId && confirmed ? generateCode(campusId) : null;
+      const reason = campusId && !confirmed ? "campus_not_confirmed" : null;
       // Audit line: a roster campus can be self-assigned on a pastor's first
-      // /staff submission, so every mint is visible in the function log.
-      console.log("[pastor-admin] my-campus-code", email, campusId || "(no campus)", code ? "minted" : "none");
-      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ campusId, code }) };
+      // /staff submission, so every mint (and every refusal) is in the function log.
+      console.log("[pastor-admin] my-campus-code", email, campusId || "(no campus)", code ? "minted" : "none", reason || `set_by=${setBy}`);
+      const payload = reason ? { campusId, code, reason } : { campusId, code };
+      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(payload) };
     } catch (err) {
       console.error("[pastor-admin] my-campus-code failed:", err && err.message);
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "Server error" }) };

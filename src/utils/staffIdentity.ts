@@ -225,8 +225,11 @@ export function setHandTypedPastorCode(code: string): void {
 /** The signed-in pastor's own campus code from the server (roster-derived, the
  *  client names no campus). null = no session, rejected token, or no network.
  *  `{ code: null }` = the server answered and this person has no campus code
- *  (admin / hub staff without a roster campus). */
-export async function fetchMyCampusCode(): Promise<{ campusId: string | null; code: string | null } | null> {
+ *  (admin / hub staff without a roster campus). `reason` says why when there
+ *  IS a campus but no code: 'campus_not_confirmed' = the pastor assigned the
+ *  campus themselves on /staff and Ashley has not confirmed it yet (only an
+ *  admin-set campus mints a code — 2 Sep 2026). */
+export async function fetchMyCampusCode(): Promise<{ campusId: string | null; code: string | null; reason?: string } | null> {
   const token = getStaffToken();
   if (!token) return null;
   // Bounded: the sign-in card awaits this, and a hung socket must not hold it
@@ -241,10 +244,15 @@ export async function fetchMyCampusCode(): Promise<{ campusId: string | null; co
       ...(controller ? { signal: controller.signal } : {}),
     });
     if (!res.ok) return null;
-    const data = await res.json().catch(() => null) as { campusId?: string | null; code?: string | null } | null;
+    const data = await res.json().catch(() => null) as { campusId?: string | null; code?: string | null; reason?: string | null } | null;
     if (!data) return null;
     const code = typeof data.code === 'string' && data.code.trim() ? data.code.trim().toUpperCase() : null;
-    return { campusId: typeof data.campusId === 'string' && data.campusId ? data.campusId : null, code };
+    const reason = typeof data.reason === 'string' && data.reason.trim() ? data.reason.trim() : undefined;
+    return {
+      campusId: typeof data.campusId === 'string' && data.campusId ? data.campusId : null,
+      code,
+      ...(reason ? { reason } : {}),
+    };
   } catch {
     return null;
   } finally {

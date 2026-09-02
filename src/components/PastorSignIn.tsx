@@ -3,7 +3,8 @@
  * work email and the same password as /staff, and the app becomes their named
  * pastor account: pastor_leader persona, profile name + email from the roster,
  * staff token kept so re-opens skip the login. Password only — no magic links,
- * no OAuth. Backend is netlify/functions/intake.js, unchanged.
+ * no OAuth. Backend is netlify/functions/intake.js (auth_status / set_password /
+ * login / me / logout, plus change_password for the signed-in card's disclosure).
  */
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
@@ -58,6 +59,11 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // "Change password" disclosure in the signed-in card. `password` / `confirm`
+  // above double as the new password and its confirmation.
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwDone, setPwDone] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const viewRef = useRef<View>('loading');
   viewRef.current = view;
 
@@ -90,6 +96,9 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
       if (!isAppStaffSignedIn()) {
         if (viewRef.current === 'signed_in' || viewRef.current === 'loading') {
           setStaff(null);
+          setPwOpen(false);
+          setPwDone(false);
+          setCurrentPassword('');
           setView('closed');
         }
         return;
@@ -118,6 +127,9 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     setStaff(data.staff);
     setPassword('');
     setConfirm('');
+    setCurrentPassword('');
+    setPwOpen(false);
+    setPwDone(false);
     setError('');
     setView('signed_in');
   };
@@ -170,6 +182,9 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     setEmail('');
     setPassword('');
     setConfirm('');
+    setCurrentPassword('');
+    setPwOpen(false);
+    setPwDone(false);
     setError('');
     setView('closed');
     setBusy(false);
@@ -181,6 +196,41 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     setConfirm('');
     setError('');
     setView('closed');
+  };
+
+  const openChangePassword = () => {
+    setPwDone(false);
+    setCurrentPassword('');
+    setPassword('');
+    setConfirm('');
+    setError('');
+    setPwOpen(true);
+  };
+
+  const closeChangePassword = () => {
+    setCurrentPassword('');
+    setPassword('');
+    setConfirm('');
+    setError('');
+    setPwOpen(false);
+  };
+
+  const submitChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    setError('');
+    if (password !== confirm) { setError(t('pastor_passwords_mismatch', lang)); return; }
+    if (password === currentPassword) { setError(t('pastor_password_same', lang)); return; }
+    setBusy(true);
+    try {
+      // The server keeps THIS session and revokes every other one for the email.
+      await intake('change_password', { currentPassword, newPassword: password });
+      closeChangePassword();
+      setPwDone(true);
+    } catch (err) {
+      setError(messageFor(err, lang));
+    }
+    setBusy(false);
   };
 
   return (
@@ -316,6 +366,70 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
               <LogOut size={14} />
               {busy ? t('pastor_please_wait', lang) : t('pastor_sign_out', lang)}
             </button>
+            {!pwOpen && (
+              <button
+                id="dw-pastor-change-password"
+                type="button"
+                onClick={openChangePassword}
+                disabled={busy}
+                style={{ ...linkBtnStyle, display: 'block', width: '100%', padding: '12px 0 2px', textAlign: 'center', opacity: busy ? 0.6 : 1 }}
+              >
+                {t('pastor_change_password', lang)}
+              </button>
+            )}
+            {pwDone && !pwOpen && (
+              <p id="dw-pastor-password-changed" style={{ ...hintStyle, marginTop: 8, textAlign: 'center' }}>
+                {t('pastor_password_changed', lang)}
+              </p>
+            )}
+            {pwOpen && (
+              <form onSubmit={submitChangePassword} style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--dw-border)' }}>
+                <label htmlFor="dw-pastor-current" style={labelStyle}>{t('pastor_current_password', lang)}</label>
+                <input
+                  id="dw-pastor-current"
+                  type="password"
+                  autoComplete="current-password"
+                  autoFocus
+                  required
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  style={inputStyle}
+                />
+                <label htmlFor="dw-pastor-new" style={{ ...labelStyle, marginTop: 10 }}>{t('pastor_new_password', lang)}</label>
+                <input
+                  id="dw-pastor-new"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={10}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={inputStyle}
+                />
+                <label htmlFor="dw-pastor-new-confirm" style={{ ...labelStyle, marginTop: 10 }}>{t('pastor_confirm_password', lang)}</label>
+                <input
+                  id="dw-pastor-new-confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={10}
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  style={inputStyle}
+                />
+                {error && <p style={errorStyle}>{error}</p>}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button type="button" onClick={closeChangePassword} disabled={busy} style={btnGhost}>{t('pastor_cancel', lang)}</button>
+                  <button
+                    type="submit"
+                    disabled={busy || !currentPassword || !password}
+                    style={{ ...btnPrimary, flex: 1, opacity: busy || !currentPassword || !password ? 0.6 : 1 }}
+                  >
+                    {busy ? t('pastor_please_wait', lang) : t('pastor_change_password', lang)}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
       </Card>

@@ -266,6 +266,90 @@ describe('PastorSignIn', () => {
     expect(el.textContent).not.toContain('Signed in as');
   });
 
+  // The change-password strings are not in i18n.ts yet (t() returns the raw key),
+  // so these assert on element ids and on existing keys' English, never on new English.
+  it('signed in: change password — mismatch and same-as-current caught locally, then the server is called and the form collapses', async () => {
+    api.token = TOKEN;
+    setAppStaffSignIn(true);
+    user.profile = { email: 'ae@futures.global', firstName: 'Ashley', lastName: 'Evans', phone: '', church: '', city: '', campus: '' };
+    user.setup = { persona: 'pastor_leader', source: 'settings' };
+    api.intake.mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: ASHLEY, pendingCount: 0 };
+      if (action === 'change_password') return { ok: true };
+      return {};
+    });
+    const el = mount(<PastorSignIn lang="en" />);
+    await flush();
+    expect(el.textContent).toContain('Signed in as Ashley Evans');
+    expect(el.querySelector('form')).toBeNull(); // disclosure closed
+    expect(el.querySelector('#dw-pastor-password-changed')).toBeNull();
+
+    await click(el.querySelector('#dw-pastor-change-password') as HTMLButtonElement);
+    const current = el.querySelector('#dw-pastor-current') as HTMLInputElement;
+    const next = el.querySelector('#dw-pastor-new') as HTMLInputElement;
+    const confirm = el.querySelector('#dw-pastor-new-confirm') as HTMLInputElement;
+    expect(current.autocomplete).toBe('current-password');
+    expect(next.autocomplete).toBe('new-password');
+    expect(next.minLength).toBe(10);
+    expect(confirm.minLength).toBe(10);
+    expect(el.querySelector('#dw-pastor-change-password')).toBeNull(); // the link folds into the form
+
+    type(current, 'correct horse battery');
+    type(next, 'staple horse battery');
+    type(confirm, 'staple horse batteryX');
+    await submit(el.querySelector('form')!);
+    expect(el.textContent).toContain('Passwords do not match');
+    expect(api.intake).not.toHaveBeenCalledWith('change_password', expect.anything());
+
+    type(next, 'correct horse battery');
+    type(confirm, 'correct horse battery');
+    await submit(el.querySelector('form')!);
+    expect(el.textContent).toMatch(/pastor_password_same|different password/);
+    expect(api.intake).not.toHaveBeenCalledWith('change_password', expect.anything());
+
+    type(next, 'staple horse battery');
+    type(confirm, 'staple horse battery');
+    await submit(el.querySelector('form')!);
+    expect(api.intake).toHaveBeenCalledWith('change_password', { currentPassword: 'correct horse battery', newPassword: 'staple horse battery' });
+    expect(el.querySelector('form')).toBeNull(); // collapsed
+    expect(el.querySelector('#dw-pastor-password-changed')).toBeTruthy(); // the one-line confirmation
+    expect(el.querySelector('#dw-pastor-change-password')).toBeTruthy(); // can do it again
+    expect(el.textContent).toContain('Signed in as Ashley Evans'); // this session is kept
+    expect(api.setStaffToken).not.toHaveBeenCalled();
+    expect(user.saveSetup).not.toHaveBeenCalled();
+    expect(user.saveProfile).not.toHaveBeenCalled();
+  });
+
+  it('change password: the server\'s error shows inline, the form stays open, Cancel closes it', async () => {
+    api.token = TOKEN;
+    setAppStaffSignIn(true);
+    user.profile = { email: 'ae@futures.global', firstName: 'Ashley', lastName: 'Evans', phone: '', church: '', city: '', campus: '' };
+    user.setup = { persona: 'pastor_leader', source: 'settings' };
+    api.intake.mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: ASHLEY, pendingCount: 0 };
+      if (action === 'change_password') {
+        throw Object.assign(new Error('Current password is incorrect.'), { status: 403, data: { error: 'Current password is incorrect.' } });
+      }
+      return {};
+    });
+    const el = mount(<PastorSignIn lang="en" />);
+    await flush();
+    await click(el.querySelector('#dw-pastor-change-password') as HTMLButtonElement);
+    type(el.querySelector('#dw-pastor-current') as HTMLInputElement, 'wrong wrong wrong');
+    type(el.querySelector('#dw-pastor-new') as HTMLInputElement, 'staple horse battery');
+    type(el.querySelector('#dw-pastor-new-confirm') as HTMLInputElement, 'staple horse battery');
+    await submit(el.querySelector('form')!);
+    expect(api.intake).toHaveBeenCalledWith('change_password', { currentPassword: 'wrong wrong wrong', newPassword: 'staple horse battery' });
+    expect(el.textContent).toContain('Current password is incorrect.');
+    expect(el.querySelector('#dw-pastor-current')).toBeTruthy();
+    expect(el.querySelector('#dw-pastor-password-changed')).toBeNull();
+
+    await click(buttonNamed(el, /Cancel/));
+    expect(el.querySelector('form')).toBeNull();
+    expect(el.textContent).not.toContain('Current password is incorrect.');
+    expect(el.textContent).toContain('Signed in as Ashley Evans');
+  });
+
   it('follows a sign-out made elsewhere (the Home chip) while mounted', async () => {
     api.token = TOKEN;
     setAppStaffSignIn(true);
