@@ -4,10 +4,12 @@
  * put updates on the campus corner. Save publishes. Ashley owns people,
  * not a review step. Form prompts live in the database — change them in SQL.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { CAMPUSES } from '../data/tokens';
 import { getStaffToken, intake, setStaffToken } from './api';
+import { localApiBase } from '../utils/api-base';
+import { youtubeLinkProblem } from './youtubeLink';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
@@ -117,6 +119,11 @@ function emptyAnswer(q: Question): unknown {
   if (q.type === 'corner_remove') return '';
   if (q.type === 'yes_no') return q.config?.default === true ? true : '';
   return '';
+}
+
+/** Where the congregation reads this week's notes. */
+function congregationPageUrl(): string {
+  try { return `${window.location.origin}/?sermon=1`; } catch { return '/?sermon=1'; }
 }
 
 export function StaffApp() {
@@ -418,6 +425,17 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const [done, setDone] = useState(false);
   const [preview, setPreview] = useState<FormattedSermon | null>(null);
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
+  // The shell shows errors at the top of the page; the save button sits at the
+  // bottom of a long form, so the same message is repeated next to the button
+  // and scrolled into view — a refused save must never look like nothing happened.
+  const [formError, setFormError] = useState('');
+  const [live, setLive] = useState<{ title: string; verified: boolean } | null>(null);
+  const errorRef = useRef<HTMLParagraphElement | null>(null);
+  const fail = (msg: string) => {
+    onError(msg);
+    setFormError(msg);
+    setTimeout(() => { errorRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 0);
+  };
 
   const load = useCallback(async (campusId?: string) => {
     onError('');
@@ -462,12 +480,24 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
 
   const setAnswer = (id: string, v: unknown) => {
     setAnswers(a => ({ ...a, [id]: v }));
-    setPreview(null);
+    // Only the notes themselves (or the AI choice) invalidate the formatted
+    // preview. Fixing the title, date, speaker or link keeps it — the server
+    // applies those answers over the preview on save — so the preview never
+    // silently vanishes after a small correction.
+    const q = questions.find(x => x.id === id);
+    if (!q || isFlowQuestion(q)) setPreview(null);
     setDone(false);
+    setLive(null);
+    setFormError('');
   };
 
+  const wantsAI = !!aiQ && answers[aiQ.id] === true;
+  const youtubeQ = questions.find(q => q.config?.sermonKey === 'youtubeUrl' && (q.audience === job || q.audience === 'all'));
+  const youtubeProblem = youtubeQ ? youtubeLinkProblem(answers[youtubeQ.id]) : '';
+
   const runPreview = async (override?: Record<string, unknown>) => {
-    setBusy(true); onError('');
+    if (youtubeProblem) { fail(youtubeProblem); return; }
+    setBusy(true); onError(''); setFormError('');
     try {
       const data = await intake<{ preview: FormattedSermon | null; source?: string }>('format_preview', {
         answers: override || answers,
@@ -475,9 +505,9 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         job,
       });
       setPreview(data.preview);
-      if (!data.preview) onError('Nothing to format yet — paste your notes first.');
+      if (!data.preview) fail('Nothing to format yet — paste your notes first.');
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Could not preview');
+      fail(err instanceof Error ? err.message : 'Could not preview');
     }
     setBusy(false);
   };
@@ -485,16 +515,21 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (haveQ && answers[haveQ.id] !== true && answers[haveQ.id] !== false) {
-      onError('Do you have your notes?');
+      fail('Do you have your notes?');
       return;
     }
     if (haveNotes && pasteQ && !paste.trim() && job === 'hub') {
-      onError('Paste your notes.');
+      fail('Paste your notes.');
       return;
     }
-    setBusy(true); onError(''); setDone(false);
+    if (youtubeProblem) { fail(youtubeProblem); return; }
+    setBusy(true); onError(''); setFormError(''); setDone(false); setLive(null);
     try {
-      const data = await intake<{ preview?: FormattedSermon | null; published?: boolean }>('submit', {
+      const data = await intake<{
+        preview?: FormattedSermon | null;
+        published?: boolean;
+        publish_result?: { sermon?: { id?: string; title?: string } | null; cornerAdded?: number };
+      }>('submit', {
         answers,
         campusId: pickCampus || staff.campusId,
         job,
@@ -502,9 +537,24 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       });
       if (data.preview) setPreview(data.preview);
       setDone(true);
+      const published = data.publish_result?.sermon;
+      if (sermonForm) {
+        if (!published?.id) {
+          fail('Saved, but nothing reached the congregation page — there were no notes or title to publish.');
+        } else {
+          // Read it back the way the congregation does, so "It's on the page" is a fact, not a hope.
+          let verified = false;
+          try {
+            const r = await fetch(`${localApiBase()}/api/published-sermon`, { cache: 'no-store' });
+            const j = r.ok ? await r.json() : null;
+            verified = !!(j && j.sermon && j.sermon.id === published.id);
+          } catch { /* verified stays false */ }
+          setLive({ title: published.title || data.preview?.title || '', verified });
+        }
+      }
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Could not submit');
+      fail(err instanceof Error ? err.message : 'Could not submit');
     }
     setBusy(false);
   };
@@ -543,6 +593,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
             label: withStep(i + 1, q.label),
             help: job === 'hub' && q.config?.sermonKey === 'youtubeUrl' ? 'You can add this after Sunday.' : q.help,
           } : q}
+          problem={q.config?.sermonKey === 'youtubeUrl' ? youtubeProblem : ''}
           value={answers[q.id]}
           campusLocked={campusLocked}
           lockedCampus={staff.campusId}
@@ -584,13 +635,36 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         <p style={helpStyle}>No questions on this form yet.</p>
       )}
 
+      {sermonForm && preview && wantsAI && (
+        <p style={{ ...helpStyle, marginBottom: 12 }}>
+          The preview above is not live yet. The button below puts it on the congregation page.
+        </p>
+      )}
+      {formError && (
+        <p ref={errorRef} role="alert" style={{ color: '#B42318', fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '0 0 12px' }}>
+          {formError}
+        </p>
+      )}
       <button type="submit" disabled={busy || questions.length === 0} style={{ ...btnPrimary, marginTop: 8 }}>
         {busy ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
       </button>
-      {done && (
-        <p style={{ marginTop: 12, color: 'var(--dw-info)', fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-          {job === 'campus' ? 'It’s on the campus corner.' : 'It’s on the congregation page.'}
-        </p>
+      {done && !formError && (
+        <div style={{ marginTop: 12, fontFamily: 'var(--font-sans)' }}>
+          <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 14, fontWeight: 600 }}>
+            {job === 'campus'
+              ? 'It’s on the campus corner.'
+              : live?.verified
+                ? `It’s on the congregation page: ${live.title}`
+                : live
+                  ? `Saved as “${live.title}”. The congregation page has not shown it yet — open it and pull to refresh.`
+                  : 'Saved.'}
+          </p>
+          {job !== 'campus' && (
+            <a href={congregationPageUrl()} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 14, color: 'var(--dw-accent)', fontWeight: 600 }}>
+              Open the congregation page →
+            </a>
+          )}
+        </div>
       )}
 
       {mine.length > 0 && (
@@ -715,7 +789,7 @@ function SermonPreview({ sermon }: { sermon: FormattedSermon }) {
 }
 
 function QuestionField({
-  q, value, onChange, campusLocked, lockedCampus, cornerItems, sermons, require,
+  q, value, onChange, campusLocked, lockedCampus, cornerItems, sermons, require, problem,
 }: {
   q: Question;
   value: unknown;
@@ -725,6 +799,8 @@ function QuestionField({
   cornerItems: CornerItem[];
   sermons?: SermonChoice[];
   require?: boolean;
+  /** Inline validation message shown under the field (e.g. a bad YouTube link). */
+  problem?: string;
 }) {
   const required = require ?? q.required;
   if (q.type === 'campus') {
@@ -793,8 +869,12 @@ function QuestionField({
           value={String(value || '')}
           onChange={e => onChange(e.target.value)}
           rows={q.type === 'long_text' ? 5 : undefined}
-          style={{ ...inputStyle, minHeight: q.type === 'long_text' ? 120 : undefined, resize: 'vertical' as const }}
+          aria-invalid={problem ? true : undefined}
+          style={{ ...inputStyle, minHeight: q.type === 'long_text' ? 120 : undefined, resize: 'vertical' as const, ...(problem ? { borderColor: '#B42318' } : {}) }}
         />
+        {problem && (
+          <p style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>{problem}</p>
+        )}
       </Field>
     );
   }

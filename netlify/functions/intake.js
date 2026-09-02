@@ -543,7 +543,20 @@ exports.handler = async (event) => {
         if (wantAI && body.formatted_sermon && typeof body.formatted_sermon === "object") {
           const row = await findPublished(plan.sermonPatch.target);
           const base = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
-          formatted_sermon = sanitizeAiSermon(body.formatted_sermon, {
+          // The preview was made from the notes; the pastor may have fixed the
+          // title, date, speaker, series or YouTube link since. The form's
+          // answers win over what the preview carried, so an edit after
+          // "Make another" never publishes stale metadata.
+          const patch = plan.sermonPatch;
+          const fromForm = {
+            ...body.formatted_sermon,
+            ...(patch.title ? { title: patch.title } : {}),
+            ...(patch.speaker ? { speaker: patch.speaker } : {}),
+            ...(patch.date ? { date: patch.date } : {}),
+            ...(patch.series ? { series: patch.series } : {}),
+            ...(patch.youtubeUrl ? { youtubeUrl: patch.youtubeUrl } : {})
+          };
+          formatted_sermon = sanitizeAiSermon(fromForm, {
             title: plan.sermonPatch.title || "",
             speaker: plan.sermonPatch.speaker || "",
             date: plan.sermonPatch.date || "",
