@@ -15,6 +15,7 @@ function hashText(text) {
 }
 
 const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { isSharedRateLimited } = require('./lib/rate-limit');
 
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -38,13 +39,19 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers: corsHeaders, body: 'Method not allowed' };
   }
 
-  // Origin check
+  // Origin check — browsers always send Origin on POST, so "no Origin and no
+  // Referer" is not our app; no bypass for it on a paid TTS endpoint.
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
   const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
-  const isNoOrigin = !origin && !referer;
-  if (!isAllowedOrigin && !isSameOrigin && !isNoOrigin) {
+  if (!isAllowedOrigin && !isSameOrigin) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
+  }
+
+  // Shared (cross-instance) rate limit — Polly bills per character
+  const clientIP = event.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
+  if (await isSharedRateLimited('polly-tts', clientIP, 20)) {
+    return { statusCode: 429, headers: corsHeaders, body: JSON.stringify({ error: 'Too many requests. Please slow down.' }) };
   }
 
   const accessKey = process.env.AWS_POLLY_ACCESS_KEY;
@@ -179,11 +186,12 @@ exports.handler = async (event) => {
       isBase64Encoded: true
     };
   } catch (err) {
+    // err.message can surface AWS SDK internals — log it, never return it
     console.error('Polly TTS error:', err);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Polly TTS error', message: err.message })
+      body: JSON.stringify({ error: 'Polly TTS error' })
     };
   }
 };

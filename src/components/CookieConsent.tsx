@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t, getLang } from '../utils/i18n';
 
 /**
  * Cookie consent banner. Shows once until the user accepts or declines.
@@ -37,7 +38,7 @@ export function CookieConsent() {
   return (
     <div
       role="dialog"
-      aria-label="Cookie consent"
+      aria-label={t('cookie_consent_label', getLang())}
       style={{
         position: 'fixed',
         bottom: 72, // above tab bar

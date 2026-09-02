@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { X, Check, ChevronRight } from 'lucide-react';
 import { PLAN_CATALOGUE } from '../data/plans';
-import { getLang, tField } from '../utils/i18n';
+import { t, getLang, tField } from '../utils/i18n';
+import { useModalA11y } from '../utils/useModalA11y';
+import { isNewChristianPersona } from '../utils/persona-config';
+import { ensureGraceSeriesEnrolled, GRACE_SERIES_TITLE, GRACE_SERIES_TOTAL_DAYS } from '../utils/coldStart';
 
 interface Props {
   onComplete: (chaptersPerDay: number, planIds: string[]) => void;
@@ -20,28 +23,28 @@ const DEFAULT_FEATURED = [
 
 // Persona-specific plans surfaced at the top (V7 + legacy)
 const PERSONA_PLANS: Record<string, string[]> = {
-  new_to_faith: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
+  new_to_faith: [],
   congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
   deeper_study: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
   pastor_leader: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
   comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
-  new_returning: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'fresh-start', 'prayer-life', 'identity-christ'],
+  new_returning: [],
   pastor: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
   deeper: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
   difficult: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
 };
 
-// Persona-friendly header label
+// Persona-friendly header label — i18n keys (translated in all four languages)
 const PERSONA_LABELS: Record<string, string> = {
-  new_to_faith: 'Plans for your faith journey',
-  congregation: 'Plans for your daily walk',
-  deeper_study: 'Plans for going deeper',
-  pastor_leader: 'Plans for ministry & leadership',
-  comfort: 'Plans for your current season',
-  new_returning: 'Plans for your faith journey',
-  pastor: 'Plans for ministry & leadership',
-  deeper: 'Plans for going deeper',
-  difficult: 'Plans for your current season',
+  new_to_faith: 'plans_for_faith_journey',
+  congregation: 'plans_for_daily_walk',
+  deeper_study: 'plans_for_deeper',
+  pastor_leader: 'plans_for_ministry',
+  comfort: 'plans_for_season',
+  new_returning: 'plans_for_faith_journey',
+  pastor: 'plans_for_ministry',
+  deeper: 'plans_for_deeper',
+  difficult: 'plans_for_season',
 };
 
 // Smart default reading volume by persona — set silently, adjustable later in Settings.
@@ -55,6 +58,8 @@ const PERSONA_CHAPTERS: Record<string, number> = {
 export function SetupPromptModal({ onComplete, onDismiss }: Props) {
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
   const lang = getLang();
+  // Dialog semantics: focus in, Tab trap, Escape → dismiss, focus restore.
+  const dialogRef = useModalA11y(true, onDismiss);
 
   const persona = (() => {
     try { return JSON.parse(localStorage.getItem('dw_setup') || '{}').persona || ''; } catch { return ''; }
@@ -63,10 +68,12 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
   // Reading volume is a smart default now, not an onboarding decision.
   const chapters = PERSONA_CHAPTERS[persona] ?? 2;
 
-  const featuredIds = PERSONA_PLANS[persona] || DEFAULT_FEATURED;
+  const isNewChristian = isNewChristianPersona(persona);
+  const featuredIds = isNewChristian ? [] : (PERSONA_PLANS[persona] || DEFAULT_FEATURED);
   const featuredPlans = featuredIds.map(id => PLAN_CATALOGUE.find(p => p.id === id)).filter(Boolean) as typeof PLAN_CATALOGUE;
-  const otherPlans = PLAN_CATALOGUE.filter(p => !featuredIds.includes(p.id));
-  const planLabel = PERSONA_LABELS[persona] || 'Pick a reading plan';
+  // Empty featuredIds would otherwise dump the whole catalog into "more plans".
+  const otherPlans = isNewChristian ? [] : PLAN_CATALOGUE.filter(p => !featuredIds.includes(p.id));
+  const planLabel = t(PERSONA_LABELS[persona] || 'pick_reading_plan', lang);
 
   const togglePlan = (id: string) => {
     setSelectedPlans(prev =>
@@ -75,6 +82,11 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
   };
 
   const handleDone = () => {
+    if (isNewChristian) {
+      ensureGraceSeriesEnrolled();
+      onComplete(chapters, []);
+      return;
+    }
     onComplete(chapters, selectedPlans);
   };
 
@@ -94,6 +106,10 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
     >
       {/* Sheet — stops backdrop click */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dw-setup-prompt-title"
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
@@ -116,32 +132,42 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
           }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', textTransform: 'uppercase' }}>
-              Start reading
+              {t('start_reading', lang)}
             </span>
             <button
               onClick={onDismiss}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}
-              aria-label="Close"
+              // padding 13 + margin -9 = 44px hit area, same 26px layout footprint
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 13, margin: -9, display: 'flex', alignItems: 'center' }}
+              aria-label={t('j_close', lang)}
             >
               <X size={18} />
             </button>
           </div>
-          <h2 style={{
+          <h2 id="dw-setup-prompt-title" style={{
             fontSize: 22, fontWeight: 700, color: 'var(--dw-text-primary)',
             fontFamily: 'var(--font-sans)', margin: '0 0 4px',
           }}>
             {planLabel}
           </h2>
           <p style={{ fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 20px' }}>
-            A plan keeps you on track. Pick one or skip for now.
+            {t('plan_keeps_track', lang)}
           </p>
         </div>
 
         {/* Scrollable content — plan picker */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+          {isNewChristian ? (
+            <div className="dw-plan-sd-card" style={{ marginBottom: 20 }}>
+              <p className="dw-plan-sd-days">
+                {t('plan_days', lang).replace('{n}', String(GRACE_SERIES_TOTAL_DAYS))}
+              </p>
+              <h3 className="dw-plan-sd-name">{GRACE_SERIES_TITLE}</h3>
+            </div>
+          ) : (
+          <>
           {/* Featured */}
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--dw-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
-            {persona ? 'Recommended for you' : 'Popular'}
+            {persona ? t('p_recommended', lang) : t('popular_label', lang)}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
             {featuredPlans.map(plan => {
@@ -177,7 +203,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                       {tField(plan, 'title', lang)}
                     </p>
                     <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
-                      {plan.totalDays} days · {plan.category}
+                      {plan.totalDays} {t('days', lang)} · {plan.category}
                     </p>
                   </div>
                 </button>
@@ -189,7 +215,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
           {otherPlans.length > 0 && (
             <>
               <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--dw-text-muted)', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
-                More Plans
+                {t('more_plans', lang)}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                 {otherPlans.map(plan => {
@@ -225,7 +251,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                           {tField(plan, 'title', lang)}
                         </p>
                         <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
-                          {plan.totalDays} days · {plan.category}
+                          {plan.totalDays} {t('days', lang)} · {plan.category}
                         </p>
                       </div>
                     </button>
@@ -233,6 +259,8 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
                 })}
               </div>
             </>
+          )}
+          </>
           )}
         </div>
 
@@ -247,7 +275,11 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
               color: '#fff', fontFamily: 'var(--font-sans)', minHeight: 50,
             }}
           >
-            {selectedPlans.length > 0 ? `Start ${selectedPlans.length} Plan${selectedPlans.length > 1 ? 's' : ''}` : 'Skip Plans'}
+            {isNewChristian
+              ? t('start_this_plan', lang)
+              : selectedPlans.length > 0
+              ? (selectedPlans.length === 1 ? t('start_plans_one', lang) : t('start_plans_many', lang).replace('{n}', String(selectedPlans.length)))
+              : t('skip_plans', lang)}
             <ChevronRight size={18} />
           </button>
           <button
@@ -258,7 +290,7 @@ export function SetupPromptModal({ onComplete, onDismiss }: Props) {
               fontFamily: 'var(--font-sans)', marginTop: 4,
             }}
           >
-            Maybe later
+            {t('maybe_later', lang)}
           </button>
         </div>
       </div>

@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
-import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2, Pause } from 'lucide-react';
+import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2, Pause, FolderPlus } from 'lucide-react';
 import { AudioWave } from './AudioWave';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import * as AP from '../utils/audioPlayer';
 import { t, getLang } from '../utils/i18n';
+import { addPrepItem, isPastorPersona } from '../utils/sermonPrep';
 
 interface HighlightToolbarProps {
   onOpenNotes: () => void;
@@ -15,6 +16,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
   const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
   const lang = getLang();
   const [copied, setCopied] = useState(false);
+  const [filed, setFiled] = useState(false);
   const [listening, setListening] = useState(false);
   const listenAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -26,6 +28,14 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* fallback */ }
+  };
+
+  // Pastor-only: file the selection into the sermon-prep bag (decision 5 —
+  // the 1-tap capture finally has somewhere to put things).
+  const handleFileToSermon = () => {
+    addPrepItem(selection.verseRefs[0] || '', selection.text);
+    setFiled(true);
+    setTimeout(() => setFiled(false), 2000);
   };
 
   const handleShare = () => {
@@ -126,13 +136,18 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
           copied ? <Check size={16} color="var(--dw-success)" /> : <Copy size={16} />,
           copied ? t('copied_toast', lang) : t('copy_label', lang)
         )}
-        {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? 'Pause' : 'Listen', listening)}
-        {btn(handleShare, <Share2 size={16} />, 'Share')}
-        {btn(onOpenNotes, <BookOpen size={16} />, 'Note')}
+        {btn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={14} /></> : <Volume2 size={16} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
+        {btn(handleShare, <Share2 size={16} />, t('j_share', lang))}
+        {btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
+        {isPastorPersona() && btn(
+          handleFileToSermon,
+          filed ? <Check size={16} color="var(--dw-success)" /> : <FolderPlus size={16} />,
+          filed ? t('filed_toast', lang) : t('file_to_sermon', lang)
+        )}
         {!basicMode && btn(
           () => setGreekHebrewMode(!greekHebrewMode),
           <Languages size={16} />,
-          greekHebrewMode ? 'Hide' : 'Gk/Heb',
+          greekHebrewMode ? t('hide_reading', lang) : t('gk_heb', lang),
           greekHebrewMode
         )}
 
@@ -172,12 +187,13 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false }:
           }}>{t('ask_ai_label', lang)}</span>
         </button>
 
-        <button aria-label="Close"
+        <button aria-label={t('j_close', lang)}
           onClick={handleDismiss}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '8px 10px', background: 'transparent',
             color: 'var(--dw-text-muted)', border: 'none', cursor: 'pointer',
+            minWidth: 44, // 44px hit area (row already stretches it to full height)
           }}
         >
           <X size={14} />

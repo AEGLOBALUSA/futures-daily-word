@@ -19,7 +19,9 @@
 
 const { createClient } = require("@supabase/supabase-js");
 
-const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
+const { authenticateRequest } = require('./lib/auth');
+const { isSharedRateLimited } = require('./lib/rate-limit');
 
 const PCO_BASE = "https://api.planningcenteronline.com/people/v2";
 
@@ -169,12 +171,18 @@ exports.handler = async (event) => {
   const headers = {
     "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Content-Type": "application/json"
   };
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
+
+  // Reject requests not from our app — this endpoint looks up third parties'
+  // PII (name + campus) by email, so it must not be curl-able from anywhere.
+  if (!isAllowedOrigin(origin)) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden" }) };
+  }
 
   try {
     const body = JSON.parse(event.body);
@@ -185,11 +193,22 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
     }
 
+    // Anti-enumeration: session-token holders pass freely; anonymous callers
+    // (the email gate fires exactly one call per submission) are capped at the
+    // same 5/min-per-IP budget the migration path uses.
+    const authedEmail = await authenticateRequest(event, getSupabase());
+    if (!authedEmail) {
+      const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+      if (await isSharedRateLimited("pco-sync", clientIP, 5)) {
+        return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
+      }
+    }
+
     // ── Lookup: search PCO for this email and return profile data ──
     if (action === "lookup") {
-      // Check if PCO credentials are configured
+      // Check if PCO credentials are configured — don't tell callers why
       if (!process.env.PCO_APP_ID || !process.env.PCO_SECRET) {
-        return { statusCode: 200, headers, body: JSON.stringify({ found: false, reason: "PCO not configured" }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ found: false }) };
       }
 
       const pcoProfile = await lookupByEmail(email);
@@ -216,12 +235,12 @@ exports.handler = async (event) => {
     // ── Sync: lookup from PCO and save/update in Supabase ──
     if (action === "sync") {
       if (!process.env.PCO_APP_ID || !process.env.PCO_SECRET) {
-        return { statusCode: 200, headers, body: JSON.stringify({ synced: false, reason: "PCO not configured" }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ synced: false }) };
       }
 
       const pcoProfile = await lookupByEmail(email);
       if (!pcoProfile) {
-        return { statusCode: 200, headers, body: JSON.stringify({ synced: false, reason: "Not found in PCO" }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ synced: false }) };
       }
 
       // Upsert into Supabase profiles
@@ -272,7 +291,8 @@ exports.handler = async (event) => {
 
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid action. Use 'lookup' or 'sync'" }) };
   } catch (err) {
+    // err.message can echo PCO's raw upstream response — log it, never return it
     console.error("PCO sync error:", err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Server error", detail: err.message }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Server error" }) };
   }
 };

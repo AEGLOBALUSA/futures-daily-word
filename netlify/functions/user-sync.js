@@ -79,12 +79,55 @@ function mergeJournals(cloudJournal, localJournal) {
     }
   }
 
+  // Prune expired deletion tombstones (ported from the client's mergeJournals so
+  // the two implementations can't diverge — without this a caller of 'merge' lets
+  // tombstones accumulate forever). NaN-safe: a tombstone with a missing or
+  // unparsable updatedAt is RETAINED (unknown age must never look "expired").
+  const kept = Array.from(map.values()).filter((e) => {
+    if (!e || !e.deleted) return true;
+    const t = e.updatedAt ? new Date(String(e.updatedAt)).getTime() : NaN;
+    return Number.isNaN(t) || (Date.now() - t) < TOMBSTONE_TTL_MS;
+  });
+
   // Sort newest first
-  return Array.from(map.values()).sort((a, b) => {
+  return kept.sort((a, b) => {
     const aTime = new Date(a.date || a.updatedAt || 0).getTime();
     const bTime = new Date(b.date || b.updatedAt || 0).getTime();
     return bTime - aTime;
   });
+}
+
+// Keep in step with TOMBSTONE_TTL_MS in src/utils/cloudSync.ts.
+const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
+
+/** JSONB fields protected by the empty-overwrite guard below. */
+const GUARDED_FIELDS = ["journal", "highlights", "streak", "active_plans", "book_plans", "reactions", "pathway_progress"];
+
+function isEmptyField(v) {
+  return v == null ||
+    (Array.isArray(v) ? v.length === 0 : (typeof v === "object" && Object.keys(v).length === 0));
+}
+
+/**
+ * Data-loss guard: never let an EMPTY field overwrite NON-EMPTY stored data —
+ * UNLESS the pushing client is provably up to date with the cloud. A fresh
+ * install / cleared device pushes [] / {} for everything (and has never pulled,
+ * so its lastSyncVersion is 0/absent): those empties are dropped. A client whose
+ * lastSyncVersion matches the stored row's sync_version (bumped by a DB trigger
+ * on every update) has SEEN the current cloud state, so its empty field is a
+ * real deletion — e.g. quitting the only active plan, or un-highlighting the
+ * last verse, which hard-delete rather than tombstone — and must stick.
+ * Genuinely new users have no stored row (existing == null), so their first
+ * backup passes through untouched.
+ */
+function dropEmptyOverwrites(cleaned, existing, clientSyncVersion) {
+  if (!existing) return;
+  if (clientSyncVersion && Number(clientSyncVersion) === existing.sync_version) return;
+  for (const f of GUARDED_FIELDS) {
+    if (f in cleaned && isEmptyField(cleaned[f]) && !isEmptyField(existing[f])) {
+      delete cleaned[f];
+    }
+  }
 }
 
 /**
@@ -203,6 +246,17 @@ exports.handler = async (event) => {
         .eq("email", email)
         .single();
 
+      // 404 ONLY for the PostgREST no-rows code. Any other error (pool exhaustion,
+      // timeout, outage) must be a 500: the client treats a 404 as "brand-new user"
+      // and seeds a first backup, which would overwrite the real backup.
+      if (error && error.code !== "PGRST116") {
+        console.error("Pull error:", error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: "Failed to load data" })
+        };
+      }
       if (error || !data) {
         return {
           statusCode: 404,
@@ -244,6 +298,61 @@ exports.handler = async (event) => {
       cleaned.email = email;
       cleaned.updated_at = new Date().toISOString();
 
+      // Pre-read the stored row for the empty-overwrite guard + misc handling.
+      // maybeSingle: no row (genuinely new user) is NOT an error.
+      const { data: existing, error: readErr } = await db
+        .from("user_data")
+        .select("journal, highlights, streak, active_plans, book_plans, reactions, pathway_progress, misc, sync_version")
+        .eq("email", email)
+        .maybeSingle();
+      if (readErr) {
+        // Can't verify what we'd overwrite — refuse rather than risk clobbering
+        // the only backup with a fresh device's empty state.
+        console.error("Push pre-read error:", readErr);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: "Failed to save data" })
+        };
+      }
+
+      dropEmptyOverwrites(cleaned, existing, body.lastSyncVersion);
+
+      // Misc bag (sermon fill-ins, "my season" story, reading cadence, prayed-for set,
+      // book-today pointers). Folded into the SAME upsert so a push is one atomic row
+      // write (the old separate update let two concurrent pushes interleave into a
+      // mixed snapshot; it predates the misc column migration, long since applied).
+      const miscIn = body.data && body.data.misc;
+      const miscWarnings = [];
+      if (miscIn && typeof miscIn === "object" && !Array.isArray(miscIn)) {
+        // Known-large authored keys get a higher cap (a single key holds ALL sermon
+        // notes / the whole "My Season" story — years of use exceed 20k chars).
+        const LARGE_KEY_CAPS = { dw_sermon_notes: 200000, dw_user_story: 100000 };
+        const storedMisc = (existing && existing.misc && typeof existing.misc === "object" && !Array.isArray(existing.misc))
+          ? existing.misc : {};
+        const misc = {};
+        let count = 0;
+        for (const [k, v] of Object.entries(miscIn)) {
+          if (typeof k !== "string" || k.length > 100) continue;
+          const cap = LARGE_KEY_CAPS[k] || 20000;
+          const tooBig = typeof v === "string" && v.length > cap;
+          if (tooBig || count >= 300) {
+            // Skip, DON'T slice: mid-string truncation corrupts JSON values (they
+            // restore as empty on the next device). Keep the previously stored
+            // value for this key and tell the client what couldn't be saved.
+            if (storedMisc[k] !== undefined) misc[k] = storedMisc[k];
+            miscWarnings.push(k);
+            continue;
+          }
+          misc[k] = v;
+          count++;
+        }
+        // Same empty-overwrite guard as the columns above.
+        if (!(isEmptyField(misc) && !isEmptyField(storedMisc))) {
+          cleaned.misc = misc;
+        }
+      }
+
       const { data, error } = await db
         .from("user_data")
         .upsert(cleaned, { onConflict: "email" })
@@ -259,26 +368,14 @@ exports.handler = async (event) => {
         };
       }
 
-      // Misc bag (sermon fill-ins, "my season" story, reading cadence, prayed-for set,
-      // book-today pointers). Written separately + NON-FATAL so a missing `misc` column
-      // (before supabase-misc-column.sql is applied) can never break the core save.
-      const miscIn = body.data && body.data.misc;
-      if (miscIn && typeof miscIn === "object" && !Array.isArray(miscIn)) {
-        try {
-          const misc = {};
-          for (const [k, v] of Object.entries(miscIn).slice(0, 300)) {
-            if (typeof k === "string" && k.length <= 100) {
-              misc[k] = typeof v === "string" ? v.slice(0, 20000) : v;
-            }
-          }
-          await db.from("user_data").update({ misc }).eq("email", email);
-        } catch (e) { console.error("misc sync (push) skipped:", e?.message || e); }
-      }
-
       // Dual-write: mirror this user's data into the normalized tables. NON-FATAL —
-      // wrapped so a failure here can never block the user's save (JSONB is still source of truth).
-      try { await db.rpc("sync_user_data_to_normalized", { p_email: email }); }
-      catch (e) { console.error("normalized dual-write (push) failed:", e?.message || e); }
+      // supabase-js v2 resolves rpc failures as { error } (it does not throw), so
+      // destructure and log; the try/catch stays as defence for transport throws.
+      // Either way a failure here can never block the user's save (JSONB is still source of truth).
+      try {
+        const { error: rpcError } = await db.rpc("sync_user_data_to_normalized", { p_email: email });
+        if (rpcError) console.error("normalized dual-write (push) failed:", rpcError.message || rpcError);
+      } catch (e) { console.error("normalized dual-write (push) failed:", e?.message || e); }
 
       return {
         statusCode: 200,
@@ -286,6 +383,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           success: true,
           syncVersion: data?.sync_version || 1,
+          ...(miscWarnings.length ? { miscWarnings: miscWarnings.slice(0, 20) } : {}),
           ...(migrationToken ? { sessionToken: migrationToken } : {})
         })
       };
@@ -296,7 +394,7 @@ exports.handler = async (event) => {
       // Fetch current cloud data
       const { data: existing } = await db
         .from("user_data")
-        .select("journal, sync_version")
+        .select("journal, highlights, streak, active_plans, book_plans, reactions, pathway_progress, sync_version")
         .eq("email", email)
         .single();
 
@@ -306,8 +404,10 @@ exports.handler = async (event) => {
       // Merge
       const merged = mergeJournals(cloudJournal, localJournal);
 
-      // Also accept other data fields if provided
+      // Also accept other data fields if provided — with the same guard as push:
+      // an empty field must not wipe non-empty stored data.
       const otherData = validatePayload(body.data || {});
+      dropEmptyOverwrites(otherData, existing);
 
       // Write merged journal + any other data back
       const record = {
@@ -332,9 +432,13 @@ exports.handler = async (event) => {
         };
       }
 
-      // Dual-write: mirror into the normalized tables. NON-FATAL (never blocks the user's save).
-      try { await db.rpc("sync_user_data_to_normalized", { p_email: email }); }
-      catch (e) { console.error("normalized dual-write (merge) failed:", e?.message || e); }
+      // Dual-write: mirror into the normalized tables. NON-FATAL (never blocks the
+      // user's save). supabase-js v2 resolves rpc failures as { error } — destructure
+      // and log it (the catch alone was dead code and drift went unrecorded).
+      try {
+        const { error: rpcError } = await db.rpc("sync_user_data_to_normalized", { p_email: email });
+        if (rpcError) console.error("normalized dual-write (merge) failed:", rpcError.message || rpcError);
+      } catch (e) { console.error("normalized dual-write (merge) failed:", e?.message || e); }
 
       return {
         statusCode: 200,

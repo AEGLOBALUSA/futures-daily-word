@@ -10,6 +10,7 @@
 import { useCallback, useMemo } from 'react';
 import { parseVerses } from '../utils/parseVerses';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
+import { t } from '../utils/i18n';
 
 interface ScripturePassageProps {
   /** Raw passage text with [N] verse markers */
@@ -22,6 +23,8 @@ interface ScripturePassageProps {
   greekHebrewMode?: boolean;
   /** Override font size in px (default 15) */
   fontSize?: number;
+  /** I'm New path — Select All uses sage, not glass terracotta. */
+  newPath?: boolean;
 }
 
 export function ScripturePassage({
@@ -30,6 +33,7 @@ export function ScripturePassage({
   renderScripture,
   greekHebrewMode = false,
   fontSize = 15,
+  newPath = false,
 }: ScripturePassageProps) {
   const { selection, setSelection, highlights, toggleHighlight } = useScriptureSelection();
 
@@ -67,24 +71,27 @@ export function ScripturePassage({
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
           <button
             onClick={handleSelectAll}
+            className={newPath ? 'dw-select-all-new' : undefined}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
-              background: isAllSelected ? 'rgba(154,123,46,0.35)' : 'var(--dw-surface-raised, rgba(0,0,0,0.03))',
+              background: isAllSelected
+                ? (newPath ? 'var(--dw-new-soft)' : 'rgba(154,123,46,0.35)')
+                : 'var(--dw-surface-raised, rgba(0,0,0,0.03))',
               border: '1px solid var(--dw-border)',
               borderRadius: 14,
               padding: '4px 12px',
               fontSize: 11,
               fontWeight: 600,
-              color: isAllSelected ? 'var(--dw-gold)' : 'var(--dw-text-muted)',
+              color: newPath ? 'var(--dw-new)' : (isAllSelected ? 'var(--dw-gold)' : 'var(--dw-text-muted)'),
               cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
               letterSpacing: '0.03em',
               transition: 'all 0.15s ease',
             }}
           >
-            {isAllSelected ? 'Deselect All' : 'Select All'}
+            {isAllSelected ? t('deselect_all') : t('select_all_passages')}
           </button>
         </div>
       )}
@@ -102,7 +109,7 @@ export function ScripturePassage({
             fontFamily: 'var(--font-sans)',
           }}
         >
-          Tap any word to explore its original meaning
+          {t('tap_word_hint')}
         </p>
       )}
 
@@ -117,9 +124,21 @@ export function ScripturePassage({
           <p
             key={v.verse}
             onClick={() => handleVerseTap(v.verse, v.text)}
+            // Keyboard parity with tap-to-highlight (pointer-only before). In
+            // Gk/Heb mode word taps take priority, so the verse isn't a button.
+            role={greekHebrewMode ? undefined : 'button'}
+            tabIndex={greekHebrewMode ? undefined : 0}
+            aria-pressed={greekHebrewMode ? undefined : isSelected}
+            onKeyDown={e => {
+              if (greekHebrewMode) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault(); // stop Space from scrolling / hero-audio hijack
+                handleVerseTap(v.verse, v.text);
+              }
+            }}
             style={{
               fontSize,
-              lineHeight: 1.85,
+              lineHeight: 1.9,
               color: 'var(--dw-text-secondary)',
               whiteSpace: 'pre-wrap',
               // A true reading serif (the app's scripture face) for calm, immersive
@@ -127,7 +146,7 @@ export function ScripturePassage({
               fontFamily: 'var(--font-serif-text)',
               fontWeight: 400,
               letterSpacing: '0.003em',
-              margin: '5px 0',
+              margin: '10px 0',
               padding: isSelected ? '2px 5px' : '2px 0',
               background: isSelected
                 ? 'rgba(154,123,46,0.35)'

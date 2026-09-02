@@ -1,9 +1,22 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { flushSync } from './utils/cloudSync'
 import { LS } from './utils/storage'
+
+const StaffApp = lazy(() => import('./staff/StaffApp').then(m => ({ default: m.StaffApp })));
+const IS_STAFF = (() => {
+  try {
+    const p = window.location.pathname.replace(/\/+$/, '') || '/';
+    return p === '/staff';
+  } catch {
+    return false;
+  }
+})();
+if (IS_STAFF) {
+  document.documentElement.classList.add('staff-route');
+}
 
 // Apply saved theme or OS preference before React renders (avoids flash).
 // Must read the SAME key ThemeContext writes (dw_dark = 'true'|'false'); the old
@@ -47,16 +60,33 @@ window.addEventListener('pagehide', tryFlushSync);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {IS_STAFF ? (
+      <Suspense fallback={null}>
+        <StaffApp />
+      </Suspense>
+    ) : (
+      <App />
+    )}
   </StrictMode>,
 )
 
-// Capture install prompt for PWA install banner
+// Capture install prompt for PWA install banner.
+// preventDefault suppresses Chrome's mini-infobar — the in-app UI
+// (PWAInstall) is what actually calls __pwaInstall. Without that UI
+// the prompt was captured and then never shown.
 let deferredPrompt: Event | null = null;
+(window as any).__pwaCanInstall = false;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
+  (window as any).__pwaCanInstall = true;
   window.dispatchEvent(new CustomEvent('pwa-install-available'));
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  (window as any).__pwaCanInstall = false;
+  window.dispatchEvent(new CustomEvent('pwa-installed'));
 });
 
 // Expose install trigger for components
@@ -65,12 +95,18 @@ window.addEventListener('beforeinstallprompt', (e) => {
   (deferredPrompt as any).prompt();
   const result = await (deferredPrompt as any).userChoice;
   deferredPrompt = null;
+  (window as any).__pwaCanInstall = false;
   return result.outcome === 'accepted';
 };
 
-// Register service worker — version query forces cache bust on deploy
+// Register service worker — version query forces cache bust on deploy.
+// App-origin hosts ONLY (mirrors pushSupported() in utils/push.ts): when this
+// bundle is served on the church origin (futures.church/daily-word proxy/embed),
+// /sw.js resolves to the church's own kill-switch worker — registering it there
+// wiped every church-origin cache (incl. the /listen offline shell) on each visit.
 const SW_VERSION = 'v65';
-if ('serviceWorker' in navigator) {
+const SW_HOSTS = ['futuresdailyword.com', 'www.futuresdailyword.com', 'futures-daily-word.netlify.app', 'localhost', '127.0.0.1'];
+if ('serviceWorker' in navigator && SW_HOSTS.includes(location.hostname)) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register(`/sw.js?v=${SW_VERSION}`, { scope: '/' })

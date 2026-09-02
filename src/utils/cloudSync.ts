@@ -47,6 +47,15 @@ const MISC_KEYS = [
 ] as const;
 const MISC_PREFIXES = ['dw_sermon_', 'dw_book_today_'];
 
+/** The exact key predicate for the misc bag — shared by collectMisc (what we push)
+ *  and applyMisc (what we accept). applyMisc MUST enforce this too: without it a
+ *  poisoned or stale cloud bag could write ANY localStorage key on this device
+ *  (dw_profile, dw_session_token, dw_journal — a side door around the
+ *  tombstone-aware journal merge). */
+function isSyncedMiscKey(k: string): boolean {
+  return (MISC_KEYS as readonly string[]).includes(k) || MISC_PREFIXES.some(p => k.startsWith(p));
+}
+
 // Per-key last-write timestamps so the bag can do newest-wins cross-device instead
 // of pure fill-only. Rides to the cloud as a regular misc key.
 const MISC_META_KEY = 'dw_misc_meta';
@@ -78,6 +87,10 @@ export function syncMisc(key: string, value: string) {
   pushNow();
 }
 
+// The cloud's prayed-for set from the last pull, captured in applyMisc for the
+// push-time union in collectMisc (see both sites).
+let lastCloudPrayedFor: unknown[] | null = null;
+
 /** Collect the misc-bag keys (static list + dynamic prefixes) + the meta map. */
 function collectMisc(): Record<string, string> {
   const out: Record<string, string> = {};
@@ -85,12 +98,23 @@ function collectMisc(): Record<string, string> {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k) continue;
-      if (k === MISC_META_KEY || (MISC_KEYS as readonly string[]).includes(k) || MISC_PREFIXES.some(p => k.startsWith(p))) {
+      if (k === MISC_META_KEY || isSyncedMiscKey(k)) {
         const v = localStorage.getItem(k);
         if (v != null) out[k] = v;
       }
     }
   } catch { /* ignore */ }
+  // dw_prayed_for is an add-only set and (being AUTHORED) fill-only on apply, so two
+  // devices' sets would otherwise never converge — the cloud kept only the last
+  // pusher's copy and a reinstall lost the other device's prayer entries. Push the
+  // UNION of local + the last-pulled cloud copy instead (apply stays fill-only).
+  if (Array.isArray(lastCloudPrayedFor) && lastCloudPrayedFor.length) {
+    try {
+      const localRaw = JSON.parse(out['dw_prayed_for'] || '[]') as unknown;
+      const localArr = Array.isArray(localRaw) ? localRaw : [];
+      out['dw_prayed_for'] = JSON.stringify([...new Set([...localArr, ...lastCloudPrayedFor])]);
+    } catch { /* ignore */ }
+  }
   return out;
 }
 
@@ -107,8 +131,18 @@ function applyMisc(misc: unknown) {
   try { cloudMeta = bag[MISC_META_KEY] ? JSON.parse(String(bag[MISC_META_KEY])) : {}; } catch { /* ignore */ }
   const localMeta = readMiscMeta();
 
+  // Remember the cloud's prayed-for set for collectMisc's push-time union.
+  try {
+    const cp = bag['dw_prayed_for'];
+    if (typeof cp === 'string') {
+      const parsed = JSON.parse(cp) as unknown;
+      if (Array.isArray(parsed)) lastCloudPrayedFor = parsed;
+    }
+  } catch { /* ignore */ }
+
   for (const [k, v] of Object.entries(bag)) {
     if (k === MISC_META_KEY) continue;
+    if (!isSyncedMiscKey(k)) continue; // whitelist — see isSyncedMiscKey
     if (typeof v !== 'string' || !v) continue;
     const local = localStorage.getItem(k);
     const localEmpty = local == null || local === '' || local === '[]' || local === '{}' || local === 'null';
@@ -134,6 +168,26 @@ function applyMisc(misc: unknown) {
 let lastSyncVersion = 0;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let isSyncing = false;
+// Data-safety gate: no push may run until one pull has SUCCEEDED this session —
+// either real cloud data or a true "no cloud row yet" 404. A push before then
+// (e.g. after a transient pull failure on a fresh install) would overwrite the
+// user's only backup with unmerged/empty local state.
+let pullSucceeded = false;
+// Coalesced "push requested but not run" marker — set while gated on the pull, or
+// while a push is already in flight (edits made after that push's snapshot would
+// otherwise be silently dropped). The keepalive option is OR-ed across requests.
+let pendingPush: { keepalive: boolean } | null = null;
+// Startup-pull retry (backoff) — see syncOnStartup.
+let pullRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let pullRetryDelayMs = 30000;
+
+/** Atomically read-and-clear the coalesced push request (a helper function so TS
+ *  can't stale-narrow the module variable across pushToCloud's await). */
+function takePendingPush(): { keepalive: boolean } | null {
+  const p = pendingPush;
+  pendingPush = null;
+  return p;
+}
 
 // ── Helpers ──
 
@@ -170,15 +224,55 @@ export function collectLocalData() {
   };
 }
 
+function asRecord(v: unknown): Record<string, unknown> | null {
+  return (v && typeof v === 'object' && !Array.isArray(v)) ? v as Record<string, unknown> : null;
+}
+
+/** Pick between the cloud and the local copy of one plan (reading or book plan).
+ *  Live vs live: more progress wins (local wins ties, as before). A removal
+ *  tombstone ({ removed: true, removedAt }) wins over a live copy unless the live
+ *  copy has MORE progress than the tombstone captured at quit time — so a quit
+ *  sticks across devices, but real progress made elsewhere revives the plan.
+ *  (NOTE: nothing writes these tombstones today — PlansScreen.resetPlan hard-
+ *  deletes the key, so this branch is dormant. A quit sticks on the deleting
+ *  device via user-sync's guard (an empty field is honoured only from a client
+ *  whose lastSyncVersion matches the stored sync_version); another device that
+ *  still holds a live copy will revive the plan through this union merge — a
+ *  known pre-existing gap. Wiring the tombstone writer requires every
+ *  dw_activeplans consumer to filter removed entries first.) */
+type PlanCopy = { removed?: boolean; removedAt?: number };
+function mergePlanCopies(cloudV: unknown, localV: unknown, progressOf: (p: unknown) => number): unknown {
+  if (cloudV == null) return localV;
+  if (localV == null) return cloudV;
+  const c = cloudV as PlanCopy;
+  const l = localV as PlanCopy;
+  if (c.removed && l.removed) return (c.removedAt || 0) >= (l.removedAt || 0) ? c : l;
+  if (c.removed) return progressOf(localV) > progressOf(cloudV) ? localV : cloudV;
+  if (l.removed) return progressOf(cloudV) > progressOf(localV) ? cloudV : localV;
+  return progressOf(cloudV) > progressOf(localV) ? cloudV : localV;
+}
+
+/** Drop removal tombstones old enough that every device has seen the quit.
+ *  Missing/invalid removedAt ⇒ retain (never prune a deletion of unknown age). */
+function prunePlanTombstones(map: Record<string, unknown>) {
+  for (const [id, v] of Object.entries(map)) {
+    const p = v as PlanCopy | null;
+    if (p && p.removed && typeof p.removedAt === 'number' && Date.now() - p.removedAt > TOMBSTONE_TTL_MS) {
+      delete map[id];
+    }
+  }
+}
+
 /** Write cloud data into localStorage (without overwriting non-empty local with empty cloud).
  *  NOTE: the journal is deliberately NOT in this list. syncOnStartup merges the journal
  *  (mergeJournals, tombstone-aware) and writes the merged result itself; applying the RAW
- *  cloud journal here would clobber that merge and resurrect deleted (tombstoned) entries. */
+ *  cloud journal here would clobber that merge and resurrect deleted (tombstoned) entries.
+ *  Every setItem is individually guarded so one quota failure (e.g. a huge restored
+ *  profilePic) can't abort the rest of the restore. */
 function applyCloudData(data: Record<string, unknown>) {
+  // Fields kept on simple "non-empty cloud wins". Highlights/streak/plans get real
+  // per-entry merges below because users edit them on several devices.
   const jsonFields: Array<[string, string]> = [
-    ['highlights',      SYNC_KEYS.highlights],   // Fix 2
-    ['streak',          SYNC_KEYS.streak],
-    ['bookPlans',       SYNC_KEYS.bookPlans],
     ['reactions',        SYNC_KEYS.reactions],
     ['pathwayProgress', SYNC_KEYS.pathwayProgress],
   ];
@@ -189,36 +283,84 @@ function applyCloudData(data: Record<string, unknown>) {
       // Don't overwrite local data with empty cloud data
       const cloudStr = JSON.stringify(cloudVal);
       if (cloudStr !== '[]' && cloudStr !== '{}') {
-        localStorage.setItem(localKey, cloudStr);
+        try { localStorage.setItem(localKey, cloudStr); } catch { /* quota */ }
       } else {
         // Cloud is empty — only write if local is also empty
         const local = localStorage.getItem(localKey);
         if (!local || local === '[]' || local === '{}' || local === 'null') {
-          localStorage.setItem(localKey, cloudStr);
+          try { localStorage.setItem(localKey, cloudStr); } catch { /* quota */ }
         }
       }
+    }
+  }
+
+  // Highlights — union-merge by verseKey instead of wholesale overwrite, so an
+  // offline device's un-pushed highlights survive the next startup pull and two
+  // devices' sets converge. Each entry carries `timestamp`; newer copy wins.
+  {
+    const cloudH = asRecord(data.highlights);
+    if (cloudH && Object.keys(cloudH).length > 0) {
+      const localH = asRecord(readJSON(SYNC_KEYS.highlights, {})) || {};
+      const merged: Record<string, unknown> = { ...localH };
+      for (const [k, cv] of Object.entries(cloudH)) {
+        const lv = merged[k] as { timestamp?: number } | undefined;
+        const ct = (cv as { timestamp?: number } | null)?.timestamp || 0;
+        if (!lv || ct > (lv.timestamp || 0)) merged[k] = cv;
+      }
+      try { localStorage.setItem(SYNC_KEYS.highlights, JSON.stringify(merged)); } catch { /* quota */ }
+    }
+  }
+
+  // Streak — keep the side whose lastDate is later (tie → higher count) instead of
+  // blind cloud-wins: a second device pulling an older cloud copy must not
+  // un-record today or regress the count another device already pushed.
+  {
+    const cs = asRecord(data.streak) as { count?: number; lastDate?: string } | null;
+    if (cs && Object.keys(cs).length > 0) {
+      const ls = asRecord(readJSON(SYNC_KEYS.streak, {})) as { count?: number; lastDate?: string } | null;
+      const cd = String(cs.lastDate || '');
+      const ld = String(ls?.lastDate || '');
+      const cloudWins = !ls || Object.keys(ls).length === 0
+        || cd > ld
+        || (cd === ld && (cs.count || 0) > (ls?.count || 0));
+      if (cloudWins) {
+        try { localStorage.setItem(SYNC_KEYS.streak, JSON.stringify(cs)); } catch { /* quota */ }
+      }
+    }
+  }
+
+  // Book plans — per-book merge (most progress wins) instead of wholesale
+  // overwrite, honouring removal tombstones the same way as activePlans below.
+  {
+    const cbp = asRecord(data.bookPlans);
+    if (cbp && Object.keys(cbp).length > 0) {
+      const lbp = asRecord(readJSON(SYNC_KEYS.bookPlans, {})) || {};
+      const merged: Record<string, unknown> = { ...cbp };
+      for (const [id, lp] of Object.entries(lbp)) {
+        merged[id] = mergePlanCopies(merged[id], lp,
+          p => (p as { currentChapter?: number } | undefined)?.currentChapter || 0);
+      }
+      prunePlanTombstones(merged);
+      try { localStorage.setItem(SYNC_KEYS.bookPlans, JSON.stringify(merged)); } catch { /* quota */ }
     }
   }
 
   // Active plans — union-merge cloud + local by planId (the client stores active
   // plans as an object map { planId: progress }). Enabling cloud sync must never DROP
   // a plan that exists on only one device, so merge instead of overwrite: keep every
-  // plan from both sides; on a per-plan conflict prefer the copy with more progress.
+  // plan from both sides; on a per-plan conflict prefer the copy with more progress
+  // (mergePlanCopies also honours removal tombstones so a quit can stick).
   {
-    const cp = (data.activePlans && typeof data.activePlans === 'object' && !Array.isArray(data.activePlans))
-      ? (data.activePlans as Record<string, { lastDay?: number }>)
-      : {};
-    const lpRaw = readJSON(SYNC_KEYS.activePlans, {});
-    const lp = (lpRaw && typeof lpRaw === 'object' && !Array.isArray(lpRaw))
-      ? (lpRaw as Record<string, { lastDay?: number }>)
-      : {};
+    const cp = asRecord(data.activePlans) || {};
+    const lp = asRecord(readJSON(SYNC_KEYS.activePlans, {})) || {};
     const merged: Record<string, unknown> = { ...cp };
     for (const [id, localPlan] of Object.entries(lp)) {
-      const cloudPlan = merged[id] as { lastDay?: number } | undefined;
-      merged[id] = (cloudPlan && (cloudPlan.lastDay || 0) > (localPlan?.lastDay || 0)) ? cloudPlan : localPlan;
+      merged[id] = mergePlanCopies(merged[id], localPlan,
+        p => (p as { lastDay?: number } | undefined)?.lastDay || 0);
     }
+    prunePlanTombstones(merged);
     if (Object.keys(merged).length > 0) {
-      localStorage.setItem(SYNC_KEYS.activePlans, JSON.stringify(merged));
+      try { localStorage.setItem(SYNC_KEYS.activePlans, JSON.stringify(merged)); } catch { /* quota */ }
     }
   }
 
@@ -233,7 +375,7 @@ function applyCloudData(data: Record<string, unknown>) {
   for (const [cloudKey, localKey] of stringFields) {
     const cloudVal = data[cloudKey];
     if (typeof cloudVal === 'string' && cloudVal) {
-      localStorage.setItem(localKey, cloudVal);
+      try { localStorage.setItem(localKey, cloudVal); } catch { /* quota */ }
     }
   }
 
@@ -307,8 +449,11 @@ function mergeJournals(cloud: unknown[], local: unknown[]): unknown[] {
     // Prune tombstones whose deletion is old enough that every device has synced it.
     .filter(e => {
       if (!e.deleted) return true;
-      const t = new Date(String(e.updatedAt || 0)).getTime();
-      return !t || (Date.now() - t) < TOMBSTONE_TTL_MS;
+      // NaN-safe: new Date(String(0)) parses as year 2000 in V8, which made a
+      // tombstone with no updatedAt look ~26 years stale and prune instantly.
+      // Unknown age ⇒ retain, so the deletion keeps propagating.
+      const t = e.updatedAt ? new Date(String(e.updatedAt)).getTime() : NaN;
+      return Number.isNaN(t) || (Date.now() - t) < TOMBSTONE_TTL_MS;
     });
 
   return result.sort((a, b) => {
@@ -325,9 +470,12 @@ async function apiCall(action: string, payload: Record<string, unknown>, opts?: 
   const body = JSON.stringify({ action, ...payload });
   // keepalive lets the request finish after the page is torn down (background/close/
   // reload) — critical for the flush path — but the browser caps keepalive bodies at
-  // 64KB, so only use it when the payload is comfortably small; otherwise fall back to
-  // a normal best-effort fetch (which is what happened before anyway).
-  const keepalive = !!opts?.keepalive && body.length < 60000;
+  // 64KiB of the ENCODED body, so only use it when the payload is comfortably small;
+  // otherwise fall back to a normal best-effort fetch (which is what happened before
+  // anyway). Measure BYTES, not string length: multibyte es/pt/id journals encode
+  // 1.1–3x their char count, and an over-quota keepalive fetch rejects outright
+  // (the flush would silently never happen for exactly the heaviest users).
+  const keepalive = !!opts?.keepalive && new Blob([body]).size < 60000;
   const resp = await fetch(`${API_BASE}/api/user-sync`, {
     method: 'POST',
     headers: authHeaders(),
@@ -348,34 +496,55 @@ async function apiCall(action: string, payload: Record<string, unknown>, opts?: 
   return data;
 }
 
-/** Pull all cloud data for a user */
+/** Pull all cloud data for a user.
+ *  Returns the data object, or null ONLY for a true "no cloud row yet" 404.
+ *  THROWS on every other failure (network, 5xx, rate-limit): a failed pull must
+ *  never be mistaken for "no data" — that's how the first-backup push used to
+ *  overwrite the user's only backup with a fresh install's empty state. */
 async function pullFromCloud(email: string) {
-  try {
-    const result = await apiCall('pull', { email });
-    if (result.success && result.data) {
-      lastSyncVersion = result.data.syncVersion || 0;
-      return result.data;
-    }
-    return null; // No cloud data (404)
-  } catch {
-    return null;
+  const result = await apiCall('pull', { email });
+  if (result.success && result.data) {
+    lastSyncVersion = result.data.syncVersion || 0;
+    pullSucceeded = true;
+    return result.data;
   }
+  // A parsed 404 body ({ success:false }) is the only path here: the account
+  // genuinely has no cloud row, so seeding a first backup is safe.
+  pullSucceeded = true;
+  return null;
 }
 
 /** Push all local data to cloud */
 export async function pushToCloud(email: string, opts?: { keepalive?: boolean }) {
-  if (!email || isSyncing) return;
+  if (!email) return;
+  if (!pullSucceeded || isSyncing) {
+    // Gated (no successful pull yet this session) or already in flight — coalesce,
+    // never drop: the request is satisfied by syncOnStartup's push-back after the
+    // pull succeeds, or by the follow-up push in the finally block below.
+    pendingPush = { keepalive: !!(pendingPush?.keepalive || opts?.keepalive) };
+    return;
+  }
   isSyncing = true;
+  pendingPush = null; // this run's snapshot covers everything requested so far
   try {
     const data = collectLocalData();
-    const result = await apiCall('push', { email, data }, opts);
+    const result = await apiCall('push', { email, data, lastSyncVersion }, opts);
     if (result.success) {
       lastSyncVersion = result.syncVersion || lastSyncVersion;
+      if (Array.isArray(result.miscWarnings) && result.miscWarnings.length) {
+        console.warn('[CloudSync] Fields too large to back up (cloud kept its previous copy):', result.miscWarnings);
+      }
     }
   } catch {
     // Silent fail — localStorage still works
   } finally {
     isSyncing = false;
+    // A caller may have set pendingPush while this push was in flight — run one
+    // follow-up push so those edits are never silently dropped.
+    const p = takePendingPush();
+    if (p) {
+      void pushToCloud(email, { keepalive: p.keepalive });
+    }
   }
 }
 
@@ -412,10 +581,27 @@ export function schedulePush(email: string) {
  */
 export async function syncOnStartup(email: string) {
   if (!email) return;
+  if (pullRetryTimer) { clearTimeout(pullRetryTimer); pullRetryTimer = null; }
+
+  let cloud;
+  try {
+    cloud = await pullFromCloud(email);
+  } catch (err) {
+    // Pull FAILED (network / 5xx / rate-limit) — NOT the same as "no cloud data".
+    // Seeding a "first backup" here would overwrite the real backup with unmerged
+    // (possibly fresh-install-empty) local state, so: leave the pullSucceeded gate
+    // closed (all pushes stay queued), and retry the pull with backoff. Queued
+    // work is pushed by the post-merge push-back once a pull finally succeeds.
+    console.warn('[CloudSync] Pull failed — holding pushes, will retry:', err);
+    pullRetryTimer = setTimeout(() => {
+      pullRetryTimer = null;
+      syncOnStartup(email);
+    }, pullRetryDelayMs);
+    pullRetryDelayMs = Math.min(pullRetryDelayMs * 2, 5 * 60000);
+    return;
+  }
 
   try {
-    const cloud = await pullFromCloud(email);
-
     if (!cloud) {
       // First time user — upload everything as initial backup
       await pushToCloud(email);

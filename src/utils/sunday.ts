@@ -3,6 +3,8 @@
  * Active from Saturday 11:40 PM → Sunday 4:00 PM local time
  */
 
+import { startGraceSeriesIfCold } from './coldStart';
+
 /** Returns true if the current time falls inside the Sunday service window */
 export function isSundayWindow(): boolean {
   const now = new Date();
@@ -38,11 +40,10 @@ export function isSundayDeepLink(): boolean {
 export function activateSundayGuest(): void {
   const date = getSundayDate();
   localStorage.setItem('dw_sunday_guest', date);
-  // Set a default persona so feature gating works
-  if (!localStorage.getItem('dw_setup')) {
-    localStorage.setItem('dw_setup', JSON.stringify({ persona: 'congregation', source: 'sunday-guest' }));
-  }
-  // Mark pathway as done so PathwayPicker doesn't block
+  // Same Day 1 as a cold futuresdailyword.com visit — Sunday church traffic
+  // should land in the 40-day series, not an empty congregation home.
+  // Fill-only: a real Settings/onboarding choice is left alone.
+  startGraceSeriesIfCold('sunday-guest');
   if (!localStorage.getItem('dw_v7_pathway_done')) {
     localStorage.setItem('dw_v7_pathway_done', 'true');
   }

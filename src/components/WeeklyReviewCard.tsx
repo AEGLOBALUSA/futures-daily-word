@@ -5,6 +5,7 @@
  * `weekReviewDismissed` state and the localStorage write happens here on dismiss).
  */
 import { Card } from './Card';
+import { t as trans } from '../utils/i18n';
 
 interface WeekReview {
   weekLabel: string;
@@ -36,8 +37,8 @@ export function WeeklyReviewCard({ weekReview, onDismiss, t }: WeeklyReviewCardP
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
               }}>×</button>
-              <h2 className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</h2>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
+              <h2 className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>{trans('week_in_word')}</h2>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>{trans('week_of').replace('{x}', weekReview.weekLabel)}</p>
               <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
                 {[
                   { value: weekReview.daysRead, label: t('days_this_week') },

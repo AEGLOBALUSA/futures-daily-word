@@ -2,8 +2,27 @@
  * Persona Pathway Configuration — V7
  * Drives all feature gating, section ordering, and AI personalization.
  */
+import { getStreak } from './streak';
+import { t } from './i18n';
 
 export type Persona = 'new_to_faith' | 'congregation' | 'deeper_study' | 'pastor_leader' | 'comfort';
+
+/** Plans tab filter — each path shows matching plans, not the full unfiltered catalog.
+ *  new_to_faith is empty on purpose: that path is the 40-day New & Returning to
+ *  Faith journey (`dw_pathway_progress`), not a catalog list. Do not put
+ *  catalog `faith-pathway` (30-day Foundations of Faith) here. */
+export const PERSONA_PLAN_IDS: Record<Persona, readonly string[]> = {
+  new_to_faith: [],
+  congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
+  deeper_study: ['new-testament-90', 'through-bible-year', 'psalms-proverbs', 'gospel-john', 'identity-christ'],
+  pastor_leader: ['book-church', 'new-testament-90', 'through-bible-year', 'faith-pathway', 'gospel-john'],
+  comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
+};
+
+/** I'm New to This / New & Returning — one 40-day journey, not a catalog. */
+export function isNewChristianPersona(persona: string | null | undefined): boolean {
+  return persona === 'new_to_faith' || persona === 'new_returning' || persona === 'new_believer';
+}
 
 export interface PersonaConfig {
   persona: Persona;
@@ -31,7 +50,6 @@ export interface PersonaConfig {
     sermonNotes: boolean;
     wordStudies: boolean;
     adminTools: boolean;
-    comfortCard: boolean;
     faithPathway: boolean;
     bookCards: string[];
   };
@@ -84,6 +102,17 @@ function capitalize(s: string): string {
 export function getGreeting(persona: Persona, name: string, streak: number, lang?: string): string {
   const first = capitalize(name) || (lang === 'id' ? 'teman' : 'friend');
   const tod = timeOfDay(lang);
+
+  // Streak memory: on a reset day, acknowledge the longest run rather than greeting
+  // a long-time reader like a first-timer. Personas whose greetings never surface
+  // the streak (new_to_faith, comfort) keep their own lines.
+  if (streak === 1 && persona !== 'new_to_faith' && persona !== 'comfort') {
+    const best = getStreak().bestCount;
+    if (best >= 3) {
+      const prefix = lang === 'id' ? `Selamat ${tod}, ${first}. ` : `Good ${tod}, ${first}. `;
+      return prefix + t('streak_reset_best', lang).replace('{best}', String(best));
+    }
+  }
 
   if (lang === 'id') {
     switch (persona) {
@@ -191,14 +220,12 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: false,
       wordStudies: false,
       adminTools: false,
-      comfortCard: false,
       faithPathway: true,
       bookCards: [],
     },
     plans: {
       showFullCatalog: false,
       featuredCategories: ['beginner', 'devotional'],
-      autoSuggest: 'faith-pathway',
     },
     journal: {
       entryTypes: ['journal', 'prayer'],
@@ -246,7 +273,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: true,
       wordStudies: false,
       adminTools: false,
-      comfortCard: false,
       faithPathway: false,
       bookCards: [],
     },
@@ -300,7 +326,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: true,
       wordStudies: true,
       adminTools: false,
-      comfortCard: false,
       faithPathway: false,
       bookCards: [],
     },
@@ -360,7 +385,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: true,
       wordStudies: true,
       adminTools: true,
-      comfortCard: false,
       faithPathway: false,
       bookCards: ['grace-and-truth', 'no-more-fear'],
     },
@@ -432,7 +456,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       sermonNotes: false,
       wordStudies: false,
       adminTools: false,
-      comfortCard: true,
       faithPathway: false,
       bookCards: ['grace-and-truth', 'no-more-fear'],
     },

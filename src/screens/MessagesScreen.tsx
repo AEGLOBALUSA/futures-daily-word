@@ -3,23 +3,16 @@ import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
-import { Pencil, Trash2, Plus, Loader2, Heart, HandHeart, RefreshCw, Send, ChevronLeft, BookOpen, Share2, Save, CheckCircle, MessageSquare, MapPin } from 'lucide-react';
+import { Plus, Loader2, Heart, HandHeart, RefreshCw, Send, MessageSquare, MapPin } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
-import { PRELOADED_SERMONS } from '../data/sermons';
-import type { SermonData } from '../data/sermons';
+import { CampusSelect } from '../components/CampusSelect';
 import { t, getLang } from '../utils/i18n';
+import type { TabId } from '../components/TabBar';
+import { PromoAds } from '../components/PromoAds';
 import { pushNow } from '../utils/cloudSync';
-import { API_BASE } from '../utils/api-base';
+import { API_BASE, staffPortalUrl } from '../utils/api-base';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-interface SermonNote {
-  id: string;
-  title: string;
-  date: string;
-  content: string;
-  sermon?: string;
-}
-
 interface Prayer {
   id: string;
   name: string;
@@ -89,20 +82,13 @@ async function prayForIt(id: string): Promise<boolean> {
 // ── {t("pastors_corner", lang)} Panel ────────────────────────────────────────────────────
 interface CampusItem { id: string; type: string; title: string; content: string; author: string; date: string; }
 
-function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: any }) {
+function PastorsCornerPanel({ userProfile }: { userProfile: any }) {
+  const { saveProfile, requireEmail } = useUser();
   const campus = userProfile?.campus || '';
-  const isPastor = setup?.persona === 'pastor_leader' || setup?.persona === 'pastor';
   const [items, setItems] = useState<CampusItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
-  const [showPostForm, setShowPostForm] = useState(false);
-  const [postTitle, setPostTitle] = useState('');
-  const [postContent, setPostContent] = useState('');
-  const [postType, setPostType] = useState('announcement');
-  const [posting, setPosting] = useState(false);
-  const [posted, setPosted] = useState(false);
-  const [pastorCode, setPastorCode] = useState('');
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
@@ -119,193 +105,56 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
-  const handlePost = async () => {
-    if (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) return;
-    setPosting(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/campus-content`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          campus,
-          type: postType,
-          title: postTitle.trim(),
-          content: postContent.trim(),
-          author: userProfile?.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : 'Pastor',
-          code: pastorCode.trim(),
-        }),
-      });
-      if (res.ok) {
-        setPosted(true);
-        setPostTitle('');
-        setPostContent('');
-        setShowPostForm(false);
-        setTimeout(() => setPosted(false), 2000);
-        fetchItems();
-        track('campus_content_post', postType);
-      } else {
-        const err = await res.json().catch(() => ({ error: 'Failed' }));
-        alert(err.error || 'Failed to post. Check your pastor code.');
-      }
-    } catch { alert('Network error. Please try again.'); }
-    setPosting(false);
-  };
-
   if (!campus) {
+    // The moment of highest intent — offer the actual picker here instead of
+    // a text instruction pointing at the Settings tab.
     return (
       <div style={{ padding: '32px 24px', textAlign: 'center' }}>
         <MapPin size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-        <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', lineHeight: 1.5 }}>
-          {t("select_campus_settings", lang)}
+        <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', lineHeight: 1.5, marginBottom: 16 }}>
+          {t('choose_campus_here', lang)}
         </p>
-        <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 8 }}>
-          Tap the Settings tab below to choose your campus.
-        </p>
+        <div style={{ textAlign: 'left' }}>
+          <CampusSelect
+            value=""
+            onChange={campusId => {
+              if (!campusId) return;
+              if (userProfile) {
+                saveProfile({ ...userProfile, campus: campusId });
+              } else {
+                requireEmail();
+              }
+            }}
+          />
+        </div>
       </div>
     );
   }
 
   // Type config: label, color, icon emoji
   const typeConfig: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-    announcement: { label: t('msg_announcement', lang), color: '#D97706', bg: 'rgba(217,119,6,0.10)', icon: '' },
-    sermon_note:  { label: t('msg_sermon_note', lang),  color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', icon: '' },
+    announcement: { label: t('msg_announcement', lang), color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
+    sermon_note:  { label: t('msg_sermon_note', lang),  color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
     essay:        { label: t('msg_essay', lang),         color: 'var(--dw-info)', bg: 'rgba(37,99,235,0.10)', icon: '' },
     note:         { label: t('msg_note', lang),          color: 'var(--dw-text-muted)', bg: 'var(--dw-surface-hover)', icon: '' },
-    prayer_point: { label: t('msg_prayer_point', lang),  color: '#059669', bg: 'rgba(5,150,105,0.10)', icon: '' },
-    video:        { label: t('msg_video', lang),         color: '#DC2626', bg: 'rgba(220,38,38,0.10)', icon: '' },
+    prayer_point: { label: t('msg_prayer_point', lang),  color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
+    video:        { label: t('msg_video', lang),         color: 'var(--dw-accent)', bg: 'var(--dw-accent-bg)', icon: '' },
   };
 
   return (
     <div style={{ padding: '0 24px 24px' }}>
-      {/* Pastor post button */}
-      {isPastor && !showPostForm && (
-        <button
-          onClick={() => setShowPostForm(true)}
-          style={{
-            width: '100%', padding: '14px 16px', borderRadius: 14,
-            background: 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
-            border: 'none', color: '#fff',
-            fontSize: 15, fontWeight: 700, cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', marginBottom: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: '0 2px 12px rgba(168,50,59,0.3)',
-          }}
-        >
-          <Plus size={18} /> Post to Your Campus
-        </button>
-      )}
-
-      {/* Post form */}
-      {isPastor && showPostForm && (
-        <div style={{
-          marginBottom: 20, padding: '20px',
-          background: 'var(--dw-card)', borderRadius: 16,
-          border: '1px solid var(--dw-border)',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)' }}>
-              New Post
-            </span>
-            <button onClick={() => setShowPostForm(false)} style={{
-              background: 'var(--dw-surface-hover)', border: 'none', cursor: 'pointer',
-              color: 'var(--dw-text-muted)', padding: '4px 8px', borderRadius: 6,
-              fontSize: 12, fontFamily: 'var(--font-sans)',
-            }}>
-              Cancel
-            </button>
-          </div>
-
-          {/* Type selector */}
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Type
-          </p>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-            {['announcement', 'sermon_note', 'essay', 'prayer_point'].map(t => {
-              const tc = typeConfig[t];
-              const active = postType === t;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setPostType(t)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 20,
-                    border: `1.5px solid ${active ? tc.color : 'var(--dw-border)'}`,
-                    background: active ? tc.bg : 'transparent',
-                    color: active ? tc.color : 'var(--dw-text-muted)',
-                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', transition: 'all 0.15s',
-                  }}
-                >
-                  {tc.icon} {tc.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <input
-            value={postTitle}
-            onChange={e => setPostTitle(e.target.value)}
-            placeholder={t('title_placeholder', lang)}
-            style={{
-              width: '100%', padding: '12px 14px', borderRadius: 12,
-              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 15, fontWeight: 600,
-              fontFamily: 'var(--font-sans)', marginBottom: 10, outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          <textarea
-            value={postContent}
-            onChange={e => setPostContent(e.target.value)}
-            placeholder={t('write_message_placeholder', lang)}
-            rows={5}
-            style={{
-              width: '100%', padding: '12px 14px', borderRadius: 12,
-              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-serif-text)',
-              marginBottom: 10, outline: 'none', resize: 'none',
-              boxSizing: 'border-box', lineHeight: 1.6,
-            }}
-          />
-          <input
-            value={pastorCode}
-            onChange={e => setPastorCode(e.target.value)}
-            placeholder={t('enter_pastor_code_placeholder', lang)}
-            type="password"
-            style={{
-              width: '100%', padding: '12px 14px', borderRadius: 12,
-              border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
-              color: 'var(--dw-text)', fontSize: 14, fontFamily: 'var(--font-sans)',
-              marginBottom: 14, outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-          <button
-            onClick={handlePost}
-            disabled={posting || !postTitle.trim() || !postContent.trim() || !pastorCode.trim()}
-            style={{
-              width: '100%', padding: '14px', borderRadius: 14,
-              background: posting ? 'var(--dw-border)' : 'linear-gradient(135deg, var(--dw-accent), #8C2830)',
-              border: 'none', color: '#fff', fontSize: 15, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'var(--font-sans)',
-              opacity: (!postTitle.trim() || !postContent.trim() || !pastorCode.trim()) ? 0.5 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          >
-            {posting ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Publishing...</> : <><Send size={16} /> Publish</>}
-          </button>
-        </div>
-      )}
-
-      {posted && (
-        <div style={{
-          textAlign: 'center', padding: '10px 16px', marginBottom: 14,
-          background: 'rgba(37,99,235,0.08)', borderRadius: 10,
-          color: 'var(--dw-info)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
-        }}>
-          <CheckCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Published to your campus!
-        </div>
-      )}
+      <a
+        href={staffPortalUrl()}
+        style={{
+          display: 'block', marginBottom: 16, padding: '10px 14px',
+          borderRadius: 12, border: '1px solid var(--dw-border)',
+          background: 'var(--dw-card)', color: 'var(--dw-text-muted)',
+          fontSize: 12, fontFamily: 'var(--font-sans)', lineHeight: 1.45,
+          textDecoration: 'none',
+        }}
+      >
+        {t('pastors_submit_staff', lang)}
+      </a>
 
       {/* Content list */}
       {loading ? (
@@ -413,12 +262,24 @@ function PastorsCornerPanel({ userProfile, setup }: { userProfile: any; setup: a
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export function MessagesScreen({ onBack }: { onBack?: () => void }) {
-  const { userProfile, requireEmail, setup } = useUser();
+export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
+  const { userProfile, requireEmail } = useUser();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
-  const [activeTab, setActiveTab] = useState<'pastor' | 'notes' | 'prayer'>('pastor');
+  // 'notes' (Sermons) sub-tab retired (Ashley, 26 Aug 2026): it was a stranded
+  // third sermon-note surface — sermon notes live in Notes → Sermon now.
+  const [activeTab, setActiveTab] = useState<'pastor' | 'prayer'>('pastor');
+
+  // Re-tap of the Campus tab in the tab bar → back to the tab's root state.
+  useEffect(() => {
+    const onReset = () => {
+      setActiveTab('pastor');
+      document.querySelector('.screen-container')?.scrollTo({ top: 0 });
+    };
+    window.addEventListener('dw-tab-reset', onReset);
+    return () => window.removeEventListener('dw-tab-reset', onReset);
+  }, []);
 
   return (
     <div className="screen-container">
@@ -436,7 +297,7 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
           background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
           border: '1px solid var(--dw-border)',
         }}>
-          {(['pastor', 'notes', 'prayer'] as const).map(tab => (
+          {(['pastor', 'prayer'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               flex: 1, padding: '10px 0',
               background: activeTab === tab ? 'var(--dw-accent)' : 'transparent',
@@ -445,534 +306,39 @@ export function MessagesScreen({ onBack }: { onBack?: () => void }) {
               fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
               transition: 'all 0.2s ease',
             }}>
-              {tab === 'pastor' ? t("pastors_corner", lang) : tab === 'notes' ? t("sermons", lang) : t("prayer_wall", lang)}
+              {tab === 'pastor' ? t("pastors_corner", lang) : t("prayer_wall", lang)}
             </button>
           ))}
         </div>
       </div>
 
+      {/* One-line pointer — sermon notes moved off Notes onto Home / the
+          dedicated Sunday screen. */}
+      <button
+        onClick={() => onNavigate?.('sermon-notes')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: 'calc(100% - 48px)',
+          margin: '0 24px 12px', padding: '10px 14px',
+          background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+          borderRadius: 10, cursor: 'pointer', textAlign: 'left', minHeight: 40,
+        }}
+      >
+        <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', flex: 1 }}>
+          {t('sermon_notes_moved', lang)}
+        </span>
+        <span style={{ color: 'var(--dw-text-faint)', fontSize: 12 }}>→</span>
+      </button>
+
       {activeTab === 'pastor'
-        ? <PastorsCornerPanel userProfile={userProfile} setup={setup} />
-        : activeTab === 'notes'
-        ? <SermonNotesPanel userProfile={userProfile} requireEmail={requireEmail} />
+        ? <PastorsCornerPanel userProfile={userProfile} />
         : <PrayerWallPanel userProfile={userProfile} requireEmail={requireEmail} />
       }
 
+      <PromoAds />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
-
-// ── Sermon Detail View (generous spacing, always-open note areas under every section) ──
-function SermonDetailView({ sermon, onBack }: { sermon: SermonData; onBack: () => void }) {
-  const lang = getLang();
-  // Inline notes per section — keyed by section index, persisted
-  const storageKey = `dw_sermon_inline_${sermon.id}`;
-  const [inlineNotes, setInlineNotes] = useState<Record<number, string>>(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { return {}; }
-  });
-
-  const updateNote = (idx: number, text: string) => {
-    const next = { ...inlineNotes, [idx]: text };
-    if (!text.trim()) delete next[idx];
-    setInlineNotes(next);
-    localStorage.setItem(storageKey, JSON.stringify(next));
-  };
-
-  // Auto-resize textareas
-  const autoResize = (el: HTMLTextAreaElement) => {
-    el.style.height = 'auto';
-    el.style.height = Math.max(el.scrollHeight, 100) + 'px';
-  };
-
-  const [saved, setSaved] = useState(false);
-
-  const handleSaveToJournal = () => {
-    // Build full content: sermon + user notes
-    let body = `${sermon.speaker} · ${new Date(sermon.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n`;
-    if (sermon.keyVerseText) body += `Key Verse: ${sermon.keyVerseText}\n\n`;
-
-    sermon.sections.forEach((section, i) => {
-      if (section.heading) body += `── ${section.heading} ──\n`;
-      if (section.body) body += `${section.body}\n`;
-      if (section.points) {
-        section.points.forEach((point, k) => {
-          body += `  • ${point}\n`;
-          const pointNoteKey = i * 100 + k;
-          if (inlineNotes[pointNoteKey]) body += `  [My notes] ${inlineNotes[pointNoteKey]}\n`;
-        });
-      }
-      if (section.scripture) {
-        if (section.scriptureRef) body += `\n${section.scriptureRef}\n`;
-        body += `${section.scripture}\n`;
-      }
-      if (inlineNotes[i]) body += `\n[My notes] ${inlineNotes[i]}\n`;
-      body += '\n';
-    });
-
-    // Read existing journal, add entry, save
-    let entries = [];
-    try { entries = JSON.parse(localStorage.getItem('dw_journal') || '[]'); } catch { entries = []; }
-
-    const entry = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      date: new Date().toISOString().slice(0, 10),
-      title: sermon.title,
-      body: body.trim(),
-      tags: ['sermon'],
-      type: 'sermon' as const,
-    };
-
-    entries.unshift(entry);
-    localStorage.setItem('dw_journal', JSON.stringify(entries));
-    window.dispatchEvent(new Event('dw-journal-updated'));
-
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
-
-  const handleShare = () => {
-    // Build share text including user notes
-    let shareText = `${sermon.title}\n${sermon.speaker}\n\n${sermon.keyVerseText}\n`;
-    sermon.sections.forEach((section, i) => {
-      if (section.heading) shareText += `\n${section.heading}\n`;
-      if (section.body) shareText += `${section.body}\n`;
-      if (section.scripture) shareText += `\n${section.scripture}\n`;
-      if (inlineNotes[i]) shareText += `\nMy notes: ${inlineNotes[i]}\n`;
-    });
-    if (navigator.share) {
-      navigator.share({ text: shareText }).catch(() => {});
-    } else {
-      window.open('mailto:?subject=' + encodeURIComponent(sermon.title) + '&body=' + encodeURIComponent(shareText));
-    }
-  };
-
-  return (
-    <div style={{ padding: '0 0 140px' }}>
-      {/* Back + Share row */}
-      <div style={{ padding: '0 24px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button aria-label={t('back', lang)} onClick={onBack} style={{
-          display: 'flex', alignItems: 'center', gap: 4,
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--dw-accent)', fontSize: 14, fontWeight: 600,
-          fontFamily: 'var(--font-sans)', padding: '6px 8px 6px 2px', borderRadius: 8,
-        }}>
-          <ChevronLeft size={20} /> {t('back', lang)}
-        </button>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={handleSaveToJournal} disabled={saved} style={{
-            display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
-            background: saved ? 'rgba(154,123,46,0.15)' : 'none',
-            border: `1px solid ${saved ? 'var(--dw-accent)' : 'var(--dw-border)'}`,
-            borderRadius: 8, cursor: saved ? 'default' : 'pointer',
-            color: saved ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
-            fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
-            transition: 'all 0.2s ease',
-          }}>
-            {saved ? <CheckCircle size={13} /> : <Save size={13} />}
-            {saved ? t('saved_label', getLang()) : t('save_to_notes_btn', getLang())}
-          </button>
-          <button onClick={handleShare} style={{
-            display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px',
-            background: 'none', border: '1px solid var(--dw-border)',
-            borderRadius: 8, cursor: 'pointer', color: 'var(--dw-text-muted)',
-            fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
-          }}>
-            <Share2 size={13} /> Share
-          </button>
-        </div>
-      </div>
-
-      {/* ── Title block ── */}
-      <div style={{ padding: '0 24px', marginBottom: 32 }}>
-        {sermon.series && (
-          <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
-            {sermon.series}
-          </p>
-        )}
-        <h1 style={{ fontSize: 32, fontWeight: 400, fontFamily: 'var(--font-serif)', color: 'var(--dw-text-primary)', margin: '0 0 10px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
-          {sermon.title}
-        </h1>
-        <p style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-          {sermon.speaker} · {CAMPUS_LABELS[sermon.campus] || sermon.campus} · {new Date(sermon.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-        </p>
-      </div>
-
-      {/* ── Key Verse ── */}
-      <div style={{ margin: '0 24px 36px', padding: '24px 20px', borderRadius: 16, background: 'var(--dw-card)', borderLeft: '4px solid var(--dw-accent)' }}>
-        <p style={{ fontSize: 19, lineHeight: 1.8, fontFamily: 'var(--font-serif-text)', color: 'var(--dw-text-primary)', fontStyle: 'normal', margin: 0 }}>
-          {sermon.keyVerseText}
-        </p>
-      </div>
-
-
-      {/* ── Sections with generous note areas ── */}
-      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {sermon.sections.map((section, i) => (
-          <div key={i} style={{ marginBottom: 12 }}>
-
-            {/* Section heading — large serif */}
-            {section.heading && (
-              <h2 style={{
-                fontSize: 26, fontWeight: 400, fontFamily: 'var(--font-serif)',
-                color: 'var(--dw-text-primary)', margin: '0 0 16px', lineHeight: 1.25,
-                letterSpacing: '-0.01em',
-              }}>
-                {section.heading}
-              </h2>
-            )}
-
-            {/* Body paragraphs */}
-            {section.body ? section.body.split('\n').map((line, j) => {
-              if (!line.trim()) return <div key={j} style={{ height: 14 }} />;
-              return (
-                <p key={j} style={{
-                  fontSize: 18, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
-                  color: 'var(--dw-text-primary)', marginBottom: 14,
-                }}>
-                  {line}
-                </p>
-              );
-            }) : null}
-
-            {/* Numbered points — each with its own note area */}
-            {section.points && (
-              <div style={{ margin: '8px 0', display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {section.points.map((point, k) => {
-                  const dashIdx = point.indexOf(' \u2014 ');
-                  const label = dashIdx > -1 ? point.slice(0, dashIdx) : point;
-                  const desc = dashIdx > -1 ? point.slice(dashIdx + 3) : '';
-                  const pointNoteKey = i * 100 + k; // unique key per point
-                  return (
-                    <div key={k} style={{ marginBottom: 8 }}>
-                      <div style={{ paddingLeft: 20, borderLeft: '2px solid var(--dw-accent)', paddingTop: 4, paddingBottom: 4 }}>
-                        <p style={{ fontWeight: 700, fontSize: 18, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', margin: '0 0 4px' }}>
-                          {label}
-                        </p>
-                        {desc && (
-                          <p style={{ fontSize: 17, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-serif-text)', margin: 0, lineHeight: 1.7 }}>
-                            {desc}
-                          </p>
-                        )}
-                      </div>
-                      {/* Note area under each point */}
-                      <textarea
-                        value={inlineNotes[pointNoteKey] || ''}
-                        onChange={e => { updateNote(pointNoteKey, e.target.value); autoResize(e.target); }}
-                        onFocus={e => autoResize(e.target)}
-                        placeholder={t('your_notes_placeholder', getLang())}
-                        style={{
-                          width: '100%', minHeight: 100, marginTop: 10,
-                          background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                          borderRadius: 12, padding: '14px 16px',
-                          color: 'var(--dw-text-primary)', fontSize: 17,
-                          fontFamily: 'var(--font-sans)', outline: 'none',
-                          resize: 'none', boxSizing: 'border-box',
-                          lineHeight: 1.7, transition: 'border-color 0.2s',
-                        }}
-                        onBlur={e => e.target.style.borderColor = 'var(--dw-border)'}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Scripture — italic, indented, gold border */}
-            {section.scripture && (
-              <div style={{ margin: '20px 0 8px', padding: '20px 22px', borderLeft: '3px solid var(--dw-accent)', background: 'rgba(154,123,46,0.04)', borderRadius: '0 12px 12px 0' }}>
-                {section.scriptureRef && (
-                  <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', marginBottom: 10 }}>
-                    {section.scriptureRef}
-                  </p>
-                )}
-                {(() => {
-                  const verses = section.scripture!.split('\n\n');
-                  return verses.map((verse, v) => (
-                    <p key={v} style={{
-                      fontSize: 18, lineHeight: 1.85, fontFamily: 'var(--font-serif-text)',
-                      color: 'var(--dw-text-primary)', fontStyle: 'normal',
-                      marginBottom: v < verses.length - 1 ? 14 : 0,
-                    }}>
-                      {verse}
-                    </p>
-                  ));
-                })()}
-              </div>
-            )}
-
-            {/* ── Always-visible note area under every section ── */}
-            <textarea
-              value={inlineNotes[i] || ''}
-              onChange={e => { updateNote(i, e.target.value); autoResize(e.target); }}
-              onFocus={e => autoResize(e.target)}
-              placeholder={t('your_notes_placeholder', getLang())}
-              style={{
-                width: '100%', minHeight: 100, marginTop: 16,
-                background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                borderRadius: 12, padding: '14px 16px',
-                color: 'var(--dw-text-primary)', fontSize: 17,
-                fontFamily: 'var(--font-sans)', outline: 'none',
-                resize: 'none', boxSizing: 'border-box',
-                lineHeight: 1.7, transition: 'border-color 0.2s',
-              }}
-              onBlur={e => e.target.style.borderColor = 'var(--dw-border)'}
-            />
-
-            {/* Section divider */}
-            {i < sermon.sections.length - 1 && (
-              <div style={{ marginTop: 24, marginBottom: 24, borderBottom: '1px solid var(--dw-border)' }} />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* ── Bottom Save to Notes + Share ── */}
-      <div style={{
-        padding: '32px 24px 24px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center',
-      }}>
-        <button onClick={handleSaveToJournal} disabled={saved} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          width: '100%', maxWidth: 360, padding: '14px 24px',
-          background: saved ? 'rgba(154,123,46,0.15)' : 'var(--dw-accent)',
-          border: 'none', borderRadius: 12, cursor: saved ? 'default' : 'pointer',
-          color: saved ? 'var(--dw-accent)' : '#fff',
-          fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)',
-          transition: 'all 0.2s ease',
-        }}>
-          {saved ? <CheckCircle size={18} /> : <Save size={18} />}
-          {saved ? t('saved_label', getLang()) : t('save_to_notes_btn', getLang())}
-        </button>
-        <button onClick={handleShare} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          width: '100%', maxWidth: 360, padding: '12px 24px',
-          background: 'none', border: '1px solid var(--dw-border)',
-          borderRadius: 12, cursor: 'pointer', color: 'var(--dw-text-muted)',
-          fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
-        }}>
-          <Share2 size={15} /> Share Notes
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Sermon Notes Panel ─────────────────────────────────────────────────────────
-function SermonNotesPanel({
-  userProfile,
-  requireEmail,
-}: {
-  userProfile: { email?: string; name?: string; campus?: string } | null;
-  requireEmail: (cb?: () => void) => void;
-}) {
-  const [notes, setNotes] = useState<SermonNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: '', sermon: '', content: '' });
-  const [viewingSermon, setViewingSermon] = useState<SermonData | null>(null);
-
-  const loadNotes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const storedNotes = localStorage.getItem('dw_sermon_notes');
-      if (storedNotes) setNotes(JSON.parse(storedNotes));
-    } catch { /* empty */ }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { loadNotes(); }, [loadNotes]);
-
-  // Auto-open sermon from HomeScreen shortcut
-  useEffect(() => {
-    const pendingId = localStorage.getItem('dw_open_sermon_id');
-    if (pendingId) {
-      localStorage.removeItem('dw_open_sermon_id');
-      const found = PRELOADED_SERMONS.find(s => s.id === pendingId);
-      if (found) setViewingSermon(found);
-    }
-  }, []);
-
-  const saveNote = async () => {
-    if (!formData.title.trim() || !formData.content.trim()) return;
-    if (!userProfile?.email) { requireEmail(); return; }
-    const newNote: SermonNote = {
-      id: editingId || Date.now().toString(),
-      title: formData.title, sermon: formData.sermon,
-      content: formData.content, date: new Date().toISOString().slice(0, 10),
-    };
-    const updated = editingId ? notes.map(n => n.id === editingId ? newNote : n) : [newNote, ...notes];
-    setNotes(updated);
-    localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
-    pushNow(); // back up sermon notes to the cloud (misc bag)
-    setFormData({ title: '', sermon: '', content: '' });
-    setShowForm(false);
-    setEditingId(null);
-  };
-
-  const deleteNote = (id: string) => {
-    const updated = notes.filter(n => n.id !== id);
-    setNotes(updated);
-    localStorage.setItem('dw_sermon_notes', JSON.stringify(updated));
-    pushNow();
-  };
-
-  const editNote = (note: SermonNote) => {
-    setFormData({ title: note.title, sermon: note.sermon || '', content: note.content });
-    setEditingId(note.id);
-    setShowForm(true);
-  };
-
-  // If viewing a full sermon detail
-  if (viewingSermon) {
-    return <SermonDetailView sermon={viewingSermon} onBack={() => setViewingSermon(null)} />;
-  }
-
-  return (
-    <div style={{ padding: '0 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', margin: 0 }}>
-          Capture insights from sermons and teachings
-        </p>
-        <button
-          className="dw-btn-primary"
-          style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-          onClick={() => {
-            if (!userProfile?.email) { requireEmail(); return; }
-            setFormData({ title: '', sermon: '', content: '' });
-            setEditingId(null);
-            setShowForm(true);
-          }}
-        >
-          <Plus size={14} /> New Note
-        </button>
-      </div>
-
-      {showForm && (
-        <Card style={{ marginBottom: 20 }}>
-          <h2 className="text-section-header" style={{ marginBottom: 12 }}>
-            {editingId ? 'EDIT NOTE' : 'NEW SERMON NOTE'}
-          </h2>
-          {[
-            { placeholder: 'Note title...', key: 'title', fontSize: 14 },
-            { placeholder: 'Sermon title (optional)...', key: 'sermon', fontSize: 13 },
-          ].map(({ placeholder, key, fontSize }) => (
-            <input key={key} type="text" placeholder={placeholder} value={(formData as Record<string, string>)[key]}
-              onChange={e => setFormData({ ...formData, [key]: e.target.value })}
-              style={{
-                width: '100%', background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-                borderRadius: 10, padding: '12px 14px', color: 'var(--dw-text-primary)',
-                fontSize, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 12, minHeight: 44,
-                boxSizing: 'border-box',
-              }}
-            />
-          ))}
-          <textarea placeholder={t('write_notes', getLang())} value={formData.content}
-            onChange={e => setFormData({ ...formData, content: e.target.value })}
-            style={{
-              width: '100%', minHeight: 120, background: 'var(--dw-surface)',
-              border: '1px solid var(--dw-border)', borderRadius: 10, padding: 12,
-              color: 'var(--dw-text-primary)', fontSize: 14, fontFamily: 'var(--font-sans)',
-              outline: 'none', resize: 'vertical', marginBottom: 12, boxSizing: 'border-box',
-            }}
-          />
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button onClick={() => { setShowForm(false); setEditingId(null); setFormData({ title: '', sermon: '', content: '' }); }}
-              className="dw-btn-secondary" style={{ fontSize: 13, padding: '8px 16px' }}>Cancel</button>
-            <button onClick={saveNote} disabled={!formData.title.trim() || !formData.content.trim()}
-              className="dw-btn-primary"
-              style={{ fontSize: 13, padding: '8px 16px', opacity: !formData.title.trim() || !formData.content.trim() ? 0.5 : 1 }}>
-              {editingId ? 'Update' : 'Save'}
-            </button>
-          </div>
-        </Card>
-      )}
-
-      {/* ── Pre-loaded Sermons from Leadership ── */}
-      {PRELOADED_SERMONS.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <h2 className="text-section-header" style={{ marginBottom: 10 }}>FROM YOUR PASTORS</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {PRELOADED_SERMONS.map(sermon => (
-              <Card key={sermon.id} onClick={() => setViewingSermon(sermon)}
-                style={{ cursor: 'pointer', borderLeft: '3px solid var(--dw-accent)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-                    background: 'var(--dw-accent-bg, rgba(200,146,14,0.12))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <BookOpen size={18} color="var(--dw-accent)" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0, lineHeight: 1.3 }}>
-                      {sermon.title}
-                    </p>
-                    <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '3px 0 0' }}>
-                      {sermon.speaker} · {new Date(sermon.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                    </p>
-                  </div>
-                  <ChevronLeft size={16} style={{ transform: 'rotate(180deg)', color: 'var(--dw-text-faint)', flexShrink: 0 }} />
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── User's own notes ── */}
-      {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0', gap: 8 }}>
-          <Loader2 size={18} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-          <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading notes...</span>
-        </div>
-      ) : notes.length === 0 ? (
-        <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
-          <Pencil size={24} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-            No personal sermon notes yet. Create your first one!
-          </p>
-        </Card>
-      ) : (
-        <>
-          <h2 className="text-section-header" style={{ marginBottom: 10 }}>MY NOTES</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {notes.map(note => (
-              <Card key={note.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <p className="text-card-title">{note.title}</p>
-                    {note.sermon && (
-                      <p style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>{note.sermon}</p>
-                    )}
-                    <p style={{ color: 'var(--dw-text-muted)', fontSize: 11, fontFamily: 'var(--font-sans)', marginTop: 4 }}>{formatDate(note.date)}</p>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
-                    {[
-                      { fn: () => editNote(note), icon: <Pencil size={14} />, bg: 'var(--dw-accent-bg)', color: 'var(--dw-accent)' },
-                      { fn: () => { if (window.confirm('Delete this sermon note?')) deleteNote(note.id); }, icon: <Trash2 size={14} />, bg: 'var(--dw-border)', color: 'var(--dw-text-muted)' },
-                    ].map(({ fn, icon, bg, color }, i) => (
-                      <button key={i} onClick={fn} style={{
-                        background: bg, border: 'none', borderRadius: 8, padding: '8px 12px',
-                        color, cursor: 'pointer', display: 'flex', alignItems: 'center', minHeight: 36,
-                      }}>{icon}</button>
-                    ))}
-                  </div>
-                </div>
-                {note.content && (
-                  <p style={{ color: 'var(--dw-text-secondary)', fontSize: 13, lineHeight: 1.6, fontFamily: 'var(--font-sans)', whiteSpace: 'pre-wrap' }}>
-                    {note.content.slice(0, 150)}{note.content.length > 150 ? '...' : ''}
-                  </p>
-                )}
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 // ── Prayer Wall Panel ──────────────────────────────────────────────────────────
 function PrayerWallPanel({
   userProfile,
@@ -982,6 +348,8 @@ function PrayerWallPanel({
   requireEmail: (cb?: () => void) => void;
 }) {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
+  const [lang, setLang] = useState(getLang());
+  useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   const [loading, setLoading] = useState(true);
   const [prayerError, setPrayerError] = useState(false);
   const [filter, setFilter] = useState<'all' | 'my-campus'>('all');
@@ -1051,7 +419,7 @@ function PrayerWallPanel({
               border: `1px solid ${filter === f ? 'var(--dw-accent)' : 'var(--dw-border)'}`,
               transition: 'all 0.15s ease',
             }}>
-              {f === 'all' ? 'All Campuses' : (campusName || 'My Campus')}
+              {f === 'all' ? t('all_campuses', lang) : (campusName || t('my_campus', lang))}
             </button>
           ))}
         </div>
@@ -1067,7 +435,7 @@ function PrayerWallPanel({
             if (!userProfile?.email) { requireEmail(() => {}); return; }
             setShowForm(v => !v);
           }} className="dw-btn-primary" style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Plus size={14} /> Add Prayer
+            <Plus size={14} /> {t('add_prayer', lang)}
           </button>
         </div>
       </div>
@@ -1075,7 +443,7 @@ function PrayerWallPanel({
       {/* New prayer form */}
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
-          <h2 className="text-section-header" style={{ marginBottom: 10 }}>SHARE A PRAYER REQUEST</h2>
+          <h2 className="text-section-header" style={{ marginBottom: 10 }}>{t('share_prayer_request', lang)}</h2>
           <textarea
             placeholder={t('pray_placeholder', getLang())}
             value={prayerText}
@@ -1095,18 +463,18 @@ function PrayerWallPanel({
               style={{ cursor: 'pointer', width: 18, height: 18 }}
             />
             <label style={{ fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-primary)', cursor: 'pointer' }}>
-              Post anonymously
+              {t('post_anonymously', lang)}
             </label>
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button onClick={() => { setShowForm(false); setPrayerText(''); setIsAnonymous(false); }}
-              className="dw-btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }}>Cancel</button>
+              className="dw-btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }}>{t('cancel_label', lang)}</button>
             <button onClick={handleSubmit} disabled={!prayerText.trim() || submitting}
               className="dw-btn-primary"
               style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 5,
                 opacity: !prayerText.trim() || submitting ? 0.5 : 1 }}>
               {submitting ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={13} />}
-              {submitting ? 'Posting…' : 'Post'}
+              {submitting ? t('posting_label', lang) : t('post_label', lang)}
             </button>
           </div>
         </Card>
@@ -1123,7 +491,7 @@ function PrayerWallPanel({
             textAlign: 'center', fontSize: 11, color: 'var(--dw-text-muted)',
             fontFamily: 'var(--font-sans)', marginTop: 8, fontStyle: 'normal',
           }}>
-            {prayers.length} prayer request{prayers.length !== 1 ? 's' : ''} across the global church
+            {prayers.length === 1 ? t('prayer_count_one', lang) : t('prayer_count_many', lang).replace('{n}', String(prayers.length))}
           </p>
         )}
       </div>
@@ -1132,25 +500,25 @@ function PrayerWallPanel({
       {loading && prayers.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: 8 }}>
           <Loader2 size={18} style={{ color: 'var(--dw-accent)', animation: 'spin 1s linear infinite' }} />
-          <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading prayer wall…</span>
+          <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>{t('loading_prayer_wall', lang)}</span>
         </div>
       ) : prayerError ? (
         <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-            Could not load prayers. Check your connection.
+            {t('prayers_load_error', lang)}
           </p>
           <button onClick={load} style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, background: 'var(--dw-accent)', color: '#fff', border: 'none', fontSize: 13, fontFamily: 'var(--font-sans)', cursor: 'pointer' }}>
-            Try Again
+            {t('try_again', lang)}
           </button>
         </Card>
       ) : prayers.length === 0 ? (
         <Card style={{ textAlign: 'center', padding: '32px 16px' }}>
           <HandHeart size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)' }}>
-            {filter === 'my-campus' ? 'No prayer requests from your campus yet.' : 'No prayer requests yet.'}
+            {filter === 'my-campus' ? t('no_prayers_campus', lang) : t('no_prayers_yet', lang)}
           </p>
           <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 6 }}>
-            Be the first to share one.
+            {t('be_first_share', lang)}
           </p>
         </Card>
       ) : (
@@ -1178,7 +546,7 @@ function PrayerWallPanel({
                     transition: 'all 0.2s ease',
                   }}>
                     <Heart size={12} fill={hasPrayed ? 'currentColor' : 'none'} />
-                    {prayer.prayerCount > 0 ? prayer.prayerCount : ''} {hasPrayed ? 'Praying' : 'Pray'}
+                    {prayer.prayerCount > 0 ? prayer.prayerCount : ''} {hasPrayed ? t('praying_label', lang) : t('pray_label', lang)}
                   </button>
                 </div>
                 <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-sans)', margin: 0 }}>
@@ -1194,13 +562,3 @@ function PrayerWallPanel({
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function formatDate(isoStr: string): string {
-  try {
-    const d = new Date(isoStr);
-    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  } catch { return 'Recently'; }
-}

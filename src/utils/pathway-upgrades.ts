@@ -1,8 +1,12 @@
 /**
- * Pathway Upgrade System — "Ready for More?"
- * Checks conditions for when a user might benefit from a different persona,
- * and provides gentle prompts to upgrade/transition.
+ * Pathway Upgrade System
+ * Gentle prompts when a user might benefit from a different persona.
+ * new_to_faith is intentionally omitted — I'm New stays until they change
+ * path themselves in Settings / the path picker. Do not re-add a
+ * new_to_faith → congregation prompt; getDaysActive() is since dw_first_open,
+ * not since they chose I'm New, so it interrupts the 40-day journey.
  */
+import { isNewChristianPersona } from './persona-config';
 import type { Persona } from './persona-config';
 
 interface UpgradeCondition {
@@ -43,23 +47,7 @@ function getDaysActive(): number {
   } catch { return 0; }
 }
 
-function isFaithPathwayCompleted(): boolean {
-  try {
-    const progress = JSON.parse(localStorage.getItem('dw_pathway_progress') || '{}');
-    const completedDays: number[] = progress.completedDays || [];
-    // Faith pathway has 40 days
-    return completedDays.length >= 40;
-  } catch { return false; }
-}
-
 export const UPGRADE_CONDITIONS: UpgradeCondition[] = [
-  {
-    from: 'new_to_faith',
-    to: 'congregation',
-    label: 'Ready for More?',
-    description: "You've been growing in your faith. Ready to explore more of the Daily Word experience?",
-    check: () => isFaithPathwayCompleted() || getDaysActive() >= 60,
-  },
   {
     from: 'congregation',
     to: 'deeper_study',
@@ -81,6 +69,9 @@ export const UPGRADE_CONDITIONS: UpgradeCondition[] = [
  * Returns the upgrade condition if eligible and not dismissed, null otherwise.
  */
 export function checkForUpgrade(currentPersona: string): UpgradeCondition | null {
+  // I'm New / New Christian stays on that path until they change it themselves.
+  if (isNewChristianPersona(currentPersona)) return null;
+
   // Check if user has dismissed this upgrade
   const dismissedKey = `dw_upgrade_dismissed_${currentPersona}`;
   const dismissed = localStorage.getItem(dismissedKey);

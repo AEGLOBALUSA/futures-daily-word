@@ -1,5 +1,5 @@
 // Build: 2026-03-18T10:55:15.514226
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -11,16 +11,20 @@ import { pushNow, syncMisc, flushNow } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
-import { API_BASE } from '../utils/api-base';
+import { API_BASE, staffPortalUrl } from '../utils/api-base';
+import { CampusSelect } from '../components/CampusSelect';
+import { useSubView } from '../utils/useSubView';
+import { PromoAds } from '../components/PromoAds';
+import { PWAInstallSettingsBlock } from '../components/PWAInstall';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
-  Download, Languages, MapPin, Heart, ChevronDown,
-  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send
+  Download, Languages, MapPin, Heart,
+  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send, ClipboardList
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
-import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
+import { ALL_PERSONAS, PERSONA_CONFIGS, isNewChristianPersona } from '../utils/persona-config';
 import { t, getLang, setLangPref } from '../utils/i18n';
 
 // Bible translations filtered by selected language
@@ -86,6 +90,34 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [showPollDashboard, setShowPollDashboard] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [pollAdminCode, setPollAdminCode] = useState('');
+  // Admin section: which row's inline code entry is open, the entered code
+  // (prefilled from the remembered campus pastor code), and whether the
+  // Administrator row was revealed by long-pressing the version line.
+  const [adminTarget, setAdminTarget] = useState<'polls' | 'analytics' | null>(null);
+  const [adminCodeInput, setAdminCodeInput] = useState<string>(() => {
+    try { return localStorage.getItem('dw_pastor_code') || ''; } catch { return ''; }
+  });
+  const [adminRevealed, setAdminRevealed] = useState(false);
+  const adminHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Back-gesture support: each full-screen sub-view owns one history entry
+  // while open, so Android back / back-swipe closes it instead of leaving the tab.
+  useSubView(showLibrary, () => setShowLibrary(false));
+  useSubView(showPollDashboard, () => setShowPollDashboard(false));
+  useSubView(showAnalytics, () => setShowAnalytics(false));
+
+  // Re-tap of the Settings tab in the tab bar → return to the section root.
+  useEffect(() => {
+    const onReset = () => {
+      setShowLibrary(false);
+      setShowPollDashboard(false);
+      setShowAnalytics(false);
+      setAdminTarget(null);
+      document.querySelector('.screen-container')?.scrollTo({ top: 0 });
+    };
+    window.addEventListener('dw-tab-reset', onReset);
+    return () => window.removeEventListener('dw-tab-reset', onReset);
+  }, []);
 
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName}${userProfile.lastName ? ' ' + userProfile.lastName : ''}`
@@ -95,7 +127,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const fontSizePx = parseInt(localStorage.getItem('dw_font_size') || '15', 10);
   const kjvDownloaded = localStorage.getItem('dw_kjv_downloaded') === 'true';
   const [chaptersPerDay, setChaptersPerDay] = useState<number>(() => {
-    return parseInt(localStorage.getItem('dw_chapters_per_day') || '3', 10);
+    // Default 1 (not 3): with no stored choice, 3 queued THREE plan days as
+    // "today" for every default-config user. Users who chose a cadence keep it.
+    return parseInt(localStorage.getItem('dw_chapters_per_day') || '1', 10);
   });
   const [personalMediaUrl, setPersonalMediaUrl] = useState<string>(() => {
     return localStorage.getItem('dw_personal_media_url') || '';
@@ -112,6 +146,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [personaSaved, setPersonaSaved] = useState(false);
   const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
   const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
+  const newPathSettings = isNewChristianPersona(setup?.persona) || isNewChristianPersona(currentPersona?.id);
 
   const handlePushToggle = async () => {
     if (pushState === 'loading') return; // guard against repeat taps stacking attempts
@@ -162,12 +197,14 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     localStorage.setItem('dw_translation', t);
     localStorage.setItem('dw_translation_manual', 'true');
     track('translation_switch', t);
-    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_translation on return
+    setSettingsRev(r => r + 1);
+    try { window.dispatchEvent(new Event('dw-translation-changed')); } catch { /* ignore */ }
   };
 
   const handleFontSelect = (val: number) => {
     localStorage.setItem('dw_font_size', String(val));
-    setSettingsRev(r => r + 1); // reflect selection in place; HomeScreen re-reads dw_font_size on return
+    setSettingsRev(r => r + 1);
+    try { window.dispatchEvent(new Event('dw-font-size-changed')); } catch { /* ignore */ }
   };
 
   const handleLangSelect = (val: string) => {
@@ -229,6 +266,21 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     }
   };
 
+  // Inline replacement for the old window.prompt() flows — prompt() is
+  // suppressed in some standalone PWA contexts, so pastors could never get in.
+  const submitAdminCode = () => {
+    const code = adminCodeInput.trim();
+    if (!code || !adminTarget) return;
+    if (adminTarget === 'polls') {
+      setPollAdminCode(code.toUpperCase()); // campus codes are uppercase server-side
+      setShowPollDashboard(true);
+    } else {
+      setPollAdminCode(code); // admin PIN passes through untouched
+      setShowAnalytics(true);
+    }
+    setAdminTarget(null);
+  };
+
   if (showLibrary) {
     return <LibraryScreen onBack={() => setShowLibrary(false)} />;
   }
@@ -268,27 +320,31 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             <img
               src={profilePic}
               alt="Profile"
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
               style={{
                 width: 72, height: 72, borderRadius: '50%',
                 objectFit: 'cover', marginBottom: 10,
-                border: '2px solid var(--dw-accent)',
+                border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
               }}
             />
           ) : (
-            <div style={{
-              width: 72, height: 72, borderRadius: '50%',
-              background: 'var(--dw-accent-bg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 10, border: '2px solid var(--dw-accent)',
-            }}>
-              <User size={32} style={{ color: 'var(--dw-accent)' }} />
+            <div
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: newPathSettings ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 10, border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
+              }}
+            >
+              <User size={32} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)' }} />
             </div>
           )}
           <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
             {displayName}
           </p>
           {currentPersona && (
-            <p style={{ color: 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+            <p className={newPathSettings ? 'dw-new-label' : undefined} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
               {currentPersona.label}
             </p>
           )}
@@ -324,16 +380,27 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {PERSONAS.map(p => {
-                const isActive = setup?.persona === p.id && !pendingPersona;
+                const isNewOption = isNewChristianPersona(p.id);
+                const isActive = (
+                  setup?.persona === p.id
+                  || (isNewOption && isNewChristianPersona(setup?.persona))
+                ) && !pendingPersona;
                 const isPending = pendingPersona === p.id;
+                const newFilled = isNewOption && (isActive || isPending);
                 return (
                   <button
                     key={p.id}
+                    type="button"
+                    className={isNewOption ? `dw-journey-new${newFilled ? ' is-current' : ''}` : undefined}
                     onClick={() => handlePersonaSelect(p.id)}
                     style={{
-                      background: isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)',
-                      color: isActive || isPending ? '#fff' : 'var(--dw-text-primary)',
-                      border: isPending ? '2px solid var(--dw-gold)' : 'none',
+                      background: isNewOption
+                        ? (newFilled ? 'var(--dw-new)' : 'var(--dw-new-soft)')
+                        : (isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)'),
+                      color: isNewOption
+                        ? (newFilled ? 'var(--dw-new-on-fill)' : 'var(--dw-text-primary)')
+                        : (isActive || isPending ? '#fff' : 'var(--dw-text-primary)'),
+                      border: isPending && !isNewOption ? '2px solid var(--dw-gold)' : 'none',
                       borderRadius: 10,
                       padding: '12px 16px',
                       fontSize: 14,
@@ -345,8 +412,8 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <div style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
-                    <div style={{ fontSize: 12, opacity: 0.7 }}>{p.desc}</div>
+                    <div className={isNewOption ? 'dw-journey-new-title' : undefined} style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
+                    <div className={isNewOption ? 'dw-journey-new-desc' : undefined} style={{ fontSize: 12, opacity: newFilled ? 1 : 0.7 }}>{p.desc}</div>
                   </button>
                 );
               })}
@@ -469,52 +536,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             {t("your_campus", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
-            <div style={{ position: 'relative' }}>
-              <select
-                value={userProfile?.campus || ''}
-                onChange={e => handleCampusSelect(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'var(--dw-canvas)',
-                  color: 'var(--dw-text-primary)',
-                  border: '1px solid var(--dw-border)',
-                  borderRadius: 10,
-                  padding: '14px 40px 14px 16px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  fontFamily: 'var(--font-sans)',
-                  cursor: 'pointer',
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  minHeight: 48,
-                  outline: 'none',
-                }}
-              >
-                <option value="">{t("select_your_campus", lang)}</option>
-                {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
-                  const regionCampuses = CAMPUSES.filter(c => c.region === region);
-                  if (!regionCampuses.length) return null;
-                  return (
-                    <optgroup key={region} label={region}>
-                      {regionCampuses.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} — {c.city}</option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
-              <ChevronDown
-                size={18}
-                style={{
-                  position: 'absolute',
-                  right: 14,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--dw-text-muted)',
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
+            <CampusSelect value={userProfile?.campus || ''} onChange={handleCampusSelect} />
           </Card>
         </div>
 
@@ -768,7 +790,22 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                   <Bell size={16} /> Add to my calendar
                 </button>
                 <p style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  Adds a recurring daily event to your calendar. Install the app from futuresdailyword.com for in-app notifications.
+                  Adds a recurring daily event to your calendar.
+                </p>
+                {/* Bridge to the native origin — push can never work on the church
+                    proxy, so give the one pointer a real link + the same-email
+                    safety rail. Never auto-redirect. */}
+                <p style={{ marginTop: 8, fontSize: 12, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  {t('bridge_line1', lang)}{' '}
+                  <a
+                    href="https://futuresdailyword.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--dw-accent)', fontWeight: 600, textDecoration: 'underline' }}
+                  >
+                    {t('bridge_continue', lang)}
+                  </a>
+                  {' — '}{t('bridge_line2', lang)}
                 </p>
               </>
             )}
@@ -779,10 +816,13 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>LIBRARY</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Pass-through for one release (Ashley, 26 Aug 2026): the Library
+                moved to the Read tab's Reference section; this row still opens it
+                so nobody loses the path, and says where it went. */}
             <button onClick={() => setShowLibrary(true)} style={rowStyle}>
               <BookOpen size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>Essays &amp; Bible Resources</span>
-              <span style={valStyle}>→</span>
+              <span style={{ flex: 1 }}>{t('reference_title', lang)}</span>
+              <span style={valStyle}>{t('now_in_read', lang)} →</span>
             </button>
           </Card>
         </div>
@@ -791,6 +831,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>CONTENT</h2>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <PWAInstallSettingsBlock rowStyle={rowStyle} iconStyle={iconStyle} valStyle={valStyle} dividerStyle={dividerStyle} />
             <button onClick={handleKJVDownload} style={rowStyle}>
               <Download size={18} style={iconStyle} />
               <span style={{ flex: 1 }}>{t("offline_bible", lang)}</span>
@@ -804,7 +845,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         {/* ── PASTORAL CARE (Comfort Persona Only) ── */}
         {setup?.persona === 'comfort' && (
           <div style={{ marginBottom: 24 }}>
-            <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>PASTORAL CARE</h2>
+            <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>{t('pastoral_care', lang)}</h2>
             <Card style={{ padding: 16 }}>
               <div style={{ marginBottom: 14 }}>
                 <p style={{
@@ -929,22 +970,22 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <MessageSquareWarning size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            REPORT A BUG
+            {t('report_a_bug', lang)}
           </h2>
           <Card style={{ padding: 16 }}>
             {bugSubmitted ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 6 }}>
-                  Thank you!
+                  {t('bug_thank_you', lang)}
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  Your report has been received.
+                  {t('bug_received', lang)}
                 </p>
               </div>
             ) : (
               <>
                 <p style={{ fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 14, lineHeight: 1.5 }}>
-                  Found something not working? Let us know and we'll fix it.
+                  {t('bug_intro', lang)}
                 </p>
 
                 {/* Category pills */}
@@ -964,7 +1005,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                         minHeight: 32,
                       }}
                     >
-                      {cat}
+                      {t(`bug_cat_${cat}`, lang)}
                     </button>
                   ))}
                 </div>
@@ -973,7 +1014,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 <textarea
                   value={bugMessage}
                   onChange={e => setBugMessage(e.target.value.slice(0, 600))}
-                  placeholder="Describe what happened..."
+                  placeholder={t('bug_placeholder', lang)}
                   style={{
                     width: '100%', minHeight: 100, padding: '14px 16px',
                     resize: 'none', outline: 'none',
@@ -1034,7 +1075,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     }}
                   >
                     <Send size={13} />
-                    {bugSubmitting ? 'Sending...' : 'Send Report'}
+                    {bugSubmitting ? t('bug_sending', lang) : t('bug_send', lang)}
                   </button>
                 </div>
               </>
@@ -1042,55 +1083,87 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </Card>
         </div>
 
-        {/* Admin — Pastor tools (persona-gated) */}
-        {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor') && (
+        {/* Admin — one section: Poll Results (pastor persona) + App Analytics
+            (pastor persona, or revealed by long-pressing the version line).
+            The old flow used window.prompt(), which standalone PWAs can
+            suppress; the code entry is now an inline field. */}
+        {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor' || adminRevealed) && (
           <div style={{ marginBottom: 20 }}>
             <p style={{
               fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
               letterSpacing: '0.1em', textTransform: 'uppercase',
               color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
             }}>{t('admin_label', lang)}</p>
-            <Card>
-              <div
+            <Card style={{ padding: 0, overflow: 'hidden' }}>
+              <a href={staffPortalUrl()} style={{ ...rowStyle, textDecoration: 'none', color: 'inherit' }}>
+                <ClipboardList size={18} style={iconStyle} />
+                <span style={{ flex: 1 }}>{t('staff_intake', lang)}</span>
+                <span style={valStyle}>→</span>
+              </a>
+              <div style={dividerStyle} />
+              {(setup?.persona === 'pastor_leader' || setup?.persona === 'pastor') && (
+                <>
+                  <button
+                    style={rowStyle}
+                    onClick={() => setAdminTarget(adminTarget === 'polls' ? null : 'polls')}
+                  >
+                    <BarChart3 size={18} style={iconStyle} />
+                    <span style={{ flex: 1 }}>{t('poll_results', lang)}</span>
+                    <span style={valStyle}>→</span>
+                  </button>
+                  <div style={dividerStyle} />
+                </>
+              )}
+              <button
                 style={rowStyle}
-                onClick={() => {
-                  const code = prompt(t('enter_admin_code', lang));
-                  if (code) {
-                    setPollAdminCode(code.trim().toUpperCase());
-                    setShowPollDashboard(true);
-                  }
-                }}
+                onClick={() => setAdminTarget(adminTarget === 'analytics' ? null : 'analytics')}
               >
                 <BarChart3 size={18} style={iconStyle} />
-                <span style={{ flex: 1 }}>{t('poll_results', lang)}</span>
-              </div>
+                <span style={{ flex: 1 }}>{t('app_analytics', lang)}</span>
+                <span style={valStyle}>→</span>
+              </button>
+              {adminTarget && (
+                <div style={{ padding: '4px 16px 14px' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="password"
+                      value={adminCodeInput}
+                      onChange={e => setAdminCodeInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') submitAdminCode(); }}
+                      placeholder={t('enter_pastor_or_admin_code', lang)}
+                      autoFocus
+                      style={{
+                        flex: 1, minWidth: 0,
+                        background: 'var(--dw-surface)',
+                        border: '1px solid var(--dw-border)',
+                        borderRadius: 10, padding: '12px 14px',
+                        fontSize: 14, fontFamily: 'var(--font-sans)',
+                        color: 'var(--dw-text-primary)', outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <button
+                      onClick={submitAdminCode}
+                      disabled={!adminCodeInput.trim()}
+                      style={{
+                        background: adminCodeInput.trim() ? 'var(--dw-accent)' : 'var(--dw-surface-hover)',
+                        color: adminCodeInput.trim() ? '#fff' : 'var(--dw-text-faint)',
+                        border: 'none', borderRadius: 10, padding: '0 18px',
+                        fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
+                        cursor: adminCodeInput.trim() ? 'pointer' : 'default', minHeight: 44,
+                      }}
+                    >
+                      {t('open_label', lang)}
+                    </button>
+                  </div>
+                  <p style={{ marginTop: 8, fontSize: 11, color: 'var(--dw-text-faint)', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }}>
+                    {t('pastor_code_hint', lang)}
+                  </p>
+                </div>
+              )}
             </Card>
           </div>
         )}
-
-        {/* Administrator — Analytics (PIN-protected, any user) */}
-        <div style={{ marginBottom: 20 }}>
-          <p style={{
-            fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
-            letterSpacing: '0.1em', textTransform: 'uppercase',
-            color: 'var(--dw-text-muted)', marginBottom: 10, paddingLeft: 4,
-          }}>{t('administrator', lang)}</p>
-          <Card>
-            <div
-              style={rowStyle}
-              onClick={() => {
-                const pin = prompt(t('enter_admin_pin', lang));
-                if (pin && pin.trim()) {
-                  setPollAdminCode(pin.trim());
-                  setShowAnalytics(true);
-                }
-              }}
-            >
-              <BarChart3 size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>{t('app_analytics', lang)}</span>
-            </div>
-          </Card>
-        </div>
 
         {/* Data notice */}
         <div style={{
@@ -1101,28 +1174,44 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           borderRadius: 10,
           border: '1px solid var(--dw-border-subtle)',
         }}>
+          {/* Cloud backup shipped — the old "this device only" claim was false
+              and undermined trust in the sync the app actually performs. */}
           <p style={{
             color: 'var(--dw-text-muted)',
             fontSize: 12,
             fontFamily: 'var(--font-sans)',
             lineHeight: 1.5,
           }}>
-            Your notes and reading progress are saved on this device only.
-            Clearing browser data will erase them.
+            {t('data_notice_cloud', lang)}
           </p>
         </div>
 
         {/* Futures Church family seam */}
         <SeamFooter />
 
-        {/* Version */}
-        <p style={{
-          textAlign: 'center',
-          color: 'var(--dw-text-faint)',
-          fontSize: 11,
-          fontFamily: 'var(--font-sans)',
-          paddingBottom: 24,
-        }}>
+        {/* Version — long-press reveals the Admin section for non-pastor
+            personas (the App Analytics PIN entry used to clutter every user's
+            settings; admins know the gesture). */}
+        <PromoAds />
+
+        <p
+          onPointerDown={() => {
+            if (adminHoldTimer.current) clearTimeout(adminHoldTimer.current);
+            adminHoldTimer.current = setTimeout(() => setAdminRevealed(true), 600);
+          }}
+          onPointerUp={() => { if (adminHoldTimer.current) { clearTimeout(adminHoldTimer.current); adminHoldTimer.current = null; } }}
+          onPointerLeave={() => { if (adminHoldTimer.current) { clearTimeout(adminHoldTimer.current); adminHoldTimer.current = null; } }}
+          onPointerCancel={() => { if (adminHoldTimer.current) { clearTimeout(adminHoldTimer.current); adminHoldTimer.current = null; } }}
+          style={{
+            textAlign: 'center',
+            color: 'var(--dw-text-faint)',
+            fontSize: 11,
+            fontFamily: 'var(--font-sans)',
+            paddingBottom: 24,
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+        >
           Futures Daily Word v2.1
           <br />
           Created & Developed by Ashley Evans

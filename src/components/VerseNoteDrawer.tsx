@@ -7,6 +7,7 @@ import { fetchAICommentary } from '../utils/api';
 import { MarkdownText } from './MarkdownText';
 import { pushNow } from '../utils/cloudSync';
 import { t, getLang } from '../utils/i18n';
+import { useModalA11y } from '../utils/useModalA11y';
 
 interface VerseNoteDrawerProps {
   open: boolean;
@@ -31,9 +32,12 @@ interface SaveToJournalArgs {
   planContext?: string;
   commentarySource?: string;   // Fix 3: which commentary source they were reading
   commentaryExcerpt?: string;  // Fix 3: the passage text captured with the note
+  translation?: string;        // Bible translation the verse was read in (e.g. "ESV")
+  entryId?: string;            // upsert target — repeated saves update the same entry, never duplicate
 }
 
-function saveToJournal({ verseRef, highlightedText, note, planContext, commentarySource, commentaryExcerpt }: SaveToJournalArgs) {
+/** Writes/updates the journal entry and returns its id so follow-up saves upsert in place. */
+function saveToJournal({ verseRef, highlightedText, note, planContext, commentarySource, commentaryExcerpt, translation, entryId }: SaveToJournalArgs): string | null {
   try {
     const existing = JSON.parse(localStorage.getItem(JOURNAL_KEY) || '[]');
     const autoId = autoEntryId(verseRef, highlightedText);
@@ -41,19 +45,25 @@ function saveToJournal({ verseRef, highlightedText, note, planContext, commentar
     const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const updatedAt = now.toISOString();
 
-    // If there's already an auto-saved entry for this highlight, upgrade it in place.
-    const autoIdx = existing.findIndex((e: { id?: string }) => e.id === autoId);
+    // Prefer the explicit upsert target (a prior save this session); otherwise, if
+    // there's already an auto-saved entry for this highlight, upgrade it in place.
+    const targetIdx = entryId
+      ? existing.findIndex((e: { id?: string }) => e.id === entryId)
+      : existing.findIndex((e: { id?: string }) => e.id === autoId);
     const baseTags = planContext ? ['scripture', 'plan-note'] : ['scripture'];
     if (commentarySource) baseTags.push('commentary');
 
-    if (autoIdx !== -1) {
-      existing[autoIdx] = {
-        ...existing[autoIdx],
-        title: verseRef || existing[autoIdx].title || 'Scripture Note',
+    let writtenId: string;
+    if (targetIdx !== -1) {
+      writtenId = existing[targetIdx].id;
+      existing[targetIdx] = {
+        ...existing[targetIdx],
+        title: verseRef || existing[targetIdx].title || 'Scripture Note',
         body: note,
-        tags: Array.from(new Set([...(existing[autoIdx].tags || []), ...baseTags])),
+        tags: Array.from(new Set([...(existing[targetIdx].tags || []), ...baseTags])),
         verseRef,
         highlightedText,
+        translation: translation || existing[targetIdx].translation,
         planContext,
         commentarySource,
         commentaryExcerpt,
@@ -62,8 +72,12 @@ function saveToJournal({ verseRef, highlightedText, note, planContext, commentar
         updatedAt,
       };
     } else {
+      // Use the deterministic autoId (not a timestamp) so that reopening the drawer
+      // for the same verse — where entryIdRef has reset — re-matches this entry via
+      // the autoId fallback above instead of forking a duplicate.
+      writtenId = autoId;
       existing.unshift({
-        id: Date.now().toString(),
+        id: writtenId,
         date: dateStr,
         type: 'saved',
         title: verseRef || 'Scripture Note',
@@ -71,6 +85,7 @@ function saveToJournal({ verseRef, highlightedText, note, planContext, commentar
         tags: baseTags,
         verseRef,
         highlightedText,
+        translation,
         planContext,
         commentarySource,
         commentaryExcerpt,
@@ -86,7 +101,8 @@ function saveToJournal({ verseRef, highlightedText, note, planContext, commentar
     // verse-note drawer previously didn't, so a note could be lost on reinstall
     // before any other action triggered a push).
     pushNow();
-  } catch {}
+    return writtenId;
+  } catch { return null; }
 }
 
 /** Strip verse numbers so "John 3:16-21" → "John 3" for commentary lookup */
@@ -119,14 +135,27 @@ function sortSources(commentaries: { source: string; text: string }[]) {
   });
 }
 
+type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
+
+function formatTime(d: Date, lang: string): string {
+  try {
+    const locale = lang === 'en' ? 'en-US' : lang === 'pt' ? 'pt-BR' : lang;
+    return d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+  } catch { return d.toLocaleTimeString(); }
+}
+
 export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerProps) {
   const { selection } = useScriptureSelection();
   const lang = getLang();
   const [tab, setTab] = useState<'note' | 'commentary'>('note');
   const [note, setNote] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [selectedSourceIdx, setSelectedSourceIdx] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const entryIdRef = useRef<string | null>(null);   // stable target — every save this session updates the same entry
+  const lastSavedTextRef = useRef<string>('');
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // AI commentary fallback — used when the curated set has no entry for this passage.
   const [aiCommentary, setAiCommentary] = useState('');
@@ -136,15 +165,26 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
   const passage = selection?.verseRefs[0] || '';
   const commentaries = passage ? sortSources(getCommentariesForRef(passage)) : [];
   const hasCommentary = commentaries.length > 0;
+  const draftKey = 'dw_note_draft:' + (passage || 'general');
+
+  // Dialog semantics: focus in, Tab trap, Escape → close, focus restore.
+  const dialogRef = useModalA11y(open, onClose);
 
   useEffect(() => {
     if (open) {
-      setSaved(false);
-      setNote('');
+      // Restore this passage's unsaved draft (if any) so navigating away never loses a note.
+      let draft = '';
+      try { draft = localStorage.getItem(draftKey) || ''; } catch { /* ignore */ }
+      setNote(draft);
+      setSaveState(draft ? 'dirty' : 'idle');
+      setLastSavedAt(null);
+      entryIdRef.current = null;
+      lastSavedTextRef.current = '';
       setTab('note');
       setSelectedSourceIdx(0);
       setTimeout(() => textareaRef.current?.focus(), 350);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Reset source idx + AI state when passage changes
@@ -153,6 +193,8 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
     setAiCommentary('');
     setAiError(false);
     setAiLoading(false);
+    entryIdRef.current = null;
+    lastSavedTextRef.current = '';
   }, [passage]);
 
   // When the Commentary tab is open for a passage with no curated commentary,
@@ -169,10 +211,15 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
     return () => { cancelled = true; };
   }, [tab, hasCommentary, passage, aiCommentary, aiLoading, aiError, lang]);
 
-  const handleSave = () => {
+  const doSave = (source: 'auto' | 'button') => {
     if (!selection || !note.trim()) return;
+    if (note.trim() === lastSavedTextRef.current && entryIdRef.current) {
+      setSaveState('saved');
+      if (source === 'button') setTimeout(onClose, 900);
+      return;
+    }
     const ref = selection.verseRefs[0] || '';
-    trackBehavior('note_created', ref);
+    if (!entryIdRef.current) trackBehavior('note_created', ref); // count the note once, not every autosave
     // Fix 3: if the user was reading commentary while writing the note, capture that context too.
     const activeCommentary = commentaries[selectedSourceIdx];
     let commentarySource: string | undefined;
@@ -184,20 +231,63 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
       commentarySource = 'AI Insight';
       commentaryExcerpt = aiCommentary;
     }
-    saveToJournal({
+    let translation: string | undefined;
+    try { translation = localStorage.getItem('dw_translation') || undefined; } catch { /* ignore */ }
+    setSaveState('saving');
+    const writtenId = saveToJournal({
       verseRef: ref,
       highlightedText: selection.text,
       note,
       planContext,
       commentarySource,
       commentaryExcerpt,
+      translation,
+      entryId: entryIdRef.current || undefined,
     });
-    setSaved(true);
-    setTimeout(() => {
-      onClose();
-      setSaved(false);
-    }, 1800);
+    if (writtenId) entryIdRef.current = writtenId;
+    lastSavedTextRef.current = note.trim();
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+    // Brief, honest "Saving…" beat (the write is already done) so the confirmation visibly lands.
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => {
+      setSaveState('saved');
+      setLastSavedAt(new Date());
+      // An explicit save closes the drawer after the confirmation; autosave stays out of the way.
+      if (source === 'button') setTimeout(onClose, 1300);
+    }, 300);
   };
+
+  const handleNoteChange = (value: string) => {
+    setNote(value);
+    setSaveState(value.trim() ? 'dirty' : 'idle');
+    try {
+      if (value) localStorage.setItem(draftKey, value);
+      else localStorage.removeItem(draftKey);
+    } catch { /* ignore */ }
+  };
+
+  // Refs so stable listeners/effects always see the latest state.
+  const doSaveRef = useRef(doSave);
+  doSaveRef.current = doSave;
+  const saveStateRef = useRef(saveState);
+  saveStateRef.current = saveState;
+
+  // Auto-save ~2.5s after the user stops typing.
+  useEffect(() => {
+    if (!open || saveState !== 'dirty' || !note.trim()) return;
+    const timer = setTimeout(() => doSaveRef.current('auto'), 2500);
+    return () => clearTimeout(timer);
+  }, [open, note, saveState]);
+
+  // If the app is backgrounded/closed mid-thought, save immediately.
+  useEffect(() => {
+    const flush = () => { if (saveStateRef.current === 'dirty') doSaveRef.current('auto'); };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   const handleCommentaryTab = () => {
     if (passage) trackBehavior('greek_hebrew', `commentary:${passage}`);
@@ -219,7 +309,13 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
       />
 
       {/* Drawer */}
-      <div style={{
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-hidden={!open}
+        aria-label={passage || t('save_to_notes_btn', lang)}
+        style={{
         position: 'fixed', left: 0, right: 0,
         bottom: open ? 0 : '-100%',
         zIndex: 97,
@@ -227,7 +323,10 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
         borderRadius: '20px 20px 0 0',
         padding: '0 0 env(safe-area-inset-bottom)',
         boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
-        transition: 'bottom 0.3s cubic-bezier(0.32,0.72,0,1)',
+        // visibility keeps the closed off-screen drawer out of the Tab order;
+        // it transitions discretely at the end so the slide-out still shows.
+        visibility: open ? 'visible' : 'hidden',
+        transition: 'bottom 0.3s cubic-bezier(0.32,0.72,0,1), visibility 0.3s',
         maxHeight: '82vh',
         display: 'flex', flexDirection: 'column',
       }}>
@@ -258,7 +357,8 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
               </span>
             )}
           </div>
-          <button aria-label="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)' }}>
+          {/* padding 13 + margin -13 = 44px hit area, same 18px layout footprint */}
+          <button aria-label={t('j_close', getLang())} onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--dw-text-muted)', padding: 13, margin: -13 }}>
             <X size={18} />
           </button>
         </div>
@@ -337,7 +437,7 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
             <textarea
               ref={textareaRef}
               value={note}
-              onChange={e => setNote(e.target.value)}
+              onChange={e => handleNoteChange(e.target.value)}
               placeholder={t('write_reflection_placeholder', lang)}
               style={{
                 margin: '0 20px',
@@ -355,22 +455,34 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
               }}
             />
 
+            {/* Live save status — the user should never wonder whether their note is safe */}
+            <p aria-live="polite" style={{
+              fontSize: 12, minHeight: 16, margin: '8px 22px 0',
+              color: saveState === 'saved' ? 'var(--dw-success)' : 'var(--dw-text-muted)',
+              fontFamily: 'var(--font-sans)',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              {saveState === 'saving' && <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> {t('note_saving', lang)}</>}
+              {saveState === 'saved' && <><Check size={13} /> {t('note_saved', lang)}{lastSavedAt ? ` · ${formatTime(lastSavedAt, lang)}` : ''}</>}
+              {saveState === 'dirty' && note.trim() && t('note_autosaves', lang)}
+            </p>
+
             {/* Save button */}
-            <div style={{ padding: '14px 20px' }}>
+            <div style={{ padding: '10px 20px 14px' }}>
               <button
-                onClick={handleSave}
-                disabled={!note.trim() || saved}
+                onClick={() => doSave('button')}
+                disabled={!note.trim() || saveState === 'saving'}
                 style={{
                   width: '100%', padding: '13px', borderRadius: 14,
-                  background: saved ? 'var(--dw-success)' : 'var(--dw-accent)',
+                  background: saveState === 'saved' ? 'var(--dw-success)' : 'var(--dw-accent)',
                   color: '#fff', border: 'none', cursor: note.trim() ? 'pointer' : 'default',
                   fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', gap: 8,
-                  opacity: !note.trim() && !saved ? 0.5 : 1,
+                  opacity: !note.trim() && saveState !== 'saved' ? 0.5 : 1,
                   transition: 'background 0.2s',
                 }}
               >
-                {saved ? <><Check size={16} /> {t('saved_to_notes', lang)}</> : t('save_to_notes_btn', lang)}
+                {saveState === 'saved' ? <><Check size={16} /> {t('saved_to_notes', lang)}</> : t('save_to_notes_btn', lang)}
               </button>
             </div>
           </>

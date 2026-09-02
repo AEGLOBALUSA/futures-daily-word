@@ -5,22 +5,22 @@ import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
-import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause, FileText } from 'lucide-react';
+import { Plus, PenLine, Bookmark, Trash2, X, Save, BookOpen, Video, Circle, Square, Share2, RotateCcw, CheckCircle2, Loader2, Sparkles, Copy, Volume2, Check, Play, Heart, Pause } from 'lucide-react';
 import { EmptyState } from '../components/EmptyState';
-import { SermonNotesScreen } from './SermonNotesScreen';
 import { AudioWave } from '../components/AudioWave';
 import { fetchPassage } from '../utils/api';
 import type { TranslationCode } from '../utils/api';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { ListenButton } from '../components/ListenButton';
-import { StopAllAudio } from '../components/StopAllAudio';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
 import { recordStreakToday } from '../utils/streak';
 import { getPersonaConfig } from '../utils/persona-config';
-// sermons moved to Campus tab
 import { BibleAI } from '../components/BibleAI';
 import { t, getLang } from '../utils/i18n';
+import { useSubView } from '../utils/useSubView';
+import { PromoAds } from '../components/PromoAds';
+import type { TabId } from '../components/TabBar';
 
 interface JournalEntry {
   id: string;
@@ -32,6 +32,8 @@ interface JournalEntry {
   /** Set when this entry was created from a scripture note */
   verseRef?: string;
   highlightedText?: string;
+  /** Bible translation the verse was read in (e.g. "ESV") — shown on Verse Notes cards */
+  translation?: string;
   planContext?: string; // e.g. "Grace and Favor Revolution — Day 7"
   /** Fix 3: which commentary source and text the user was reading when they saved the note */
   commentarySource?: string;
@@ -60,11 +62,19 @@ function getVisibleEntries(): JournalEntry[] {
   return getEntries().filter(e => !e.deleted);
 }
 
-function saveEntries(entries: JournalEntry[]) {
-  localStorage.setItem('dw_journal', JSON.stringify(entries));
+/** Returns false when the write failed (QuotaExceededError) — callers must NOT
+ *  show success UI, and no push is scheduled (it would upload the stale stored
+ *  journal while the screen claims the new entry saved). */
+function saveEntries(entries: JournalEntry[]): boolean {
+  try {
+    localStorage.setItem('dw_journal', JSON.stringify(entries));
+  } catch {
+    return false;
+  }
     // Cloud sync: push updated journal to cloud
     const profile = JSON.parse(localStorage.getItem('dw_profile') || '{}');
     if (profile.email) schedulePush(profile.email);
+    return true;
 }
 
 function generateId() {
@@ -592,7 +602,7 @@ function ModalSelectionBar({
         display: 'flex', overflow: 'hidden', maxWidth: '100%',
       }}>
         {tbBtn(handleCopy, copied ? <Check size={15} color="var(--dw-success)" /> : <Copy size={15} />, copied ? t('j_copied', lang) : t('j_copy', lang))}
-        {tbBtn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={13} /></> : <Volume2 size={15} />, listening ? t('j_pause', lang) || 'Pause' : t('j_listen', lang), listening)}
+        {tbBtn(handleListen, listening ? <><AudioWave bars={3} height={10} /><Pause size={13} /></> : <Volume2 size={15} />, listening ? t('pause', lang) : t('j_listen', lang), listening)}
         {tbBtn(handleShare, <Share2 size={15} />, t('j_share', lang))}
         {tbBtn(() => { onNoteSelected(selectedText); dismiss(); }, <BookOpen size={15} />, t('j_note', lang))}
 
@@ -745,8 +755,8 @@ function ScriptureModal({
     }, 100);
   }
 
-  const authorColor = (author: string) =>
-    author === 'Ashley' ? '#9A6A08' : author === 'Jane' ? '#4A5568' : '#6B5C3E';
+  // One neutral for every byline — the name does the distinguishing, not a hue.
+  const authorColor = (_author: string) => 'var(--dw-text-muted)';
 
   return (
     <>
@@ -1223,6 +1233,15 @@ function NoteCard({ entry, onOpen, compact }: { entry: JournalEntry; onOpen: (e:
           <BookOpen size={13} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
         )}
         <p className="text-card-title" style={{ margin: 0 }}>{entry.title}</p>
+        {entry.translation && (
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+            color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+            background: 'var(--dw-surface)', padding: '2px 7px', borderRadius: 999, flexShrink: 0,
+          }}>
+            {entry.translation}
+          </span>
+        )}
       </div>
       {!compact && (entry as any).planContext && (
         <p style={{ fontSize: 10, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8, letterSpacing: '0.02em' }}>
@@ -1308,7 +1327,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
           {t('no_passages', lang)}
         </p>
         <p style={{ color: 'var(--dw-text-faint)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
-          Tap the Plans tab to add a reading plan.
+          {t('j_add_plan_hint', lang)}
         </p>
       </Card>
     );
@@ -1320,7 +1339,7 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
         {passages.map(({ ref, planTitle, dayNum, devotional, isBookChapter }) => {
           const existingNote = getExistingNote(ref);
           const wasSaved = saved.has(ref);
-          const authorColor = devotional?.author === 'Ashley' ? '#9A6A08' : devotional?.author === 'Jane' ? '#4A5568' : '#6B5C3E';
+          const authorColor = 'var(--dw-text-muted)';
 
           return (
             <div
@@ -1421,13 +1440,13 @@ function TodayPanel({ allEntries, onSave, onOpenPassage }: {
   );
 }
 
-export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; initialTab?: 'today' | 'saved' | 'prayer' | 'sermon' }) {
+export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () => void; onNavigate?: (tab: TabId) => void; initialTab?: 'today' | 'saved' | 'prayer' }) {
   const { userProfile, setup, requireEmail } = useUser();
   const { selection } = useScriptureSelection();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
 
-  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer' | 'sermon'>(initialTab || 'today');
+  const [activeTab, setActiveTab] = useState<'today' | 'saved' | 'prayer'>(initialTab || 'today');
   const [entries, setEntries] = useState<JournalEntry[]>(getVisibleEntries);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -1445,6 +1464,22 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   const [activePlansData, setActivePlansData] = useState(getActivePlansData);
   const [modalPassage, setModalPassage] = useState<TodayPassage | null>(null);
 
+  // Back-gesture support: the full-screen editor and the study modal each own
+  // one history entry while open, so Android back / back-swipe closes them
+  // instead of ejecting the user from the Notes tab.
+  useSubView(showEditor && !!editingEntry, () => { setShowEditor(false); setEditingEntry(null); });
+  useSubView(!!modalPassage, () => setModalPassage(null));
+
+  // Re-tap of the Notes tab in the tab bar → back to the tab's root state.
+  useEffect(() => {
+    const onReset = () => {
+      setActiveTab('today');
+      document.querySelector('.screen-container')?.scrollTo({ top: 0 });
+    };
+    window.addEventListener('dw-tab-reset', onReset);
+    return () => window.removeEventListener('dw-tab-reset', onReset);
+  }, []);
+
   // Helper to get existing note for a passage ref
   const getExistingNoteForModal = useCallback((ref: string): JournalEntry | undefined => {
     const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -1455,9 +1490,31 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   // Since screens stay mounted, we listen for visibility/focus changes to pick up
   // notes saved from HomeScreen's VerseNoteDrawer or BibleAI.
   useEffect(() => {
+    // Consume the "Journal This" prefill written by PastoralReflectionSection —
+    // without this the pastor lands on a blank tab and the prompt is lost.
+    const consumePrefill = () => {
+      try {
+        const raw = localStorage.getItem('dw_journal_prefill');
+        if (!raw) return;
+        localStorage.removeItem('dw_journal_prefill');
+        const prefill = JSON.parse(raw);
+        const today = new Date().toISOString().slice(0, 10); // matches the writer's date format
+        if (!prefill?.prompt || prefill.date !== today) return; // stale — drop it
+        setEditingEntry({
+          id: generateId(),
+          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          title: String(prefill.prompt).slice(0, 60),
+          body: `"${prefill.prompt}"\n\n`,
+          tags: ['reflection'],
+          type: 'journal',
+        });
+        setShowEditor(true);
+      } catch { /* ignore */ }
+    };
     const refresh = () => {
       setEntries(getVisibleEntries());
       setActivePlansData(getActivePlansData());
+      consumePrefill();
     };
     refresh(); // initial load
     // Re-read when tab becomes visible (covers switching between app tabs)
@@ -1467,8 +1524,8 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', refresh);
     // Custom event fired when a note is saved from another screen → auto-switch to the
-    // All Notes tab so the user sees it. A sync-driven refresh (tagged source:'sync')
-    // must NOT switch tabs — that would yank the user off Sermon/Prayer mid-session.
+    // A sync-driven refresh (tagged source:'sync')
+    // must NOT switch tabs — that would yank the user off Prayer mid-session.
     const handleJournalUpdate = (e: Event) => {
       refresh();
       const fromSync = (e as CustomEvent).detail?.source === 'sync';
@@ -1487,13 +1544,12 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   const allowedEntryTypes = personaConfig.journal.entryTypes;
   const allTabs = [
     { id: 'today' as const, label: 'Today', icon: BookOpen },
-    { id: 'sermon' as const, label: 'Sermon', icon: FileText },
     { id: 'saved' as const, label: 'All Notes', icon: Bookmark },
     { id: 'prayer' as const, label: t('prayer', lang), icon: Heart },
   ];
-  // Show tabs: Today + Sermon always visible, others persona-gated
+  // Today + All Notes always visible; Prayer is persona-gated
   const tabs = allTabs.filter(t =>
-    t.id === 'today' || t.id === 'saved' || t.id === 'sermon' || allowedEntryTypes.includes(t.id)
+    t.id === 'today' || t.id === 'saved' || allowedEntryTypes.includes(t.id)
   );
 
   const filteredEntries = activeTab !== 'today' ? entries.filter(e => {
@@ -1503,13 +1559,20 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     return e.type === activeTab;
   }) : [];
 
+  // Visible "couldn't save — storage full" notice (QuotaExceededError path)
+  const [saveError, setSaveError] = useState(false);
+  const flagSaveError = useCallback(() => {
+    setSaveError(true);
+    setTimeout(() => setSaveError(false), 4000);
+  }, []);
+
   const handleTodaySave = useCallback((entry: JournalEntry) => {
     const all = getEntries();
     const idx = all.findIndex(e => e.id === entry.id);
     if (idx >= 0) { all[idx] = entry; } else { all.unshift(entry); }
-    saveEntries(all);
+    if (!saveEntries(all)) { flagSaveError(); return; }
     setEntries(all.filter(e => !e.deleted));
-  }, []);
+  }, [flagSaveError]);
 
   const openNewEntry = useCallback(() => {
     if (!userProfile?.email) { requireEmail(); return; }
@@ -1540,10 +1603,12 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     } else {
       all.unshift(editingEntry);
     }
+    // Persist FIRST — on quota failure the entry never saved, so skip the
+    // analytics/streak/success path and tell the user instead of losing it.
+    if (!saveEntries(all)) { flagSaveError(); return; }
     trackBehavior('note_created');
     track('journal_save', editingEntry.type || 'journal');
     recordStreakToday(); // journaling counts toward the daily streak, not just opening Home
-    saveEntries(all);
     setEntries(all.filter(e => !e.deleted));
     // Show "Saved!" confirmation before closing
     setEditorSaved(true);
@@ -1552,7 +1617,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
       setShowEditor(false);
       setEditingEntry(null);
     }, 1200);
-  }, [editingEntry]);
+  }, [editingEntry, flagSaveError]);
 
   const deleteEntry = useCallback((id: string) => {
     // Soft-delete: keep a tombstone (id + deleted flag + fresh updatedAt) so the
@@ -1563,11 +1628,11 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
         ? { ...e, deleted: true, body: '', title: '', updatedAt: new Date().toISOString() }
         : e
     );
-    saveEntries(all);
+    if (!saveEntries(all)) { flagSaveError(); return; }
     setEntries(all.filter(e => !e.deleted));
     setShowEditor(false);
     setEditingEntry(null);
-  }, []);
+  }, [flagSaveError]);
 
   const addTag = useCallback((tag: string) => {
     if (!editingEntry || editingEntry.tags.includes(tag)) return;
@@ -1578,6 +1643,19 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
     if (!editingEntry) return;
     setEditingEntry({ ...editingEntry, tags: editingEntry.tags.filter(t => t !== tag) });
   }, [editingEntry]);
+
+  // Visible failure notice for quota-exceeded journal writes (shared by the
+  // editor overlay and the main screen).
+  const saveErrorBanner = saveError ? (
+    <div role="alert" style={{
+      margin: '12px 20px 0', padding: '10px 14px',
+      background: 'rgba(220,53,69,0.12)', border: '1px solid rgba(220,53,69,0.4)',
+      borderRadius: 10, fontSize: 13, fontWeight: 600,
+      color: 'var(--dw-danger, #C0392B)', fontFamily: 'var(--font-sans)',
+    }}>
+      {t('j_save_failed', lang)}
+    </div>
+  ) : null;
 
   // Full-screen editor overlay
   if (showEditor && editingEntry) {
@@ -1629,6 +1707,8 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
             </button>
           </div>
         </div>
+
+        {saveErrorBanner}
 
         {/* Editor Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -1745,6 +1825,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
   return (
     <div className="screen-container">
       <ScreenHeader title="Notes" onBack={onBack} />
+      {saveErrorBanner}
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -1793,20 +1874,39 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           </div>
         </div>
 
+        {/* Sunday notes live on their own screen — one tap from here, not a
+            church outline dumped into the personal journal. */}
+        <button
+          onClick={() => onNavigate?.('sermon-notes')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            margin: '0 0 16px', padding: '12px 14px',
+            background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+            borderRadius: 10, cursor: 'pointer', textAlign: 'left', minHeight: 44,
+          }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+              {t('sermon_notes_title', lang)}
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+              {t('sermon_notes_home_sub', lang)}
+            </span>
+          </span>
+          <span style={{ color: 'var(--dw-text-faint)', fontSize: 12 }}>→</span>
+        </button>
+
         {/* Sub-tabs */}
         <div style={{
           display: 'flex', gap: 4, background: 'var(--dw-surface)',
           borderRadius: 12, padding: 4, marginBottom: 24,
         }}>
           {tabs.map(({ id, label, icon: Icon }) => {
-            const isSermon = id === 'sermon';
             const isActive = activeTab === id;
-            const shouldPulse = isSermon && !isActive;
             return (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={shouldPulse ? 'sermon-tab-pulse' : undefined}
                 style={{
                   flex: 1,
                   background: isActive ? 'var(--dw-accent)' : 'transparent',
@@ -1966,37 +2066,54 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
           <TodayPanel allEntries={entries} onSave={handleTodaySave} onOpenPassage={setModalPassage} />
         )}
 
-        {/* Sermon tab — the user's saved sermon notes (type:'sermon', e.g. from the
-            Messages sermon view) PLUS this week's structured fill-in. Previously the
-            tab only showed the fill-in, so free-form sermon notes were stranded under
-            "All Notes" and the tab named "Sermon" never showed them. */}
-        {activeTab === 'sermon' && (
-          <>
-            {(() => {
-              const sermonEntries = entries.filter(e => e.type === 'sermon');
-              if (sermonEntries.length === 0) return null;
-              return (
-                <div style={{ marginBottom: 28 }}>
-                  <h2 className="text-section-header" style={{ margin: '0 0 12px', color: 'var(--dw-text-muted)' }}>
-                    {t('j_my_sermon_notes', lang)}
-                  </h2>
-                  <GroupedNotesList entries={sermonEntries} onOpen={openEntry} lang={lang} />
-                </div>
-              );
-            })()}
-            <SermonNotesScreen onBack={() => setActiveTab('today')} embedded />
-          </>
-        )}
-
         {/* Entries */}
-        {activeTab !== 'today' && activeTab !== 'sermon' && filteredEntries.length === 0 ? (
+        {activeTab !== 'today' && filteredEntries.length === 0 ? (
           <EmptyState
             icon={PenLine}
             title={activeTab === 'prayer' ? t('j_no_prayers', lang) : t('j_no_notes', lang)}
             actionLabel={t('j_create_first', lang)}
             onAction={openNewEntry}
           />
-        ) : activeTab !== 'today' && activeTab !== 'sermon' && (
+        ) : activeTab === 'saved' ? (
+          // All Notes: verse-popup notes get their own "Verse Notes" section so they're
+          // easy to find; everything else renders below via the plan-grouped list.
+          (() => {
+            const verseNotes = filteredEntries.filter(e => !!e.highlightedText);
+            const otherNotes = filteredEntries.filter(e => !e.highlightedText);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {verseNotes.length > 0 && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <Bookmark size={14} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+                      <p style={{
+                        fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                        color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', margin: 0,
+                      }}>
+                        {t('verse_notes', lang)}
+                      </p>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)',
+                        fontFamily: 'var(--font-sans)', background: 'var(--dw-surface)',
+                        padding: '2px 8px', borderRadius: 999,
+                      }}>
+                        {verseNotes.length}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {verseNotes.map(entry => (
+                        <NoteCard key={entry.id} entry={entry} onOpen={openEntry} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {otherNotes.length > 0 && (
+                  <GroupedNotesList entries={otherNotes} onOpen={openEntry} lang={lang} />
+                )}
+              </div>
+            );
+          })()
+        ) : activeTab !== 'today' && (
           <GroupedNotesList entries={filteredEntries} onOpen={openEntry} lang={lang} />
         )}
       </div>
@@ -2028,7 +2145,7 @@ export function JournalScreen({ onBack, initialTab }: { onBack?: () => void; ini
         />
       )}
 
-      <StopAllAudio />
+      <PromoAds />
     </div>
   );
 }

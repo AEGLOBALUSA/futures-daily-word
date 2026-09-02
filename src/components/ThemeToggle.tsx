@@ -1,5 +1,6 @@
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { t, getLang } from '../utils/i18n';
 
 export function ThemeToggle() {
   const { isDark, toggleTheme } = useTheme();
@@ -7,11 +8,13 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={isDark ? t('switch_light_mode', getLang()) : t('switch_dark_mode', getLang())}
       style={{
         background: 'none',
         border: 'none',
-        padding: 4,
+        // padding 13 + margin -9 = 44px hit area, same 26px layout footprint
+        padding: 13,
+        margin: -9,
         color: 'var(--dw-text-muted)',
         cursor: 'pointer',
         display: 'flex',

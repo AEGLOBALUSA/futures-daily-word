@@ -75,13 +75,29 @@ const LANG_LABELS: Record<string, string> = {
   en: 'English', es: 'Spanish', pt: 'Portuguese', id: 'Indonesian',
 };
 
+/** Response for a campus pastor code — analytics-dashboard.js scopes non-admin
+ *  codes to real counts for that campus only (no PII, no global tabs). */
+interface CampusScopedData {
+  scope: 'campus';
+  campus: string;
+  campusSlug?: string;
+  readingToday: number;
+  activeThisWeek: number;
+  prayerCount: number;
+  generatedAt: string;
+}
+
+function isCampusScoped(d: AnalyticsData | CampusScopedData): d is CampusScopedData {
+  return (d as CampusScopedData).scope === 'campus';
+}
+
 interface Props {
   pastorCode: string;
   onClose: () => void;
 }
 
 export function AnalyticsDashboard({ pastorCode, onClose }: Props) {
-  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [data, setData] = useState<AnalyticsData | CampusScopedData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'overview' | 'features' | 'audience' | 'signups'>('overview');
@@ -244,7 +260,33 @@ export function AnalyticsDashboard({ pastorCode, onClose }: Props) {
           </div>
         )}
 
-        {data && (
+        {/* Campus-scoped view: a campus pastor code gets three counters, not the
+            global payload — rendering the tabs would crash on the missing fields. */}
+        {data && isCampusScoped(data) && (
+          <>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div style={statCardStyle}>
+                <div style={statNum}>{data.readingToday.toLocaleString()}</div>
+                <div style={statLabel}>Reading Today</div>
+              </div>
+              <div style={statCardStyle}>
+                <div style={{ ...statNum, color: 'var(--dw-accent, #E85D4A)' }}>{data.activeThisWeek.toLocaleString()}</div>
+                <div style={statLabel}>Active This Week</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div style={statCardStyle}>
+                <div style={statNum}>{data.prayerCount.toLocaleString()}</div>
+                <div style={statLabel}>Prayers (30d)</div>
+              </div>
+            </div>
+            <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--dw-text-muted, #888)', fontFamily: 'var(--font-sans)' }}>
+              {data.campus} &middot; Updated {new Date(data.generatedAt).toLocaleString()}
+            </p>
+          </>
+        )}
+
+        {data && !isCampusScoped(data) && (
           <>
             {/* Tab bar */}
             <div style={{
