@@ -506,7 +506,15 @@ function AppContent() {
       {needsPushOnboarding && (
         <PushOptIn onDone={handlePushOnboardingDone} />
       )}
-      <ChoosePathSheet open={pathSheet.open} door={pathSheet.door} onClose={closePathSheet} />
+      {/* A saved path must OPEN its screen, not just close the sheet (Ashley, 2 Sep
+          2026): from Settings (or any other tab) switch to Home, where the
+          persona-keyed remount lands on that path's one thing already open. */}
+      <ChoosePathSheet
+        open={pathSheet.open}
+        door={pathSheet.door}
+        onClose={closePathSheet}
+        onPicked={() => { if (activeTab !== 'home') navigateTab('home'); }}
+      />
     </div>
   );
 }

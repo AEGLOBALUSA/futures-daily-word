@@ -57,7 +57,9 @@ describe('the three doors', () => {
     expect(app).toMatch(/&& !showPathAsk;/);
     expect(app).toMatch(/\{!needsPushOnboarding && !showPathAsk && <CookieConsent \/>\}/);
     expect(app.indexOf('<PathAskedOnce')).toBeLessThan(app.indexOf('<PushOptIn'));
-    expect(app).toMatch(/<ChoosePathSheet open=\{pathSheet\.open\}/);
+    expect(app).toMatch(/<ChoosePathSheet\s+open=\{pathSheet\.open\}/);
+    // A saved path opens its screen: leave Settings (or any tab) for Home.
+    expect(app).toMatch(/onPicked=\{\(\) => \{ if \(activeTab !== 'home'\) navigateTab\('home'\); \}\}/);
     expect(sync).toMatch(/'dw_path_asked'/);
   });
   it('Settings opens the same sheet and the two-step picker is gone', () => {

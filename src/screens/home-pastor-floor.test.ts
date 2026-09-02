@@ -33,12 +33,13 @@ describe('pastor day-one floor', () => {
     expect(HOME).not.toMatch(/pf\.pollBanner/);
   });
 
-  it('the path swatch and chooser sheet are locked to the pastor sign-in and offer sign-out', () => {
-    // The persona chip became the PathSwatch + ChoosePathSheet (2 Sep 2026); the
-    // lock and the sign-out live there now, off the same staff-session signal.
+  it('the chooser sheet knows about the pastor sign-in and offers sign-out — without locking the path', () => {
+    // The persona chip became the PathSwatch + ChoosePathSheet (2 Sep 2026). The
+    // sign-out lives there, off the staff-session signal; the path itself is NOT
+    // locked (Ashley: "when I change path, that path should show that change").
     expect(HOME).toMatch(/<PathSwatch persona=\{personaConfig\.persona\} \/>/);
-    expect(SHEET).toMatch(/const locked = useIsPastorSignedIn\(\);/);
-    expect(SHEET).toMatch(/const pastorLocked = useIsPastorSignedIn\(\);/);
+    expect(SHEET).toMatch(/const pastorSignedIn = useIsPastorSignedIn\(\);/);
+    expect(SHEET).not.toMatch(/aria-disabled/);
     expect(SHEET).toMatch(/pastor_chip_sign_out/);
     expect(SHEET).toMatch(/void clearStaffIdentity\(\)\.then/);
     // A hand-typed code must not inherit the sign-in marker (sign-out would wipe it).
