@@ -9,6 +9,7 @@ import { join } from 'path';
 import { PASTOR_CHAPTERS } from '../data/pastor';
 
 const HOME = readFileSync(join(__dirname, '../screens/HomeScreen.tsx'), 'utf-8');
+const SHEET = readFileSync(join(__dirname, '../components/ChoosePathSheet.tsx'), 'utf-8');
 
 describe('pastor day-one floor', () => {
   it('pastor_leader has a hero fallback reading inside heroChapterRefs', () => {
@@ -32,13 +33,17 @@ describe('pastor day-one floor', () => {
     expect(HOME).not.toMatch(/pf\.pollBanner/);
   });
 
-  it('the persona chip is locked to the pastor sign-in and offers sign-out', () => {
-    expect(HOME).toMatch(/pastorLocked=\{pastorSignedIn\}/);
-    expect(HOME).toMatch(/const pastorSignedIn = useIsPastorSignedIn\(\);/);
+  it('the path swatch and chooser sheet are locked to the pastor sign-in and offer sign-out', () => {
+    // The persona chip became the PathSwatch + ChoosePathSheet (2 Sep 2026); the
+    // lock and the sign-out live there now, off the same staff-session signal.
+    expect(HOME).toMatch(/<PathSwatch persona=\{personaConfig\.persona\} \/>/);
+    expect(SHEET).toMatch(/const locked = useIsPastorSignedIn\(\);/);
+    expect(SHEET).toMatch(/const pastorLocked = useIsPastorSignedIn\(\);/);
+    expect(SHEET).toMatch(/pastor_chip_sign_out/);
+    expect(SHEET).toMatch(/void clearStaffIdentity\(\)\.then/);
     // A hand-typed code must not inherit the sign-in marker (sign-out would wipe it).
     expect(HOME).toMatch(/setHandTypedPastorCode\(code\)/);
     expect(HOME).not.toMatch(/localStorage\.setItem\('dw_pastor_code'/);
-    expect(HOME).toMatch(/onPastorSignOut=\{\(\) => \{[\s\S]*?clearStaffIdentity\(\)/);
   });
 
   it('the Campus Overview picks up a provisioned code without a remount', () => {

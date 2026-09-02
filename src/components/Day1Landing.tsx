@@ -16,6 +16,7 @@ import { track } from '../utils/analytics';
 import { hapticTap } from '../utils/haptics';
 import { useModalA11y } from '../utils/useModalA11y';
 import { LanguageSwitch } from './LanguageSwitch';
+import { ChoosePathSheet } from './ChoosePathSheet';
 
 const WORDMARK = 'https://futuresdailyword.com/images/futures-wordmark.png';
 
@@ -39,6 +40,9 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
   const copy = day1Copy(lang);
   const dialogRef = useModalA11y(true);
   const [readingOpen, setReadingOpen] = useState(startOpen);
+  // Door 1 of "Choose your path": the sheet, hosted inside this dialog (its focus
+  // trap is document-level) and kept mounted with a live `open`.
+  const [pathOpen, setPathOpen] = useState(false);
   const readingRef = useRef<HTMLElement>(null);
   const paragraphs = copy.readingPastoral.split('\n\n').filter(Boolean);
 
@@ -102,6 +106,18 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
             >
               {t('read_btn', lang)}
             </button>
+            {/* Door 1 — one quiet line. Read stays the only button; this is a text link. */}
+            <p className="dw-day1-path-line">
+              {t('path_landing_prompt', lang)}{' '}
+              <button
+                type="button"
+                className="dw-day1-path-link"
+                aria-haspopup="dialog"
+                onClick={() => { hapticTap(); setPathOpen(true); }}
+              >
+                {t('path_landing_link', lang)}
+              </button>
+            </p>
           </div>
         )}
         {readingOpen ? (
@@ -137,6 +153,17 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
           <div className="dw-day1-spacer" />
         )}
       </main>
+      {/* A real change leaves the Day 1 gate on the next tick, after the sheet's
+          close effect has consumed its history entry (an unmount would leak it). */}
+      <ChoosePathSheet
+        open={pathOpen}
+        door="landing"
+        onClose={() => setPathOpen(false)}
+        onPicked={(persona) => {
+          track('daily_reading', `leave_day1_for_${persona}`);
+          if (persona !== 'new_to_faith') window.setTimeout(() => onDone?.(), 0);
+        }}
+      />
     </div>
   );
 }

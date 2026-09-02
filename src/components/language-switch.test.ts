@@ -22,7 +22,9 @@ describe('front-page language switch (Ashley, 2 Sep 2026)', () => {
   });
 
   it('App remounts HomeScreen on a language change (mount-time copy follows)', () => {
-    expect(app).toMatch(/<HomeScreen key=\{langKey\}/);
+    // The key also carries the persona (Choose your path remounts Home on a real change).
+    expect(app).toMatch(/const homeKey = `\$\{langKey\}:/);
+    expect(app).toMatch(/<HomeScreen key=\{homeKey\}/);
     expect(app).toMatch(/addEventListener\('dw-lang-changed'/);
   });
 

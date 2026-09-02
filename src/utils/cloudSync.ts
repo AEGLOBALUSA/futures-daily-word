@@ -44,6 +44,7 @@ const MISC_KEYS = [
   'dw_prayed_for',           // prayer-wall "prayed for" set
   'dw_setup',                // persona / pathway — core personalization (newest-wins)
   'dw_lang',                 // UI language preference (newest-wins)
+  'dw_path_asked',           // "Choose your path" asked-once flag (Door 3) — never again on any device
   'dw_preach_outline',       // the pastor's sermon outline (structured JSON — newest-wins,
                              // deliberately OFF the authored dw_sermon_ prefix so a device
                              // with an older copy takes the cloud's newer one)

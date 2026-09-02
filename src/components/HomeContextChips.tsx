@@ -1,72 +1,38 @@
 /**
- * Home header chips — persona ("I'm New to This") and campus ("📍 Gwinnett").
- * Tap a chip to pick the new value right there. Applies on the tap; no trip
- * through Settings.
+ * Home header campus chip ("📍 Gwinnett"). Tap it to pick the campus right
+ * there; applies on the tap, no trip through Settings.
  *
- * While a pastor is signed in (Settings → Pastor account) the persona chip is
- * LOCKED: the panel explains why and offers "Sign out of pastor account"
- * instead of a silent switch that would leave a staff token behind on a
- * device that no longer looks like a pastor's.
+ * The persona chip that used to sit beside it became the PathSwatch in the
+ * header row ("Choose your path", 2 Sep 2026) — one chooser sheet, visible for
+ * every persona, and locked to the pastor sign-in there.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
-import { ALL_PERSONAS, isNewChristianPersona } from '../utils/persona-config';
-import type { Persona } from '../utils/persona-config';
 import { CAMPUSES } from '../data/tokens';
 import { useSubView } from '../utils/useSubView';
 import { useModalA11y } from '../utils/useModalA11y';
 import { hapticTap } from '../utils/haptics';
 
-const PERSONA_LABEL: Record<Persona, string> = {
-  new_to_faith: 'persona_new',
-  congregation: 'persona_member',
-  deeper_study: 'persona_study',
-  pastor_leader: 'persona_leader',
-  comfort: 'persona_comfort',
-};
-const PERSONA_DESC: Record<Persona, string> = {
-  new_to_faith: 'persona_new_desc',
-  congregation: 'persona_member_desc',
-  deeper_study: 'persona_study_desc',
-  pastor_leader: 'persona_leader_desc',
-  comfort: 'persona_comfort_desc',
-};
-
 const REGIONS = ['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'] as const;
 
-type OpenChip = 'persona' | 'campus' | null;
-
 export function HomeContextChips({
-  persona,
   campusId,
-  onPersonaChange,
   onCampusChange,
-  pastorLocked = false,
-  onPastorSignOut,
 }: {
-  persona: string;
   campusId: string;
-  onPersonaChange: (persona: Persona) => void;
   onCampusChange: (campusId: string) => void;
-  /** A pastor is signed in: the persona chip opens the sign-out panel, not the list. */
-  pastorLocked?: boolean;
-  onPastorSignOut?: () => void;
 }) {
   const lang = getLang();
-  const [open, setOpen] = useState<OpenChip>(null);
-  const personaBtnRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
   const campusBtnRef = useRef<HTMLButtonElement>(null);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
 
-  useSubView(open !== null, () => setOpen(null));
-  const panelRef = useModalA11y(open !== null, () => setOpen(null));
+  useSubView(open, () => setOpen(false));
+  const panelRef = useModalA11y(open, () => setOpen(false));
 
   const campus = CAMPUSES.find(c => c.id === campusId);
-  const personaKey = PERSONA_LABEL[(persona as Persona)] || 'persona_member';
-  const personaLabel = t(personaKey, lang);
-  const newPathChip = isNewChristianPersona(persona);
   const campusLabel = campus
     ? campus.name.replace(/^Futures /, '').replace(/^Futuros /, '')
     : t('campus_chip', lang);
@@ -87,16 +53,16 @@ export function HomeContextChips({
     });
   };
 
-  const toggle = (which: OpenChip, btn: HTMLButtonElement | null) => {
-    if (open === which) { setOpen(null); return; }
+  const toggle = () => {
+    if (open) { setOpen(false); return; }
     hapticTap();
-    placePanel(btn);
-    setOpen(which);
+    placePanel(campusBtnRef.current);
+    setOpen(true);
   };
 
   useEffect(() => {
     if (!open) return;
-    const onScroll = () => setOpen(null);
+    const onScroll = () => setOpen(false);
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onScroll);
     return () => {
@@ -105,57 +71,36 @@ export function HomeContextChips({
     };
   }, [open]);
 
-  const chipStyle: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 3,
-    background: 'none',
-    border: 'none',
-    padding: '4px 2px',
-    margin: 0,
-    cursor: 'pointer',
-    fontFamily: 'var(--font-sans)',
-    lineHeight: 1.2,
-  };
-
   return (
     <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-      <button
-        ref={personaBtnRef}
-        type="button"
-        aria-haspopup={pastorLocked ? 'dialog' : 'listbox'}
-        aria-expanded={open === 'persona'}
-        aria-label={personaLabel}
-        onClick={() => toggle('persona', personaBtnRef.current)}
-        style={{ ...chipStyle, fontSize: 11, fontWeight: 600, color: newPathChip ? 'var(--dw-new)' : 'var(--dw-accent)' }}
-      >
-        {personaLabel}
-        <ChevronDown size={11} color="currentColor" style={{ opacity: 0.7, transform: open === 'persona' ? 'rotate(180deg)' : undefined }} />
-      </button>
-      <span style={{ color: 'var(--dw-border)', fontSize: 10 }} aria-hidden>·</span>
       <button
         ref={campusBtnRef}
         type="button"
         aria-haspopup="listbox"
-        aria-expanded={open === 'campus'}
+        aria-expanded={open}
         aria-label={campus ? `📍 ${campusLabel}` : t('select_your_campus', lang)}
-        onClick={() => toggle('campus', campusBtnRef.current)}
-        style={{ ...chipStyle, fontSize: 11, fontWeight: 500, color: 'var(--dw-text-muted)' }}
+        onClick={toggle}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 3,
+          background: 'none', border: 'none', padding: '4px 2px', margin: 0,
+          cursor: 'pointer', fontFamily: 'var(--font-sans)', lineHeight: 1.2,
+          fontSize: 11, fontWeight: 500, color: 'var(--dw-text-muted)',
+        }}
       >
         📍 {campusLabel}
-        <ChevronDown size={11} style={{ opacity: 0.7, transform: open === 'campus' ? 'rotate(180deg)' : undefined }} />
+        <ChevronDown size={11} style={{ opacity: 0.7, transform: open ? 'rotate(180deg)' : undefined }} />
       </button>
 
       {open && (
         <>
           <div
-            onClick={() => setOpen(null)}
+            onClick={() => setOpen(false)}
             style={{ position: 'fixed', inset: 0, zIndex: 219, background: 'transparent' }}
           />
           <div
             ref={panelRef}
-            role={open === 'persona' && pastorLocked ? 'dialog' : 'listbox'}
-            aria-label={open === 'persona' ? (pastorLocked ? t('pastor_chip_locked_title', lang) : t('your_journey', lang)) : t('your_campus', lang)}
+            role="listbox"
+            aria-label={t('your_campus', lang)}
             style={{
               ...panelStyle,
               background: 'var(--dw-canvas)',
@@ -167,77 +112,7 @@ export function HomeContextChips({
               padding: 8,
             }}
           >
-            {open === 'persona' && pastorLocked && (
-              <div style={{ padding: '6px 6px 4px', textAlign: 'left' }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                  {t('pastor_chip_locked_title', lang)}
-                </p>
-                <p style={{ margin: '4px 0 10px', fontSize: 12, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  {t('pastor_chip_locked_body', lang)}
-                </p>
-                {persona !== 'pastor_leader' && (
-                  <button
-                    type="button"
-                    onClick={() => { onPersonaChange('pastor_leader'); setOpen(null); }}
-                    style={{
-                      display: 'block', width: '100%', textAlign: 'left',
-                      background: 'var(--dw-accent)', color: '#fff',
-                      border: 'none', borderRadius: 10, cursor: 'pointer',
-                      padding: '10px 12px', marginBottom: 6,
-                      fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, minHeight: 44,
-                    }}
-                  >
-                    {t('pastor_chip_back_to_pastor', lang)}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => { setOpen(null); onPastorSignOut?.(); }}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left',
-                    background: 'transparent', color: 'var(--dw-text-secondary)',
-                    border: '1px solid var(--dw-border)', borderRadius: 10, cursor: 'pointer',
-                    padding: '10px 12px',
-                    fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, minHeight: 44,
-                  }}
-                >
-                  {t('pastor_chip_sign_out', lang)}
-                </button>
-              </div>
-            )}
-            {open === 'persona' && !pastorLocked && ALL_PERSONAS.map(id => {
-              const active = id === persona;
-              const isNewOption = isNewChristianPersona(id);
-              const newSelected = isNewOption && active;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  onClick={() => {
-                    if (id !== persona) onPersonaChange(id);
-                    setOpen(null);
-                  }}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left',
-                    background: isNewOption
-                      ? (active ? 'var(--dw-new)' : 'var(--dw-new-soft)')
-                      : (active ? 'var(--dw-accent)' : 'transparent'),
-                    color: newSelected
-                      ? 'var(--dw-new-on-fill)'
-                      : (active ? '#fff' : 'var(--dw-text-primary)'),
-                    border: 'none', borderRadius: 10, cursor: 'pointer',
-                    padding: '10px 12px', marginBottom: 2,
-                    fontFamily: 'var(--font-sans)', minHeight: 44,
-                  }}
-                >
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: newSelected ? 'var(--dw-new-on-fill)' : (isNewOption ? 'var(--dw-new)' : undefined) }}>{t(PERSONA_LABEL[id], lang)}</span>
-                  <span style={{ display: 'block', fontSize: 12, marginTop: 2, ...(newSelected ? { color: 'var(--dw-new-on-fill)' } : { opacity: 0.75 }) }}>{t(PERSONA_DESC[id], lang)}</span>
-                </button>
-              );
-            })}
-            {open === 'campus' && REGIONS.map(region => {
+            {REGIONS.map(region => {
               const regionCampuses = CAMPUSES.filter(c => c.region === region);
               if (!regionCampuses.length) return null;
               return (
@@ -259,7 +134,7 @@ export function HomeContextChips({
                         aria-selected={active}
                         onClick={() => {
                           if (c.id !== campusId) onCampusChange(c.id);
-                          setOpen(null);
+                          setOpen(false);
                         }}
                         style={{
                           display: 'block', width: '100%', textAlign: 'left',

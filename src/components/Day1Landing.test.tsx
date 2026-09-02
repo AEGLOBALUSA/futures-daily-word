@@ -53,3 +53,30 @@ describe('Day1Landing — closed hero is first paint', () => {
     expect(html).toMatch(/Mark as read/i);
   });
 });
+
+describe('Day1Landing — Door 1 of "Choose your path" (2 Sep 2026)', () => {
+  it('shows one quiet line under Read — a text link, not a second CTA', () => {
+    const html = closed();
+    expect(html).toContain('Not new to faith?');
+    expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*>Choose your path<\/button>/);
+    // Still one CTA (the link carries aria-haspopup, like the language switch chrome).
+    expect(html.match(/<button\b(?![^>]*aria-haspopup)/g)?.length).toBe(1);
+    // The sheet is mounted closed — nothing of it paints before the tap.
+    expect(html).not.toContain('Where are you today?');
+  });
+
+  it('opens the chooser sheet on the line, without leaving the closed hero', async () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    await act(async () => { root.render(<Day1Landing />); });
+    const link = Array.from(host.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Choose your path')!;
+    await act(async () => { link.click(); });
+    expect(host.textContent).toContain('Where are you today?');
+    expect(host.textContent).toContain("I'm part of Futures Church");
+    expect(hasBegunDay1()).toBe(false);
+    expect(host.textContent).not.toContain(DAY1_VERSE_REF);
+    root.unmount();
+    host.remove();
+  });
+});

@@ -19,9 +19,12 @@ import { track } from './utils/analytics';
 import { t, getLang } from './utils/i18n';
 import { closeSubViewsTo, openSubViewCount } from './utils/useSubView';
 import { StopAllAudio } from './components/StopAllAudio';
-import { consumeLandingParam, needsDay1Landing, needsDay1Reading, startGraceSeriesIfCold } from './utils/coldStart';
+import { consumeLandingParam, needsDay1Landing, needsDay1Reading, needsPathAsk, startGraceSeriesIfCold } from './utils/coldStart';
 import { Day1Landing } from './components/Day1Landing';
 import { Day1Reading } from './components/Day1Reading';
+import { ChoosePathSheet } from './components/ChoosePathSheet';
+import { PathAskedOnce } from './components/PathAskedOnce';
+import { CHOOSE_PATH_EVENT, hasPathBeenAsked, markPathAsked, type PathDoor } from './utils/choosePath';
 import { restoreStaffSession } from './utils/staffIdentity';
 import { useStaffIdentity } from './utils/useStaffIdentity';
 
@@ -247,8 +250,29 @@ function AppContent() {
     window.addEventListener('dw-reading-completed', h);
     return () => window.removeEventListener('dw-reading-completed', h);
   }, []);
+  // Door 3 of "Choose your path" (Ashley, 2 Sep 2026): asked ONCE, right after
+  // the first Mark as read on Day 1 and BEFORE the push ask, obeying its rules —
+  // evidence-timed on the same finished reading, never for comfort, never after a
+  // real choice (REAL_CHOICE_SOURCES), never stacked with the push ask. The
+  // dw_path_asked flag rides the misc bag so it never returns on any device.
+  const [pathAsked, setPathAsked] = useState(hasPathBeenAsked);
+  const showPathAsk = onboardingActive && !pathAsked && hasReadOnce && needsPathAsk(setup);
+  function handlePathAsked() {
+    markPathAsked();
+    setPathAsked(true);
+  }
+  // The one chooser sheet, hosted here (stable across Home remounts) and opened
+  // by every door through the dw-choose-path event. Mounted with a live `open`,
+  // never conditionally, so its history entry is always consumed on close.
+  const [pathSheet, setPathSheet] = useState<{ open: boolean; door: PathDoor }>({ open: false, door: 'home' });
+  useEffect(() => {
+    const h = (e: Event) => setPathSheet({ open: true, door: ((e as CustomEvent).detail?.door as PathDoor) || 'home' });
+    window.addEventListener(CHOOSE_PATH_EVENT, h);
+    return () => window.removeEventListener(CHOOSE_PATH_EVENT, h);
+  }, []);
+  const closePathSheet = useCallback(() => setPathSheet(s => (s.open ? { ...s, open: false } : s)), []);
   const needsPushOnboarding = onboardingActive && !pushOnboarded
-    && hasReadOnce && setup?.persona !== 'comfort';
+    && hasReadOnce && setup?.persona !== 'comfort' && !showPathAsk;
   function handlePushOnboardingDone() {
     try { localStorage.setItem('dw_push_onboarded', '1'); } catch { /* quota */ }
     setPushOnboarded(true);
@@ -343,8 +367,13 @@ function AppContent() {
     return () => window.removeEventListener('dw-lang-changed', h);
   }, []);
 
+  // …and on the persona: a path picked in the chooser sheet remounts Home so it
+  // lands on that path's one thing already open — the PR #82 arrival machinery
+  // replays on mount instead of being re-seeded by hand (never via handleRead).
+  const homeKey = `${langKey}:${setup?.persona || ''}`;
+
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen key={langKey} onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
+    home: <HomeScreen key={homeKey} onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} onNavigate={navigateTab} />,
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
     plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
@@ -431,7 +460,7 @@ function AppContent() {
       )}
       {/* Cookie banner waits until no full-screen gate is active — a brand-new
           visitor was hitting picker + push + banner inside ~30 seconds. */}
-      {!needsPushOnboarding && <CookieConsent />}
+      {!needsPushOnboarding && !showPathAsk && <CookieConsent />}
       <AudioAnnouncer />
 
       {/* Cross-device merge notice — fired by cloudSync when the same entry was
@@ -468,9 +497,16 @@ function AppContent() {
         </div>
       )}
 
+      {showPathAsk && (
+        <PathAskedOnce
+          onKeepGoing={handlePathAsked}
+          onSomethingElse={() => setPathSheet({ open: true, door: 'asked' })}
+        />
+      )}
       {needsPushOnboarding && (
         <PushOptIn onDone={handlePushOnboardingDone} />
       )}
+      <ChoosePathSheet open={pathSheet.open} door={pathSheet.door} onClose={closePathSheet} />
     </div>
   );
 }
