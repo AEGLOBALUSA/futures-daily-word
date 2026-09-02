@@ -43,25 +43,22 @@ function click(el: Element | undefined | null) {
   act(() => { (el as HTMLElement).click(); });
 }
 const option = (text: RegExp) => [...document.querySelectorAll('[role="option"]')].find(o => text.test(o.textContent || ''));
-const cta = () => document.querySelector('.dw-cp-cta') as HTMLButtonElement | null;
 
 describe('ChoosePathSheet', () => {
-  it('opens on the current path and names the destination on the one CTA', () => {
+  it('opens on the current path, ticked, with no second CTA to find below the fold', () => {
     const { root } = mount(<ChoosePathSheet open onClose={() => {}} door="home" />);
     expect(document.body.textContent).toContain('Where are you today?');
     expect(option(/new to faith/i)?.getAttribute('aria-selected')).toBe('true');
-    expect(cta()?.textContent).toBe('Start Day 1');
-    click(option(/part of Futures Church/i));
-    expect(cta()?.textContent).toBe("Open today's reading");
+    expect(document.querySelectorAll('[role="option"]').length).toBe(5);
+    expect(document.querySelector('.dw-cp-cta')).toBeNull();
     act(() => root.unmount());
   });
 
-  it('a first real choice saves with source onboarding, marks asked-once, closes, and reports the change', () => {
+  it('one tap: a first real choice saves with source onboarding, marks asked-once, closes, and reports the change', () => {
     const onClose = vi.fn();
     const onPicked = vi.fn();
     const { root } = mount(<ChoosePathSheet open onClose={onClose} door="landing" onPicked={onPicked} />);
     click(option(/part of Futures Church/i));
-    click(cta());
     expect(saveSetup).toHaveBeenCalledWith({ persona: 'congregation', source: 'onboarding' });
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onPicked).toHaveBeenCalledWith('congregation');
@@ -73,16 +70,15 @@ describe('ChoosePathSheet', () => {
     setup.source = 'onboarding';
     const { root } = mount(<ChoosePathSheet open onClose={() => {}} door="settings" />);
     click(option(/deeper in the Word/i));
-    click(cta());
     expect(saveSetup).toHaveBeenCalledWith({ persona: 'deeper_study', source: 'settings' });
     act(() => root.unmount());
   });
 
-  it('re-picking the path you already have just closes', () => {
+  it('tapping the path you already have just closes', () => {
     const onClose = vi.fn();
     const onPicked = vi.fn();
     const { root } = mount(<ChoosePathSheet open onClose={onClose} door="home" onPicked={onPicked} />);
-    click(cta());
+    click(option(/new to faith/i));
     expect(saveSetup).not.toHaveBeenCalled();
     expect(onPicked).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -107,7 +103,6 @@ describe('ChoosePathSheet', () => {
     expect(document.body.textContent).toContain('Signed in as pastor');
     expect(document.body.textContent).toContain('Sign out of pastor account');
     click(option(/something hard/i));
-    click(cta());
     expect(saveSetup).toHaveBeenCalledWith({ persona: 'comfort', source: 'settings' });
     expect(onPicked).toHaveBeenCalledWith('comfort');
     expect(clearStaffIdentity).not.toHaveBeenCalled();
