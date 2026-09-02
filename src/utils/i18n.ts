@@ -276,6 +276,7 @@ const UI: Translations = {
 
   // ── WEEKLY STATS ──
   days_this_week: { en: 'days this week', es: 'd\u00edas esta semana', pt: 'dias esta semana', id: 'hari minggu ini' },
+  this_week: { en: 'This week', es: 'Esta semana', pt: 'Esta semana', id: 'Minggu ini' },
   day_streak: { en: 'day streak', es: 'd\u00edas seguidos', pt: 'dias seguidos', id: 'hari beruntun' },
 
   // ── FONT SIZES ──

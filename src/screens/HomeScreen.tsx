@@ -1758,7 +1758,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           textTransform: 'uppercase', color: 'var(--dw-info, #4C7E97)',
           fontFamily: 'var(--font-sans)', marginBottom: 2,
         }}>
-          This week
+          {tI18n('this_week', lang)}
         </span>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#F5EFE6', fontFamily: 'var(--font-sans)' }}>
           {tI18n('sermon_notes_title', lang)}
