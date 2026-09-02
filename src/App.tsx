@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { ScriptureSelectionProvider, useScriptureSelection } from './contexts/ScriptureSelectionContext';
-import { TabBar } from './components/TabBar';
+import { type TabId } from './components/TabBar';
+import { AppNav } from './components/AppNav';
 import { SeamBar } from './components/Seam';
 import { EmailGate } from './components/EmailGate';
 import { PushOptIn } from './components/PushOptIn';
@@ -11,7 +12,6 @@ import { isPushSubscribed } from './utils/push';
 import { ScreenSkeleton } from './components/Skeleton';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CookieConsent } from './components/CookieConsent';
-import type { TabId } from './components/TabBar';
 import { activateSundayGuest, isSundayGuest } from './utils/sunday';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
 import { API_BASE } from './utils/api-base';
@@ -21,7 +21,7 @@ import { closeSubViewsTo, openSubViewCount } from './utils/useSubView';
 import { StopAllAudio } from './components/StopAllAudio';
 import { consumeLandingParam, needsDay1Landing, needsDay1Reading, startGraceSeriesIfCold } from './utils/coldStart';
 import { Day1Landing } from './components/Day1Landing';
-import { Day1Reading } from './components/Day1Reading';
+import { setJourneyViewOpen } from './utils/journey-session';
 
 // ── Pre-render deep link setup — must run before any React component initializes ──
 const SERMON_DEEP_LINK = (() => {
@@ -186,9 +186,9 @@ function AppContent() {
   const [showDay1Landing, setShowDay1Landing] = useState(
     () => !SERMON_DEEP_LINK && needsDay1Landing()
   );
-  const [showDay1Reading, setShowDay1Reading] = useState(
-    () => !SERMON_DEEP_LINK && !needsDay1Landing() && needsDay1Reading()
-  );
+  useEffect(() => {
+    if (!SERMON_DEEP_LINK && needsDay1Reading()) setJourneyViewOpen(true);
+  }, []);
 
   // Track app open — once on mount. Detail is the persona, plus church-homepage
   // attribution when the visitor arrived via ?from=church (real track(), not a pixel).
@@ -316,11 +316,11 @@ function AppContent() {
   }, []);
 
   const screens: Record<TabId, ReactNode> = {
-    home: <HomeScreen onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
+    home: <HomeScreen onNavigate={navigateTab} />,
     journal: <JournalScreen onBack={goBack} onNavigate={navigateTab} />,
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
     plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
-    more: <MoreScreen onBack={goBack} />,
+    more: <MoreScreen onBack={goBack} onNavigate={navigateTab} />,
     'sermon-notes': <SermonNotesTab onBack={() => navigateTab('home')} />,
   };
 
@@ -329,17 +329,13 @@ function AppContent() {
   if (showDay1Landing) {
     return (
       <Day1Landing
+        onBegin={() => {
+          setShowDay1Landing(false);
+        }}
         onDone={() => {
           setShowDay1Landing(false);
-          setShowDay1Reading(false);
         }}
       />
-    );
-  }
-
-  if (showDay1Reading) {
-    return (
-      <Day1Reading onDone={() => setShowDay1Reading(false)} />
     );
   }
 
@@ -381,7 +377,7 @@ function AppContent() {
           </main>
         </Suspense>
       </ErrorBoundary>
-      <TabBar activeTab={activeTab} onTabChange={navigateTab} />
+      <AppNav activeTab={activeTab} onTabChange={navigateTab} />
       <StopAllAudio onStop={() => { try { window.dispatchEvent(new Event('dw-stop-hero-audio')); } catch { /* ignore */ } }} />
       {!sundayGuest && !SERMON_DEEP_LINK && <EmailGate />}
       {/* Home and Notes mount their own BibleAI (they need to pass an initialContext

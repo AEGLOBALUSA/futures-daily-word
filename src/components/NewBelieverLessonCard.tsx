@@ -16,6 +16,7 @@ import { ChevronLeft, Loader2, Share2 } from 'lucide-react';
 import { t as trans } from '../utils/i18n';
 import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
+import { NewFaithCTA } from './NewFaithCTA';
 import { shareContent } from '../utils/share';
 import { useSubView } from '../utils/useSubView';
 import { useModalA11y } from '../utils/useModalA11y';
@@ -39,7 +40,7 @@ interface NewBelieverLessonCardProps {
 }
 
 export function NewBelieverLessonCard({
-  pathwayData, pathwayProgress, displayDay, lang, t, scriptureFontSize,
+  pathwayData, pathwayProgress, displayDay, lang, t: _t, scriptureFontSize,
   savePathwayProgress, onClose, passageText, servedTranslation,
 }: NewBelieverLessonCardProps) {
   // Completion moment: hold the just-completed lesson on screen (with a
@@ -82,10 +83,7 @@ export function NewBelieverLessonCard({
     : dayData.lesson;
   const dayReading = dayData.reading;
   const chapterRef = dayReading ? `${dayReading.book} ${dayReading.chapter}` : '';
-  const pathTitle = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
-    : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
-    : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
-    : pathwayData.title;
+  const pathTitle = trans('persona_new', lang);
   const isCompleted = pathwayProgress.completedDays.includes(currentDay);
 
   return (
@@ -96,20 +94,9 @@ export function NewBelieverLessonCard({
       role="dialog"
       aria-modal="true"
       aria-labelledby="dw-journey-day-title"
-      style={{
-        // Below the highlight toolbar (95) / Bible AI (90) so the study sheet
-        // pops over the verses, and below the seam brand bar (200), which keeps
-        // framing the app; the top padding clears the seam's fixed height.
-        position: 'fixed', inset: 0, zIndex: 60,
-        background: 'var(--dw-canvas)',
-        overflowY: 'auto', WebkitOverflowScrolling: 'touch',
-      }}
+      className="dw-day-n"
     >
-      <div style={{
-        maxWidth: 640, margin: '0 auto',
-        padding: 'calc(34px + env(safe-area-inset-top, 0px) + 10px) 16px calc(env(safe-area-inset-bottom, 0px) + 40px)',
-      }}>
-        {/* Back row */}
+      <div className="dw-day-n-inner">
         <button
           onClick={onClose}
           aria-label={trans('back', lang)}
@@ -123,17 +110,12 @@ export function NewBelieverLessonCard({
           <ChevronLeft size={20} /> {trans('back', lang)}
         </button>
 
-        {/* Day header — the journey's own sage voice */}
+        <h1 id="dw-journey-day-title" className="dw-day-n-title">{pathTitle}</h1>
+        <p className="dw-day-n-meta">
+          {trans('day_n_of_40', lang).replace('{n}', String(currentDay))}
+        </p>
+
         <Card className="dw-new-journey" style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h2 className="text-section-header" style={{ margin: 0, color: 'var(--dw-new)' }}>
-              {t('day_label')} {currentDay} {t('of_label')} {totalDays}
-            </h2>
-            <span style={{ fontSize: 11, color: 'var(--dw-new)', fontFamily: 'var(--font-sans)' }}>
-              {pathTitle}
-            </span>
-          </div>
-          {/* Progress bar */}
           <div style={{ height: 4, background: 'var(--dw-border)', borderRadius: 2, overflow: 'hidden', marginBottom: 12 }}>
             <div style={{
               width: `${(completed / totalDays) * 100}%`,
@@ -143,8 +125,8 @@ export function NewBelieverLessonCard({
               transition: 'width 0.3s',
             }} />
           </div>
-          <p id="dw-journey-day-title" className="text-card-title" style={{ marginBottom: 4 }}>{dayTitle}</p>
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', margin: 0 }}>
+          <p className="text-card-title" style={{ marginBottom: 4 }}>{dayTitle}</p>
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', margin: 0 }}>
             {dayTheme}
           </p>
         </Card>
@@ -203,9 +185,16 @@ export function NewBelieverLessonCard({
           )}
           {/* Actions row */}
           <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <button
-              onClick={() => {
-                if (!isCompleted) {
+            {isCompleted ? (
+              <span style={{
+                fontSize: 14, fontWeight: 600, color: 'var(--dw-text-muted)',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                {trans('completed_check', lang)}
+              </span>
+            ) : (
+              <NewFaithCTA
+                onClick={() => {
                   const newCompleted = [...pathwayProgress.completedDays, currentDay];
                   const nextDay = Math.min(totalDays, currentDay + 1);
                   setShowNext(false);
@@ -217,22 +206,11 @@ export function NewBelieverLessonCard({
                     lastCompletedDate: today,
                     totalDays,
                   });
-                }
-              }}
-              style={{
-                padding: '8px 16px',
-                background: isCompleted ? 'var(--dw-surface)' : 'var(--dw-new)',
-                color: isCompleted ? 'var(--dw-text-muted)' : 'var(--dw-new-on-fill)',
-                border: isCompleted ? '1px solid var(--dw-border)' : 'none',
-                borderRadius: 10,
-                cursor: isCompleted ? 'default' : 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                fontFamily: 'var(--font-sans)',
-              }}
-            >
-              {isCompleted ? trans('completed_check', lang) : t('mark_complete')}
-            </button>
+                }}
+              >
+                {trans('mark_as_read', lang)}
+              </NewFaithCTA>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button onClick={() => {
                 shareContent({

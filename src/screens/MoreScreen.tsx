@@ -25,6 +25,12 @@ import {
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { ALL_PERSONAS, PERSONA_CONFIGS, isNewChristianPersona } from '../utils/persona-config';
+import { JourneyChoiceList } from '../components/JourneyChoiceCard';
+import { NewFaithCTA } from '../components/NewFaithCTA';
+import { continueJourneyDay, enrollAndOpenJourneyDay } from '../utils/journey-session';
+import { readPathwayProgress } from '../utils/coldStart';
+import type { TabId } from '../components/TabBar';
+import type { Persona } from '../utils/persona-config';
 import { t, getLang, setLangPref } from '../utils/i18n';
 
 // Bible translations filtered by selected language
@@ -71,7 +77,7 @@ function formatHour(h: number): string {
 }
 const REMINDER_HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 5 → 22
 
-export function MoreScreen({ onBack }: { onBack?: () => void }) {
+export function MoreScreen({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
   const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
@@ -298,17 +304,29 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
       <ScreenHeader title={t("settings_title", lang)} onBack={onBack} />
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div className="dw-settings-col" style={{ marginBottom: 24 }}>
           <h1 style={{
             fontFamily: 'var(--font-serif)',
             fontSize: 26,
             fontWeight: 400,
             color: 'var(--dw-text-primary)',
             letterSpacing: '-0.02em',
+            marginBottom: 24,
           }}>
             {t("settings_title", lang)}
           </h1>
-          <ThemeToggle />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            {t('appearance', lang)}
+          </h2>
+          <Card style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)' }}>
+              {t('appearance', lang)}
+            </span>
+            <ThemeToggle />
+          </Card>
         </div>
 
         {/* Profile avatar */}
@@ -378,72 +396,58 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             {t("your_journey", lang)}
           </h2>
           <Card style={{ padding: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {PERSONAS.map(p => {
-                const isNewOption = isNewChristianPersona(p.id);
-                const isActive = (
-                  setup?.persona === p.id
-                  || (isNewOption && isNewChristianPersona(setup?.persona))
-                ) && !pendingPersona;
-                const isPending = pendingPersona === p.id;
-                const newFilled = isNewOption && (isActive || isPending);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={isNewOption ? `dw-journey-new${newFilled ? ' is-current' : ''}` : undefined}
-                    onClick={() => handlePersonaSelect(p.id)}
-                    style={{
-                      background: isNewOption
-                        ? (newFilled ? 'var(--dw-new)' : 'var(--dw-new-soft)')
-                        : (isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)'),
-                      color: isNewOption
-                        ? (newFilled ? 'var(--dw-new-on-fill)' : 'var(--dw-text-primary)')
-                        : (isActive || isPending ? '#fff' : 'var(--dw-text-primary)'),
-                      border: isPending && !isNewOption ? '2px solid var(--dw-gold)' : 'none',
-                      borderRadius: 10,
-                      padding: '12px 16px',
-                      fontSize: 14,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)',
-                      minHeight: 44,
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div className={isNewOption ? 'dw-journey-new-title' : undefined} style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
-                    <div className={isNewOption ? 'dw-journey-new-desc' : undefined} style={{ fontSize: 12, opacity: newFilled ? 1 : 0.7 }}>{p.desc}</div>
-                  </button>
-                );
-              })}
-            </div>
-            {/* Save button — appears when a new persona is selected */}
+            <JourneyChoiceList
+              value={pendingPersona || setup?.persona || ''}
+              labelledBy={undefined}
+              onChange={(id: Persona) => handlePersonaSelect(id)}
+            />
             {pendingPersona && pendingPersona !== setup?.persona && (
               <button
                 onClick={handlePersonaSave}
-                style={{
-                  marginTop: 10, width: '100%',
-                  padding: '12px 16px', borderRadius: 10,
-                  background: 'var(--dw-gold)', border: 'none',
-                  fontSize: 15, fontWeight: 700,
-                  cursor: 'pointer', color: '#fff',
-                  fontFamily: 'var(--font-sans)',
-                  transition: 'all 0.2s ease',
-                }}
+                className="dw-btn-primary"
+                style={{ marginTop: 12, width: '100%' }}
               >
-                Save & Apply
+                {t('save', lang)}
               </button>
+            )}
+            {newPathSettings && (
+              <div style={{ marginTop: 16 }}>
+                <NewFaithCTA
+                  onClick={() => {
+                    const p = readPathwayProgress();
+                    if (p.enrolled && ((p.currentDay || 1) > 1 || p.completedDays.length > 0)) {
+                      continueJourneyDay();
+                    } else {
+                      enrollAndOpenJourneyDay({ beginDay1: true, stamp: true });
+                    }
+                    onNavigate?.('home');
+                  }}
+                >
+                  {readPathwayProgress().enrolled && ((readPathwayProgress().currentDay || 1) > 1 || readPathwayProgress().completedDays.length > 0)
+                    ? t('continue_journey', lang)
+                    : t('start_new_to_faith', lang)}
+                </NewFaithCTA>
+              </div>
             )}
             {personaSaved && (
               <p style={{
                 marginTop: 8, textAlign: 'center',
-                fontSize: 13, fontWeight: 600,
-                color: '#4CAF50', fontFamily: 'var(--font-sans)',
+                fontSize: 14, fontWeight: 600,
+                color: 'var(--dw-success)', fontFamily: 'var(--font-sans)',
               }}>
-                Saved! Your experience has been updated.
+                {t('save', lang)}
               </p>
             )}
+          </Card>
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
+            <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            {t("your_campus", lang)}
+          </h2>
+          <Card style={{ padding: 12 }}>
+            <CampusSelect value={userProfile?.campus || ''} onChange={handleCampusSelect} />
           </Card>
         </div>
 
@@ -526,17 +530,6 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 </button>
               ))}
             </div>
-          </Card>
-        </div>
-
-        {/* ─── CAMPUS ─── */}
-        <div style={{ marginBottom: 24 }}>
-          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
-            <MapPin size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            {t("your_campus", lang)}
-          </h2>
-          <Card style={{ padding: 12 }}>
-            <CampusSelect value={userProfile?.campus || ''} onChange={handleCampusSelect} />
           </Card>
         </div>
 

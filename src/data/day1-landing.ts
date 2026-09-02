@@ -5,10 +5,10 @@
  */
 
 export const DAY1_SERIES_TITLE = {
-  en: 'New & Returning to Faith',
-  es: 'Nuevos y De Regreso a la Fe',
-  pt: 'Novos e De Volta \u00e0 F\u00e9',
-  id: 'Baru & Kembali ke Iman',
+  en: 'New to Faith',
+  es: 'Nuevo en la Fe',
+  pt: 'Novo na F\u00e9',
+  id: 'Baru dalam Iman',
 } as const;
 
 export const DAY1_TITLE = {

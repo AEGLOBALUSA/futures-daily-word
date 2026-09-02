@@ -12,19 +12,7 @@ export function ScreenHeader({ title, onBack }: Props) {
 
   return (
     <>
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      padding: 'calc(10px + var(--safe-top, 0px)) 16px 10px',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 50,
-      background: 'var(--dw-canvas)',
-      borderBottom: '1px solid var(--dw-border)',
-    }}>
+    <div className="dw-screen-header">
       <button aria-label={t('back', lang)}
         onClick={onBack}
         style={{
@@ -40,6 +28,8 @@ export function ScreenHeader({ title, onBack }: Props) {
           fontFamily: 'var(--font-sans)',
           padding: '6px 8px 6px 2px',
           borderRadius: 8,
+          minHeight: 44,
+          minWidth: 44,
         }}
       >
         <ChevronLeft size={20} />
@@ -54,8 +44,7 @@ export function ScreenHeader({ title, onBack }: Props) {
         {title}
       </span>
     </div>
-    {/* Spacer so content below isn't hidden behind the fixed header */}
-    <div style={{ height: 'calc(44px + var(--safe-top, 0px))' }} />
+    <div className="dw-screen-header-spacer" />
     </>
   );
 }

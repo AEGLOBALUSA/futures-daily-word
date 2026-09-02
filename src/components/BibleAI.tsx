@@ -396,16 +396,16 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
         aria-label={t('bible_ai_label', getLang())}
         style={{
           position: 'fixed',
-          bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+          bottom: 'calc(64px + 16px + env(safe-area-inset-bottom, 0px))',
           right: 16,
-          height: 36,
-          padding: '0 14px',
-          borderRadius: 8,
-          background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
-          backgroundSize: '200% 200%',
-          animation: 'aiAurora 4s ease infinite',
-          border: '1px solid rgba(245,207,85,0.55)',
-          boxShadow: '0 4px 22px rgba(160,110,8,0.7), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.22)',
+          height: 44,
+          minHeight: 44,
+          padding: '0 16px',
+          borderRadius: 12,
+          background: 'var(--dw-accent)',
+          color: '#fff',
+          border: 'none',
+          boxShadow: 'var(--shadow-1)',
           display: isOpen ? 'none' : 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -414,27 +414,11 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
           zIndex: 90,
           overflow: 'hidden',
         }}
-        onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.93)')}
-        onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        {/* glass highlight */}
         <span style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '46%',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
-          borderRadius: '6px 6px 0 0', pointerEvents: 'none',
-        }} />
-        {/* shimmer */}
-        <span style={{
-          position: 'absolute', top: 0, bottom: 0, width: '55%',
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.26) 50%, transparent 100%)',
-          animation: 'aiBeam 3s ease-in-out infinite', pointerEvents: 'none',
-        }} />
-        <span style={{
-          fontSize: 11, fontWeight: 900, color: '#fff',
-          fontFamily: 'var(--font-sans)', letterSpacing: '0.14em',
-          textTransform: 'uppercase', position: 'relative',
-          textShadow: '0 1px 2px rgba(80,40,0,0.6)',
-        }}>AI</span>
+          fontSize: 14, fontWeight: 600,
+          fontFamily: 'var(--font-sans)',
+        }}>{t('bible_ai_label', getLang())}</span>
       </button>
 
       <style>{`

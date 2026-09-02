@@ -9,7 +9,6 @@ import { CheckCircle, Clock, ArrowRight, RotateCcw, BookOpen, MapPin, Video, Scr
 import type { TabId } from '../components/TabBar';
 import { LibraryScreen } from './LibraryScreen';
 import { useSubView } from '../utils/useSubView';
-import { PromoAds } from '../components/PromoAds';
 import { EmptyState } from '../components/EmptyState';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
@@ -17,7 +16,9 @@ import { getStreak as getStreakState, recordStreakToday } from '../utils/streak'
 import { t, getLang, tField } from '../utils/i18n';
 import { PERSONA_PLAN_IDS, isNewChristianPersona, type Persona } from '../utils/persona-config';
 import { PathwayPicker } from '../components/PathwayPicker';
-import { ensureGraceSeriesEnrolled, GRACE_SERIES_TITLE, GRACE_SERIES_TOTAL_DAYS } from '../utils/coldStart';
+import { NewFaithCTA } from '../components/NewFaithCTA';
+import { ensureGraceSeriesEnrolled, GRACE_SERIES_TOTAL_DAYS } from '../utils/coldStart';
+import { continueJourneyDay, enrollAndOpenJourneyDay } from '../utils/journey-session';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -255,7 +256,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
         currentDay: displayDay,
         completed: (p.completedDays || []).length,
         total: p.totalDays || 40,
-        title: p.title || t('your_faith_journey', lang),
+        title: t('persona_new', lang),
       };
     } catch { return null; }
   })();
@@ -456,21 +457,45 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
           <p className="dw-plans-sd-kicker">{t('browse_plans', lang)}</p>
           <h1 className="dw-plans-sd-title">{t('p_your_plans_header', lang)}</h1>
 
+          {isNewChristian && (
+            <div className="dw-plan-sd-card dw-plan-sd-card-new" style={{ marginBottom: 24 }}>
+              <p className="dw-plan-sd-days">
+                {t('plan_days', lang).replace('{n}', String(GRACE_SERIES_TOTAL_DAYS))}
+              </p>
+              <h2 className="dw-plan-sd-name">{t('persona_new', lang)}</h2>
+              {faithJourney && (
+                <p className="dw-plan-sd-active">
+                  {t('day_n_of_40', lang).replace('{n}', String(faithJourney.currentDay))}
+                </p>
+              )}
+              <div style={{ marginTop: 16 }}>
+                <NewFaithCTA
+                  onClick={() => {
+                    if (faithJourney) continueJourneyDay();
+                    else enrollAndOpenJourneyDay({ beginDay1: true, stamp: true });
+                    onNavigate?.('home');
+                  }}
+                >
+                  {faithJourney ? t('continue_journey', lang) : t('start_new_to_faith', lang)}
+                </NewFaithCTA>
+              </div>
+            </div>
+          )}
+
+          <h2 className="dw-plans-sd-section">{t('change_journey', lang)}</h2>
           <PathwayPicker
             embedded
             currentPersona={persona}
             onSelect={(p: Persona) => {
               const src = REAL_PATH.has(setup?.source || '') ? 'settings' : 'onboarding';
               saveSetup({ persona: p, source: src });
-              if (p === 'new_to_faith') {
-                ensureGraceSeriesEnrolled();
-                // Choosing I'm New goes straight into the journey — Home IS the
-                // sage 40-day journey for this persona (Ashley, 1 Sep).
-                onNavigate?.('home');
-              }
+              if (p === 'new_to_faith') ensureGraceSeriesEnrolled();
               setPersona(p);
             }}
-            onBeginDay1={() => onNavigate?.('home')}
+            onBeginDay1={() => {
+              enrollAndOpenJourneyDay({ beginDay1: true, stamp: true });
+              onNavigate?.('home');
+            }}
           />
 
           {!isNewChristian && (
@@ -582,28 +607,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
             {!isNewChristian && <h2 className="dw-plans-sd-section">{t('browse_plans', lang)}</h2>}
             <div className="dw-plans-sd-list">
               {isNewChristian ? (
-                <div className="dw-plan-sd-card dw-plan-sd-card-new">
-                  <p className="dw-plan-sd-days">
-                    {t('plan_days', lang).replace('{n}', String(GRACE_SERIES_TOTAL_DAYS))}
-                  </p>
-                  <h3 className="dw-plan-sd-name">{faithJourney?.title || GRACE_SERIES_TITLE}</h3>
-                  {faithJourney && (
-                    <p className="dw-plan-sd-active">
-                      {t('p_day_of', lang)} {faithJourney.currentDay} {t('p_of', lang)} {faithJourney.total}
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    className="dw-plan-sd-start"
-                    onClick={() => {
-                      ensureGraceSeriesEnrolled();
-                      onNavigate?.('home');
-                    }}
-                    style={faithJourney ? { marginTop: 16 } : undefined}
-                  >
-                    {faithJourney ? t('continue_journey', lang) : t('start_this_plan', lang)}
-                  </button>
-                </div>
+                <p className="dw-path-sub">{t('plans_start_hint', lang)}</p>
               ) : (
                 browsePlans.map(plan => {
                   const isActive = activePlanIds.includes(plan.id);
@@ -618,7 +622,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                       ) : (
                         <button
                           type="button"
-                          className="dw-plan-sd-start"
+                          className="dw-btn-primary"
                           onClick={() => startPlan(plan.id)}
                         >
                           {t('start_this_plan', lang)}
@@ -767,7 +771,6 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
           </>
           )}
         </div>
-        <PromoAds />
       </div>
     );
   }

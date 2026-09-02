@@ -1,5 +1,5 @@
 /**
- * Cold start → Day 1 of the existing 40-day "New & Returning to Faith" series.
+ * Cold start → Day 1 of the existing 40-day New to Faith series.
  *
  * Live usage (Ashley, 2026-09): the five-choice PathwayPicker is where people
  * open and never read. 23 of 28 pathway enrollments are still on day 1 with
@@ -14,7 +14,7 @@ import type { PathwayProgress } from '../data/pathway-types';
 import { recordStreakToday } from './streak';
 
 export const GRACE_SERIES_PERSONA: Persona = 'new_to_faith';
-export const GRACE_SERIES_TITLE = 'New & Returning to Faith';
+export const GRACE_SERIES_TITLE = 'New to Faith';
 export const GRACE_SERIES_TOTAL_DAYS = 40;
 export const DAY1_BEGUN_KEY = 'dw_day1_begun';
 
@@ -95,7 +95,7 @@ export function startGraceSeriesIfCold(source: ColdStartSource = 'default'): boo
 }
 
 /**
- * Fill-only enroll in the 40-day New & Returning to Faith journey.
+ * Fill-only enroll in the 40-day New to Faith journey.
  * Does not change persona, does not reset a series already in progress,
  * and does not start catalog plan `faith-pathway` (that's 30-day Foundations).
  */

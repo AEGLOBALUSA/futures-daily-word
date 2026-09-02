@@ -1,21 +1,12 @@
 /**
- * Path chooser — five live persona buttons that filter matching plans.
- * Available from the Plans tab. Not a first-run gate (that was the leak).
- * Superdesign: https://p.superdesign.dev/draft/5464ab28-53b4-4f18-b635-cdd156f9afb7
+ * Path chooser — five journey cards. Selecting a card does not start Day 1.
+ * NewFaithCTA is the only control that begins the New to Faith journey.
  */
 import type { Persona } from '../utils/persona-config';
-import { ALL_PERSONAS, isNewChristianPersona } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { useModalA11y } from '../utils/useModalA11y';
-import { Check } from 'lucide-react';
-
-const PERSONA_I18N: Record<Persona, string> = {
-  new_to_faith: 'persona_new',
-  congregation: 'persona_member',
-  deeper_study: 'persona_study',
-  pastor_leader: 'persona_leader',
-  comfort: 'persona_comfort',
-};
+import { JourneyChoiceList } from './JourneyChoiceCard';
+import { NewFaithCTA } from './NewFaithCTA';
 
 const WORDMARK = 'https://futuresdailyword.com/images/futures-wordmark.png';
 
@@ -47,37 +38,26 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona, embedded 
     onSelect(persona);
   }
 
+  const headingTag = embedded ? 'h2' : 'h1';
+  const Heading = headingTag as 'h1' | 'h2';
+
   const body = (
     <>
-      <h1 id="dw-path-chooser-title" className="dw-path-title">
+      <Heading id="dw-path-chooser-title" className="dw-path-title">
         {t('path_chooser_title', lang)}
-      </h1>
+      </Heading>
       <p className="dw-path-sub">{t('path_chooser_sub', lang)}</p>
-      <div className="dw-path-list">
-        {ALL_PERSONAS.map(persona => {
-          const isCurrent = currentPersona === persona;
-          return (
-            <button
-              key={persona}
-              type="button"
-              className={`dw-path-card${isCurrent ? ' is-current' : ''}${isNewChristianPersona(persona) ? ' dw-path-new' : ''}`}
-              onClick={() => handleSelect(persona)}
-            >
-              <span className="dw-path-card-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
-                {t(PERSONA_I18N[persona], lang)}
-                {isCurrent && isNewChristianPersona(persona) && (
-                  <Check size={18} strokeWidth={2.5} color="var(--dw-new-on-fill)" aria-hidden />
-                )}
-              </span>
-              <span className="dw-path-card-desc">{t(PERSONA_I18N[persona] + '_desc', lang)}</span>
-            </button>
-          );
-        })}
-      </div>
+      <JourneyChoiceList
+        value={currentPersona || ''}
+        labelledBy="dw-path-chooser-title"
+        onChange={handleSelect}
+      />
       {onBeginDay1 && (
-        <button type="button" className="dw-path-secondary" onClick={onBeginDay1}>
-          {t('not_sure_begin_day1', lang)}
-        </button>
+        <div style={{ marginTop: 16 }}>
+          <NewFaithCTA onClick={onBeginDay1}>
+            {t('begin_day1', lang)}
+          </NewFaithCTA>
+        </div>
       )}
     </>
   );

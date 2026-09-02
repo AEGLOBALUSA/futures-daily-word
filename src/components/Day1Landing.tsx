@@ -1,24 +1,22 @@
 /**
- * Superdesign-locked cold start (Ashley, 2026-09).
- * Visual source: https://p.superdesign.dev/draft/455f03e1-0e76-4fb9-81ce-2d00e807caef
- *
- * Closed hero is the normal new-Christian front page: wordmark, Day 1 of 40,
- * title, one button. Scripture + pastoral sit below that button and stay
- * collapsed until Read. Copy is the existing series Day 1 — not draft placeholders.
+ * Closed cold-start hero. Begin Day 1 (NewFaithCTA) opens the Day N surface.
+ * Superdesign locked the LAYOUT; destination is New to Faith — Day 1 of 40.
  */
 import { useEffect, useRef, useState } from 'react';
 import { day1Copy } from '../data/day1-landing';
 import { t, getLang } from '../utils/i18n';
-import { beginDay1, markDay1Read } from '../utils/coldStart';
+import { markDay1Read } from '../utils/coldStart';
 import { isSundayGuest } from '../utils/sunday';
+import { enrollAndOpenJourneyDay } from '../utils/journey-session';
 import { track } from '../utils/analytics';
 import { hapticTap } from '../utils/haptics';
 import { useModalA11y } from '../utils/useModalA11y';
+import { NewFaithCTA } from './NewFaithCTA';
 
 const WORDMARK = 'https://futuresdailyword.com/images/futures-wordmark.png';
 
 interface Props {
-  /** Called when they tap Read and the reading opens. Parent should stay on this screen. */
+  /** Called when they tap Begin Day 1 — parent should open the Day N surface. */
   onBegin?: () => void;
   /** Called after Mark as read — leave the Day 1 gate. */
   onDone?: () => void;
@@ -41,13 +39,18 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
     node.focus({ preventScroll: true });
   }, [readingOpen]);
 
-  function handleRead() {
-    if (readingOpen) return;
+  function handleBegin() {
     hapticTap();
-    beginDay1(isSundayGuest() ? 'sunday-guest' : 'default');
+    enrollAndOpenJourneyDay({
+      beginDay1: true,
+      coldSource: isSundayGuest() ? 'sunday-guest' : 'default',
+    });
     track('daily_reading', 'begin_day1');
+    if (onBegin) {
+      onBegin();
+      return;
+    }
     setReadingOpen(true);
-    onBegin?.();
   }
 
   function handleMarkRead() {
@@ -76,22 +79,23 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
       </header>
       <main className="dw-day1-main">
         <p className="dw-day1-eyebrow">
-          {t('day1_eyebrow', lang).replace('{series}', copy.series)}
+          {t('day_n_of_40', lang).replace('{n}', '1')}
         </p>
         <h1 id="dw-day1-title" className="dw-day1-title">
-          {copy.title}
+          {t('persona_new', lang)}
         </h1>
+        <p className="dw-day1-cta-note" style={{ textAlign: 'left', marginBottom: 16 }}>
+          {copy.title}
+        </p>
         {!readingOpen && (
           <div className="dw-day1-cta-wrap dw-day1-cta-wrap--hero">
-            <button
-              type="button"
-              className="dw-day1-cta"
+            <NewFaithCTA
               aria-expanded={false}
               aria-controls="dw-day1-reading"
-              onClick={handleRead}
+              onClick={handleBegin}
             >
-              {t('read_btn', lang)}
-            </button>
+              {t('begin_day1', lang)}
+            </NewFaithCTA>
           </div>
         )}
         {readingOpen ? (
@@ -100,7 +104,7 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
             ref={readingRef}
             tabIndex={-1}
             className="dw-day1-reading"
-            aria-label={copy.title}
+            aria-label={t('persona_new', lang)}
           >
             <div className="dw-day1-card">
               <div className="dw-day1-gold-rule" aria-hidden="true" />
@@ -114,10 +118,10 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
             ))}
             <div className="dw-day1-spacer" />
             <div className="dw-day1-cta-wrap">
-              <p className="dw-day1-cta-note">{t('day1_of_40', lang)}</p>
-              <button type="button" className="dw-day1-cta" onClick={handleMarkRead}>
+              <p className="dw-day1-cta-note">{t('day_n_of_40', lang).replace('{n}', '1')}</p>
+              <NewFaithCTA onClick={handleMarkRead}>
                 {t('mark_as_read', lang)}
-              </button>
+              </NewFaithCTA>
             </div>
           </section>
         ) : (

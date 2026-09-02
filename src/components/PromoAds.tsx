@@ -1,7 +1,7 @@
 /**
- * PromoAds — quiet house ads for Futures offers. Rendered on every congregation
- * tab (Home, Plans, Journal, Messages, More, Sermon Notes). Staff /staff does
- * not use this. One college card by IP (AU vs US), never both.
+ * More from Futures — one restrained block, max three cards, 3:2 imagery.
+ * Mount only on More and the end of Home when there is room — not Day N,
+ * sermon notes, or /staff.
  */
 import { useEffect, useState } from 'react';
 import { track } from '../utils/analytics';
@@ -32,74 +32,66 @@ export function PromoAds() {
   const college = COLLEGE[campus];
 
   return (
-    <div className="dw-promo-strip">
-      {/* ── Books ── */}
-      <a
-        href="https://futures.church/books"
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => track('house_ad_books')}
-        aria-label={`${t('promo_books_title', lang)} — ${t('promo_shop', lang)}`}
-        className="dw-promo-card"
-      >
-        <div className="dw-promo-band" aria-hidden>
-          <div className="dw-promo-covers">
-            {COVERS.map((src) => (
-              <img key={src} src={src} alt="" />
-            ))}
+    <section className="dw-more-from" aria-labelledby="dw-more-from-title">
+      <h2 id="dw-more-from-title" className="dw-more-from-title">
+        {t('more_from_futures', lang)}
+      </h2>
+      <div className="dw-more-from-grid">
+        <a
+          href="https://futures.church/books"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track('house_ad_books')}
+          aria-label={`${t('promo_books_title', lang)} — ${t('promo_shop', lang)}`}
+          className="dw-more-from-card is-featured"
+        >
+          <div className="dw-more-from-image" aria-hidden>
+            <img src={COVERS[0]} alt="" />
           </div>
-        </div>
-        <div className="dw-promo-copy">
-          <div className="dw-promo-title-row">
-            <p className="dw-promo-title">{t('promo_books_title', lang)}</p>
-            <span className="dw-promo-cta">{t('promo_shop', lang)}</span>
+          <div className="dw-more-from-copy">
+            <p className="dw-more-from-name">{t('promo_books_title', lang)}</p>
+            <span className="dw-more-from-cta">{t('promo_shop', lang)}</span>
           </div>
-        </div>
-      </a>
+        </a>
 
-      {/* ── College — one card, geo AU vs US ── */}
-      <a
-        href={college.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => track('house_ad_college', campus)}
-        aria-label={`Futures Leadership College — ${t(college.locKey, lang)}`}
-        className="dw-promo-card"
-      >
-        <div className="dw-promo-band">
-          <img
-            className="dw-promo-logo"
-            src="/promos/logo-flc-horizontal-cream.svg"
-            alt="Futures Leadership College"
-          />
-        </div>
-        <div className="dw-promo-copy">
-          <div className="dw-promo-title-row">
-            <p className="dw-promo-title">{t(college.locKey, lang)}</p>
-            <span className="dw-promo-cta">{t('promo_explore', lang)}</span>
+        <a
+          href={college.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track('house_ad_college', campus)}
+          aria-label={`Futures Leadership College — ${t(college.locKey, lang)}`}
+          className="dw-more-from-card"
+        >
+          <div className="dw-more-from-image">
+            <img
+              src="/promos/logo-flc-horizontal-cream.svg"
+              alt="Futures Leadership College"
+              style={{ objectFit: 'contain', objectPosition: 'center', padding: 24, background: '#17130F' }}
+            />
           </div>
-        </div>
-      </a>
+          <div className="dw-more-from-copy">
+            <p className="dw-more-from-name">{t(college.locKey, lang)}</p>
+            <span className="dw-more-from-cta">{t('promo_explore', lang)}</span>
+          </div>
+        </a>
 
-      {/* ── Selah — coming 1 October (learn more, not a fake download) ── */}
-      <a
-        href={SELAH_HREF}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => track('house_ad_selah')}
-        aria-label={`${t('promo_selah_name', lang)} — ${t('promo_selah_date', lang)}`}
-        className="dw-promo-card"
-      >
-        <div className="dw-promo-band" aria-hidden>
-          <p className="dw-promo-date">{t('promo_selah_date', lang)}</p>
-        </div>
-        <div className="dw-promo-copy">
-          <div className="dw-promo-title-row">
-            <p className="dw-promo-title">{t('promo_selah_name', lang)}</p>
-            <span className="dw-promo-meta">{t('promo_coming', lang)}</span>
+        <a
+          href={SELAH_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track('house_ad_selah')}
+          aria-label={`${t('promo_selah_name', lang)} — ${t('promo_selah_date', lang)}`}
+          className="dw-more-from-card"
+        >
+          <div className="dw-more-from-image" aria-hidden>
+            <img src={COVERS[1]} alt="" style={{ objectPosition: 'center 30%' }} />
           </div>
-        </div>
-      </a>
-    </div>
+          <div className="dw-more-from-copy">
+            <p className="dw-more-from-name">{t('promo_selah_name', lang)}</p>
+            <span className="dw-more-from-cta">{t('promo_coming', lang)}</span>
+          </div>
+        </a>
+      </div>
+    </section>
   );
 }

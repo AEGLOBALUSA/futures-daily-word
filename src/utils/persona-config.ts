@@ -8,7 +8,7 @@ import { t } from './i18n';
 export type Persona = 'new_to_faith' | 'congregation' | 'deeper_study' | 'pastor_leader' | 'comfort';
 
 /** Plans tab filter — each path shows matching plans, not the full unfiltered catalog.
- *  new_to_faith is empty on purpose: that path is the 40-day New & Returning to
+ *  new_to_faith is empty on purpose: that path is the 40-day New to Faith
  *  Faith journey (`dw_pathway_progress`), not a catalog list. Do not put
  *  catalog `faith-pathway` (30-day Foundations of Faith) here. */
 export const PERSONA_PLAN_IDS: Record<Persona, readonly string[]> = {
@@ -19,7 +19,7 @@ export const PERSONA_PLAN_IDS: Record<Persona, readonly string[]> = {
   comfort: ['peace-anxiety', 'be-still-rest', 'psalms-brokenhearted', 'prayer-life', 'faith-pathway'],
 };
 
-/** I'm New to This / New & Returning — one 40-day journey, not a catalog. */
+/** New to Faith — one 40-day journey, not a catalog. */
 export function isNewChristianPersona(persona: string | null | undefined): boolean {
   return persona === 'new_to_faith' || persona === 'new_returning' || persona === 'new_believer';
 }
@@ -194,7 +194,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   // ── 1. NEW TO FAITH ─────────────────────────────────────────────
   new_to_faith: {
     persona: 'new_to_faith',
-    label: "I'm New to This",
+    label: 'New to Faith',
     labelId: 'Saya Baru',
     description: 'Starting or reigniting my faith journey',
     descriptionId: 'Memulai atau menghidupkan kembali perjalanan iman saya',

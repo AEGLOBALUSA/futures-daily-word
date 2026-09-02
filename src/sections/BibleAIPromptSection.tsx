@@ -17,7 +17,7 @@ export function BibleAIPromptSection({ onOpenAI, persona }: { onOpenAI: () => vo
     { title: string; subtitle: string }
   > = {
     new_to_faith: {
-      title: 'New here? Ask Bible AI anything',
+      title: 'Ask Bible AI anything',
       subtitle:
         "Not sure what this passage means? Tap here — it's like having a friend who knows the Bible really well.",
     },

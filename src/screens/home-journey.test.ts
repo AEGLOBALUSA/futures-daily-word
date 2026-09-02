@@ -12,12 +12,11 @@ import { resolve } from 'path';
 const home = readFileSync(resolve(__dirname, 'HomeScreen.tsx'), 'utf8');
 const card = readFileSync(resolve(__dirname, '../components/NewBelieverLessonCard.tsx'), 'utf8');
 
-describe("I'm New journey flow", () => {
+describe('New to Faith journey flow', () => {
   it('the journey hero renders for the new-Christian persona', () => {
-    // The dedicated sage journey hero branch exists…
     expect(home).toContain('key="hero-journey"');
-    // …and opens the full-screen Day N surface.
-    expect(home).toContain('setShowJourneyDay(true)');
+    expect(home).toContain('setJourneyViewOpen(true)');
+    expect(home).toContain('NewFaithCTA');
   });
 
   it('the Day N lesson is NOT gated behind the hero Read state any more', () => {

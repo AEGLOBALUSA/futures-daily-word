@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { NewFaithCTA } from '../components/NewFaithCTA';
 import { HeroPhotoCarousel } from '../components/HeroPhotoCarousel';
 import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw, FileText } from 'lucide-react';
 import { ScriptureSkeleton } from '../components/Skeleton';
@@ -46,6 +46,13 @@ import { PromoAds } from '../components/PromoAds';
 import { COMFORT_CHAPTERS } from '../data/comfort';
 import { PastorStudyOnboarding } from '../components/PastorStudyOnboarding';
 import { NewBelieverLessonCard } from '../components/NewBelieverLessonCard';
+import {
+  JOURNEY_OPEN_EVENT,
+  isJourneyViewOpen,
+  setJourneyViewOpen,
+  shouldResumeJourneyDay,
+} from '../utils/journey-session';
+import { GRACE_SERIES_TITLE } from '../utils/coldStart';
 import { DailyWordCard } from '../components/DailyWordCard';
 import { API_BASE } from '../utils/api-base';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
@@ -145,7 +152,7 @@ interface ReadingSlot {
   currentChapter: number;
 }
 
-export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) => void; onBack?: () => void }) {
+export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }) {
   const { userProfile, setup, saveProfile, saveSetup, requireEmail } = useUser();
 
   // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
@@ -235,7 +242,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     'note': { en: "Note", es: "Nota", pt: "Nota", id: "Catatan" },
     'save_notes': { en: "Save to Notes", es: "Guardar en notas", pt: "Salvar nas notas", id: "Simpan ke Catatan" },
     'welcome_back': { en: "Welcome back.", es: "Bienvenido de nuevo.", pt: "Bem-vindo de volta.", id: "Selamat datang kembali." },
-    'im_new': { en: "I'm New to This", es: "Soy nuevo en esto", pt: "Sou novo nisso", id: "Saya Baru" },
+    'im_new': { en: "New to Faith", es: "Nuevo en la Fe", pt: "Novo na F\u00e9", id: "Baru dalam Iman" },
     'featured': { en: "Featured", es: "Destacados", pt: "Destaques", id: "Unggulan" },
     'books': { en: "Books", es: "Libros", pt: "Livros", id: "Buku" },
     'sunday_service': { en: "Sunday Service \u2014 Open Sermon Notes", es: "Servicio dominical \u2014 Abrir notas del serm\u00f3n", pt: "Culto de domingo \u2014 Abrir notas do serm\u00e3o", id: "Ibadah Minggu \u2014 Buka Catatan Khotbah" },
@@ -421,17 +428,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     window.addEventListener('dw-open-search', openSearch);
     return () => window.removeEventListener('dw-open-search', openSearch);
   }, []);
-  const [streakCount, setStreakCount] = useState(() => getStreak().count);
+  const [, setStreakCount] = useState(() => getStreak().count);
   // A brand-new user (fresh streak state per src/utils/streak.ts: lastDate '')
   // gets count=1 from the mount-effect below — that's not a streak yet, so on the
   // first-visit DAY (dw_first_open missing or today) the header chip shows nothing
   // instead of "1 day / Welcome back.". Real streaks (2+) always show.
-  const isFirstVisitDay = (() => {
-    try {
-      const firstOpen = localStorage.getItem('dw_first_open');
-      return !firstOpen || firstOpen === new Date().toLocaleDateString('en-CA');
-    } catch { return false; }
-  })();
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
   // Deliberate "done" state for today's reading + the calm celebration card it triggers.
   const [readDoneToday, setReadDoneToday] = useState(() => {
@@ -466,10 +467,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         const _apply = (data: PathwayData) => {
           setPathwayData(data);
           const total = data.days?.length || 40;
-          const title = _lang === 'es' ? (data.titleEs || data.title)
-            : _lang === 'pt' ? (data.titlePt || data.title)
-            : _lang === 'id' ? (data.titleId || data.title)
-            : data.title;
+          const title = GRACE_SERIES_TITLE;
           // ‼️ Merge into whatever is CURRENTLY STORED — never rebuild this record
           // from React state. applyCloudData restores dw_pathway_progress straight
           // to localStorage without telling React, so a `{...prev}` write here
@@ -1671,7 +1669,20 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   // Full-screen Day N journey surface (new_to_faith) — opened from the journey
   // hero; the browser back gesture closes it via the card's useSubView.
-  const [showJourneyDay, setShowJourneyDay] = useState(false);
+  const [showJourneyDay, setShowJourneyDay] = useState(() => shouldResumeJourneyDay());
+  useEffect(() => {
+    const sync = (e: Event) => {
+      const open = (e as CustomEvent<{ open?: boolean }>).detail?.open;
+      setShowJourneyDay(!!open);
+    };
+    window.addEventListener(JOURNEY_OPEN_EVENT, sync);
+    if (isJourneyViewOpen()) setShowJourneyDay(true);
+    return () => window.removeEventListener(JOURNEY_OPEN_EVENT, sync);
+  }, []);
+  useEffect(() => {
+    document.body.classList.toggle('dw-journey-day', showJourneyDay);
+    return () => document.body.classList.remove('dw-journey-day');
+  }, [showJourneyDay]);
   // One-tap "What this means" question queued for Bible AI (I'm-New study sheet).
   const [bibleAIQuestion, setBibleAIQuestion] = useState('');
 
@@ -1710,84 +1721,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           position: 'relative',
         }}>
 
-        {/* Header — compact, sits above the centered hero.
-            On a 375px screen this row can hold Back + the Bible AI pill + the title
-            column + the streak. Without minWidth:0 the title column was being crushed
-            to ~55px, so "Daily Word" wrapped to two lines and the glyphs overflowed
-            their box and overprinted the streak text. Let the title column shrink
-            properly and keep the title on one line instead. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 auto' }}>
-            {/* Back button — only shown when there's navigation history. Unified with ScreenHeader pattern. */}
-            {onBack && (
-              <button
-                aria-label={tI18n('back', lang)}
-                onClick={onBack}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '6px 8px 6px 2px', display: 'flex', alignItems: 'center', gap: 4,
-                  color: 'var(--dw-accent)', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-sans)',
-                  borderRadius: 8,
-                }}
-              >
-                <ChevronLeft size={20} /> {tI18n('back', lang)}
-              </button>
-            )}
-            {/* {t('bible_ai')} button — burnished gold + glass. Not on the I'm-New
-                home: nothing there may compete with the sage journey button; Bible AI
-                stays reachable from the reading action bar while a chapter is open. */}
-            {!isNewPath && <button
-              onClick={() => { setBibleAIContext(''); setShowBibleAI(true); }}
-              style={{
-                position: 'relative',
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 16px',
-                height: 44,
-                borderRadius: 11,
-                background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
-                backgroundSize: '200% 200%',
-                animation: 'aiAurora 4s ease infinite',
-                border: '1px solid rgba(245,207,85,0.55)',
-                boxShadow: '0 3px 18px rgba(160,110,8,0.65), inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.22)',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-              onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.93)')}
-              onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              {/* Glass top-catch highlight */}
-              <span style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: '46%',
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 100%)',
-                borderRadius: '11px 11px 0 0',
-                pointerEvents: 'none',
-              }} />
-              {/* Burnished shimmer sweep */}
-              <span style={{
-                position: 'absolute', top: 0, bottom: 0, width: '55%',
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.26) 50%, transparent 100%)',
-                animation: 'aiBeam 3s ease-in-out infinite',
-                pointerEvents: 'none',
-              }} />
-              <span style={{
-                fontSize: 11, fontWeight: 700,
-                color: '#fff',
-                fontFamily: "'SF Pro Display', 'system-ui', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                position: 'relative',
-                textShadow: '0 1px 3px rgba(80,40,0,0.6)',
-              }}>{t('bible_ai')}</span>
-            </button>}
-            {/* minWidth keeps "Daily Word" legible at 320px: rather than let the row
-                crush this column to ~43px (which truncated the title to "Da…"), the
-                header wraps the streak block onto a second line instead. */}
-            <div style={{ minWidth: 96 }}>
-              {/* Localized full-date eyebrow above the Daily Word title — sits in the top-left header column,
-                  formatted via Intl.DateTimeFormat for the user's chosen language. */}
+        <header className="dw-home-header">
+          <div className="dw-home-header-row1">
+            <div style={{ minWidth: 96, flex: '1 1 auto' }}>
               <span style={{
                 display: 'block',
                 fontSize: 12,
@@ -1807,10 +1743,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               </span>
               <h1 style={{
                 fontFamily: 'var(--font-serif)',
-                // Shrink to fit a narrow header instead of wrapping and overflowing.
-                // Sized to leave slack at 320px and while the serif webfont is still
-                // loading — at 5.6vw it fit with 0px to spare and ellipsised on FOUT.
-                fontSize: 'clamp(17px, 5vw, 24px)',
+                fontSize: 'clamp(20px, 5vw, 28px)',
                 fontWeight: 400,
                 color: 'var(--dw-text-primary)',
                 letterSpacing: '-0.02em',
@@ -1820,79 +1753,38 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               }}>
                 Daily Word
               </h1>
-              {/* Compact context chips — tap to change persona or campus in place.
-                  Hidden on the I'm-New path: the chip was one accidental tap off the
-                  40-day journey, and its labels aren't about the journey. Persona and
-                  campus remain changeable in Settings (two-step Save & Apply). */}
-              {!isNewPath && <HomeContextChips
-                persona={personaConfig.persona}
-                campusId={userProfile?.campus || ''}
-                onPersonaChange={(id: Persona) => {
-                  // Deliberate choice on the chip itself — stamp + sync (not a silent default).
-                  saveSetup({ persona: id, source: 'settings' });
-                  flushNow();
-                  track('persona_change', id);
-                }}
-                onCampusChange={(id) => {
-                  saveProfile({
-                    email: userProfile?.email || '',
-                    firstName: userProfile?.firstName || '',
-                    lastName: userProfile?.lastName || '',
-                    phone: userProfile?.phone || '',
-                    church: userProfile?.church || '',
-                    city: userProfile?.city || '',
-                    campus: id,
-                  });
-                  track('campus_switched', id);
-                }}
-              />}
             </div>
+            <button
+              className="dw-home-search"
+              aria-label={t('search')}
+              onClick={() => setShowSearch(true)}
+            >
+              <Search size={20} />
+              <span>{t('search')}</span>
+            </button>
           </div>
-          {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && !(streakCount <= 1 && isFirstVisitDay) && (() => {
-              const encouragement: [number, string][] = [1, 2, 3, 5, 7, 10, 14, 21, 30, 40, 60, 90, 100, 180, 365]
-                .map(n => [n, tI18n(`streak_enc_${n}`, lang)] as [number, string]);
-              const label = [...encouragement].reverse().find(([n]) => streakCount >= n)?.[1] ?? null;
-              const isMilestone = streakCount >= 7;
-              return (
-                <div
-                  onClick={() => isMilestone && setShowMilestone(streakCount)}
-                  style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-                    cursor: isMilestone ? 'pointer' : 'default',
-                    gap: 1,
-                  }}
-                  onPointerDown={e => isMilestone && (e.currentTarget.style.opacity = '0.7')}
-                  onPointerUp={e => (e.currentTarget.style.opacity = '1')}
-                >
-                  <span style={{
-                    fontSize: 17, fontWeight: 800, lineHeight: 1,
-                    color: 'var(--dw-text)',
-                    fontFamily: 'var(--font-sans)',
-                    fontVariantNumeric: 'tabular-nums',
-                    letterSpacing: '-0.03em',
-                  }}>
-                    {streakCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>{streakCount === 1 ? tI18n('day_word', lang) : tI18n('days_word', lang)}</span>
-                  </span>
-                  {label && (
-                    <span style={{
-                      fontSize: 10, fontWeight: 500, lineHeight: 1,
-                      color: 'var(--dw-text-muted)',
-                      fontFamily: 'var(--font-sans)',
-                      letterSpacing: '0.01em',
-                      animation: 'fadeIn 0.5s ease',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {label}
-                    </span>
-                  )}
-                </div>
-              );
-            })()}
-            <ThemeToggle />
-          </div>
-        </div>
+          <HomeContextChips
+            persona={personaConfig.persona}
+            campusId={userProfile?.campus || ''}
+            onPersonaChange={(id: Persona) => {
+              saveSetup({ persona: id, source: 'settings' });
+              flushNow();
+              track('persona_change', id);
+            }}
+            onCampusChange={(id) => {
+              saveProfile({
+                email: userProfile?.email || '',
+                firstName: userProfile?.firstName || '',
+                lastName: userProfile?.lastName || '',
+                phone: userProfile?.phone || '',
+                church: userProfile?.church || '',
+                city: userProfile?.city || '',
+                campus: id,
+              });
+              track('campus_switched', id);
+            }}
+          />
+        </header>
 
         {/* ── Persona Greeting with Search Button ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>
@@ -1907,31 +1799,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           }}>
             {greetingText}
           </p>
-          {pf.searchEnabled && (
-            <button
-              aria-label={t('search')}
-              onClick={() => setShowSearch(true)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--dw-text-muted)',
-                padding: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                transition: 'color 0.2s ease',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--dw-accent)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--dw-text-muted)')}
-            >
-              <Search size={20} />
-              {/* Text label — the app's most differentiated feature shouldn't hide
-                  behind one unlabeled icon. */}
-              <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{t('search')}</span>
-            </button>
-          )}
         </div>
 
         {/* Sermon notes — one tap from Home, not buried in Notes. Slim so it
@@ -1979,34 +1846,21 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           const firstSlot = readingSlots[0];
           const hasAnyPassage = heroChapterRefs.length > 0 || firstPlan || firstSlot;
 
-          // New believers have a reading — it just arrives with the pathway JSON.
-          // Until then the hero must NOT flash the "Choose your reading plan"
-          // funnel: this is the one persona deliberately exempt from it, and it
-          // is the first thing they ever see.
-          if (!hasAnyPassage && pf.faithPathway && pathwayProgress.enrolled) return (
-            <div key="hero-pathway-loading" style={{
-              position: 'relative', borderRadius: 24, overflow: 'hidden',
-              marginBottom: 20,
-              boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
-              border: '1px solid rgba(40,28,16,0.06)',
-            }}>
-              <HeroPhotoCarousel />
-              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(176deg, rgba(30,20,12,0.40) 0%, rgba(30,20,12,0.10) 30%, rgba(30,20,12,0.18) 58%, rgba(30,20,12,0.62) 100%)' }} />
-              <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '28px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)', pointerEvents: 'none' }}>
-                <div style={{ height: 16 }} />
+          // Enrolled New to Faith never falls through to Choose Your Plan or
+          // leftover slot/plan chrome. Loading and the journey hero are the
+          // only Home destinations until they change path.
+          if (isNewPath && pf.faithPathway && pathwayProgress.enrolled && !pathwayData) return (
+            <div key="hero-pathway-loading" className="dw-home-lead">
+              <div className="dw-home-lead-media"><HeroPhotoCarousel /></div>
+              <div className="dw-home-lead-rail">
+                <p className="dw-day-n-meta" style={{ color: 'inherit' }}>{tI18n('persona_new', lang)}</p>
                 <p style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 8px', lineHeight: 1.3 }}>
                   {tI18n('pathway_hero_loading', lang)}
                 </p>
-                <div style={{ height: 40 }} />
               </div>
             </div>
           );
 
-          // The I'm-New home IS the 40-day journey (Ashley, 1 Sep): one sage
-          // object — the photo plate, Day N, title, progress, and a single tap
-          // that opens the full-screen Day N reading. No audio / translation /
-          // chevron chrome on this persona's home; the shared hero below stays
-          // exactly as it was for every other persona.
           if (isNewPath && pf.faithPathway && pathwayProgress.enrolled && pathwayData) {
             const jDay = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
             if (jDay) {
@@ -2014,45 +1868,36 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 : lang === 'pt' ? (jDay.titlePt || jDay.title)
                 : lang === 'id' ? (jDay.titleId || jDay.title)
                 : jDay.title;
-              const jSeries = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
-                : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
-                : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
-                : pathwayData.title;
+              const jSeries = tI18n('persona_new', lang);
               const jCompleted = pathwayProgress.completedDays?.length || 0;
               const jTotal = pathwayData.days?.length || 40;
               return (
-                <div key="hero-journey" style={{
-                  position: 'relative', borderRadius: 24, overflow: 'hidden',
-                  marginBottom: 20,
-                  boxShadow: '0 18px 40px rgba(40,28,16,0.18), 0 4px 14px rgba(40,28,16,0.10)',
-                  border: '1px solid rgba(40,28,16,0.06)',
-                }}>
-                  <HeroPhotoCarousel />
-                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(176deg, rgba(30,20,12,0.40) 0%, rgba(30,20,12,0.10) 30%, rgba(30,20,12,0.18) 58%, rgba(30,20,12,0.62) 100%)' }} />
-                  <div style={{ position: 'relative', zIndex: 1, color: '#fff', padding: '24px 24px 24px', textAlign: 'center', textShadow: '0 1px 10px rgba(20,12,6,0.55), 0 1px 2px rgba(20,12,6,0.35)', pointerEvents: 'none' }}>
-                    <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'var(--font-sans)', margin: '0 0 6px', opacity: 0.9 }}>
-                      {t('day_label')} {pathwayDisplayDay} {t('of_label')} {jTotal} · {jSeries}
+                <div key="hero-journey" className="dw-home-lead">
+                  <div className="dw-home-lead-media">
+                    <HeroPhotoCarousel />
+                    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(176deg, rgba(30,20,12,0.40) 0%, rgba(30,20,12,0.10) 30%, rgba(30,20,12,0.18) 58%, rgba(30,20,12,0.62) 100%)' }} />
+                  </div>
+                  <div className="dw-home-lead-rail">
+                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'var(--font-ui)', margin: '0 0 6px', textTransform: 'uppercase' }}>
+                      {tI18n('day_n_of_40', lang).replace('{n}', String(pathwayDisplayDay))}
                     </p>
-                    <p style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0 0 14px', lineHeight: 1.25 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>
+                      {jSeries}
+                    </p>
+                    <p style={{ fontSize: 24, fontWeight: 400, fontFamily: 'var(--font-serif)', margin: '0 0 14px', lineHeight: 1.25 }}>
                       {jTitle}
                     </p>
-                    <div style={{ height: 4, maxWidth: 220, margin: '0 auto 18px', background: 'rgba(255,255,255,0.28)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: 4, maxWidth: 220, margin: '0 0 18px', background: 'rgba(255,255,255,0.28)', borderRadius: 2, overflow: 'hidden' }}>
                       <div style={{ width: `${(jCompleted / jTotal) * 100}%`, height: '100%', background: 'var(--dw-new)', borderRadius: 2, transition: 'width 0.3s' }} />
                     </div>
-                    <button
-                      onClick={() => setShowJourneyDay(true)}
-                      aria-label={`${t('read_btn')} ${t('day_label')} ${pathwayDisplayDay}`}
-                      style={{
-                        padding: '14px 34px', borderRadius: 14, border: 'none',
-                        background: 'var(--dw-new)', color: 'var(--dw-new-on-fill)',
-                        cursor: 'pointer', fontSize: 15, fontWeight: 700,
-                        fontFamily: 'var(--font-sans)', letterSpacing: '0.02em',
-                        pointerEvents: 'auto', textShadow: 'none',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.28)',
-                      }}
+                    <NewFaithCTA
+                      onClick={() => { setJourneyViewOpen(true); setShowJourneyDay(true); }}
+                      aria-label={`${tI18n('continue_journey', lang)} — ${tI18n('day_n_of_40', lang).replace('{n}', String(pathwayDisplayDay))}`}
                     >
-                      {readDoneToday ? tI18n('read_today', lang) : t('read_btn')}
-                    </button>
+                      {pathwayDisplayDay <= 1 && (pathwayProgress.completedDays?.length || 0) === 0
+                        ? tI18n('begin_day1', lang)
+                        : tI18n('continue_journey', lang)}
+                    </NewFaithCTA>
                   </div>
                 </div>
               );
@@ -4402,7 +4247,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             t={t}
             scriptureFontSize={scriptureFontSize}
             savePathwayProgress={savePathwayProgressFromLesson}
-            onClose={() => setShowJourneyDay(false)}
+            onClose={() => { setJourneyViewOpen(false); setShowJourneyDay(false); }}
             passageText={jRef ? passageTexts[`${jRef}_${translation}`] : undefined}
             servedTranslation={jRef ? getServedTranslation(jRef, translation) : undefined}
           />

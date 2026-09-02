@@ -9,13 +9,13 @@ import { hasBegunDay1 } from '../utils/coldStart';
 const closed = () => renderToStaticMarkup(<Day1Landing />);
 
 describe('Day1Landing — closed hero is first paint', () => {
-  it('shows wordmark, Day 1 of 40, title, and one Read button — no scripture, no pastoral', () => {
+  it('shows wordmark, New to Faith, Day 1 of 40, and Begin Day 1 — no scripture, no pastoral', () => {
     const html = closed();
     expect(html).toContain('Futures Daily Word');
     expect(html).toMatch(/Day 1 of 40/i);
-    expect(html).toContain('New &amp; Returning to Faith');
+    expect(html).toContain('New to Faith');
     expect(html).toContain('Grace Changes Everything');
-    expect(html).toContain('>Read</button>');
+    expect(html).toContain('Begin Day 1');
     expect(html.match(/<button\b/g)?.length).toBe(1);
 
     expect(html).not.toContain(DAY1_VERSE_REF);
@@ -32,7 +32,7 @@ describe('Day1Landing — closed hero is first paint', () => {
       root.render(<Day1Landing />);
     });
     const btn = host.querySelector('button');
-    expect(btn?.textContent).toBe('Read');
+    expect(btn?.textContent).toBe('Begin Day 1');
     await act(async () => {
       btn!.click();
     });
@@ -47,7 +47,7 @@ describe('Day1Landing — closed hero is first paint', () => {
 
   it('startOpen (refresh after Read) is the reading surface, not the closed hero', () => {
     const html = renderToStaticMarkup(<Day1Landing startOpen />);
-    expect(html).not.toContain('>Read</button>');
+    expect(html).not.toContain('Begin Day 1');
     expect(html).toContain(DAY1_VERSE_REF);
     expect(html).toMatch(/Mark as read/i);
   });

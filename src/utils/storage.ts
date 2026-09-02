@@ -32,6 +32,7 @@ export const LS = {
   activePlans:        'dw_activeplans',
   bookPlans:          'dw_book_plans',
   pathwayProgress:    'dw_pathway_progress',
+  journeyView:        'dw_journey_view',
   streak:             'dw_streak_v2',
   // misc personal context
   userStory:          'dw_user_story',
