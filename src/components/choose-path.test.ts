@@ -65,7 +65,7 @@ describe('the three doors', () => {
     expect(sync).toMatch(/'dw_path_asked'/);
   });
   it('a saved path confirms itself on the next Home — the arrival strip, once, under the greeting', () => {
-    expect(sheet).toMatch(/markPathArrival\(selected\)/);
+    expect(sheet).toMatch(/markPathArrival\(next\)/);
     const strip = home.indexOf('<PathArrivalStrip');
     const preach = home.indexOf('{sermonNotesRow}');
     expect(strip).toBeGreaterThan(-1);

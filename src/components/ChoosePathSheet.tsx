@@ -16,6 +16,11 @@
  * path, that path should show that change"). A signed-in pastor can pick any
  * path — a real choice, which the boot re-stamp never overrides — and the sheet
  * offers "Sign out of pastor account" beside it. Pastor tools return on Leader.
+ *
+ * One tap opens the path (Ashley, 2 Sep 2026: "when I click on it, it ticks it
+ * off but goes nowhere"). The sheet used to tick the card and wait for a sage
+ * CTA that sat below the fold on a phone, so the tap looked dead. Tapping a
+ * card now saves and opens; tapping the path you already have just closes.
  */
 import { useEffect, useRef, useState, type CSSProperties, type ComponentType } from 'react';
 import { BookOpen, Check, ChevronDown, Church, Feather, Heart, Sprout } from 'lucide-react';
@@ -27,7 +32,7 @@ import { flushNow } from '../utils/cloudSync';
 import { track } from '../utils/analytics';
 import { hapticTap } from '../utils/haptics';
 import type { Persona } from '../utils/persona-config';
-import { PATHS, pathFor, choiceSourceFor, markPathAsked, markPathArrival, openChoosePath, type PathDoor, type PathOption } from '../utils/choosePath';
+import { PATHS, pathFor, choiceSourceFor, markPathAsked, markPathArrival, openChoosePath, type PathDoor } from '../utils/choosePath';
 
 const ICONS: Record<Persona, ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: CSSProperties; 'aria-hidden'?: boolean }>> = {
   new_to_faith: Sprout,
@@ -146,21 +151,22 @@ export function ChoosePathSheet({
 
   if (!open) return null;
 
-  const selectedPath: PathOption = pathFor(selected);
-
-  function commit() {
+  /** One tap on a card: save the path and open it. The card you already have
+   *  just closes the sheet. */
+  function commit(next: Persona) {
     hapticTap();
-    if (selected === current) { onClose(); return; }
+    setSelected(next);
+    if (next === current) { onClose(); return; }
     // A deliberate choice from the sheet is always a REAL choice — never 'default'.
     const source = choiceSourceFor(setup?.source);
-    saveSetup({ persona: selected, source });
+    saveSetup({ persona: next, source });
     markPathAsked();
-    markPathArrival(selected); // Home confirms the new path on its next mount
+    markPathArrival(next); // Home confirms the new path on its next mount
     flushNow();
-    track('persona_change', selected);
-    track('path_chosen', `${door}:${selected}`);
+    track('persona_change', next);
+    track('path_chosen', `${door}:${next}`);
     onClose();
-    onPicked?.(selected);
+    onPicked?.(next);
   }
 
   function signOut() {
@@ -199,7 +205,7 @@ export function ChoosePathSheet({
                 type="button"
                 role="option"
                 aria-selected={active}
-                onClick={() => { hapticTap(); setSelected(p.id); }}
+                onClick={() => commit(p.id)}
                 className={`dw-cp-card${active ? ' is-selected' : ''}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
@@ -226,25 +232,12 @@ export function ChoosePathSheet({
           })}
         </div>
 
-        <button
-          type="button"
-          onClick={commit}
-          className="dw-cp-cta"
-          style={{
-            display: 'block', width: '100%', height: 52, marginTop: 16,
-            border: 'none', borderRadius: 14, cursor: 'pointer',
-            background: 'var(--dw-new)', color: 'var(--dw-new-on-fill)',
-            fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 600,
-          }}
-        >
-          {t(selectedPath.ctaKey, lang)}
-        </button>
         {pastorSignedIn && (
           <button
             type="button"
             onClick={signOut}
             style={{
-              display: 'block', width: '100%', minHeight: 44, marginTop: 8,
+              display: 'block', width: '100%', minHeight: 44, marginTop: 16,
               background: 'transparent', color: 'var(--dw-text-secondary)',
               border: '1px solid var(--dw-border)', borderRadius: 12, cursor: 'pointer',
               padding: '10px 12px', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600,
