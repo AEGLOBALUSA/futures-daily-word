@@ -23,6 +23,9 @@ import { consumeLandingParam, needsDay1Landing, needsDay1Reading, needsPathAsk, 
 import { Day1Landing } from './components/Day1Landing';
 import { Day1Reading } from './components/Day1Reading';
 import { ChoosePathSheet } from './components/ChoosePathSheet';
+import { CongregationSheet } from './components/CongregationSheet';
+import { OPEN_CONGREGATION_EVENT, setCongregation } from './utils/congregation';
+import { isCongregationId } from './data/congregations';
 import { PathAskedOnce } from './components/PathAskedOnce';
 import { CHOOSE_PATH_EVENT, hasPathBeenAsked, markPathAsked, type PathDoor } from './utils/choosePath';
 import { restoreStaffSession } from './utils/staffIdentity';
@@ -32,6 +35,15 @@ import { useStaffIdentity } from './utils/useStaffIdentity';
 const SERMON_DEEP_LINK = (() => {
   try {
     const params = new URLSearchParams(window.location.search);
+    // ?congregation=futures-au — a link from the staff page (or a campus QR)
+    // sets which church's Sermon Notes this device reads, with or without ?sermon=1.
+    const congregation = params.get('congregation');
+    if (isCongregationId(congregation)) {
+      setCongregation(congregation);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('congregation');
+      window.history.replaceState({}, '', url.toString());
+    }
     if (params.get('sermon') === '1' || params.get('sunday') === '1') {
       activateSundayGuest(); // sets persona + pathway in localStorage synchronously
       // Also set skip flag so EmailGate never triggers for this session
@@ -122,6 +134,7 @@ function AppContent() {
   // lands on the current tab's entry a tick later — a Home push made before it
   // lands is undone by the popstate. So the switch waits for that landing.
   const pendingHomeRef = useRef(false);
+  const pendingSermonRef = useRef(false);
 
   // Track tab navigation history
   const navigateTab = (tab: TabId) => {
@@ -192,6 +205,11 @@ function AppContent() {
         // The chooser sheet's entry is consumed — now open the saved path's Home.
         pendingHomeRef.current = false;
         navigateTab('home');
+      }
+      if (pendingSermonRef.current) {
+        // The congregation sheet's entry is consumed — now open that church's notes.
+        pendingSermonRef.current = false;
+        navigateTab('sermon-notes');
       }
     };
     window.addEventListener('popstate', onPop);
@@ -282,6 +300,15 @@ function AppContent() {
     return () => window.removeEventListener(CHOOSE_PATH_EVENT, h);
   }, []);
   const closePathSheet = useCallback(() => setPathSheet(s => (s.open ? { ...s, open: false } : s)), []);
+  // Sermon Notes congregation chooser — the Home banner opens it with then:'open'
+  // (go to the notes after the pick); the notes header chip with then:'stay'.
+  const [congSheet, setCongSheet] = useState<{ open: boolean; then: 'open' | 'stay' }>({ open: false, then: 'stay' });
+  useEffect(() => {
+    const h = (e: Event) => setCongSheet({ open: true, then: (e as CustomEvent).detail?.then === 'open' ? 'open' : 'stay' });
+    window.addEventListener(OPEN_CONGREGATION_EVENT, h);
+    return () => window.removeEventListener(OPEN_CONGREGATION_EVENT, h);
+  }, []);
+  const closeCongSheet = useCallback(() => setCongSheet(s => (s.open ? { ...s, open: false } : s)), []);
   const needsPushOnboarding = onboardingActive && !pushOnboarded
     && hasReadOnce && setup?.persona !== 'comfort' && !showPathAsk;
   function handlePushOnboardingDone() {
@@ -521,6 +548,21 @@ function AppContent() {
           (or any other tab) switch to Home — after the sheet's history entry is
           consumed (see pendingHomeRef) — where the persona-keyed remount lands on
           that path's one thing already open. The timeout is a backstop only. */}
+      <CongregationSheet
+        open={congSheet.open}
+        onClose={closeCongSheet}
+        onPicked={() => {
+          if (congSheet.then !== 'open') return;
+          // Same dance as the path sheet: switch tabs only after the sheet's
+          // history entry is consumed (popstate), with a timeout as backstop.
+          pendingSermonRef.current = true;
+          window.setTimeout(() => {
+            if (!pendingSermonRef.current) return;
+            pendingSermonRef.current = false;
+            navigateTab('sermon-notes');
+          }, 600);
+        }}
+      />
       <ChoosePathSheet
         open={pathSheet.open}
         door={pathSheet.door}

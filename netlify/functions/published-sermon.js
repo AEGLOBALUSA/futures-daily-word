@@ -9,6 +9,7 @@
  */
 const { createClient } = require("@supabase/supabase-js");
 const { getAllowedOrigin } = require("./lib/cors");
+const { isCongregationId, normalizeCongregation, DEFAULT_CONGREGATION } = require("./lib/congregations");
 
 const LIST_LIMIT = 200;
 
@@ -20,7 +21,12 @@ function db() {
 
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.referer || "";
-  const isList = !!(event.queryStringParameters && event.queryStringParameters.list);
+  const qs = event.queryStringParameters || {};
+  const isList = !!qs.list;
+  // ?congregation=futures-au — one current message per congregation. A missing
+  // or unknown value reads Futures USA, so every existing reader keeps working.
+  const congregation = normalizeCongregation(qs.congregation);
+  const listAll = isList && !isCongregationId(qs.congregation);
   const headers = {
     "Access-Control-Allow-Origin": getAllowedOrigin(origin),
     "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -36,11 +42,13 @@ exports.handler = async (event) => {
 
   if (isList) {
     try {
-      const { data, error } = await db()
+      let q = db()
         .from("published_sermons")
-        .select("id, is_current, published_at, sermon")
+        .select("id, is_current, published_at, sermon, congregation")
         .order("published_at", { ascending: false })
         .limit(LIST_LIMIT);
+      if (!listAll) q = q.eq("congregation", congregation);
+      const { data, error } = await q;
       if (error) throw error;
       const sermons = (data || [])
         .filter((row) => row && row.sermon && typeof row.sermon.id === "string")
@@ -48,6 +56,7 @@ exports.handler = async (event) => {
           id: row.id,
           is_current: !!row.is_current,
           published_at: row.published_at || null,
+          congregation: row.congregation || DEFAULT_CONGREGATION,
           sermon: row.sermon
         }));
       return { statusCode: 200, headers, body: JSON.stringify({ sermons }) };
@@ -62,10 +71,11 @@ exports.handler = async (event) => {
       .from("published_sermons")
       .select("sermon")
       .eq("is_current", true)
+      .eq("congregation", congregation)
       .maybeSingle();
     if (error) throw error;
     const sermon = data && data.sermon && typeof data.sermon.id === "string" ? data.sermon : null;
-    return { statusCode: 200, headers, body: JSON.stringify({ sermon }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ sermon, congregation }) };
   } catch (err) {
     console.error("published-sermon", err);
     return { statusCode: 500, headers, body: JSON.stringify({ sermon: null }) };

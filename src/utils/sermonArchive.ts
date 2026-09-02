@@ -11,12 +11,14 @@
  * in the Preach workspace without re-fetching each time.
  */
 import { localApiBase } from './api-base';
+import { getCongregation } from './congregation';
 import type { SermonNotesData } from '../components/SermonNotesSurface';
 
 export interface ArchivedSermon {
   id: string;
   is_current: boolean;
   published_at: string | null;
+  congregation?: string;
   sermon: SermonNotesData;
 }
 
@@ -30,7 +32,7 @@ function isArchivedSermon(row: unknown): row is ArchivedSermon {
 
 async function load(): Promise<ArchivedSermon[]> {
   try {
-    const r = await fetch(`${localApiBase()}/.netlify/functions/published-sermon?list=1`);
+    const r = await fetch(`${localApiBase()}/.netlify/functions/published-sermon?list=1&congregation=${encodeURIComponent(getCongregation())}`);
     if (!r.ok) return [];
     const data = await r.json();
     const rows = Array.isArray(data?.sermons) ? data.sermons : [];

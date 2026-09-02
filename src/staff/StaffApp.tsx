@@ -10,6 +10,7 @@ import { CAMPUSES } from '../data/tokens';
 import { getStaffToken, intake, setStaffToken } from './api';
 import { localApiBase } from '../utils/api-base';
 import { youtubeLinkProblem } from './youtubeLink';
+import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
@@ -58,7 +59,7 @@ type Question = {
   config: { publish?: string; itemType?: string; sermonKey?: string; default?: boolean; flow?: string };
 };
 type CornerItem = { id: string; type: string; title: string; created_at?: string };
-type SermonChoice = { id: string; title: string; date?: string; speaker?: string; current?: boolean; source?: string };
+type SermonChoice = { id: string; title: string; date?: string; speaker?: string; current?: boolean; source?: string; congregation?: string; congregationName?: string };
 type FormattedSermon = {
   id: string;
   title: string;
@@ -121,9 +122,10 @@ function emptyAnswer(q: Question): unknown {
   return '';
 }
 
-/** Where the congregation reads this week's notes. */
-function congregationPageUrl(): string {
-  try { return `${window.location.origin}/?sermon=1`; } catch { return '/?sermon=1'; }
+/** Where that congregation reads this week's notes (the link also sets the reader's church). */
+function congregationPageUrl(congregation: CongregationId): string {
+  const q = `?sermon=1&congregation=${encodeURIComponent(congregation)}`;
+  try { return `${window.location.origin}/${q}`; } catch { return `/${q}`; }
 }
 
 export function StaffApp() {
@@ -430,6 +432,18 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   // and scrolled into view — a refused save must never look like nothing happened.
   const [formError, setFormError] = useState('');
   const [live, setLive] = useState<{ title: string; verified: boolean } | null>(null);
+  // Which congregation's Sermon Notes this message is for (Futures USA /
+  // Futures Australia / Futuros USA). Sent with preview and save; remembered per browser.
+  const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
+    try { const v = localStorage.getItem('dw_staff_congregation'); if (isCongregationId(v)) return v; } catch { /* */ }
+    return DEFAULT_CONGREGATION;
+  });
+  const pickCongregation = (v: string) => {
+    if (!isCongregationId(v)) return;
+    setCongregationChoice(v);
+    try { localStorage.setItem('dw_staff_congregation', v); } catch { /* */ }
+    setPreview(null); setDone(false); setLive(null); setFormError('');
+  };
   const errorRef = useRef<HTMLParagraphElement | null>(null);
   const fail = (msg: string) => {
     onError(msg);
@@ -503,6 +517,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         answers: override || answers,
         useAI: true,
         job,
+        congregation,
       });
       setPreview(data.preview);
       if (!data.preview) fail('Nothing to format yet — paste your notes first.');
@@ -545,6 +560,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         answers,
         campusId: pickCampus || staff.campusId,
         job,
+        congregation: sermonForm ? congregation : undefined,
         formatted_sermon: preview || undefined,
       });
       if (data.preview) setPreview(data.preview);
@@ -557,7 +573,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
           // Read it back the way the congregation does, so "It's on the page" is a fact, not a hope.
           let verified = false;
           try {
-            const r = await fetch(`${localApiBase()}/api/published-sermon`, { cache: 'no-store' });
+            const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(congregation)}`, { cache: 'no-store' });
             const j = r.ok ? await r.json() : null;
             verified = !!(j && j.sermon && j.sermon.id === published.id);
           } catch { /* verified stays false */ }
@@ -577,6 +593,19 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         {job === 'hub' ? 'This week’s sermon notes' : job === 'media' ? 'YouTube and notes' : 'Campus corner'}
       </h2>
       <p style={{ ...helpStyle, marginBottom: 28 }}>{formIntro(job)}</p>
+
+      {sermonForm && (
+        <Field label="Which church is this for?" help="Each church has its own Sermon Notes page. People pick theirs from the banner in the app.">
+          <select
+            value={congregation}
+            onChange={e => pickCongregation(e.target.value)}
+            style={inputStyle}
+            data-testid="staff-congregation"
+          >
+            {CONGREGATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </Field>
+      )}
 
       {staff.isAdmin && job === 'campus' && (
         <Field label="Which campus?">
@@ -610,7 +639,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
           campusLocked={campusLocked}
           lockedCampus={staff.campusId}
           cornerItems={cornerItems}
-          sermons={sermons}
+          sermons={job === 'media' ? sermons.filter(s => s.source === 'current' || !s.congregation || s.congregation === congregation) : sermons}
           require={q.required && (q.audience === job || q.audience === 'all')}
           onChange={v => setAnswer(q.id, v)}
         />
@@ -666,14 +695,14 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
             {job === 'campus'
               ? 'It’s on the campus corner.'
               : live?.verified
-                ? `It’s on the congregation page: ${live.title}`
+                ? `It’s on the ${congregationName(congregation)} page: ${live.title}`
                 : live
-                  ? `Saved as “${live.title}”. The congregation page has not shown it yet — open it and pull to refresh.`
+                  ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}
           </p>
           {job !== 'campus' && (
-            <a href={congregationPageUrl()} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 14, color: 'var(--dw-accent)', fontWeight: 600 }}>
-              Open the congregation page →
+            <a href={congregationPageUrl(congregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 14, color: 'var(--dw-accent)', fontWeight: 600 }}>
+              Open the {congregationName(congregation)} page →
             </a>
           )}
         </div>

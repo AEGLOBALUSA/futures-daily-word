@@ -13,6 +13,8 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { t } from '../../utils/i18n';
 import { intake } from '../../staff/api';
+import { CONGREGATIONS, isCongregationId, type CongregationId } from '../../data/congregations';
+import { getCongregation } from '../../utils/congregation';
 import { setAppStaffSignIn } from '../../utils/staffIdentity';
 import { SermonNotesSurface, type SermonNotesData } from '../SermonNotesSurface';
 import {
@@ -84,6 +86,8 @@ export function PublishSermon({ outline, staff, lang, onPublished }: PublishSerm
   const [questions, setQuestions] = useState<IntakeQuestion[]>([]);
   const [useAI, setUseAI] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  // Which church's Sermon Notes this goes to; starts on the one this device reads.
+  const [congregation, setCongregation] = useState<CongregationId>(() => getCongregation());
   const [preview, setPreview] = useState<SermonNotesData | null>(null);
   const [campusPreview, setCampusPreview] = useState<CampusPreview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -138,7 +142,7 @@ export function PublishSermon({ outline, staff, lang, onPublished }: PublishSerm
       }
       if (job === 'hub') {
         const data = await intake<{ preview: SermonNotesData | null }>('format_preview', {
-          job, answers: built.answers, useAI,
+          job, answers: built.answers, useAI, congregation,
         });
         if (data.preview) {
           setCampusPreview(null);
@@ -174,6 +178,7 @@ export function PublishSermon({ outline, staff, lang, onPublished }: PublishSerm
       const data = await intake<{ submission?: { id?: string }; preview?: SermonNotesData | null }>('submit', {
         job,
         answers: built.answers,
+        congregation: job === 'hub' ? congregation : undefined,
         campusId: built.campusId || undefined,
         formatted_sermon: job === 'hub' ? preview || undefined : undefined,
       });
@@ -207,6 +212,15 @@ export function PublishSermon({ outline, staff, lang, onPublished }: PublishSerm
 
       {job === 'hub' && (
         <>
+          <select
+            value={congregation}
+            onChange={e => { if (isCongregationId(e.target.value)) { setCongregation(e.target.value); clearPreview(); } }}
+            style={inputStyle}
+            aria-label="Which church is this for?"
+            data-testid="preach-publish-congregation"
+          >
+            {CONGREGATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
           <input
             value={youtubeUrl}
             onChange={e => { setYoutubeUrl(e.target.value); clearPreview(); }}

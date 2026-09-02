@@ -28,6 +28,7 @@ const {
   hasNotesContent
 } = require("./lib/intake-core");
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
+const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 
 let supabase;
 function db() {
@@ -122,23 +123,26 @@ async function issueSession(email) {
   return raw;
 }
 
-async function getCurrentPublished() {
+/** The current message for ONE congregation (one per congregation, by index). */
+async function getCurrentPublished(congregation) {
   const { data } = await db()
     .from("published_sermons")
-    .select("id, sermon, is_current")
+    .select("id, sermon, is_current, congregation")
     .eq("is_current", true)
+    .eq("congregation", normalizeCongregation(congregation))
     .maybeSingle();
   return data || null;
 }
 
-async function findPublished(target) {
+async function findPublished(target, congregation) {
   const t = String(target || "").trim();
-  if (!t || t === "__current__") return getCurrentPublished();
-  const byId = await db().from("published_sermons").select("id, sermon, is_current").eq("id", t).maybeSingle();
+  if (!t || t === "__current__") return getCurrentPublished(congregation);
+  const byId = await db().from("published_sermons").select("id, sermon, is_current, congregation").eq("id", t).maybeSingle();
   if (byId.data) return byId.data;
   const { data: rows } = await db()
     .from("published_sermons")
-    .select("id, sermon, is_current")
+    .select("id, sermon, is_current, congregation")
+    .eq("congregation", normalizeCongregation(congregation))
     .order("published_at", { ascending: false })
     .limit(40);
   const needle = t.toLowerCase();
@@ -151,9 +155,9 @@ async function findPublished(target) {
 async function listSermonChoices() {
   const { data: published } = await db()
     .from("published_sermons")
-    .select("id, sermon, is_current, published_at")
+    .select("id, sermon, is_current, published_at, congregation")
     .order("published_at", { ascending: false })
-    .limit(20);
+    .limit(60);
   const out = [];
   if ((published || []).some((r) => r.is_current)) {
     out.push({ id: "__current__", title: "This week's published message", source: "current" });
@@ -166,6 +170,8 @@ async function listSermonChoices() {
       date: s.date || "",
       speaker: s.speaker || "",
       current: !!r.is_current,
+      congregation: r.congregation || DEFAULT_CONGREGATION,
+      congregationName: congregationName(r.congregation || DEFAULT_CONGREGATION),
       source: "published"
     });
   }
@@ -179,14 +185,14 @@ function stripPublishFlags(sermon) {
   return next;
 }
 
-async function buildFormattedFromPlan(plan, { useAI }) {
+async function buildFormattedFromPlan(plan, { useAI, congregation }) {
   const patch = plan.sermonPatch || {};
   if (patch.youtubeInvalid) {
     const err = new Error("Paste a YouTube watch, youtu.be, shorts, or embed link.");
     err.status = 400;
     throw err;
   }
-  const row = await findPublished(patch.target);
+  const row = await findPublished(patch.target, congregation);
   const base = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
   const youtubeUrl = youtubeWatchUrl(patch.youtubeUrl) || (base && base.youtubeUrl) || "";
 
@@ -239,7 +245,8 @@ async function publishApproved(submission, staff) {
   const { data: questions } = await db().from("intake_questions").select("*").eq("enabled", true);
   const plan = applyAnswers(questions || [], submission.answers || {}, { name: staff.name || submission.email });
   const campusId = submission.campus_id;
-  const result = { cornerAdded: 0, cornerRemoved: 0, sermon: null };
+  const congregation = normalizeCongregation(submission.congregation);
+  const result = { cornerAdded: 0, cornerRemoved: 0, sermon: null, congregation };
 
   if (plan.cornerAdds.length) {
     if (!campusId) throw new Error("Campus required to publish campus corner items");
@@ -266,14 +273,14 @@ async function publishApproved(submission, staff) {
 
   let sermon = submission.formatted_sermon;
   if (!sermon || typeof sermon !== "object") {
-    const built = await buildFormattedFromPlan(plan, { useAI: false });
+    const built = await buildFormattedFromPlan(plan, { useAI: false, congregation });
     sermon = built.sermon;
   }
   if (sermon && sermon.id) {
     const youtubeOnly = !!sermon.youtubeOnly;
     sermon = stripPublishFlags(sermon);
     if (youtubeOnly) {
-      const row = await findPublished(sermon.id) || await getCurrentPublished();
+      const row = await findPublished(sermon.id, congregation) || await getCurrentPublished(congregation);
       if (!row) throw new Error("No published sermon to attach this video to");
       const merged = stripPublishFlags({ ...(row.sermon || {}), youtubeUrl: sermon.youtubeUrl || (row.sermon && row.sermon.youtubeUrl) || "" });
       const { error } = await db().from("published_sermons").update({
@@ -285,13 +292,17 @@ async function publishApproved(submission, staff) {
       if (error) throw error;
       result.sermon = { id: row.id, title: merged.title, youtubeUrl: merged.youtubeUrl || "" };
     } else {
-      const current = await getCurrentPublished();
+      // One row per congregation: the same slug-date for Australia or Futuros
+      // gets its suffix so it never collides with (or overwrites) the USA row.
+      sermon = { ...sermon, id: congregationSermonId(sermon.id, congregation) };
+      const current = await getCurrentPublished(congregation);
       if (!current || current.id !== sermon.id) {
-        await db().from("published_sermons").update({ is_current: false }).eq("is_current", true);
+        await db().from("published_sermons").update({ is_current: false }).eq("is_current", true).eq("congregation", congregation);
       }
       const { error } = await db().from("published_sermons").upsert({
         id: sermon.id,
         sermon,
+        congregation,
         is_current: true,
         submission_id: submission.id,
         published_at: new Date().toISOString(),
@@ -541,12 +552,13 @@ exports.handler = async (event) => {
         }
       }
       const plan = applyAnswers(visible, answers, { name: staff.name || staff.email });
+      const congregation = normalizeCongregation(body.congregation);
       let formatted_sermon = null;
       let format_source = null;
       try {
         const wantAI = plan.sermonPatch && plan.sermonPatch.reformat === true && hasNotesContent(plan.sermonPatch);
         if (wantAI && body.formatted_sermon && typeof body.formatted_sermon === "object") {
-          const row = await findPublished(plan.sermonPatch.target);
+          const row = await findPublished(plan.sermonPatch.target, congregation);
           const base = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
           // The preview was made from the notes; the pastor may have fixed the
           // title, date, speaker, series or YouTube link since. The form's
@@ -572,7 +584,7 @@ exports.handler = async (event) => {
           if (formatted_sermon) format_source = "preview";
         }
         if (!formatted_sermon) {
-          const built = await buildFormattedFromPlan(plan, { useAI: wantAI });
+          const built = await buildFormattedFromPlan(plan, { useAI: wantAI, congregation });
           formatted_sermon = built.sermon;
           format_source = built.source;
         }
@@ -584,7 +596,7 @@ exports.handler = async (event) => {
         throw fmtErr;
       }
       console.log("[intake] submit accepted", JSON.stringify({
-        email: staff.email, job, campusId, format_source,
+        email: staff.email, job, campusId, congregation, format_source,
         sermon: formatted_sermon ? { id: formatted_sermon.id, title: formatted_sermon.title, sections: (formatted_sermon.sections || []).length } : null,
         cornerAdds: plan.cornerAdds.length, cornerRemoves: plan.cornerRemoves.length
       }));
@@ -592,6 +604,7 @@ exports.handler = async (event) => {
         email: staff.email,
         role: staff.role,
         campus_id: campusId,
+        congregation,
         answers,
         formatted_sermon,
         status: "pending"
@@ -599,7 +612,7 @@ exports.handler = async (event) => {
       if (insErr) throw insErr;
       let publish_result;
       try {
-        publish_result = await publishApproved({ ...row, answers, formatted_sermon, campus_id: campusId, email: staff.email, role: staff.role }, staff);
+        publish_result = await publishApproved({ ...row, answers, formatted_sermon, campus_id: campusId, congregation, email: staff.email, role: staff.role }, staff);
       } catch (pubErr) {
         await db().from("intake_submissions").delete().eq("id", row.id);
         throw pubErr;
@@ -632,8 +645,9 @@ exports.handler = async (event) => {
       const plan = applyAnswers(visible, answers, { name: staff.name || staff.email });
       try {
         const useAI = body.useAI === true;
-        const built = await buildFormattedFromPlan(plan, { useAI });
-        console.log("[intake] format_preview", JSON.stringify({ email: staff.email, job, useAI, source: built.source, id: built.sermon && built.sermon.id }));
+        const congregation = normalizeCongregation(body.congregation);
+        const built = await buildFormattedFromPlan(plan, { useAI, congregation });
+        console.log("[intake] format_preview", JSON.stringify({ email: staff.email, job, congregation, useAI, source: built.source, id: built.sermon && built.sermon.id }));
         return json(event, 200, { preview: built.sermon, source: built.source });
       } catch (fmtErr) {
         if (fmtErr && fmtErr.status === 400) {
