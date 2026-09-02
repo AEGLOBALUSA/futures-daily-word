@@ -75,6 +75,7 @@ const MessagesScreen = lazy(() => import('./screens/MessagesScreen').then(m => (
 const PlansScreen = lazy(() => import('./screens/PlansScreen').then(m => ({ default: m.PlansScreen })));
 const MoreScreen = lazy(() => import('./screens/MoreScreen').then(m => ({ default: m.MoreScreen })));
 const SermonNotesTab = lazy(() => import('./components/SermonWorkspace').then(m => ({ default: m.SermonNotesTab })));
+const PreachScreen = lazy(() => import('./screens/PreachScreen').then(m => ({ default: m.PreachScreen })));
 const BibleAI = lazy(() => import('./components/BibleAI').then(m => ({ default: m.BibleAI })));
 
 /** Content-shaped skeleton shown while a screen chunk downloads */
@@ -348,7 +349,9 @@ function AppContent() {
     messages: <MessagesScreen onBack={goBack} onNavigate={navigateTab} />,
     plans: <PlansScreen onBack={goBack} onNavigate={navigateTab} />,
     more: <MoreScreen onBack={goBack} />,
-    'sermon-notes': <SermonNotesTab onBack={() => navigateTab('home')} />,
+    'sermon-notes': setup?.persona === 'pastor_leader'
+      ? <PreachScreen onBack={() => navigateTab('home')} />
+      : <SermonNotesTab onBack={() => navigateTab('home')} />,
   };
 
   const TAB_ORDER: TabId[] = ['home', 'journal', 'messages', 'plans', 'more', 'sermon-notes'];

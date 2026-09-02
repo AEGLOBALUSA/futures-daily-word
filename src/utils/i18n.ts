@@ -889,6 +889,7 @@ const UI: Translations = {
   preach_tab_publish: { en: 'Publish', es: 'Publicar', pt: 'Publicar', id: 'Terbitkan' },
   preach_tab_archive: { en: 'Archive', es: 'Archivo', pt: 'Arquivo', id: 'Arsip' },
   preach_published_success: { en: "Sent to Sunday's Sermon Notes.", es: 'Enviado a las Notas del Serm\u00f3n del domingo.', pt: 'Enviado \u00e0s Notas do Serm\u00e3o de domingo.', id: 'Terkirim ke Catatan Khotbah hari Minggu.' },
+  preach_publish_missing: { en: 'Still needed before this can be published:', es: 'A\u00fan falta antes de poder publicar:', pt: 'Ainda falta antes de poder publicar:', id: 'Masih diperlukan sebelum dapat diterbitkan:' },
 };
 
 export function t(key: string, lang?: string): string {

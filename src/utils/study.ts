@@ -4,7 +4,7 @@
  * sheet, the Greek/Hebrew popup and the Sources screen. Every response is
  * immutable between data loads, so results are memoised for the session.
  */
-import { API_BASE } from './api-base';
+import { localApiBase } from './api-base';
 
 export interface StudyCrossRef { ref: string; votes: number }
 export interface StudyCommentaryEntry { verseFrom: number; verseTo: number; content: string }
@@ -48,7 +48,10 @@ async function get<T>(params: Record<string, string>): Promise<T | null> {
   if (hit) return hit;
   const p = (async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/study?${qs}`);
+      // The study function lives on THIS deploy (like intake and published-sermon):
+      // relative on the app origin and on previews so the Vite proxy / preview
+      // functions answer; absolute only when the SPA is proxied on futures.church.
+      const res = await fetch(`${localApiBase()}/api/study?${qs}`);
       if (!res.ok) return null;
       return (await res.json()) as T;
     } catch {

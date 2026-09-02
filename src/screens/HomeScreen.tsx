@@ -289,6 +289,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     'campus_stats_prompt': { en: 'Enter your campus pastor code to see live stats for your campus.', es: 'Ingresa tu código de pastor de sede para ver estadísticas en vivo de tu sede.', pt: 'Digite seu código de pastor de campus para ver estatísticas ao vivo do seu campus.', id: 'Masukkan kode pastor kampusmu untuk melihat statistik langsung kampusmu.' },
     'campus_stats_view': { en: 'View stats', es: 'Ver estadísticas', pt: 'Ver estatísticas', id: 'Lihat statistik' },
     'campus_stats_error': { en: 'Couldn’t load live stats — check your campus code.', es: 'No se pudieron cargar las estadísticas — verifica tu código de sede.', pt: 'Não foi possível carregar as estatísticas — verifique seu código de campus.', id: 'Statistik tidak dapat dimuat — periksa kode kampusmu.' },
+    'preach_card_title': { en: 'Preach', es: 'Predicar', pt: 'Pregar', id: 'Berkhotbah' },
+    'preach_card_sub': { en: "Prepare this week's message — study, outline, publish", es: 'Prepara el mensaje de esta semana — estudia, esquematiza, publica', pt: 'Prepare a mensagem desta semana — estude, esquematize, publique', id: 'Siapkan pesan minggu ini — pelajari, susun, terbitkan' },
   };
   const t = (key: string): string => UI_STRINGS[key]?.[appLanguage] || UI_STRINGS[key]?.['en'] || key;
 
@@ -1769,7 +1771,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const sermonNotesRow = (
     <button
       onClick={() => onNavigate?.('sermon-notes')}
-      aria-label={tI18n('sermon_notes_title', lang)}
+      aria-label={personaConfig.persona === 'pastor_leader' ? t('preach_card_title') : tI18n('sermon_notes_title', lang)}
       style={{
         display: 'flex', alignItems: 'center', gap: 14, width: '100%',
         margin: '0 0 16px', padding: '14px 16px',
@@ -1788,10 +1790,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           {tI18n('this_week', lang)}
         </span>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#F5EFE6', fontFamily: 'var(--font-sans)' }}>
-          {tI18n('sermon_notes_title', lang)}
+          {personaConfig.persona === 'pastor_leader' ? t('preach_card_title') : tI18n('sermon_notes_title', lang)}
         </span>
         <span style={{ display: 'block', fontSize: 12, color: 'rgba(245,239,230,0.58)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
-          {tI18n('sermon_notes_home_sub', lang)}
+          {personaConfig.persona === 'pastor_leader' ? t('preach_card_sub') : tI18n('sermon_notes_home_sub', lang)}
         </span>
       </span>
       <span style={{ color: 'rgba(245,239,230,0.45)', fontSize: 16, flexShrink: 0 }}>→</span>

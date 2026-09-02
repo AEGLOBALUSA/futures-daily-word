@@ -44,6 +44,9 @@ const MISC_KEYS = [
   'dw_prayed_for',           // prayer-wall "prayed for" set
   'dw_setup',                // persona / pathway — core personalization (newest-wins)
   'dw_lang',                 // UI language preference (newest-wins)
+  'dw_preach_outline',       // the pastor's sermon outline (structured JSON — newest-wins,
+                             // deliberately OFF the authored dw_sermon_ prefix so a device
+                             // with an older copy takes the cloud's newer one)
 ] as const;
 const MISC_PREFIXES = ['dw_sermon_', 'dw_book_today_'];
 

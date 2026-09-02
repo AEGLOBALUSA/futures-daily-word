@@ -961,9 +961,15 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               <p style={{ marginBottom: 8 }}>
                 Scripture quotations marked "KJV" are from the King James Version, public domain.
               </p>
-              <p style={{ marginBottom: 0 }}>
+              <p style={{ marginBottom: 8 }}>
                 Audio narration powered by ESV.org (human reader), AWS Polly, and ElevenLabs.
                 Bible text provided via ESV API, API.Bible, and Bolls.Life.
+              </p>
+              <p style={{ marginBottom: 0 }}>
+                Greek and Hebrew word definitions: Strong&rsquo;s Greek Dictionary (James Strong, 1890, public domain;
+                XML edition by Ulrik Sandborg-Petersen, CC0) and Strong&rsquo;s Hebrew Dictionary from the Open Scriptures
+                Hebrew Bible Project (github.com/openscriptures/HebrewLexicon), licensed under CC BY 4.0.
+                Word-level Strong&rsquo;s tagging from the World English Bible (public domain).
               </p>
             </div>
           </Card>

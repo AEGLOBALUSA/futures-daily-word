@@ -31,7 +31,7 @@ export function StudySourcesCard({ lang }: { lang: string }) {
     <div style={{ marginBottom: 24 }}>
       <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>{t('study_sources_header', lang)}</h2>
       <Card style={{ padding: 16 }}>
-        <div style={{ fontSize: 11, lineHeight: 1.6, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ fontSize: 11, lineHeight: 1.6, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           <p style={{ marginBottom: 8 }}>{t('study_sources_intro', lang)}</p>
           {loading ? (
             <p style={{ marginBottom: 0 }}>{t('study_sources_loading', lang)}</p>

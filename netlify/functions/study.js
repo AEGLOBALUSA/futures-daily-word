@@ -126,8 +126,17 @@ async function words(ref) {
       rows.push(...(data || []));
       if (!data || data.length < 1000) break;
     }
+    // Content words only: Greek N-/V-/A- and Hebrew/Aramaic HN/HV/HA (ANx for
+    // Aramaic) — articles, conjunctions, prepositions and pronouns would
+    // otherwise top every chapter (τοῖς, καί, δέ, אֵת).
+    const isContentWord = r => {
+      const m = String(r.morph || "");
+      if (/^[NVA]-/.test(m)) return true;                     // TAGNT
+      if (/^[HA][NVA]/.test(m)) return true;                  // TAHOT (Hebrew / Aramaic)
+      return false;
+    };
     const agg = new Map();
-    for (const r of rows) {
+    for (const r of rows.filter(isContentWord)) {
       const key = r.strongs || `${r.lemma || ""}|${r.word}`;
       const hit = agg.get(key);
       if (hit) hit.count += 1;
@@ -186,14 +195,15 @@ async function topics(ref) {
   return [...new Set((data || []).map(r => r.topic))].slice(0, 40);
 }
 
-async function illustrationsFor(query, limit) {
+async function illustrationsFor(query, limit, { topicOnly = false } = {}) {
   const q = String(query || "").trim().slice(0, 120);
   if (!q) return [];
-  // Topic prefix first, then full-text.
+  // Topic prefix first (the 1911 Cyclopedia's own headings), then full-text —
+  // unless topicOnly: the passage response must not pad with loose text hits.
   const { data: byTopic, error: e1 } = await db().from("study_illustrations")
     .select("id, topic, title, body, refs, source_id").ilike("topic", `${q}%`).limit(limit);
   if (e1) throw e1;
-  if ((byTopic || []).length >= limit) return byTopic;
+  if (topicOnly || (byTopic || []).length >= limit) return byTopic || [];
   const { data: byText, error: e2 } = await db().from("study_illustrations")
     .select("id, topic, title, body, refs, source_id").textSearch("search", q, { type: "websearch", config: "english" }).limit(limit);
   if (e2) throw e2;
@@ -281,7 +291,14 @@ exports.handler = async (event) => {
       const [xr, cm, wd, pp, tp] = await Promise.all([
         crossRefs(ref), commentary(ref, commentarySources, depth), words(ref), placesAndPeople(ref), topics(ref),
       ]);
-      const illustrations = depth === "full" && tp.length ? await illustrationsFor(tp[0], 6) : [];
+      // Illustrations for a passage: the Nave/Torrey topics on it, matched to
+      // the Cyclopedia's headings only (first three topics, six illustrations).
+      let illustrations = [];
+      for (const topic of tp.slice(0, 3)) {
+        if (illustrations.length >= 6) break;
+        const hits = await illustrationsFor(topic.replace(/,.*$/, ""), 6 - illustrations.length, { topicOnly: true });
+        for (const h of hits) if (!illustrations.some(x => x.id === h.id)) illustrations.push(h);
+      }
       return json(200, {
         ref: formatRef(ref), book: ref.book, chapter: ref.chapter, verse: ref.verse || null, verseEnd: ref.verseEnd,
         testament: isOldTestament(ref.book) ? "OT" : "NT",

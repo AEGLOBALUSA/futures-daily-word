@@ -502,8 +502,14 @@ export async function fetchStrongsMap(passage: string): Promise<StrongsMap | nul
   try {
     const tagged = await fetchTaggedChapter(passage.replace(/:\d+(-\d+)?$/, ''));
     if (!tagged || !tagged.verses.length) return null;
+    // Only the verses in the requested span — a whole chapter's tags would map
+    // a common word to the Strong's number of some other verse's use of it.
+    const span = passage.match(/:(\d+)(?:-(\d+))?$/);
+    const from = span ? Number(span[1]) : 1;
+    const to = span ? Number(span[2] || span[1]) : Infinity;
     const byWord: Record<string, string[]> = {};
     for (const v of tagged.verses) {
+      if (v.verse < from || v.verse > to) continue;
       for (const item of v.words || []) {
         const w = String(item.w || '').toLowerCase().replace(/[^a-z']/g, '');
         if (!w || !item.s?.length) continue;

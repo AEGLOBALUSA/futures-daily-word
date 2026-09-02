@@ -59,7 +59,65 @@ Backend `netlify/functions/intake.js` was **not** touched.
    Still no pastor `/staff` password change, and Settings' own persona picker is
    not locked (only the Home chip was in scope).
 
-**Known gap, not yet built:** no self-service *change password*. `intake.js` has no
+**Phases 2–4 shipped, 2 Sep 2026** (Ashley: "let's do it all"). Built by a swarm of
+scoped agents (Sonnet for loaders/UI, the strongest model for security review and
+refutation), all persona-gated to `pastor_leader`:
+
+*Phase 2 — the study data layer.* Migration `20260902_study_layer.sql` (11 `study_*`
+tables, RLS on, no anon/authenticated grants — served only by
+`netlify/functions/study.js` with the service role). `scripts/load-study-data.mjs`
+with one loader per source in `scripts/study/` (repeatable: each clears and reloads
+its own rows and records itself in `study_sources` with the attribution its licence
+requires). Loaded, ~1M rows, DB 19 → ~260 MB (org is on Pro):
+OpenBible cross-references 344,799 · Strong's Greek (CC0) 5,523 + OSHB Hebrew
+(CC BY) 8,674 · OpenBible geocoding places 1,285 · STEPBible TAGNT 137,562 + TAHOT
+305,421 tagged words · WEB Strong's-tagged verses 31,098 (replaces the Bolls.Life KJV
+S-tag scrape; Bolls still serves NKJV/NIV/AMP/NASB *text*) · six helloao commentaries
+(Henry 5,279 · JFB 18,213 · Gill 29,707 · Clarke 14,149 · Calvin 7,318 · K&D 6,861) ·
+Nave 41,278 + Torrey 32,274 topics · Theographic people 3,067 (CC BY-SA → share_alike)
+· Gutenberg #74575 illustrations 3,517 · RCL 234 (marmanold rcl_lect.xml, BSD; CCT
+notice printed). `GET /api/study?ref=Romans+8:1-4` → crossRefs, commentary (summary =
+count + preview per source; `&only=commentary&commentary=<id>` for the entries),
+words (tokens for a span, aggregated by Strong's for a chapter — PostgREST caps a
+request at 1,000 rows), lexicon, places/people (refs clipped to the chapter), topics,
+illustrations; `?strongs=`, `?words=`, `?illustrations=`, `?lectionary=`, `?sources=1`.
+Client `src/utils/study.ts`; Greek/Hebrew popup and the tap-a-word map read the
+layer first with the old paths as fallback. Sources card in Settings (pastors).
+Re-load any source with `node scripts/load-study-data.mjs <name>` — needs
+`SUPABASE_URL` + `SUPABASE_SERVICE_KEY` from the Daily Word Netlify site
+(`NETLIFY_SITE_ID=5b332733-6735-44a9-90b9-ac21862f2615 netlify env:get …`; this
+repo's Netlify link points at a different site).
+
+*Phase 3 — the Preach workspace.* `src/screens/PreachScreen.tsx` replaces the
+congregation Sermon Notes surface on the hidden `sermon-notes` tab for pastors (the
+Home card reads "Preach"): This week (focus line + the published message), then
+Prep · Outline · Publish · Archive. Prep sheet (`components/preach/PrepSheet.tsx`):
+two translations, cross-reference chips, six commentaries collapsed with a
+Claude summary on demand (commentary text only — never ESV/NIV text), key words
+into the Greek/Hebrew popup, places, people, illustrations, "+" to the outline.
+Outline builder (`utils/preachOutline.ts`, synced as `dw_sermon_prep_outline` through
+the misc bag, ≤18 KB): big idea, up to five points, weekly action, seed from the
+sermon-prep bag, optional scaffolds — ONLY the two frameworks with verified
+definitions, The 4D Protocol (Discover/Develop/Deploy/Depart) and H.E.A.T.
+(Hungry/Effective/Adaptable/Transferable); P.A.I.D., Five Fences and Five Batons
+have no definition on record and were left out rather than invented. Publish
+(`utils/preachPublish.ts`): questions matched by config (never by id); admin/hub →
+the church-wide message via `format_preview` then an explicit confirm before
+`submit`; campus pastors → a campus-corner announcement; media role refused.
+Archive: `published-sermon.js?list=1` + client search by title/series/speaker/text/
+reference, opens read-only.
+
+*Phase 4.* `change_password` action in `intake.js` (additive; rate-limited, verifies
+the current password, revokes the pastor's OTHER sessions) with a Change password
+form in Settings → Pastor account. Campus codes now mint only for admin-confirmed
+campuses: migration `20260902_staff_campus_set_by.sql` (applied; existing
+assignments backfilled as 'admin'), `roster_save` writes 'admin', the first-submission
+self-assignment writes 'self', and `my-campus-code` answers
+`{ code: null, reason: "campus_not_confirmed" }` for 'self' until Ashley re-saves the
+person in /staff → People. Illustrations, places/people and the lectionary are loaded
+(Phase 4 data) — the lectionary and map chips are not yet surfaced in the UI.
+
+**Known gap, not yet built:** ~~no self-service *change password*~~ (shipped above). `intake.js` has no
 `change_password` action. Today's reset = Ashley clears it in `/staff → People`, the
 pastor sets a new one next sign-in. Adding it means a small, additive change to
 `intake.js` (verify old password with `verifyPassword`, apply `passwordIssue`, write
