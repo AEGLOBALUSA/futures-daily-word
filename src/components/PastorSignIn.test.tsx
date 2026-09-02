@@ -38,7 +38,7 @@ vi.mock('../contexts/UserContext', () => ({
 vi.mock('../utils/analytics', () => ({ track: analytics.track }));
 
 import { PastorSignIn } from './PastorSignIn';
-import { resetStaffSessionCache, setAppStaffSignIn } from '../utils/staffIdentity';
+import { resetStaffSessionCache, setAppStaffSignIn, signOutStaff } from '../utils/staffIdentity';
 
 const ASHLEY = { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true };
 const TOKEN = 'f'.repeat(64);
@@ -262,6 +262,26 @@ describe('PastorSignIn', () => {
     expect(user.saveSetup).toHaveBeenCalledWith({ persona: 'congregation', source: 'settings' });
     expect(user.saveProfile).not.toHaveBeenCalled(); // the person stays; only the role goes
     expect(analytics.track).toHaveBeenCalledWith('pastor_sign_out');
+    expect(el.textContent).toContain('Sign in as pastor');
+    expect(el.textContent).not.toContain('Signed in as');
+  });
+
+  it('follows a sign-out made elsewhere (the Home chip) while mounted', async () => {
+    api.token = TOKEN;
+    setAppStaffSignIn(true);
+    user.profile = { email: 'ae@futures.global', firstName: 'Ashley', lastName: 'Evans', phone: '', church: '', city: '', campus: '' };
+    user.setup = { persona: 'pastor_leader', source: 'settings' };
+    api.intake.mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: ASHLEY, pendingCount: 0 };
+      if (action === 'logout') return { ok: true };
+      return {};
+    });
+    const el = mount(<PastorSignIn lang="en" />);
+    await flush();
+    expect(el.textContent).toContain('Signed in as Ashley Evans');
+    // The chip's "Sign out of pastor account" runs the same signOutStaff() — not through this card.
+    await act(async () => { await signOutStaff(); });
+    await flush();
     expect(el.textContent).toContain('Sign in as pastor');
     expect(el.textContent).not.toContain('Signed in as');
   });

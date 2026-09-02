@@ -8,7 +8,7 @@
  * The staff token is never sent to user-sync, and vice versa.
  */
 import { intake, getStaffToken, setStaffToken } from '../staff/api';
-import { API_BASE } from './api-base';
+import { API_BASE, localApiBase } from './api-base';
 import { setSessionToken } from './sessionToken';
 import type { UserProfile, SetupState } from '../contexts/UserContext';
 
@@ -30,11 +30,21 @@ export function hasAppStaffSignIn(): boolean {
   try { return localStorage.getItem(APP_SIGNIN_KEY) === '1'; } catch { return false; }
 }
 
+/** window event: the app's staff session came or went (sign-in, sign-out, a
+ *  token rejected at boot). Home's chip lock and the Settings card re-read. */
+export const STAFF_SESSION_EVENT = 'dw-staff-session-changed';
+
 export function setAppStaffSignIn(on: boolean) {
   try {
     if (on) localStorage.setItem(APP_SIGNIN_KEY, '1');
     else localStorage.removeItem(APP_SIGNIN_KEY);
   } catch { /* quota */ }
+  try { window.dispatchEvent(new Event(STAFF_SESSION_EVENT)); } catch { /* ignore */ }
+}
+
+/** True while THIS app holds a pastor session: the in-app marker AND a token. */
+export function isAppStaffSignedIn(): boolean {
+  return hasAppStaffSignIn() && !!getStaffToken();
 }
 
 export const PASTOR_PERSONA = 'pastor_leader';
@@ -62,16 +72,35 @@ export function splitStaffName(name: string): { firstName: string; lastName: str
 
 const EMPTY_PROFILE: UserProfile = { email: '', firstName: '', lastName: '', phone: '', church: '', city: '', campus: '' };
 
-/** The profile a staff record implies: their work email and roster name; every
- *  other field (campus, phone, …) stays as the device already has it. */
-export function profileFromStaff(staff: StaffRecord, existing: UserProfile | null): UserProfile {
+/** How the roster campus meets the device's campus:
+ *  - 'roster' — an explicit sign-in: the roster is authoritative, it replaces
+ *    whatever the device had (a campus pastor belongs to their campus).
+ *  - 'fill'   — the silent boot restore: only an EMPTY campus is filled, so a
+ *    campus the person picked on purpose (visiting another campus) survives.
+ *  - 'keep'   — leave the device campus alone. */
+export type CampusMode = 'roster' | 'fill' | 'keep';
+
+/** The profile a staff record implies: their work email and roster name, plus
+ *  the roster campus per `campus`; every other field (phone, city, …) stays as
+ *  the device already has it. */
+export function profileFromStaff(
+  staff: StaffRecord,
+  existing: UserProfile | null,
+  opts?: { campus?: CampusMode },
+): UserProfile {
   const base: UserProfile = { ...EMPTY_PROFILE, ...(existing || {}) };
   const { firstName, lastName } = splitStaffName(staff.name);
+  const mode: CampusMode = opts?.campus || 'keep';
+  const rosterCampus = String(staff.campusId || '').trim();
+  const campus = mode === 'keep' || !rosterCampus
+    ? base.campus
+    : mode === 'roster' ? rosterCampus : (base.campus || rosterCampus);
   return {
     ...base,
     email: String(staff.email || '').trim().toLowerCase(),
     firstName: firstName || base.firstName,
     lastName: lastName || base.lastName,
+    campus,
   };
 }
 
@@ -105,6 +134,14 @@ export function restoreStaffSession(): Promise<StaffRecord | null> {
     .catch(() => null)
     .then(staff => {
       if (!staff && restoreCache && restoreCache.token === token) restoreCache = null;
+      // intake() drops the token on a 401 (expired after 14 days, or revoked in
+      // /staff → People). The session's leftovers go with it: the in-app marker
+      // and the campus code sign-in provisioned. A network failure keeps the
+      // token, so it keeps both — next open retries.
+      if (!staff && !getStaffToken()) {
+        clearProvisionedPastorCode();
+        setAppStaffSignIn(false);
+      }
       return staff;
     });
   restoreCache = { token, promise };
@@ -121,9 +158,127 @@ export async function signOutStaff(): Promise<void> {
   // positive cache and shows "Signed in" for a session being revoked.
   setAppStaffSignIn(false);
   restoreCache = null;
+  // The campus code sign-in provisioned goes with the session (a hand-typed
+  // one from before sign-in existed is left alone — see PASTOR_CODE_SRC_KEY).
+  clearProvisionedPastorCode();
   try { await intake('logout'); } catch { /* token may already be dead */ }
   setStaffToken('');
   restoreCache = null;
+}
+
+// ── Campus pastor code ──────────────────────────────────────────────────────
+// X-Pastor-Code for the home Campus Overview and the Settings admin rows. It is
+// SHA-256(campusId + PASTOR_SECRET) — only the server can produce it — so
+// sign-in asks pastor-admin `my-campus-code` for the signed-in pastor's OWN
+// roster campus and stores it here, instead of the pastor typing eight hex
+// characters someone once emailed them.
+
+export const PASTOR_CODE_KEY = 'dw_pastor_code';
+/** 'signin' when sign-in wrote dw_pastor_code; absent for a hand-typed code. */
+const PASTOR_CODE_SRC_KEY = 'dw_pastor_code_src';
+/** The roster campus a provisioned code belongs to — boot refetches when the
+ *  signed-in pastor's campus is a different one. */
+const PASTOR_CODE_CAMPUS_KEY = 'dw_pastor_code_campus';
+/** window event: dw_pastor_code changed (HomeScreen refetches the overview). */
+export const PASTOR_CODE_EVENT = 'dw-pastor-code-changed';
+
+function announcePastorCode() {
+  try { window.dispatchEvent(new Event(PASTOR_CODE_EVENT)); } catch { /* ignore */ }
+}
+
+export function getPastorCode(): string {
+  try { return localStorage.getItem(PASTOR_CODE_KEY) || ''; } catch { return ''; }
+}
+
+/** Which roster campus the stored code was provisioned for ('' = hand-typed). */
+function provisionedCodeCampus(): string {
+  try {
+    if (localStorage.getItem(PASTOR_CODE_SRC_KEY) !== 'signin') return '';
+    return localStorage.getItem(PASTOR_CODE_CAMPUS_KEY) || '';
+  } catch { return ''; }
+}
+
+/** Remove the code only if sign-in provisioned it. */
+export function clearProvisionedPastorCode(): void {
+  try {
+    if (localStorage.getItem(PASTOR_CODE_SRC_KEY) !== 'signin') return;
+    localStorage.removeItem(PASTOR_CODE_KEY);
+    localStorage.removeItem(PASTOR_CODE_SRC_KEY);
+    localStorage.removeItem(PASTOR_CODE_CAMPUS_KEY);
+  } catch { return; }
+  announcePastorCode();
+}
+
+/** A code the pastor typed themselves (Campus Overview prompt). No marker, so
+ *  sign-out leaves it alone — it was never the session's to take. */
+export function setHandTypedPastorCode(code: string): void {
+  const clean = String(code || '').trim().toUpperCase();
+  if (!clean) return;
+  try {
+    localStorage.setItem(PASTOR_CODE_KEY, clean);
+    localStorage.removeItem(PASTOR_CODE_SRC_KEY);
+    localStorage.removeItem(PASTOR_CODE_CAMPUS_KEY);
+  } catch { return; }
+  announcePastorCode();
+}
+
+/** The signed-in pastor's own campus code from the server (roster-derived, the
+ *  client names no campus). null = no session, rejected token, or no network.
+ *  `{ code: null }` = the server answered and this person has no campus code
+ *  (admin / hub staff without a roster campus). */
+export async function fetchMyCampusCode(): Promise<{ campusId: string | null; code: string | null } | null> {
+  const token = getStaffToken();
+  if (!token) return null;
+  // Bounded: the sign-in card awaits this, and a hung socket must not hold it
+  // on "Please wait…" — the boot path fills the code on the next open.
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
+  try {
+    const res = await fetch(`${localApiBase()}/api/pastor-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'my-campus-code' }),
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null) as { campusId?: string | null; code?: string | null } | null;
+    if (!data) return null;
+    const code = typeof data.code === 'string' && data.code.trim() ? data.code.trim().toUpperCase() : null;
+    return { campusId: typeof data.campusId === 'string' && data.campusId ? data.campusId : null, code };
+  } catch {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Provision dw_pastor_code for a signed-in pastor. Best effort, never throws.
+ *  - explicit sign-in (`force`): any code a PREVIOUS sign-in provisioned is
+ *    dropped first, so a failed fetch degrades to "no code, prompt shown" and
+ *    never to a colleague's code under this pastor's name; the roster answer
+ *    then replaces whatever is stored, hand-typed included;
+ *  - boot restore (no `force`): fills when nothing is stored, and re-asks when
+ *    the stored code was provisioned for a DIFFERENT roster campus (it repairs
+ *    itself on the next open); a hand-typed code is respected;
+ *  - no answer from the server (offline, dead token): nothing else changes. */
+export async function provisionPastorCode(staff: StaffRecord, opts?: { force?: boolean }): Promise<boolean> {
+  const force = !!opts?.force;
+  const campusId = String(staff.campusId || '').trim();
+  if (force) clearProvisionedPastorCode();
+  if (!campusId) return false;
+  if (!force && getPastorCode()) {
+    const provisionedFor = provisionedCodeCampus();
+    if (!provisionedFor || provisionedFor === campusId) return false;
+  }
+  const answer = await fetchMyCampusCode();
+  if (!answer || !answer.code) return false;
+  try {
+    localStorage.setItem(PASTOR_CODE_KEY, answer.code);
+    localStorage.setItem(PASTOR_CODE_SRC_KEY, 'signin');
+    localStorage.setItem(PASTOR_CODE_CAMPUS_KEY, answer.campusId || campusId);
+  } catch { return false; }
+  announcePastorCode();
+  return true;
 }
 
 /** Give this device a cloud-sync session for the pastor's email — the same

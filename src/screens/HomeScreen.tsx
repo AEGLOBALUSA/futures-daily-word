@@ -25,7 +25,6 @@ import { PLAN_CATALOGUE } from '../data/plans';
 import { displayPassage } from '../data/translations';
 import { SetupPromptModal } from '../components/SetupPromptModal';
 import { PWAInstallBanner } from '../components/PWAInstall';
-import { FeedbackPoll } from '../components/FeedbackPoll';
 // audioManager replaced by audioPlayer (AP) imported above
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
@@ -43,6 +42,7 @@ import { ComfortSection, localDayIndex } from '../components/ComfortSection';
 import { EmailNudgeCard } from '../components/EmailNudgeCard';
 import { PromoAds } from '../components/PromoAds';
 import { COMFORT_CHAPTERS } from '../data/comfort';
+import { PASTOR_CHAPTERS } from '../data/pastor';
 import { PastorStudyOnboarding } from '../components/PastorStudyOnboarding';
 import { NewBelieverLessonCard } from '../components/NewBelieverLessonCard';
 import { DailyWordCard } from '../components/DailyWordCard';
@@ -52,6 +52,8 @@ import { PastoralReflectionSection } from '../components/PastoralReflectionSecti
 import { InlineReflection } from '../components/InlineReflection';
 import { ReadingActionBar } from '../components/ReadingActionBar';
 import { HomeContextChips } from '../components/HomeContextChips';
+import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
+import { useStaffIdentity, useIsPastorSignedIn } from '../utils/useStaffIdentity';
 import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
 import { hapticTap } from '../utils/haptics';
@@ -150,6 +152,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
   const personaConfig = useMemo(() => getPersonaConfig(setup?.persona), [setup?.persona]);
   const pf = personaConfig.features; // shorthand
+  // Pastor sign-in (Settings → Pastor account): while this app holds a staff
+  // session the persona chip is locked to "Sign out of pastor account" — a
+  // silent switch would leave the staff token behind on a device that no
+  // longer looks like a pastor's. Home stays mounted across tabs, so this is
+  // event-driven (dw-staff-session-changed), not read once at mount.
+  const { clearStaffIdentity } = useStaffIdentity();
+  const pastorSignedIn = useIsPastorSignedIn();
   const greetingText = useMemo(
     () => getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count, getLang()),
     [personaConfig.persona, userProfile?.firstName],
@@ -1067,12 +1076,24 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [campusStatsLoading, setCampusStatsLoading] = useState(false);
   const [pastorCodeInput, setPastorCodeInput] = useState('');
   const [campusStatsRetry, setCampusStatsRetry] = useState(0);
-  const [pastorCode, setPastorCode] = useState<string>(() => {
-    try { return localStorage.getItem('dw_pastor_code') || ''; } catch { return ''; }
-  });
+  const [pastorCode, setPastorCode] = useState<string>(() => getPastorCode());
+  // Sign-in provisions the code from the staff roster (staffIdentity.
+  // provisionPastorCode) and sign-out clears it — pick either up in place.
+  useEffect(() => {
+    const onCode = () => { setCampusStatsError(false); setPastorCode(getPastorCode()); };
+    window.addEventListener(PASTOR_CODE_EVENT, onCode);
+    return () => window.removeEventListener(PASTOR_CODE_EVENT, onCode);
+  }, []);
 
   useEffect(() => {
-    if (personaConfig.persona !== 'pastor_leader' || !pastorCode) return;
+    if (personaConfig.persona !== 'pastor_leader' || !pastorCode) {
+      // No code (or no longer a pastor): back to the prompt, and not stuck on a
+      // spinner from a fetch that was in flight when the code went away.
+      setCampusStats(null);
+      setCampusStatsLoading(false);
+      setCampusStatsError(false);
+      return;
+    }
     let cancelled = false;
     setCampusStatsLoading(true);
     setCampusStatsError(false);
@@ -1103,7 +1124,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const submitPastorCode = () => {
     const code = pastorCodeInput.trim().toUpperCase();
     if (!code) return;
-    try { localStorage.setItem('dw_pastor_code', code); } catch { /* quota */ }
+    // Hand-typed → no 'signin' marker, so a later pastor sign-out leaves it alone.
+    setHandTypedPastorCode(code);
     setCampusStatsError(false);
     setPastorCode(code);
     setCampusStatsRetry(n => n + 1); // refetch even when the code is unchanged
@@ -1261,9 +1283,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         .slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length))
         .map(s => `${s.book} ${s.currentChapter}`),
     ];
-    // Persona fallback — comfort and new-believer users have auto-served content,
-    // so an empty plan/slot state lands them on that reading instead of the
-    // "Choose your reading plan" funnel. Scripture refs only: book plans stay
+    // Persona fallback — comfort, new-believer and pastor users have auto-served
+    // content, so an empty plan/slot state lands them on that reading instead of
+    // the "Choose your reading plan" funnel. Scripture refs only: book plans stay
     // excluded from the hero pipeline.
     if (refs.length === 0) {
       if (personaConfig.persona === 'comfort') {
@@ -1272,6 +1294,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       } else if (personaConfig.persona === 'new_to_faith' && pathwayProgress.enrolled && pathwayData) {
         const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
         if (dayData?.reading) refs.push(`${dayData.reading.book} ${dayData.reading.chapter}`);
+      } else if (personaConfig.persona === 'pastor_leader') {
+        // Day-one floor for a pastor with no plan and no slots yet: a rotating
+        // leadership chapter, never an empty hero (Study & Preach plan, §4.1).
+        const pastorRef = PASTOR_CHAPTERS[localDayIndex() % PASTOR_CHAPTERS.length];
+        if (pastorRef) refs.push(pastorRef);
       }
     }
     return refs.filter((r, i, arr) => Boolean(r) && arr.indexOf(r) === i);
@@ -1928,6 +1955,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               {!isNewPath && <HomeContextChips
                 persona={personaConfig.persona}
                 campusId={userProfile?.campus || ''}
+                pastorLocked={pastorSignedIn}
+                onPastorSignOut={() => {
+                  // Same path as Settings → Pastor account → Sign out: revoke the
+                  // staff session, drop the provisioned campus code, back to Church Member.
+                  void clearStaffIdentity().then(() => { flushNow(); track('pastor_sign_out'); });
+                }}
                 onPersonaChange={(id: Persona) => {
                   // Deliberate choice on the chip itself — stamp + sync (not a silent default).
                   saveSetup({ persona: id, source: 'settings' });
@@ -2841,9 +2874,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             scriptureFontSize={scriptureFontSize}
           />
         )}
-
-        {/* Poll banner — right under the hero audio card (persona-gated) */}
-        {pf.pollBanner && <FeedbackPoll userCampus={userProfile?.campus} />}
 
         {/* AI Prompt Section — multi-persona */}
 
@@ -4523,6 +4553,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         onClose={() => { setShowBibleAI(false); setBibleAIQuestion(''); }}
         onOpen={() => setShowBibleAI(true)}
         initialContext={bibleAIContext}
+        currentPassage={heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || ''}
         selectedText={selection?.text}
         initialQuestion={bibleAIQuestion || undefined}
       />

@@ -4,9 +4,11 @@ const crypto = require("crypto");
 // ── Config ──
 const PASTOR_SECRET = process.env.PASTOR_SECRET || "";
 const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { isCampusId } = require('./lib/intake-core');
+const { generateCampusCode, validateCampusCode } = require('./lib/campus-code');
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return { "Access-Control-Allow-Origin": allowed, "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+  return { "Access-Control-Allow-Origin": allowed, "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 }
 
 let supabase;
@@ -15,18 +17,16 @@ function getSupabase() {
   return supabase;
 }
 
-// Generate a pastor code for a campus: first 8 chars of SHA-256(campusId + secret)
+// Pastor code for a campus: first 8 chars of SHA-256(campusId + ":" + secret).
+// ONE derivation shared with analytics-dashboard via lib/campus-code (the
+// dashboard used to hash the short slug, so listed codes never opened it).
 function generateCode(campusId) {
-  if (!PASTOR_SECRET) return null;
-  return crypto.createHash("sha256").update(campusId + ":" + PASTOR_SECRET).digest("hex").slice(0, 8).toUpperCase();
+  return generateCampusCode(campusId, PASTOR_SECRET);
 }
 
-// Validate a code against a campus (constant-time comparison)
+// Validate a code against a campus (constant-time; accepts the legacy slug form too)
 function validateCode(campusId, code) {
-  if (!PASTOR_SECRET || !code) return false;
-  const expected = generateCode(campusId);
-  if (!expected || expected.length !== code.toUpperCase().length) return false;
-  try { return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(code.toUpperCase())); } catch { return false; }
+  return validateCampusCode(campusId, code, PASTOR_SECRET);
 }
 
 function sanitize(str, maxLen = 5000) {
@@ -76,6 +76,41 @@ exports.handler = async (event) => {
         intake: "/staff"
       })
     };
+  }
+
+  // ── Action: my-campus-code ── The signed-in pastor's own campus code.
+  // Auth is the staff session issued by intake.js (Authorization: Bearer <token>,
+  // the same dw_staff_token the app already holds). The code is derived from the
+  // ROSTER campus, never from a campus the client names, so a campus pastor can
+  // only ever receive the code for the campus they are assigned to. Admin / hub
+  // staff with no roster campus get { code: null } — their global view stays on
+  // the admin PIN. Provisioned by the app at sign-in so nobody hand-types it.
+  if (action === "my-campus-code") {
+    const auth = event.headers.authorization || event.headers.Authorization || "";
+    if (!auth.startsWith("Bearer ")) return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Sign in required" }) };
+    const raw = auth.slice(7).trim();
+    if (!raw || raw.length < 32) return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Sign in required" }) };
+    try {
+      const tokenHash = crypto.createHash("sha256").update(raw).digest("hex");
+      const { data: session } = await getSupabase()
+        .from("staff_sessions").select("email, expires_at").eq("token_hash", tokenHash).maybeSingle();
+      if (!session || new Date(session.expires_at).getTime() < Date.now()) {
+        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Sign in required" }) };
+      }
+      const email = String(session.email || "").trim().toLowerCase();
+      const { data: roster } = await getSupabase()
+        .from("staff_roster").select("campus_id").eq("email", email).maybeSingle();
+      const rosterCampus = roster && typeof roster.campus_id === "string" ? roster.campus_id : "";
+      const campusId = isCampusId(rosterCampus) ? rosterCampus : null;
+      const code = campusId ? generateCode(campusId) : null;
+      // Audit line: a roster campus can be self-assigned on a pastor's first
+      // /staff submission, so every mint is visible in the function log.
+      console.log("[pastor-admin] my-campus-code", email, campusId || "(no campus)", code ? "minted" : "none");
+      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ campusId, code }) };
+    } catch (err) {
+      console.error("[pastor-admin] my-campus-code failed:", err && err.message);
+      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "Server error" }) };
+    }
   }
 
   // ── Action: list-codes ── Admin only: list all campus codes (requires master secret directly)

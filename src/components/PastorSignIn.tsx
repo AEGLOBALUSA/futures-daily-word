@@ -5,7 +5,7 @@
  * staff token kept so re-opens skip the login. Password only — no magic links,
  * no OAuth. Backend is netlify/functions/intake.js, unchanged.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
 import { ShieldCheck, LogOut } from 'lucide-react';
 import { Card } from './Card';
@@ -14,8 +14,8 @@ import { intake, setStaffToken } from '../staff/api';
 import { useUser } from '../contexts/UserContext';
 import { useStaffIdentity } from '../utils/useStaffIdentity';
 import {
-  looksLikeStaffEmail, resetStaffSessionCache, restoreStaffSession, setAppStaffSignIn,
-  type StaffRecord,
+  isAppStaffSignedIn, looksLikeStaffEmail, resetStaffSessionCache, restoreStaffSession, setAppStaffSignIn,
+  STAFF_SESSION_EVENT, type StaffRecord,
 } from '../utils/staffIdentity';
 import { track } from '../utils/analytics';
 import { t, getLang } from '../utils/i18n';
@@ -58,6 +58,8 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const viewRef = useRef<View>('loading');
+  viewRef.current = view;
 
   // Stored staff token → signed-in card straight away (one cached `me` call,
   // shared with the App boot restore).
@@ -75,6 +77,32 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
       else setView(v => (v === 'loading' ? 'closed' : v));
     });
     return () => { alive = false; clearTimeout(timer); };
+  }, []);
+
+  // The session can change while this card is mounted (every tab stays mounted):
+  // the Home chip's "Sign out of pastor account", or a token rejected at boot.
+  // Follow it — a card still reading "Signed in as …" after a sign-out would show
+  // the previous pastor to whoever holds the device next. Our own sign-in fires
+  // this too, mid-form, and is ignored (the form finishes on its own).
+  useEffect(() => {
+    let alive = true;
+    const onSession = () => {
+      if (!isAppStaffSignedIn()) {
+        if (viewRef.current === 'signed_in' || viewRef.current === 'loading') {
+          setStaff(null);
+          setView('closed');
+        }
+        return;
+      }
+      if (viewRef.current !== 'closed') return;
+      restoreStaffSession().then(s => {
+        if (!alive || !s || viewRef.current !== 'closed') return;
+        setStaff(s);
+        setView('signed_in');
+      });
+    };
+    window.addEventListener(STAFF_SESSION_EVENT, onSession);
+    return () => { alive = false; window.removeEventListener(STAFF_SESSION_EVENT, onSession); };
   }, []);
 
   const typedEmail = email.trim().toLowerCase();

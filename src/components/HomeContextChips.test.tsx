@@ -144,4 +144,94 @@ describe('HomeContextChips', () => {
     expect(campusChip).toBeTruthy();
     act(() => root.unmount());
   });
+  it('locks the persona chip while a pastor is signed in and offers sign-out instead', () => {
+    const onPersona = vi.fn();
+    const onSignOut = vi.fn();
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="pastor_leader"
+        campusId="us-gwinnett"
+        onPersonaChange={onPersona}
+        onCampusChange={vi.fn()}
+        pastorLocked
+        onPastorSignOut={onSignOut}
+      />,
+    );
+    const personaChip = [...el.querySelectorAll('button')].find(b => /leader \/ pastor/i.test(b.textContent || ''));
+    expect(personaChip).toBeTruthy();
+    expect(personaChip!.getAttribute('aria-haspopup')).toBe('dialog');
+    click(personaChip!);
+    expect(document.querySelectorAll('[role="option"]').length).toBe(0);
+    const panel = document.querySelector('[role="dialog"]') as HTMLElement;
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).toContain('Signed in as pastor');
+    expect(panel.textContent).not.toContain('Back to Leader / Pastor');
+    const signOut = [...panel.querySelectorAll('button')].find(b => /sign out of pastor account/i.test(b.textContent || ''));
+    expect(signOut).toBeTruthy();
+    click(signOut!);
+    expect(onSignOut).toHaveBeenCalledTimes(1);
+    expect(onPersona).not.toHaveBeenCalled();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('a signed-in pastor on another path can only go back to Leader / Pastor or sign out', () => {
+    const onPersona = vi.fn();
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="congregation"
+        campusId="us-gwinnett"
+        onPersonaChange={onPersona}
+        onCampusChange={vi.fn()}
+        pastorLocked
+        onPastorSignOut={vi.fn()}
+      />,
+    );
+    const personaChip = [...el.querySelectorAll('button')].find(b => /church member/i.test(b.textContent || ''));
+    click(personaChip!);
+    expect(document.querySelectorAll('[role="option"]').length).toBe(0);
+    const back = [...document.querySelectorAll('button')].find(b => /back to leader \/ pastor/i.test(b.textContent || ''));
+    expect(back).toBeTruthy();
+    click(back!);
+    expect(onPersona).toHaveBeenCalledWith('pastor_leader');
+    act(() => root.unmount());
+  });
+
+  it('the campus chip still opens normally while the persona chip is locked', () => {
+    const onCampus = vi.fn();
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="pastor_leader"
+        campusId="us-gwinnett"
+        onPersonaChange={vi.fn()}
+        onCampusChange={onCampus}
+        pastorLocked
+        onPastorSignOut={vi.fn()}
+      />,
+    );
+    const campusChip = [...el.querySelectorAll('button')].find(b => /gwinnett/i.test(b.textContent || ''));
+    click(campusChip!);
+    const option = [...document.querySelectorAll('[role="option"]')].find(b => (b.textContent || '').includes('Futures Alpharetta'));
+    expect(option).toBeTruthy();
+    click(option!);
+    expect(onCampus).toHaveBeenCalledWith('us-alpharetta');
+    act(() => root.unmount());
+  });
+
+  it('without the lock the persona list is unchanged (nothing changes for non-pastors)', () => {
+    const { el, root } = mount(
+      <HomeContextChips
+        persona="pastor_leader"
+        campusId="us-gwinnett"
+        onPersonaChange={vi.fn()}
+        onCampusChange={vi.fn()}
+      />,
+    );
+    const personaChip = [...el.querySelectorAll('button')].find(b => /leader \/ pastor/i.test(b.textContent || ''));
+    expect(personaChip!.getAttribute('aria-haspopup')).toBe('listbox');
+    click(personaChip!);
+    expect(document.querySelectorAll('[role="option"]').length).toBe(5);
+    expect(document.body.textContent).not.toContain('Sign out of pastor account');
+    act(() => root.unmount());
+  });
 });

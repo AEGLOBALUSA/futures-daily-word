@@ -35,6 +35,30 @@ Backend `netlify/functions/intake.js` was **not** touched.
 4. Profile comparison is field-by-field (key order differed from the server merge, so
    every boot rewrote the profile and POSTed an update).
 
+**Phase 1 (§4.1) shipped, 1 Sep 2026** — all five items, persona-gated:
+1. `src/data/pastor.ts` `PASTOR_CHAPTERS` (30 leadership chapters, rotating by local
+   day) is the `pastor_leader` fallback in `heroChapterRefs`, so a pastor with no plan
+   and no slots opens on a reading, never an empty hero.
+2. Sign-in writes the roster campus into `dw_profile.campus` (explicit sign-in: roster
+   wins; boot restore: fills only an empty campus) and **provisions `dw_pastor_code`**.
+   The code is `SHA-256(campusId + PASTOR_SECRET)`, so the client cannot derive it: a
+   new `my-campus-code` action in `netlify/functions/pastor-admin.js` answers the
+   pastor's OWN roster campus code against the staff Bearer token (`intake.js`
+   untouched). Marker `dw_pastor_code_src='signin'` means sign-out removes only what
+   sign-in wrote; a hand-typed code survives. `dw-pastor-code-changed` lets Home /
+   Settings pick it up without a remount. Staff with no roster campus get no code.
+3. `HomeContextChips` locks the persona chip while `dw_staff_app_signin` + a staff
+   token exist: a "Signed in as pastor" dialog offers **Sign out of pastor account**
+   (and "Back to Leader / Pastor" if another persona was pulled in cross-device).
+4. `devotion` / `congregation_stats` are gone from the pastor `sectionOrder`; the
+   expired `FeedbackPoll`, `PollBannerSection` and the `pollBanner` feature flag are
+   deleted. `PollDashboard` (historical results, Settings → Admin) stays.
+5. Bible AI shows four pastor quick-prompts under **For your message**
+   (`src/utils/pastorPrompts.ts` builds the message from the selection, the hero
+   chapter passed as `currentPassage`, the sermon-prep bag, then verse highlights).
+   Still no pastor `/staff` password change, and Settings' own persona picker is
+   not locked (only the Home chip was in scope).
+
 **Known gap, not yet built:** no self-service *change password*. `intake.js` has no
 `change_password` action. Today's reset = Ashley clears it in `/staff → People`, the
 pastor sets a new one next sign-in. Adding it means a small, additive change to

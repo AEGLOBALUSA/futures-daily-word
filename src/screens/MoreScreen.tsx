@@ -17,6 +17,7 @@ import { useSubView } from '../utils/useSubView';
 import { PromoAds } from '../components/PromoAds';
 import { PWAInstallSettingsBlock } from '../components/PWAInstall';
 import { PastorSignIn } from '../components/PastorSignIn';
+import { getPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
 
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
@@ -95,9 +96,21 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   // (prefilled from the remembered campus pastor code), and whether the
   // Administrator row was revealed by long-pressing the version line.
   const [adminTarget, setAdminTarget] = useState<'polls' | 'analytics' | null>(null);
-  const [adminCodeInput, setAdminCodeInput] = useState<string>(() => {
-    try { return localStorage.getItem('dw_pastor_code') || ''; } catch { return ''; }
-  });
+  const [adminCodeInput, setAdminCodeInput] = useState<string>(() => getPastorCode());
+  // The pastor sign-in card below provisions dw_pastor_code from the roster —
+  // prefill the admin rows in place. Provenance matters on a shared device: a
+  // prefill that came from the store is REPLACED (or cleared at sign-out) when
+  // the store changes; a value the person typed themselves is left alone.
+  const lastStoredCodeRef = useRef<string>(adminCodeInput);
+  useEffect(() => {
+    const onCode = () => {
+      const stored = getPastorCode();
+      setAdminCodeInput(v => (!v || v === lastStoredCodeRef.current) ? stored : v);
+      lastStoredCodeRef.current = stored;
+    };
+    window.addEventListener(PASTOR_CODE_EVENT, onCode);
+    return () => window.removeEventListener(PASTOR_CODE_EVENT, onCode);
+  }, []);
   const [adminRevealed, setAdminRevealed] = useState(false);
   const adminHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

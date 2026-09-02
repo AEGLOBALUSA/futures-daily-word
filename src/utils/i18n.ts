@@ -780,6 +780,21 @@ const UI: Translations = {
   plan_days: { en: '{n} DAYS', es: '{n} D\u00cdAS', pt: '{n} DIAS', id: '{n} HARI' },
   plan_active: { en: 'Active', es: 'Activo', pt: 'Ativo', id: 'Aktif' },
   plans_start_hint: { en: 'Start This Plan to begin. Your chosen plan sets your daily reading.', es: 'Toca Comenzar este plan para empezar. El plan que elijas fija tu lectura diaria.', pt: 'Toque em Come\u00e7ar este plano para come\u00e7ar. O plano escolhido define sua leitura di\u00e1ria.', id: 'Ketuk Mulai Rencana Ini untuk memulai. Rencana yang Anda pilih mengatur bacaan harian Anda.' },
+  // ── PASTOR CHIP LOCK (Home header, while signed in as pastor) ──
+  pastor_chip_locked_title: { en: 'Signed in as pastor', es: 'Sesi\u00f3n iniciada como pastor', pt: 'Conectado como pastor', id: 'Masuk sebagai pendeta' },
+  pastor_chip_locked_body: { en: 'Your path stays Leader / Pastor while you are signed in. Sign out of the pastor account to change it.', es: 'Tu camino sigue siendo L\u00edder / Pastor mientras tengas la sesi\u00f3n iniciada. Cierra la sesi\u00f3n de pastor para cambiarlo.', pt: 'Seu caminho continua como L\u00edder / Pastor enquanto voc\u00ea estiver conectado. Saia da conta de pastor para alter\u00e1-lo.', id: 'Jalur Anda tetap Pemimpin / Pendeta selama Anda masuk. Keluar dari akun pendeta untuk mengubahnya.' },
+  pastor_chip_sign_out: { en: 'Sign out of pastor account', es: 'Cerrar sesi\u00f3n de pastor', pt: 'Sair da conta de pastor', id: 'Keluar dari akun pendeta' },
+  pastor_chip_back_to_pastor: { en: 'Back to Leader / Pastor', es: 'Volver a L\u00edder / Pastor', pt: 'Voltar para L\u00edder / Pastor', id: 'Kembali ke Pemimpin / Pendeta' },
+  // ── BIBLE AI — pastor quick-prompts ("For your message") ──
+  ai_pastor_section: { en: 'For your message', es: 'Para tu mensaje', pt: 'Para sua mensagem', id: 'Untuk khotbah Anda' },
+  ai_pastor_angles: { en: 'Give me three teaching angles on this passage', es: 'Dame tres enfoques de ense\u00f1anza sobre este pasaje', pt: 'D\u00ea-me tr\u00eas \u00e2ngulos de ensino sobre esta passagem', id: 'Berikan tiga sudut pengajaran dari bagian ini' },
+  ai_pastor_illustration: { en: 'Find an illustration for this idea', es: 'Encuentra una ilustraci\u00f3n para esta idea', pt: 'Encontre uma ilustra\u00e7\u00e3o para esta ideia', id: 'Carikan ilustrasi untuk gagasan ini' },
+  ai_pastor_greek: { en: "What's the Greek or Hebrew behind this word?", es: '\u00bfQu\u00e9 hay detr\u00e1s de esta palabra en griego o hebreo?', pt: 'O que est\u00e1 por tr\u00e1s desta palavra em grego ou hebraico?', id: 'Apa kata Yunani atau Ibrani di balik kata ini?' },
+  ai_pastor_outline: { en: 'Turn my highlights into an outline', es: 'Convierte mis subrayados en un bosquejo', pt: 'Transforme meus destaques em um esbo\u00e7o', id: 'Ubah sorotan saya menjadi kerangka khotbah' },
+  ai_pastor_outline_shape: { en: 'Big idea, three points, one weekly action.', es: 'Idea central, tres puntos, una acci\u00f3n semanal.', pt: 'Ideia central, tr\u00eas pontos, uma a\u00e7\u00e3o semanal.', id: 'Gagasan utama, tiga poin, satu tindakan mingguan.' },
+  ai_pastor_todays_reading: { en: "today's reading", es: 'la lectura de hoy', pt: 'a leitura de hoje', id: 'bacaan hari ini' },
+  ai_pastor_no_highlights: { en: 'I have not filed any highlights yet, so build it from {ref}.', es: 'A\u00fan no he guardado subrayados, as\u00ed que usa {ref} como base.', pt: 'Ainda n\u00e3o guardei destaques, ent\u00e3o use {ref} como base.', id: 'Saya belum menyimpan sorotan, jadi gunakan {ref} sebagai dasar.' },
+  ai_pastor_greek_passage: { en: 'Break down the key Greek or Hebrew words in this passage', es: 'Analiza las palabras clave en griego o hebreo de este pasaje', pt: 'Analise as palavras-chave em grego ou hebraico desta passagem', id: 'Uraikan kata-kata kunci Yunani atau Ibrani dalam bagian ini' },
 };
 
 export function t(key: string, lang?: string): string {

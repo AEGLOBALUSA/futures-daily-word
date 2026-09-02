@@ -2,6 +2,11 @@
  * Home header chips — persona ("I'm New to This") and campus ("📍 Gwinnett").
  * Tap a chip to pick the new value right there. Applies on the tap; no trip
  * through Settings.
+ *
+ * While a pastor is signed in (Settings → Pastor account) the persona chip is
+ * LOCKED: the panel explains why and offers "Sign out of pastor account"
+ * instead of a silent switch that would leave a staff token behind on a
+ * device that no longer looks like a pastor's.
  */
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -38,11 +43,16 @@ export function HomeContextChips({
   campusId,
   onPersonaChange,
   onCampusChange,
+  pastorLocked = false,
+  onPastorSignOut,
 }: {
   persona: string;
   campusId: string;
   onPersonaChange: (persona: Persona) => void;
   onCampusChange: (campusId: string) => void;
+  /** A pastor is signed in: the persona chip opens the sign-out panel, not the list. */
+  pastorLocked?: boolean;
+  onPastorSignOut?: () => void;
 }) {
   const lang = getLang();
   const [open, setOpen] = useState<OpenChip>(null);
@@ -113,7 +123,7 @@ export function HomeContextChips({
       <button
         ref={personaBtnRef}
         type="button"
-        aria-haspopup="listbox"
+        aria-haspopup={pastorLocked ? 'dialog' : 'listbox'}
         aria-expanded={open === 'persona'}
         aria-label={personaLabel}
         onClick={() => toggle('persona', personaBtnRef.current)}
@@ -144,8 +154,8 @@ export function HomeContextChips({
           />
           <div
             ref={panelRef}
-            role="listbox"
-            aria-label={open === 'persona' ? t('your_journey', lang) : t('your_campus', lang)}
+            role={open === 'persona' && pastorLocked ? 'dialog' : 'listbox'}
+            aria-label={open === 'persona' ? (pastorLocked ? t('pastor_chip_locked_title', lang) : t('your_journey', lang)) : t('your_campus', lang)}
             style={{
               ...panelStyle,
               background: 'var(--dw-canvas)',
@@ -157,7 +167,45 @@ export function HomeContextChips({
               padding: 8,
             }}
           >
-            {open === 'persona' && ALL_PERSONAS.map(id => {
+            {open === 'persona' && pastorLocked && (
+              <div style={{ padding: '6px 6px 4px', textAlign: 'left' }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+                  {t('pastor_chip_locked_title', lang)}
+                </p>
+                <p style={{ margin: '4px 0 10px', fontSize: 12, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                  {t('pastor_chip_locked_body', lang)}
+                </p>
+                {persona !== 'pastor_leader' && (
+                  <button
+                    type="button"
+                    onClick={() => { onPersonaChange('pastor_leader'); setOpen(null); }}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left',
+                      background: 'var(--dw-accent)', color: '#fff',
+                      border: 'none', borderRadius: 10, cursor: 'pointer',
+                      padding: '10px 12px', marginBottom: 6,
+                      fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, minHeight: 44,
+                    }}
+                  >
+                    {t('pastor_chip_back_to_pastor', lang)}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setOpen(null); onPastorSignOut?.(); }}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left',
+                    background: 'transparent', color: 'var(--dw-text-secondary)',
+                    border: '1px solid var(--dw-border)', borderRadius: 10, cursor: 'pointer',
+                    padding: '10px 12px',
+                    fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, minHeight: 44,
+                  }}
+                >
+                  {t('pastor_chip_sign_out', lang)}
+                </button>
+              </div>
+            )}
+            {open === 'persona' && !pastorLocked && ALL_PERSONAS.map(id => {
               const active = id === persona;
               const isNewOption = isNewChristianPersona(id);
               const newSelected = isNewOption && active;

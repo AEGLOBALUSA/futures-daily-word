@@ -3,6 +3,7 @@ const crypto = require("crypto");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin, parseRequestOrigin } = require('./lib/cors');
 const { isSharedRateLimited } = require('./lib/rate-limit');
+const { campusForCode, campusSlug: campusSlugOf } = require('./lib/campus-code');
 
 let sb;
 function db() {
@@ -32,9 +33,6 @@ exports.handler = async (event) => {
     return { statusCode: 429, headers: h, body: '{"error":"Too many requests"}' };
   }
 
-  const CS = ["paradise","adelaide-city","salisbury","south","clare-valley","mount-barker",
-    "victor-harbor","copper-coast","gwinnett","kennesaw","alpharetta","futuros-duluth",
-    "futuros-kennesaw","futuros-grayson","franklin","solo","cemani","bali","samarinda","langowan","rio"];
   // Campus-code slug → the campus id stored on profiles.campus / prayers.campus
   // (the prefixed ids from src/data/tokens.ts CAMPUSES / pco-sync PCO_CAMPUS_MAP)
   const CAMPUS_IDS = {
@@ -57,12 +55,14 @@ exports.handler = async (event) => {
   // A campus code identifies ONE campus and gets only that campus's aggregate
   // numbers; the global view (incl. recentSignups PII) is admin/master only.
   const isAdmin = safeEq(code, ADMIN_PIN) || safeEq(code, secret.toUpperCase());
+  // Campus codes are SHA-256(campusId + ":" + secret) — the same derivation
+  // pastor-admin mints and lists (lib/campus-code). This endpoint used to hash
+  // the short slug instead, so a listed code never opened the overview; the
+  // lib still accepts that legacy form for any code already handed out.
   let campusSlug = null;
   if (!isAdmin) {
-    for (const c of CS) {
-      const expected = crypto.createHash("sha256").update(c + ":" + secret).digest("hex").slice(0, 8).toUpperCase();
-      if (safeEq(expected, code)) { campusSlug = c; break; }
-    }
+    const matched = campusForCode(code, secret);
+    if (matched) campusSlug = campusSlugOf(matched);
   }
   if (!isAdmin && !campusSlug) {
     return { statusCode: 403, headers: h, body: '{"error":"Bad code"}' };

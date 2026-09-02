@@ -9,6 +9,9 @@ import { API_BASE } from '../utils/api-base';
 import { MarkdownText } from './MarkdownText';
 import { stripMarkdown } from '../utils/markdown';
 import { useSubView } from '../utils/useSubView';
+import { getPrepItems, getPreachingFocus, isPastorPersona } from '../utils/sermonPrep';
+import { buildPastorPrompt, pastorPromptLabelKey, PASTOR_PROMPT_KINDS } from '../utils/pastorPrompts';
+import type { PastorPromptKind } from '../utils/pastorPrompts';
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -87,13 +90,20 @@ interface BibleAIProps {
   /** Auto-send this question once when the panel opens (I'm-New "What this
       means" — the next step must be an answer, not another tap). */
   initialQuestion?: string
+  /** Today's hero chapter (e.g. "Romans 8") — what "this passage" means for the
+      pastor quick-prompts when nothing is selected. */
+  currentPassage?: string
 }
 
-export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText, initialQuestion }: BibleAIProps) {
-  const { selection } = useScriptureSelection()
+export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText, initialQuestion, currentPassage }: BibleAIProps) {
+  const { selection, highlights } = useScriptureSelection()
   const [messages, setMessages] = useState<Message[]>([])
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
+  // Pastor quick-prompts ("For your message") — persona-gated, re-read on each
+  // open so a sign-in / sign-out in Settings is honoured without a reload.
+  const [pastorMode, setPastorMode] = useState(false)
+  useEffect(() => { if (isOpen) setPastorMode(isPastorPersona()) }, [isOpen])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -289,6 +299,27 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
       abortRef.current = null
       setLoading(false)
     }
+  }
+
+  /** One of the four pastor prompts: the translated label plus language-neutral
+      context — the verse in front of them, the line they highlighted, what they
+      are preaching through, or their sermon-prep highlights. */
+  const pastorSelectedText = selection?.text || selectedText || ''
+  function sendPastorPrompt(kind: PastorPromptKind) {
+    const msg = buildPastorPrompt(kind, {
+      label: t(pastorPromptLabelKey(kind, !!pastorSelectedText.trim()), lang),
+      ref: selection?.verseRefs?.[0] || '',
+      selectedText: pastorSelectedText,
+      passage: currentPassage || '',
+      focus: getPreachingFocus(),
+      todaysReading: t('ai_pastor_todays_reading', lang),
+      outlineShape: t('ai_pastor_outline_shape', lang),
+      noHighlights: t('ai_pastor_no_highlights', lang),
+      prepItems: getPrepItems().map(i => ({ ref: i.ref, text: i.text, ts: i.ts })),
+      highlights: Object.entries(highlights || {}).map(([verseKey, h]) => ({ ref: verseKey, text: h.text, ts: h.timestamp })),
+    })
+    trackBehavior('ai_prompt', `pastor:${kind}`)
+    sendMessage(msg)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -754,6 +785,46 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
                   </span>
                 </div>
               </button>
+
+              {/* Pastor quick-prompts — the teaching angles / illustrations /
+                  Greek / outline the persona system prompt has promised since V7.
+                  pastor_leader only; nothing changes for anyone else. */}
+              {pastorMode && (
+                <div data-testid="pastor-prompts" style={{ width: '100%', maxWidth: 340, margin: '0 auto 18px' }}>
+                  <p style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
+                    margin: '0 0 8px', textAlign: 'left',
+                  }}>
+                    {t('ai_pastor_section', lang)}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {PASTOR_PROMPT_KINDS.map(kind => (
+                      <button
+                        key={kind}
+                        type="button"
+                        onClick={() => sendPastorPrompt(kind)}
+                        style={{
+                          background: 'var(--dw-card, #F5F3EF)',
+                          border: '1px solid var(--dw-border, #E0DDD6)',
+                          borderLeft: '3px solid var(--dw-accent)',
+                          borderRadius: 10,
+                          padding: '10px 16px',
+                          fontSize: 13,
+                          color: 'var(--dw-text, #1A1714)',
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-sans)',
+                          textAlign: 'left',
+                          lineHeight: 1.4,
+                          minHeight: 44,
+                        }}
+                      >
+                        {t(pastorPromptLabelKey(kind, !!pastorSelectedText.trim()), lang)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <p style={{
                 fontSize: 12, color: 'rgba(154,123,46,0.75)', fontFamily: 'var(--font-sans)',

@@ -45,6 +45,22 @@ describe('PERSONA_CONFIGS', () => {
     expect(PERSONA_CONFIGS.comfort.features.verseSelection).toBe(false);
   });
 
+  it('the pastor home lists only keys HomeScreen renders (Study & Preach plan, 4.1)', () => {
+    const order = PERSONA_CONFIGS.pastor_leader.sectionOrder;
+    // 'devotion' is gated behind faithPathway (false for pastors) and
+    // 'congregation_stats' is referenced nowhere — both rendered nothing.
+    expect(order).not.toContain('devotion');
+    expect(order).not.toContain('congregation_stats');
+    expect(order).not.toContain('devotion_scripture');
+  });
+
+  it('the March-2026 feedback poll gate is retired for every persona', () => {
+    for (const key of ALL_PERSONAS) {
+      expect(PERSONA_CONFIGS[key].sectionOrder).not.toContain('poll_banner');
+      expect('pollBanner' in PERSONA_CONFIGS[key].features).toBe(false);
+    }
+  });
+
   it('every persona has a non-empty AI system prompt addition', () => {
     for (const key of ALL_PERSONAS) {
       expect(PERSONA_CONFIGS[key].ai.systemPromptAddition.length).toBeGreaterThan(10);

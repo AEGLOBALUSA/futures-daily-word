@@ -44,7 +44,6 @@ export interface PersonaConfig {
     wordOfDay: 'hidden' | 'simplified' | 'full';
     campusCount: 'hidden' | 'simple' | 'detailed';
     weeklyReview: boolean;
-    pollBanner: boolean;
     searchEnabled: boolean;
     videoRecording: boolean;
     sermonNotes: boolean;
@@ -218,7 +217,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       wordOfDay: 'hidden',
       campusCount: 'hidden',
       weeklyReview: false,
-      pollBanner: false,
       searchEnabled: false,
       videoRecording: false,
       sermonNotes: false,
@@ -259,7 +257,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'greeting',
       'hero_audio',
       'scripture',
-      'poll_banner',
       'ai_prompt',
       'campus_count',
     ],
@@ -271,7 +268,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       wordOfDay: 'hidden',
       campusCount: 'simple',
       weeklyReview: false,
-      pollBanner: true,
       searchEnabled: true,
       videoRecording: true,
       sermonNotes: true,
@@ -324,7 +320,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       wordOfDay: 'full',
       campusCount: 'hidden',
       weeklyReview: false,
-      pollBanner: false,
       searchEnabled: true,
       videoRecording: true,
       sermonNotes: true,
@@ -364,15 +359,12 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
     sectionOrder: [
       'greeting',
       'hero_audio',
-      'poll_banner',
-      'devotion',
       'plan_scripture',
       'scripture',
       'pastoral_prompt',
       'commentary',
       'ai_prompt',
       'campus_count',
-      'congregation_stats',
       'book_cards',
     ],
     features: {
@@ -383,7 +375,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       wordOfDay: 'full',
       campusCount: 'detailed',
       weeklyReview: true,
-      pollBanner: true,
       searchEnabled: true,
       videoRecording: true,
       sermonNotes: true,
@@ -454,7 +445,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       wordOfDay: 'hidden',
       campusCount: 'hidden',
       weeklyReview: false,
-      pollBanner: false,
       searchEnabled: true,
       videoRecording: false,
       sermonNotes: false,
