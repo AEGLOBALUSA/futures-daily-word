@@ -9,7 +9,6 @@ import { CheckCircle, Clock, ArrowRight, RotateCcw, BookOpen, MapPin, Video, Scr
 import type { TabId } from '../components/TabBar';
 import { LibraryScreen } from './LibraryScreen';
 import { useSubView } from '../utils/useSubView';
-import { PromoAds } from '../components/PromoAds';
 import { EmptyState } from '../components/EmptyState';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
@@ -767,7 +766,6 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
           </>
           )}
         </div>
-        <PromoAds variant="banner" />
       </div>
     );
   }
