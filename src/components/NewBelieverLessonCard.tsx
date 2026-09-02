@@ -18,7 +18,6 @@ import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
 import { shareContent } from '../utils/share';
 import { useSubView } from '../utils/useSubView';
-import { useModalA11y } from '../utils/useModalA11y';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 
 interface NewBelieverLessonCardProps {
@@ -30,6 +29,11 @@ interface NewBelieverLessonCardProps {
   t: (key: string) => string;
   scriptureFontSize: number;
   savePathwayProgress: (p: PathwayProgress) => void;
+  /** Whether the full-screen surface is showing. The component stays MOUNTED
+      either way so useSubView can consume its pushed history entry on a
+      UI-initiated close — unmount-on-close leaked one entry per open (a dead
+      hardware-back press on Android). */
+  open: boolean;
   /** Close the full-screen surface (back button / browser back). */
   onClose: () => void;
   /** Today's chapter text from HomeScreen's passageTexts — undefined while loading. */
@@ -40,7 +44,7 @@ interface NewBelieverLessonCardProps {
 
 export function NewBelieverLessonCard({
   pathwayData, pathwayProgress, displayDay, lang, t, scriptureFontSize,
-  savePathwayProgress, onClose, passageText, servedTranslation,
+  savePathwayProgress, open, onClose, passageText, servedTranslation,
 }: NewBelieverLessonCardProps) {
   // Completion moment: hold the just-completed lesson on screen (with a
   // "Day N complete" note) instead of instantly swapping to tomorrow's. The day
@@ -53,9 +57,12 @@ export function NewBelieverLessonCard({
   // card a day ahead of the chapter the journey is on.
   useEffect(() => { setShowNext(false); }, [displayDay]);
   // One history entry while open, so the back gesture closes this surface
-  // instead of ejecting the user from the tab.
-  useSubView(true, onClose);
-  const dialogRef = useModalA11y(true, onClose);
+  // instead of ejecting the user from the tab. Deliberately no modal focus
+  // trap: the study sheet, note drawer and Bible AI mount as DOM siblings
+  // above this surface, and a document-level trap made them unreachable by
+  // keyboard and let Escape close this surface underneath them (same reason
+  // BibleAI relies on the sub-view history entry alone).
+  useSubView(open, onClose);
   const today = new Date().toLocaleDateString('en-CA');
   const completedToday = pathwayProgress.lastCompletedDate === today
     ? (pathwayProgress.lastCompletedDay ?? null)
@@ -65,7 +72,7 @@ export function NewBelieverLessonCard({
   // arrives with the journey hero tomorrow, so the verses panel hides in peek.
   const isPeek = currentDay !== displayDay;
   const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
-  if (!dayData) return null;
+  if (!open || !dayData) return null;
   const completed = pathwayProgress.completedDays?.length || 0;
   const totalDays = pathwayData.days?.length || 40;
   const dayTitle = lang === 'es' ? (dayData.titleEs || dayData.title)
@@ -92,9 +99,7 @@ export function NewBelieverLessonCard({
     // The wrapper keeps the historical scroll-anchor id for deep links.
     <div
       id="pathway-lesson-card"
-      ref={dialogRef}
       role="dialog"
-      aria-modal="true"
       aria-labelledby="dw-journey-day-title"
       style={{
         // Below the highlight toolbar (95) / Bible AI (90) so the study sheet

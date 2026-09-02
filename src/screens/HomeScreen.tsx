@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, 
 import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
-import { fetchPassage, getServedTranslation, fetchStrongsMap } from '../utils/api';
+import { fetchPassage, getServedTranslation, fetchStrongsMap, fetchAICommentary } from '../utils/api';
 import type { TranslationCode, StrongsMap } from '../utils/api';
 import * as AP from '../utils/audioPlayer';
 import { QUOTES } from '../data/quotes';
@@ -446,6 +446,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
   const [selectedCommentaryIdx, setSelectedCommentaryIdx] = useState(0);
   const [commentaryExpanded, setCommentaryExpanded] = useState(pf.commentary === 'expanded');
+  // AI fallback for days outside the curated commentary set — only fetched for
+  // personas whose commentary arrives expanded (deeper_study, pastor_leader),
+  // labelled honestly as AI Insight. fetchAICommentary caches 30 days locally.
+  const [aiCommentary, setAiCommentary] = useState<{ passage: string; text: string } | null>(null);
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const lang = localStorage.getItem('dw_lang') || 'en';
 
@@ -831,8 +835,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     // Use full chapter as the reading (e.g., "Ephesians 2" instead of "Ephesians 2:8-9")
     const fullChapter = `${reading.book} ${reading.chapter}`;
     loadPassage(fullChapter);
+  // pathwayDisplayDay is a dep: at the midnight rollover the display day
+  // advances while pathwayProgress is unchanged, and a user with reading
+  // slots never hits the heroChapterRefs fallback fetch — without this dep
+  // the Day N surface spun on "Loading scripture" until a full reload.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathwayData, pathwayProgress, translation]);
+  }, [pathwayData, pathwayProgress, translation, pathwayDisplayDay]);
 
 
   const todaysPlanPassages = (() => {
@@ -891,6 +899,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       }
     }
   }
+  // Outside the curated set, expanded-commentary personas still land with
+  // commentary: the AI fallback slots in as the sole entry, honestly labelled.
+  if (allCommentaries.length === 0 && aiCommentary && pf.commentary === 'expanded') {
+    allCommentaries.push({ source: 'AI Insight', text: aiCommentary.text, passage: aiCommentary.passage });
+  }
   const commentaryPassageCount = new Set(allCommentaries.map(c => c.passage)).size;
 
   // If the user has an active Ashley-Jane plan, sync the devotion to that plan's day
@@ -936,6 +949,29 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // heroFullText removed — audio now fetches per-chapter on demand
   const [heroLoading, setHeroLoading] = useState(false);
   const [planTick, setPlanTick] = useState(0); // increment to force plan list re-render
+
+  // A fresh Church Member lands on today's Daily Word reading (Ashley & Jane) —
+  // auto-start the plan ONCE when they arrive with nothing to read. Once-only
+  // (dw_aj_autostarted) so a later quit is respected: this is a fill, never a
+  // re-enrol. The PR #59 auto-start was lost in the cold-start rework (0c083a50).
+  useEffect(() => {
+    if (personaConfig.persona !== 'congregation') return;
+    try {
+      if (localStorage.getItem('dw_aj_autostarted')) return;
+      const ap = JSON.parse(localStorage.getItem('dw_activeplans') || '{}');
+      if (Object.keys(ap).length > 0 || readingSlots.length > 0) {
+        localStorage.setItem('dw_aj_autostarted', '1');
+        return;
+      }
+      ap['ashley-jane-daily-word'] = { startedAt: new Date().toISOString(), completedDays: [], lastDay: 0 };
+      localStorage.setItem('dw_activeplans', JSON.stringify(ap));
+      localStorage.setItem('dw_aj_autostarted', '1');
+      const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}');
+      if (_sp.email) schedulePush(_sp.email);
+      setPlanTick(t => t + 1);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personaConfig.persona]);
   const HERO_KEY = '__hero__';
 
   // ── Hero day-navigation boundary checks ──────────────────────────────────
@@ -1364,9 +1400,38 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroChapterIndex]);
 
-  // Hero scripture stays collapsed until Read. Do not auto-open on load — the
-  // previous Read-first effect dumped today's chapter for every persona, so the
-  // control arrived as Hide. Arrival is hero + Read; tapping Read reveals it.
+  // Arrival IS the reading, already open (Ashley's persona-flow spec, 1 Sep):
+  // for the four returning personas, seed today's chapter open on load. The
+  // seed must NOT go through handleRead — that credits the plan day, fires
+  // analytics, and can trigger the plan-finish celebration; it only expands
+  // and fetches. Declared AFTER the reset effect and sharing its triggers so
+  // it re-seeds right after every clear, while a manual Hide (same day, same
+  // translation) sticks. I'm New is exempt — its journey opens full-screen
+  // from the journey hero, and completion stays deliberate everywhere.
+  useEffect(() => {
+    if (isNewChristianPersona(personaConfig.persona)) return;
+    const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
+    if (!ref) return;
+    setExpandedPassages(new Set([expandChapterRef(ref)]));
+    loadPassage(ref);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroKey, dayOffset, translation, planDayOffset]);
+
+  // Commentary must actually be there when it "arrives expanded": the curated
+  // set covers ~20 chapters, so on other days deeper_study / pastor_leader get
+  // the drawer's AI commentary (30-day cached) for today's chapter instead.
+  useEffect(() => {
+    if (pf.commentary !== 'expanded') return;
+    if (allCommentaries.length > 0 && allCommentaries[0].source !== 'AI Insight') return;
+    const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
+    if (!ref) { setAiCommentary(null); return; }
+    let alive = true;
+    fetchAICommentary(expandChapterRef(ref), lang)
+      .then(text => { if (alive && text) setAiCommentary({ passage: expandChapterRef(ref), text }); })
+      .catch(() => { /* commentary is best-effort */ });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroKey, lang, pf.commentary]);
 
   useEffect(() => {
     return AP.onStateChange((st) => {
@@ -1669,6 +1734,36 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   const isNewPath = isNewChristianPersona(personaConfig.persona);
 
+  // Sermon notes — one tap from Home, kept slim. Its position depends on the
+  // path: above the hero ONLY for I'm-New in the Sunday window (the QR guest
+  // flow lands people as new_to_faith and they need it up top on a Sunday);
+  // for the four returning personas it renders BELOW the reading — nothing
+  // sits above today's reading (persona-flow spec, 1 Sep).
+  const sermonNotesRow = (
+    <button
+      onClick={() => onNavigate?.('sermon-notes')}
+      aria-label={tI18n('sermon_notes_title', lang)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+        margin: '0 0 16px', padding: '12px 14px',
+        background: 'var(--dw-card)',
+        border: isSundayWindow() ? '1.5px solid var(--dw-accent)' : '1px solid var(--dw-border)',
+        borderRadius: 12, cursor: 'pointer', textAlign: 'left', minHeight: 44,
+      }}
+    >
+      <FileText size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+          {tI18n('sermon_notes_title', lang)}
+        </span>
+        <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+          {tI18n('sermon_notes_home_sub', lang)}
+        </span>
+      </span>
+      <span style={{ color: 'var(--dw-text-faint)', fontSize: 14, flexShrink: 0 }}>→</span>
+    </button>
+  );
+
   // Full-screen Day N journey surface (new_to_faith) — opened from the journey
   // hero; the browser back gesture closes it via the card's useSubView.
   const [showJourneyDay, setShowJourneyDay] = useState(false);
@@ -1934,33 +2029,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           )}
         </div>
 
-        {/* Sermon notes — one tap from Home, not buried in Notes. Slim so it
-            does not compete with the new-Christian closed parchment hero.
-            On the I'm-New path it shows ONLY in the Sunday window: the Sunday QR
-            guest flow lands people as new_to_faith and they need this row, but on
-            a weekday the journey home carries nothing unrelated to the journey. */}
-        {(!isNewPath || isSundayWindow()) && <button
-          onClick={() => onNavigate?.('sermon-notes')}
-          aria-label={tI18n('sermon_notes_title', lang)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-            margin: '0 0 16px', padding: '12px 14px',
-            background: 'var(--dw-card)',
-            border: isSundayWindow() ? '1.5px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-            borderRadius: 12, cursor: 'pointer', textAlign: 'left', minHeight: 44,
-          }}
-        >
-          <FileText size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-              {tI18n('sermon_notes_title', lang)}
-            </span>
-            <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-              {tI18n('sermon_notes_home_sub', lang)}
-            </span>
-          </span>
-          <span style={{ color: 'var(--dw-text-faint)', fontSize: 14, flexShrink: 0 }}>→</span>
-        </button>}
+        {/* Sermon notes above the hero: I'm-New Sunday window only (QR guests).
+            Everyone else gets the row below the reading — see sermonNotesRow. */}
+        {isNewPath && isSundayWindow() && sermonNotesRow}
 
         {/* What this actually is — one line, for the persona that has never used
             a Bible app. Only while they are early in the pathway. */}
@@ -1981,9 +2052,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
           // New believers have a reading — it just arrives with the pathway JSON.
           // Until then the hero must NOT flash the "Choose your reading plan"
-          // funnel: this is the one persona deliberately exempt from it, and it
-          // is the first thing they ever see.
-          if (!hasAnyPassage && pf.faithPathway && pathwayProgress.enrolled) return (
+          // funnel OR the shared audio hero (a slot-holding new believer has
+          // hasAnyPassage true, but their home is still the journey): this is
+          // the one persona deliberately exempt, and it is the first thing they
+          // ever see.
+          if ((!hasAnyPassage || isNewPath) && pf.faithPathway && pathwayProgress.enrolled && !pathwayData) return (
             <div key="hero-pathway-loading" style={{
               position: 'relative', borderRadius: 24, overflow: 'hidden',
               marginBottom: 20,
@@ -2683,6 +2756,23 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             screen. The day stays one unit; it is just no longer hidden behind
             the hero's Read state. */}
 
+        {/* ── Pastoral Reflection Prompt (pastor_leader) — directly under the
+            reading, so the pastor's landing is reading + prompt as one unit. ── */}
+        {personaConfig.sectionOrder.includes('pastoral_prompt') && (
+          <PastoralReflectionSection
+            personaConfig={personaConfig}
+            dayOffset={dayOffset}
+            getDayNumber={getDayNumber}
+            onNavigate={onNavigate}
+            setBibleAIContext={setBibleAIContext}
+            setShowBibleAI={setShowBibleAI}
+          />
+        )}
+
+        {/* Sermon notes for the four returning personas — demoted below the
+            reading so nothing sits above it. */}
+        {!isNewPath && sermonNotesRow}
+
         {/* Post-first-reading backup nudge — appears only after the push prompt
             is resolved, so the two post-reading moments never stack. */}
         <PWAInstallBanner />
@@ -3259,17 +3349,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </Card>
         )}
 
-        {/* ── Pastoral Reflection Prompt (pastor_leader) ── */}
-        {personaConfig.sectionOrder.includes('pastoral_prompt') && (
-          <PastoralReflectionSection
-            personaConfig={personaConfig}
-            dayOffset={dayOffset}
-            getDayNumber={getDayNumber}
-            onNavigate={onNavigate}
-            setBibleAIContext={setBibleAIContext}
-            setShowBibleAI={setShowBibleAI}
-          />
-        )}
+        {/* Pastoral Reflection Prompt moved directly under the reading (persona-flow
+            spec, 1 Sep): the pastor lands on today's reading + the prompt as one
+            unit — see the mount under the date strip. */}
 
         {/* The new-believer lesson card now renders directly under the hero — see
             "Today's lesson" above. It used to sit here, eight blocks below the
@@ -4389,8 +4471,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         }}
         planContext={todaysPlanPassages.length > 0 ? `${todaysPlanPassages[0].planTitle} — Day ${todaysPlanPassages[0].dayNum}` : undefined}
       />
-      {/* Full-screen Day N — the journey reading surface (new_to_faith only). */}
-      {isNewPath && showJourneyDay && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
+      {/* Full-screen Day N — the journey reading surface (new_to_faith only).
+          Mounted whenever eligible (not just while open) so its useSubView can
+          consume the pushed history entry on a UI-initiated close. */}
+      {isNewPath && pf.faithPathway && pathwayProgress.enrolled && pathwayData && (() => {
         const jDay = pathwayData.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay);
         const jRef = jDay?.reading ? `${jDay.reading.book} ${jDay.reading.chapter}` : '';
         return (
@@ -4402,6 +4486,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             t={t}
             scriptureFontSize={scriptureFontSize}
             savePathwayProgress={savePathwayProgressFromLesson}
+            open={showJourneyDay}
             onClose={() => setShowJourneyDay(false)}
             passageText={jRef ? passageTexts[`${jRef}_${translation}`] : undefined}
             servedTranslation={jRef ? getServedTranslation(jRef, translation) : undefined}
@@ -4418,6 +4503,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           onGoDeeper={() => { setBibleAIContext(selection?.text || ''); setShowBibleAI(true); }}
           basicMode={pf.highlighting === 'basic'}
           newPath={isNewPath}
+          comfortMode={personaConfig.persona === 'comfort'}
           onWhatThisMeans={() => {
             setBibleAIContext(selection?.text || '');
             setBibleAIQuestion(tI18n('what_this_means_q', lang));

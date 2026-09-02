@@ -114,23 +114,28 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
 
   // Auto-send the queued question once per open (default-off: only when the
   // caller passes initialQuestion). The ref stops a re-render from re-asking.
+  // Waits for `loading` to clear first — sendMessage treats a call made while
+  // a request is in flight as an abort, which silently swallowed the question.
   const autoAskedRef = useRef(false)
   useEffect(() => {
     if (!isOpen) { autoAskedRef.current = false; return }
-    if (initialQuestion && !autoAskedRef.current) {
+    if (initialQuestion && !autoAskedRef.current && !loading) {
       autoAskedRef.current = true
       sendMessage(initialQuestion)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialQuestion])
+  }, [isOpen, initialQuestion, loading])
 
-  // Pre-populate input when selectedText changes and panel is open
+  // Pre-populate input when selectedText changes and panel is open. Skipped
+  // when an initialQuestion drove this open — the answer is already coming,
+  // and the prefill's focus() popped the keyboard over it.
   useEffect(() => {
+    if (initialQuestion) return
     if (isOpen && selectedText && selectedText.trim()) {
       setInput(`Tell me more about: "${selectedText.substring(0, 120)}${selectedText.length > 120 ? '…' : ''}"`)
       setTimeout(() => inputRef.current?.focus(), 300)
     }
-  }, [selectedText, isOpen])
+  }, [selectedText, isOpen, initialQuestion])
 
   useEffect(() => {
     if (isOpen) {

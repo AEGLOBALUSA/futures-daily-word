@@ -37,16 +37,6 @@ function getAIConversationCount(): number {
   } catch { return 0; }
 }
 
-function getDaysActive(): number {
-  try {
-    const firstOpen = localStorage.getItem('dw_first_open');
-    if (!firstOpen) return 0;
-    const start = new Date(firstOpen);
-    const now = new Date();
-    return Math.floor((now.getTime() - start.getTime()) / 86400000);
-  } catch { return 0; }
-}
-
 export const UPGRADE_CONDITIONS: UpgradeCondition[] = [
   {
     from: 'congregation',
@@ -55,13 +45,9 @@ export const UPGRADE_CONDITIONS: UpgradeCondition[] = [
     description: "You've been consistent in the Word. Ready for original languages, commentary, and deeper study tools?",
     check: () => getCompletedPlansCount() >= 3 || getAIConversationCount() >= 20,
   },
-  {
-    from: 'comfort',
-    to: 'congregation',
-    label: 'Feeling Stronger?',
-    description: "When you're ready, there's more to explore. No pressure — God's timing is perfect.",
-    check: () => getDaysActive() >= 30,
-  },
+  // Comfort has NO graduation prompt (persona-flow spec, 1 Sep 2026): someone
+  // in a hard season is never nudged onward — they leave the path only by
+  // choosing to, in Settings or a picker. Do not re-add 'Feeling Stronger?'.
 ];
 
 /**
