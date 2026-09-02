@@ -110,12 +110,12 @@ export function PromoAds() {
           className="dw-promo-card dw-promo-selah"
           style={{ background: FIELD }}
         >
-          <div className="dw-promo-title-row">
-            <div className="dw-promo-selah-type">
+          <div className="dw-promo-selah-type">
+            <div className="dw-promo-title-row">
               <p className="dw-promo-title">{t('promo_selah_name', lang)}</p>
-              <p className="dw-promo-date">{t('promo_selah_date', lang)}</p>
+              <span className="dw-promo-meta">{t('promo_coming', lang)}</span>
             </div>
-            <span className="dw-promo-meta">{t('promo_coming', lang)}</span>
+            <p className="dw-promo-date">{t('promo_selah_date', lang)}</p>
           </div>
         </a>
       </div>

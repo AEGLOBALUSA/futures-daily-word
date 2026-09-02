@@ -1856,12 +1856,13 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   box-sizing: border-box;
   padding: 20px;
 }
-.dw-promo-selah .dw-promo-title-row {
-  align-items: flex-start;
-  width: 100%;
-}
 .dw-promo-selah-type {
   min-width: 0;
+  width: 100%;
+}
+.dw-promo-selah .dw-promo-title-row {
+  align-items: baseline;
+  width: 100%;
 }
 .dw-promo-date {
   margin: 4px 0 0;
@@ -1871,6 +1872,7 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   line-height: 1.15;
   color: #F5EFE6;
   text-align: left;
+  white-space: nowrap;
 }
 @media (min-width: 700px) {
   .dw-promo-strip {
