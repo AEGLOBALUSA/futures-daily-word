@@ -195,7 +195,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   new_to_faith: {
     persona: 'new_to_faith',
     label: 'New to Faith',
-    labelId: 'Saya Baru',
+    labelId: 'Baru dalam Iman',
     description: 'Starting or reigniting my faith journey',
     descriptionId: 'Memulai atau menghidupkan kembali perjalanan iman saya',
     icon: 'Sprout',

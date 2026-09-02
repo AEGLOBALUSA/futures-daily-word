@@ -492,10 +492,6 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
               if (p === 'new_to_faith') ensureGraceSeriesEnrolled();
               setPersona(p);
             }}
-            onBeginDay1={() => {
-              enrollAndOpenJourneyDay({ beginDay1: true, stamp: true });
-              onNavigate?.('home');
-            }}
           />
 
           {!isNewChristian && (

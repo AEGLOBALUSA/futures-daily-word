@@ -329,66 +329,6 @@ export function MoreScreen({ onBack, onNavigate }: { onBack?: () => void; onNavi
           </Card>
         </div>
 
-        {/* Profile avatar */}
-        <div
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28, cursor: 'pointer' }}
-          onClick={() => requireEmail()}
-        >
-          {profilePic ? (
-            <img
-              src={profilePic}
-              alt="Profile"
-              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
-              style={{
-                width: 72, height: 72, borderRadius: '50%',
-                objectFit: 'cover', marginBottom: 10,
-                border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
-              }}
-            />
-          ) : (
-            <div
-              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
-              style={{
-                width: 72, height: 72, borderRadius: '50%',
-                background: newPathSettings ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 10, border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
-              }}
-            >
-              <User size={32} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)' }} />
-            </div>
-          )}
-          <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
-            {displayName}
-          </p>
-          {currentPersona && (
-            <p className={newPathSettings ? 'dw-new-label' : undefined} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-              {currentPersona.label}
-            </p>
-          )}
-          <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-            {userProfile?.email || t("tap_setup_profile", lang)}
-          </p>
-        </div>
-
-        {/* ─── PROFILE ─── */}
-        <div style={{ marginBottom: 24 }}>
-          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>{t("profile", lang)}</h2>
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <button onClick={() => requireEmail()} style={rowStyle}>
-              <User size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>{t("name_label", lang)}</span>
-              <span style={valStyle}>{displayName}</span>
-            </button>
-            <div style={dividerStyle} />
-            <button onClick={() => requireEmail()} style={rowStyle}>
-              <Mail size={18} style={iconStyle} />
-              <span style={{ flex: 1 }}>{t("email_label", lang)}</span>
-              <span style={valStyle}>{userProfile?.email || t("not_set", lang)}</span>
-            </button>
-          </Card>
-        </div>
-
         {/* ─── PERSONA ─── */}
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
@@ -448,6 +388,66 @@ export function MoreScreen({ onBack, onNavigate }: { onBack?: () => void; onNavi
           </h2>
           <Card style={{ padding: 12 }}>
             <CampusSelect value={userProfile?.campus || ''} onChange={handleCampusSelect} />
+          </Card>
+        </div>
+
+        {/* Profile avatar */}
+        <div
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28, cursor: 'pointer' }}
+          onClick={() => requireEmail()}
+        >
+          {profilePic ? (
+            <img
+              src={profilePic}
+              alt="Profile"
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                objectFit: 'cover', marginBottom: 10,
+                border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
+              }}
+            />
+          ) : (
+            <div
+              className={newPathSettings ? 'dw-settings-avatar-new' : undefined}
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: newPathSettings ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 10, border: `2px solid ${newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)'}`,
+              }}
+            >
+              <User size={32} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)' }} />
+            </div>
+          )}
+          <p style={{ color: 'var(--dw-text-primary)', fontSize: 16, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>
+            {displayName}
+          </p>
+          {currentPersona && (
+            <p className={newPathSettings ? 'dw-new-label' : undefined} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+              {currentPersona.label}
+            </p>
+          )}
+          <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+            {userProfile?.email || t("tap_setup_profile", lang)}
+          </p>
+        </div>
+
+        {/* ─── PROFILE ─── */}
+        <div style={{ marginBottom: 24 }}>
+          <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>{t("profile", lang)}</h2>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <button onClick={() => requireEmail()} style={rowStyle}>
+              <User size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>{t("name_label", lang)}</span>
+              <span style={valStyle}>{displayName}</span>
+            </button>
+            <div style={dividerStyle} />
+            <button onClick={() => requireEmail()} style={rowStyle}>
+              <Mail size={18} style={iconStyle} />
+              <span style={{ flex: 1 }}>{t("email_label", lang)}</span>
+              <span style={valStyle}>{userProfile?.email || t("not_set", lang)}</span>
+            </button>
           </Card>
         </div>
 

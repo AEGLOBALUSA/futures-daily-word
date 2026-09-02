@@ -2685,10 +2685,7 @@ export function HomeScreen({ onNavigate }: { onNavigate?: (tab: TabId) => void }
           const currentDay = pathwayProgress.currentDay || 1;
           const today = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
           const totalDays = pathwayData.days?.length || 40;
-          const pathTitle = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
-            : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
-            : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
-            : pathwayData.title;
+          const pathTitle = tI18n('persona_new', lang);
 
           if (completed >= totalDays) {
             return (

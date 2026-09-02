@@ -2,7 +2,7 @@
  * Path chooser — five journey cards. Selecting a card does not start Day 1.
  * NewFaithCTA is the only control that begins the New to Faith journey.
  */
-import type { Persona } from '../utils/persona-config';
+import { isNewChristianPersona, type Persona } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { useModalA11y } from '../utils/useModalA11y';
 import { JourneyChoiceList } from './JourneyChoiceCard';
@@ -52,7 +52,7 @@ export function PathwayPicker({ onSelect, onBeginDay1, currentPersona, embedded 
         labelledBy="dw-path-chooser-title"
         onChange={handleSelect}
       />
-      {onBeginDay1 && (
+      {onBeginDay1 && isNewChristianPersona(currentPersona) && (
         <div style={{ marginTop: 16 }}>
           <NewFaithCTA onClick={onBeginDay1}>
             {t('begin_day1', lang)}

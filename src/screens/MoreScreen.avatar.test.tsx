@@ -36,8 +36,26 @@ function mount(ui: ReactElement): { el: HTMLDivElement; root: Root } {
   return { el, root };
 }
 
+describe('MoreScreen Settings grouping', () => {
+  it('lists Appearance, Journey, then Campus before the rest', () => {
+    setup.persona = 'new_to_faith';
+    const { el, root } = mount(<MoreScreen />);
+    const headers = [...el.querySelectorAll('h2')].map(h => (h.textContent || '').trim());
+    const appearance = headers.findIndex(h => /appearance/i.test(h));
+    const journey = headers.findIndex(h => /journey/i.test(h));
+    const campus = headers.findIndex(h => /campus/i.test(h));
+    expect(appearance).toBeGreaterThanOrEqual(0);
+    expect(journey).toBeGreaterThan(appearance);
+    expect(campus).toBeGreaterThan(journey);
+    const continueBtn = el.querySelector('.dw-new-faith-cta');
+    expect(continueBtn).toBeTruthy();
+    expect(continueBtn!.textContent).toMatch(/Start New to Faith|Continue Journey/);
+    act(() => root.unmount());
+  });
+});
+
 describe('MoreScreen Settings avatar', () => {
-  it('locks I\'m New ring and glyph to --dw-new', () => {
+  it('locks New to Faith ring and glyph to --dw-new', () => {
     setup.persona = 'new_to_faith';
     const { el, root } = mount(<MoreScreen />);
     const ring = el.querySelector('.dw-settings-avatar-new') as HTMLElement | null;
