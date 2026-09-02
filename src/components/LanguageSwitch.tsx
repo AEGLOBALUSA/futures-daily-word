@@ -82,7 +82,9 @@ export function LanguageSwitch({ className, align = 'right' }: { className?: str
   const menuLabel = t('change_language', lang);
 
   return (
-    <div ref={ref} className={className} style={{ position: 'relative', flexShrink: 0 }}>
+    {/* Positioning lives in CSS (.dw-lang-switch), so a host surface can override it —
+        an inline position would beat .dw-day1-lang's absolute placement. */}
+    <div ref={ref} className={className ? `dw-lang-switch ${className}` : 'dw-lang-switch'}>
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
