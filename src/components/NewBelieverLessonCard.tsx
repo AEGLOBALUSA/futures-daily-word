@@ -21,7 +21,7 @@ import { useSubView } from '../utils/useSubView';
 import { syncMisc } from '../utils/cloudSync';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 
-function PathwayAnswer({ day, idx, question }: { day: number; idx: number; question: string }) {
+function PathwayAnswer({ day, idx, question, lang }: { day: number; idx: number; question: string; lang: string }) {
   const storageKey = `dw_pathway_qa_${day}`;
   function load(): Record<number, string> {
     try { return JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { return {}; }
@@ -49,7 +49,7 @@ function PathwayAnswer({ day, idx, question }: { day: number; idx: number; quest
         ref={ref}
         className="today-question-answer"
         value={val}
-        placeholder="Write here…"
+        placeholder={trans('pathway_answer_placeholder', lang)}
         rows={3}
         onChange={e => { save(e.target.value); resize(); }}
         onInput={() => resize()}
@@ -329,9 +329,9 @@ export function NewBelieverLessonCard({
         {/* Reflect & Respond — daily questions for new Christians */}
         {!isPeek && dayData.questions && dayData.questions.length > 0 && (
           <div className="today-questions">
-            <p className="today-questions-label">Reflect &amp; Respond</p>
+            <p className="today-questions-label">{trans('j_reflect_respond', lang)}</p>
             {dayData.questions.map((q, i) => (
-              <PathwayAnswer key={i} day={currentDay} idx={i} question={q} />
+              <PathwayAnswer key={i} day={currentDay} idx={i} question={q} lang={lang} />
             ))}
           </div>
         )}

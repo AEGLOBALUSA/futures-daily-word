@@ -6,8 +6,8 @@
  * V23: Image/asset stale-while-revalidate with network-failure cache fallback (hero frames)
  */
 
-const CACHE_NAME = 'fdw-v50';
-const STATIC_CACHE = 'fdw-static-v50';
+const CACHE_NAME = 'fdw-v51';
+const STATIC_CACHE = 'fdw-static-v51';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
@@ -61,11 +61,11 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET for everything else
   if (event.request.method !== 'GET') return;
 
-  // Bible data (KJV offline): cache-first, long-lived.
+  // Bible data (KJV offline): cache-first, long-lived — these files never change.
   // Only cache real JSON: the SPA fallback answers every MISSING path with a
   // 200 HTML page, which used to get pinned under the JSON URL forever
   // (broke book plans whenever a localized file didn't exist).
-  if (url.pathname.startsWith('/bible/') || url.pathname.startsWith('/books/')) {
+  if (url.pathname.startsWith('/bible/')) {
     event.respondWith(
       caches.open(BIBLE_CACHE).then((cache) =>
         cache.match(event.request).then((cached) => {
@@ -76,6 +76,26 @@ self.addEventListener('fetch', (event) => {
             return response;
           }).catch(() => cached);
         })
+      )
+    );
+    return;
+  }
+
+  // Book + journey JSON (/books/*): EDITABLE content — network-first, the cached
+  // copy is the OFFLINE fallback only. This used to share /bible/'s cache-first
+  // branch, and fdw-bible-v1 is deliberately preserved by activate() and by the
+  // index.html reset — so a content edit (e.g. the 40-day journey's Reflect &
+  // Respond questions, added 1 Sep 2026) never reached any device that had
+  // opened the journey before the edit. Netlify serves /books/* with
+  // max-age=0 + ETag, so the network hop is a 304 unless the file changed.
+  if (url.pathname.startsWith('/books/')) {
+    event.respondWith(
+      caches.open(BIBLE_CACHE).then((cache) =>
+        fetch(event.request).then((response) => {
+          const ct = response.headers.get('content-type') || '';
+          if (response.ok && ct.includes('application/json')) cache.put(event.request, response.clone());
+          return response;
+        }).catch(() => cache.match(event.request).then((cached) => cached || Response.error()))
       )
     );
     return;

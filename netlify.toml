@@ -77,11 +77,11 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Book data - long cache
+# Book + journey JSON - editable content: always revalidate (ETag makes it a 304)
 [[headers]]
   for = "/books/*"
   [headers.values]
-    Cache-Control = "public, max-age=86400, must-revalidate"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 # Data files - moderate cache. CORS open on purpose: public static reference
 # data, fetched cross-origin by the app when served on the church origin

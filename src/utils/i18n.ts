@@ -396,6 +396,7 @@ const UI: Translations = {
   pathway_day_complete: { en: '\u2713 Day {x} complete \u2014 Day {y} will be here tomorrow', es: '\u2713 D\u00eda {x} completado \u2014 el d\u00eda {y} estar\u00e1 aqu\u00ed ma\u00f1ana', pt: '\u2713 Dia {x} conclu\u00eddo \u2014 o dia {y} estar\u00e1 aqui amanh\u00e3', id: '\u2713 Hari {x} selesai \u2014 hari {y} akan tersedia besok' },
   pathway_day_complete_final: { en: '\u2713 Day {x} complete', es: '\u2713 D\u00eda {x} completado', pt: '\u2713 Dia {x} conclu\u00eddo', id: '\u2713 Hari {x} selesai' },
   pathway_show_now: { en: 'Show me now', es: 'Mostrar ahora', pt: 'Mostrar agora', id: 'Tampilkan sekarang' },
+  pathway_answer_placeholder: { en: 'Write here\u2026', es: 'Escribe aqu\u00ed\u2026', pt: 'Escreva aqui\u2026', id: 'Tulis di sini\u2026' },
   pathway_hero_loading: { en: 'Today\u2019s reading is loading\u2026', es: 'La lectura de hoy se est\u00e1 cargando\u2026', pt: 'A leitura de hoje est\u00e1 carregando\u2026', id: 'Bacaan hari ini sedang dimuat\u2026' },
   pathway_how_it_works: { en: 'Each day: one scripture, one short teaching, one step. About five minutes.', es: 'Cada d\u00eda: una escritura, una ense\u00f1anza breve, un paso. Unos cinco minutos.', pt: 'Cada dia: uma escritura, um ensino curto, um passo. Cerca de cinco minutos.', id: 'Setiap hari: satu ayat, satu pengajaran singkat, satu langkah. Sekitar lima menit.' },
 
