@@ -28,6 +28,14 @@ describe('house ads placement', () => {
     }
   });
 
+  it('keeps More ads above the church footer, never under © Futures Global', () => {
+    const more = src('screens/MoreScreen.tsx');
+    expect(more.indexOf('<PromoAds')).toBeGreaterThan(-1);
+    expect(more.indexOf('<PromoAds')).toBeLessThan(more.indexOf('<SeamFooter'));
+    expect(more).toMatch(/<PromoAds \/>[\s\S]*<SeamFooter/);
+    expect(more).not.toMatch(/<SeamFooter \/>[\s\S]*<PromoAds/);
+  });
+
   it('links Selah to the church site, not a store download', () => {
     const ads = src('components/PromoAds.tsx');
     expect(ads).toMatch("SELAH_HREF = 'https://futures.church/'");
@@ -38,48 +46,29 @@ describe('house ads placement', () => {
   });
 });
 
-describe('house ads commercial strip', () => {
+describe('house ads ivory journal', () => {
   const ads = src('components/PromoAds.tsx');
   const css = src('index.css');
+  const promoCss = css.slice(css.indexOf('.dw-promo-block'), css.indexOf('.dw-sermon-notes-phone'));
 
-  it('uses one charcoal field, 12px radius, no shadow or gold kicker', () => {
-    expect(css).toMatch(/\.dw-promo-card[\s\S]*border-radius:\s*12px/);
-    expect(css).toMatch(/\.dw-promo-card[\s\S]*box-shadow:\s*none/);
-    expect(ads).toMatch('#17130F');
+  it('is paper, not charcoal tiles or cream-on-black banners', () => {
+    expect(promoCss).toMatch(/background:\s*#FAF6EF/);
+    expect(promoCss).toMatch(/#241E17/);
+    expect(promoCss).not.toMatch('#17130F');
+    expect(ads).not.toMatch('#17130F');
+    expect(ads).not.toMatch('#1A0E04');
+    expect(ads).not.toMatch('#0A1520');
+    expect(ads).not.toMatch('#0D1A2A');
+    expect(promoCss).not.toMatch(/border-radius:\s*12px/);
+    expect(promoCss).not.toMatch(/border-radius:\s*14px/);
+    expect(promoCss).toMatch(/box-shadow:\s*none/);
+    expect(promoCss).not.toMatch(/box-shadow:\s*[0-9]/);
     expect(ads).not.toMatch('#C8926E');
-    expect(ads).not.toMatch('promo_books_label');
-    expect(ads).not.toMatch('promo_selah_label');
-    expect(ads).not.toMatch(/→/);
+    expect(ads).not.toMatch('--dw-new');
+    expect(promoCss).not.toMatch('--dw-new');
   });
 
-  it('lays covers in a still-life row, not a fanned 52px stack', () => {
-    expect(ads).toMatch('dw-promo-covers');
-    expect(ads).not.toMatch(/rotate\(/);
-    expect(ads).not.toMatch('width: 52');
-    expect(ads).not.toMatch('height: 72');
-    expect(ads).not.toMatch('marginLeft');
-  });
-
-  it('keeps college as one geo card on the same charcoal field', () => {
-    expect(ads).not.toMatch('#232A24');
-    expect(ads).not.toMatch('#35403A');
-    expect(ads).not.toMatch('linear-gradient');
-    expect(ads).toMatch('promo_explore');
-    expect(ads).toMatch('college.locKey');
-    expect(ads).not.toMatch('promo_college_sub');
-  });
-
-  it('does not pretend Selah is a live shop', () => {
-    expect(ads).not.toMatch('promo_selah_cta');
-    expect(ads).not.toMatch('promo_selah_sub');
-  });
-});
-
-describe('house ads mosaic', () => {
-  const ads = src('components/PromoAds.tsx');
-  const css = src('index.css');
-
-  it('is one More from Futures block of three cards, not a carousel or extra offer', () => {
+  it('is one More from Futures block of three offers, not a carousel', () => {
     expect(ads).toMatch('promo_more_from');
     expect(ads).toMatch('dw-promo-books');
     expect(ads).toMatch('dw-promo-college');
@@ -87,76 +76,108 @@ describe('house ads mosaic', () => {
     expect(ads).not.toMatch('house_ad_multiply');
     expect(ads).not.toMatch('PromoVariant');
     expect(ads).not.toMatch('dw-promo-dots');
+    expect(ads).not.toMatch('variant');
     expect(ads.indexOf('dw-promo-books')).toBeLessThan(ads.indexOf('dw-promo-college'));
     expect(ads.indexOf('dw-promo-college')).toBeLessThan(ads.indexOf('dw-promo-selah'));
   });
 
-  it('is a mosaic, not three matching 140px strips', () => {
-    expect(css).toMatch(/\.dw-promo-strip\s*\{[^}]*display:\s*grid/);
-    expect(css).toMatch(/\.dw-promo-strip\s*\{[^}]*gap:\s*8px/);
-    expect(css).not.toMatch(/\.dw-promo-band\s*\{[^}]*height:\s*140px/);
+  it('uses text links, not cream buttons or Shop/Explore chrome', () => {
+    expect(ads).toMatch('promo_shop_books');
+    expect(ads).toMatch('promo_college_cta');
+    expect(promoCss).toMatch(/\.dw-promo-link\s*\{[^}]*text-decoration:\s*underline/);
+    expect(promoCss).toMatch(/\.dw-promo-link\s*\{[^}]*text-underline-offset:\s*3px/);
+    expect(promoCss).toMatch(/\.dw-promo-link\s*\{[^}]*font-size:\s*14px/);
+    expect(promoCss).not.toMatch(/\.dw-promo-cta/);
+    expect(ads).not.toMatch('promo_shop,');
+    expect(ads).not.toMatch('promo_explore');
   });
 
-  it('features Books full-width with a 3:2 still-life band and copy underneath', () => {
-    expect(css).toMatch(/\.dw-promo-books\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
-    expect(css).toMatch(/\.dw-promo-books\s+\.dw-promo-band\s*\{[^}]*aspect-ratio:\s*3\s*\/\s*2/);
-    expect(css).not.toMatch(/\.dw-promo-college[\s\S]{0,80}aspect-ratio:\s*3\s*\/\s*2/);
-    expect(css).not.toMatch(/\.dw-promo-selah[\s\S]{0,80}aspect-ratio:\s*3\s*\/\s*2/);
+  it('labels the block in the 11px secondary UI face, not muted-on-ivory', () => {
+    expect(promoCss).toMatch(/\.dw-promo-heading\s*\{[^}]*font-family:\s*var\(--font-ui\)/);
+    expect(promoCss).toMatch(/\.dw-promo-heading\s*\{[^}]*font-size:\s*11px/);
+    expect(promoCss).toMatch(/\.dw-promo-heading\s*\{[^}]*font-weight:\s*600/);
+    expect(promoCss).toMatch(/\.dw-promo-heading\s*\{[^}]*letter-spacing:\s*0\.08em/);
+    expect(promoCss).toMatch(/\.dw-promo-heading\s*\{[^}]*text-transform:\s*uppercase/);
+    expect(promoCss).toMatch(/\.dw-promo-heading\s*\{[^}]*color:\s*#564B3F/);
+    expect(promoCss).toMatch(/\.dw-promo-heading\s*\{[^}]*margin:\s*0 0 32px/);
+  });
+});
+
+describe('house ads photography and type', () => {
+  const ads = src('components/PromoAds.tsx');
+  const css = src('index.css');
+  const promoCss = css.slice(css.indexOf('.dw-promo-block'), css.indexOf('.dw-sermon-notes-phone'));
+
+  it('lays covers in a still-life row at natural height, not a 3:2 well or fan', () => {
+    expect(ads).toMatch('dw-promo-covers');
+    expect(ads).not.toMatch(/rotate\(/);
+    expect(ads).not.toMatch('width: 52');
+    expect(ads).not.toMatch('height: 72');
+    expect(ads).not.toMatch('marginLeft');
+    expect(promoCss).toMatch(/\.dw-promo-covers\s*\{[^}]*gap:\s*16px/);
+    expect(promoCss).toMatch(/\.dw-promo-covers img\s*\{[^}]*object-fit:\s*contain/);
+    expect(promoCss).toMatch(/\.dw-promo-covers img\s*\{[^}]*max-height:\s*180px/);
+    expect(promoCss).toMatch(/max-height:\s*240px/);
+    expect(promoCss).not.toMatch(/aspect-ratio:\s*3\s*\/\s*2/);
+    expect(promoCss).not.toMatch(/aspect-ratio:\s*1\s*\/\s*1/);
+    expect(promoCss).not.toMatch(/\.dw-promo-covers img\s*\{[^}]*object-fit:\s*cover/);
+    expect(promoCss).not.toMatch(/\.dw-promo-covers img\s*\{[^}]*flex:\s*1/);
+  });
+
+  it('features Books full-width with title and Shop the books under the photo row', () => {
     const books = ads.slice(ads.indexOf('house_ad_books'), ads.indexOf('house_ad_college'));
-    expect(books).toMatch(/dw-promo-band[\s\S]*dw-promo-covers[\s\S]*dw-promo-copy/);
-    expect(books).toMatch('promo_books_title');
-    expect(books).toMatch('promo_shop');
+    expect(books).toMatch(/dw-promo-covers[\s\S]*dw-promo-books-title[\s\S]*promo_shop_books/);
+    expect(promoCss).toMatch(/\.dw-promo-books-title\s*\{[^}]*font-size:\s*28px/);
+    expect(promoCss).toMatch(/\.dw-promo-books-title\s*\{[^}]*color:\s*#241E17/);
   });
 
-  it('pairs College and Selah as 1:1 companions', () => {
-    expect(css).toMatch(/\.dw-promo-college,\s*\n?\.dw-promo-selah\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/);
+  it('pairs College and Selah as type columns, not filled squares', () => {
+    expect(promoCss).toMatch(/\.dw-promo-aside\s*\{[^}]*display:\s*grid/);
+    expect(promoCss).toMatch(/\.dw-promo-strip\s*\{[^}]*gap:\s*24px/);
+    expect(promoCss).not.toMatch(/\.dw-promo-college[\s\S]{0,120}aspect-ratio/);
+    expect(promoCss).not.toMatch(/\.dw-promo-selah[\s\S]{0,120}aspect-ratio/);
   });
 
-  it('desktop magazine grid is 2fr 1fr with Books spanning both rows', () => {
-    expect(css).toMatch(/@media\s*\(min-width:\s*700px\)\s*\{[\s\S]*\.dw-promo-strip\s*\{[^}]*grid-template-columns:\s*2fr\s+1fr/);
-    expect(css).toMatch(/\.dw-promo-books\s*\{[^}]*grid-area:\s*1\s*\/\s*1\s*\/\s*3\s*\/\s*2/);
-    expect(css).toMatch(/\.dw-promo-college\s*\{[^}]*grid-area:\s*1\s*\/\s*2\s*\/\s*2\s*\/\s*3/);
-    expect(css).toMatch(/\.dw-promo-selah\s*\{[^}]*grid-area:\s*2\s*\/\s*2\s*\/\s*3\s*\/\s*3/);
+  it('desktop magazine grid is 2fr 1fr with 40px air in the right stack', () => {
+    expect(promoCss).toMatch(/@media\s*\(min-width:\s*700px\)\s*\{[\s\S]*\.dw-promo-strip\s*\{[^}]*grid-template-columns:\s*2fr\s+1fr/);
+    expect(promoCss).toMatch(/@media\s*\(min-width:\s*700px\)\s*\{[\s\S]*\.dw-promo-aside\s*\{[^}]*gap:\s*40px/);
   });
 
-  it('keeps book covers at natural aspect — contain, not cover or flex-grow', () => {
-    expect(css).toMatch(/\.dw-promo-covers img\s*\{[^}]*object-fit:\s*contain/);
-    expect(css).toMatch(/\.dw-promo-covers img\s*\{[^}]*width:\s*auto/);
-    expect(css).not.toMatch(/\.dw-promo-covers img\s*\{[^}]*object-fit:\s*cover/);
-    expect(css).not.toMatch(/\.dw-promo-covers img\s*\{[^}]*flex:\s*1/);
+  it('keeps college as one geo offer with an ink logo and loc stacked over Explore', () => {
+    expect(ads).not.toMatch('#232A24');
+    expect(ads).not.toMatch('#35403A');
+    expect(ads).not.toMatch('linear-gradient');
+    expect(ads).toMatch('promo_college_cta');
+    expect(ads).toMatch('college.locKey');
+    expect(ads).not.toMatch('promo_college_sub');
+    expect(ads).toMatch('logo-flc-horizontal-ink.svg');
+    expect(ads).not.toMatch('logo-flc-horizontal-cream.svg');
+    expect(promoCss).toMatch(/\.dw-promo-logo\s*\{[^}]*height:\s*24px/);
+    expect(promoCss).toMatch(/\.dw-promo-college-loc\s*\{[^}]*font-size:\s*22px/);
+    expect(promoCss).toMatch(/font-size:\s*18px/);
+    expect(promoCss).toMatch(/-webkit-line-clamp:\s*2/);
   });
 
-  it('treats Selah type as the image — no empty band, Coming on the title-row right', () => {
+  it('treats Selah as a poster on paper — Coming above, date under, no Explore', () => {
     const selah = ads.slice(ads.indexOf('house_ad_selah'));
     expect(selah).not.toMatch('dw-promo-band');
     expect(selah).toMatch('promo_selah_name');
     expect(selah).toMatch('promo_selah_date');
-    expect(selah).toMatch('dw-promo-date');
     expect(selah).toMatch('promo_coming');
-    expect(selah).toMatch('dw-promo-title-row');
+    expect(selah).toMatch('dw-promo-selah-meta');
+    expect(selah.indexOf('dw-promo-selah-meta')).toBeLessThan(selah.indexOf('dw-promo-selah-name'));
+    expect(selah.indexOf('dw-promo-selah-name')).toBeLessThan(selah.indexOf('dw-promo-selah-date'));
     expect(selah).not.toMatch('promo_explore');
-    expect(selah).not.toMatch('dw-promo-copy');
+    expect(selah).not.toMatch('promo_college_cta');
+    expect(selah).not.toMatch('dw-promo-title-row');
+    expect(promoCss).toMatch(/\.dw-promo-selah-name\s*\{[^}]*font-size:\s*36px/);
+    expect(promoCss).toMatch(/\.dw-promo-selah-date\s*\{[^}]*font-size:\s*22px/);
+    expect(promoCss).toMatch(/\.dw-promo-selah-meta\s*\{[^}]*text-transform:\s*uppercase/);
   });
 
-  it('places the college logo at 28px in the upper mark field, contain, no brochure gradient', () => {
-    expect(ads).toMatch('dw-promo-logo');
-    expect(ads).toMatch('dw-promo-mark');
-    expect(ads).toMatch('logo-flc-horizontal-cream.svg');
-    expect(css).toMatch(/\.dw-promo-logo\s*\{[^}]*height:\s*28px/);
-    expect(css).toMatch(/\.dw-promo-logo\s*\{[^}]*object-fit:\s*contain/);
-    expect(css).toMatch(/\.dw-promo-logo\s*\{[^}]*max-width:\s*80%/);
-    expect(css).toMatch(/\.dw-promo-college\s+\.dw-promo-title\s*\{[^}]*font-size:\s*18px/);
-    expect(css).not.toMatch(/\.dw-promo-college[\s\S]{0,200}linear-gradient/);
-  });
-
-  it('labels the block as More from Futures in the 11px muted UI face, not --dw-new', () => {
-    expect(css).toMatch(/\.dw-promo-heading\s*\{[^}]*font-family:\s*var\(--font-ui\)/);
-    expect(css).toMatch(/\.dw-promo-heading\s*\{[^}]*font-size:\s*11px/);
-    expect(css).toMatch(/\.dw-promo-heading\s*\{[^}]*letter-spacing:\s*0\.08em/);
-    expect(css).toMatch(/\.dw-promo-heading\s*\{[^}]*text-transform:\s*uppercase/);
-    expect(css).toMatch(/\.dw-promo-heading\s*\{[^}]*color:\s*var\(--dw-text-muted\)/);
-    expect(ads).not.toMatch('--dw-new');
-    expect(css.slice(css.indexOf('.dw-promo-block'), css.indexOf('.dw-sermon-notes-phone'))).not.toMatch('--dw-new');
+  it('hides the AI FAB while the promo block is in view', () => {
+    expect(ads).toMatch('dw-promo-in-view');
+    expect(css).toMatch(/body\.dw-promo-in-view\s+\.dw-ai-launcher/);
   });
 });
 

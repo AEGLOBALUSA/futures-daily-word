@@ -962,6 +962,11 @@ body.dw-reading-active .dw-ai-launcher { display: none !important; }
 body.dw-new-home[data-active-tab="home"] .dw-ai-launcher { display: none !important; }
 body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !important; }
 
+/* House ads sit at the bottom of Home — hide the FAB while that block is on
+   screen so it cannot cover Shop the books. Ivory uses text links; the FAB
+   must stay clear of the paper. */
+body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
+
 /* Global spin keyframes for the inline "Saving…" / loading spinners (previously
    only injected per-screen, so a spinner could sit static before any such screen mounted). */
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1720,179 +1725,169 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   color: #FFFFFF !important;
 }
 
-/* House ads — mosaic: featured Books + College | Selah pair.
-   Charcoal field, 12 radius, 8 gap, 20 pad. No shadow, no gold kicker.
-   Mobile (<700, the app): Books full width (3:2 band ONLY, copy underneath),
-   then two 1:1 tiles. Desktop (≥700, same breakpoint as .dw-reading-surface):
-   2fr 1fr magazine, Books spans both rows. Height = 2× right + 8.
-   3:2 is the Books image band only — College and Selah stay 1:1. */
+/* House ads — ivory journal back page. Paper, photography, type, air.
+   Not charcoal tiles, not 1:1 squares, not three app banners.
+   Mobile (<700): Books full width (covers on paper, type under), then
+   College | Selah as two type columns. Desktop (≥700): 2fr 1fr, Books
+   left, College then Selah stacked right with 40px air. */
 .dw-promo-block {
   box-sizing: border-box;
   width: 100%;
   padding: 20px;
+  background: #FAF6EF;
+  color: #241E17;
+  border-top: 1px solid #ECE3D4;
 }
 .dw-promo-heading {
-  margin: 0 0 12px;
+  margin: 0 0 32px;
   font-family: var(--font-ui);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--dw-text-muted);
+  color: #564B3F;
 }
 .dw-promo-strip {
   box-sizing: border-box;
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.dw-promo-card {
   display: flex;
   flex-direction: column;
-  background: #17130F;
-  border-radius: 12px;
-  overflow: hidden;
-  text-decoration: none;
-  color: #F5EFE6;
-  box-shadow: none;
-  min-width: 0;
+  gap: 24px;
 }
-.dw-promo-card:focus-visible {
-  outline: 2px solid #F5EFE6;
-  outline-offset: 2px;
-}
-.dw-promo-books {
-  grid-column: 1 / -1;
-}
+.dw-promo-books,
 .dw-promo-college,
 .dw-promo-selah {
-  aspect-ratio: 1 / 1;
+  display: block;
+  min-width: 0;
+  text-decoration: none;
+  color: #241E17;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
-.dw-promo-band {
-  box-sizing: border-box;
-  background: #17130F;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.dw-promo-books .dw-promo-band {
-  aspect-ratio: 3 / 2;
-  width: 100%;
+.dw-promo-books:focus-visible,
+.dw-promo-college:focus-visible,
+.dw-promo-selah:focus-visible {
+  outline: 2px solid #241E17;
+  outline-offset: 3px;
 }
 .dw-promo-covers {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  gap: 8px;
-  height: 100%;
-  width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
+  gap: 16px;
 }
 .dw-promo-covers img {
+  display: block;
   flex: none;
-  height: 100%;
+  height: auto;
   width: auto;
-  max-width: calc((100% - 16px) / 3);
+  max-height: 180px;
+  max-width: calc((100% - 32px) / 3);
   object-fit: contain;
-  border-radius: 4px;
+  object-position: center bottom;
 }
-.dw-promo-mark {
-  flex: 1 1 auto;
+.dw-promo-books-title {
+  margin: 16px 0 8px;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #241E17;
+}
+.dw-promo-link {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #241E17;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.dw-promo-aside {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.dw-promo-college {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
+  flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
-  padding: 16px 16px 0;
 }
 .dw-promo-logo {
-  height: 28px;
+  height: 24px;
   width: auto;
-  max-width: 80%;
+  max-width: 100%;
   object-fit: contain;
   display: block;
+  margin: 0 0 12px;
 }
-.dw-promo-copy {
-  padding: 12px 20px 16px;
-}
-.dw-promo-college .dw-promo-copy {
-  flex: 0 0 auto;
-  padding: 8px 16px 16px;
-}
-.dw-promo-title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-.dw-promo-title {
+.dw-promo-college-loc {
   margin: 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #241E17;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.dw-promo-college .dw-promo-link {
+  display: inline-block;
+  margin-top: 8px;
+}
+.dw-promo-selah {
+  min-width: 0;
+}
+.dw-promo-selah-meta {
+  margin: 0 0 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #564B3F;
+}
+.dw-promo-selah-name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: #241E17;
+}
+.dw-promo-selah-date {
+  margin: 4px 0 0;
   font-family: var(--font-serif);
   font-size: 22px;
   font-weight: 400;
   line-height: 1.2;
-  color: #F5EFE6;
-  min-width: 0;
-}
-.dw-promo-college .dw-promo-title {
-  font-size: 18px;
-}
-.dw-promo-cta,
-.dw-promo-meta {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: #F5EFE6;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.dw-promo-selah {
-  justify-content: center;
-  box-sizing: border-box;
-  padding: 20px;
-}
-.dw-promo-selah-type {
-  min-width: 0;
-  width: 100%;
-}
-.dw-promo-selah .dw-promo-title-row {
-  align-items: baseline;
-  width: 100%;
-}
-.dw-promo-date {
-  margin: 4px 0 0;
-  font-family: var(--font-serif);
-  font-size: 28px;
-  font-weight: 400;
-  line-height: 1.15;
-  color: #F5EFE6;
-  text-align: left;
-  white-space: nowrap;
+  color: #241E17;
 }
 @media (min-width: 700px) {
   .dw-promo-strip {
+    display: grid;
     grid-template-columns: 2fr 1fr;
-    grid-template-rows: auto auto;
+    gap: 24px;
+    align-items: start;
   }
-  .dw-promo-books {
-    grid-area: 1 / 1 / 3 / 2;
-    height: 100%;
+  .dw-promo-covers img {
+    max-height: 240px;
   }
-  .dw-promo-books .dw-promo-band {
-    flex: 1 1 auto;
-    aspect-ratio: auto;
-    min-height: 0;
+  .dw-promo-college-loc {
+    font-size: 22px;
   }
-  .dw-promo-college {
-    grid-area: 1 / 2 / 2 / 3;
-  }
-  .dw-promo-selah {
-    grid-area: 2 / 2 / 3 / 3;
+  .dw-promo-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
   }
 }
 
