@@ -11,6 +11,8 @@
  */
 
 import { localApiBase } from './api-base';
+import { getCongregation } from './congregation';
+import type { CongregationId } from '../data/congregations';
 
 export interface CurrentSermonMeta {
   id: string;
@@ -49,12 +51,14 @@ function isDeployPreview(): boolean {
  *  Deploy-preview builds prefer the static SAMPLE in sample.json so we never
  *  write fake notes into the shared published_sermons table. Production uses
  *  `/api/published-sermon` only — never a static file. */
-export async function fetchCurrentSermon<T extends { id: string } = CurrentSermonMeta>(): Promise<T | null> {
+export async function fetchCurrentSermon<T extends { id: string } = CurrentSermonMeta>(congregation?: CongregationId): Promise<T | null> {
   if (isDeployPreview()) {
     const fromFile = await trySermon<T>('/sermons/sample.json');
     if (fromFile) return fromFile;
   }
-  return trySermon<T>(`${localApiBase()}/api/published-sermon`);
+  // One current message per congregation (Futures USA / Australia / Futuros USA).
+  const c = congregation || getCongregation();
+  return trySermon<T>(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(c)}`);
 }
 
 /** localStorage bag id for sermon-workspace notes. Uses the published sermon

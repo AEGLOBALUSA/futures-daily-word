@@ -2,6 +2,8 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 import { fetchCurrentSermon } from '../utils/currentSermon';
+import { getCongregation, congregationLabel, onCongregationChange, openCongregationChooser } from '../utils/congregation';
+import { CongregationChip } from '../components/CongregationSheet';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 
 interface SermonNotesScreenProps {
@@ -38,6 +40,7 @@ function NotesChrome({
           {t('back', lang)}
         </button>
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, fontFamily: 'var(--font-serif)' }}>{t('sermon_notes_title', lang)}</h1>
+        <CongregationChip name={congregationLabel(getCongregation())} onClick={() => openCongregationChooser('stay')} />
       </div>
       {children}
     </div>
@@ -50,14 +53,22 @@ export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // Re-fetch whenever the congregation changes (the header chip / Home banner
+  // chooser) — each congregation has its own current message.
+  const [congregation, setCongregationId] = useState(() => getCongregation());
+  useEffect(() => onCongregationChange(setCongregationId), []);
   useEffect(() => {
-    fetchCurrentSermon<SermonNotesData>()
+    let cancelled = false;
+    setLoading(true); setError(false);
+    fetchCurrentSermon<SermonNotesData>(congregation)
       .then(data => {
+        if (cancelled) return;
         if (data) setSermon(data);
-        else setError(true);
+        else { setSermon(null); setError(true); }
         setLoading(false);
       });
-  }, []);
+    return () => { cancelled = true; };
+  }, [congregation]);
 
   if (loading) {
     return (

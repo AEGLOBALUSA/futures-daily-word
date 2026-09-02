@@ -53,6 +53,7 @@ import { InlineReflection } from '../components/InlineReflection';
 import { ReadingActionBar } from '../components/ReadingActionBar';
 import { HomeContextChips } from '../components/HomeContextChips';
 import { PathSwatch } from '../components/ChoosePathSheet';
+import { getCongregation, congregationLabel, onCongregationChange, openCongregationChooser } from '../utils/congregation';
 import { PathArrivalStrip } from '../components/PathArrivalStrip';
 import { readPathArrival, clearPathArrival } from '../utils/choosePath';
 import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
@@ -149,6 +150,9 @@ interface ReadingSlot {
 }
 
 export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) => void; onBack?: () => void }) {
+  // Which church's Sermon Notes this device reads — shown on the banner.
+  const [homeCongregation, setHomeCongregation] = useState(() => getCongregation());
+  useEffect(() => onCongregationChange(setHomeCongregation), []);
   const { userProfile, setup, saveProfile, saveSetup, requireEmail } = useUser();
 
   // ── Persona-aware feature gating (memoized — avoids recalc on every render) ──
@@ -1770,9 +1774,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // flow lands people as new_to_faith and they need it up top on a Sunday);
   // for the four returning personas it renders BELOW the reading — nothing
   // sits above today's reading (persona-flow spec, 1 Sep).
+  // Three Sermon Notes — Futures USA / Futures Australia / Futuros USA. The
+  // banner opens the chooser (a real drop-down, every tap); a pick opens the
+  // notes for that church. The sub-line names the one currently chosen.
   const sermonNotesRow = (
     <button
-      onClick={() => onNavigate?.('sermon-notes')}
+      onClick={() => openCongregationChooser('open')}
+      aria-haspopup="dialog"
+      data-testid="home-sermon-notes-banner"
       aria-label={personaConfig.persona === 'pastor_leader' ? t('preach_card_title') : tI18n('sermon_notes_title', lang)}
       style={{
         display: 'flex', alignItems: 'center', gap: 14, width: '100%',
@@ -1801,7 +1810,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           {personaConfig.persona === 'pastor_leader' ? t('preach_card_title') : tI18n('sermon_notes_title', lang)}
         </span>
         <span style={{ display: 'block', fontSize: 12, color: 'rgba(245,239,230,0.58)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
-          {personaConfig.persona === 'pastor_leader' ? t('preach_card_sub') : tI18n('sermon_notes_home_sub', lang)}
+          {congregationLabel(homeCongregation)} · {personaConfig.persona === 'pastor_leader' ? t('preach_card_sub') : tI18n('sermon_notes_home_sub', lang)}
         </span>
       </span>
       <span style={{ color: 'rgba(245,239,230,0.45)', fontSize: 16, flexShrink: 0 }}>→</span>

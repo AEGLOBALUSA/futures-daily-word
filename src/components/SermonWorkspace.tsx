@@ -20,6 +20,7 @@ import { SermonNotesScreen } from '../screens/SermonNotesScreen';
 import { getPreachingFocus, setPreachingFocus, getPrepItems, removePrepItem, isPastorPersona } from '../utils/sermonPrep';
 import type { PrepItem } from '../utils/sermonPrep';
 import { fetchCurrentSermon, openSermonNotesId } from '../utils/currentSermon';
+import { getCongregation, onCongregationChange } from '../utils/congregation';
 import { youtubeEmbedUrl } from '../utils/youtube';
 
 interface SermonMeta {
@@ -80,17 +81,23 @@ export function SermonWorkspace() {
     return out.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   })();
 
+  // One current message per congregation; re-fetch when the choice changes.
+  const [congregation, setCongregationId] = useState(() => getCongregation());
+  useEffect(() => onCongregationChange(setCongregationId), []);
   useEffect(() => {
-    fetchCurrentSermon<SermonMeta>()
+    let cancelled = false;
+    fetchCurrentSermon<SermonMeta>(congregation)
       .then(data => {
+        if (cancelled) return;
         const id = openSermonNotesId(data?.id);
         setSermon(data);
         setNotesId(id);
         setResponses(loadResponses(id));
         setLoading(false);
       });
-    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); };
-  }, []);
+    return () => { cancelled = true; };
+  }, [congregation]);
+  useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); }, []);
 
   const updateField = useCallback((key: string, value: string) => {
     setSaveState('saving');
