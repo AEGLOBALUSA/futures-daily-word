@@ -636,6 +636,7 @@ const UI: Translations = {
   promo_books_title: { en: 'Books by Ps Ashley & Jane', es: 'Libros de los pastores Ashley y Jane', pt: 'Livros dos pastores Ashley e Jane', id: 'Buku dari Ps Ashley & Jane' },
   promo_books_sub: { en: 'Read them free at futures.church', es: 'L\u00e9elos gratis en futures.church', pt: 'Leia gr\u00e1tis em futures.church', id: 'Baca gratis di futures.church' },
   promo_shop: { en: 'Shop', es: 'Comprar', pt: 'Comprar', id: 'Belanja' },
+  promo_shop_books: { en: 'Shop the books', es: 'Comprar los libros', pt: 'Comprar os livros', id: 'Belanja bukunya' },
   promo_explore: { en: 'Explore', es: 'Explorar', pt: 'Explorar', id: 'Jelajahi' },
   promo_coming: { en: 'Coming', es: 'Pr\u00f3ximamente', pt: 'Em breve', id: 'Segera' },
   promo_college_sub: { en: 'Train for what God has called you to.', es: 'F\u00f3rmate para lo que Dios te ha llamado a hacer.', pt: 'Prepare-se para o que Deus te chamou a fazer.', id: 'Bersiaplah untuk panggilan Tuhan atasmu.' },

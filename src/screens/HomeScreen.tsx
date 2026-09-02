@@ -4557,7 +4557,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       )}
       {/* House ads: congregation Home when a reading exists, and More.
           Off I'm-New (the journey is the page), off empty Home, off /staff
-          and the ivory sermon canvas. Gate the mount here, never inside PromoAds. */}
+          and the ivory sermon canvas. Never the Settings footer. */}
       {!isNewPath && heroChapterRefs.length > 0 && <PromoAds />}
       {pf.greekHebrew !== 'hidden' && (
         <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
