@@ -35,7 +35,6 @@ import type { Persona } from '../utils/persona-config';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
-import { isSundayWindow } from '../utils/sunday';
 import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
 import { getStreak, recordStreakToday } from '../utils/streak';
 import { getDailyWord } from '../data/daily-words';
@@ -1744,23 +1743,30 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       onClick={() => onNavigate?.('sermon-notes')}
       aria-label={tI18n('sermon_notes_title', lang)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-        margin: '0 0 16px', padding: '12px 14px',
-        background: 'var(--dw-card)',
-        border: isSundayWindow() ? '1.5px solid var(--dw-accent)' : '1px solid var(--dw-border)',
-        borderRadius: 12, cursor: 'pointer', textAlign: 'left', minHeight: 44,
+        display: 'flex', alignItems: 'center', gap: 14, width: '100%',
+        margin: '0 0 16px', padding: '14px 16px',
+        background: '#1C1410',
+        border: 'none',
+        borderRadius: 14, cursor: 'pointer', textAlign: 'left', minHeight: 52,
       }}
     >
-      <FileText size={18} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
+      <FileText size={20} style={{ color: 'var(--dw-info, #4C7E97)', flexShrink: 0 }} />
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+        <span style={{
+          display: 'block', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+          textTransform: 'uppercase', color: 'var(--dw-info, #4C7E97)',
+          fontFamily: 'var(--font-sans)', marginBottom: 2,
+        }}>
+          This week
+        </span>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#F5EFE6', fontFamily: 'var(--font-sans)' }}>
           {tI18n('sermon_notes_title', lang)}
         </span>
-        <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 2 }}>
+        <span style={{ display: 'block', fontSize: 12, color: 'rgba(245,239,230,0.58)', fontFamily: 'var(--font-sans)', marginTop: 1 }}>
           {tI18n('sermon_notes_home_sub', lang)}
         </span>
       </span>
-      <span style={{ color: 'var(--dw-text-faint)', fontSize: 14, flexShrink: 0 }}>→</span>
+      <span style={{ color: 'rgba(245,239,230,0.45)', fontSize: 16, flexShrink: 0 }}>→</span>
     </button>
   );
 
