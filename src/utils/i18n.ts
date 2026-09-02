@@ -54,8 +54,7 @@ const UI: Translations = {
   tab_home: { en: 'Home', es: 'Inicio', pt: 'In\u00edcio', id: 'Beranda' },
   tab_notes: { en: 'Notes', es: 'Notas', pt: 'Notas', id: 'Catatan' },
   tab_campus: { en: 'Campus', es: 'Sede', pt: 'Campus', id: 'Kampus' },
-  // 'Bible' (Ashley, 1 Sep 2026): bottom nav is Today \u00b7 Bible \u00b7 Me.
-  tab_plans: { en: 'Bible', es: 'Biblia', pt: 'B\u00edblia', id: 'Alkitab' },
+  tab_plans: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
   tab_settings: { en: 'Settings', es: 'Ajustes', pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 
   // ââ SETTINGS / MORE SCREEN ââ
@@ -97,9 +96,7 @@ const UI: Translations = {
   characters: { en: 'characters', es: 'caracteres', pt: 'caracteres', id: 'karakter' },
 
   // ââ PLANS SCREEN ââ
-  // Matches the tab label \u2014 the screen and its tab must never disagree.
-  plans_title: { en: 'Bible', es: 'Biblia', pt: 'B\u00edblia', id: 'Alkitab' },
-  j_add_plan_hint: { en: 'Tap Bible to add a reading plan.', es: 'Toca Biblia para a\u00f1adir un plan de lectura.', pt: 'Toque em B\u00edblia para adicionar um plano de leitura.', id: 'Ketuk Alkitab untuk menambahkan rencana bacaan.' },
+  plans_title: { en: 'Plans', es: 'Planes', pt: 'Planos', id: 'Rencana' },
   plans_and_more: { en: 'Plans & More', es: 'Planes y m\u00e1s', pt: 'Planos e mais', id: 'Rencana & Lainnya' },
   plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devo\u00e7\u00e3o e comunidade', id: 'Rencana bacaan, devosi, dan komunitas Anda' },
   your_plans: { en: 'YOUR PLANS', es: 'TUS PLANES', pt: 'SEUS PLANOS', id: 'RENCANA ANDA' },
@@ -433,7 +430,7 @@ const UI: Translations = {
   pastors_submit_staff: { en: 'Pastors put campus updates on the staff form. Save puts them on the campus corner.', es: 'Los pastores env\u00edan actualizaciones del campus a trav\u00e9s del formulario del equipo. Se publican al guardar.', pt: 'Pastores enviam atualiza\u00e7\u00f5es do campus pelo formul\u00e1rio da equipe. Entram no ar ao salvar.', id: 'Pendeta mengirim pembaruan kampus lewat formulir staf. Tayang saat disimpan.' },
 
   // \u2500\u2500 JOURNAL SERMON TAB \u2500\u2500
-  j_from_campus_tab: { en: 'From My campus', es: 'De Mi sede', pt: 'De Meu campus', id: 'Dari Kampus saya' },
+  j_from_campus_tab: { en: 'From the Campus tab', es: 'De la pesta\u00f1a Sede', pt: 'Da aba Campus', id: 'Dari tab Kampus' },
 
   // \u2500\u2500 PATHWAY PICKER (first-run bottom actions) \u2500\u2500
   keep_current_path: { en: 'Keep my current path \u2192', es: 'Mantener mi camino actual \u2192', pt: 'Manter meu caminho atual \u2192', id: 'Pertahankan jalurku saat ini \u2192' },

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Home, Sun, BookOpen, User } from 'lucide-react';
+import { Home, PenLine, MessageCircle, Calendar, Settings } from 'lucide-react';
 import { hapticTap } from '../utils/haptics';
 
-export type TabId = 'home' | 'journal' | 'messages' | 'plans' | 'more' | 'sermon-notes' | 'me';
+export type TabId = 'home' | 'journal' | 'messages' | 'plans' | 'more' | 'sermon-notes';
 
 interface TabBarProps {
   activeTab: TabId;
@@ -10,23 +10,22 @@ interface TabBarProps {
 }
 
 const TAB_LABELS: Record<string, Record<string, string>> = {
-  // Three tabs, and only three (Ashley, 1 Sep 2026):
-  //   Today = effortless · Bible = exploration · Me = personal.
-  // The old Notes / Campus / Settings tabs are not gone — they live under Me,
-  // which is why they still keep their TabIds and are still routable.
-  home:     { en: 'Today',    es: 'Hoy',            pt: 'Hoje',           id: 'Hari Ini' },
-  plans:    { en: 'Bible',    es: 'Biblia',         pt: 'B\u00edblia',      id: 'Alkitab' },
-  me:       { en: 'Me',       es: 'Yo',             pt: 'Eu',             id: 'Saya' },
+  home:     { en: 'Home',     es: 'Inicio',         pt: 'In\u00edcio',   id: 'Beranda' },
+  journal:  { en: 'Notes',    es: 'Notas',          pt: 'Notas',          id: 'Catatan' },
+  messages: { en: 'Campus',   es: 'Sede',           pt: 'Campus',         id: 'Kampus' },
+  // 'Read' (Ashley, 26 Aug 2026): the tab already IS the reading library —
+  // plans + books + essays + reference — not just plan management.
+  plans:    { en: 'Plans',    es: 'Planes',         pt: 'Planos',         id: 'Rencana' },
+  more:     { en: 'Settings', es: 'Ajustes',        pt: 'Configura\u00e7\u00f5es', id: 'Pengaturan' },
 };
 
 const tabs: { id: TabId; icon: typeof Home }[] = [
-  { id: 'home', icon: Sun },
-  { id: 'plans', icon: BookOpen },
-  { id: 'me', icon: User },
+  { id: 'home', icon: Home },
+  { id: 'journal', icon: PenLine },
+  { id: 'messages', icon: MessageCircle },
+  { id: 'plans', icon: Calendar },
+  { id: 'more', icon: Settings },
 ];
-
-/** Screens that live under Me keep the Me tab lit while you're in them. */
-const UNDER_ME: TabId[] = ['journal', 'messages', 'more', 'sermon-notes'];
 
 export function TabBar({ activeTab, onTabChange }: TabBarProps) {
   const [lang, setLang] = useState('en');
@@ -54,20 +53,17 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
 
   const label = (id: string) => TAB_LABELS[id]?.[lang] || TAB_LABELS[id]?.['en'] || id;
 
-  // 'me' owns the highlight for every screen filed beneath it.
-  const lit: TabId = UNDER_ME.includes(activeTab) ? 'me' : activeTab;
-
   return (
     <nav className="tab-bar">
       {tabs.map(({ id, icon: Icon }) => (
         <button
           key={id}
-          className={`tab-bar-item ${lit === id ? 'active' : ''}`}
-          onClick={() => { if (id !== lit) hapticTap(); onTabChange(id); }}
+          className={`tab-bar-item ${activeTab === id ? 'active' : ''}`}
+          onClick={() => { if (id !== activeTab) hapticTap(); onTabChange(id); }}
           aria-label={label(id)}
-          aria-current={lit === id ? 'page' : undefined}
+          aria-current={activeTab === id ? 'page' : undefined}
         >
-          <Icon size={22} strokeWidth={lit === id ? 2.2 : 1.5} />
+          <Icon size={22} strokeWidth={activeTab === id ? 2.2 : 1.5} />
           <span>{label(id)}</span>
         </button>
       ))}
