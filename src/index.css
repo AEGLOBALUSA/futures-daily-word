@@ -1720,40 +1720,113 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   color: #FFFFFF !important;
 }
 
-/* ── PromoAds v2 — rotating carousel, per-screen visual variants ── */
-.dw-promo-wrap {
+/* House ads — mosaic: featured Books + College | Selah pair.
+   Charcoal field, 12 radius, 8 gap, 20 pad. No shadow, no gold kicker.
+   Mobile (<700, the app): Books full width (3:2 band ONLY, copy underneath),
+   then two 1:1 tiles. Desktop (≥700, same breakpoint as .dw-reading-surface):
+   2fr 1fr magazine, Books spans both rows. Height = 2× right + 8.
+   3:2 is the Books image band only — College and Selah stay 1:1. */
+.dw-promo-block {
   box-sizing: border-box;
   width: 100%;
-  padding: 0 20px 24px;
+  padding: 20px;
 }
-
-@keyframes dw-promo-slide-in {
-  from { opacity: 0; transform: translateX(18px); }
-  to   { opacity: 1; transform: translateX(0); }
+.dw-promo-heading {
+  margin: 0 0 12px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dw-text-muted);
 }
-.dw-promo-anim-in {
-  animation: dw-promo-slide-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+.dw-promo-strip {
+  box-sizing: border-box;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
-
-/* shared card shell */
 .dw-promo-card {
-  display: block;
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  background: #17130F;
+  border-radius: 12px;
   overflow: hidden;
   text-decoration: none;
-  color: inherit;
-  position: relative;
+  color: #F5EFE6;
+  box-shadow: none;
+  min-width: 0;
 }
-
-/* shared text atoms */
-.dw-promo-eyebrow {
-  margin: 0 0 3px;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(245, 239, 230, 0.5);
+.dw-promo-card:focus-visible {
+  outline: 2px solid #F5EFE6;
+  outline-offset: 2px;
+}
+.dw-promo-books {
+  grid-column: 1 / -1;
+}
+.dw-promo-college,
+.dw-promo-selah {
+  aspect-ratio: 1 / 1;
+}
+.dw-promo-band {
+  box-sizing: border-box;
+  background: #17130F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.dw-promo-books .dw-promo-band {
+  aspect-ratio: 3 / 2;
+  width: 100%;
+}
+.dw-promo-covers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.dw-promo-covers img {
+  flex: none;
+  height: 100%;
+  width: auto;
+  max-width: calc((100% - 16px) / 3);
+  object-fit: contain;
+  border-radius: 4px;
+}
+.dw-promo-mark {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  padding: 16px 16px 0;
+}
+.dw-promo-logo {
+  height: 28px;
+  width: auto;
+  max-width: 80%;
+  object-fit: contain;
+  display: block;
+}
+.dw-promo-copy {
+  padding: 12px 20px 16px;
+}
+.dw-promo-college .dw-promo-copy {
+  flex: 0 0 auto;
+  padding: 8px 16px 16px;
+}
+.dw-promo-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
 }
 .dw-promo-title {
   margin: 0;
@@ -1764,277 +1837,63 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   color: #F5EFE6;
   min-width: 0;
 }
-.dw-promo-cta {
+.dw-promo-college .dw-promo-title {
+  font-size: 18px;
+}
+.dw-promo-cta,
+.dw-promo-meta {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.2;
   color: #F5EFE6;
   white-space: nowrap;
   flex-shrink: 0;
 }
-
-/* dot indicators */
-.dw-promo-dots {
-  display: flex;
+.dw-promo-selah {
   justify-content: center;
-  gap: 6px;
-  margin-top: 10px;
-}
-.dw-promo-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(245, 239, 230, 0.2);
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-}
-.dw-promo-dot.is-active {
-  background: rgba(245, 239, 230, 0.82);
-  transform: scale(1.35);
-}
-
-/* ══ VARIANT: card (Messages, More) ══ */
-.dw-promo-band {
   box-sizing: border-box;
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 8px;
+  padding: 20px;
 }
-.dw-promo-band--text {
-  flex-direction: column;
-  gap: 4px;
-}
-.dw-promo-band-label {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(245, 239, 230, 0.45);
-}
-.dw-promo-band-heading {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 30px;
-  font-weight: 400;
-  color: #F5EFE6;
-  text-align: center;
-}
-.dw-promo-covers {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 100%;
-}
-.dw-promo-covers img {
-  flex: none;
-  height: 100%;
-  width: auto;
-  object-fit: contain;
-  border-radius: 4px;
-}
-.dw-promo-single-cover {
-  height: 116px;
-  width: auto;
-  object-fit: contain;
-  border-radius: 5px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-}
-.dw-promo-logo {
-  height: 56px;
-  width: auto;
-  max-width: 80%;
-  object-fit: contain;
-  display: block;
-}
-.dw-promo-copy {
-  padding: 6px 14px 14px;
-}
-.dw-promo-title-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-/* ══ VARIANT: banner (SermonNotes, Plans) ══ */
-.dw-promo-card--banner {
-  height: 210px;
-}
-.dw-promo-banner-bg {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-.dw-promo-banner-bg img {
+.dw-promo-selah-type {
+  min-width: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 20%;
-  opacity: 0.5;
 }
-.dw-promo-banner-logo-bg {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dw-promo-selah .dw-promo-title-row {
+  align-items: baseline;
+  width: 100%;
 }
-.dw-promo-banner-logo-bg img {
-  height: 56px;
-  width: auto;
-  max-width: 70%;
-  opacity: 0.22;
-}
-.dw-promo-card--banner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.15) 60%, transparent 100%);
-  pointer-events: none;
-}
-.dw-promo-banner-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 16px;
-  gap: 2px;
-}
-.dw-promo-banner-title {
-  margin: 0;
+.dw-promo-date {
+  margin: 4px 0 0;
   font-family: var(--font-serif);
-  font-size: 27px;
+  font-size: 28px;
   font-weight: 400;
   line-height: 1.15;
   color: #F5EFE6;
-}
-.dw-promo-banner-body {
-  margin: 0 0 8px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: rgba(245, 239, 230, 0.78);
-  line-height: 1.4;
-}
-
-/* ══ VARIANT: editorial (Me) ══ */
-.dw-promo-card--editorial {
-  min-height: 120px;
-}
-.dw-promo-editorial {
-  display: flex;
-  align-items: stretch;
-  padding: 16px;
-  box-sizing: border-box;
-}
-.dw-promo-editorial-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.dw-promo-editorial-title {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 25px;
-  font-weight: 400;
-  line-height: 1.2;
-  color: #F5EFE6;
-}
-.dw-promo-editorial-body {
-  margin: 0 0 10px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: rgba(245, 239, 230, 0.62);
-  line-height: 1.45;
-  flex: 1;
-}
-.dw-promo-editorial-thumb {
-  width: 66px;
-  height: 94px;
-  object-fit: cover;
-  border-radius: 4px;
-  flex-shrink: 0;
-  margin-left: 14px;
-  align-self: center;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
-}
-.dw-promo-editorial-logo {
-  width: 76px;
-  height: auto;
-  max-height: 38px;
-  object-fit: contain;
-  flex-shrink: 0;
-  margin-left: 14px;
-  align-self: center;
-  opacity: 0.75;
-}
-
-/* ══ VARIANT: compact (Journal) ══ */
-.dw-promo-compact {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  box-sizing: border-box;
-}
-.dw-promo-compact-thumb {
-  width: 34px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-.dw-promo-compact-logo {
-  width: 58px;
-  height: auto;
-  max-height: 26px;
-  object-fit: contain;
-  flex-shrink: 0;
-  opacity: 0.82;
-}
-.dw-promo-compact-gem {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(245, 239, 230, 0.3);
-  flex-shrink: 0;
-}
-.dw-promo-compact-text {
-  flex: 1;
-  min-width: 0;
-}
-.dw-promo-compact-title {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 15px;
-  font-weight: 400;
-  color: #F5EFE6;
+  text-align: left;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.dw-promo-compact-sub {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  color: rgba(245, 239, 230, 0.52);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dw-promo-card--compact .dw-promo-cta {
-  font-size: 12px;
+@media (min-width: 700px) {
+  .dw-promo-strip {
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  .dw-promo-books {
+    grid-area: 1 / 1 / 3 / 2;
+    height: 100%;
+  }
+  .dw-promo-books .dw-promo-band {
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+  .dw-promo-college {
+    grid-area: 1 / 2 / 2 / 3;
+  }
+  .dw-promo-selah {
+    grid-area: 2 / 2 / 3 / 3;
+  }
 }
 
 /* Locked Sermon Notes surface (live page + staff preview). Ivory even in dark theme. */

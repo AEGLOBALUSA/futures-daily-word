@@ -1140,7 +1140,10 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         {/* Version — long-press reveals the Admin section for non-pastor
             personas (the App Analytics PIN entry used to clutter every user's
             settings; admins know the gesture). */}
-        <PromoAds />
+        {/* Pull out of the 24px settings column so the mosaic’s own 20px pad is the edge. */}
+        <div style={{ marginLeft: -24, marginRight: -24 }}>
+          <PromoAds />
+        </div>
 
         <p
           onPointerDown={() => {

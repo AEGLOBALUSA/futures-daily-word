@@ -631,6 +631,7 @@ const UI: Translations = {
   ws_show_n: { en: 'Show {n}', es: 'Mostrar {n}', pt: 'Mostrar {n}', id: 'Tampilkan {n}' },
   ws_hide: { en: 'Hide', es: 'Ocultar', pt: 'Ocultar', id: 'Sembunyikan' },
   remove_label: { en: 'Remove', es: 'Quitar', pt: 'Remover', id: 'Hapus' },
+  promo_more_from: { en: 'More from Futures', es: 'M\u00e1s de Futures', pt: 'Mais da Futures', id: 'Lainnya dari Futures' },
   promo_books_label: { en: 'Free books', es: 'Libros gratis', pt: 'Livros gr\u00e1tis', id: 'Buku gratis' },
   promo_books_title: { en: 'Books by Ps Ashley & Jane', es: 'Libros de los pastores Ashley y Jane', pt: 'Livros dos pastores Ashley e Jane', id: 'Buku dari Ps Ashley & Jane' },
   promo_books_sub: { en: 'Read them free at futures.church', es: 'L\u00e9elos gratis en futures.church', pt: 'Leia gr\u00e1tis em futures.church', id: 'Baca gratis di futures.church' },

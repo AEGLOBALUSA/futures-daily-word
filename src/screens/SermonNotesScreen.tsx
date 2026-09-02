@@ -3,7 +3,6 @@ import { ChevronLeft, Loader2 } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 import { fetchCurrentSermon } from '../utils/currentSermon';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
-import { PromoAds } from '../components/PromoAds';
 
 interface SermonNotesScreenProps {
   onBack: () => void;
@@ -14,27 +13,14 @@ interface SermonNotesScreenProps {
 
 const SERMON_BLUE = 'var(--dw-info)';
 
-function AdsBelowNotes() {
-  return (
-    <div
-      data-testid="sermon-notes-ads"
-      style={{ padding: 0, background: 'var(--dw-bg)' }}
-    >
-      <PromoAds variant="banner" />
-    </div>
-  );
-}
-
 function NotesChrome({
   onBack,
   lang,
   children,
-  ads,
 }: {
   onBack: () => void;
   lang: string;
   children: ReactNode;
-  ads?: boolean;
 }) {
   return (
     <div className="screen-container" style={{ background: '#FAF6EF', color: '#241E17' }}>
@@ -54,7 +40,6 @@ function NotesChrome({
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, fontFamily: 'var(--font-serif)' }}>{t('sermon_notes_title', lang)}</h1>
       </div>
       {children}
-      {ads ? <AdsBelowNotes /> : null}
     </div>
   );
 }
@@ -96,7 +81,7 @@ export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScr
       );
     }
     return (
-      <NotesChrome onBack={onBack} lang={lang} ads>
+      <NotesChrome onBack={onBack} lang={lang}>
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <p style={{ fontSize: 16, fontWeight: 600, color: '#241E17', fontFamily: 'var(--font-serif)', marginBottom: 8 }}>
             No sermon notes this week
@@ -114,7 +99,7 @@ export function SermonNotesScreen({ onBack, embedded, readOnly }: SermonNotesScr
   if (embedded) return surface;
 
   return (
-    <NotesChrome onBack={onBack} lang={lang} ads>
+    <NotesChrome onBack={onBack} lang={lang}>
       {surface}
     </NotesChrome>
   );

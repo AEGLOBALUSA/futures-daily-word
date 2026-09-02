@@ -4533,9 +4533,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           }}
         />
       )}
-      {/* House ads stay off the I'm-New home (journey only); the other five tabs and
-          personas keep them — gate the mount here, never inside PromoAds itself. */}
-      {!isNewPath && <PromoAds />}
+      {/* House ads: congregation Home when a reading exists, and More.
+          Off I'm-New (the journey is the page), off empty Home, off /staff
+          and the ivory sermon canvas. Gate the mount here, never inside PromoAds. */}
+      {!isNewPath && heroChapterRefs.length > 0 && <PromoAds />}
       {pf.greekHebrew !== 'hidden' && (
         <GreekHebrewPopup onGoDeeper={(word) => { setBibleAIContext(word); setShowBibleAI(true); }} />
       )}

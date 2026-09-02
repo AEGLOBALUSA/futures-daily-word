@@ -19,7 +19,6 @@ import { getPersonaConfig } from '../utils/persona-config';
 import { BibleAI } from '../components/BibleAI';
 import { t, getLang } from '../utils/i18n';
 import { useSubView } from '../utils/useSubView';
-import { PromoAds } from '../components/PromoAds';
 import type { TabId } from '../components/TabBar';
 
 interface JournalEntry {
@@ -2145,7 +2144,6 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
         />
       )}
 
-      <PromoAds variant="compact" />
     </div>
   );
 }
