@@ -15,6 +15,7 @@ import { isSundayGuest } from '../utils/sunday';
 import { track } from '../utils/analytics';
 import { hapticTap } from '../utils/haptics';
 import { useModalA11y } from '../utils/useModalA11y';
+import { LanguageSwitch } from './LanguageSwitch';
 
 const WORDMARK = 'https://futuresdailyword.com/images/futures-wordmark.png';
 
@@ -28,7 +29,13 @@ interface Props {
 }
 
 export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
-  const lang = getLang();
+  // Live language: the header LanguageSwitch re-renders this screen in place.
+  const [lang, setLang] = useState(getLang);
+  useEffect(() => {
+    const h = () => setLang(getLang());
+    window.addEventListener('dw-lang-changed', h);
+    return () => window.removeEventListener('dw-lang-changed', h);
+  }, []);
   const copy = day1Copy(lang);
   const dialogRef = useModalA11y(true);
   const [readingOpen, setReadingOpen] = useState(startOpen);
@@ -74,6 +81,8 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
           width={160}
           height={16}
         />
+        {/* Obvious on arrival, like futures.church: pick your language here. */}
+        <LanguageSwitch className="dw-day1-lang" />
       </header>
       <main className="dw-day1-main">
         <p className="dw-day1-eyebrow">

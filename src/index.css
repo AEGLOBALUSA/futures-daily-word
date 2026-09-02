@@ -1306,9 +1306,16 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
 }
 .dw-day1-header {
   flex-shrink: 0;
+  position: relative;
   padding: calc(56px + var(--safe-top, env(safe-area-inset-top, 0px))) 32px 16px;
   display: flex;
   justify-content: center;
+}
+.dw-day1-lang {
+  position: absolute;
+  right: 16px;
+  /* centre the 36px pill on the 16px wordmark */
+  top: calc(56px + var(--safe-top, env(safe-area-inset-top, 0px)) - 10px);
 }
 .dw-day1-wordmark {
   height: 16px;

@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { LanguageSwitch } from '../components/LanguageSwitch';
 import { HeroPhotoCarousel } from '../components/HeroPhotoCarousel';
 import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw, FileText } from 'lucide-react';
 import { ScriptureSkeleton } from '../components/Skeleton';
@@ -1991,6 +1992,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 </div>
               );
             })()}
+            {/* Front-page language switcher — obvious on arrival, like futures.church. */}
+            <LanguageSwitch />
             <ThemeToggle />
           </div>
         </div>

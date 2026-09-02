@@ -16,7 +16,8 @@ describe('Day1Landing — closed hero is first paint', () => {
     expect(html).toContain('New &amp; Returning to Faith');
     expect(html).toContain('Grace Changes Everything');
     expect(html).toContain('>Read</button>');
-    expect(html.match(/<button\b/g)?.length).toBe(1);
+    // One CTA. The header's language switch (aria-haspopup="listbox") is chrome, not a CTA.
+    expect(html.match(/<button\b(?![^>]*aria-haspopup)/g)?.length).toBe(1);
 
     expect(html).not.toContain(DAY1_VERSE_REF);
     expect(html).not.toContain(DAY1_VERSE_TEXT.slice(0, 24));
@@ -31,7 +32,7 @@ describe('Day1Landing — closed hero is first paint', () => {
     await act(async () => {
       root.render(<Day1Landing />);
     });
-    const btn = host.querySelector('button');
+    const btn = Array.from(host.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Read')!;
     expect(btn?.textContent).toBe('Read');
     await act(async () => {
       btn!.click();

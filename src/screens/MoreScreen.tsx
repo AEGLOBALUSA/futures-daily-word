@@ -7,7 +7,7 @@ import { SeamFooter } from '../components/Seam';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, updatePushTime, pushSupported, openCalendarReminder } from '../utils/push';
-import { pushNow, syncMisc, flushNow } from '../utils/cloudSync';
+import { pushNow, syncMisc } from '../utils/cloudSync';
 import { CAMPUSES } from '../data/tokens';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
@@ -26,7 +26,8 @@ import {
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { ALL_PERSONAS, PERSONA_CONFIGS, isNewChristianPersona } from '../utils/persona-config';
-import { t, getLang, setLangPref } from '../utils/i18n';
+import { t, getLang } from '../utils/i18n';
+import { applyLanguage } from '../utils/language';
 
 // Bible translations filtered by selected language
 const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
@@ -34,14 +35,6 @@ const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
   es: ['RV1960', 'NVI'],
   pt: ['ARA'],
   id: ['TB'],
-};
-
-// Default Bible translation for each language
-const LANG_DEFAULT_TRANSLATION: Record<string, TranslationCode> = {
-  en: 'ESV',
-  es: 'RV1960',
-  pt: 'ARA',
-  id: 'TB',
 };
 
 const PERSONAS = ALL_PERSONAS.map(id => ({
@@ -209,18 +202,10 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   };
 
   const handleLangSelect = (val: string) => {
-    setLangPref(val);
-    syncMisc('dw_lang', val); // stamp + back up so language follows the user cross-device
-    // Auto-switch Bible translation to match language
-    const defaultTranslation = LANG_DEFAULT_TRANSLATION[val];
-    if (defaultTranslation) {
-      localStorage.setItem('dw_translation', defaultTranslation);
-      localStorage.removeItem('dw_translation_manual'); // clear manual override flag
-    }
-    track('language_change', val);
-    // Back up the language choice immediately (cross-device). setLangPref already fired
-    // dw-lang-changed, which this screen listens for to re-translate in place — no reload.
-    flushNow();
+    // Shared with the front-page LanguageSwitch: persists, broadcasts dw-lang-changed
+    // (this screen re-translates in place), backs up cross-device, re-points the
+    // Bible translation to the language default.
+    applyLanguage(val);
   };
 
   const handleUserStorySave = (story: string) => {
