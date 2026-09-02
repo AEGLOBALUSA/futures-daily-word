@@ -11,9 +11,14 @@
  * Mount pattern (as NewBelieverLessonCard / BibleAI): the host keeps this mounted
  * with a live `open` prop and it owns exactly one history entry while open via
  * useSubView — no useModalA11y focus trap (it fought sibling overlays).
+ *
+ * Pastor sign-in does NOT lock the path (Ashley, 2 Sep 2026: "when I change
+ * path, that path should show that change"). A signed-in pastor can pick any
+ * path — a real choice, which the boot re-stamp never overrides — and the sheet
+ * offers "Sign out of pastor account" beside it. Pastor tools return on Leader.
  */
 import { useEffect, useRef, useState, type CSSProperties, type ComponentType } from 'react';
-import { BookOpen, Check, ChevronDown, Church, Feather, Heart, Lock, Sprout } from 'lucide-react';
+import { BookOpen, Check, ChevronDown, Church, Feather, Heart, Sprout } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 import { useUser } from '../contexts/UserContext';
 import { useSubView } from '../utils/useSubView';
@@ -65,11 +70,10 @@ export function PathNode({ persona }: { persona: Persona }) {
 /**
  * Door 2 — the path swatch in the Home header, beside the language swatch.
  * Visible for EVERY persona (a member defaulted onto the journey had no way out
- * but Settings). Locked while a pastor is signed in; the sheet explains why.
+ * but Settings).
  */
 export function PathSwatch({ persona, className }: { persona: string; className?: string }) {
   const lang = getLang();
-  const locked = useIsPastorSignedIn();
   const path = pathFor(persona);
   const short = t(path.shortKey, lang);
   return (
@@ -99,9 +103,7 @@ export function PathSwatch({ persona, className }: { persona: string; className?
       }}>
         {short}
       </span>
-      {locked
-        ? <Lock size={13} strokeWidth={2} aria-hidden />
-        : <ChevronDown size={15} strokeWidth={2} aria-hidden />}
+      <ChevronDown size={15} strokeWidth={2} aria-hidden />
     </button>
   );
 }
@@ -121,7 +123,7 @@ export function ChoosePathSheet({
 }) {
   const lang = getLang();
   const { setup, saveSetup } = useUser();
-  const pastorLocked = useIsPastorSignedIn();
+  const pastorSignedIn = useIsPastorSignedIn();
   const { clearStaffIdentity } = useStaffIdentity();
   const current = pathFor(setup?.persona).id;
   const [selected, setSelected] = useState<Persona>(current);
@@ -129,10 +131,10 @@ export function ChoosePathSheet({
 
   useSubView(open, onClose);
 
-  // Each open starts from the path they actually have (locked = pastor_leader).
+  // Each open starts from the path they actually have.
   useEffect(() => {
     if (!open) return;
-    setSelected(pastorLocked ? 'pastor_leader' : current);
+    setSelected(current);
     track('path_sheet_open', door);
     const first = panelRef.current?.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
     (first || panelRef.current)?.focus({ preventScroll: true });
@@ -148,7 +150,7 @@ export function ChoosePathSheet({
 
   function commit() {
     hapticTap();
-    if (pastorLocked || selected === current) { onClose(); return; }
+    if (selected === current) { onClose(); return; }
     // A deliberate choice from the sheet is always a REAL choice — never 'default'.
     const source = choiceSourceFor(setup?.source);
     saveSetup({ persona: selected, source });
@@ -184,29 +186,26 @@ export function ChoosePathSheet({
           {t('path_sheet_title', lang)}
         </h2>
         <p style={{ margin: '0 0 16px', fontSize: 14, lineHeight: 1.5, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-          {pastorLocked ? t('pastor_chip_locked_body', lang) : t('path_sheet_sub', lang)}
+          {pastorSignedIn ? t('path_pastor_note', lang) : t('path_sheet_sub', lang)}
         </p>
 
         <div role="listbox" aria-label={t('path_sheet_title', lang)} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {PATHS.map(p => {
             const active = p.id === selected;
-            const disabled = pastorLocked && p.id !== 'pastor_leader';
             return (
               <button
                 key={p.id}
                 type="button"
                 role="option"
                 aria-selected={active}
-                aria-disabled={disabled || undefined}
-                tabIndex={disabled ? -1 : 0}
-                onClick={() => { if (disabled) return; hapticTap(); setSelected(p.id); }}
+                onClick={() => { hapticTap(); setSelected(p.id); }}
                 className={`dw-cp-card${active ? ' is-selected' : ''}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
-                  padding: '12px 14px', borderRadius: 14, cursor: disabled ? 'default' : 'pointer',
+                  padding: '12px 14px', borderRadius: 14, cursor: 'pointer',
                   background: active ? 'var(--dw-new-soft)' : 'transparent',
                   border: `1.5px solid ${active ? 'var(--dw-new)' : 'var(--dw-border)'}`,
-                  opacity: disabled ? 0.45 : 1, minHeight: 64,
+                  minHeight: 64,
                 }}
               >
                 <PathNode persona={p.id} />
@@ -239,7 +238,7 @@ export function ChoosePathSheet({
         >
           {t(selectedPath.ctaKey, lang)}
         </button>
-        {pastorLocked && (
+        {pastorSignedIn && (
           <button
             type="button"
             onClick={signOut}

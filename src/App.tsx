@@ -116,6 +116,12 @@ function AppContent() {
   const [syncNonce, setSyncNonce] = useState(0);
   // Count of journal entries that had cross-device edits, surfaced as a toast.
   const [syncConflicts, setSyncConflicts] = useState(0);
+  // A saved path must OPEN its screen (Ashley, 2 Sep 2026): from Settings the
+  // chooser sheet closed and the tab stayed put. The sheet consumes its own
+  // history entry on close (useSubView → history.back()), and that traversal
+  // lands on the current tab's entry a tick later — a Home push made before it
+  // lands is undone by the popstate. So the switch waits for that landing.
+  const pendingHomeRef = useRef(false);
 
   // Track tab navigation history
   const navigateTab = (tab: TabId) => {
@@ -182,6 +188,11 @@ function AppContent() {
         setActiveTab(h[h.length - 1]);
       }
       // At root → let the default happen (Capacitor exits / browser leaves).
+      if (pendingHomeRef.current) {
+        // The chooser sheet's entry is consumed — now open the saved path's Home.
+        pendingHomeRef.current = false;
+        navigateTab('home');
+      }
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -506,7 +517,24 @@ function AppContent() {
       {needsPushOnboarding && (
         <PushOptIn onDone={handlePushOnboardingDone} />
       )}
-      <ChoosePathSheet open={pathSheet.open} door={pathSheet.door} onClose={closePathSheet} />
+      {/* A saved path must OPEN its screen, not just close the sheet: from Settings
+          (or any other tab) switch to Home — after the sheet's history entry is
+          consumed (see pendingHomeRef) — where the persona-keyed remount lands on
+          that path's one thing already open. The timeout is a backstop only. */}
+      <ChoosePathSheet
+        open={pathSheet.open}
+        door={pathSheet.door}
+        onClose={closePathSheet}
+        onPicked={() => {
+          if (activeTab === 'home') return;
+          pendingHomeRef.current = true;
+          window.setTimeout(() => {
+            if (!pendingHomeRef.current) return;
+            pendingHomeRef.current = false;
+            navigateTab('home');
+          }, 600);
+        }}
+      />
     </div>
   );
 }

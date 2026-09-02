@@ -95,35 +95,49 @@ describe('ChoosePathSheet', () => {
     act(() => root.unmount());
   });
 
-  it('pastor lock: Leader selected, other cards disabled, sign-out offered instead of a switch', () => {
+  it('a signed-in pastor can still change path (a real choice), and sign-out is offered beside it', () => {
     signedIn.value = true;
     setup.persona = 'pastor_leader';
     setup.source = 'settings';
     const onClose = vi.fn();
-    const { root } = mount(<ChoosePathSheet open onClose={onClose} door="home" />);
-    expect(option(/lead, teach or preach/i)?.getAttribute('aria-selected')).toBe('true');
-    expect(document.querySelectorAll('[role="option"][aria-disabled="true"]').length).toBe(4);
+    const onPicked = vi.fn();
+    const { root } = mount(<ChoosePathSheet open onClose={onClose} door="settings" onPicked={onPicked} />);
+    expect(option(/pastor and I teach and preach/i)?.getAttribute('aria-selected')).toBe('true');
+    expect(document.querySelectorAll('[role="option"][aria-disabled="true"]').length).toBe(0);
+    expect(document.body.textContent).toContain('Signed in as pastor');
     expect(document.body.textContent).toContain('Sign out of pastor account');
-    click(option(/part of Futures Church/i)); // disabled — no-op
+    click(option(/something hard/i));
     click(cta());
-    expect(saveSetup).not.toHaveBeenCalled();
+    expect(saveSetup).toHaveBeenCalledWith({ persona: 'comfort', source: 'settings' });
+    expect(onPicked).toHaveBeenCalledWith('comfort');
+    expect(clearStaffIdentity).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  it('sign out of pastor account calls clearStaffIdentity and closes', () => {
+    signedIn.value = true;
+    setup.persona = 'pastor_leader';
+    const onClose = vi.fn();
+    const { root } = mount(<ChoosePathSheet open onClose={onClose} door="home" />);
     click([...document.querySelectorAll('button')].find(b => /sign out of pastor account/i.test(b.textContent || '')));
     expect(clearStaffIdentity).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(saveSetup).not.toHaveBeenCalled();
     act(() => root.unmount());
   });
 });
 
 describe('PathSwatch', () => {
-  it('shows the short label and a chevron; a lock glyph while a pastor is signed in', () => {
+  it('shows the short label and a chevron — never a lock, even for a signed-in pastor', () => {
     const a = mount(<PathSwatch persona="congregation" />);
     expect(a.el.textContent).toContain('Member');
     expect(a.el.querySelector('svg.lucide-chevron-down')).toBeTruthy();
-    expect(a.el.querySelector('svg.lucide-lock')).toBeNull();
     act(() => a.root.unmount());
     signedIn.value = true;
     const b = mount(<PathSwatch persona="pastor_leader" />);
     expect(b.el.textContent).toContain('Leader');
-    expect(b.el.querySelector('svg.lucide-lock')).toBeTruthy();
+    expect(b.el.querySelector('svg.lucide-chevron-down')).toBeTruthy();
+    expect(b.el.querySelector('svg.lucide-lock')).toBeNull();
     act(() => b.root.unmount());
   });
 });

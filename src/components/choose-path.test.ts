@@ -57,7 +57,11 @@ describe('the three doors', () => {
     expect(app).toMatch(/&& !showPathAsk;/);
     expect(app).toMatch(/\{!needsPushOnboarding && !showPathAsk && <CookieConsent \/>\}/);
     expect(app.indexOf('<PathAskedOnce')).toBeLessThan(app.indexOf('<PushOptIn'));
-    expect(app).toMatch(/<ChoosePathSheet open=\{pathSheet\.open\}/);
+    expect(app).toMatch(/<ChoosePathSheet\s+open=\{pathSheet\.open\}/);
+    // A saved path opens its screen: leave Settings (or any tab) for Home.
+    expect(app).toMatch(/pendingHomeRef\.current = true;/);
+    // …after the sheet's own history entry is consumed (popstate), not before.
+    expect(app).toMatch(/if \(pendingHomeRef\.current\) \{\s*\/\/[^\n]*\n\s*pendingHomeRef\.current = false;\s*navigateTab\('home'\);/);
     expect(sync).toMatch(/'dw_path_asked'/);
   });
   it('Settings opens the same sheet and the two-step picker is gone', () => {
