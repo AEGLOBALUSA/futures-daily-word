@@ -2100,6 +2100,8 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
 /* ---------- Choose your path (Ashley, 2 Sep 2026): one sheet, three doors, never a gate ---------- */
 /* Tones ride a custom property — index.css forces white on inline `color: rgb(176…)` in dark mode. */
 .dw-cp-marker { color: var(--cp-tone); }
+/* PASTOR STUDY eyebrow + icon on the dark Preach card: light sage in both themes. */
+.dw-preach-eyebrow { color: #8FAF90; }
 .dw-cp-swatch { -webkit-tap-highlight-color: transparent; }
 /* The header row wraps its right cluster onto a second line below ~400px, so the label
    still fits at 375px beside the streak, the language swatch and the theme toggle;

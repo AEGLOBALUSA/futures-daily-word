@@ -64,6 +64,17 @@ describe('the three doors', () => {
     expect(app).toMatch(/if \(pendingHomeRef\.current\) \{\s*\/\/[^\n]*\n\s*pendingHomeRef\.current = false;\s*navigateTab\('home'\);/);
     expect(sync).toMatch(/'dw_path_asked'/);
   });
+  it('a saved path confirms itself on the next Home — the arrival strip, once, under the greeting', () => {
+    expect(sheet).toMatch(/markPathArrival\(selected\)/);
+    const strip = home.indexOf('<PathArrivalStrip');
+    const preach = home.indexOf('{sermonNotesRow}');
+    expect(strip).toBeGreaterThan(-1);
+    expect(preach).toBeGreaterThan(strip);
+    expect(home).toMatch(/useState\(\(\) => readPathArrival\(setup\?\.persona\)\)/);
+    // Pastors read PASTOR STUDY on the Preach card, via a class (no inline hex).
+    expect(home).toMatch(/tI18n\('pastor_study_eyebrow', lang\)/);
+    expect(home).toMatch(/className=\{personaConfig\.persona === 'pastor_leader' \? 'dw-preach-eyebrow' : undefined\}/);
+  });
   it('Settings opens the same sheet and the two-step picker is gone', () => {
     expect(more).toMatch(/openChoosePath\('settings'\)/);
     expect(more).not.toContain('Save & Apply');
