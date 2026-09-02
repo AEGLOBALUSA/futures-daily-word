@@ -18,7 +18,12 @@ export const GRACE_SERIES_TITLE = 'New & Returning to Faith';
 export const GRACE_SERIES_TOTAL_DAYS = 40;
 export const DAY1_BEGUN_KEY = 'dw_day1_begun';
 
-const REAL_CHOICE_SOURCES = new Set(['onboarding', 'settings', 'upgrade']);
+export const REAL_CHOICE_SOURCES = new Set(['onboarding', 'settings', 'upgrade']);
+export function isRealChoiceSource(source: string | null | undefined): boolean {
+  return !!source && REAL_CHOICE_SOURCES.has(source);
+}
+/** "Choose your path" asked-once flag (Door 3). Misc-synced — see cloudSync MISC_KEYS. */
+export const PATH_ASKED_KEY = 'dw_path_asked';
 
 export function readSetup(): { persona?: string; source?: string } {
   try {
@@ -198,4 +203,20 @@ export function consumeLandingParam(): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Door 3 of "Choose your path" (Ashley, 2 Sep 2026): asked ONCE, right after the
+ * first Mark as read on Day 1, before the push ask. Never for comfort, never when
+ * the persona came from a real choice, never once `dw_path_asked` is set (it
+ * rides the misc bag), and never to someone already past Day 1 of the journey.
+ */
+export function needsPathAsk(setup: { persona?: string; source?: string } | null | undefined): boolean {
+  try { if (localStorage.getItem(PATH_ASKED_KEY) === '1') return false; } catch { /* ignore */ }
+  if (!setup?.persona || setup.persona === 'comfort') return false;
+  if (isRealChoiceSource(setup.source)) return false;
+  try { if (!localStorage.getItem('dw_reading_done')) return false; } catch { return false; }
+  const progress = readPathwayProgress();
+  if (progress.completedDays.length > 1) return false;
+  return true;
 }

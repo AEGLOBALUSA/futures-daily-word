@@ -2237,3 +2237,95 @@ body.dw-new-home:not([data-active-tab]) .dw-ai-launcher { display: none !importa
   color: #241E17;
   margin: 0 0 8px;
 }
+
+/* ---------- Choose your path (Ashley, 2 Sep 2026): one sheet, three doors, never a gate ---------- */
+/* Tones ride a custom property — index.css forces white on inline `color: rgb(176…)` in dark mode. */
+.dw-path-marker { color: var(--path-tone); }
+.dw-path-swatch { -webkit-tap-highlight-color: transparent; }
+/* The header must still fit at 375px with the streak, the language swatch and the theme toggle. */
+@media (max-width: 399px) {
+  .dw-path-label { display: none; }
+  .dw-path-swatch { padding-right: 6px !important; }
+}
+.dw-path-sheet-host { position: fixed; inset: 0; z-index: 10020; display: flex; align-items: flex-end; justify-content: center; }
+.dw-path-sheet-backdrop { position: absolute; inset: 0; background: rgba(28, 20, 12, 0.46); animation: fadeIn 0.18s ease; }
+.dw-path-sheet {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(90vh, 90dvh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--dw-card);
+  color: var(--dw-text);
+  border: 1px solid var(--dw-border);
+  border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  padding: 10px 20px calc(20px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  box-shadow: 0 -18px 44px -22px rgba(28, 20, 12, 0.4);
+  animation: dwPathSheetUp 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  outline: none;
+}
+@media (min-width: 640px) {
+  .dw-path-sheet-host { align-items: center; padding: 24px; }
+  .dw-path-sheet { border-radius: 22px; border-bottom: 1px solid var(--dw-border); padding-bottom: 20px; }
+}
+@keyframes dwPathSheetUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.dw-path-sheet-grip { width: 36px; height: 4px; border-radius: 999px; background: var(--dw-border); margin: 0 auto 12px; }
+.dw-path-card { -webkit-tap-highlight-color: transparent; transition: background 0.15s ease, border-color 0.15s ease; }
+.dw-path-card:focus-visible, .dw-path-cta:focus-visible, .dw-path-swatch:focus-visible { outline: 2px solid var(--dw-new); outline-offset: 2px; }
+.dw-path-cta:active { transform: scale(0.98); }
+
+/* Door 1 — one quiet line under Read on the Day 1 landing (light-only surface, so a CSS hex is fine here). */
+.dw-day1-path-line {
+  margin: 12px 0 0;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: #7A6A54;
+}
+.dw-day1-path-link {
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #3F5E46;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Door 3 — asked once after the first read; sits under the sheet, above the tabs. */
+.dw-path-ask {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--dw-canvas);
+  color: var(--dw-text);
+  padding: 32px 28px calc(32px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  overflow-y: auto;
+  outline: none;
+  animation: fadeIn 0.2s ease;
+}
+.dw-path-ask-inner { width: min(400px, 100%); text-align: center; }
+.dw-path-ask-check {
+  width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--dw-new); color: var(--dw-new-on-fill);
+}
+.dw-path-ask-title {
+  margin: 0 0 12px; font-family: var(--font-serif); font-size: 30px; font-weight: 400;
+  line-height: 1.2; letter-spacing: -0.025em; color: var(--dw-text);
+}
+.dw-path-ask-body { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--dw-text-secondary); }
+.dw-path-ask-link {
+  display: block; width: 100%; margin: 14px 0 0; padding: 10px; min-height: 44px;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--dw-new);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.dw-path-ask-eyebrow {
+  margin: 20px 0 0; font-family: var(--font-ui, var(--font-sans)); font-size: 11px; font-weight: 600;
+  letter-spacing: 1.1px; text-transform: uppercase; color: var(--dw-text-muted);
+}

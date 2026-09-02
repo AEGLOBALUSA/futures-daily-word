@@ -12,6 +12,8 @@ import {
   GRACE_SERIES_PERSONA,
   GRACE_SERIES_TOTAL_DAYS,
   GRACE_SERIES_TITLE,
+  needsPathAsk,
+  PATH_ASKED_KEY,
 } from './coldStart';
 
 beforeEach(() => {
@@ -125,5 +127,35 @@ describe('ensureGraceSeriesEnrolled', () => {
     const p = readPathwayProgress();
     expect(p.currentDay).toBe(12);
     expect(p.completedDays).toEqual([1, 2, 3]);
+  });
+});
+
+describe('needsPathAsk — Door 3 of "Choose your path", asked once after the first read', () => {
+  const defaulted = { persona: 'new_to_faith', source: 'default' };
+
+  it('asks a defaulted reader right after Day 1 is marked read', () => {
+    startGraceSeriesIfCold('default');
+    expect(needsPathAsk(defaulted)).toBe(false); // nothing read yet
+    beginDay1('default');
+    markDay1Read();
+    expect(needsPathAsk(defaulted)).toBe(true);
+  });
+
+  it('never asks after a real choice, for comfort, or once the flag is set', () => {
+    beginDay1('default');
+    markDay1Read();
+    expect(needsPathAsk({ persona: 'new_to_faith', source: 'onboarding' })).toBe(false);
+    expect(needsPathAsk({ persona: 'congregation', source: 'settings' })).toBe(false);
+    expect(needsPathAsk({ persona: 'comfort', source: 'default' })).toBe(false);
+    localStorage.setItem(PATH_ASKED_KEY, '1');
+    expect(needsPathAsk(defaulted)).toBe(false);
+  });
+
+  it('does not interrupt someone already past Day 1 of the journey', () => {
+    beginDay1('default');
+    markDay1Read();
+    const progress = readPathwayProgress();
+    localStorage.setItem('dw_pathway_progress', JSON.stringify({ ...progress, completedDays: [1, 2], currentDay: 3 }));
+    expect(needsPathAsk(defaulted)).toBe(false);
   });
 });

@@ -27,7 +27,9 @@ import {
 } from 'lucide-react';
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
-import { ALL_PERSONAS, PERSONA_CONFIGS, isNewChristianPersona } from '../utils/persona-config';
+import { isNewChristianPersona } from '../utils/persona-config';
+import { PATHS, pathFor, openChoosePath } from '../utils/choosePath';
+import { PathNode } from '../components/ChoosePathSheet';
 import { t, getLang } from '../utils/i18n';
 import { applyLanguage } from '../utils/language';
 
@@ -38,12 +40,6 @@ const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
   pt: ['ARA'],
   id: ['TB'],
 };
-
-const PERSONAS = ALL_PERSONAS.map(id => ({
-  id,
-  label: PERSONA_CONFIGS[id].label,
-  desc: PERSONA_CONFIGS[id].description,
-}));
 
 // Font sizes in absolute pixels — matches HomeScreen's dw_font_size (default 15, range 13-32)
 const FONT_SIZES = [
@@ -68,7 +64,7 @@ function formatHour(h: number): string {
 const REMINDER_HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 5 → 22
 
 export function MoreScreen({ onBack }: { onBack?: () => void }) {
-  const { userProfile, profilePic, requireEmail, setup, saveProfile, saveSetup } = useUser();
+  const { userProfile, profilePic, requireEmail, setup, saveProfile } = useUser();
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
   // Bump to re-render in place after a translation/font change — the selected-state
@@ -150,11 +146,10 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [bugMessage, setBugMessage] = useState('');
   const [bugSubmitting, setBugSubmitting] = useState(false);
   const [bugSubmitted, setBugSubmitted] = useState(false);
-  const [pendingPersona, setPendingPersona] = useState<string | null>(null);
-  const [personaSaved, setPersonaSaved] = useState(false);
   const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
-  const currentPersona = PERSONAS.find(p => p.id === setup?.persona);
-  const newPathSettings = isNewChristianPersona(setup?.persona) || isNewChristianPersona(currentPersona?.id);
+  const currentPersona = PATHS.find(p => p.id === setup?.persona);
+  const currentPath = pathFor(setup?.persona);
+  const newPathSettings = isNewChristianPersona(setup?.persona);
 
   const handlePushToggle = async () => {
     if (pushState === 'loading') return; // guard against repeat taps stacking attempts
@@ -228,24 +223,6 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     setUserStory(story);
     setStorySaved(true);
     setTimeout(() => setStorySaved(false), 2000);
-  };
-
-  const handlePersonaSelect = (personaId: string) => {
-    // If they tap the already-active persona, do nothing
-    if (personaId === setup?.persona && !pendingPersona) return;
-    setPendingPersona(personaId);
-    setPersonaSaved(false);
-  };
-
-  const handlePersonaSave = () => {
-    if (!pendingPersona) return;
-    // A deliberate change in Settings is always a real choice — use a real-choice
-    // source (not the possibly-'default' prior source) so saveSetup stamps + syncs it.
-    saveSetup({ persona: pendingPersona, source: 'settings' });
-    track('persona_change', pendingPersona);
-    setPersonaSaved(true);
-    setPendingPersona(null);
-    setTimeout(() => setPersonaSaved(false), 2500);
   };
 
   const handleChaptersPerDaySelect = (val: number) => {
@@ -345,7 +322,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </p>
           {currentPersona && (
             <p className={newPathSettings ? 'dw-new-label' : undefined} style={{ color: newPathSettings ? 'var(--dw-new)' : 'var(--dw-accent)', fontSize: 12, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
-              {currentPersona.label}
+              {t(currentPersona.labelKey, lang)}
             </p>
           )}
           <p style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)', marginTop: 2 }}>
@@ -371,79 +348,38 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </Card>
         </div>
 
-        {/* ─── PERSONA ─── */}
+        {/* ─── PERSONA — "Choose your path" opens the one chooser sheet (source 'settings') ─── */}
         <div style={{ marginBottom: 24 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10, paddingLeft: 4 }}>
             <Heart size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             {t("your_journey", lang)}
           </h2>
-          <Card style={{ padding: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {PERSONAS.map(p => {
-                const isNewOption = isNewChristianPersona(p.id);
-                const isActive = (
-                  setup?.persona === p.id
-                  || (isNewOption && isNewChristianPersona(setup?.persona))
-                ) && !pendingPersona;
-                const isPending = pendingPersona === p.id;
-                const newFilled = isNewOption && (isActive || isPending);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={isNewOption ? `dw-journey-new${newFilled ? ' is-current' : ''}` : undefined}
-                    onClick={() => handlePersonaSelect(p.id)}
-                    style={{
-                      background: isNewOption
-                        ? (newFilled ? 'var(--dw-new)' : 'var(--dw-new-soft)')
-                        : (isActive ? 'var(--dw-accent)' : isPending ? 'var(--dw-gold)' : 'var(--dw-surface-hover)'),
-                      color: isNewOption
-                        ? (newFilled ? 'var(--dw-new-on-fill)' : 'var(--dw-text-primary)')
-                        : (isActive || isPending ? '#fff' : 'var(--dw-text-primary)'),
-                      border: isPending && !isNewOption ? '2px solid var(--dw-gold)' : 'none',
-                      borderRadius: 10,
-                      padding: '12px 16px',
-                      fontSize: 14,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)',
-                      minHeight: 44,
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div className={isNewOption ? 'dw-journey-new-title' : undefined} style={{ fontWeight: 500, marginBottom: 2 }}>{p.label}</div>
-                    <div className={isNewOption ? 'dw-journey-new-desc' : undefined} style={{ fontSize: 12, opacity: newFilled ? 1 : 0.7 }}>{p.desc}</div>
-                  </button>
-                );
-              })}
+          <Card style={{ padding: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <PathNode persona={currentPath.id} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', lineHeight: 1.25 }}>
+                  {t(currentPath.headKey, lang)}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginTop: 3, lineHeight: 1.4 }}>
+                  {t(currentPath.promiseKey, lang)}
+                </div>
+              </div>
             </div>
-            {/* Save button — appears when a new persona is selected */}
-            {pendingPersona && pendingPersona !== setup?.persona && (
-              <button
-                onClick={handlePersonaSave}
-                style={{
-                  marginTop: 10, width: '100%',
-                  padding: '12px 16px', borderRadius: 10,
-                  background: 'var(--dw-gold)', border: 'none',
-                  fontSize: 15, fontWeight: 700,
-                  cursor: 'pointer', color: '#fff',
-                  fontFamily: 'var(--font-sans)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Save & Apply
-              </button>
-            )}
-            {personaSaved && (
-              <p style={{
-                marginTop: 8, textAlign: 'center',
-                fontSize: 13, fontWeight: 600,
-                color: '#4CAF50', fontFamily: 'var(--font-sans)',
-              }}>
-                Saved! Your experience has been updated.
-              </p>
-            )}
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => openChoosePath('settings')}
+              style={{
+                marginTop: 12, width: '100%', minHeight: 44,
+                padding: '10px 16px', borderRadius: 12,
+                background: 'transparent', border: '1.5px solid var(--dw-new)',
+                color: 'var(--dw-new)', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              {t('path_change_btn', lang)}
+            </button>
           </Card>
         </div>
 

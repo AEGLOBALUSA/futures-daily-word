@@ -31,7 +31,6 @@ import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/b
 import { track } from '../utils/analytics';
 import { personalize } from '../utils/personalization';
 import { getPersonaConfig, getGreeting, isNewChristianPersona } from '../utils/persona-config';
-import type { Persona } from '../utils/persona-config';
 import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
@@ -53,8 +52,8 @@ import { PastoralReflectionSection } from '../components/PastoralReflectionSecti
 import { InlineReflection } from '../components/InlineReflection';
 import { ReadingActionBar } from '../components/ReadingActionBar';
 import { HomeContextChips } from '../components/HomeContextChips';
+import { PathSwatch } from '../components/ChoosePathSheet';
 import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
-import { useStaffIdentity, useIsPastorSignedIn } from '../utils/useStaffIdentity';
 import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
 import { hapticTap } from '../utils/haptics';
@@ -158,8 +157,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // silent switch would leave the staff token behind on a device that no
   // longer looks like a pastor's. Home stays mounted across tabs, so this is
   // event-driven (dw-staff-session-changed), not read once at mount.
-  const { clearStaffIdentity } = useStaffIdentity();
-  const pastorSignedIn = useIsPastorSignedIn();
   const greetingText = useMemo(
     () => getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count, getLang()),
     [personaConfig.persona, userProfile?.firstName],
@@ -1951,25 +1948,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               }}>
                 Daily Word
               </h1>
-              {/* Compact context chips — tap to change persona or campus in place.
-                  Hidden on the I'm-New path: the chip was one accidental tap off the
-                  40-day journey, and its labels aren't about the journey. Persona and
-                  campus remain changeable in Settings (two-step Save & Apply). */}
+              {/* Campus chip — tap to change campus in place. Hidden on the I'm-New
+                  path (one accidental tap off the 40-day journey). The persona half
+                  became the PathSwatch in the header row — "Choose your path", 2 Sep
+                  2026 — visible for EVERY persona, including I'm New. */}
               {!isNewPath && <HomeContextChips
-                persona={personaConfig.persona}
                 campusId={userProfile?.campus || ''}
-                pastorLocked={pastorSignedIn}
-                onPastorSignOut={() => {
-                  // Same path as Settings → Pastor account → Sign out: revoke the
-                  // staff session, drop the provisioned campus code, back to Church Member.
-                  void clearStaffIdentity().then(() => { flushNow(); track('pastor_sign_out'); });
-                }}
-                onPersonaChange={(id: Persona) => {
-                  // Deliberate choice on the chip itself — stamp + sync (not a silent default).
-                  saveSetup({ persona: id, source: 'settings' });
-                  flushNow();
-                  track('persona_change', id);
-                }}
                 onCampusChange={(id) => {
                   saveProfile({
                     email: userProfile?.email || '',
@@ -2027,6 +2011,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 </div>
               );
             })()}
+            {/* Door 2 — the path swatch (Choose your path), beside the language swatch. */}
+            <PathSwatch persona={personaConfig.persona} />
             {/* Front-page language switcher — obvious on arrival, like futures.church. */}
             <LanguageSwitch />
             <ThemeToggle />
