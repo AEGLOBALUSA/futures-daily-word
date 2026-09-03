@@ -77,10 +77,14 @@ async function isSharedRateLimited(name, ip, max, windowMs = 60000) {
       .gte("created_at", since);
     if (error || count == null) return false;
 
-    // Opportunistic cleanup so the table doesn't grow unbounded.
+    // Opportunistic cleanup so the table doesn't grow unbounded — scoped to
+    // THIS bucket's keys. Unscoped, every 60-second caller (study, claude, the
+    // TTS functions) purged rows older than ten minutes across the whole
+    // table, collapsing any 24-hour bucket to ten minutes (review, 3 Sep 2026).
     if (Math.random() < 0.02) {
       await db.from("rate_limit_hits")
         .delete()
+        .like("key", `${name}:%`)
         .lt("created_at", new Date(Date.now() - 10 * windowMs).toISOString());
     }
 
@@ -90,4 +94,54 @@ async function isSharedRateLimited(name, ip, max, windowMs = 60000) {
   }
 }
 
-module.exports = { isSharedRateLimited };
+// ── Count now, record later ─────────────────────────────────────────────────
+// For a bucket that must only count SUCCESSFUL work (an email that actually
+// went out), not attempts: a refused or failed request must not spend the
+// person's allowance. Same storage, same fail-open posture as above.
+
+function countMem(key, windowMs) {
+  const now = Date.now();
+  if (!memHits[key]) return 0;
+  memHits[key] = memHits[key].filter(t => now - t < windowMs);
+  return memHits[key].length;
+}
+
+function recordMem(key) {
+  if (!memHits[key]) memHits[key] = [];
+  memHits[key].push(Date.now());
+}
+
+/** Hits recorded for `name:id` inside the window — the higher of memory and the shared table. */
+async function countSharedHits(name, id, windowMs) {
+  const key = `${name}:${id}`;
+  const local = countMem(key, windowMs);
+  try {
+    const db = getDb();
+    if (!db) return local;
+    const since = new Date(Date.now() - windowMs).toISOString();
+    const { count, error } = await db
+      .from("rate_limit_hits")
+      .select("*", { count: "exact", head: true })
+      .eq("key", key)
+      .gte("created_at", since);
+    if (error || count == null) return local;
+    return Math.max(local, count);
+  } catch {
+    return local;
+  }
+}
+
+/** Record one hit for `name:id`. Never throws. */
+async function recordSharedHit(name, id) {
+  const key = `${name}:${id}`;
+  recordMem(key);
+  try {
+    const db = getDb();
+    if (!db) return;
+    await db.from("rate_limit_hits").insert({ key });
+  } catch {
+    /* memory-only mode */
+  }
+}
+
+module.exports = { isSharedRateLimited, countSharedHits, recordSharedHit };

@@ -414,7 +414,7 @@ const UI: Translations = {
   sermon_notes_email_sent: { en: 'Sent. Check your inbox.', es: 'Enviado. Revisa tu bandeja de entrada.', pt: 'Enviado. Confira sua caixa de entrada.', id: 'Terkirim. Periksa kotak masuk Anda.' },
   sermon_notes_email_invalid: { en: 'Enter your email address.', es: 'Escribe tu correo electr\u00f3nico.', pt: 'Digite seu e-mail.', id: 'Masukkan alamat email Anda.' },
   sermon_notes_email_failed: { en: "That didn't send. Try again.", es: 'No se pudo enviar. Int\u00e9ntalo de nuevo.', pt: 'N\u00e3o foi enviado. Tente novamente.', id: 'Gagal terkirim. Coba lagi.' },
-  sermon_notes_email_limit: { en: 'Too many sends for now. Try again later.', es: 'Demasiados env\u00edos por ahora. Int\u00e9ntalo m\u00e1s tarde.', pt: 'Muitos envios por agora. Tente mais tarde.', id: 'Terlalu banyak pengiriman untuk saat ini. Coba lagi nanti.' },
+  sermon_notes_email_limit: { en: 'Too many sends for now. Try again later.', es: 'Demasiados env\u00edos por ahora. Int\u00e9ntalo m\u00e1s tarde.', pt: 'Muitos envios por enquanto. Tente mais tarde.', id: 'Terlalu banyak pengiriman untuk saat ini. Coba lagi nanti.' },
 
   // ── MESSAGES SCREEN ──
   publish: { en: 'Publish', es: 'Publicar', pt: 'Publicar', id: 'Terbitkan' },

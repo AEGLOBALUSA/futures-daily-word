@@ -124,15 +124,22 @@ async function issueSession(email) {
   return raw;
 }
 
-/** The current message for ONE congregation (one per congregation, by index). */
+/**
+ * The current message for ONE congregation (one per congregation, by index) —
+ * current TODAY: the flag AND inside its week (lib/sermon-window.js). Past its
+ * Sunday-morning turnover the row stays in the table and the archive but is no
+ * longer "this week's message" here either, so the media form cannot attach a
+ * video to an expired message and quietly bring it back.
+ */
 async function getCurrentPublished(congregation) {
   const { data } = await db()
     .from("published_sermons")
-    .select("id, sermon, is_current, congregation")
+    .select("id, sermon, is_current, congregation, published_at")
     .eq("is_current", true)
     .eq("congregation", normalizeCongregation(congregation))
     .maybeSingle();
-  return data || null;
+  if (!data) return null;
+  return isCurrentAt(data, new Date()) ? data : null;
 }
 
 async function findPublished(target, congregation) {
@@ -287,10 +294,12 @@ async function publishApproved(submission, staff) {
       const row = await findPublished(sermon.id, congregation) || await getCurrentPublished(congregation);
       if (!row) throw new Error("No published sermon to attach this video to");
       const merged = stripPublishFlags({ ...(row.sermon || {}), youtubeUrl: sermon.youtubeUrl || (row.sermon && row.sermon.youtubeUrl) || "" });
+      // Attaching the video is not a re-publish: published_at stays, so the
+      // weekly turnover (lib/sermon-window.js) is not pushed out a week by the
+      // Monday media form (review, 3 Sep 2026).
       const { error } = await db().from("published_sermons").update({
         sermon: merged,
         submission_id: submission.id,
-        published_at: new Date().toISOString(),
         published_by: staff.email
       }).eq("id", row.id);
       if (error) throw error;

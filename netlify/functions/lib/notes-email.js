@@ -21,23 +21,33 @@
  */
 
 const WORKSPACE_KEYS = ["ws-notes", "ws-takeaways", "ws-god", "ws-prayer", "ws-actions", "ws-followup"];
-const MAX_VALUE_CHARS = 4000;
-const MAX_TOTAL_CHARS = 40000;
+// Generous, and never silent: a value over the cap ends with an ellipsis and
+// the email says where the rest is; past the total, the email says so once.
+// (Review, 3 Sep 2026: the first cut trimmed a long "My notes" without a word.)
+const MAX_VALUE_CHARS = 20000;
+const MAX_TOTAL_CHARS = 120000;
+const CUT_MARK = "\u2026";
 
-/** Four languages, like the app. Labels only; the notes are the person's own words. */
+/**
+ * Four languages, like the app. Labels only; the notes are the person's own
+ * words. The workspace labels (myNotes … followUp) are copied VERBATIM from
+ * src/utils/i18n.ts (ws_my_notes, ws_key_takeaways, ws_what_god, ws_prayer,
+ * ws_action_steps, ws_follow_up) — this file cannot import the TS table, so
+ * when those strings change there, change them here.
+ */
 const LABELS = {
   en: {
     subject: "Your notes — {title}",
     heading: "Sermon Notes",
     yourNotes: "Your notes",
     response: "My response",
-    myNotes: "My notes",
-    takeaways: "Key takeaways",
-    god: "What God is saying to me",
+    myNotes: "My Notes",
+    takeaways: "Key Takeaways",
+    god: "What God Is Saying to Me",
     prayer: "Prayer",
-    actions: "Action steps",
-    followUp: "Follow up",
-    done: "Done",
+    actions: "Action Steps",
+    followUp: "Follow Up",
+    cut: "(cut here — the rest is in the app)",
     footer: "Sent once from the Futures Daily Word app because you asked for a copy of your notes.",
     open: "Open the app"
   },
@@ -47,12 +57,12 @@ const LABELS = {
     yourNotes: "Tus notas",
     response: "Mi respuesta",
     myNotes: "Mis notas",
-    takeaways: "Puntos clave",
+    takeaways: "Ideas clave",
     god: "Lo que Dios me está diciendo",
     prayer: "Oración",
-    actions: "Pasos de acción",
+    actions: "Pasos a seguir",
     followUp: "Seguimiento",
-    done: "Hecho",
+    cut: "(cortado aquí; el resto está en la app)",
     footer: "Enviado una sola vez desde la app Futures Daily Word porque pediste una copia de tus notas.",
     open: "Abrir la app"
   },
@@ -61,13 +71,13 @@ const LABELS = {
     heading: "Notas do Sermão",
     yourNotes: "Suas anotações",
     response: "Minha resposta",
-    myNotes: "Minhas anotações",
+    myNotes: "Minhas notas",
     takeaways: "Pontos principais",
     god: "O que Deus está me dizendo",
     prayer: "Oração",
-    actions: "Passos de ação",
+    actions: "Próximos passos",
     followUp: "Acompanhamento",
-    done: "Feito",
+    cut: "(cortado aqui; o resto está no app)",
     footer: "Enviado uma única vez pelo app Futures Daily Word porque você pediu uma cópia das suas anotações.",
     open: "Abrir o app"
   },
@@ -76,13 +86,13 @@ const LABELS = {
     heading: "Catatan Khotbah",
     yourNotes: "Catatan Anda",
     response: "Respons saya",
-    myNotes: "Catatan saya",
-    takeaways: "Poin utama",
-    god: "Apa yang Tuhan katakan kepada saya",
+    myNotes: "Catatan Saya",
+    takeaways: "Poin Utama",
+    god: "Apa yang Tuhan Katakan Padaku",
     prayer: "Doa",
-    actions: "Langkah tindakan",
-    followUp: "Tindak lanjut",
-    done: "Selesai",
+    actions: "Langkah Tindakan",
+    followUp: "Tindak Lanjut",
+    cut: "(dipotong di sini; sisanya ada di aplikasi)",
     footer: "Dikirim sekali dari aplikasi Futures Daily Word karena Anda meminta salinan catatan Anda.",
     open: "Buka aplikasi"
   }
@@ -110,14 +120,27 @@ function responseKeys(sermon) {
   return keys;
 }
 
+// Anything a mail client would turn into a link. A person's notes on a sermon
+// do not need one; a relay abuser needs nothing else. Scheme URLs, www. hosts
+// and bare host.tld tokens all go, in that order (review, 3 Sep 2026).
+const LINK_RE = /\b(?:https?:\/\/|ftp:\/\/|www\.)\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|co|me|app|info|biz|xyz|link|click|site|online|live|ru|cn|uk|au|us|church|global|college|tv|ly|gl|to|cc|edu|gov)\b(?:\/\S*)?/gi;
+const LINK_STAND_IN = "[link removed]";
+
+function stripLinks(text) {
+  return text.replace(LINK_RE, LINK_STAND_IN);
+}
+
 function cleanValue(v) {
   if (typeof v !== "string") return "";
-  return v
+  const text = stripLinks(v
     .replace(/\r\n?/g, "\n")
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-    .trim()
-    .slice(0, MAX_VALUE_CHARS);
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ""))
+    .trim();
+  return text.length > MAX_VALUE_CHARS ? text.slice(0, MAX_VALUE_CHARS).replace(/\s+$/, "") + CUT_MARK : text;
 }
+
+/** Non-enumerable marker on the picked set: something was left out for size. */
+const CUT_FLAG = Symbol("cut");
 
 /** The subset of `raw` this sermon can carry, cleaned and bounded. Never throws. */
 function pickResponses(sermon, raw) {
@@ -125,15 +148,22 @@ function pickResponses(sermon, raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
   const allowed = responseKeys(sermon);
   let total = 0;
+  let cut = false;
   for (const key of Object.keys(raw)) {
     if (!allowed.has(key)) continue;
     const value = cleanValue(raw[key]);
     if (!value) continue;
-    if (total + value.length > MAX_TOTAL_CHARS) break;
+    if (value.endsWith(CUT_MARK)) cut = true;
+    if (total + value.length > MAX_TOTAL_CHARS) { cut = true; break; }
     total += value.length;
     out[key] = value;
   }
+  if (cut) Object.defineProperty(out, CUT_FLAG, { value: true, enumerable: false });
   return out;
+}
+
+function wasCut(responses) {
+  return !!(responses && responses[CUT_FLAG]);
 }
 
 function hasAnyResponse(responses) {
@@ -238,6 +268,7 @@ function buildBlocks(sermon, responses, lang) {
     });
   }
 
+  if (wasCut(r)) push("note", L.cut);
   push("footer", L.footer);
   return blocks;
 }
@@ -318,6 +349,10 @@ function renderNotesEmail({ sermon, responses, lang, appUrl }) {
 }
 
 module.exports = {
+  wasCut,
+  CUT_MARK,
+  stripLinks,
+  LINK_STAND_IN,
   WORKSPACE_KEYS,
   MAX_VALUE_CHARS,
   MAX_TOTAL_CHARS,

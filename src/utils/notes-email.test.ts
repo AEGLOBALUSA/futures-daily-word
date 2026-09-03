@@ -51,7 +51,7 @@ describe('notes email — which answers are accepted', () => {
     const picked = m.pickResponses(SERMON, {
       'blank-grace-2026-09-06-1-2': '  free\u0000 and\r\nunearned  ',
       'resp-grace-2026-09-06-0': 'At work',
-      'ws-notes': 'x'.repeat(10_000),
+      'ws-notes': 'x'.repeat(30_000),
       'blank-other-1-2': 'someone else’s sermon',
       subject: 'hijack',
       'ws-prayer': 42,
@@ -59,7 +59,12 @@ describe('notes email — which answers are accepted', () => {
     });
     expect(Object.keys(picked).sort()).toEqual(['blank-grace-2026-09-06-1-2', 'commit-0', 'resp-grace-2026-09-06-0', 'ws-notes']);
     expect(picked['blank-grace-2026-09-06-1-2']).toBe('free and\nunearned');
-    expect(picked['ws-notes'].length).toBe(m.MAX_VALUE_CHARS);
+    expect(picked['ws-notes'].length).toBe(m.MAX_VALUE_CHARS + 1);
+    expect(picked['ws-notes'].endsWith(m.CUT_MARK)).toBe(true);
+    expect(m.wasCut(picked)).toBe(true);
+    expect(Object.keys(picked)).not.toContain('cut'); // the marker is not a key that travels
+    const cutMail = m.renderNotesEmail({ sermon: SERMON, responses: picked, lang: 'en' });
+    expect(cutMail.text).toContain('(cut here — the rest is in the app)');
   });
 
   it('never throws on a bad shape', () => {
@@ -102,7 +107,8 @@ describe('notes email — what goes out', () => {
     expect(mail.text).toContain('Where do you need grace this week?');
     expect(mail.text).toContain('At work, honestly.');
     expect(mail.text).toContain('YOUR NOTES');
-    expect(mail.text).toContain('Key takeaways');
+    expect(mail.text).toContain('Key Takeaways'); // verbatim the app's ws_key_takeaways
+    expect(mail.text).not.toContain('cut here');
     expect(mail.text).toContain('Stop keeping score');
     expect(mail.text).toContain('[x] Tell one person');
     expect(mail.text).not.toContain('[x] Read Romans 8');
@@ -126,6 +132,7 @@ describe('notes email — what goes out', () => {
 
   it('speaks the app’s four languages in its labels', () => {
     expect(m.renderNotesEmail({ sermon: SERMON, responses, lang: 'es' }).subject).toBe('Tus notas — Grace <that> Holds');
+    expect(m.renderNotesEmail({ sermon: SERMON, responses, lang: 'es' }).text).toContain('Ideas clave'); // the app's own ws_key_takeaways
     expect(m.renderNotesEmail({ sermon: SERMON, responses, lang: 'pt' }).text).toContain('MINHA RESPOSTA');
     expect(m.renderNotesEmail({ sermon: SERMON, responses, lang: 'id' }).text).toContain('CATATAN ANDA');
     expect(m.renderNotesEmail({ sermon: SERMON, responses, lang: 'xx' }).subject).toBe('Your notes — Grace <that> Holds');
@@ -135,5 +142,24 @@ describe('notes email — what goes out', () => {
     const bare = m.renderNotesEmail({ sermon: SERMON, responses: {}, lang: 'en' });
     expect(bare.text).toContain('Nothing left to prove');
     expect(bare.text).not.toContain('YOUR NOTES');
+  });
+});
+
+describe('notes email — no links in a person\'s answers (relay defence, 3 Sep 2026)', () => {
+  it('removes scheme URLs, www hosts and bare host.tld tokens, and keeps the rest of the sentence', () => {
+    expect(m.stripLinks('see https://evil.example/login?x=1 now')).toBe('see [link removed] now');
+    expect(m.stripLinks('go to www.phish.co/reset')).toBe('go to [link removed]');
+    expect(m.stripLinks('visit futures.church/looking today')).toBe('visit [link removed] today');
+    expect(m.stripLinks('bit.ly/abc and Romans 8:1')).toBe('[link removed] and Romans 8:1');
+    expect(m.stripLinks('Grace is a gift. Amen.')).toBe('Grace is a gift. Amen.');
+    expect(m.stripLinks('e.g. the 3.16 verse')).toBe('e.g. the 3.16 verse');
+  });
+
+  it('applies to every accepted answer before it is bounded', () => {
+    const picked = m.pickResponses(SERMON, { 'ws-notes': 'Sign in at https://x.example/a to keep your notes' });
+    expect(picked['ws-notes']).toBe('Sign in at [link removed] to keep your notes');
+    const mail = m.renderNotesEmail({ sermon: SERMON, responses: picked, lang: 'en' });
+    expect(mail.html).not.toContain('x.example');
+    expect(mail.text).not.toContain('x.example');
   });
 });

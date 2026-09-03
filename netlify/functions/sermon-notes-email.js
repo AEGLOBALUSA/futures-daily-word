@@ -15,15 +15,25 @@
  *   - References and public-domain text only: no NIV/NLT/ESV verse text in an
  *     email. lib/notes-email.js sends no verse text at all.
  *
- * What stops this being a relay for our sender:
- *   - the request must come from an allowed browser origin (no Origin, or an
- *     unknown one, is refused before any work);
- *   - the sermon must be a real published_sermons row, and the outline comes
- *     from THAT row — the client only sends answers, accepted under the keys
- *     the sermon actually has (lib/notes-email.js), every value bounded;
+ * What bounds this as a relay for our sender (none of it is a wall — the
+ * form is public by design, and an Origin header is forgeable by a script):
+ *   - a browser on another site is refused before any work (CORS + the Origin
+ *     allow-list), so the casual abuse path — a form on someone else's page —
+ *     does not exist;
+ *   - the sermon must be a real published_sermons row and the outline comes
+ *     from THAT row: the client only sends answers, accepted under the keys
+ *     the sermon actually has, every value bounded, and every link in them
+ *     removed (lib/notes-email.js) — a phishing email with no link is a dud;
  *   - the subject and every heading are ours; the person's words appear only
  *     as their answers, escaped;
- *   - a per-connection and a per-address brake through the shared limiter.
+ *   - brakes through the shared limiter (rate_limit_hits, created 3 Sep 2026;
+ *     fail-open by design): a global ceiling per hour and per day that no
+ *     Sunday reaches but a script does, a per-connection bucket sized for a
+ *     whole room on one wifi (never a handful — the /lean-in lesson), and a
+ *     per-address cap counted ONLY after a successful send, so a refused or
+ *     failed request never spends the person's allowance.
+ * The stronger gate — a Turnstile on the field — is a decision for Ashley:
+ * it needs a Cloudflare site for this app.
  *
  * Fails honestly: no RESEND_API_KEY → 503 "not set up"; a Resend refusal →
  * 502. The hub record is best-effort AFTER a successful send and never fails
@@ -32,7 +42,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 const { getAllowedOrigin, isAllowedOrigin } = require("./lib/cors");
-const { isSharedRateLimited } = require("./lib/rate-limit");
+const { isSharedRateLimited, countSharedHits, recordSharedHit } = require("./lib/rate-limit");
 const { normalizeCongregation, congregationName, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { pickResponses, renderNotesEmail } = require("./lib/notes-email");
 
@@ -41,6 +51,15 @@ const DEFAULT_FROM = "Futures Daily Word <notes@futuresdailyword.com>";
 const APP_URL = "https://futuresdailyword.com";
 const MAX_BODY_BYTES = 64 * 1024;
 const LANGS = new Set(["en", "es", "pt", "id"]);
+
+// Brakes. Sized for real Sundays first (three congregations, one after
+// another, a room of phones on one wifi), abuse second.
+const GLOBAL_PER_HOUR = 500;
+const GLOBAL_PER_DAY = 2000;
+const PER_CONNECTION_PER_10_MIN = 400;
+const PER_ADDRESS_PER_DAY = 6;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 // The comms hub's nation codes (hub_nation.code), by congregation. Australia's
 // contacts stay Australia's: the hub never mixes nations, so the row says which.
@@ -160,8 +179,9 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: headersFor(event), body: "" };
   if (event.httpMethod !== "POST") return json(event, 405, { error: "Method not allowed" });
 
-  // A browser on one of our origins, or nothing. curl and unknown sites get no
-  // further: this endpoint sends mail carrying a stranger's words.
+  // A browser on one of our origins. A form on another site is refused before
+  // any work; a script can forge the header, which is why the brakes and the
+  // link stripping below exist.
   const origin = event.headers.origin || event.headers.Origin || "";
   if (!isAllowedOrigin(origin)) return json(event, 403, { error: "This form is not accepting requests." });
 
@@ -182,15 +202,23 @@ exports.handler = async (event) => {
   if (!sermonId) return json(event, 400, { error: "Missing sermon" });
   const lang = LANGS.has(body.lang) ? body.lang : "en";
 
-  // Brakes before any read: per connection, then per address. Fail-open by the
-  // limiter's design (an infra blip never blocks a person from their notes).
+  // Brakes before any read. Fail-open by the limiter's design (an infra blip
+  // never blocks a person from their notes). The global ceilings are the real
+  // bound on abuse; the connection bucket is room-sized on purpose.
+  if (await isSharedRateLimited("sermon-notes-email-all-hour", "all", GLOBAL_PER_HOUR, HOUR_MS)
+    || await isSharedRateLimited("sermon-notes-email-all-day", "all", GLOBAL_PER_DAY, DAY_MS)) {
+    console.warn("[sermon-notes-email] global ceiling reached");
+    return json(event, 429, { error: "A lot of notes are being sent right now. Try again in a little while." });
+  }
   const ip = clientIp(event);
-  if (await isSharedRateLimited("sermon-notes-email", ip, 8, 10 * 60 * 1000)) {
+  if (await isSharedRateLimited("sermon-notes-email", ip, PER_CONNECTION_PER_10_MIN, 10 * 60 * 1000)) {
     return json(event, 429, { error: "Too many sends from this connection. Try again in a few minutes." });
   }
+  // Per address: counted only once a send has actually gone out (below), so
+  // six refusals never lock a person out of notes they never received.
   const addrKey = crypto.createHash("sha256").update(email).digest("hex").slice(0, 32);
-  if (await isSharedRateLimited("sermon-notes-email-addr", addrKey, 6, 24 * 60 * 60 * 1000)) {
-    return json(event, 429, { error: "That address has had its notes sent several times today. Check your inbox." });
+  if (await countSharedHits("sermon-notes-email-addr", addrKey, DAY_MS) >= PER_ADDRESS_PER_DAY) {
+    return json(event, 429, { error: "That address has reached today's limit for notes emails." });
   }
 
   try {
@@ -211,6 +239,7 @@ exports.handler = async (event) => {
         error: sent.error === "not_configured" ? "Email isn't set up yet." : "That didn't send. Try again."
       });
     }
+    await recordSharedHit("sermon-notes-email-addr", addrKey);
     console.log(`[sermon-notes-email] sent sermon=${sermonId} congregation=${congregation} to=${maskEmail(email)} answers=${Object.keys(responses).length} id=${sent.id || ""}`);
 
     const recorded = await recordInHub({ email, congregation, sermonId });
