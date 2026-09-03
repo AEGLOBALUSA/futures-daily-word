@@ -2096,7 +2096,8 @@ body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
    Same locked paper palette as .dw-sermon-notes; literal hexes because the page is light in both themes. */
 .dw-sermon-notes-email {
   margin: 28px 0 8px;
-  padding-top: 20px;
+  /* Room below Send so the floating AI bubble (bottom-right FAB) never sits on it at the page's end. */
+  padding: 20px 0 84px;
   border-top: 1px solid #ECE3D4;
 }
 .dw-sermon-notes-email-row {
