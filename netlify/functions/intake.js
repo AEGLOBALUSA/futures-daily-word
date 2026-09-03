@@ -662,6 +662,38 @@ exports.handler = async (event) => {
       return json(event, 200, { sermons: await listSermonChoices() });
     }
 
+    // Take a published message off Sermon Notes (Ashley, 2 Sep 2026, from Sermon
+    // Prep: "how do we solve the problem of deleting the sermon notes you have
+    // pushed"). The row is deleted, so it leaves the tab AND the past-messages
+    // list. If it was the current message for its congregation, nothing is
+    // current there until the next publish. Hub, media and admin only.
+    if (action === "sermon_remove") {
+      if (!["admin", "hub", "media"].includes(staff.role)) {
+        return json(event, 403, { error: "Only hub, media or admin staff can remove a published message." });
+      }
+      const id = String(body.id || "").trim().slice(0, 200);
+      if (!id) return json(event, 400, { error: "Missing id" });
+      const { data: row, error: findErr } = await db()
+        .from("published_sermons")
+        .select("id, sermon, is_current, congregation")
+        .eq("id", id)
+        .maybeSingle();
+      if (findErr) throw findErr;
+      if (!row) return json(event, 404, { error: "No published message with that id" });
+      const { error } = await db().from("published_sermons").delete().eq("id", id);
+      if (error) throw error;
+      console.log(`[intake] sermon_remove ${id} by ${staff.email} (current=${!!row.is_current}, congregation=${row.congregation || DEFAULT_CONGREGATION})`);
+      return json(event, 200, {
+        ok: true,
+        removed: {
+          id: row.id,
+          title: (row.sermon && row.sermon.title) || "",
+          congregation: row.congregation || DEFAULT_CONGREGATION,
+          wasCurrent: !!row.is_current
+        }
+      });
+    }
+
     // ── Admin-only ──
     if (staff.role !== "admin") return json(event, 403, { error: "Only Ashley can change this." });
 
