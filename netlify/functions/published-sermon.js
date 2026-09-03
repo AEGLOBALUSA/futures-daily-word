@@ -10,6 +10,10 @@
 const { createClient } = require("@supabase/supabase-js");
 const { getAllowedOrigin } = require("./lib/cors");
 const { isCongregationId, normalizeCongregation, DEFAULT_CONGREGATION } = require("./lib/congregations");
+// Weekly turnover (Ashley, 2 Sep 2026 night): a message stops being current on
+// the next Sunday morning in its congregation's local time — decided HERE, at
+// read time. Nothing is deleted; the archive keeps every row.
+const { currentUntil, isCurrentAt } = require("./lib/sermon-window");
 
 const LIST_LIMIT = 200;
 
@@ -50,11 +54,14 @@ exports.handler = async (event) => {
       if (!listAll) q = q.eq("congregation", congregation);
       const { data, error } = await q;
       if (error) throw error;
+      const now = new Date();
       const sermons = (data || [])
         .filter((row) => row && row.sermon && typeof row.sermon.id === "string")
         .map((row) => ({
           id: row.id,
-          is_current: !!row.is_current,
+          // "current" means current TODAY: the database flag and inside its week.
+          is_current: isCurrentAt(row, now),
+          current_until: row.is_current ? currentUntil(row, now).toISOString() : null,
           published_at: row.published_at || null,
           congregation: row.congregation || DEFAULT_CONGREGATION,
           sermon: row.sermon
@@ -69,13 +76,19 @@ exports.handler = async (event) => {
   try {
     const { data, error } = await db()
       .from("published_sermons")
-      .select("sermon")
+      .select("sermon, published_at, congregation, is_current")
       .eq("is_current", true)
       .eq("congregation", congregation)
       .maybeSingle();
     if (error) throw error;
-    const sermon = data && data.sermon && typeof data.sermon.id === "string" ? data.sermon : null;
-    return { statusCode: 200, headers, body: JSON.stringify({ sermon, congregation }) };
+    const now = new Date();
+    const live = !!(data && data.sermon && typeof data.sermon.id === "string");
+    // Past its Sunday-morning turnover the row stays (archive, Sermon Prep's
+    // list) but the congregation reads "no message this week".
+    const current = live && isCurrentAt(data, now);
+    const sermon = current ? data.sermon : null;
+    const current_until = live ? currentUntil(data, now).toISOString() : null;
+    return { statusCode: 200, headers, body: JSON.stringify({ sermon, congregation, current_until }) };
   } catch (err) {
     console.error("published-sermon", err);
     return { statusCode: 500, headers, body: JSON.stringify({ sermon: null }) };
