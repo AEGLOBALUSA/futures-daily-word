@@ -406,6 +406,15 @@ const UI: Translations = {
   language_label: { en: 'LANGUAGE', es: 'IDIOMA', pt: 'IDIOMA', id: 'BAHASA' },
   change_language: { en: 'Change language', es: 'Cambiar idioma', pt: 'Mudar idioma', id: 'Ganti bahasa' },
   sermon_notes_title: { en: 'Sermon Notes', es: 'Notas del Serm\u00f3n', pt: 'Notas do Serm\u00e3o', id: 'Catatan Khotbah' },
+  // Email these notes to me (Ashley, 2 Sep 2026 night): one field, one button, no unsubscribe.
+  sermon_notes_email_title: { en: 'Email these notes to me', es: 'Enviarme estas notas por correo', pt: 'Enviar estas anota\u00e7\u00f5es para meu e-mail', id: 'Kirim catatan ini ke email saya' },
+  sermon_notes_email_placeholder: { en: 'Your email', es: 'Tu correo', pt: 'Seu e-mail', id: 'Email Anda' },
+  sermon_notes_email_send: { en: 'Send', es: 'Enviar', pt: 'Enviar', id: 'Kirim' },
+  sermon_notes_email_sending: { en: 'Sending\u2026', es: 'Enviando\u2026', pt: 'Enviando\u2026', id: 'Mengirim\u2026' },
+  sermon_notes_email_sent: { en: 'Sent. Check your inbox.', es: 'Enviado. Revisa tu bandeja de entrada.', pt: 'Enviado. Confira sua caixa de entrada.', id: 'Terkirim. Periksa kotak masuk Anda.' },
+  sermon_notes_email_invalid: { en: 'Enter your email address.', es: 'Escribe tu correo electr\u00f3nico.', pt: 'Digite seu e-mail.', id: 'Masukkan alamat email Anda.' },
+  sermon_notes_email_failed: { en: "That didn't send. Try again.", es: 'No se pudo enviar. Int\u00e9ntalo de nuevo.', pt: 'N\u00e3o foi enviado. Tente novamente.', id: 'Gagal terkirim. Coba lagi.' },
+  sermon_notes_email_limit: { en: 'Too many sends for now. Try again later.', es: 'Demasiados env\u00edos por ahora. Int\u00e9ntalo m\u00e1s tarde.', pt: 'Muitos envios por agora. Tente mais tarde.', id: 'Terlalu banyak pengiriman untuk saat ini. Coba lagi nanti.' },
 
   // ── MESSAGES SCREEN ──
   publish: { en: 'Publish', es: 'Publicar', pt: 'Publicar', id: 'Terbitkan' },

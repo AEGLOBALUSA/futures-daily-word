@@ -5,6 +5,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { youtubeEmbedUrl } from '../utils/youtube';
 import { syncMisc } from '../utils/cloudSync';
+import { getLang, t } from '../utils/i18n';
+import { getProfileEmail } from '../utils/storage';
+import { localApiBase } from '../utils/api-base';
 
 export type SermonContentItem =
   | { type: 'text'; value: string }
@@ -41,6 +44,80 @@ function saveSermonResponses(sermonId: string, r: Record<string, string>) {
   const json = JSON.stringify(r);
   localStorage.setItem(`dw_sermon_${sermonId}`, json);
   syncMisc(`dw_sermon_${sermonId}`, json);
+}
+
+/**
+ * "Email these notes to me" (Ashley, 2 Sep 2026 night). One field, one button:
+ * the person's own filled-in notes, sent once to the address they give, from
+ * the app's own domain. No unsubscribe — his ruling; it is a one-off
+ * transactional send, and the address lands in the comms hub tagged
+ * "sermon notes" for any later mail, which carries the hub's own unsubscribe.
+ *
+ * The server holds the outline; only the answers travel (this page's blanks
+ * and the workspace boxes share one `dw_sermon_<id>` record, read fresh at
+ * the moment of sending), and it accepts them only under this sermon's keys.
+ */
+type EmailState = 'idle' | 'busy' | 'sent' | 'error';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function EmailNotesBlock({ sermonId, responses }: { sermonId: string; responses: Record<string, string> }) {
+  const lang = getLang();
+  const [email, setEmail] = useState(() => getProfileEmail());
+  const [state, setState] = useState<EmailState>('idle');
+  const [message, setMessage] = useState('');
+
+  const send = async () => {
+    if (state === 'busy') return;
+    const addr = email.trim();
+    if (!EMAIL_RE.test(addr)) { setState('error'); setMessage(t('sermon_notes_email_invalid', lang)); return; }
+    setState('busy'); setMessage('');
+    const all = { ...getSermonResponses(sermonId), ...responses };
+    try {
+      const r = await fetch(`${localApiBase()}/api/sermon-notes-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sermonId, email: addr, responses: all, lang }),
+      });
+      if (!r.ok) {
+        setState('error');
+        setMessage(t(r.status === 429 ? 'sermon_notes_email_limit' : 'sermon_notes_email_failed', lang));
+        return;
+      }
+      setState('sent'); setMessage(t('sermon_notes_email_sent', lang));
+    } catch {
+      setState('error'); setMessage(t('sermon_notes_email_failed', lang));
+    }
+  };
+
+  return (
+    <div className="dw-sermon-notes-email" data-testid="sermon-notes-email">
+      <p className="dw-sermon-notes-response-label">{t('sermon_notes_email_title', lang)}</p>
+      {/* noValidate: the browser's own bubble would swallow the submit on a bad address and this block
+          would say nothing — the same trap the staff form hit (DW PR #96). Our message, in their language. */}
+      <form className="dw-sermon-notes-email-row" noValidate onSubmit={e => { e.preventDefault(); void send(); }}>
+        <input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          className="dw-sermon-notes-email-input"
+          value={email}
+          onChange={e => { setEmail(e.target.value); if (state !== 'busy') { setState('idle'); setMessage(''); } }}
+          placeholder={t('sermon_notes_email_placeholder', lang)}
+          aria-label={t('sermon_notes_email_title', lang)}
+          disabled={state === 'busy'}
+          data-testid="sermon-notes-email-input"
+        />
+        <button type="submit" className="dw-sermon-notes-email-btn" disabled={state === 'busy'} data-testid="sermon-notes-email-send">
+          {state === 'busy' ? t('sermon_notes_email_sending', lang) : t('sermon_notes_email_send', lang)}
+        </button>
+      </form>
+      {message ? (
+        <p className={'dw-sermon-notes-email-msg' + (state === 'error' ? ' is-error' : '')} role="status" data-testid="sermon-notes-email-msg">
+          {message}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function metaDate(iso?: string) {
@@ -214,6 +291,10 @@ export function SermonNotesSurface({
           ))}
         </div>
       )}
+
+      {!readOnly && persist && sermon.id ? (
+        <EmailNotesBlock sermonId={sermon.id} responses={responses} />
+      ) : null}
     </article>
   );
 }

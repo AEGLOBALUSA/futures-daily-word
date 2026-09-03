@@ -29,6 +29,7 @@ const {
 } = require("./lib/intake-core");
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
+const { isCurrentAt } = require("./lib/sermon-window");
 
 let supabase;
 function db() {
@@ -159,7 +160,10 @@ async function listSermonChoices() {
     .order("published_at", { ascending: false })
     .limit(60);
   const out = [];
-  if ((published || []).some((r) => r.is_current)) {
+  // "current" = the flag AND inside its week (weekly turnover, lib/sermon-window.js),
+  // so the staff form agrees with what the congregation sees.
+  const now = new Date();
+  if ((published || []).some((r) => isCurrentAt(r, now))) {
     out.push({ id: "__current__", title: "This week's published message", source: "current" });
   }
   for (const r of published || []) {
@@ -169,7 +173,7 @@ async function listSermonChoices() {
       title: s.title || r.id,
       date: s.date || "",
       speaker: s.speaker || "",
-      current: !!r.is_current,
+      current: isCurrentAt(r, now),
       congregation: r.congregation || DEFAULT_CONGREGATION,
       congregationName: congregationName(r.congregation || DEFAULT_CONGREGATION),
       source: "published"
