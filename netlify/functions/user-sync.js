@@ -327,7 +327,10 @@ exports.handler = async (event) => {
       if (miscIn && typeof miscIn === "object" && !Array.isArray(miscIn)) {
         // Known-large authored keys get a higher cap (a single key holds ALL sermon
         // notes / the whole "My Season" story — years of use exceed 20k chars).
-        const LARGE_KEY_CAPS = { dw_sermon_notes: 200000, dw_user_story: 100000 };
+        // dw_sermons is the pastor's whole sermon collection (Sermon Prep caps it at
+        // 400,000 chars); at 20,000 a single ordinary manuscript is silently skipped
+        // and the cloud copy freezes — the primary artefact never backs up.
+        const LARGE_KEY_CAPS = { dw_sermon_notes: 200000, dw_user_story: 100000, dw_sermons: 400000 };
         const storedMisc = (existing && existing.misc && typeof existing.misc === "object" && !Array.isArray(existing.misc))
           ? existing.misc : {};
         const misc = {};
