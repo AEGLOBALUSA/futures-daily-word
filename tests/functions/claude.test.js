@@ -55,12 +55,11 @@ afterAll(() => { Module._load = realLoad; });
 
 const anthropic = vi.fn();
 
-function event({ origin, body }) {
-  return {
-    httpMethod: 'POST',
-    headers: { origin, 'x-forwarded-for': '203.0.113.9' },
-    body: JSON.stringify(body),
-  };
+function event({ origin, referer, body }) {
+  const headers = { 'x-forwarded-for': '203.0.113.9' };
+  if (origin) headers.origin = origin;
+  if (referer) headers.referer = referer;
+  return { httpMethod: 'POST', headers, body: JSON.stringify(body) };
 }
 
 const validBody = (extra = {}) => ({ messages: [{ role: 'user', content: 'hi' }], ...extra });
@@ -139,6 +138,38 @@ describe('claude proxy — the pastor-only origin must prove a session', () => {
   });
 });
 
+describe('claude proxy — the Referer path cannot step around the gate', () => {
+  // The function admits a request with NO Origin if its Referer is allow-listed.
+  // A gate keyed on the Origin header alone would therefore see an empty string
+  // and wave the request through with no session at all.
+  it('refuses no-Origin + a Sermon Prep Referer when there is no session', async () => {
+    const res = await handler(event({
+      referer: 'https://pastors-sermon-prep.netlify.app/',
+      body: validBody(),
+    }));
+    expect(res.statusCode).toBe(401);
+    expect(anthropic).not.toHaveBeenCalled();
+  });
+
+  it('refuses a deep Sermon Prep Referer path too', async () => {
+    const res = await handler(event({
+      referer: 'https://pastors-sermon-prep.netlify.app/some/page?x=1',
+      body: validBody(),
+    }));
+    expect(res.statusCode).toBe(401);
+    expect(anthropic).not.toHaveBeenCalled();
+  });
+
+  it('allows that same Referer path WITH a live session', async () => {
+    sessionRow = { expires_at: new Date(Date.now() + 3600_000).toISOString() };
+    const res = await handler(event({
+      referer: 'https://pastors-sermon-prep.netlify.app/',
+      body: validBody({ staffToken: LIVE_TOKEN }),
+    }));
+    expect(res.statusCode).toBe(200);
+  });
+});
+
 describe('claude proxy — Daily Word itself is unchanged', () => {
   it("serves Daily Word's own origin with no token at all", async () => {
     const res = await handler(event({ origin: DAILY_WORD, body: validBody() }));
@@ -148,6 +179,12 @@ describe('claude proxy — Daily Word itself is unchanged', () => {
 
   it('does not consult the database for a congregation origin', async () => {
     await handler(event({ origin: DAILY_WORD, body: validBody() }));
+    expect(lookedUpHash).toBeNull();
+  });
+
+  it("serves Daily Word's own Referer with no Origin and no token", async () => {
+    const res = await handler(event({ referer: 'https://futuresdailyword.com/', body: validBody() }));
+    expect(res.statusCode).toBe(200);
     expect(lookedUpHash).toBeNull();
   });
 

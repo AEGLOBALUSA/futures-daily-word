@@ -5,7 +5,7 @@
 
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { ALLOWED_ORIGINS, parseRequestOrigin } = require('./lib/cors');
 const { isSharedRateLimited } = require('./lib/rate-limit');
 
 // Origins that must PROVE a staff session before this endpoint spends a token.
@@ -36,13 +36,14 @@ function getSupabase() {
 }
 
 /**
- * True when `rawToken` is a live staff session. Fails CLOSED: a malformed
- * token, an expired row, a missing row or any error answers false, so an
- * outage of the database cannot turn into free completions.
+ * The session's token HASH when `rawToken` is a live staff session, else null.
+ * The hash doubles as a per-pastor rate-limit key; the raw token never leaves
+ * this function. Fails CLOSED: a malformed token, an expired row, a missing row
+ * or any error answers null, so a database outage cannot become free completions.
  */
-async function hasLiveStaffSession(rawToken) {
+async function liveStaffSessionKey(rawToken) {
   const raw = typeof rawToken === 'string' ? rawToken.trim() : '';
-  if (!raw || raw.length < 32 || raw.length > 200) return false;
+  if (!raw || raw.length < 32 || raw.length > 200) return null;
   try {
     const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
     const { data, error } = await getSupabase()
@@ -50,10 +51,11 @@ async function hasLiveStaffSession(rawToken) {
       .select('expires_at')
       .eq('token_hash', tokenHash)
       .maybeSingle();
-    if (error || !data) return false;
-    return new Date(data.expires_at).getTime() > Date.now();
+    if (error || !data) return null;
+    if (new Date(data.expires_at).getTime() <= Date.now()) return null;
+    return `staff:${tokenHash.slice(0, 32)}`;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -103,11 +105,13 @@ exports.handler = async (event) => {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
   }
 
-  const clientIP = event.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
-                    event.headers?.['client-ip'] || 'unknown';
-  if (await isSharedRateLimited('claude', clientIP, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW)) {
-    return { statusCode: 429, headers: corsHeaders, body: JSON.stringify({ error: 'Too many requests. Please slow down.' }) };
-  }
+  // ONE effective origin for every rule below. A request with no Origin is
+  // admitted on its Referer above, so any rule keyed on `origin` alone could be
+  // stepped around by sending a Referer and omitting Origin — which is exactly
+  // how a caller with no session would reach the token gate and find it looking
+  // at an empty string.
+  const effectiveOrigin = origin || parseRequestOrigin(referer);
+
 
   const API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!API_KEY) {
@@ -130,9 +134,25 @@ exports.handler = async (event) => {
 
     // A pastor-only origin proves it is a pastor. Checked before the Anthropic
     // call, so a refusal costs nothing.
-    if (TOKEN_REQUIRED_ORIGINS.has(origin) && !(await hasLiveStaffSession(body.staffToken))) {
-      console.warn('[Claude] refused: no live staff session for', origin);
+    // Verified once, then used twice: as the gate, and as this pastor's own
+    // rate-limit bucket. Anonymous Daily Word callers never reach the lookup.
+    const sessionKey = body.staffToken ? await liveStaffSessionKey(body.staffToken) : null;
+    if (TOKEN_REQUIRED_ORIGINS.has(effectiveOrigin) && !sessionKey) {
+      console.warn('[Claude] refused: no live staff session for', effectiveOrigin);
       return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Sign in required' }) };
+    }
+    // The token has done its job. It is never forwarded and never logged.
+    delete body.staffToken;
+
+    // Rate limit AFTER the session check, so a verified pastor gets his own
+    // bucket. Keying everyone on the client IP put a whole staff team behind one
+    // church wifi into a single ten-per-minute bucket — the shape of the
+    // /lean-in incident. Anonymous callers still share the IP bucket.
+    const clientIP = event.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
+                      event.headers?.['client-ip'] || 'unknown';
+    const bucket = sessionKey || `ip:${clientIP}`;
+    if (await isSharedRateLimited('claude', bucket, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW)) {
+      return { statusCode: 429, headers: corsHeaders, body: JSON.stringify({ error: 'Too many requests. Please slow down.' }) };
     }
 
     const sanitized = {
