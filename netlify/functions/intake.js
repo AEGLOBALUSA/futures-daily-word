@@ -42,6 +42,8 @@ function headersFor(event) {
     "Access-Control-Allow-Origin": getAllowedOrigin(origin),
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    // One preflight a day per route from Sermon Prep, not one per open.
+    "Access-Control-Max-Age": "86400",
     "Content-Type": "application/json"
   };
 }
