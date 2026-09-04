@@ -20,7 +20,11 @@ const ALLOWED_ORIGINS = [
   // Pastors Sermon Prep — the standalone pastor app (AEGLOBALUSA/pastors-sermon-prep).
   // It shares this backend's intake (staff sign-in, password change, Sunday
   // publish), pastor-admin (campus code), published-sermon and user-sync.
-  'https://pastors-sermon-prep.netlify.app'
+  'https://pastors-sermon-prep.netlify.app',
+  // Futures Notes — the standalone notes app (AEGLOBALUSA/futures-notes). It
+  // shares ONLY this backend's intake (staff sign-in via `login` / `me` /
+  // `logout`); its notes, AI and Granola functions live on its own site.
+  'https://futures-notes.netlify.app'
 ];
 
 /** Parse Origin (or Referer URL) into an origin string for allowlist checks. */
