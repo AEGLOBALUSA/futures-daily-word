@@ -65,7 +65,8 @@ describe('pastor Preach card deep-links to Pastors Sermon Prep (Ashley, 9 Sep 20
     const row = HOME.slice(HOME.indexOf('const sermonNotesRow'), HOME.indexOf('const [showJourneyDay'));
     expect(row).toMatch(/if \(personaConfig\.persona === 'pastor_leader'\) \{\s*window\.location\.assign\(PREP_URL\);\s*return;/);
     expect(row).toMatch(/openCongregationChooser\('open'\)/);
-    expect(row).toMatch(/Opens Pastors Sermon Prep/);
+    expect(row).toMatch(/t\('preach_card_sub'\)/);
+    expect(HOME).toMatch(/'preach_card_sub': \{ en: 'Opens Pastors Sermon Prep'/);
   });
 
   it('sermon-notes tab is always congregation notes — never PreachScreen', () => {
