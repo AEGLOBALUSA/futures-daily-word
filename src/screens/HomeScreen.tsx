@@ -69,6 +69,9 @@ const TRANSLATIONS: TranslationCode[] = ['ESV', 'KJV', 'NKJV', 'NIV', 'AMP', 'NA
 const NEW_FAITH_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV'];
 const CONGREGATION_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV', 'KJV', 'NKJV'];
 const COMFORT_TRANSLATIONS: TranslationCode[] = ['ESV', 'NIV'];
+// Ashley 9 Sep 2026: stop half-rebuilding pastor prep in Daily Word. The Home
+// Preach card for pastor_leader leaves this origin for the live Prep app.
+const PREP_URL = 'https://pastors-sermon-prep.netlify.app';
 
 // Language-specific translation lists — non-English languages have their own available translations
 const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
@@ -296,7 +299,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     'campus_stats_view': { en: 'View stats', es: 'Ver estadísticas', pt: 'Ver estatísticas', id: 'Lihat statistik' },
     'campus_stats_error': { en: 'Couldn’t load live stats — check your campus code.', es: 'No se pudieron cargar las estadísticas — verifica tu código de sede.', pt: 'Não foi possível carregar as estatísticas — verifique seu código de campus.', id: 'Statistik tidak dapat dimuat — periksa kode kampusmu.' },
     'preach_card_title': { en: 'Preach', es: 'Predicar', pt: 'Pregar', id: 'Berkhotbah' },
-    'preach_card_sub': { en: "Prepare this week's message — study, outline, publish", es: 'Prepara el mensaje de esta semana — estudia, esquematiza, publica', pt: 'Prepare a mensagem desta semana — estude, esquematize, publique', id: 'Siapkan pesan minggu ini — pelajari, susun, terbitkan' },
+    'preach_card_sub': { en: 'Opens Pastors Sermon Prep', es: 'Abre Pastors Sermon Prep', pt: 'Abre Pastors Sermon Prep', id: 'Membuka Pastors Sermon Prep' },
   };
   const t = (key: string): string => UI_STRINGS[key]?.[appLanguage] || UI_STRINGS[key]?.['en'] || key;
 
@@ -1777,10 +1780,19 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // Three Sermon Notes — Futures USA / Futures Australia / Futuros USA. The
   // banner opens the chooser (a real drop-down, every tap); a pick opens the
   // notes for that church. The sub-line names the one currently chosen.
+  // pastor_leader is the exception (Ashley, 9 Sep 2026): this card leaves
+  // Daily Word for Pastors Sermon Prep. Congregation notes stay on the
+  // sermon-notes tab / Sunday QR, never behind this Preach card.
   const sermonNotesRow = (
     <button
-      onClick={() => openCongregationChooser('open')}
-      aria-haspopup="dialog"
+      onClick={() => {
+        if (personaConfig.persona === 'pastor_leader') {
+          window.location.assign(PREP_URL);
+          return;
+        }
+        openCongregationChooser('open');
+      }}
+      aria-haspopup={personaConfig.persona === 'pastor_leader' ? undefined : 'dialog'}
       data-testid="home-sermon-notes-banner"
       aria-label={personaConfig.persona === 'pastor_leader' ? t('preach_card_title') : tI18n('sermon_notes_title', lang)}
       style={{

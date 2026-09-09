@@ -56,3 +56,22 @@ describe('pastor day-one floor', () => {
     expect(HOME).toMatch(/currentPassage=\{heroChapterRefs\[heroChapterIndex\] \|\| heroChapterRefs\[0\] \|\| ''\}/);
   });
 });
+
+describe('pastor Preach card deep-links to Pastors Sermon Prep (Ashley, 9 Sep 2026)', () => {
+  const APP = readFileSync(join(__dirname, '../App.tsx'), 'utf-8');
+
+  it('pastor_leader Home Preach assigns the live Prep URL; other personas still open congregation notes', () => {
+    expect(HOME).toMatch(/const PREP_URL = 'https:\/\/pastors-sermon-prep\.netlify\.app'/);
+    const row = HOME.slice(HOME.indexOf('const sermonNotesRow'), HOME.indexOf('const [showJourneyDay'));
+    expect(row).toMatch(/if \(personaConfig\.persona === 'pastor_leader'\) \{\s*window\.location\.assign\(PREP_URL\);\s*return;/);
+    expect(row).toMatch(/openCongregationChooser\('open'\)/);
+    expect(row).toMatch(/t\('preach_card_sub'\)/);
+    expect(HOME).toMatch(/'preach_card_sub': \{ en: 'Opens Pastors Sermon Prep'/);
+  });
+
+  it('sermon-notes tab is always congregation notes — never PreachScreen', () => {
+    expect(APP).toMatch(/'sermon-notes': <SermonNotesTab onBack=\{\(\) => navigateTab\('home'\)\} \/>/);
+    expect(APP).not.toMatch(/PreachScreen/);
+    expect(APP).not.toMatch(/screens\/PreachScreen/);
+  });
+});

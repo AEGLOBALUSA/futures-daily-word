@@ -1,9 +1,8 @@
 /**
- * PreachScreen — the pastor's weekly workspace (design doc §4.3).
- * Lives on the hidden `sermon-notes` tab, swapped in by App.tsx only for the
- * pastor_leader persona. Everyone else keeps the existing congregation
- * Sermon Notes surface — this component itself re-checks the persona and
- * falls back to it, so it is never a blank screen if reached directly.
+ * PreachScreen — leftover in-app pastor workspace (design doc §4.3).
+ * Not mounted from App or Home as of 9 Sep 2026 (Ashley): pastor_leader
+ * Home Preach deep-links to Pastors Sermon Prep; the `sermon-notes` tab is
+ * always congregation notes. Kept because unit tests still cover this file.
  *
  * Order, top to bottom: THIS WEEK (focus line + the published sermon, if
  * any) → a four-way Prep / Outline / Publish / Archive workspace. The last
