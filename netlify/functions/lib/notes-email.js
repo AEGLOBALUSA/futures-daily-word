@@ -121,22 +121,48 @@ function responseKeys(sermon) {
 }
 
 // Anything a mail client would turn into a link. A person's notes on a sermon
-// do not need one; a relay abuser needs nothing else. Scheme URLs, www. hosts
-// and bare host.tld tokens all go, in that order (review, 3 Sep 2026).
-const LINK_RE = /\b(?:https?:\/\/|ftp:\/\/|www\.)\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|co|me|app|info|biz|xyz|link|click|site|online|live|ru|cn|uk|au|us|church|global|college|tv|ly|gl|to|cc|edu|gov)\b(?:\/\S*)?/gi;
+// do not need one; a relay abuser needs nothing else. Scheme URLs and www.
+// hosts go unconditionally; so does anything shaped like an email address.
+// A bare host.tld goes when it carries a path, or when its (lower-case) top
+// level is not an ordinary word — so "futures-secure.tk", "evil.shop" and
+// "bit.ly/abc" are removed, while a missing space after a full stop in the
+// person's own sentence ("to church.To pray", "loves.Me") is left alone.
+// (Review, 3 Sep 2026: a 40-TLD allow-list let every other TLD through and
+// ate typo'd words; this is the other way round.)
+// Only lower-case matches reach this list (HOST_RE is case-sensitive: "church.To" is a sentence,
+// full stop). Kept small and ordinary; spam's own top levels (.top .shop .tk .xyz …) are not here.
+const WORD_TLDS = new Set(["to", "me", "us", "co", "app", "info", "link", "click", "site", "online", "live", "church",
+  "global", "tv", "ly", "gl", "cc", "so", "it", "is", "be", "at", "in", "no", "am", "by", "do", "go", "my", "one", "now",
+  "new", "day", "life", "love", "world", "today", "how", "run"]);
+const SCHEME_RE = /\b(?:https?:\/\/|ftp:\/\/|www\.)\S+/gi;
+const MAILTO_RE = /[^\s@<>()"']+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,24}\b/gi;
+const HOST_RE = /\b((?:[a-z0-9-]+\.)+)([a-z]{2,24})\b(\/\S*)?/g;
 const LINK_STAND_IN = "[link removed]";
 
 function stripLinks(text) {
-  return text.replace(LINK_RE, LINK_STAND_IN);
+  return text
+    .replace(SCHEME_RE, LINK_STAND_IN)
+    .replace(MAILTO_RE, LINK_STAND_IN)
+    .replace(HOST_RE, (m, host, tld, path) => {
+      if (path) return LINK_STAND_IN;              // anything.tld/… is a link
+      if (WORD_TLDS.has(tld)) return m;            // "church.To" typed on a phone — a sentence, not a host
+      if (/^\d+(?:\.\d+)*\.$/.test(host)) return m; // "3.16" style numbers never reach here, but be safe
+      return LINK_STAND_IN;
+    });
 }
 
+
+/** { text, cut } — `cut` is decided by LENGTH before slicing, never by what the text ends with. */
 function cleanValue(v) {
-  if (typeof v !== "string") return "";
+  if (typeof v !== "string") return { text: "", cut: false };
   const text = stripLinks(v
     .replace(/\r\n?/g, "\n")
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ""))
     .trim();
-  return text.length > MAX_VALUE_CHARS ? text.slice(0, MAX_VALUE_CHARS).replace(/\s+$/, "") + CUT_MARK : text;
+  if (text.length > MAX_VALUE_CHARS) {
+    return { text: text.slice(0, MAX_VALUE_CHARS).replace(/\s+$/, "") + CUT_MARK, cut: true };
+  }
+  return { text, cut: false };
 }
 
 /** Non-enumerable marker on the picked set: something was left out for size. */
@@ -151,9 +177,10 @@ function pickResponses(sermon, raw) {
   let cut = false;
   for (const key of Object.keys(raw)) {
     if (!allowed.has(key)) continue;
-    const value = cleanValue(raw[key]);
+    const cleaned = cleanValue(raw[key]);
+    const value = cleaned.text;
     if (!value) continue;
-    if (value.endsWith(CUT_MARK)) cut = true;
+    if (cleaned.cut) cut = true;
     if (total + value.length > MAX_TOTAL_CHARS) { cut = true; break; }
     total += value.length;
     out[key] = value;
@@ -342,7 +369,7 @@ function renderNotesEmail({ sermon, responses, lang, appUrl }) {
   const title = String(s.title || "").trim() || L.heading;
   const blocks = buildBlocks(s, responses || {}, lang);
   return {
-    subject: L.subject.replace("{title}", title).slice(0, 200),
+    subject: L.subject.replace("{title}", () => title).slice(0, 200), // a function: "$&" in a title stays literal
     text: renderText(blocks, appUrl, lang),
     html: renderHtml(blocks, appUrl, lang, L.heading)
   };
