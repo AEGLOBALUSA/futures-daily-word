@@ -1,0 +1,77 @@
+{
+ "findings": [
+  {
+   "element": "Preach hand-off card (design: \"Preach hand-off card\"; live at src/screens/HomeScreen.tsx:1786-1830, window.location.assign(PREP_URL))",
+   "ruling": "BLOCKS USER \u2014 the tap that leaves the app leaves the bag behind. The whole loop the design builds (file with 'To sermon' \u2192 8 filed verses) ends at a card that navigates to another origin with nothing carried, and the only export ('Copy all') sits in a different card further up. On Sunday he taps Preach, lands in Pastors Sermon Prep empty, and has to come back, scroll, copy, and re-open.",
+   "severity": "blocker",
+   "change": "Put the export on the card that leaves: the Preach tap copies the filed verses + focus to the clipboard first and the week line reads '3 filed since Sunday \u2014 copied, paste into Prep', or leave Preach alone and move 'Copy all' to sit directly above it."
+  },
+  {
+   "element": "Campus code submit \u2014 src/screens/HomeScreen.tsx:4296-4306 (disabled={!pastorCodeInput.trim()}, opacity 0.5); input at 4281-4295 has no placeholder",
+   "ruling": "BLOCKS USER / RULING \u2014 a greyed submit beside a field a pastor pastes into, and the 'what goes here' text is a paragraph above the control instead of inside it. iOS paste does not always fire change; he pastes a code from a text message and the button stays grey with nothing telling him why. The design touches this card (\"the field stays as the fallback\") and does not fix it.",
+   "severity": "blocker",
+   "change": "Remove the disabled/opacity gate, put the hint inside the field as a placeholder ('8-character campus code'), and on an empty press show the required-field line directly beside the button."
+  },
+  {
+   "element": "Campus code input \u2014 src/screens/HomeScreen.tsx:4293 (fontSize: 13); and the new For Sunday focus field (design: ForSundayStrip.tsx focus line)",
+   "ruling": "BLOCKS USER \u2014 any input under 16px makes iOS Safari zoom the page on focus; he taps the code field or the preaching-focus field on a phone and Home jumps and re-lays out mid-typing. The design specifies a new editable field with no type size.",
+   "severity": "blocker",
+   "change": "Set every input on this path to font-size 16px minimum, including the new For Sunday focus field, and give the code field inputMode='text' autoCapitalize='characters' (already set) with maxLength."
+  },
+  {
+   "element": "Greeting day count and grace line (design copy 'Day 12', '34 days'; fed by recordStreakToday() at src/screens/HomeScreen.tsx:786-795, empty deps)",
+   "ruling": "RULING \u2014 only real numbers, or none. The design correctly refuses the streak as a source for Your Week, then leaves the same open-counted number as the headline on the first screenful and as the trigger for the new grace line. An app-open with no reading still prints 'Day 12' and can print 'You missed yesterday. Your streak's still here.' to a pastor who read every day.",
+   "severity": "should",
+   "change": "Point the greeting count, the streak chip and the grace line at the same dw_read_days record the design builds for Your Week; leave recordStreakToday for the freeze mechanics only."
+  },
+  {
+   "element": "Between You & God question bank \u2192 public/books/pastor-prompts.json (design build step 8; listed under self_serve_levers as 'a campus pastor edits questions and nobody rebuilds')",
+   "ruling": "RULING \u2014 self-serve over developer levers. A file in public/books needs a commit, a deploy and a coordinated CACHE_NAME/STATIC_CACHE/SW_VERSION bump. That is Ashley three times, not a pastor once, and the design's own risk list says the SW trap has already bitten /books.",
+   "severity": "should",
+   "change": "Serve the bank from the data path the design already praises (study_* tables via study.js, no deploy) or an owner-editable row, and keep the JSON as the bundled offline fallback only \u2014 or drop the self-serve claim.",
+   "name": "pastor-prompts"
+  },
+  {
+   "element": "Milestone banner emoji \u2014 src/sections/GreetingSection.tsx:53 ('\ud83d\udd25 Milestone Reached'), src/screens/HomeScreen.tsx:4457 (56px \ud83d\udd25), src/components/DoneCelebration.tsx:121",
+   "ruling": "RULING \u2014 no emoji as UI. The design removes the fire banner and 'Keep the momentum going. You're amazing.' for pastor_leader only, leaving a 56px fire emoji as the milestone screen for the other four paths on the same build.",
+   "severity": "should",
+   "change": "Remove the emoji from all three call sites app-wide and keep the plain milestone line; persona only changes the words, not whether there is an emoji."
+  },
+  {
+   "element": "'Hard week? Read the comfort verses.' \u2014 Home order (under Between You & God) and Between You & God order (comfort line, soul questions only); build step 12 adds it in both files",
+   "ruling": "RULING \u2014 quiet. On a soul-question day the identical sentence renders twice within about 40px, on the one card the design says must read as a friend rather than a diagnostic. Two identical offers read as the app worrying about him.",
+   "severity": "should",
+   "change": "Render it once: inside the card when a soul question is showing, on Home otherwise \u2014 one line either way."
+  },
+  {
+   "element": "Between You & God buttons \u2014 src/components/PastoralReflectionSection.tsx:43-75 (padding '8px 16px', no minHeight, ~33px tall); For Sunday's three-action row",
+   "ruling": "RULING \u2014 mobile first, tap targets. The design renames both buttons ('Write it down', 'Think it through') without resizing them, and then adds a third action row ('Build an outline from these' \u00b7 'Read what I'm preaching' \u00b7 'Copy all') whose longest label alone is most of a 375px line.",
+   "severity": "should",
+   "change": "minHeight 44 on both reflection buttons; stack the For Sunday actions as full-width rows below 400px instead of a three-up row."
+  },
+  {
+   "element": "Verification width \u2014 build steps 4 and 13 and the risks list ('check it at 390px', 'measure the sheet at 390 wide', 'a 390px pass in light and dark')",
+   "ruling": "RULING \u2014 works at 375px. Every acceptance check in the design is written at 390. The ChoosePathSheet's no-scroll budget (~481px, 537 with the sign-out row) and the new For Sunday row are exactly the things that break in the 15px between the two.",
+   "severity": "should",
+   "change": "Change every check to 375px (iPhone SE/mini) and re-state the sheet height budget at 375."
+  },
+  {
+   "element": "'For your message' framing line \u2014 design order puts the paragraph at position 2, above the four pinned prompt buttons",
+   "ruling": "RULING \u2014 the deliverable sits at the top, process notes below. Three sentences of framing above the four buttons pushes the only actions in the block roughly four lines down at 375px, on a section he opens to do one thing.",
+   "severity": "nit",
+   "change": "Keep the framing line inside the block but place it directly under the four buttons, above the generic quick prompts \u2014 it still reads before he sends anything."
+  },
+  {
+   "element": "For Sunday cap notice \u2014 'Holding the last 40. The oldest drop off.' (MAX_ITEMS, src/utils/sermonPrep.ts:24; save() slices silently)",
+   "ruling": "RULING \u2014 the strip promises 'It waits until you preach it', then deletes his oldest captures with a notice that only appears once they are already gone. A pastor filing through a long series loses work he was told was held.",
+   "severity": "nit",
+   "change": "Show the notice from ~32 items with 'Copy all' beside it, so the warning arrives before anything is dropped; and give the per-row Remove a 5-second undo."
+  },
+  {
+   "element": "VERDICT + what is right (keep)",
+   "ruling": "FIX FIRST (11) \u2014 nothing here is a rethink; each is one element. Right and to be kept: the arrival seed is left alone, persona-gated and credit-free (HomeScreen.tsx:1449-1456); preach_card_sub stays byte-identical with only position moving, honouring both the demotion ruling and the 9 Sep pin; the whole reshape is preview-gated to Ashley's approval before merge; password sign-in stands with no magic link (PastorSignIn.tsx:5); the fabricated campus counter is disarmed while the src/sections file and its export survive; and the For Sunday empty state is an invitation inside the control with no greyed button.",
+   "severity": "info",
+   "change": "No change \u2014 keep as designed."
+  }
+ ]
+}

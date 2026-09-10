@@ -1,0 +1,12 @@
+{
+ "lens": "research-fidelity",
+ "refuted": true,
+ "issues": [
+  {
+   "move": "Excluding Romans 8:28 and Jeremiah 29:11 from the crisis surface as \"explanation verses\" under negative religious coping",
+   "problem": "The design cites persona-research.md:139 as the evidential basis for excluding these two verses, but that line's actual taxonomy contradicts the exclusion. Line 139 reads: 'Positive religious coping (God's presence, benevolent reframing), which predicts better outcomes; negative coping (\"punishing God\", \"have more faith\") predicts decline (Pargament & Koenig 2004, longitudinal).' Romans 8:28 ('God works all things together for good') is a textbook instance of benevolent reframing, which the research explicitly places in the POSITIVE coping bucket, not the negative one. Negative coping in the cited research is defined by content like a punishing God or demands for more faith \u2014 neither of which matches Romans 8:28 or Jeremiah 29:11 ('plans to prosper you'). The design invents a new category ('explanation verses') that appears nowhere in the research document and maps it onto the Pargament citation backwards.",
+   "evidence": "docs/PERSONA-RESEARCH-2026-09-10.md:139 (present on branch docs/persona-research-2026-09-10, not on main) \u2014 'Positive religious coping (God's presence, benevolent reframing)...predicts better outcomes; negative coping (\"punishing God\", \"have more faith\") predicts decline.' Compare to the design's principles list: 'Romans 8:28 and Jeremiah 29:11 are explanation verses and are excluded from the crisis surface (Pargament: negative religious coping predicts decline)' and the evidence-array entry citing the same line-139 quote as support for the exclusion.",
+   "fix": "Either drop the Pargament citation for this specific move and justify the exclusion on pastoral/editorial grounds alone (a legitimate call Ashley can make), or reclassify honestly: the research's own taxonomy would place 'God works all things for good' under benevolent reframing/positive coping, so citing Pargament as the reason to REMOVE it misstates the source. State in open_decisions that this exclusion is a design judgment, not a research-sourced one."
+  }
+ ]
+}

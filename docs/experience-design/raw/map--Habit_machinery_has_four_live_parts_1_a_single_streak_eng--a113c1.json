@@ -1,0 +1,59 @@
+{
+ "ai": "Not part of habit machinery per se \u2014 no AI is used in streak/push/completion logic. AI touches only commentary fallback (unrelated, HomeScreen.tsx:469-472) and is out of scope for this map.",
+ "audio": "Not fetched/read as a separate section \u2014 no dedicated audio-habit logic found; AP (audio player) calls (handleListen, HomeScreen.tsx:758-777) are engagement UI, not part of streak/push machinery except that Listen does not itself call recordStreakToday (only Read/Mark-as-read/pathway-day paths do).",
+ "completion_and_streak": "Completion is stamped per-path via localStorage key dw_reading_done (en-CA local date string), guarded so each path only writes it once/day (HomeScreen.tsx:719, 587, 1562). Three write sites: (1) handleMarkRead \u2014 user taps \"Mark as read\" on the hero, HomeScreen.tsx:717-731, guarded by dw_reading_done at :719, stamps at :720, calls recordStreakToday() at :723; (2) savePathwayProgressFromLesson \u2014 completing a new-believer lesson day, HomeScreen.tsx:584-598, guarded at :587, stamps at :596, dispatches 'dw-reading-completed' event at :598; (3) an auto-completion on the last hero chapter ref when scrolled/expanded, HomeScreen.tsx:1562 guard, :1846/:1852 dispatch 'dw-reading-completed'. Passive app-open also records the streak once/day via a mount effect at HomeScreen.tsx:786-795 (calls recordStreakToday() unconditionally on mount; idempotent). Plan-day completion (markPlanDayComplete, HomeScreen.tsx:702-711) and pathway-day completion (completeTodaysPathwayDay, HomeScreen.tsx:558-579, and savePathwayProgress, HomeScreen.tsx:541-551) also call recordStreakToday() when a NEW day is credited (savePathwayProgress:544-546). The streak itself: single source of truth src/utils/streak.ts, key dw_streak_v2 (storage.ts:35), function recordStreakToday() (streak.ts:41-96). Idempotent per local calendar day (streak.ts:47, 58). Consecutive-day match increments count (streak.ts:70-71). A missed single day is bridged by a \"freeze\": one freeze available, replenished once 7+ days have passed since it was last spent (streak.ts:65-66); spending a freeze increments count and marks freezeWeek=today (streak.ts:72-75). Missing more than one day resets count to 1 (streak.ts:76). bestCount tracks the longest-ever run and never falls below the live count (streak.ts:30, 80). Milestones are 7/14/30/60/100/365 days (streak.ts:14); recordStreakToday returns isMilestone (streak.ts:87). On every save it pushes to Supabase via pushNow() (streak.ts:81, 94) and dispatches a 'dw-streak-recorded' CustomEvent (streak.ts:83-84) that App.tsx listens for to re-time the push permission ask. GreetingSection.tsx shows a one-time milestone celebration banner (\"\ud83d\udd25 Milestone Reached... You've got a {streakCount}-day streak!\") gated on MILESTONE_STREAKS (7,14,21,30,40,50,60,75,100,150,200,300,365 \u2014 GreetingSection.tsx:6) and a sessionStorage dedupe key dw_streak_celebrated_{count} (GreetingSection.tsx:14-16, 24-25).",
+ "first_visit": "No dedicated \"first visit\" onboarding logic was in the requested file set beyond dw_first_open used to suppress the streak chip on day 1 (HomeScreen.tsx:449-454, \"isFirstVisitDay\") and dw_day1_begun key (storage.ts:41) \u2014 GAPS notes this is out of scope of the named files (onboarding flow itself was not requested).",
+ "return_visit": "On every mount HomeScreen unconditionally calls recordStreakToday() (HomeScreen.tsx:786-795), which is a no-op if already recorded today (streak.ts:58) or advances the streak/shows a milestone toast if it's a new day. The streak count and any milestone re-render GreetingSection's greeting text and celebration banner (GreetingSection.tsx:9, 12-24).",
+ "renders_in_order": [
+  {
+   "element": "GreetingSection (persona greeting + one-time milestone celebration banner)",
+   "file_line": "src/sections/GreetingSection.tsx:9-107",
+   "gate": "personaConfig.sectionOrder determines if/where this section renders (not shown in read range); milestone banner further gated on MILESTONE_STREAKS + sessionStorage dw_streak_celebrated_{count}",
+   "what_it_does": "Shows persona-specific greeting text with streakCount baked in; shows a dismissible gold banner '\ud83d\udd25 Milestone Reached \u2014 You've got a {n}-day streak!' the first time a milestone count is hit this session"
+  },
+  {
+   "element": "WeeklyReviewSection ('YOUR WEEK IN THE WORD' card)",
+   "file_line": "src/sections/WeeklyReviewSection.tsx:29-74",
+   "gate": "personaConfig.features.weeklyReview must be true (line 33); getWeekReviewData() (lines 12-25) returns null unless today is Sunday (today.getDay()!==0 \u2192 null, line 14), the week hasn't already been dismissed (dw_week_review_dismissed vs weekKey, line 16), and streak>=3 (line 19)",
+   "what_it_does": "Renders days-this-week (min(streak,7)) and current streak count as two stat tiles, plus a rotating reflection question from WEEK_REVIEW_QUESTIONS (4 fixed strings, lines 5-10) chosen by day-of-month; dismiss button writes dw_week_review_dismissed=weekKey (WeeklyReviewSection.tsx:46-49)"
+  },
+  {
+   "element": "MoreScreen Notifications card (push toggle + reminder-hour picker, or calendar-reminder fallback)",
+   "file_line": "src/screens/MoreScreen.tsx:643-720",
+   "gate": "canPush = pushSupported() (MoreScreen.tsx:79) \u2014 browser/PWA push capability decides which of the two UI branches renders (push toggle at 650-695 vs calendar-link fallback at 696-720)",
+   "what_it_does": "Push branch: button toggles subscribePush/unsubscribePush and, once subscribed, shows a reminder-hour <select> (REMINDER_HOURS) that calls updatePushTime(h); Calendar branch: same hour picker but calls openCalendarReminder(pushHour) to hand off to the OS calendar instead of push"
+  }
+ ],
+ "self_serve_levers": [
+  "Reminder hour: user-editable via the MoreScreen select (MoreScreen.tsx:679-693 push path, 704-717 calendar path), backed by push.ts updatePushTime()/getPushHour() and stored server-side as preferred_hour on push_subscriptions (push-subscribe.js:46, 66)",
+  "Push on/off: user-editable via the toggle button calling subscribePush/unsubscribePush (MoreScreen.tsx:652-670)",
+  "Language of push copy: subscription stores an optional lang field (push-subscribe.js:44, 79) which push-send.js uses to pick EN/ID templates and verse snippets (push-send.js:107-160) \u2014 user-driven via whatever sets dw_lang, not exposed directly in MoreScreen's shown range",
+  "Weekly review dismissal: user can permanently dismiss that week's card via the \u00d7 button (WeeklyReviewSection.tsx:46-49)",
+  "Milestone celebration dismissal: user can dismiss the banner, remembered per-session per milestone (GreetingSection.tsx:24-25, sessionStorage)"
+ ],
+ "dev_needed_today": [
+  "Push notification wording/templates are hardcoded arrays in netlify/functions/push-send.js (VERSE_SNIPPETS lines ~40-100, TEMPLATES lines ~130-146, ALL_PASSAGES lines 22-30) \u2014 adding a language, changing copy, or updating the 40-passage rotation all require editing and redeploying this function; there is no admin UI or CMS for it",
+  "Milestone day list (7,14,30,60,100,365) is hardcoded in streak.ts:14 and a SEPARATE, slightly different list (7,14,21,30,40,50,60,75,100,150,200,300,365) is hardcoded in GreetingSection.tsx:6 \u2014 the two lists are not shared, so changing milestones requires editing both files in sync, a developer task with no lever exposed",
+  "Weekly-review question bank (4 fixed strings) is hardcoded in WeeklyReviewSection.tsx:5-10 \u2014 adding/editing review questions needs a code change",
+  "Streak-freeze rule (1 freeze, replenished after 7 days) is hardcoded constants in streak.ts:65-66 \u2014 changing freeze count/cooldown requires a developer edit",
+  "Push send window/cadence (hourly cron, 2-hour catch-up window, once-per-local-day ledger) is fixed in push-cron.js (schedule '@hourly', netlify.toml:11) and push-send.js's withinWindow logic (push-send.js ~within the handler, 'currentHour - preferredHour <= 2') \u2014 changing send frequency or grace window needs code + netlify.toml changes",
+  "CRON_SECRET / VAPID keys are Netlify env vars (push-send.js:5-13, push-cron.js) \u2014 provisioning/rotating them is a developer/ops task, not self-serve",
+  "Analytics event taxonomy (TRACKED_EVENTS allowlist) is hardcoded in src/utils/analytics.ts:24-31 \u2014 adding a new trackable event type requires a code change on both client (this list) and understanding of what analytics-dashboard.js aggregates",
+  "AnalyticsDashboard.tsx polls its own API endpoint every 120000ms (AnalyticsDashboard.tsx:122) with no user-facing settings \u2014 any change to refresh cadence or displayed metrics is a developer edit"
+ ],
+ "copy_keys": [
+  "notifications (i18n key, MoreScreen.tsx:647)",
+  "turn_on_push (i18n key, MoreScreen.tsx:669)",
+  "\ud83d\udd25 Milestone Reached (GreetingSection.tsx:47)",
+  "You've got a {streakCount}-day streak! (GreetingSection.tsx:56)",
+  "Keep the momentum going. You're amazing. (GreetingSection.tsx:64)",
+  "YOUR WEEK IN THE WORD (WeeklyReviewSection.tsx section header)",
+  "WEEK_REVIEW_QUESTIONS array, 4 entries (WeeklyReviewSection.tsx:5-10)",
+  "push-send.js TEMPLATES en/id, 7 variants each (push-send.js ~130-146)",
+  "push-send.js VERSE_SNIPPETS en/id per-passage strings (push-send.js ~40-100)"
+ ],
+ "summary": "Habit machinery has four live parts: (1) a single streak engine in src/utils/streak.ts (key dw_streak_v2) that every completion path calls into, with idempotent-per-day logic, a once-per-7-days single-day freeze, and hardcoded milestones; (2) per-path completion stamps written to dw_reading_done (HomeScreen.tsx) via three distinct call sites (Mark-as-read button, lesson completion, auto-complete on last hero chapter) plus a passive app-open streak record on every mount; (3) a Netlify hourly cron (push-cron.js \u2192 push-send.js) that texts a hardcoded EN/ID scripture-snippet push per subscriber's stored preferred local hour, with a 2-hour catch-up window and a once-per-local-day send ledger, subscription managed by push-subscribe.js and the MoreScreen notifications UI; (4) a Sunday-only, streak-gated Weekly Review card and a GA4+Supabase dual-track analytics pipeline (src/utils/analytics.ts \u2192 analytics-dashboard.js \u2192 AnalyticsDashboard.tsx) that is descriptive only, not itself driving any habit nudge. All copy for push notifications and milestone/weekly-review text is hardcoded in source, not admin-editable \u2014 every wording or cadence change needs a developer.",
+ "tests_that_lock_behaviour": [
+  "No test files were named in the task's file list and none were found referenced by these modules in the ranges read \u2014 GAPS: no vitest specs for streak.ts, push-send.js, or completion stamping were inspected/located, so behaviour-locking coverage is unconfirmed from the material read"
+ ]
+}

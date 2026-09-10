@@ -1,0 +1,655 @@
+{
+ "item": "Deeper study \u2014 the devout daily reader (deeper_study)",
+ "angle": "The passage is the product. Every study tool goes one tap behind it, the plan day is the only number on screen, and the app asks this reader exactly one question, once.",
+ "thesis": "This reader already has the habit; what the app owes them is the text, dated, at the top, in under three seconds. Today it does the opposite. On day 0 they are asked to choose a plan three separate times on one screen with no scripture anywhere on it (the hero funnel at HomeScreen.tsx:2208-2240, the two-step wizard at PastorStudyOnboarding.tsx:269-329, and the \"No reading plan active\" card at HomeScreen.tsx:3512-3531). From day 1 on, the chapter does arrive already open \u2014 which is right and stays \u2014 but it arrives wrapped in a control deck (chapter pills, Stop/Read, Restart, N translation chips, Compare, then N more compare chips) with a pre-expanded commentary card and a second copy of the same chapter below it under \"TODAY'S STUDY\", because heroChapterRefs and todaysPlanPassages both start from the same plan passage (HomeScreen.tsx:1291-1296 vs 3250). That is precisely the complaint the research records against the category leader: \"it keeps adding functionality, it's getting so cluttered.\" The design keeps everything Ashley has locked \u2014 the white paper hero, the Georgia serif, the credit-free arrival seed, the bright editorial plate \u2014 and takes three things away from the screen and one away from the logic: the duplicate chapter card, the always-open commentary, the scattered depth chips (all three move behind one \"Study\" tap on the passage), and the silent plan credit that fires just because you expanded a chapter. It adds two things: a single day-0 question with three answers that resolves in one tap, and a done state that is filled and live rather than a greyed-out disabled button. Richer, not stripped: the passage gets the whole panel, a real plan line, provenance on every commentary, and a paper mode for the 89% who still prefer print.",
+ "principles": [
+  "Text first, tools on tap. Commentary, Compare and original languages collapse behind one \"Study\" control on the passage. Source: Persona 3, \"Commentary, Compare and original languages collapse behind one 'Study' tap (they are open by default today)\" and \"the recurring YouVersion complaint is 'it keeps adding functionality, it's getting so cluttered'.\"",
+  "A dated plan is the spine, and it is the only progress number on the screen. Source: Persona 3, \"Day 0: choose a plan... Dated, resumable\" and \"3M+ one-year plan starts on 1 Jan 2025, +18% YoY.\"",
+  "One question, three answers, one tap. The tap starts the plan AND opens today's chapter in place \u2014 never a confirmation screen, never a CTA below the fold. Source: Persona 3 \"two or three at most\"; ruling project_daily_word_choose_your_path line 87 (\"Tapping a card must save AND open the screen immediately... no separate CTA below the fold\").",
+  "Audio belongs on the passage, not in its own section. Source: Persona 3, \"Audio as a companion, on the passage, not in a separate section (Dwell).\"",
+  "Completion is deliberate. Expanding a chapter is not reading it. Source: the repo's own settled position at HomeScreen.tsx:713-716 (\"Replaces auto-marking on open (focus-group: completion needs intent)\"), which handleRead at :754-755 still contradicts; and the ruling that the arrival seed must be credit-free.",
+  "No shame, ever, in a number. A missed day offers two live choices, not an apology. Source: cross-cutting finding 6, \"Streaks work until they shame... guilt-framed streak reminders drive notification opt-out and uninstall,\" plus Persona 3, \"a reset without shame.\"",
+  "Paper is the reference standard, not a novelty. Source: Persona 3, \"89% of Bible users still prefer print; 55% use a smartphone\" \u2192 \"a 'read like paper' mode, larger type, no chrome\"; and Ashley's locked white hero panel as deliberate \"paper mode.\"",
+  "Nothing greyed and nothing asked twice. Every control on screen is live; anything the app can compute (the day number, the reminder hour, which study tab you last used) is never a question."
+ ],
+ "journey": {
+  "day0": "They tap \"Going deeper\" in the one path sheet and land on Home. One question \u2014 \"Where are you reading?\" \u2014 with three dated plans under it. No wizard, no funnel hero, no \"No reading plan active\" card. One tap starts the plan, and today's chapter opens in the same block without navigating. Total asks on day 0: one, down from three.",
+  "first_session": "The chapter fills the white paper panel under a plan line that reads \"Through the Bible in a Year \u00b7 Day 1 of 365\". Three controls above the text: Listen, Study, Paper. They tap Study once out of curiosity, see Commentary with its source line, close it. They write one line into Reflect. They tap Mark as read and the button becomes a filled row: \"Day 1 of 365 done.\" The quiet DoneCelebration shows once.",
+  "return_visit": "They open the app; the chapter for today is already expanded and loaded before they touch anything (the existing credit-free arrival seed at HomeScreen.tsx:1449-1456, unchanged). Greeting names the day. Same three controls. Nothing on the screen has moved since yesterday.",
+  "week2": "The plan line reads \"Day 12 of 365\". The done row gains a second line computed from the plan itself: \"Five of the last seven days.\" The Study sheet opens on whichever tab they used last. Around session seven, the Reminders card in More offers the hour they actually open the app, once, in neutral words \u2014 never a streak threat.",
+  "missed_day": "Two days missed. No red, no badge, no apology copy. Above the panel, one line \u2014 \"You were on Day 12.\" \u2014 and two live buttons: \"Pick up at Day 12\" and \"Jump to today, Day 15.\" Whichever they tap, the chapter opens. The reminder card never mentions the gap.",
+  "seasonal": "A dated Futures series plan appears as a fourth row in the plan picker and on the Plans tab during the season, and nowhere else \u2014 no interstitial, no takeover of the opening screen. Calendar moments are where the spikes come from (cross-cutting finding 5), but for this persona they arrive as a plan they can choose, not as an interruption to a reading in progress."
+ },
+ "screens": [
+  {
+   "name": "Home \u2014 first day on this path (no plan yet)",
+   "purpose": "Ask the single question this persona genuinely cannot be inferred out of \u2014 where are you reading \u2014 and resolve it into an open chapter in one tap.",
+   "order": [
+    "Greeting (existing getGreeting deeper_study, no day number at streak 1)",
+    "PathArrivalStrip \u2014 existing one-line, dismissible confirmation of the path just chosen",
+    "Hero plate: the question, over the existing HeroPhotoCarousel",
+    "Three plan rows, attached to the plate as one block (no gap, no second heading)",
+    "\"See all plans\" text link",
+    "Comfort line"
+   ],
+   "copy": [
+    {
+     "element": "Hero question",
+     "text": "Where are you reading?"
+    },
+    {
+     "element": "Hero sub",
+     "text": "Pick a plan and today's chapter opens right here. You can change it whenever you want."
+    },
+    {
+     "element": "Plan row 1 title",
+     "text": "Through the Bible in a Year"
+    },
+    {
+     "element": "Plan row 1 sub",
+     "text": "365 days, Genesis to Revelation."
+    },
+    {
+     "element": "Plan row 2 title",
+     "text": "New Testament in 90 Days"
+    },
+    {
+     "element": "Plan row 2 sub",
+     "text": "All 27 books in three months, with room to breathe."
+    },
+    {
+     "element": "Plan row 3 title",
+     "text": "Psalms & Proverbs"
+    },
+    {
+     "element": "Plan row 3 sub",
+     "text": "181 days, a chapter a day."
+    },
+    {
+     "element": "Link under the rows",
+     "text": "See all plans"
+    },
+    {
+     "element": "Comfort line (foot of screen)",
+     "text": "Hard day? The comfort readings are here."
+    }
+   ],
+   "states": [
+    "Empty (no plan, no slots): this screen, exactly as ordered. It is the only thing on Home.",
+    "First tap: the whole block is replaced in place by the reading panel at Day 1, chapter loading then open. No navigation, no success screen, no toast.",
+    "Returning before choosing: identical screen. No \"you haven't picked yet\" line, no badge, no second nudge.",
+    "Missed: not applicable \u2014 no plan exists to miss.",
+    "Done: not applicable.",
+    "Offline: all three rows still tap (starting a plan is a local write). The chapter falls back to the cached KJV text under the existing line, \"ESV is unavailable right now \u2014 showing the offline text instead.\""
+   ],
+   "keep": [
+    "The rich hero photo plate and its gradient \u2014 the locked look, and the only warm surface on a screen that would otherwise be three grey rows.",
+    "PathArrivalStrip as the arrival confirmation (it already names the path in the reader's words).",
+    "The five-plan persona filter on the Plans tab (PERSONA_PLAN_IDS.deeper_study, persona-config.ts:17) \u2014 all five stay reachable."
+   ],
+   "change": [
+    "The hero's generic \"Choose your reading plan / Browse plans\" funnel becomes the question plus the three named plans. Same plate, real content.",
+    "The three plans are the first three of the persona's own five, in a fixed order \u2014 not the six-plan category filter the wizard currently computes (PastorStudyOnboarding.tsx:300), which does not match the persona's list."
+   ],
+   "remove": [
+    "The two-step deeper_study wizard (PastorStudyOnboarding.tsx:269-298 step 0 and the shared step 2 for !isPastor). It asks the same question the hero now asks, one scroll lower.",
+    "The \"No reading plan active / Browse plans\" card (HomeScreen.tsx:3512-3531) whenever plan_scripture is in sectionOrder \u2014 a third ask for the same thing.",
+    "The generic \"Choose Your Plan\" button (HomeScreen.tsx:2854-2871) must stay suppressed for this persona; leave 'plan_scripture' in sectionOrder or its negated gate turns it back on."
+   ]
+  },
+  {
+   "name": "Home \u2014 the daily reading",
+   "purpose": "Deliver today's chapter, dated, already open, with everything else one tap away.",
+   "order": [
+    "Greeting \u2014 \"Good morning, Ashley. Day 12.\"",
+    "Reading panel (white paper), containing in order: plan line \u00b7 chapter ref and translation \u00b7 the control row (Listen \u00b7 Study \u00b7 Paper) \u00b7 the chapter text, full height, page scrolls as one surface \u00b7 Reflect \u00b7 Mark as read",
+    "\"ALSO TODAY\" \u2014 only when the plan has passages the hero chain does not already carry",
+    "Sermon Notes row (moved here, below the reading)",
+    "Bible AI first-run card (BibleAIPromptSection \u2014 self-hides after first AI use)",
+    "Comfort line"
+   ],
+   "copy": [
+    {
+     "element": "Plan line",
+     "text": "Through the Bible in a Year \u00b7 Day 12 of 365"
+    },
+    {
+     "element": "Chapter line",
+     "text": "Romans 8 \u00b7 ESV"
+    },
+    {
+     "element": "Control 1",
+     "text": "Listen"
+    },
+    {
+     "element": "Control 2",
+     "text": "Study"
+    },
+    {
+     "element": "Control 3",
+     "text": "Paper"
+    },
+    {
+     "element": "Reflect label (existing key reflect_label)",
+     "text": "Reflect"
+    },
+    {
+     "element": "Reflect prompt (existing key reflect_prompt_default)",
+     "text": "What stood out to you in today's reading?"
+    },
+    {
+     "element": "Completion button (existing key mark_as_read)",
+     "text": "Mark as read"
+    },
+    {
+     "element": "Additional-reading header",
+     "text": "ALSO TODAY"
+    },
+    {
+     "element": "Offline translation line (existing, keep verbatim)",
+     "text": "ESV is unavailable right now \u2014 showing the offline text instead."
+    },
+    {
+     "element": "Missed-day line",
+     "text": "You were on Day 12."
+    },
+    {
+     "element": "Missed-day button A",
+     "text": "Pick up at Day 12"
+    },
+    {
+     "element": "Missed-day button B",
+     "text": "Jump to today, Day 15"
+    },
+    {
+     "element": "Comfort line",
+     "text": "Hard day? The comfort readings are here."
+    }
+   ],
+   "states": [
+    "First: arrives from the day-0 tap with Day 1 open.",
+    "Returning: the chapter is expanded and fetched on arrival before any tap \u2014 the existing persona-gated, credit-free seed (HomeScreen.tsx:1449-1456). Unchanged, and it must stay off handleRead.",
+    "Missed: the two-button line above the panel; the panel itself opens at the day they choose. No red, no apology, no count of what was missed.",
+    "Done: see the \"Done, in place\" screen \u2014 the button becomes a filled live row, the rest of the screen is untouched.",
+    "Empty (plan finished): the panel is replaced by the day-0 block under \"That's the whole plan \u2014 365 days. Where next?\"",
+    "Offline: chapter from the Bible cache or KJV with the existing fallback line; Listen reads \"Audio needs a connection\" instead of spinning; Study opens on cached commentary or the offline line; Mark as read still works and syncs later."
+   ],
+   "keep": [
+    "The credit-free arrival seed. It is a ruling and it is the single best thing on this path.",
+    "The white paper reading panel with dark upright Georgia scripture in both themes, and the full-height Kindle-style scroll (no internal scrollbar).",
+    "InlineReflection directly under the passage, with its existing label and prompt.",
+    "\"Mark as read\" as the deliberate completion, gated on dw_reading_done for the local date.",
+    "The chapter pills for multi-chapter days and the hero audio chain."
+   ],
+   "change": [
+    "The control deck collapses to three named controls above the text: Listen, Study, Paper. The translation chip row, the Compare chip (HomeScreen.tsx:2603-2624) and the compare-translation chip row (:2727-2757) all move inside the Study sheet.",
+    "The Sermon Notes row moves from above the hero (HomeScreen.tsx:2106) to below the reading \u2014 this is a ruling the live build does not currently obey.",
+    "\"TODAY'S STUDY\" becomes \"ALSO TODAY\" and renders only passages not already in heroChapterRefs. On a one-chapter-a-day plan it renders nothing.",
+    "The Greek/Hebrew toggle leaves the plan-card header (HomeScreen.tsx:3233-3247) for the Study sheet."
+   ],
+   "remove": [
+    "The pre-expanded Commentary card on Home (HomeScreen.tsx:3355-3415) for this persona \u2014 it moves into the Study sheet. The 30-day-cached AI fallback prefetch stays exactly as it is so the sheet opens with content, not a spinner.",
+    "The duplicate plan card that repeats the hero's own chapter behind a \"Read\" button.",
+    "Any weekly-review card. features.weeklyReview is already false for this persona and weekly-review-for-all was explicitly rejected \u2014 do not add one."
+   ]
+  },
+  {
+   "name": "Study sheet",
+   "purpose": "Hold every depth tool in one place, opened by one tap on the passage, closed by one tap or the back gesture.",
+   "order": [
+    "Header: chapter reference, close control",
+    "Four tabs, all live: Commentary \u00b7 Compare \u00b7 Greek & Hebrew \u00b7 Cross-references",
+    "Content pane",
+    "Provenance line, always present under commentary",
+    "\"Ask about this chapter\" \u2014 hands the chapter to Bible AI with the persona's existing scholarly system-prompt addition"
+   ],
+   "copy": [
+    {
+     "element": "Sheet title",
+     "text": "Romans 8"
+    },
+    {
+     "element": "Tab 1",
+     "text": "Commentary"
+    },
+    {
+     "element": "Tab 2",
+     "text": "Compare"
+    },
+    {
+     "element": "Tab 3",
+     "text": "Greek & Hebrew"
+    },
+    {
+     "element": "Tab 4",
+     "text": "Cross-references"
+    },
+    {
+     "element": "Curated provenance line",
+     "text": "Matthew Henry \u00b7 public domain"
+    },
+    {
+     "element": "AI fallback provenance line",
+     "text": "Written by this app's AI from the chapter text. Not a published commentary."
+    },
+    {
+     "element": "Compare empty",
+     "text": "Pick a second translation."
+    },
+    {
+     "element": "Greek & Hebrew hint",
+     "text": "Tap any word to see the original."
+    },
+    {
+     "element": "Cross-references empty",
+     "text": "No cross-references for this chapter yet."
+    },
+    {
+     "element": "Footer action",
+     "text": "Ask about this chapter"
+    },
+    {
+     "element": "Commentary offline",
+     "text": "Commentary needs a connection. The chapter is still here."
+    }
+   ],
+   "states": [
+    "First open: lands on Commentary.",
+    "Returning: opens on the tab used last, remembered per device. The app knows this; it should not ask.",
+    "Empty: no curated entry for the chapter \u2192 the AI Insight with its provenance line; if that also fails, \"No commentary for this chapter yet. The other three tabs still work.\" Never a blank pane and never a greyed tab.",
+    "Missed / Done: unchanged \u2014 the sheet is not part of completion and must never credit a plan day.",
+    "Offline: cached commentary only, under the offline line; Compare falls back to KJV; Greek & Hebrew works from the inline strongs.js dictionary and says so when a word needs the network."
+   ],
+   "keep": [
+    "The curated commentary set and its multi-source tab strip behaviour when a day covers more than one chapter.",
+    "The 30-day AI Insight cache \u2014 it is what makes \"expanded by default\" survivable today and what makes the sheet instant tomorrow.",
+    "BibleAI with the deeper_study system-prompt addition (Greek/Hebrew, cross-references, scholarly perspectives)."
+   ],
+   "change": [
+    "Commentary source is now a provenance line, not a bare label. An AI-written insight and Matthew Henry must not carry the same visual weight \u2014 the research documents AI tools fabricating cross-references on less-common passages, and this reader is exactly the one who will check.",
+    "Compare and Greek/Hebrew stop being page-level modes and become tabs in the sheet."
+   ],
+   "remove": [
+    "Nothing. This sheet is where the removed Home clutter goes \u2014 the tools are not lost, they are one tap deep."
+   ]
+  },
+  {
+   "name": "Paper mode",
+   "purpose": "The chapter and nothing else, at the size the reader chose, for the 89% who still prefer print.",
+   "order": [
+    "Chapter text, full bleed, on the ivory canvas",
+    "On tap: a single bar \u2014 chapter reference, A\u2212, A+, Close"
+   ],
+   "copy": [
+    {
+     "element": "Bar reference",
+     "text": "Romans 8"
+    },
+    {
+     "element": "Smaller",
+     "text": "A\u2212"
+    },
+    {
+     "element": "Larger",
+     "text": "A+"
+    },
+    {
+     "element": "Close",
+     "text": "Close"
+    }
+   ],
+   "states": [
+    "First: the bar is visible for three seconds, then fades. Tap anywhere brings it back.",
+    "Returning: opens at the size set last (scriptureFontSize, already persisted).",
+    "Offline: identical \u2014 the text is already loaded before this mode can be entered.",
+    "Missed / Done / Empty: not applicable \u2014 reachable only from an open chapter."
+   ],
+   "keep": [
+    "scriptureFontSize as the single type-size source, shared with the panel."
+   ],
+   "change": [
+    "Nothing existing changes; this is additive and reachable only from the passage control row."
+   ],
+   "remove": [
+    "No chrome inside this mode: no tab bar, no greeting, no plan line, no completion button. Completion happens back on the panel."
+   ]
+  },
+  {
+   "name": "Done, in place",
+   "purpose": "Confirm the reading without a modal wall and without a dead greyed button.",
+   "order": [
+    "The Mark as read button becomes a filled, live done row",
+    "Second line: the honest weekly count, computed from the plan",
+    "One live action",
+    "DoneCelebration overlay \u2014 first completion of the day only, quiet, existing component"
+   ],
+   "copy": [
+    {
+     "element": "Done row, line 1",
+     "text": "Day 12 of 365 done."
+    },
+    {
+     "element": "Done row, line 2",
+     "text": "Five of the last seven days."
+    },
+    {
+     "element": "Live action",
+     "text": "Open your journal"
+    },
+    {
+     "element": "Plan finished (DoneCelebration planFinish)",
+     "text": "That's the whole plan \u2014 365 days."
+    },
+    {
+     "element": "Plan finished, next step",
+     "text": "Where next?"
+    }
+   ],
+   "states": [
+    "First completion of the day: filled row plus the quiet overlay once.",
+    "Repeat tap the same day: the row is already there, nothing fires again (dw_reading_done gate, unchanged).",
+    "Next day: the row resets to \"Mark as read\".",
+    "Missed: the row reports the day actually completed, not today's calendar date.",
+    "Offline: completion writes locally and syncs later. No error, no spinner, no \"try again\".",
+    "Empty: on the last day of a plan, the finish celebration replaces the row and hands over to the day-0 three-plan block."
+   ],
+   "keep": [
+    "dw_reading_done as the once-a-day gate on the local date axis, and DoneCelebration as the calm confirmation."
+   ],
+   "change": [
+    "The completed state stops being a disabled button with muted text (HomeScreen.tsx:2701-2716) and becomes a filled row with a real action. Ashley's rule: nothing greyed.",
+    "\"Five of the last seven days\" is computed from the plan's own completedDays mapped through calcPlanDay's local-date axis \u2014 no new stored history, no UTC anywhere."
+   ],
+   "remove": [
+    "The disabled attribute and the transparent/muted treatment on the completed button."
+   ]
+  },
+  {
+   "name": "Plans \u2014 Going deeper",
+   "purpose": "Let them change plan, resume, or add a second one without a developer or a support message.",
+   "order": [
+    "Header and one line of context",
+    "Active plan pinned at top with its day count",
+    "The same three plans as day 0, in the same order",
+    "The rest of the persona's five",
+    "\"All plans\""
+   ],
+   "copy": [
+    {
+     "element": "Header",
+     "text": "Going deeper"
+    },
+    {
+     "element": "Sub",
+     "text": "Dated plans. Pick one and today's chapter opens on Home."
+    },
+    {
+     "element": "Active plan line",
+     "text": "Day 12 of 365"
+    },
+    {
+     "element": "Missed-plan line",
+     "text": "You were on Day 12."
+    },
+    {
+     "element": "Finished line",
+     "text": "Finished 9 Sep"
+    }
+   ],
+   "states": [
+    "Empty: no active plan \u2014 the three sit at the top under the sub line.",
+    "First: tapping starts the plan and returns to Home with the chapter open.",
+    "Returning: the active plan is pinned with its day count.",
+    "Missed: the same two live choices as Home \u2014 pick up, or jump to today.",
+    "Done: a finished plan moves to a Finished line with its date; it never disappears silently.",
+    "Offline: starting and switching plans works \u2014 dw_activeplans is a local write."
+   ],
+   "keep": [
+    "The whole catalogue as ruled: the Foundations of Faith rename and the merged comfort verse cards are the only catalogue changes.",
+    "The persona filter \u2014 five plans for this path, full catalogue reachable."
+   ],
+   "change": [
+    "The first three rows match the day-0 card exactly, in the same order, so the two surfaces never disagree about what this app recommends."
+   ],
+   "remove": [
+    "No leaders featured row. No weekly-review-for-all. Both were explicitly rejected and neither belongs here."
+   ]
+  },
+  {
+   "name": "Reminders (More \u2192 Notifications)",
+   "purpose": "One nudge a day, at the hour they actually read, in words that never trade on guilt.",
+   "order": [
+    "Title",
+    "The inferred-time offer \u2014 only after seven sessions",
+    "Manual hour picker",
+    "Off switch"
+   ],
+   "copy": [
+    {
+     "element": "Title (existing key notifications)",
+     "text": "Reminders"
+    },
+    {
+     "element": "Inferred line",
+     "text": "You mostly open this around 6:20 in the morning."
+    },
+    {
+     "element": "Primary",
+     "text": "Remind me at 6:20am"
+    },
+    {
+     "element": "Secondary",
+     "text": "Pick a different time"
+    },
+    {
+     "element": "On state",
+     "text": "Reminding you at 6:20am."
+    },
+    {
+     "element": "On state actions",
+     "text": "Change \u00b7 Turn off"
+    },
+    {
+     "element": "Off state",
+     "text": "Reminders are off."
+    },
+    {
+     "element": "Off state action",
+     "text": "Turn on"
+    },
+    {
+     "element": "Offline",
+     "text": "This will apply when you're back online."
+    }
+   ],
+   "states": [
+    "First (under seven sessions): manual picker only, no inferred offer, no nudge to turn anything on.",
+    "Returning: the on state with the hour named in plain words.",
+    "Missed: unchanged. The reminder surface never mentions a missed day \u2014 that is the exact pattern the research ties to opt-out and uninstall.",
+    "Done: unchanged.",
+    "Empty (push unsupported on this device): the existing calendar-reminder fallback, same copy, same hour picker.",
+    "Offline: the toggle queues with the line above rather than failing."
+   ],
+   "keep": [
+    "The existing hour select and the calendar fallback branch \u2014 both are already self-serve.",
+    "preferred_hour stored server-side on push_subscriptions, and the once-per-local-day send ledger."
+   ],
+   "change": [
+    "The default offered hour is inferred from when they actually open, offered once, accepted in one tap. The manual picker stays for anyone who wants a different time.",
+    "Push copy for this path drops any streak or loss framing."
+   ],
+   "remove": [
+    "Any wording that implies a run is at risk. There is none today; the rule is that none is ever added."
+   ]
+  }
+ ],
+ "comfort_access": "One line at the foot of Home on this path, present every day, never a badge and never an interstitial: \"Hard day? The comfort readings are here.\" It opens the comfort reading as a sub-view over Home (useSubView alone) and closes back to the same scroll position. It must not call saveSetup, must not write dw_setup, must not stamp a source, must not credit dw_reading_done and must not touch the streak \u2014 a bad day is not a path change, and only onboarding/settings/upgrade count as a real choice. Inside it, the toolbar is Note and Close only, and there is no graduation prompt, no \"feeling stronger?\", no return path suggestion \u2014 that prompt was removed for good and is never re-added. Source: cross-cutting research, \"From every path: a persistent one-tap 'I need comfort now' that opens comfort without switching the saved path. Crisis is not a persona someone chooses on a good day\"; rulings on comfortMode toolbar, the removed graduation prompt, and saveSetup's source gate.",
+ "reminders": "One a day, at the hour behaviour says they read, in neutral words. The offer appears once, after seven sessions, with the inferred hour already filled in and one tap to accept; before that the manual picker is the only thing on the card. Nothing in the push copy, the card copy or the app ever frames a missed day as a loss \u2014 no \"your streak is about to die\", no fire emoji on this path, no catch-up guilt. Source: cross-cutting finding 6 (\"one nudge a day, timed to when the person actually last opened (Duolingo's behaviour-inferred timing)... guilt-framed streak reminders drive notification opt-out and uninstall\") and Persona 2's reminder line, which the research applies across paths. Operational constraint from the rulings: pushSupported() allowlists only futuresdailyword.com, www and localhost, so the reminder work is verified on localhost or on prod after merge \u2014 never on the deploy preview Ashley is looking at. Say that in the PR so the preview is judged on layout and copy, not on push.",
+ "instrumentation": [
+  "plan_start with detail \"<planId>|day0-card\" vs \"|plans-tab\" \u2014 proves the single day-0 question converts better than today's three asks. Already in the TRACKED_EVENTS allowlist; only the detail changes.",
+  "reading_done with detail \"<planId>|<dayNum>\" \u2014 the deliberate Mark as read. New event; this is the only honest completion signal once handleRead stops crediting.",
+  "study_open with detail \"<chapterRef>|<firstTab>\" \u2014 how often the collapsed depth layer is actually wanted. New. The research's own test for this persona is session length and 30-day retention with Study collapsed vs open.",
+  "study_tab with detail \"commentary|compare|greek|xref\" \u2014 which tool earns its tab. New.",
+  "paper_mode with detail \"<chapterRef>\" \u2014 validates the 89%-prefer-print move or kills it. New.",
+  "comfort_peek with detail \"deeper_study\" \u2014 reach of the comfort tap from this path, and confirmation it never changes the saved persona. New.",
+  "reminder_set with detail \"<hour>|inferred\" or \"<hour>|manual\", and push_unsubscribe \u2014 acceptance of the inferred hour, and opt-out as the guard rail on all reminder copy.",
+  "offline_read with detail \"<chapterRef>|<servedTranslation>\" \u2014 how often the KJV fallback is doing the work, which decides whether ESV caching is worth building.",
+  "path on every event. Add it alongside campus in gaEvent's params (analytics.ts:22-28) and to the Supabase activity detail, or none of the above can be cut by persona \u2014 which is the whole point.",
+  "D1 / D7 / D30 by path, session length and completion rate, as one nightly rollup. Research build priority 1: no public source will ever supply this, and every claim above is untestable without it."
+ ],
+ "self_serve_levers": [
+  "Exists today \u2014 src/data/commentary.ts: add a passage/source key to the COMMENTARY object to extend curated coverage. Plain data, no component logic. This is the highest-value lever for a campus pastor: it replaces an AI Insight with a real commentary on any chapter they care about.",
+  "Exists today \u2014 src/data/plans.ts: plan entries, passages and totalDays. Adding a dated Futures series plan for a season is a data edit here plus one id in the persona list. Trap: a plan id is referenced in four places (personalization.ts, SetupPromptModal.tsx, PlansScreen.tsx, PastorStudyOnboarding.tsx) and all four must be rewired or the wizard starts a dead plan.",
+  "Exists today \u2014 src/utils/persona-config.ts:380-429, the deeper_study block: sectionOrder, the features flags, plans.featuredCategories and ai.systemPromptAddition are all plain data fields. The AI's scholarly instruction for this path is editable here without touching a component.",
+  "Exists today \u2014 src/utils/i18n.ts: every string on every screen above. New keys go here with es/pt/id alongside; translated content is Claude-drafted and Ashley approves before ship.",
+  "Exists today \u2014 netlify/functions/strongs.js:5-27: the COMMON_NT / COMMON_OT inline dictionaries take new key/value entries; anything else falls through to the external Open Scriptures API.",
+  "Worth building, small \u2014 the three day-0 plan ids and their one-line descriptions as a single row per campus, served through the existing user-sync/Supabase layer and cached locally, editable from the admin dashboard that already exists. That is the one change that takes \"which three plans do we recommend\" out of the repo entirely. Everything else on this list is a file edit that deploys on merge \u2014 honest, but not self-serve."
+ ],
+ "evidence": [
+  {
+   "move": "Collapse Commentary, Compare and Greek/Hebrew behind one \"Study\" tap on the passage",
+   "source": "Research, Persona 3 journey: \"Commentary, Compare and original languages collapse behind one 'Study' tap (they are open by default today).\" Needs section: \"Text over commentary and low clutter: the recurring YouVersion complaint is 'it keeps adding functionality, it's getting so cluttered'.\""
+  },
+  {
+   "move": "One day-0 question with three dated plans, resolved in one tap",
+   "source": "Research, Persona 3 journey: \"Day 0: choose a plan, two or three at most: chronological, whole-Bible-in-a-year, and a Futures series plan. Dated, resumable.\" Plus ruling project_daily_word_choose_your_path line 87: tapping a card must save AND open immediately, no separate CTA below the fold."
+  },
+  {
+   "move": "The plan line \"Day 12 of 365\" is the only progress number on the passage",
+   "source": "Research, Persona 3 needs: \"A dated plan (3M+ one-year plan starts on 1 Jan 2025, +18% YoY).\""
+  },
+  {
+   "move": "Audio (Listen) sits on the passage control row, not in its own section",
+   "source": "Research, Persona 3 needs: \"Audio as a companion, on the passage, not in a separate section (Dwell)\"; journey: \"Audio toggle on the passage card.\""
+  },
+  {
+   "move": "Missed day offers \"Pick up at Day 12\" or \"Jump to today\" with no apology copy",
+   "source": "Research, Persona 3 journey: \"a reset without shame.\" Cross-cutting 6: \"Streaks work until they shame... best practice is one nudge a day... with streak repair rather than a hard reset.\""
+  },
+  {
+   "move": "Paper mode \u2014 larger type, no chrome",
+   "source": "Research, Persona 3 journey: \"Print: a 'read like paper' mode, larger type, no chrome, given 89% still prefer print.\" Who section: \"89% of Bible users still prefer print; 55% use a smartphone, 42% a dedicated app.\""
+  },
+  {
+   "move": "Provenance line under every commentary, and an explicit label on the AI fallback",
+   "source": "Research, Persona 5: \"Trustworthy sourcing: reviewers document AI tools fabricating cross-references on less-common passages\" and \"every commentary, cross-reference and lexicon result shows its source and licence inline.\" Cross-persona evidence, applied here because this is the reader who checks."
+  },
+  {
+   "move": "Reminder at the inferred hour, offered once after seven sessions, never guilt-framed",
+   "source": "Research, Persona 2 journey: \"after 5\u20137 sessions, infer the time they actually open and nudge then, once a day, neutral wording. Never 'your streak is about to die'.\" Cross-cutting 6 on notification opt-out."
+  },
+  {
+   "move": "A persistent comfort tap on this path that does not change the saved persona",
+   "source": "Research, Persona 6 journey: \"From every path: a persistent one-tap 'I need comfort now' that opens comfort without switching the saved path. Crisis is not a persona someone chooses on a good day.\" Build order 2: \"Comfort from everywhere... smallest build, highest duty of care.\""
+  },
+  {
+   "move": "Sermon Notes row moves below the reading",
+   "source": "Ruling, feedback_daily_word_today_rebuild_rejected line 16: \"Sermon Notes row is demoted below the reading for congregation/deeper_study/pastor_leader/comfort.\" The live build renders it above the hero at HomeScreen.tsx:2106 for every persona."
+  },
+  {
+   "move": "The arrival seed stays, and stays off handleRead",
+   "source": "Ruling, feedback_daily_word_today_rebuild_rejected PHASE 2 line 16: the arrival-open seed must be persona-gated and CREDIT-FREE, bypassing handleRead."
+  },
+  {
+   "move": "Expanding a chapter stops crediting the plan day; Mark as read is the only credit",
+   "source": "The repo's own settled position, HomeScreen.tsx:713-716: \"Deliberate completion... Replaces auto-marking on open (focus-group: completion needs intent).\" handleRead at :754-755 still calls markPlanDayComplete, contradicting it. Consistent with the credit-free-seed ruling."
+  },
+  {
+   "move": "Study sheet and Paper mode use useSubView alone, mounted with a live open prop",
+   "source": "Rulings, 28-agent review findings 1 and 2: a full-screen host that opens overlays must use useSubView ALONE (not with useModalA11y/aria-modal), and a subview-driven card must stay mounted with a live open prop or it orphans a history entry per close and breaks Android back."
+  },
+  {
+   "move": "No weekly-review card, no leaders featured row, no new catalogue entries",
+   "source": "Ruling, project_daily_word_deep_dive_aug2026 owner decision 8: weekly-review-for-all and a leaders featured row were explicitly rejected; the only catalogue changes are the Foundations of Faith rename and the merged comfort verse cards."
+  },
+  {
+   "move": "The whole reshape ships behind a deploy preview Ashley approves first",
+   "source": "Ruling, feedback_daily_word_today_rebuild_rejected lines 10-11 and the PR #81 note: never re-merge a big IA/visual rebuild of the opening screen without his preview and explicit approval; a PR may sit open awaiting his look."
+  }
+ ],
+ "open_decisions": [
+  "The three day-0 plans and their order. Proposed: Through the Bible in a Year, New Testament in 90 Days, Psalms & Proverbs \u2014 all three already in this persona's five, so nothing new enters the catalogue. Confirm or reorder.",
+  "Whether \"read with\" is built at all \u2014 one reading partner, both seeing a day-count and nothing else. The research argues for it from the 24% \u2192 13% collapse in weekly Bible-study group participation; it is the only social feature proposed on this path, and the research itself lists it as your call.",
+  "Whether a dated Futures series plan joins the day-0 three during a season, or lives only on the Plans tab.",
+  "Whether the AI Insight commentary fallback should exist on this path at all, given this is the reader most likely to check a source. Options: keep it labelled as designed, restrict it to chapters with no curated entry (today's behaviour), or hide it here and show \"No commentary for this chapter yet.\"",
+  "Whether the commentary provenance line shows the licence (\"public domain\") to readers or only the source name."
+ ],
+ "risks": [
+  "This is a big IA reshape of the opening screen for one persona, which is the exact class of change that was reverted on 1 Sep as \"completely stripped\". It must not merge without Ashley's word on a deploy preview. The countermeasure inside the design: nothing is deleted, it is relocated one tap deep, and the passage gets bigger and warmer as a result \u2014 full-height paper panel, a real plan line, provenance on the commentary, a paper mode. If the preview reads as thin, the fix is more warmth on the panel, not putting the chips back on top.",
+  "Removing the plan credit from handleRead changes completion semantics for congregation and pastor_leader too, not just this path. It is a correctness fix against the code's own stated intent, but it belongs in its own commit with its own line in the PR body and its own test, so it can be reverted alone.",
+  "If HomeScreen is ever re-extracted or retired as part of this work, the ten src/sections/* files and their tests must come back with it. That is a ruling, and it is the trap that bit last time.",
+  "The Study sheet and Paper mode are nested overlays over a screen that already hosts BibleAI. Use useSubView alone \u2014 no useModalA11y, no aria-modal \u2014 and mount them with a live open prop rather than conditionally, or Android back and the keyboard path break in ways that only show up on a phone.",
+  "Leaving 'plan_scripture' in sectionOrder is load-bearing in two places: the generic \"Choose Your Plan\" button at HomeScreen.tsx:2854 gates on its absence, and PastorStudyOnboarding mounts on its presence at :2879. Remove the key and both regress.",
+  "PastorStudyOnboarding is shared with pastor_leader. Only the !isPastor branches (lines 269-298 and the step-2 picker at 300-328 when reached from step 0 !isPastor) may be removed; the pastor wizard stays whole.",
+  "Push cannot be verified on the deploy preview \u2014 pushSupported() allowlists prod and localhost only. Verify reminders on localhost before the PR and on prod after merge, and say so in the PR so the preview is not judged on it.",
+  "No /books/* or /bible/* content changes are needed for this work. If any land alongside it, bump CACHE_NAME, STATIC_CACHE and SW_VERSION together, and never reuse a bundled image filename \u2014 both are recorded traps.",
+  "Any new synced dw_* field must merge into what is currently in localStorage and touch only its own fields, never be rebuilt from React state. The design deliberately avoids new synced storage \u2014 \"five of the last seven days\" is computed from the plan's existing completedDays through calcPlanDay's local-date axis, and no UTC date logic enters anywhere near plan day."
+ ],
+ "build_steps": [
+  {
+   "step": "Add a studySheet feature flag to this persona and gate the Home commentary card off it, leaving commentary:'expanded' in place so the 30-day AI-Insight prefetch keeps running and the sheet opens with content rather than a spinner.",
+   "files": "src/utils/persona-config.ts:394-410 (deeper_study features); src/screens/HomeScreen.tsx:3355 (change the gate to pf.commentary !== 'hidden' && !pf.studySheet); leave the prefetch effect at HomeScreen.tsx:1458-1472 untouched.",
+   "check": "npx tsc -b clean; in preview with dw_setup={persona:'deeper_study',source:'settings'} Home shows no Commentary card, and pastor_leader still does."
+  },
+  {
+   "step": "Move the Sermon Notes row below the reading for the four returning personas, keeping it above only for new_to_faith in the Sunday window.",
+   "files": "src/screens/HomeScreen.tsx:2106 (render position) and the definition at :1786-1831 (unchanged).",
+   "check": "In the rendered DOM, [data-testid=\"home-sermon-notes-banner\"] appears after the hero reading panel for deeper_study, congregation, pastor_leader and comfort, and before it for new_to_faith on a Sunday."
+  },
+  {
+   "step": "Build the Study sheet: four live tabs (Commentary, Compare, Greek & Hebrew, Cross-references), a provenance line, and an \"Ask about this chapter\" footer that opens BibleAI with the chapter as context. useSubView alone; mounted always with a live open prop; dw-study-* class prefix (dw-path-* and dw-cp-* are taken).",
+   "files": "new src/components/StudySheet.tsx; src/utils/useSubView.ts (consume only); src/screens/HomeScreen.tsx (mount beside the other overlays, near :1840-1860); src/utils/i18n.ts (new keys, en/es/pt/id).",
+   "check": "npx vitest run on a new StudySheet test that asserts it paints nothing while closed (mirroring ChoosePathSheet.test.tsx's 'paints nothing while closed (mounted with a live open prop)'); on a phone, the Android back gesture closes the sheet and leaves the tab intact, and a second back leaves Home."
+  },
+  {
+   "step": "Reduce the passage control deck to Listen \u00b7 Study \u00b7 Paper, moving the translation chips, the Compare chip and the compare-translation chip row into the sheet, and the Greek/Hebrew toggle out of the plan-card header.",
+   "files": "src/screens/HomeScreen.tsx:2488-2600 (footer control row and translation chips), :2603-2624 (Compare), :2727-2757 (compare chips), :3233-3247 (Greek/Hebrew toggle).",
+   "check": "npm run build clean; on a 390px viewport the panel shows exactly three controls above the chapter text and the page body never scrolls horizontally."
+  },
+  {
+   "step": "Add Paper mode \u2014 chapter text full bleed on the ivory canvas, one fading bar with reference, A\u2212, A+ and Close, sharing scriptureFontSize. useSubView alone.",
+   "files": "new src/components/PaperMode.tsx; src/screens/HomeScreen.tsx (mount with the overlays; pass readRef, readText and scriptureFontSize).",
+   "check": "Back gesture closes Paper mode and returns to the same scroll position; the size chosen persists across a reload."
+  },
+  {
+   "step": "Replace the day-0 triple ask with one question and three plans. Rewrite the no-plan hero to carry the question plus the three rows (one tap starts the plan and opens today's chapter in place), delete the deeper_study wizard branches, and suppress the \"No reading plan active\" card whenever plan_scripture is in sectionOrder.",
+   "files": "src/screens/HomeScreen.tsx:2208-2240 (no-plan hero), :3512-3531 (empty card gate), src/components/PastorStudyOnboarding.tsx:269-298 and 300-328 (remove the !isPastor path only), src/utils/i18n.ts (new keys). Leave 'plan_scripture' in persona-config.ts:386-393 and leave the :2854 gate alone.",
+   "check": "A cold device with dw_setup={persona:'deeper_study',source:'settings'} and no dw_activeplans shows exactly one plan ask on Home; tapping a row writes dw_activeplans and expands the chapter without navigating; the pastor wizard still runs end to end for pastor_leader."
+  },
+  {
+   "step": "Dedupe the plan section against the hero: filter todaysPlanPassages to passages not already in heroChapterRefs, render nothing when the filter empties, and retitle the surviving case \"ALSO TODAY\".",
+   "files": "src/screens/HomeScreen.tsx:3221-3350 (mirror the existing slotsOnlyMode dedup at :3443-3450); src/utils/i18n.ts (also_today key).",
+   "check": "On a one-chapter-a-day plan (psalms-proverbs), Home renders the chapter once. On a multi-passage day, the hero carries the chain and ALSO TODAY carries only the remainder."
+  },
+  {
+   "step": "Make completion deliberate: stop handleRead from crediting the plan day, leaving Mark as read as the only credit path. Own commit, own PR line.",
+   "files": "src/screens/HomeScreen.tsx:733-756 (remove the markPlanDayComplete call at :754-755 and its plan-finish branch; keep the trackBehavior/track calls); handleMarkRead at :717-731 unchanged.",
+   "check": "Expand a chapter, reload \u2014 the plan day is absent from dw_activeplans[plan].completedDays. Tap Mark as read \u2014 it is present, dw_reading_done is today's local date, and the finish celebration fires on the final day."
+  },
+  {
+   "step": "Rebuild the completed state as a filled live row: \"Day 12 of 365 done.\", the weekly count computed from completedDays mapped through calcPlanDay's local-date axis, and one live action to the journal. No disabled attribute anywhere.",
+   "files": "src/screens/HomeScreen.tsx:2701-2716 (the button), :124-140 (calcPlanDay, reuse as-is); src/utils/i18n.ts.",
+   "check": "After Mark as read, no element in the panel carries disabled or a muted foreground; with 5 of the last 7 plan days complete the second line reads \"Five of the last seven days.\"; crossing local midnight resets the row to Mark as read."
+  },
+  {
+   "step": "Add the comfort line at the foot of Home for the non-comfort paths, opening the comfort reading as a sub-view that touches no setup, no completion and no streak.",
+   "files": "src/screens/HomeScreen.tsx (foot of the persona render); reuse ComfortSection; src/utils/i18n.ts.",
+   "check": "After opening and closing it, dw_setup is byte-identical, dw_reading_done is unwritten, dw_streak_v2.count is unchanged, and no dw_path_asked write occurred."
+  },
+  {
+   "step": "Instrumentation: extend the tracked-event allowlist with reading_done, study_open, study_tab, paper_mode, comfort_peek, reminder_set and offline_read, and add path alongside campus on every GA4 event.",
+   "files": "src/utils/analytics.ts:22-37; call sites in HomeScreen.tsx, StudySheet.tsx, PaperMode.tsx, MoreScreen.tsx.",
+   "check": "In preview, each action produces one POST to /api/track-activity with the expected type and detail, and one gtag event carrying path='deeper_study'."
+  },
+  {
+   "step": "Reminders: offer the inferred hour once after seven sessions, in the new copy, keeping the manual picker and the calendar fallback.",
+   "files": "src/screens/MoreScreen.tsx:643-720; src/utils/push.ts (getPushHour/updatePushTime); src/utils/i18n.ts.",
+   "check": "On localhost (pushSupported allowlists prod, www and localhost only), the offer is absent under seven sessions, appears once at seven, and accepting it writes preferred_hour on push_subscriptions. No copy anywhere mentions a streak or a missed day."
+  },
+  {
+   "step": "Open the PR, post the deploy-preview link, and stop. Do not merge on any signal but Ashley's own word on that preview.",
+   "files": "branch \u2192 PR; PR body lists the persona-gated blast radius, the shared handleRead change, and the note that push cannot be verified on a preview.",
+   "check": "npm run build and npx vitest run both clean; the deploy-preview build passes; the PR sits open until Ashley approves the preview, then squash-merge and verify the live artifact."
+  }
+ ]
+}

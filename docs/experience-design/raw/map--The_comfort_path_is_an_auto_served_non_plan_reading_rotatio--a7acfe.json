@@ -1,0 +1,98 @@
+{
+ "summary": "The comfort path is an auto-served, non-plan reading rotation (COMFORT_CHAPTERS in src/data/comfort.ts) delivered through ComfortSection.tsx plus ComfortVerseBannerSection.tsx, wrapped by persona gating in HomeScreen.tsx and feature/section config in persona-config.ts:503-555. It shares the app's generic audio player, plan/streak plumbing, and AI endpoint (with a comfort-tuned system prompt) rather than having any bespoke audio, plans-catalog, or crisis-detection code. PrayerGlobe.tsx and netlify/functions/prayer-wall.js are NOT part of the comfort path \u2014 they are used only in MessagesScreen.tsx, unrelated to any comfort sectionOrder key. The only explicit crisis-support surface is a static, non-AI-triggered 988 Suicide & Crisis Lifeline line plus a \"Reach Out\"/pastoral-care email card, gated on setup?.persona==='comfort' in MoreScreen.tsx (More tab), not in ComfortSection or the AI chat itself.",
+ "renders_in_order": [
+  {
+   "element": "Greeting",
+   "file_line": "src/screens/HomeScreen.tsx:2065 (text source persona-config.ts:218-226 comfortGreetings)",
+   "gate": "unconditional",
+   "what_it_does": "Shows a rotating comfort-toned greeting line, no persona-order gate check, always renders at top of Home."
+  },
+  {
+   "element": "Comfort verse banner",
+   "file_line": "src/screens/HomeScreen.tsx:2887; component src/sections/ComfortVerseBannerSection.tsx:39-122",
+   "gate": "sectionOrder.includes('comfort_verse_banner') AND persona==='comfort' (ComfortVerseBannerSection.tsx:43)",
+   "what_it_does": "Shows one of 16 rotating verses (by localDayIndex) plus a toggleable guided prayer of 4 rotating prayers."
+  },
+  {
+   "element": "Hero reading/audio card",
+   "file_line": "src/screens/HomeScreen.tsx:1298-1305 (auto-served ref push)",
+   "gate": "not a sectionOrder key; always present, auto-fed the day's comfort chapter",
+   "what_it_does": "Plays/loads today's comfort chapter as the app's generic hero reading panel."
+  },
+  {
+   "element": "'scripture' section",
+   "file_line": "src/screens/HomeScreen.tsx:3108-3116",
+   "gate": "sectionOrder.includes('scripture'); returns null when persona==='comfort' and no reading slots/plan",
+   "what_it_does": "Deliberately suppressed for comfort to avoid a confusing 'No reading plan active' message."
+  },
+  {
+   "element": "ComfortSection ('A Word For You Today')",
+   "file_line": "src/screens/HomeScreen.tsx:2892-2896; component src/components/ComfortSection.tsx:43-384",
+   "gate": "sectionOrder.includes('comfort_scripture')",
+   "what_it_does": "Auto-loads and displays the day's COMFORT_CHAPTERS entry, translation picker, listen button, post-read devotion, and the read-another/set-daily-amount flow."
+  },
+  {
+   "element": "BibleAIPromptSection",
+   "file_line": "src/screens/HomeScreen.tsx:2918; copy src/screens/HomeScreen.tsx:564-568",
+   "gate": "sectionOrder.includes('ai_prompt') AND hasUsedAI===false",
+   "what_it_does": "Comfort-worded card inviting the user to talk to Bible AI about feelings; opens BibleAI with a comfort-tuned system prompt (persona-config.ts:551)."
+  },
+  {
+   "element": "comfort_card",
+   "file_line": "persona-config.ts:517 sectionOrder entry; no matching render found in HomeScreen.tsx",
+   "gate": "none \u2014 dead key",
+   "what_it_does": "Nothing renders; ComfortCard was retired per ComfortVerseBannerSection.tsx:1-6 comment, its guided-prayer feature merged into the verse banner."
+  },
+  {
+   "element": "Book cards",
+   "file_line": "src/screens/HomeScreen.tsx:2921-2923",
+   "gate": "pf.bookCards.length > 0 (persona-config.ts:534: ['grace-and-truth','no-more-fear'])",
+   "what_it_does": "Shows the two comfort-relevant book recommendation cards."
+  },
+  {
+   "element": "Pastoral Care / 988 lifeline",
+   "file_line": "src/screens/MoreScreen.tsx:784-822 (crisis line at 838)",
+   "gate": "setup?.persona === 'comfort' (MoreScreen.tsx:785)",
+   "what_it_does": "On the More tab only (not Home): mailto care@futures.church link plus static '988 Suicide & Crisis Lifeline' text; not part of the comfort Home flow and not AI-triggered."
+  }
+ ],
+ "first_visit": "On first Home load for the comfort persona, HomeScreen renders (in sectionOrder from persona-config.ts:510-519): greeting \u2192 comfort_verse_banner \u2192 hero_audio \u2192 scripture (suppressed) \u2192 comfort_scripture \u2192 ai_prompt \u2192 comfort_card (dead) \u2192 book_cards, per the render order table. ComfortSection auto-loads day's chapter from COMFORT_CHAPTERS by localDayIndex (ComfortSection.tsx:49-63,81), shows translation picker, chapter text via ScripturePassage, and a \"Sit with this\" reflection prompt once text loads (ComfortSection.tsx:177-204). Tapping \"I'm finished reading\" (ComfortSection.tsx:189-202) surfaces a post-read devotion if COMFORT_DEVOTIONS has one for that chapter (ComfortSection.tsx:208-258), then an \"ask_more\" choice \u2014 read another / enough today (ComfortSection.tsx:261-295); after 2 chapters served with no daily amount set, it switches to \"ask_lock\" offering to fix a daily amount of 1/2/3 chapters (ComfortSection.tsx:297-356), then a \"done\" card (ComfortSection.tsx:358-381).",
+ "return_visit": "On return, comfortDailyAmount is read from localStorage dw_comfort_daily (ComfortSection.tsx:54-56) or synced value; if set (>0), the flow auto-advances through that many chapters per day without re-asking (advanceAfterDevotion, ComfortSection.tsx:65-79) and shows \"reading X of Y\" (ComfortSection.tsx:95-98) instead of \"take your time.\" The comfort chapter index still rotates daily by localDayIndex() (ComfortSection.tsx:20-23, 49-51) so a new day serves a new chapter regardless of amount setting. The user can change their daily amount later via \"comfort_change_daily\" link on the done card (ComfortSection.tsx:367-379), which reopens ask_lock. Streak/greeting continue to update per the completion_and_streak field; the streak count itself stays hidden from the UI for this persona (HomeScreen.tsx:2004-2006) even as it accrues.",
+ "completion_and_streak": "Comfort's own \"I'm finished reading\" button (ComfortSection.tsx:189-202) only sets local React state (comfortChaptersServed, comfortPostRead) \u2014 it does not call recordStreakToday or write dw_reading_done. The streak itself is stamped for every persona including comfort by an unconditional useEffect on Home mount (src/screens/HomeScreen.tsx:786-795, recordStreakToday()), and separately by handleMarkRead if the user taps \"Mark as read\" on the hero card (src/screens/HomeScreen.tsx:716-729). The streak counter UI is deliberately hidden for comfort (and new_to_faith) \"to avoid pressure\" (src/screens/HomeScreen.tsx:2004-2006), so the streak accrues silently in the background. There is a separate per-user \"daily amount\" setting (1/2/3 chapters, ComfortSection.tsx:305-327) stored to localStorage dw_comfort_daily and synced via syncMisc (ComfortSection.tsx:314-315) \u2014 this governs auto-advance through comfort chapters, not the streak.",
+ "audio": "Audio uses the shared app-wide player, not a comfort-specific component. ComfortSection.tsx:129-146 renders a Listen/Pause button wired to the handleListen/audioPlaying/audioLoading/audioCurrentPassage props passed down from HomeScreen (same handleListen defined at src/screens/HomeScreen.tsx:753). The hero card independently auto-loads/can play the same day's comfort chapter reference via src/screens/HomeScreen.tsx:1303-1305.",
+ "ai": "Comfort persona gets its own AI system-prompt addition (lead with comfort before teaching; if deep distress, gently encourage talking to a pastor or trusted friend) at src/utils/persona-config.ts:551. Home shows a comfort-specific AI entry card (BibleAIPromptSection, src/screens/HomeScreen.tsx:2918, copy block 564-568) that self-hides once dw_behavior_v1 logs an ai_prompt event. Selected text opens the highlight toolbar with comfortMode=true (src/screens/HomeScreen.tsx:4571) which can launch BibleAI. No crisis/self-harm detection exists in the AI code itself: grepping crisis/suicide/self-harm/988/lifeline across src/components/BibleAI.tsx and netlify/functions/claude.js returns nothing \u2014 the AI never inspects user text for distress signals or triggers the 988 line; that number is static copy elsewhere, not AI-driven.",
+ "copy_keys": [
+  "comfort_word_for_you (ComfortSection.tsx:93)",
+  "comfort_reading_x_of_y (ComfortSection.tsx:96-98)",
+  "comfort_take_time (ComfortSection.tsx:99)",
+  "comfort_peace_prompt (ComfortSection.tsx:187)",
+  "comfort_finished_reading (ComfortSection.tsx:201)",
+  "comfort_thought_header (ComfortSection.tsx:227)",
+  "comfort_read_another / comfort_yes_more / comfort_enough_today (ComfortSection.tsx:264,280,291)",
+  "comfort_doing_great / comfort_set_daily_q (ComfortSection.tsx:300,303)",
+  "chapters_1/2/3 + _desc (ComfortSection.tsx:307-309)",
+  "comfort_one_more / comfort_good_today (ComfortSection.tsx:341,352)",
+  "comfort_set_daily_one / comfort_set_daily_many / comfort_god_with_you / comfort_change_daily (ComfortSection.tsx:363-364,365,377)",
+  "reflect_prompt_comfort / sit_with_this (HomeScreen.tsx:3206-3210 \u2014 inside the dead 'devotion_scripture' section, see gap)",
+  "pray_label (ComfortVerseBannerSection.tsx:97)",
+  "pastoral_care copy (MoreScreen.tsx block near 786-822, hardcoded strings not i18n keys)"
+ ],
+ "self_serve_levers": [
+  "Daily chapter amount (1/2/3) is user-chosen in-app at the ask_lock step, ComfortSection.tsx:305-327 \u2014 no dev needed to change a given user's pace.",
+  "Translation choice among COMFORT_TRANSLATIONS is user-selectable, ComfortSection.tsx:104-122."
+ ],
+ "dev_needed_today": [
+  "Changing the rotating chapters that serve comfort (COMFORT_CHAPTERS list) requires editing src/data/comfort.ts \u2014 not exposed in UI.",
+  "Changing the 16 comfort verses or 4 guided prayers requires editing the hardcoded arrays in src/sections/ComfortVerseBannerSection.tsx:13-37.",
+  "Changing which two book cards show (grace-and-truth, no-more-fear) requires editing persona-config.ts:534.",
+  "Changing the AI system-prompt tone for comfort requires editing persona-config.ts:549-554; no admin toggle exists.",
+  "The comfort_card section key in sectionOrder (persona-config.ts:517) is dead \u2014 ComfortCard was retired and nothing in HomeScreen.tsx checks sectionOrder.includes('comfort_card'); reviving or removing it needs a dev.",
+  "The 'scripture' section for comfort renders nothing (intentionally suppressed, HomeScreen.tsx:3109-3115) since comfort has no reading slots/plan; changing that logic is code-only.",
+  "Adding real crisis-language detection/988 surfacing inside the AI chat (currently absent from BibleAI.tsx/claude.js) would require new development, not a config change.",
+  "Pastoral Care card (mailto:care@futures.church, static 988 text) is hardcoded in MoreScreen.tsx:784-822 \u2014 editable only by a dev."
+ ],
+ "tests_that_lock_behaviour": [
+  "No comfort-specific automated tests were found among the named files; this reflects only the files reviewed, not a full-repo test search."
+ ],
+ "copy_of_gaps_placeholder": "n/a"
+}

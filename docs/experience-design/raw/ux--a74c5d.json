@@ -1,0 +1,64 @@
+{
+ "findings": [
+  {
+   "element": "Screen \"Home \u2014 day one on this path (no plan yet)\", order item 9: the 'Where are you reading?' block, placed below the full-height floor chapter panel, Reflect and Mark as read",
+   "ruling": "BLOCKS USER \u2014 the design's own principle 5 (\"never a CTA below the fold\") and the ChoosePathSheet ruling that a committing control must never sit under a scrolling list. On day 0 the only control that starts a plan sits under a whole chapter in a Kindle-style full-height panel; at 375px a plan-less reader can scroll a chapter and never reach the one question the design says it asks once.",
+   "severity": "blocker",
+   "change": "In the no-plan state only, cap the floor panel to ~12 lines with a 'Keep reading' expander so the three plan rows land within the first scroll \u2014 or pin a single 'Where are you reading?' row directly under the hero caption that scrolls the ask into view."
+  },
+  {
+   "element": "Copy \"Greeting (existing) \u2014 Good morning, Ashley. Day 34.\" on both the no-plan and plan screens (streakCount, set by recordStreakToday at /Users/ashleymarkevans/futures-daily-word/src/screens/HomeScreen.tsx:786-795 and /Users/ashleymarkevans/futures-daily-word/src/utils/coldStart.ts:189)",
+   "ruling": "BLOCKS USER / RULING \u2014 \"the plan day is the only number on screen\" and \"no shame in any number, ever\". The greeting's number is an app-open streak, not the plan day; the hero eyebrow says 'Day 34 of 90' and the catch-up line names a third day. After a legitimate two days off the greeting resets to Day 1 beside a plan on Day 15 \u2014 the exact shame cue this path bans, in the app's own voice.",
+   "severity": "blocker",
+   "change": "On this path the greeting carries the plan day or no number at all; 'Day N' appears once, on the plan line."
+  },
+  {
+   "element": "self_serve_levers item 4 vs build_steps step 10 \u2014 the three day-0 plan ids and their one-line descriptions, shipped as HomeScreen code plus i18n strings",
+   "ruling": "RULING \u2014 self-serve over developer levers: a value an owner would change lives in a field or an editable row, never in code. The design names the owner-editable row as \"worth building\" and then does not build it, so reordering or rewording the app's top three recommendations becomes a PR.",
+   "severity": "should",
+   "change": "Read the three plan ids and descriptions from a per-campus row through the existing user-sync/Supabase layer with the hardcoded trio as fallback in this same build \u2014 or delete the self-serve claim and label it honestly as a file edit."
+  },
+  {
+   "element": "build_steps step 15 \u2014 campus study notes: optional free-text `ref` on the corner_add item in /Users/ashleymarkevans/futures-daily-word/netlify/functions/lib/intake-core.js (CORNER_TYPES at :40, sanitize at :279-343) and a nullable campus_content.ref",
+   "ruling": "BLOCKS USER \u2014 no validation, no echo and no error state is specified. A campus pastor types 'Gen 12' or 'Genesis12' on a Sunday, the note saves clean, and it never appears in a single reader's Study sheet with nothing on screen to say why. His only recovery is messaging Ashley \u2014 a self-serve lever that needs the developer is a defect.",
+   "severity": "blocker",
+   "change": "Normalise the ref server-side against the existing bible-books list, reject with the message rendered beside the submit button (noValidate plus an explicit check), and echo 'Shows on Genesis 12' back on the saved row."
+  },
+  {
+   "element": "Screen \"Paper mode\", states line 1: \"the bar is visible for three seconds, then fades\" \u2014 chapter reference, A\u2212, A+ and Close all fade",
+   "ruling": "BLOCKS USER \u2014 mobile first, no hidden affordances. On an iOS home-screen PWA there is no back gesture, so a non-technical reader is left on a full-bleed chapter with no visible way out and no instruction that tapping restores the bar.",
+   "severity": "should",
+   "change": "Fade the A\u2212/A+ pair if you want quiet, but keep Close and the chapter reference pinned for the whole session."
+  },
+  {
+   "element": "Study row (five chips: Listen \u00b7 Commentary \u00b7 Compare \u00b7 Gk/Heb \u00b7 Paper) and the Study sheet's four-tab strip incl. 'Cross-references'; build_steps step 6 check measures a 390px viewport",
+   "ruling": "RULING \u2014 works at 375 px with real tap targets. The verification width is 390 (iPhone 14), not 375 (SE / mini), and five chips plus a four-tab strip at 375 either shrinks below 44px or scrolls sideways. The tool is also named 'Greek & Hebrew' in the order and 'Gk/Heb' in the copy \u2014 two names for one thing.",
+   "severity": "should",
+   "change": "Check at 375px, let the row wrap to two lines with 44px targets rather than shrink, and use 'Greek & Hebrew' in both the chip and the tab."
+  },
+  {
+   "element": "build_steps step 9 / \"Done, in place\" remove list \u2014 milestone banner suppressed for deeper_study only; /Users/ashleymarkevans/futures-daily-word/src/sections/GreetingSection.tsx:53 '\ud83d\udd25 Milestone Reached', :62 \"You've got a {streakCount}-day streak!\", :70 \"Keep the momentum going. You're amazing.\"",
+   "ruling": "RULING \u2014 no emoji as UI, quiet voice. The flame and the cheerleading stay live on four other home screens that this same PR already touches for the Sermon Notes move, so the preview shows them side by side and the exclamation copy reads as settled.",
+   "severity": "should",
+   "change": "Keep the persona gate for this build, but name the flame and 'You're amazing' in the PR body as a pending cross-persona removal so the preview decision is made knowingly."
+  },
+  {
+   "element": "open_decisions item 7 \u2014 whether to remove the plan-day credit in handleRead (/Users/ashleymarkevans/futures-daily-word/src/screens/HomeScreen.tsx:754-755) for everyone or gate it to deeper_study",
+   "ruling": "RULING \u2014 the repo's own settled position at HomeScreen.tsx:713-716 (\"completion needs intent\") is not persona-specific. A gated fix means 'read' means two different things inside the same reading_done data, and congregation and pastor_leader keep getting a day credited for expanding a chapter.",
+   "severity": "should",
+   "change": "Remove the credit for every persona in its own commit with its own test; drop the gated option from the decision list."
+  },
+  {
+   "element": "evidence[] \u2014 nine moves sourced to \"Research, Persona 3 / Persona 5 / cross-cutting 6\"; docs/ holds only CHURCH-HOMEPAGE-CTA.md, PASTOR-LOGIN-HANDOFF.md, PASTOR-STUDY-PREACH-PLAN.md, PASTORS-SERMON-PREP-APP.md, two session handoffs and comfort-translations-draft-2026-08-26.md",
+   "ruling": "RULING \u2014 a name is not evidence. The research document these citations rest on is not on disk, so the Paper mode, catch-up, reminder-timing and provenance moves cannot be checked by the next reviewer or by Ashley at the preview.",
+   "severity": "should",
+   "change": "Restore docs/PERSONA-RESEARCH-2026-09-10.md in the first commit of the branch, or restate those nine lines as design judgement rather than citation."
+  },
+  {
+   "element": "Screen \"The catch-up line\" \u2014 'Read Day 12', 'Move the plan to today' and a bare '\u00d7' on one line under the hero date strip",
+   "ruling": "POLISH \u2014 mobile tap targets. Two inline text buttons plus an unlabelled \u00d7 at 375px puts three targets in one text line; the \u00d7 is well under 44px and carries no name for a reader who does not know the convention.",
+   "severity": "nit",
+   "change": "Put the two choices on their own row at 44px height and replace the \u00d7 with a labelled 'Not now'."
+  }
+ ]
+}

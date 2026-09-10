@@ -1,0 +1,80 @@
+{
+ "summary": "deeper_study renders sectionOrder [greeting, hero_audio, plan_scripture, scripture, commentary, ai_prompt] (src/utils/persona-config.ts:387-393). Arrival auto-opens today's chapter (no completion credit); plan_scripture shows the persona's 5 catalogue plans with Compare + Greek/Hebrew tools; commentary starts expanded and falls back to a 30-day-cached 'AI Insight' when the curated set has nothing for the day; ai_prompt opens BibleAI.tsx with a Greek/Hebrew/cross-reference/scholarly system-prompt addition. Audio for every Listen button runs through one shared player (ESV native audio first for ESV, else Polly/ElevenLabs by language). Two overlapping completion mechanisms exist: unconditional per-mount streak recording, and a deliberate 'Mark as read' plus an incidental credit on chapter-expand via handleRead.",
+ "renders_in_order": [
+  {
+   "element": "Greeting",
+   "file_line": "src/utils/persona-config.ts:380-421 config, deeper_study switch case in getGreeting",
+   "gate": "sectionOrder includes 'greeting'",
+   "what_it_does": "Shows 'Good [tod], [name]. Day [streak].' once streak>1, else plain 'Good [tod], [name].'"
+  },
+  {
+   "element": "Hero reading panel (auto-open)",
+   "file_line": "src/screens/HomeScreen.tsx:1441-1456",
+   "gate": "sectionOrder includes 'hero_audio'; auto-seeds for all non-new_to_faith personas (isNewChristianPersona check, 1450)",
+   "what_it_does": "Expands and loads today's chapter text automatically on arrival via loadPassage, not via handleRead, so it does not credit completion"
+  },
+  {
+   "element": "Compare button",
+   "file_line": "src/screens/HomeScreen.tsx:2603-2624",
+   "gate": "personaConfig.features.greekHebrew === 'full' (deeper_study has 'full', persona-config.ts:395)",
+   "what_it_does": "Toggles compareMode to show a second translation alongside the primary passage"
+  },
+  {
+   "element": "Plan-Driven Scripture ('Today's Study')",
+   "file_line": "src/screens/HomeScreen.tsx:3221-3350",
+   "gate": "sectionOrder includes 'plan_scripture' AND todaysPlanPassages.length > 0",
+   "what_it_does": "Per active plan: plan/day header, Listen button (handleListen, 3273), collapsed-until-Read scripture text (handleRead, 3334), Compare-translation block (3307-3327), Greek/Hebrew toggle (3233-3247, gated on pf.greekHebrew==='full')"
+  },
+  {
+   "element": "Today's Chapters (scripture)",
+   "file_line": "src/screens/HomeScreen.tsx:3433-3532",
+   "gate": "sectionOrder includes 'scripture'; deduped/suppressed when plan_scripture already renders the plan passages and no extra reading slots exist (3443-3450)",
+   "what_it_does": "Manually-added reading-slot passages with Select All (3456-3477) and Share (3478-3491) controls, or an empty-state 'No reading plan active' card linking to Plans (3516-3531)"
+  },
+  {
+   "element": "Commentary",
+   "file_line": "src/screens/HomeScreen.tsx:3352-3415",
+   "gate": "pf.commentary !== 'hidden' (deeper_study = 'expanded', persona-config.ts:394) AND allCommentaries.length > 0",
+   "what_it_does": "Curated commentary from src/data/commentary.ts, or an 'AI Insight'-labelled fetchAICommentary fallback (30-day cache) for chapters outside the curated ~20; starts pre-expanded for deeper_study (commentaryExpanded init at HomeScreen.tsx:468); multi-source tab strip when more than one entry (3370-3395)"
+  },
+  {
+   "element": "ai_prompt (Bible AI CTA)",
+   "file_line": "src/screens/HomeScreen.tsx:2918",
+   "gate": "sectionOrder includes 'ai_prompt'",
+   "what_it_does": "Renders BibleAIPromptSection; tapping opens the BibleAI.tsx overlay (setShowBibleAI(true))"
+  }
+ ],
+ "first_visit": "On first load with persona=deeper_study: sections render in the order above. The reading-panel effect (HomeScreen.tsx:1449-1456) auto-expands and loads the day's first chapter for arrival (\"arrival IS the reading\" per its comment at 1441-1447), gated off only for new_to_faith. dw_first_open is stamped if absent (HomeScreen.tsx:799-804). recordStreakToday() fires unconditionally on mount (786-795), incrementing streakCount if it's a new day. Commentary section is pre-expanded (features.commentary='expanded', persona-config.ts:394; commentaryExpanded init HomeScreen.tsx:468).",
+ "return_visit": "Greeting reads 'Good [tod], [name]. Day [streak].' once streak > 1 (persona-config.ts deeper_study English case). The hero re-seeds automatically to the new day's chapter on every dayOffset/translation/planDayOffset change (HomeScreen.tsx:1449-1456) without going through handleRead, so re-opening the app does not by itself credit the plan day. Commentary re-fetches the AI Insight fallback only when the curated set has nothing for today's chapter (1461-1472, guarded by allCommentaries[0].source check at 1463). Compare mode and Greek/Hebrew mode are runtime UI toggles with no persistence found in the read ranges.",
+ "completion_and_streak": "Two overlapping mechanisms. (1) App-open streak: every HomeScreen mount calls recordStreakToday() unconditionally (HomeScreen.tsx:786-795), idempotent per calendar day per repo convention (streak.ts). (2) Deliberate reading completion: handleMarkRead (717-731) is gated by the dw_reading_done=today localStorage stamp (719-720, 596), then calls markPlanDayComplete(passage) (721, defined 687-711) which reads/writes dw_activeplans, checks totalDays from PLAN_CATALOGUE (702-703), sets a one-shot finishedCelebrated flag (704-708) and returns whether the whole plan finished; handleMarkRead then shows either the plan-finish celebration (726-727) or a calm streak celebration via setDoneCelebration(getStreak().count) (729). Separately, handleRead (733-756) \u2014 the function actually wired to the plan_scripture and scripture 'Read' buttons (3334, 3607, 3672) \u2014 also calls markPlanDayComplete on chapter open/expand (754-755), so for deeper_study a plan day can be credited just by expanding a passage, not only by an explicit \"Mark as read\" action; there is no dedicated deeper_study-only streak label beyond the generic Day-N greeting line.",
+ "audio": "One shared player object AP (src/utils/audioPlayer.ts) backs every Listen control in this path (hero, plan_scripture cards at HomeScreen.tsx:3272-3289, scripture-section cards). Provider chain lives in src/utils/api.ts _doFetchAudio (279-333): if translation==='ESV', try ESV native audio first via _tryESVAudioRef which calls netlify/functions/esv-audio.js (302-redirect to audio.esv.org, ESV_AUDIO_ORIGIN allowlist at line 22, capped MAX_DIRECT_BODY_BYTES ~4.5MB at line 27-28); otherwise pick Polly-first (es/pt/id, api.ts:290-301 -> netlify/functions/polly-tts.js) or ElevenLabs-first (English, api.ts:303-315 -> netlify/functions/elevenlabs-tts.js) by dw_lang, each the other's fallback (319-333). netlify/functions/biblebrain-audio.js and netlify/functions/apibible-audio.js are not referenced anywhere in src/ or netlify/ (grep confirmed zero call sites) \u2014 dead code as shipped. handleListen (HomeScreen.tsx:758-777) calls AP.unlock() synchronously on tap for iOS, toggles off if already playing, stops any other audio, expands the passage, and plays immediately or queues via pendingAudioRef until text loads. AudioWave.tsx renders animated bars next to an actively-playing Listen/Pause button (used at HomeScreen.tsx:3285). StopAllAudio.tsx is a floating button visible only while AP reports 'playing' (src/components/StopAllAudio.tsx:12-16), calling AP.stop() on tap (22).",
+ "ai": "BibleAI.tsx (src/components/BibleAI.tsx) is the single AI surface, opened from multiple entry points: the word-tap flow in Greek/Hebrew/Compare mode auto-builds a prompt explaining the tapped word's Greek/Hebrew meaning (HomeScreen.tsx:1754-1755); a generic 'Ask Bible AI' button (1900); the ai_prompt section CTA (2918, BibleAIPromptSection); 'Go deeper' from a text selection (4568, 4573-4575); and the Greek/Hebrew popup's 'Go deeper' (4584). deeper_study's persona config supplies ai.systemPromptAddition telling the model to include Greek/Hebrew context, cross-references, scholarly perspectives, and give real depth (src/utils/persona-config.ts:418-420). Separately, the commentary section's AI fallback (fetchAICommentary, imported from src/utils/api.ts at HomeScreen.tsx:10) fetches and 30-day-caches an 'AI Insight'-labelled commentary for today's chapter only when pf.commentary==='expanded' and the curated set has nothing for it (1461-1472, comment at 1458-1460).",
+ "copy_keys": [
+  "compare_label \u2014 HomeScreen.tsx:2622",
+  "todays_study \u2014 HomeScreen.tsx:3231",
+  "tap_to_read / commentary_label \u2014 HomeScreen.tsx:3361, 3363",
+  "read_btn \u2014 HomeScreen.tsx:3200, 3342",
+  "j_loading / j_listen / pause \u2014 HomeScreen.tsx:3283-3287",
+  "select_all_passages \u2014 HomeScreen.tsx:3477",
+  "browse_plans \u2014 HomeScreen.tsx:3529",
+  "reflect_label / reflect_prompt_default / sit_with_this / reflect_prompt_comfort \u2014 HomeScreen.tsx:3206-3211",
+  "quick_meaning/quick_history/quick_apply/quick_greek/quick_connect/quick_god \u2014 src/components/BibleAI.tsx QUICK_PROMPTS (~line 40-47)",
+  "what_this_means_q \u2014 HomeScreen.tsx:4574"
+ ],
+ "self_serve_levers": [
+  "src/data/commentary.ts \u2014 add a passage/source key to the COMMENTARY object (plain JS, e.g. lines 2-24 show existing 'Matthew Henry' / \"Thayer's\" entries) to extend curated commentary coverage without touching component logic",
+  "src/data/plans.ts \u2014 add/edit plan entries and totalDays feeding PLAN_CATALOGUE (checked in markPlanDayComplete, HomeScreen.tsx:702-703)",
+  "src/utils/persona-config.ts:380-421 \u2014 deeper_study block: sectionOrder, features flags (commentary/greekHebrew/etc.), plans.featuredCategories, ai.systemPromptAddition are all plain data fields",
+  "netlify/functions/strongs.js:5-27 \u2014 COMMON_NT / COMMON_OT inline dictionaries can be extended by adding key/value entries; anything else falls back to the external Open Scriptures API per the file's header comment"
+ ],
+ "dev_needed_today": [
+  "Reordering or adding a new home-screen section for this persona requires editing conditional JSX blocks directly inside the 4,600-line HomeScreen.tsx (section gates at lines 2604, 3222, 3355, 3434, 2918) \u2014 no config-only path exists beyond the sectionOrder array itself",
+  "Audio provider fallback order (ESV native -> Polly/ElevenLabs by language) is hardcoded in src/utils/api.ts:279-333, not exposed as a lever",
+  "netlify/functions/biblebrain-audio.js and netlify/functions/apibible-audio.js are unwired dead code; wiring them in or deleting them needs a developer",
+  "handleRead crediting a plan day on chapter-expand (HomeScreen.tsx:754-755) coexists with handleMarkRead's deliberate 'Mark as read' gate (717-731) \u2014 reconciling these two completion paths is a logic change, not configuration",
+  "Strong's numbers beyond the ~20 inline entries in strongs.js fall back to an external Open Scriptures API call (strongs.js:2-3) whose behavior a developer would need to verify or replace"
+ ],
+ "tests_that_lock_behaviour": [
+  "No test files were found in this read covering HomeScreen.tsx's deeper_study branches, BibleAI.tsx, or the audio functions specifically; repo CLAUDE.md notes overall test coverage via `npx vitest run` is described as 'sparse'"
+ ]
+}

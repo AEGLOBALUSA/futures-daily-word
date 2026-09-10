@@ -1,0 +1,89 @@
+{
+ "ai": "AI = BibleAIPromptSection nudge card (sectionOrder 'ai_prompt', HomeScreen.tsx:2918) with congregation-specific copy at sections/BibleAIPromptSection.tsx:24-28 ('Go deeper with Bible AI' / 'Ask questions about today's reading, get historical context, or explore how it applies to your life.'). It self-hides permanently once localStorage dw_behavior_v1 contains any event type==='ai_prompt' (BibleAIPromptSection.tsx:3-12), with no UI to bring it back. Opening it (or the ReadingActionBar 'Ask AI' button, ReadingActionBar.tsx:45, or search) all drive one shared <BibleAI> modal instance (HomeScreen.tsx:4586-4593, isOpen={showBibleAI}), receiving currentPassage/selectedText/initialQuestion. GreekHebrewPopup is another possible entry to the same modal but is gated pf.greekHebrew !== 'hidden' (HomeScreen.tsx:4583-4585), and congregation's greekHebrew feature is 'hidden' (persona-config.ts:345), so that entry point is off for this persona. The system prompt addition sent to the AI for congregation is defined at persona-config.ts:372-375: \"The user is a church member growing in their faith. Give thorough but accessible answers. Avoid heavy academic language unless they specifically ask. Focus on practical application and daily life.\" (Indonesian translation at line 374).",
+ "audio": "Hero audio is a single persistent player keyed HERO_KEY = '__hero__' (HomeScreen.tsx:995) playing whichever chapter is heroChapterRefs[heroChapterIndex] (heroChapterRefs computed at HomeScreen.tsx:1291 as the union of plan passages + visible reading slots). Congregation's sectionOrder lists 'hero_audio' (persona-config.ts:338) but this is not an explicit string-gate in HomeScreen.tsx \u2014 the hero block renders unconditionally as core UI. A background effect (HomeScreen.tsx:945-960) preloads/caches TTS audio per chapter+translation once text is available, slicing text to 20000 chars (a shorter slice previously cut audio off ~1/3 into long chapters, per comment). AP.playUrl(HERO_KEY, src) starts playback (HomeScreen.tsx:1533). On natural end of the LAST chapter (result==='ended'), if dw_reading_done isn't already stamped for today, it defers to handleMarkRead (HomeScreen.tsx:1560-1571) \u2014 listening through the whole reading completes the day and credits streak/plan; a mid-list chapter ending only calls markPlanDayComplete, not the full day-complete flow. ReadingActionBar.tsx:31-37 exposes the listen/pause toggle while a chapter is expanded.",
+ "completion_and_streak": "Two paths stamp completion, both idempotent per calendar day via localStorage dw_reading_done (en-CA date string). (1) Explicit tap: handleMarkRead(passage) at HomeScreen.tsx:719-732 early-returns if dw_reading_done already equals today; otherwise it stamps dw_reading_done, calls markPlanDayComplete(passage), completeTodaysPathwayDay(passage), recordStreakToday(), sets readDoneToday true, fires a haptic, and shows either a plan-finish celebration or setDoneCelebration(getStreak().count). (2) Audio completion: HomeScreen.tsx:1560-1571 \u2014 only when the LAST chapter's audio reaches natural end AND dw_reading_done isn't already stamped does it setTimeout-defer to handleMarkRead; earlier chapters ending mid-list only credit the plan day, not the streak/day stamp. recordStreakToday()/getStreak() live in src/utils/streak.ts, imported at HomeScreen.tsx:38, and are documented idempotent per day (comment at line 543).",
+ "first_visit": "Congregation auto-starts today's Daily Word (Ashley & Jane) reading once: HomeScreen.tsx:977-990, gated on personaConfig.persona==='congregation', checks the one-time flag dw_aj_autostarted and empty dw_activeplans/readingSlots, then seeds dw_activeplans['ashley-jane-daily-word'] and sets dw_aj_autostarted='1' \u2014 a later quit of the plan is respected as a fill, not a re-enrol. On the first-visit calendar day (dw_first_open missing or equal to today, HomeScreen.tsx:449-453) the streak chip is suppressed even though streakCount would read 1, to avoid a false \"1 day\" for a brand-new user. A one-time PathArrivalStrip (HomeScreen.tsx:2095-2100) renders if pathArrival state is set, i.e. right after \"Choose your path\" saved a new path.",
+ "return_visit": "Greeting text recomputes on mount via getGreeting(persona, firstName, getStreak().count, lang) (HomeScreen.tsx:172-175); the congregation branch varies by streak bucket (streak>7 / streak>1 / else \u2014 Spanish example at persona-config.ts:126-131, parallel Portuguese ~163-168, Indonesian block from ~200). The streak chip shows once streakCount>0 and it's past the first-visit day (HomeScreen.tsx:2006), with milestone thresholds [1,2,3,5,7,10,14,21,30,40,60,90,100,180,365] (HomeScreen.tsx:2007) and a tappable milestone modal at streak>=7 (HomeScreen.tsx:2010-2013). readDoneToday state re-reads dw_reading_done against today's en-CA date on mount (HomeScreen.tsx:458).",
+ "copy_keys": [
+  "persona-config.ts:331 label 'Church Member' / labelId 'Anggota Gereja'",
+  "persona-config.ts:333 description 'Growing in my daily walk with God'",
+  "persona-config.ts:372-375 congregation ai.systemPromptAddition (en) / systemPromptAdditionId (id)",
+  "sections/BibleAIPromptSection.tsx:24-28 congregation messages.title 'Go deeper with Bible AI' / subtitle text",
+  "persona-config.ts ~126-131 (es) / ~163-168 (pt) / ~200+ (id) congregation greeting variants by streak bucket",
+  "i18n-table keys referenced but not resolved to English strings in the files read: t('streak_reset_best'), t('select_all_passages'), t('read_btn'), tI18n('streak_enc_{n}', lang), tI18n('sermon_notes_home_sub', lang) \u2014 GAP, actual strings live in the i18n module not read here"
+ ],
+ "self_serve_levers": [
+  "persona-config.ts:16 PERSONA_PLAN_IDS.congregation array \u2014 editing which plan IDs show for congregation is a plain array edit",
+  "persona-config.ts:336-342 sectionOrder array \u2014 reordering/removing existing gated entries changes what shows; but adding a brand-new id does nothing unless matching render/gate code already exists in HomeScreen.tsx",
+  "persona-config.ts:372-375 ai.systemPromptAddition / systemPromptAdditionId strings \u2014 plain text edit, no logic change needed",
+  "sections/BibleAIPromptSection.tsx:24-28 congregation messages.title/subtitle \u2014 plain string edit"
+ ],
+ "dev_needed_today": [
+  "'campus_count' is listed in congregation sectionOrder (persona-config.ts:341) but its render was deliberately deleted \u2014 comment at HomeScreen.tsx:3423-3427 says the campus-count number was fabricated from a seed and congregation members hold no credential for a real count; the sectionOrder entry is now dead. Removing it cleanly from the array is a source-file edit, not self-serve config.",
+  "'greeting' and 'hero_audio' are listed as sectionOrder ids (persona-config.ts:337-338) but grep found zero uses of personaConfig.sectionOrder.includes('greeting') or includes('hero_audio') anywhere in HomeScreen.tsx \u2014 both render unconditionally as core hero UI regardless of the config array, making the sectionOrder list misleading for these two entries; a developer has to trace runtime code, not the config, to know this.",
+  "src/sections/CongregationStatsSection.tsx exists but is never imported or referenced anywhere in HomeScreen.tsx (grep returned zero hits) \u2014 an orphaned component, presumably superseded by the campus-count removal; a developer is needed to confirm safe deletion or wire it back in.",
+  "src/screens/home-hero-reading.test.ts contains zero mentions of the string 'congregation' \u2014 no test currently locks congregation-path hero-reading behaviour end to end; adding coverage requires a developer.",
+  "Changing which flow (mark-as-read tap vs listening to the end) counts as day-completion, or changing the dw_reading_done idempotency key/date format, requires editing handleMarkRead and the audio-end effect directly in HomeScreen.tsx \u2014 not self-serve.",
+  "Reviving campus_count with a real, credentialed count, or wiring any brand-new sectionOrder id, requires new render + gate code in the 4,600-line HomeScreen.tsx file \u2014 a developer task."
+ ],
+ "renders_in_order": [
+  {
+   "element": "Header row: streak chip, PathSwatch, LanguageSwitch, ThemeToggle",
+   "file_line": "src/screens/HomeScreen.tsx:2004-2049",
+   "gate": "streak chip: persona !== new_to_faith/comfort AND streakCount>0 AND not(first-visit day with streak<=1); other controls always render",
+   "what_it_does": "Streak chip shows day-count + milestone label, tappable modal at streak>=7; PathSwatch/LanguageSwitch/ThemeToggle are persona-path/language/theme controls"
+  },
+  {
+   "element": "Greeting text",
+   "file_line": "src/screens/HomeScreen.tsx:2065 (computed 172-175); congregation branch persona-config.ts:126-131 (es shown)",
+   "gate": "none explicit \u2014 renders unconditionally though it corresponds to sectionOrder id 'greeting' (persona-config.ts:337)",
+   "what_it_does": "Time-of-day + streak-bucketed greeting line; search button shown if pf.searchEnabled"
+  },
+  {
+   "element": "Path arrival strip",
+   "file_line": "src/screens/HomeScreen.tsx:2095-2100",
+   "gate": "pathArrival state is set (one-time after Choose Your Path save)",
+   "what_it_does": "One-time banner shown right after switching to a new persona"
+  },
+  {
+   "element": "Hero reading block (audio player, chapter nav, Mark as read, ReadingActionBar)",
+   "file_line": "src/screens/HomeScreen.tsx:~2123-2560; ReadingActionBar.tsx:1-109",
+   "gate": "no explicit sectionOrder string-gate found for 'hero_audio' (persona-config.ts:338); content depends on heroChapterRefs/todaysPlanPassages non-empty",
+   "what_it_does": "Plays/pauses hero audio (HERO_KEY), chapter index navigation, triggers handleMarkRead on completion; ReadingActionBar shows note/listen/ask-ai/bookmark (compare button hidden \u2014 canCompare is deeper_study/pastor_leader only per ReadingActionBar.tsx:13,38)"
+  },
+  {
+   "element": "Word of the Day card (DailyWordCard)",
+   "file_line": "src/screens/HomeScreen.tsx:3953-3954; src/components/DailyWordCard.tsx:12-40",
+   "gate": "pf.wordOfDay !== 'hidden' \u2014 congregation's wordOfDay is 'hidden' (persona-config.ts:348)",
+   "what_it_does": "Not rendered for congregation persona"
+  },
+  {
+   "element": "Today's Chapters (scripture section)",
+   "file_line": "src/screens/HomeScreen.tsx:3434-3480+",
+   "gate": "sectionOrder.includes('scripture') (persona-config.ts:339); early-return-null only applies to comfort/new_to_faith with no plan/slots, so congregation shows whenever slots or plan passages exist",
+   "what_it_does": "Lists reading-slot passages beyond the hero plan reading; select-all and copy actions"
+  },
+  {
+   "element": "BibleAIPromptSection (ai_prompt)",
+   "file_line": "src/screens/HomeScreen.tsx:2918; src/sections/BibleAIPromptSection.tsx:1-102",
+   "gate": "sectionOrder.includes('ai_prompt') (persona-config.ts:340); self-hides once dw_behavior_v1 logs an 'ai_prompt' event (BibleAIPromptSection.tsx:3-12)",
+   "what_it_does": "Nudge card with congregation-specific copy (lines 24-28), opens the shared BibleAI modal"
+  },
+  {
+   "element": "Campus count section",
+   "file_line": "sectionOrder entry persona-config.ts:341; removal comment at HomeScreen.tsx:3423-3427",
+   "gate": "listed in sectionOrder but its render code was deleted",
+   "what_it_does": "Nothing renders \u2014 dead config entry"
+  },
+  {
+   "element": "Shared modals + ads: BibleAI, BibleSearch, GreekHebrewPopup (hidden for congregation), PromoAds",
+   "file_line": "src/screens/HomeScreen.tsx:4579,4583-4599",
+   "gate": "GreekHebrewPopup gated pf.greekHebrew !== 'hidden' \u2014 false for congregation (persona-config.ts:345); PromoAds gated on !isNewPath && heroChapterRefs.length>0",
+   "what_it_does": "Modals mounted at the bottom of the tree regardless of the section list; congregation never sees the Greek/Hebrew popup entry point"
+  }
+ ],
+ "tests_that_lock_behaviour": [
+  "src/screens/home-hero-reading.test.ts \u2014 grep for the literal string 'congregation' returned zero matches: no test currently exercises the congregation persona's hero-reading path (GAP)"
+ ],
+ "summary": "The congregation path's declared sectionOrder is [greeting, hero_audio, scripture, ai_prompt, campus_count] (persona-config.ts:336-342), but only 'scripture' and 'ai_prompt' are actually gated by that array in HomeScreen.tsx; 'greeting' and 'hero_audio' render unconditionally as core hero UI, and 'campus_count' is a dead entry whose render code was deliberately removed (comment HomeScreen.tsx:3423-3427). Congregation auto-starts the Ashley & Jane Daily Word plan once on a fresh install (HomeScreen.tsx:977-990). Completion/streak stamps via localStorage dw_reading_done + recordStreakToday(), fired either by an explicit 'Mark as read' tap (handleMarkRead, HomeScreen.tsx:719-732) or by hero audio playing through to the end of the last chapter (HomeScreen.tsx:1560-1571); both paths are idempotent per calendar day. Audio is a single HERO_KEY player with background TTS preloading (HomeScreen.tsx:945-995,1533). AI is the BibleAIPromptSection nudge (persona-specific copy, self-hiding after first use, BibleAIPromptSection.tsx) feeding a shared BibleAI modal, with a congregation-specific systemPromptAddition (persona-config.ts:372-375); the GreekHebrewPopup entry to that modal is off for congregation since greekHebrew is 'hidden'. Word of the Day is hidden for congregation (wordOfDay:'hidden'). CongregationStatsSection.tsx exists but is unused anywhere in HomeScreen.tsx. No test file currently covers the congregation persona's hero-reading behaviour."
+}

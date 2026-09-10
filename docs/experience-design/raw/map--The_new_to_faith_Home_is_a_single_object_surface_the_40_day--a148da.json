@@ -1,0 +1,124 @@
+{
+ "ai": "Bible AI is not shown as a persona Home card (new_to_faith sectionOrder has no 'ai_prompt' key, persona-config.ts:284-289). It is reachable from the reading action bar and from the highlight/study-sheet's \"What this means\" control. System prompt addition for this persona: \"The user is new to Christianity. Use simple, warm language. No theological jargon...\" (persona-config.ts:320-324; Indonesian variant :323-324). On the full-screen Day N surface, HighlightToolbar mounts with newPath={isNewPath}, swapping in the simple study sheet (\"What this means\" / Note) instead of the full toolbar (HomeScreen.tsx:4565-4578). Tapping \"What this means\" seeds bibleAIQuestion with the selected text and opens BibleAI (HomeScreen.tsx:4572-4576, mounted at :4586-4594). Greek/Hebrew popup never renders for this persona because pf.greekHebrew is 'hidden' (persona-config.ts:292; gate HomeScreen.tsx:4583). Verse-tap selection IS on for this persona (verseSelection: true, persona-config.ts:296) even though highlighting is 'basic' (persona-config.ts:293).",
+ "audio": "hero_audio is listed in the new_to_faith sectionOrder (persona-config.ts:286), but it never actually renders for this persona: the isNewPath branch returns its own \"hero-journey\" card with no play/pause/translation/chevron controls, commented \"No audio / translation / chevron chrome on this persona's home\" (HomeScreen.tsx:2150-2154, card body :2168-2203). The shared audio \"hero-listen\" card with the play button is only reached by personas that fall through past the isNewPath branch (HomeScreen.tsx:2155, 2251+), so new_to_faith effectively has no audio hero. House ads (PromoAds) are explicitly turned off for this persona: \"Off I'm-New (the journey is the page)\" (HomeScreen.tsx:4579-4582).",
+ "completion_and_streak": "Two mark-complete surfaces write to one stamp so they can't diverge (comment at HomeScreen.tsx:553-557, \"The reading and the lesson are ONE daily unit\"). Hero-side: handleMarkRead-equivalent stamps localStorage dw_reading_done to today's en-CA date and calls recordStreakToday() (HomeScreen.tsx:719-723, also :787). Lesson-card side: NewBelieverLessonCard's Mark Complete button (NewBelieverLessonCard.tsx:217-231) calls savePathwayProgress, wired by HomeScreen to savePathwayProgressFromLesson (HomeScreen.tsx:4553), which itself calls savePathwayProgress(p) then, if dw_reading_done isn't already today, stamps dw_reading_done and fires the 'dw-reading-completed' event (HomeScreen.tsx:584-598). completeTodaysPathwayDay (HomeScreen.tsx:558-579) is the reverse direction: it only credits the pathway's OWN day if the hero's completed passage matches that day's assigned reading (:565-570), guards against double-completion via lastCompletedDate === today (:561) and completedDays.includes(day) (:564), then appends the day to completedDays, advances currentDay, and sets lastCompletedDay/lastCompletedDate (:571-578). The streak counter itself is HIDDEN in the UI for this persona \u2014 \"Streak display \u2014 clean counter (hidden for new_to_faith + comfort to avoid pressure)\" (HomeScreen.tsx:2004-2006) \u2014 even though recordStreakToday() still runs underneath it. Day1Landing's separate cold-start path (before persona enrollment) calls beginDay1()/markDay1Read() (Day1Landing.tsx:59,67; coldStart.ts imports recordStreakToday at line 14) and stamps dw_day1_begun (coldStart.ts:19).",
+ "copy_keys": [
+  "day1_eyebrow, read_btn, path_landing_prompt, path_landing_link, mark_as_read, day1_of_40 \u2014 src/components/Day1Landing.tsx:93,107,111,118,146,148",
+  "pathway_how_it_works \u2014 HomeScreen.tsx:2116 (explainer line, shown only while completedDays<3)",
+  "pathway_hero_loading, todays_reading, choose_reading_plan (fallback paths not normally hit for this persona) \u2014 HomeScreen.tsx:2143,2285,2220",
+  "day_label, of_label, read_btn, read_today \u2014 journey hero card, HomeScreen.tsx:2179,2189,2199",
+  "pathway_day_complete, pathway_day_complete_final, pathway_show_now \u2014 NewBelieverLessonCard.tsx:275-278,290",
+  "mark_complete, completed_check, back, loading_scripture, share \u2014 NewBelieverLessonCard.tsx (t()/trans() calls) :131,201,245,260",
+  "what_this_means_q \u2014 HighlightToolbar wiring, HomeScreen.tsx:4574",
+  "getGreeting() persona='new_to_faith' hardcoded English/es/pt/id lines (not i18n() keys) \u2014 persona-config.ts:124-125,161-162,198-199,234-235"
+ ],
+ "self_serve_levers": [
+  "Persona label/description/icon shown in the path picker \u2014 persona-config.ts:275-280 (text edit only)",
+  "sectionOrder array controlling which Home blocks exist for this persona \u2014 persona-config.ts:284-289 (reordering/adding known section keys is config-only; new section names require new HomeScreen render branches, so NOT fully self-serve)",
+  "AI system-prompt addition text (English + Indonesian) \u2014 persona-config.ts:320-324 (plain string edit)",
+  "Journal entryTypes/tags/prompts for this persona \u2014 persona-config.ts:312-316 (plain data edit)",
+  "Library sections shown \u2014 persona-config.ts:317-319",
+  "features flags (commentary/greekHebrew/highlighting/verseSelection/wordOfDay/searchEnabled etc.) \u2014 persona-config.ts:290-307 (boolean/enum toggles, no new logic)",
+  "Greeting copy per language \u2014 persona-config.ts:124-266 (string edit within existing switch)",
+  "40-day pathway content itself (title/theme/lesson/reading per day, per language) lives in pathway data JSON referenced via pathwayData.days \u2014 NewBelieverLessonCard.tsx:77-98 reads it; editing day text is a data/content change, not a code change (exact JSON file not opened in this pass \u2014 see GAPS)"
+ ],
+ "dev_needed_today": [
+  "Adding or removing a Home section for this persona: sectionOrder only whitelists known keys ('greeting','hero_audio','scripture','faith_pathway'); a new key needs a matching render gate written into the ~4,600-line HomeScreen.tsx (see pattern at HomeScreen.tsx:3434, :2991, :4163) \u2014 persona-config.ts:284-289",
+  "Any change to the hero-journey card's visual structure, its single Read button, or the gates that make new_to_faith skip the shared audio hero \u2014 HomeScreen.tsx:2150-2205 (inline JSX/CSS, no CMS)",
+  "Changing what happens when Mark Complete is pressed, or the day-matching guard that decides whether a hero reading counts as the pathway's own day \u2014 HomeScreen.tsx:558-579, 584-598; NewBelieverLessonCard.tsx:217-231",
+  "Adding an AI-prompt card or search to this persona's Home \u2014 currently deliberately absent per code comment (persona-config.ts:282-283); reversing this is a design decision + HomeScreen code, not a flag",
+  "Editing which languages the Day1Landing cold-start screen supports, or its questions/verse copy \u2014 src/data/day1-landing.ts (not read in this pass; referenced at Day1Landing.tsx:10,40) \u2014 file content unseen, treat as dev work until confirmed",
+  "Turning the streak counter back on for this persona (currently hard-suppressed in JSX) \u2014 HomeScreen.tsx:2006",
+  "Any reshape of the opening screen (Day1Landing / journey hero) ships behind a preview link Ashley approves first, per house instruction \u2014 not a self-serve toggle regardless of code location"
+ ],
+ "first_visit": "Not yet enrolled/no persona data: the cold-start gate is Day1Landing.tsx, which renders a closed hero (wordmark, \"Day 1 of 40\" eyebrow via day1_eyebrow, title, one Read button) with scripture+pastoral collapsed until Read is tapped (Day1Landing.tsx:91-121). Tapping Read calls beginDay1() and track('daily_reading','begin_day1'), then opens the verse card, pastoral paragraphs, PathwayQuestions (day 1), and a Mark as read button under \"Day 1 of 40\" copy (Day1Landing.tsx:56-63, 123-150). Mark as read calls markDay1Read() and track('daily_reading','mark_day1_read') then exits the gate via onDone (Day1Landing.tsx:65-70). A quiet text-link \"Choose your path\" opens ChoosePathSheet from this same screen (Day1Landing.tsx:109-119, 158-166); picking new_to_faith stays on the Day 1 gate (only other personas trigger onDone at :164). Day1Reading.tsx is the refresh-after-Read variant of the same component with startOpen=true (Day1Reading.tsx:14-16). Once persona=new_to_faith and pathwayProgress.enrolled+pathwayData exist, Home renders the \"hero-journey\" card as the sole hero object: photo plate, Day N of Total + series title, progress bar, single Read/Read today button that opens the full-screen NewBelieverLessonCard (HomeScreen.tsx:2155-2203, gate check :2155). New-to-faith explainer line \"pathway_how_it_works\" shows only while completedDays<3 (HomeScreen.tsx:2108-2118). Sermon notes banner sits above the hero for this persona in the Sunday window (HomeScreen.tsx:1775-1830).",
+ "return_visit": "Enrolled with pathwayData present: Home always opens on the same hero-journey card (HomeScreen.tsx:2155-2203) showing today's pathwayDisplayDay; button label flips to \"read_today\" if already completed today (HomeScreen.tsx:2199, readDoneToday). Tapping it sets showJourneyDay=true, mounting the full-screen NewBelieverLessonCard (state declared HomeScreen.tsx:1834; mount HomeScreen.tsx:4542-4560) which is kept mounted whenever eligible (not just while open) so useSubView can consume its history entry on close (comment HomeScreen.tsx:4539-4541; NewBelieverLessonCard.tsx:35-39,68). Inside: Day header + progress bar (NewBelieverLessonCard.tsx:134-158), the day's chapter via ScripturePassage once passageText loads (NewBelieverLessonCard.tsx:163-205), the pastoral lesson text and Reflect & Respond questions (NewBelieverLessonCard.tsx:208-214), then Mark Complete / Share actions (:216-263) and a held \"Day N complete\" note with a \"show tomorrow now\" peek link until dismissed (:265-294). Sections that are suppressed for returning new_to_faith visits: For You personalization (HomeScreen.tsx:4162-4163), UpgradePromptCard (HomeScreen.tsx:2974, comment \"I'm New stays until they change path themselves\"), the compact 'devotion' pathway card meant for new_returning (HomeScreen.tsx:2990-2993, explicitly not for new_to_faith), the \"Choose Your Plan\" setup button (HomeScreen.tsx:2854-2857), and the plain \"TODAY'S CHAPTERS\" scripture section, which renders null for this persona when there are no manual reading slots because the pathway already supplies the reading (HomeScreen.tsx:3434-3442).",
+ "renders_in_order": [
+  {
+   "element": "Cold-start Day 1 gate (pre-enrollment)",
+   "file_line": "src/components/Day1Landing.tsx:72-169; src/components/Day1Reading.tsx:14-16",
+   "gate": "shown before persona/pathway enrollment exists; startOpen variant used on refresh after Read",
+   "what_it_does": "wordmark + language switch, Day 1 eyebrow/title, single Read button, then verse+pastoral+questions+Mark as read; a text-link opens ChoosePathSheet"
+  },
+  {
+   "element": "Sermon notes banner",
+   "file_line": "HomeScreen.tsx:1775-1830",
+   "gate": "for new_to_faith, positioned above the hero in the Sunday QR-guest window (per comment 1775-1779); pastor_leader routes to PREP_URL instead",
+   "what_it_does": "opens the congregation sermon-notes chooser"
+  },
+  {
+   "element": "Pathway explainer line",
+   "file_line": "HomeScreen.tsx:2108-2118",
+   "gate": "pf.faithPathway && enrolled && completedDays.length < 3",
+   "what_it_does": "one line of copy (pathway_how_it_works) explaining what the app is, for first-time users only"
+  },
+  {
+   "element": "Hero-journey card (Day N / title / progress / single Read button)",
+   "file_line": "HomeScreen.tsx:2150-2205",
+   "gate": "isNewPath && pf.faithPathway && pathwayProgress.enrolled && pathwayData present; falls back to hero-pathway-loading card at :2131-2148 while pathwayData is not yet loaded",
+   "what_it_does": "the sole persona-Home hero; tapping the button sets showJourneyDay=true"
+  },
+  {
+   "element": "UpgradePromptCard",
+   "file_line": "HomeScreen.tsx:2974-2984",
+   "gate": "never mounts for new_to_faith (persona !== 'new_to_faith')",
+   "what_it_does": "n/a for this persona"
+  },
+  {
+   "element": "Compact 'devotion' pathway card (for new_returning)",
+   "file_line": "HomeScreen.tsx:2990-3020ish (2991 gate)",
+   "gate": "requires sectionOrder.includes('devotion'); new_to_faith's sectionOrder does not include 'devotion' so this never renders for it",
+   "what_it_does": "n/a for this persona; comment explicitly says new_to_faith gets the full lesson card instead"
+  },
+  {
+   "element": "TODAY'S CHAPTERS / scripture section",
+   "file_line": "HomeScreen.tsx:3434-3442",
+   "gate": "sectionOrder.includes('scripture') true, but returns null early for new_to_faith when there are no manual reading slots/plan passages",
+   "what_it_does": "normally would list chapters; suppressed here because the pathway already serves the reading"
+  },
+  {
+   "element": "For You personalization",
+   "file_line": "HomeScreen.tsx:4162-4163",
+   "gate": "hidden for new_to_faith and comfort",
+   "what_it_does": "n/a for this persona"
+  },
+  {
+   "element": "House ads (PromoAds)",
+   "file_line": "HomeScreen.tsx:4579-4582",
+   "gate": "!isNewPath required, so never shown",
+   "what_it_does": "n/a for this persona"
+  },
+  {
+   "element": "Full-screen Day N surface (NewBelieverLessonCard)",
+   "file_line": "HomeScreen.tsx:4542-4560 (mount); component src/components/NewBelieverLessonCard.tsx:48-300",
+   "gate": "isNewPath && pf.faithPathway && enrolled && pathwayData; visibility toggled by showJourneyDay state, but component stays mounted for history-entry handling",
+   "what_it_does": "back row, day header+progress, chapter via ScripturePassage, pastoral lesson text, Reflect & Respond questions, Mark Complete/Share, completion-moment banner with peek-tomorrow link"
+  },
+  {
+   "element": "HighlightToolbar (simple study-sheet mode)",
+   "file_line": "HomeScreen.tsx:4565-4578",
+   "gate": "pf.highlighting !== 'none'; newPath={isNewPath} swaps in simplified sheet",
+   "what_it_does": "on text selection, offers Note and 'What this means' (opens BibleAI)"
+  },
+  {
+   "element": "GreekHebrewPopup",
+   "file_line": "HomeScreen.tsx:4583-4585",
+   "gate": "pf.greekHebrew !== 'hidden' \u2014 false for new_to_faith, so never renders",
+   "what_it_does": "n/a for this persona"
+  },
+  {
+   "element": "BibleAI panel",
+   "file_line": "HomeScreen.tsx:4586-4594",
+   "gate": "opened via showBibleAI state, triggered from HighlightToolbar's 'What this means'",
+   "what_it_does": "AI chat panel seeded with the new_to_faith system-prompt addition (persona-config.ts:320-324) and the selected text/question"
+  }
+ ],
+ "summary": "The new_to_faith Home is a single-object surface: the 40-day pathway hero card (no audio, no plans funnel, no For You, no upgrade prompt, no ads) that opens a full-screen Day N lesson+reading surface on tap. Completion is unified across the hero and the lesson card through one dw_reading_done stamp and one pathwayProgress store, with a day-matching guard so a plan reading never falsely advances the pathway. The streak still increments underneath the UI but its display is deliberately suppressed for this persona. AI is reachable only through the simplified \"What this means\" study-sheet action, gated by a persona-specific simple/warm system prompt; Greek/Hebrew and full highlighting stay hidden. Section visibility is driven by sectionOrder + a long tail of explicit `persona !== 'new_to_faith'` / `isNewPath` checks scattered through the 4,600-line HomeScreen.tsx, so most \"self-serve\" copy/flag edits are safe but any new section, gate, or completion-logic change requires a developer edit to HomeScreen.tsx directly, and any reshape of the opening screen needs Ashley's preview approval first per house rule.",
+ "tests_that_lock_behaviour": [
+  "src/screens/home-journey.test.ts:16-21 \u2014 the sage journey hero (key=\"hero-journey\") must exist and its button must call setShowJourneyDay(true)",
+  "home-journey.test.ts:23-31 \u2014 the NewBelieverLessonCard mount block must NOT gate on isReadingOpen (the exact bug the owner flagged)",
+  "home-journey.test.ts:33-45 \u2014 the Day N surface's ScripturePassage must receive text={passageText}; useSubView(open, onClose) must be present; no useModalA11y/aria-modal (no document-level focus trap, so BibleAI/notes stay reachable)",
+  "home-journey.test.ts:47-52 \u2014 the mount must pass open={showJourneyDay} and a passageText prop",
+  "home-journey.test.ts:54-58 \u2014 the journey surface must use var(--dw-new) tokens only, never raw green hexes (no second color family)"
+ ]
+}

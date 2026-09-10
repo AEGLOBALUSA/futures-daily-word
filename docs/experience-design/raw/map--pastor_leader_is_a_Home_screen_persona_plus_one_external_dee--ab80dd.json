@@ -1,0 +1,100 @@
+{
+ "ai": "Bible AI (src/components/BibleAI.tsx) is persona-gated: pastor_leader gets a \"For your message\" block (data-testid=pastor-prompts) with four extra quick prompts: teaching angles, find an illustration, break down Greek/Hebrew, and \"Turn my highlights into an outline\" which sends the dw_sermon_prep bag + dw_sermon_prep_focus (BibleAI.pastor.test.tsx:53-96). System prompt addition for pastor_leader (persona-config.ts:493-495): ministry-partner tone, teaching angles/illustrations/application points, vision/strategy not feelings, tracks patterns over time. The \"Talk It Through\" button on the Pastoral Reflection card (PastoralReflectionSection.tsx:64-68) seeds Bible AI context with that day's reflection prompt and opens the AI panel.",
+ "audio": "Same hero_audio pipeline as every persona \u2014 sectionOrder includes 'hero_audio' second, right after 'greeting' (persona-config.ts:441). No pastor-specific audio logic was found in the files read; this is a gap (see GAPS/dev_needed).",
+ "completion_and_streak": "recordStreakToday() (src/utils/streak.ts, imported HomeScreen.tsx:38) is generic and idempotent per calendar day for every persona, including pastor_leader. It fires: (1) on every Home mount (HomeScreen.tsx:786-794, sets streakCount, may show milestone modal); (2) on explicit \"Mark Read\" (HomeScreen.tsx:719-731, guarded by a dw_reading_done date check, then shows plan-finish or a \"done\" celebration); (3) on completing a pathway day (HomeScreen.tsx:543-545 \u2014 only meaningful for new_to_faith). No pastor_leader-specific completion or streak logic exists anywhere in the files read; the Preach card and Campus Overview do not touch streak state.",
+ "copy_keys": [
+  "preach_card_title (HomeScreen.tsx:1822)",
+  "preach_card_sub \u2014 \"Opens Pastors Sermon Prep\" (HomeScreen.tsx:1825; i18n string confirmed at home-pastor-floor.test.ts:69)",
+  "pastor_study_eyebrow (HomeScreen.tsx:1819)",
+  "sermon_notes_title / sermon_notes_home_sub \u2014 shared fallback for non-pastor personas on the same row (HomeScreen.tsx:1819-1825)",
+  "campus_stats_prompt / campus_stats_view / campus_stats_error (HomeScreen.tsx:4291,4310,4315)",
+  "study_sources_header / _intro / _loading / _none / _records / _share_alike (StudySourcesCard.tsx:32-49)",
+  "wiz_get_set_up / wiz_pastor_intro / wiz_help_pick / wiz_three_questions / wiz_know_want / wiz_straight_plans / wiz_priority_q / wiz_priority_sub / setup_personal_time / setup_deep_study / setup_rhythm / setup_read_ahead (+ *_desc) / wiz_where_time_q / wiz_study_q / wiz_time_q / wiz_preach_q (+ *_sub) / wiz_plan_* labels (PastorStudyOnboarding.tsx:50-261)",
+  "'Between You & God' pastoral-prompt heading is a hardcoded literal, not an i18n key (PastoralReflectionSection.tsx:34)",
+  "'Journal This' / 'Talk It Through' button labels are hardcoded literals, not i18n keys (PastoralReflectionSection.tsx:62,76)"
+ ],
+ "dev_needed_today": [
+  "'Between You & God', 'Journal This', 'Talk It Through' are hardcoded English strings in PastoralReflectionSection.tsx:34,62,76 \u2014 not translatable without a developer touching the component (should be t() calls per repo i18n convention).",
+  "The Preach card destination is a hardcoded external URL constant PREP_URL = 'https://pastors-sermon-prep.netlify.app' (HomeScreen.tsx:74) \u2014 changing which app the pastor lands on requires a code edit and redeploy, not a config toggle.",
+  "PastorStudyOnboarding's plan recommendations per answer (psalms-proverbs/gospel-john/new-testament-90/through-bible-year/book-church) are hardcoded arrays inside each step (PastorStudyOnboarding.tsx:147-256) \u2014 changing which plan maps to which answer needs a developer.",
+  "Campus Overview requires a working pastor/campus code from the staff roster and calls a fixed endpoint /api/analytics-dashboard with header X-Pastor-Code (HomeScreen.tsx:1108); adding new stat tiles or changing the shape needs both the Home JSX and the API contract updated together \u2014 a developer task, not self-serve.",
+  "The in-app PreachScreen.tsx/SermonWorkspace.tsx (Prep/Outline/Publish/Archive tabs) is explicitly dead code as of 9 Sep 2026 \u2014 not mounted from App.tsx or Home for pastor_leader (PreachScreen.tsx:1-9 comment; confirmed by home-pastor-floor.test.ts:72-76 asserting App.tsx never references PreachScreen) \u2014 any future work reviving or removing it needs a developer decision.",
+  "Journal prompts (15 pastor-specific reflection lines) are a hardcoded array in persona-config.ts:473-487 \u2014 adding/editing/reordering prompts requires editing this TS array and redeploying; no admin UI."
+ ],
+ "first_visit": "On first Home load for pastor_leader with no active plans and no dismissal recorded, PastorStudyOnboarding renders inside the 'plan_scripture' gate (HomeScreen.tsx:2877-2884, sectionOrder check at 2876) directly under the hero/reading area. Step 0 (PastorStudyOnboarding.tsx:64-102) offers \"Help me pick\" (\u2192 step 1, a 3-question wizard: priority \u2192 sub-question \u2192 plan pick, PastorStudyOnboarding.tsx:105-266) or \"I know what I want\" (jumps straight to Plans tab, marks dw_pastor_onboard_completed). Above/around this: the sermonNotesRow \"Preach\" card renders unconditionally for pastor_leader with eyebrow \"PASTOR STUDY\" and title from preach_card_title, and tapping it does window.location.assign(PREP_URL) \u2014 an immediate external navigation away from the PWA to https://pastors-sermon-prep.netlify.app (HomeScreen.tsx:1789-1791, PREP_URL const at line 74). If no plan/slot exists yet, the hero falls back to a rotating PASTOR_CHAPTERS reference (day-of-year indexed) so the reading hero is never empty (HomeScreen.tsx:1309-1312).",
+ "return_visit": "Once a plan or reading slot exists, PastorStudyOnboarding self-dismisses permanently (returns null once dw_activeplans is non-empty or dw_pastor_onboard_completed is set \u2014 PastorStudyOnboarding.tsx:22-43). Render order top to bottom per sectionOrder (persona-config.ts:432-442): greeting \u2192 hero_audio \u2192 plan_scripture (Plan-Driven Scripture cards for today's plan passages, full Greek/Hebrew toggle since pf.greekHebrew='full', HomeScreen.tsx:3221-3260) \u2192 scripture \u2192 pastoral_prompt (Pastoral Reflection \"Between You & God\" card, HomeScreen.tsx:2831-2842, PastoralReflectionSection.tsx) \u2192 commentary (expanded by default) \u2192 ai_prompt \u2192 campus_count (rendered as the Campus Overview block, HomeScreen.tsx:4235-4320, gated separately on persona==='pastor_leader' rather than sectionOrder) \u2192 book_cards (grace-and-truth, no-more-fear \u2014 persona-config.ts:459). The Preach card/PREP_URL deep-link and Campus Overview persist on every return visit.",
+ "renders_in_order": [
+  {
+   "element": "Preach card (\"Preach\" / sermonNotesRow)",
+   "file_line": "src/screens/HomeScreen.tsx:1789-1830, PREP_URL const line 74",
+   "gate": "personaConfig.persona === 'pastor_leader' (ternaries throughout the row)",
+   "what_it_does": "Renders dark banner with eyebrow pastor_study_eyebrow + title preach_card_title + sub preach_card_sub; onClick does window.location.assign(PREP_URL) leaving the app entirely for https://pastors-sermon-prep.netlify.app instead of opening the in-app congregation notes chooser other personas get."
+  },
+  {
+   "element": "Hero reading (scripture) + audio",
+   "file_line": "sectionOrder hero_audio/scripture, persona-config.ts:441-442; PASTOR_CHAPTERS fallback HomeScreen.tsx:1309-1312",
+   "gate": "sectionOrder.includes('hero_audio'/'scripture'); fallback only if heroChapterRefs is empty",
+   "what_it_does": "Standard hero reading/audio block; when no plan/slots exist, seeds a rotating leadership chapter from PASTOR_CHAPTERS (day-indexed) so the hero is never blank."
+  },
+  {
+   "element": "PastorStudyOnboarding wizard",
+   "file_line": "src/components/PastorStudyOnboarding.tsx:21-266; mounted HomeScreen.tsx:2877-2884",
+   "gate": "sectionOrder.includes('plan_scripture') AND (no dw_pastor_onboard_completed AND no dw_activeplans)",
+   "what_it_does": "Multi-step self-dismissing setup: pick a priority (personal/depth/rhythm/preaching) then one of several catalogue plans; on pick calls startPlanFromHome(planId) and stamps dw_pastor_onboard_completed."
+  },
+  {
+   "element": "Plan-Driven Scripture cards (\"Today's Study\")",
+   "file_line": "HomeScreen.tsx:3221-3260",
+   "gate": "sectionOrder.includes('plan_scripture') AND todaysPlanPassages.length > 0",
+   "what_it_does": "Renders each active plan's passage for today with a Greek/Hebrew mode toggle (pf.greekHebrew === 'full')."
+  },
+  {
+   "element": "Pastoral Reflection Prompt (\"Between You & God\")",
+   "file_line": "src/components/PastoralReflectionSection.tsx:20-81; mounted HomeScreen.tsx:2831-2839",
+   "gate": "sectionOrder.includes('pastoral_prompt')",
+   "what_it_does": "Shows one of 15 rotating leadership journal prompts (persona-config.ts:473-487, index = getDayNumber % 15); 'Journal This' prefills dw_journal_prefill and navigates to Journal tab; 'Talk It Through' opens Bible AI with the prompt as context."
+  },
+  {
+   "element": "Commentary block",
+   "file_line": "sectionOrder 'commentary', persona-config.ts:443; features.commentary='expanded' persona-config.ts:449",
+   "gate": "sectionOrder.includes('commentary')",
+   "what_it_does": "Renders commentary expanded by default (vs collapsed/hidden for other personas)."
+  },
+  {
+   "element": "AI prompt entry",
+   "file_line": "sectionOrder 'ai_prompt', persona-config.ts:444",
+   "gate": "sectionOrder.includes('ai_prompt')",
+   "what_it_does": "Standard AI entry point section; actual persona-specific quick prompts live inside BibleAI.tsx gated on persona==='pastor_leader' (verified via BibleAI.pastor.test.tsx)."
+  },
+  {
+   "element": "Campus Overview",
+   "file_line": "HomeScreen.tsx:4235-4320; state/fetch HomeScreen.tsx:1080-1130",
+   "gate": "personaConfig.persona === 'pastor_leader' (direct check, not sectionOrder) AND a valid pastorCode",
+   "what_it_does": "Fetches /api/analytics-dashboard with header X-Pastor-Code; shows readingToday/activeThisWeek/prayerCount/campus name tiles when scope==='campus'; otherwise shows a code-entry prompt (campus_stats_prompt) with submitPastorCode(); never fabricates numbers."
+  },
+  {
+   "element": "Book cards",
+   "file_line": "persona-config.ts:459 (bookCards: ['grace-and-truth','no-more-fear'])",
+   "gate": "sectionOrder.includes('book_cards')",
+   "what_it_does": "Renders the two pastor-targeted book promo cards last in the section order."
+  },
+  {
+   "element": "StudySourcesCard (Settings/More, not Home)",
+   "file_line": "src/components/StudySourcesCard.tsx:14-57",
+   "gate": "Rendered in MoreScreen \u2014 pastor_leader only, per file header comment line 2",
+   "what_it_does": "Lists licence/attribution for every bulk-loaded study source via fetchStudySources() (src/utils/study.ts:100-102 \u2192 netlify/functions/study.js)."
+  }
+ ],
+ "self_serve_levers": [
+  "Pastoral reflection prompts list \u2014 persona-config.ts:473-487 is a plain string array Ashley could reorder/edit himself only by direct file edit (not a CMS); no UI exposes it.",
+  "PASTOR_CHAPTERS rotation list \u2014 src/data/pastor.ts (referenced HomeScreen.tsx:1310, tested home-pastor-floor.test.ts:9,25-29) \u2014 a plain array, edit to change fallback readings; no admin surface.",
+  "Pastor onboarding wizard's plan mappings \u2014 PastorStudyOnboarding.tsx:147-256 \u2014 literal option arrays per step; changing options/plans is a code edit.",
+  "Campus stats depend entirely on the pastor's own campus/staff code provisioned via staffIdentity \u2014 no self-serve way to reset or reassign a code from within this UI (sign-out/sign-in flow only, per home-pastor-floor.test.ts:36-48)."
+ ],
+ "summary": "pastor_leader is a Home-screen persona plus one external deep-link. On Home, sectionOrder (persona-config.ts:432-442) renders in this order: greeting \u2192 hero_audio/scripture (with a PASTOR_CHAPTERS rotating fallback when no plan/slots exist) \u2192 plan_scripture (either the multi-step PastorStudyOnboarding wizard first-run, or \"Today's Study\" plan cards with a Greek/Hebrew toggle on return) \u2192 pastoral_prompt (\"Between You & God\" reflection card, journaling or Bible-AI hand-off) \u2192 commentary (expanded) \u2192 ai_prompt (Bible AI gets 4 extra \"For your message\" quick prompts) \u2192 campus_count (rendered as a real-analytics Campus Overview gated on a pastor/campus code, not fake numbers) \u2192 book_cards. The dedicated \"Preach\" card that used to open in-app sermon prep now, as of 9 Sep 2026, immediately navigates the pastor off the PWA to the external Pastors Sermon Prep app (PREP_URL); the in-app PreachScreen/SermonWorkspace files remain in the repo but are dead code, unmounted from App.tsx. Completion/streak stamping is entirely generic (recordStreakToday, idempotent per day) \u2014 no pastor-specific completion logic exists. StudySourcesCard (in Settings/More) lists attribution for the study data layer (netlify/functions/study.js via src/utils/study.ts) that backs the pastor's prep tools.",
+ "tests_that_lock_behaviour": [
+  "src/screens/home-pastor-floor.test.ts:14-58 \u2014 pins the PASTOR_CHAPTERS hero fallback, the persona chip/sign-out UI, Campus Overview code pickup, and Bible AI currentPassage wiring.",
+  "src/screens/home-pastor-floor.test.ts:60-77 \u2014 pins that pastor_leader's Preach card assigns window.location to PREP_URL while other personas still open the congregation chooser, and that the 'sermon-notes' tab in App.tsx is always SermonNotesTab, never PreachScreen.",
+  "src/components/BibleAI.pastor.test.tsx:53-107 \u2014 pins the four pastor-only quick prompts, that they render nothing extra for 'congregation', and the exact outline-prompt payload (sermon-prep bag + focus) and system-prompt content sent to the AI endpoint."
+ ]
+}
