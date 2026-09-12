@@ -35,7 +35,7 @@ import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
 import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
-import { getStreak } from '../utils/streak';
+import { getStreak, recordStreakToday } from '../utils/streak';
 import { getReadDayCount, recordReadDay } from '../utils/readDays';
 import type { CampusStats } from '../sections/HomeContext';
 import { getDailyWord } from '../data/daily-words';
@@ -93,8 +93,9 @@ function getTranslationsForPersona(persona: string, lang: string): TranslationCo
 
 
 // Streak logic now lives in one shared module (src/utils/streak.ts) so Home and
-// Plans can't diverge. getStreak is imported at the top; the streak is rolled
-// forward by recordReadDay (src/utils/readDays.ts) on a genuine reading.
+// Plans can't diverge. getStreak is imported at the top; the streak is kept alive
+// by recordStreakToday() on Home mount, and also rolled forward by recordReadDay
+// (src/utils/readDays.ts) on a genuine reading — both are idempotent per day.
 
 
 
@@ -794,7 +795,16 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   }, []);
 
 
-  // The streak is now recorded by recordReadDay on a genuine reading, not on mount.
+  // Keep the streak alive on open (a reader who reads the on-screen passage but never
+  // taps a completion action must not lose their streak). Genuine reading actions also
+  // call recordReadDay -> recordStreakToday, which is idempotent per day, so no double count.
+  useEffect(() => {
+    const result = recordStreakToday();
+    if (result.isNew && result.isMilestone) {
+      setTimeout(() => setShowMilestone(result.count), 600);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Track first-open date (read by pathway-upgrades). The day-2 plan-modal nudge is
   // deferred too — the Home hero + Plans tab are the plan entry points now.

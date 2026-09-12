@@ -349,6 +349,35 @@ function prunePlanTombstones(map: Record<string, unknown>) {
   }
 }
 
+/** Streak merge grace window, days — matches recordStreakToday's freeze window, where a
+ *  gap of up to 2 missed days is still an unbroken run. */
+const STREAK_MERGE_GRACE_DAYS = 2;
+
+/** Decide which side of a streak record wins a merge.
+ *  cloud wins when: there's no local record; same day and cloud has a higher count;
+ *  cloud is strictly newer and its count isn't a regression; or cloud is newer by MORE
+ *  than the grace window (a genuinely later run after a real break, even with a lower
+ *  count, since a legitimate reset must be allowed to take effect). Otherwise local wins —
+ *  this is the protection against a cloud record that's newer by only 1-2 days but holds
+ *  a LOWER count, which is a stale/reset view, not a genuine new run. */
+export function streakMergeWinner(
+  local: { count?: number; lastDate?: string } | null | undefined,
+  cloud: { count?: number; lastDate?: string } | null | undefined,
+): 'cloud' | 'local' {
+  if (!local || Object.keys(local).length === 0) return 'cloud';
+  const cd = String(cloud?.lastDate || '');
+  const ld = String(local.lastDate || '');
+  const cCount = cloud?.count || 0;
+  const lCount = local.count || 0;
+  if (cd === ld && cCount > lCount) return 'cloud';
+  if (cd > ld && cCount >= lCount) return 'cloud';
+  if (cd > ld) {
+    const gapDays = Math.round((Date.parse(cd) - Date.parse(ld)) / 86400000);
+    if (gapDays > STREAK_MERGE_GRACE_DAYS) return 'cloud';
+  }
+  return 'local';
+}
+
 /** Write cloud data into localStorage (without overwriting non-empty local with empty cloud).
  *  NOTE: the journal is deliberately NOT in this list. syncOnStartup merges the journal
  *  (mergeJournals, tombstone-aware) and writes the merged result itself; applying the RAW
@@ -397,19 +426,17 @@ function applyCloudData(data: Record<string, unknown>) {
     }
   }
 
-  // Streak — keep the side whose lastDate is later (tie → higher count) instead of
-  // blind cloud-wins: a second device pulling an older cloud copy must not
-  // un-record today or regress the count another device already pushed.
+  // Streak — merge by lastDate + count, with a grace window against a reset
+  // clobbering a higher count from another device: a cloud record that is newer
+  // by only 1-2 days but holds a LOWER count is a stale/reset view (the freeze
+  // grace lets a run continue after up to 2 missed days), not a genuine new run,
+  // so local wins. Only a gap of MORE than GRACE days lets a lower cloud count
+  // (a legitimate reset after a real break) take effect.
   {
     const cs = asRecord(data.streak) as { count?: number; lastDate?: string } | null;
     if (cs && Object.keys(cs).length > 0) {
       const ls = asRecord(readJSON(SYNC_KEYS.streak, {})) as { count?: number; lastDate?: string } | null;
-      const cd = String(cs.lastDate || '');
-      const ld = String(ls?.lastDate || '');
-      const cloudWins = !ls || Object.keys(ls).length === 0
-        || cd > ld
-        || (cd === ld && (cs.count || 0) > (ls?.count || 0));
-      if (cloudWins) {
+      if (streakMergeWinner(ls, cs) === 'cloud') {
         try { localStorage.setItem(SYNC_KEYS.streak, JSON.stringify(cs)); } catch { /* quota */ }
       }
     }

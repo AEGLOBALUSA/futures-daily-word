@@ -10,6 +10,8 @@ import { mergeReadDays, readDaysTotal } from './readDaysMerge';
 import { getReadDayCount, recordReadDay } from './readDays';
 import { LS } from './storage';
 
+const SEEDED_FLAG = 'dw_read_days_seeded';
+
 describe('mergeReadDays', () => {
   it('unions two inputs, dedupes, and sorts ascending', () => {
     const out = mergeReadDays(['2026-09-10', '2026-09-08'], ['2026-09-08', '2026-09-09']);
@@ -102,6 +104,48 @@ describe('getReadDayCount', () => {
 
   it('is zero when nothing is stored', () => {
     expect(getReadDayCount()).toBe(0);
+  });
+});
+
+describe('seedReadDaysIfNeeded (one-time backfill so nobody drops to zero)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('a reader with a streak run and no dw_read_days seeds from the streak and sets the flag', () => {
+    localStorage.setItem(LS.streak, JSON.stringify({ count: 30, lastDate: '2026-09-01' }));
+    expect(getReadDayCount()).toBe(30);
+    expect(localStorage.getItem(SEEDED_FLAG)).toBe('1');
+    const stored = JSON.parse(localStorage.getItem(LS.readDays) || '{}');
+    expect(stored.dates).toContain('2026-09-01');
+    expect(stored.dates).toContain('2026-08-03'); // lastDate minus 29 days
+  });
+
+  it('a reader who already has a dw_read_days record is not reseeded, but the flag is set', () => {
+    const existing = { dates: ['2020-01-01', '2020-01-02'], dropped: 0 };
+    localStorage.setItem(LS.readDays, JSON.stringify(existing));
+    localStorage.setItem(LS.streak, JSON.stringify({ count: 30, lastDate: '2026-09-01' }));
+    expect(getReadDayCount()).toBe(2);
+    expect(localStorage.getItem(SEEDED_FLAG)).toBe('1');
+    expect(JSON.parse(localStorage.getItem(LS.readDays) || '{}')).toEqual(existing);
+  });
+
+  it('running any public function twice does not double-seed', () => {
+    localStorage.setItem(LS.streak, JSON.stringify({ count: 5, lastDate: '2026-09-01' }));
+    getReadDayCount();
+    const firstStored = localStorage.getItem(LS.readDays);
+    recordReadDay('complete');
+    const secondStored = JSON.parse(localStorage.getItem(LS.readDays) || '{}');
+    // still just the seed's 5 dates plus today's genuine read (recordReadDay adds today,
+    // not a reseed of the streak) — the seed itself never runs again.
+    expect(firstStored).not.toBeNull();
+    expect(secondStored.dates.length).toBeLessThanOrEqual(6);
+  });
+
+  it('a brand-new reader with no streak/journal/behavior seeds nothing and returns 0', () => {
+    expect(getReadDayCount()).toBe(0);
+    expect(localStorage.getItem(SEEDED_FLAG)).toBe('1');
+    expect(localStorage.getItem(LS.readDays)).toBeNull();
   });
 });
 

@@ -1,7 +1,12 @@
 /**
- * Source-text guards (Wave 0, step 8): the Read tap must no longer credit a
- * plan day, and the mount-time streak record must be gone — completion and
- * the streak now come only from an explicit reading interaction.
+ * Source-text guards for Wave 0 and its data-safety follow-up.
+ *
+ * The Read tap must not credit a plan day (completion needs an explicit action),
+ * and the day-count chip reads dw_read_days, not the streak. But the streak must
+ * still be KEPT ALIVE on open: Wave 0 removed the mount-time record, which let a
+ * reader who reads the on-screen passage without ever tapping a completion lose
+ * their streak after the freeze grace. The keepalive is restored on mount, and
+ * the streak also advances from genuine reading interactions.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
@@ -22,26 +27,21 @@ describe('handleRead no longer credits a plan day', () => {
   });
 });
 
-describe('the mount-time streak record is gone', () => {
-  it('the removed mount comment no longer appears', () => {
-    expect(home).not.toContain('Record today as a reading day + handle streak freeze');
+describe('the streak is kept alive on open (data-loss fix)', () => {
+  it('Home records the streak in a mount-once effect', () => {
+    // Wave 0 removed this and made the streak advance only from genuine reads,
+    // which let an on-screen reader who never taps a completion lose their run.
+    // The keepalive is restored: a bare mount effect calls recordStreakToday().
+    expect(home).toMatch(/useEffect\(\(\) => \{\s*const result = recordStreakToday\(\);/);
   });
 
-  it('recordStreakToday() is no longer invoked from an unconditional mount effect', () => {
-    // The removed block called recordStreakToday() unconditionally on mount;
-    // assert the specific removed shape (result.isNew / setStreakCount pair
-    // sitting directly under a bare `useEffect(() => {`) is gone.
-    expect(home).not.toMatch(/useEffect\(\(\) => \{\s*const result = recordStreakToday\(\);/);
+  it('the mount keepalive surfaces a milestone on open', () => {
+    expect(home).toContain('if (result.isNew && result.isMilestone) {');
   });
 
-  it('Home no longer records the streak itself', () => {
-    // The mount block was the only place Home called recordStreakToday. The
-    // streak is now rolled forward inside recordReadDay, so Home does not
-    // reference it at all.
-    expect(home).not.toContain('recordStreakToday');
-  });
-
-  it('the streak still advances, from the genuine reading interactions', () => {
+  it('the streak ALSO advances from genuine reading interactions', () => {
+    // recordReadDay rolls the streak too (idempotent per day), so a genuine read
+    // keeps it alive on a day the app was never merely opened.
     expect(home).toContain("const r = recordReadDay('complete');");
     expect(home).toContain("const r = recordReadDay('pathway');");
     expect(home).toContain("const r = recordReadDay('audio');");
@@ -49,8 +49,11 @@ describe('the mount-time streak record is gone', () => {
     expect(readDays).toContain('const streak = recordStreakToday();');
   });
 
-  it('a streak milestone still raises the overlay after a genuine read', () => {
-    expect(home).toContain('if (r.streak.isNew && r.streak.isMilestone) {');
+  it('the day-count chip still reads dw_read_days, not the streak', () => {
+    // The honest-number change Wave 0 shipped must survive the keepalive: the
+    // header count is readDayCount, and Home does not print getStreak().count
+    // as the chip number.
+    expect(home).toContain('readDayCount');
   });
 });
 
