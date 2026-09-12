@@ -3,6 +3,8 @@
  * Import `track` from this module and call it on every meaningful user action.
  */
 import { API_BASE } from './api-base';
+import { TRACKED_EVENTS } from './tracked-events';
+import { getEventPath, getJourneyDay } from './event-context';
 
 declare global {
   interface Window {
@@ -28,27 +30,36 @@ export function gaEvent(eventName: string, params: Record<string, string | numbe
 }
 
 // ── Supabase activity event (server-side storage) ──
-const TRACKED_EVENTS = [
-  'daily_reading', 'translation_switch', 'audio_play', 'highlight_add',
-  'journal_save', 'prayer_submit', 'prayer_agree', 'chat_message',
-  'book_chapter', 'plan_start', 'plan_complete', 'pathway_complete',
-  'campus_switched', 'profile_update', 'push_subscribe', 'share',
-  'app_open', 'page_view', 'persona_change', 'language_change',
-  'pwa_install', 'pwa_install_prompt_shown', 'pwa_ios_hint',
-];
+
+export type EventContext = { path?: string | null; journeyDay?: number | null };
+
+/** Pure builder: shapes the event payload trackActivity POSTs, path/journey_day attached when known. */
+export function buildActivityEvent(eventType: string, detail: string = '', ctx: EventContext = {}) {
+  const event: { type: string; detail: string; path?: string; journey_day?: number } = {
+    type: eventType,
+    detail: detail.slice(0, 500),
+  };
+  if (ctx.path != null) event.path = ctx.path;
+  if (ctx.journeyDay != null) event.journey_day = ctx.journeyDay;
+  return event;
+}
 
 export async function trackActivity(
   email: string,
   eventType: string,
-  detail: string = ''
+  detail: string = '',
+  ctx: EventContext = {}
 ): Promise<void> {
-  if (!TRACKED_EVENTS.includes(eventType)) return;
+  if (!TRACKED_EVENTS.includes(eventType as (typeof TRACKED_EVENTS)[number])) {
+    if (import.meta.env.DEV) console.warn('[analytics] event not in TRACKED_EVENTS, dropped:', eventType);
+    return;
+  }
   try {
     const { authHeaders, setSessionToken } = await import('./sessionToken');
     const resp = await fetch(`${API_BASE}/api/track-activity`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ email, events: [{ type: eventType, detail: detail.slice(0, 500) }] }),
+      body: JSON.stringify({ email, events: [buildActivityEvent(eventType, detail, ctx)] }),
     });
     if (resp.ok) {
       try {
@@ -67,14 +78,20 @@ export async function trackActivity(
  * Call this for every meaningful user action.
  */
 export function track(eventName: string, detail: string = '', extraParams: Record<string, string | number> = {}) {
-  // GA4
-  gaEvent(eventName, { ...extraParams, detail });
+  const path = getEventPath();
+  const journeyDay = getJourneyDay();
+
+  // GA4 — path/journey_day give GA a persona dimension too
+  const gaParams: Record<string, string | number> = { ...extraParams, detail };
+  if (path != null) gaParams.path = path;
+  if (journeyDay != null) gaParams.journey_day = journeyDay;
+  gaEvent(eventName, gaParams);
 
   // Supabase activity log (non-blocking)
   try {
     const profile = JSON.parse(localStorage.getItem('dw_profile') || '{}');
     if (profile.email) {
-      trackActivity(profile.email, eventName, detail);
+      trackActivity(profile.email, eventName, detail, { path, journeyDay });
     }
   } catch {
     // No profile, skip Supabase tracking

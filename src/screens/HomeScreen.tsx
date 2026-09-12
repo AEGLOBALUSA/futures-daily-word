@@ -36,6 +36,8 @@ import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
 import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
 import { getStreak, recordStreakToday } from '../utils/streak';
+import { getReadDayCount, recordReadDay } from '../utils/readDays';
+import type { CampusStats } from '../sections/HomeContext';
 import { getDailyWord } from '../data/daily-words';
 import { BIBLE_BOOKS, BOOK_CHAPTERS } from '../data/bible-books';
 import { ComfortSection, localDayIndex } from '../components/ComfortSection';
@@ -91,7 +93,9 @@ function getTranslationsForPersona(persona: string, lang: string): TranslationCo
 
 
 // Streak logic now lives in one shared module (src/utils/streak.ts) so Home and
-// Plans can't diverge. getStreak / recordStreakToday are imported at the top.
+// Plans can't diverge. getStreak is imported at the top; the streak is kept alive
+// by recordStreakToday() on Home mount, and also rolled forward by recordReadDay
+// (src/utils/readDays.ts) on a genuine reading — both are idempotent per day.
 
 
 
@@ -441,11 +445,21 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     window.addEventListener('dw-open-search', openSearch);
     return () => window.removeEventListener('dw-open-search', openSearch);
   }, []);
-  const [streakCount, setStreakCount] = useState(() => getStreak().count);
-  // A brand-new user (fresh streak state per src/utils/streak.ts: lastDate '')
-  // gets count=1 from the mount-effect below — that's not a streak yet, so on the
-  // first-visit DAY (dw_first_open missing or today) the header chip shows nothing
-  // instead of "1 day / Welcome back.". Real streaks (2+) always show.
+  const [readDayCount, setReadDayCount] = useState(() => getReadDayCount());
+  // Mirrors dw-cloud-sync's pattern: a read recorded elsewhere in the app
+  // (or merged down from the cloud) refreshes the count Home prints.
+  useEffect(() => {
+    const refresh = () => setReadDayCount(getReadDayCount());
+    window.addEventListener('dw-read-day', refresh);
+    window.addEventListener('dw-cloud-sync', refresh);
+    return () => {
+      window.removeEventListener('dw-read-day', refresh);
+      window.removeEventListener('dw-cloud-sync', refresh);
+    };
+  }, []);
+  // A reader's first genuine read gives readDayCount=1 — that's not a run of days
+  // yet, so on the first-visit DAY (dw_first_open missing or today) the header chip
+  // shows nothing instead of "1 day / Welcome back.". Counts of 2+ always show.
   const isFirstVisitDay = (() => {
     try {
       const firstOpen = localStorage.getItem('dw_first_open');
@@ -539,11 +553,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // selection now lives on the Home "Choose your reading plan" hero + the Plans tab.
 
   const savePathwayProgress = (p: PathwayProgress) => {
-    // A newly completed pathway day is real engagement — count the streak
-    // (recordStreakToday is idempotent per day, repo convention).
+    // A newly completed pathway day is real engagement — record the read day
+    // (idempotent per day, repo convention) and roll the streak from it.
     if ((p.completedDays?.length || 0) > (pathwayProgress.completedDays?.length || 0)) {
-      const r = recordStreakToday();
-      if (r.isNew) setStreakCount(r.count);
+      const r = recordReadDay('pathway');
+      setReadDayCount(r.count);
     }
     setPathwayProgress(p);
     try { localStorage.setItem('dw_pathway_progress', JSON.stringify(p)); } catch {}
@@ -720,7 +734,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
     const result = markPlanDayComplete(passage);
     completeTodaysPathwayDay(passage);
-    recordStreakToday();
+    const r = recordReadDay('complete');
+    setReadDayCount(r.count);
+    if (r.streak.isNew && r.streak.isMilestone) {
+      setTimeout(() => setShowMilestone(r.streak.count), 600);
+    }
     setReadDoneToday(true);
     hapticTap(18);
     if (result?.planFinished) {
@@ -748,11 +766,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     if (passage !== chapter) loadPassage(passage);
     trackBehavior('passage_read', passage);
     track('daily_reading', passage);
-    // Mark this plan day as completed — and if that completion FINISHED the whole
-    // plan, show the finish celebration (the one-shot finishedCelebrated flag was
-    // previously consumed here silently, so finishing a plan ended with nothing).
-    const done = markPlanDayComplete(passage);
-    if (done?.planFinished) setPlanFinish({ title: done.planTitle, days: done.planDays });
   };
 
   const handleListen = (passage: string) => {
@@ -782,14 +795,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   }, []);
 
 
-  // Record today as a reading day + handle streak freeze + milestone
+  // Keep the streak alive on open (a reader who reads the on-screen passage but never
+  // taps a completion action must not lose their streak). Genuine reading actions also
+  // call recordReadDay -> recordStreakToday, which is idempotent per day, so no double count.
   useEffect(() => {
     const result = recordStreakToday();
-    if (result.isNew) {
-      setStreakCount(result.count);
-      if (result.isMilestone) {
-        setTimeout(() => setShowMilestone(result.count), 600);
-      }
+    if (result.isNew && result.isMilestone) {
+      setTimeout(() => setShowMilestone(result.count), 600);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1083,7 +1095,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // invented engagement numbers. It now shows ONLY what /api/analytics-dashboard
   // returns for the pastor's own campus code (campus-scoped, no PII); without a
   // working code it shows the code prompt, never fake numbers.
-  const [campusStats, setCampusStats] = useState<{ campus: string; readingToday: number; activeThisWeek: number; prayerCount: number } | null>(null);
+  const [campusStats, setCampusStats] = useState<CampusStats | null>(null);
   const [campusStatsError, setCampusStatsError] = useState(false);
   const [campusStatsLoading, setCampusStatsLoading] = useState(false);
   const [pastorCodeInput, setPastorCodeInput] = useState('');
@@ -1165,6 +1177,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     setAudioError(false);
     trackBehavior('audio_played', passage);
     track('audio_play', passage, { translation });
+    const r = recordReadDay('audio');
+    setReadDayCount(r.count);
 
     try {
       const cacheKey = `${passage}_${translation}`;
@@ -2003,14 +2017,14 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </div>
           {/* Streak display — clean counter (hidden for new_to_faith + comfort to avoid pressure) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && streakCount > 0 && !(streakCount <= 1 && isFirstVisitDay) && (() => {
+            {personaConfig.persona !== 'new_to_faith' && personaConfig.persona !== 'comfort' && readDayCount > 0 && !(readDayCount <= 1 && isFirstVisitDay) && (() => {
               const encouragement: [number, string][] = [1, 2, 3, 5, 7, 10, 14, 21, 30, 40, 60, 90, 100, 180, 365]
                 .map(n => [n, tI18n(`streak_enc_${n}`, lang)] as [number, string]);
-              const label = [...encouragement].reverse().find(([n]) => streakCount >= n)?.[1] ?? null;
-              const isMilestone = streakCount >= 7;
+              const label = [...encouragement].reverse().find(([n]) => readDayCount >= n)?.[1] ?? null;
+              const isMilestone = readDayCount >= 7;
               return (
                 <div
-                  onClick={() => isMilestone && setShowMilestone(streakCount)}
+                  onClick={() => isMilestone && setShowMilestone(readDayCount)}
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
                     cursor: isMilestone ? 'pointer' : 'default',
@@ -2026,7 +2040,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     fontVariantNumeric: 'tabular-nums',
                     letterSpacing: '-0.03em',
                   }}>
-                    {streakCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>{streakCount === 1 ? tI18n('day_word', lang) : tI18n('days_word', lang)}</span>
+                    {readDayCount} <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--dw-text-muted)', letterSpacing: 0 }}>{readDayCount === 1 ? tI18n('day_word', lang) : tI18n('days_word', lang)}</span>
                   </span>
                   {label && (
                     <span style={{
@@ -4454,7 +4468,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               animation: 'scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
             }}
           >
-            <div style={{ fontSize: 56, marginBottom: 12 }}>🔥</div>
             <p style={{
               fontSize: 32, fontWeight: 700, color: '#FF9500',
               fontFamily: 'var(--font-sans)', marginBottom: 4,
@@ -4476,7 +4489,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}
             >
-              {tI18n('p_keep_going', lang)} 🙌
+              {tI18n('p_keep_going', lang)}
             </button>
           </div>
         </div>

@@ -1,0 +1,615 @@
+{
+ "item": "Deeper study \u2014 the devout daily reader (deeper_study)",
+ "angle": "Behavioural habit design: the unit of reading, the trigger, the reward, the grace, the identity language, the return visit.",
+ "thesis": "This reader does not need motivating. They already read five days a week for ten minutes, and the app is currently measuring the wrong thing, showing them the same chapter twice, giving them an AI paragraph where six real commentaries are already installed, and letting them fall silently behind a dated plan with no way back. Four fixes, in this order: put the text first and the depth one tap under it in a named row; count the rhythm they actually keep (days read out of the last seven) instead of a perfect chain that resets every Monday for a weekday reader; never let a missed day become a lost passage \u2014 offer catch-up before guilt; and make the reminder name their own next chapter. Nothing is removed from the screen. The tools all stay, named, one row lower, so the passage gets the screen and the depth gets a door.",
+ "principles": [
+  "The passage owns the screen. Depth is one tap away, always in the same place, always named \u2014 never auto-dumped and never hidden behind an unlabelled icon.",
+  "Count weeks kept, not days unbroken. The target behaviour for this persona is 5 days in 7 (research, Persona 3 header), so the counter must be able to say yes to 5 in 7. A perfect-chain streak structurally cannot.",
+  "Credit only what they did. A devout reader will notice a counter that lies, and once they stop trusting the number they stop trusting the app. Arrival never credits; expanding never credits; only a deliberate Mark as read or listening to the end credits.",
+  "Never let a missed day become a lost passage. Falling behind must be visible, small, and reversible in one tap \u2014 that is the grace, and it replaces the streak freeze for this persona.",
+  "Identity language, not praise. \"You read most days\" and \"12 weeks running\", never \"amazing\" and never an exclamation mark.",
+  "The trigger names their chapter or it is noise. A generic day-of-year verse push to a reader on day 12 of Through the Bible in a Year is an interruption, not a cue.",
+  "Richer and clearer, never stripped. Every tool that is on the screen today is still on the screen after this change \u2014 Commentary, Compare, Greek and Hebrew are promoted into one visible, named Study row instead of one being force-expanded and two being hidden in the chrome."
+ ],
+ "journey": {
+  "day0": "They arrive already devout and pick \"Deep Bible study\" from the one sheet (ChoosePathSheet, unchanged \u2014 one tap saves and opens, ruling). Home opens on a reading straight away (arrival seed, credit-free, unchanged). Below the reading, where plan_scripture renders nothing today because there is no active plan, a three-card plan chooser: Through the Bible in a Year, The New Testament in 90 days, Psalms and Proverbs, plus \"See all plans\". Three, not twenty-two \u2014 research: \"choose a plan, two or three at most\". The card footer carries the promise that decides whether they start: \"Miss a day and the reading waits for you.\" Tapping a plan starts it dated from today and Home re-seeds to day 1. Nothing else is asked. No streak is mentioned on day 0.",
+  "first_session": "Greeting, plan line, the chapter already open in the white paper panel. They read. Under the last verse: the Study row (Commentary \u00b7 Compare \u00b7 Greek & Hebrew), then the Reflect box, then Mark as read. Tapping Commentary opens the Study drawer with real named commentaries from the study library (Matthew Henry, Jamieson Fausset & Brown, Calvin, Keil & Delitzsch, Gill, Clarke) rather than the ~20-chapter curated set plus an AI paragraph. They tap Mark as read. The done moment says \"Day done.\" and \"Day 1 of 365.\" \u2014 no streak number on day one, because a 1 is a worse cue than nothing.",
+  "return_visit": "Same shape every day: greeting, rhythm line, plan line, chapter open, Study row, Reflect, Mark as read. The rhythm line is the only thing that changes and it changes gently: \"5 of the last 7 days.\" From four qualifying weeks on it adds the identity clause: \"5 of the last 7 days. 12 weeks running.\" Because the count is a rolling seven-day window and not a chain, a Saturday and Sunday off never zeroes it \u2014 it reads 5, which is exactly what they did.",
+  "week2": "By day 8\u201314 on a 365-day plan the reader has almost certainly missed one or two days (research: busyness is the #1 reason reading declines, 40\u201358%). Today the missed passage silently disappears \u2014 calcPlanDay is calendar-elapsed, so day 12 shows day 12 and days 9\u201311 are gone from Home forever. From week 2 they instead see a small banner above the reading: \"3 readings waiting\", the chapter names, \"Read Genesis 9\" and \"Move the plan to today\". Whichever they choose, they end the session level. This is the single highest-leverage moment in the whole two weeks and it is currently unhandled.",
+  "missed_day": "Nothing is said on the day itself. On return: the rhythm line drops honestly (\"3 of the last 7 days.\") with no apology and no repair theatre; the catch-up banner names what is waiting; the reminder that evening names the waiting chapters rather than the streak. After a longer gap (nothing in the last 7 days) the greeting acknowledges the record instead of greeting a long-time reader like a first-timer: \"Welcome back. Your longest run is 46 days. It starts the same way.\" \u2014 the existing streak_reset_best line (i18n.ts:425) re-pointed at the rhythm data. No guilt copy anywhere, ever; guilt-framed streak reminders drive notification opt-out and uninstall (research, cross-cutting #6).",
+  "seasonal": "One moment in this persona's first year, not a programme: from mid-December the plan chooser offers \"Start on 1 January\" as a second button on the year-long plans, because 1 Jan drives 3M+ one-year-plan starts (research, cross-cutting #5) and a plan started on 18 December is a plan abandoned on 2 January. Everything else seasonal (church-wide reads with a live count) belongs to the cross-cutting design, not this path."
+ },
+ "screens": [
+  {
+   "name": "Home \u2014 Deeper Study (the daily screen)",
+   "purpose": "One screen that opens on today's passage, puts every study tool one tap under it, tells the truth about the rhythm, and never lets a missed reading vanish.",
+   "order": [
+    "Header: wordmark, PathSwatch pill (\"Deep study\"), campus chip, language switch \u2014 unchanged",
+    "Greeting line",
+    "Rhythm line (second line under the greeting, small, muted)",
+    "Plan strip: plan title, day number, chapter, with the existing back/forward chevrons",
+    "Catch-up banner \u2014 only when days behind > 0",
+    "Hero reading panel: the chapter already open, white paper, translation chips + Compare \u2014 unchanged",
+    "Study row: one row, three named chips, directly under the last verse",
+    "Reflect box (InlineReflection) \u2014 unchanged position",
+    "Mark as read \u2014 unchanged position",
+    "Additional reading (manual slots) \u2014 unchanged",
+    "Bible AI prompt row \u2014 unchanged",
+    "Sermon Notes row \u2014 stays below the reading",
+    "Comfort tap row \u2014 last element, quiet"
+   ],
+   "copy": [
+    {
+     "element": "Greeting (streak/rhythm-independent)",
+     "text": "Good morning, Ashley."
+    },
+    {
+     "element": "Rhythm line \u2014 normal",
+     "text": "5 of the last 7 days."
+    },
+    {
+     "element": "Rhythm line \u2014 from 4 qualifying weeks",
+     "text": "5 of the last 7 days. 12 weeks running."
+    },
+    {
+     "element": "Rhythm line \u2014 a thin week",
+     "text": "2 of the last 7 days. Today counts."
+    },
+    {
+     "element": "Rhythm line \u2014 nothing in the last 7 days",
+     "text": "Welcome back. Your longest run is 46 days. It starts the same way."
+    },
+    {
+     "element": "Rhythm line \u2014 day 0 and day 1",
+     "text": "(no line \u2014 the rhythm line does not render until the second read day)"
+    },
+    {
+     "element": "Plan strip, line 1",
+     "text": "Through the Bible in a Year \u00b7 Day 12"
+    },
+    {
+     "element": "Plan strip, line 2",
+     "text": "Genesis 12"
+    },
+    {
+     "element": "Catch-up banner title",
+     "text": "3 readings waiting"
+    },
+    {
+     "element": "Catch-up banner body",
+     "text": "Genesis 9, 10 and 11."
+    },
+    {
+     "element": "Catch-up banner primary button",
+     "text": "Read Genesis 9"
+    },
+    {
+     "element": "Catch-up banner secondary link",
+     "text": "Move the plan to today"
+    },
+    {
+     "element": "Catch-up banner \u2014 one behind",
+     "text": "1 reading waiting"
+    },
+    {
+     "element": "Study row label",
+     "text": "Study"
+    },
+    {
+     "element": "Study row chips",
+     "text": "Commentary \u00b7 Compare \u00b7 Greek & Hebrew"
+    },
+    {
+     "element": "Greek & Hebrew chip, on state",
+     "text": "Greek & Hebrew on"
+    },
+    {
+     "element": "Reflect prompt (deeper_study)",
+     "text": "What is this passage saying?"
+    },
+    {
+     "element": "Mark as read button",
+     "text": "Mark as read"
+    },
+    {
+     "element": "Mark as read, done state",
+     "text": "\u2713 Read today"
+    },
+    {
+     "element": "Comfort tap row",
+     "text": "Hard day? There is a quieter reading here."
+    }
+   ],
+   "states": [
+    "Arrival, plan active, on schedule \u2014 chapter open, no banner",
+    "Arrival, plan active, behind \u2014 banner above the reading, chapter still open on today's passage",
+    "Arrival, no plan \u2014 plan chooser renders where plan_scripture is empty, hero falls back to reading slots",
+    "Read today \u2014 Mark as read is the \u2713 state, rhythm line already counts today",
+    "Audio playing \u2014 Listen becomes Pause with the wave; StopAllAudio floats",
+    "Passage failed to load \u2014 the existing loading/error state; the Study row still renders so the reader can reach commentary offline-cached content",
+    "Offline \u2014 passage from cache, Study row chips disabled with \"Needs a connection\"",
+    "Plan finished \u2014 existing plan-finish celebration, unchanged"
+   ],
+   "keep": [
+    "The credit-free arrival seed for deeper_study (HomeScreen.tsx:1449-1456) \u2014 it bypasses handleRead exactly as ruled, and it is why this persona lands on a reading and not a menu",
+    "The white paper hero panel with dark upright Georgia scripture in both themes",
+    "Translation chips and the Compare button",
+    "InlineReflection under the passage, then Mark as read, in that order",
+    "The plan day chevrons (HomeScreen.tsx:2782-2822) \u2014 they are the manual catch-up mechanism the new banner finally gives a name to",
+    "Sermon Notes below the reading",
+    "PathSwatch pill and campus chip in the header",
+    "Per-passage Listen (audio on the passage card, not in a separate section) \u2014 already correct for this persona"
+   ],
+   "change": [
+    "Stop rendering the same chapter twice. The hero auto-opens today's chapter, and plan_scripture renders that chapter again \u2014 and isReadingOpen() (HomeScreen.tsx:1319-1329) collapses both to the same chapter ref, so the text is expanded in both. For any plan passage already carried by heroChapterRefs, the plan card collapses to its header line (plan \u00b7 day \u00b7 Listen) and the text renders once, in the hero.",
+    "Commentary stops arriving as a wall of text. persona-config features.commentary goes 'expanded' \u2192 'preview' for deeper_study: the card keeps its source line and the first two lines, with \"Read the note\" opening the Study drawer.",
+    "The greeting's \"Day {streak}\" is replaced by the rhythm line for this persona only. streak.ts is untouched; a new rhythm counter reads days actually read.",
+    "The plan strip stops saying \"TODAY'S READING\" over a date and says the plan, the day and the chapter \u2014 the reader's own coordinates.",
+    "handleRead stops crediting the plan day. Expanding a passage opens and loads only; crediting stays with Mark as read and with listening through to the end."
+   ],
+   "remove": [
+    "The duplicated expanded chapter text in the plan card when the hero already has it open.",
+    "The always-expanded commentary body on arrival.",
+    "The bare \"Day {streak}\" number for this persona \u2014 replaced, not deleted; the number was counting app opens, not readings."
+   ]
+  },
+  {
+   "name": "Study drawer",
+   "purpose": "The one door under the passage that holds everything deep, so the reading surface stays clean and nothing is lost.",
+   "order": [
+    "Title: Study \u2014 Genesis 12",
+    "Three tabs: Commentary \u00b7 Cross-references \u00b7 Words",
+    "Commentary: source list by name, then the selected source's text",
+    "Cross-references: verse \u2192 verse list, tappable",
+    "Words: the tagged chapter, tap a word for Strong's and lexicon",
+    "Campus note, when the campus has published one for this chapter",
+    "Footer: licence line"
+   ],
+   "copy": [
+    {
+     "element": "Drawer title",
+     "text": "Study \u2014 Genesis 12"
+    },
+    {
+     "element": "Tabs",
+     "text": "Commentary \u00b7 Cross-references \u00b7 Words"
+    },
+    {
+     "element": "Commentary source list header",
+     "text": "Six commentaries on this chapter"
+    },
+    {
+     "element": "Licence footer",
+     "text": "Public domain and Creative Commons sources. Full list in Settings."
+    },
+    {
+     "element": "AI fallback label",
+     "text": "No published commentary on this chapter yet. This note is written by the app's AI."
+    },
+    {
+     "element": "Campus note header",
+     "text": "From Alpharetta \u00b7 Ryan"
+    },
+    {
+     "element": "Words tab empty",
+     "text": "Word tagging covers the Greek and Hebrew testaments. This chapter is not tagged yet."
+    },
+    {
+     "element": "Offline state",
+     "text": "Study needs a connection. The passage is saved on your phone."
+    }
+   ],
+   "states": [
+    "Loaded, multiple commentaries \u2014 source list, first source selected",
+    "Loaded, no published commentary \u2014 AI Insight shown last and labelled honestly",
+    "Loading \u2014 skeleton per tab",
+    "Offline \u2014 passage still readable, drawer explains why it is empty",
+    "Campus note present \u2014 pinned above the public-domain sources with the campus and author named"
+   ],
+   "keep": [
+    "The existing GreekHebrewPopup and its \"Go deeper\" into Bible AI",
+    "Bible AI's deeper_study system-prompt addition (Greek/Hebrew, cross-references, scholarly perspectives)",
+    "The AI Insight fallback, labelled \u2014 it is honest and it is better than an empty tab"
+   ],
+   "change": [
+    "Source the drawer from the study library already shipped (src/utils/study.ts \u2192 netlify/functions/study.js: fetchStudyPassage, fetchStudyCommentary, fetchTaggedChapter, fetchLexiconEntry). Today those six named commentaries are only wired into the pastor's PrepSheet and the Greek/Hebrew popup, while deeper_study's Home commentary reads the ~20-chapter curated set in src/data/commentary.ts and falls back to AI on roughly 95% of a 365-day plan.",
+    "Demote AI Insight to last position and label it in the reader's words, not as a source name."
+   ],
+   "remove": [
+    "Nothing. Every current control survives; three of them just now live in one named place."
+   ]
+  },
+  {
+   "name": "Plan chooser (Day 0, and after a plan finishes)",
+   "purpose": "Turn the one decision this persona has to make into a three-card, zero-research choice \u2014 and remove the fear of falling behind before they commit.",
+   "order": [
+    "Header",
+    "Sub-line",
+    "Three plan cards",
+    "See all plans link",
+    "Promise footer"
+   ],
+   "copy": [
+    {
+     "element": "Header",
+     "text": "Pick one plan."
+    },
+    {
+     "element": "Sub-line",
+     "text": "You can change it or start again whenever you want."
+    },
+    {
+     "element": "Card 1",
+     "text": "Through the Bible in a Year \u2014 every chapter, Genesis to Revelation. 365 days."
+    },
+    {
+     "element": "Card 2",
+     "text": "The New Testament in 90 days \u2014 a chapter or two a day."
+    },
+    {
+     "element": "Card 3",
+     "text": "Psalms and Proverbs \u2014 60 days, one of each."
+    },
+    {
+     "element": "Link",
+     "text": "See all plans"
+    },
+    {
+     "element": "Promise footer",
+     "text": "Miss a day and the reading waits for you."
+    },
+    {
+     "element": "December variant, on the year-long card",
+     "text": "Start today \u00b7 Start on 1 January"
+    }
+   ],
+   "states": [
+    "No plan active \u2014 chooser renders in the plan_scripture slot",
+    "Plan just finished \u2014 chooser renders under the finish celebration",
+    "December (from the 10th) \u2014 the year-long card carries the second button",
+    "Tapped \u2014 plan starts dated today, chooser unmounts, Home re-seeds to day 1"
+   ],
+   "keep": [
+    "PLAN_CATALOGUE and the Plans tab as the full catalogue behind \"See all plans\"",
+    "The renamed \"Foundations of Faith\" and the merged comfort verse cards \u2014 untouched"
+   ],
+   "change": [
+    "The deeper_study featured list drops from five ids to three on this surface (persona-config.ts:17 currently lists five). The other two stay one tap away under \"See all plans\"."
+   ],
+   "remove": [
+    "Nothing from the catalogue. This is a surfacing change, not a catalogue change \u2014 weekly-review-for-all and a leaders featured row stay unbuilt as ruled."
+   ]
+  },
+  {
+   "name": "Catch-up sheet",
+   "purpose": "Make being behind small, visible and reversible in one tap \u2014 the grace mechanic that replaces streak repair for a dated plan.",
+   "order": [
+    "Title",
+    "Body",
+    "One button per waiting reading, oldest first, max three",
+    "Move the plan to today",
+    "Close"
+   ],
+   "copy": [
+    {
+     "element": "Title",
+     "text": "Catch up"
+    },
+    {
+     "element": "Body",
+     "text": "3 readings are waiting. Take one now, or move the plan to today and keep everything you have read."
+    },
+    {
+     "element": "Reading buttons",
+     "text": "Read Genesis 9 / Read Genesis 10 / Read Genesis 11"
+    },
+    {
+     "element": "More than three waiting",
+     "text": "3 readings are waiting, and 6 more behind them."
+    },
+    {
+     "element": "Rebase button",
+     "text": "Move the plan to today"
+    },
+    {
+     "element": "Rebase confirmation",
+     "text": "This makes today day 12. Everything you have read stays read."
+    },
+    {
+     "element": "After rebase toast",
+     "text": "Moved. Today is day 12."
+    },
+    {
+     "element": "After the last catch-up reading",
+     "text": "Caught up. Nothing waiting."
+    }
+   ],
+   "states": [
+    "1\u20133 behind \u2014 one button per reading",
+    "4+ behind \u2014 three buttons plus the count line",
+    "Rebase confirm \u2014 two-step, because it moves a dated plan",
+    "Caught up \u2014 sheet closes, banner disappears, done moment says \"Caught up.\"",
+    "Plan does not allow rebase (owner decision) \u2014 the rebase row is absent and only the reading buttons show"
+   ],
+   "keep": [
+    "planDayOffset and its clamps \u2014 the sheet drives the same axis the chevrons already drive, so there is one day axis, not two"
+   ],
+   "change": [
+    "daysBehind becomes a computed value the screen can see: calcPlanDay(startedAt) \u2212 completedDays.length, floored at 0. Today completedDays is written and never compared to the calendar day, which is why falling behind is invisible.",
+    "\"Move the plan to today\" rebases startedAt by reading dw_activeplans fresh from localStorage and touching only that plan's startedAt \u2014 never rebuilt from React state, or a second device's progress is overwritten."
+   ],
+   "remove": [
+    "Nothing."
+   ]
+  },
+  {
+   "name": "Done moment",
+   "purpose": "A calm, honest close that reports the rhythm rather than performing a celebration.",
+   "order": [
+    "Line 1: what happened",
+    "Line 2: the rhythm",
+    "Line 3: the plan position",
+    "Dismiss"
+   ],
+   "copy": [
+    {
+     "element": "Line 1, normal",
+     "text": "Day done."
+    },
+    {
+     "element": "Line 1, after catch-up",
+     "text": "Caught up."
+    },
+    {
+     "element": "Line 2, from the second read day",
+     "text": "5 of the last 7 days."
+    },
+    {
+     "element": "Line 2, at a week boundary",
+     "text": "12 weeks running."
+    },
+    {
+     "element": "Line 3",
+     "text": "Day 12 of 365."
+    },
+    {
+     "element": "Day 1",
+     "text": "Day done. Day 1 of 365."
+    }
+   ],
+   "states": [
+    "Normal",
+    "First read day \u2014 no rhythm line",
+    "Week boundary crossed \u2014 the weeks-running line replaces the days line for that one appearance",
+    "Plan finished \u2014 the existing plan-finish celebration takes over, unchanged",
+    "Milestone \u2014 suppressed for this persona; the rhythm line carries the reward"
+   ],
+   "keep": [
+    "The existing calm done-celebration surface and the plan-finish celebration"
+   ],
+   "change": [
+    "It reports days read out of the last seven instead of the streak count.",
+    "The \ud83d\udd25 milestone banner (GreetingSection.tsx:6, 47-64: \"Milestone Reached\", \"You've got a {n}-day streak!\", \"Keep the momentum going. You're amazing.\") does not fire for deeper_study \u2014 three exclamation-marked lines and a flame are the wrong register for this reader, and the milestone lists in streak.ts:14 and GreetingSection.tsx:6 disagree with each other anyway."
+   ],
+   "remove": [
+    "The milestone banner on this path only. It stays exactly as it is for every other persona."
+   ]
+  },
+  {
+   "name": "Reminder \u2014 notification and the settings row",
+   "purpose": "One cue a day that names their chapter, and a settings row that promises what it will never do.",
+   "order": [
+    "Notification title",
+    "Notification body",
+    "(Settings) Notifications card: toggle, hour picker, promise line"
+   ],
+   "copy": [
+    {
+     "element": "Notification, on schedule",
+     "text": "Genesis 12"
+    },
+    {
+     "element": "Notification body, on schedule",
+     "text": "Day 12 of Through the Bible in a Year. About 10 minutes."
+    },
+    {
+     "element": "Notification, behind",
+     "text": "2 readings waiting"
+    },
+    {
+     "element": "Notification body, behind",
+     "text": "Genesis 10 and 11."
+    },
+    {
+     "element": "Notification, after three ignored days (once, then back off)",
+     "text": "Still here when you are"
+    },
+    {
+     "element": "Body of that one",
+     "text": "Genesis 12 is saved and waiting."
+    },
+    {
+     "element": "Settings promise line",
+     "text": "One a day, at the time you pick. Never about a streak."
+    }
+   ],
+   "states": [
+    "Subscribed, plan active \u2014 names the plan chapter",
+    "Subscribed, no plan \u2014 falls back to the existing global day-of-year passage",
+    "Behind \u2014 names the waiting chapters instead of today's",
+    "Backed off \u2014 after three unopened days, one \"still here\" message, then weekly until they return",
+    "Push unsupported \u2014 the existing calendar-reminder fallback branch, same copy"
+   ],
+   "keep": [
+    "The hourly cron, the per-subscriber preferred_hour, the 2-hour catch-up window and the once-per-local-day ledger",
+    "The calendar-reminder fallback for browsers without push",
+    "The reminder hour picker in MoreScreen"
+   ],
+   "change": [
+    "push_subscriptions gains next_passage, next_label and updated_at, written by the client whenever the plan day advances. push-send.js uses them when present and falls back to getTodaysPassage() when absent. Today the body always names a global ALL_PASSAGES day-of-year rotation, so a reader on day 12 of a year plan is pinged about an unrelated chapter.",
+    "Add the back-off rule: three unopened pushes in a row \u2192 one \"still here\" message \u2192 weekly until they open."
+   ],
+   "remove": [
+    "Nothing. No streak language is added, because none exists in the templates today \u2014 the change is to keep it that way in writing."
+   ]
+  }
+ ],
+ "comfort_access": "One quiet row at the very foot of Home, below the Bible AI row, on every path \u2014 for this persona: \"Hard day? There is a quieter reading here.\" It opens today's comfort reading directly and does NOT change dw_setup, so a devout reader can take a gentle day without losing their path, their plan or their rhythm count. This is the cross-cutting \"comfort from everywhere\" move (research build order #2: one persistent tap, highest duty of care, smallest build), placed where it cannot interrupt: last, muted, never a modal, never a prompt. The existing route also stays \u2014 the PathSwatch pill is on every Home for every persona and the sheet's comfort card is one tap from it (ruling: three doors, never a gate). Two things are deliberately not built here: nothing that asks a devout reader whether they are struggling, and nothing resembling a graduation or \"feeling stronger\" prompt in either direction \u2014 that prompt is removed for good and is never to be re-added in any form.",
+ "reminders": "One push a day at the reader's chosen hour, naming their own next chapter and its length (\"Genesis 12 \u2014 Day 12 of Through the Bible in a Year. About 10 minutes.\"), because a generic day-of-year verse is an interruption to someone who knows exactly where they are. When they are behind, the push names the waiting chapters instead. Nothing ever mentions a streak, a loss, or a number at risk \u2014 guilt-framed streak reminders drive notification opt-out and uninstall (research, cross-cutting #6), and this is the persona most likely to have a legitimate reason for their two days off. Back-off is explicit: three unopened pushes in a row triggers one \"Still here when you are\", then weekly until they open the app again, at which point daily resumes. The hour and the on/off switch stay where they are in MoreScreen, with one line added under them stating the contract: \"One a day, at the time you pick. Never about a streak.\" Behaviour-inferred timing (Duolingo's approach, research cross-cutting #6) is the next step after this ships, not part of it \u2014 it needs the event data below first. Verification note: pushSupported() only allowlists futuresdailyword.com, www and localhost, so the reminder change cannot be proven on a deploy preview \u2014 it is checked on localhost, then on prod after merge.",
+ "instrumentation": [
+  "study_open \u2014 fired once per session on Home for deeper_study. Detail: plan id, day number, days_behind, has_read_today. This is the D1/D7/D30 denominator by path, which no public source will ever supply (research build order #1).",
+  "study_read_complete \u2014 deliberate completion only. Detail: ref, seconds_on_passage, source (button | audio_end | catchup). Replaces the ambiguity of today's daily_reading, which fires on expand.",
+  "study_tool_open \u2014 detail: commentary | crossrefs | words | compare | greek. Answers the research's named test: Study collapsed vs open on session length and 30-day retention.",
+  "study_catchup_shown / study_catchup_read / study_catchup_rebase \u2014 the funnel for the grace mechanic. The number that matters is 30-day retention for readers who rebase vs readers who see the banner and do nothing.",
+  "study_rhythm_week \u2014 fired once per local week. Detail: days_read (0-7), weeks_running. This is the identity metric; it is also the honest measure of whether this persona is retained, in a way a streak count is not.",
+  "push_opt_out \u2014 new, alongside the existing push_subscribe. Reminder opt-out rate by path is one of the four numbers the research says to instrument first, and it is the tripwire on the reminder copy.",
+  "audio_play \u2014 existing, keep. Detail should carry whether it was the hero or a plan card, to answer \"audio toggle usage\" (research, Persona 3 tests).",
+  "plan_start / plan_complete \u2014 existing, keep. Add days_elapsed on complete, so we finally learn the completion rate for a year-long plan, which the research says exists nowhere.",
+  "Rollups needed (one nightly job over the existing activity table): D1/D7/D30 by persona; median days_read in a rolling 7 by persona; drawer-open rate; median seconds_on_passage with the drawer opened vs not; catch-up rebase rate and its 30-day retention delta. Every one of these is a persona-segmented cut of events that already have a pipeline (analytics.ts \u2192 track-activity \u2192 analytics-dashboard.js) \u2014 the work is the allowlist, the segment and the rollup, not new infrastructure."
+ ],
+ "self_serve_levers": [
+  "Campus study note, no developer: a campus pastor publishes through the existing staff intake form at /staff. corner_add already accepts a typed item and CORNER_TYPES already includes \"note\" (netlify/functions/lib/intake-core.js:40, 295-303), publishing to campus_content. One additive change makes it land in the Study drawer: a nullable ref column on campus_content and an optional ref on the corner_add item. After that migration ships, a pastor writes a note on Genesis 12 and it appears in their campus's readers' Study drawer as \"From Alpharetta \u00b7 Ryan\" with no deploy.",
+  "The intake form itself is data, not code: question_save, question_delete and question_reorder (netlify/functions/intake.js:721-756) mean the questions a campus pastor answers can be added or reworded without a release. If Ashley wants campuses supplying weekly study notes, that is a new question row, not a build.",
+  "Removing a published note is equally self-serve: corner_remove (intake-core.js:288-293) already deletes by id, scoped to the pastor's own campus.",
+  "Reader-level, no developer at all: reminder on/off and reminder hour in MoreScreen; translation; Compare translation; path change through the sheet from four doors; campus through the header chip.",
+  "Honest limits \u2014 these stay developer-only after this build, and should be named as such rather than promised: the plan catalogue (src/data/plans.ts, and a plan id is referenced in four places that must all be rewired); the curated commentary set (src/data/commentary.ts); push notification templates and the 40-passage fallback rotation (netlify/functions/push-send.js); the featured-three plan list (persona-config.ts:17). If self-serve control of the featured three matters, the smallest honest path is to read them from a campus_content row rather than to build an admin screen."
+ ],
+ "evidence": [
+  {
+   "move": "Text first, depth behind one named tap; commentary stops arriving expanded",
+   "source": "Research, Persona 3 \u2192 \"Commentary, Compare and original languages collapse behind one 'Study' tap (they are open by default today)\" and \"Text over commentary and low clutter: the recurring YouVersion complaint is 'it keeps adding functionality, it's getting so cluttered'\". Live: persona-config.ts:394 commentary:'expanded'; HomeScreen.tsx:468 commentaryExpanded initialised from it."
+  },
+  {
+   "move": "Stop rendering the same chapter twice on arrival",
+   "source": "Code, verified: the arrival seed expands today's chapter in the hero (HomeScreen.tsx:1449-1456) while plan_scripture renders the same passage (3221-3350), and isReadingOpen (1319-1329) collapses chapter and verse-range refs to the same chapter, so both render expanded. heroChapterRefs is built from todaysPlanPassages first (1291-1296), so for any deeper_study reader with an active plan they are the same chapter. The scripture section already has a dedupe guard (3443-3450); the hero does not."
+  },
+  {
+   "move": "Replace the perfect-chain streak with days read in the last seven",
+   "source": "Research, Persona 3 header: \"The devout follower (5 days a week, 10 minutes)\" and \"a chain counter with identity language ('you read five days most weeks') and a reset without shame\". Code: streak.ts:76 resets count to 1 on two missed days; the single freeze covers one missed day and replenishes only after 7 days (streak.ts:65-66). A Monday-to-Friday reader misses Saturday and Sunday, so \"Day {streak}\" (persona-config.ts:242-245) resets to 1 every Monday and can never exceed 5 for the exact reader this path is for."
+  },
+  {
+   "move": "Count only readings, not app opens",
+   "source": "Code: HomeScreen.tsx:786-795 calls recordStreakToday() unconditionally on every mount, so the number in the greeting counts opens. For a persona whose identity is \"I read\", the counter must measure reading or it is not their number."
+  },
+  {
+   "move": "Catch-up banner and \"Move the plan to today\"",
+   "source": "Research, Persona 3: \"a dated plan\u2026 Dated, resumable\" and \"Where they quit: clutter, subscription cost, learning curve, lost notes\"; cross-cutting #3: \"Busyness is the #1 reason reading declines (40\u201358%)\". Code: calcPlanDay (HomeScreen.tsx:124-138) is calendar-elapsed and clamped, so a missed day's passage leaves Home permanently; completedDays is written (687-711) but never compared to the calendar day, so nothing anywhere knows the reader is behind."
+  },
+  {
+   "move": "Wire the Study drawer to the real commentary library instead of an AI paragraph",
+   "source": "Research, Persona 3: \"Depth tools when wanted, not by default\" and the named alternatives (Logos too heavy, Olive Tree the middle, Blue Letter for free Strong's). Code: six named public-domain commentaries are already fetchable (src/utils/study.ts:105-112, fetchStudyPassage/fetchStudyCommentary/fetchTaggedChapter/fetchLexiconEntry) but are only used by PrepSheet and GreekHebrewPopup, while Home reads the ~20-chapter curated set (src/data/commentary.ts) and falls back to a 30-day-cached \"AI Insight\" (HomeScreen.tsx:1461-1472) on roughly 95% of a 365-day plan."
+  },
+  {
+   "move": "The reminder names the reader's own chapter",
+   "source": "Code: push-send.js getTodaysPassage() picks from a global ALL_PASSAGES rotation by day-of-year, and push_subscriptions carries only endpoint, timezone, preferred_hour, active and lang (push-subscribe.js:46-53) \u2014 there is no plan field, so the body cannot name the reader's chapter. Research, Persona 3: \"Audio as a companion, on the passage\" and cross-cutting #6: one nudge a day, timed to the person."
+  },
+  {
+   "move": "No guilt copy, no flame, no exclamation marks on this path",
+   "source": "Research, cross-cutting #6: \"Streaks work until they shame. Guilt-framed streak reminders drive notification opt-out and uninstall.\" Live copy that fails this for deeper_study: GreetingSection.tsx:47-64 \"\ud83d\udd25 Milestone Reached\", \"You've got a {streakCount}-day streak!\", \"Keep the momentum going. You're amazing.\""
+  },
+  {
+   "move": "Three plans on Day 0, not the catalogue",
+   "source": "Research, Persona 3: \"choose a plan, two or three at most: chronological, whole-Bible-in-a-year, and a Futures series plan\"; cross-cutting #2: \"'Don't know where to start' is the universal barrier, and three-fifths of those who say it have followed Christ 20+ years.\" Live: persona-config.ts:17 features five ids for deeper_study and PlansScreen shows the full catalogue."
+  },
+  {
+   "move": "Arrival stays open and stays credit-free",
+   "source": "Ruling: \"The arrival-open seed for congregation/deeper_study/pastor_leader/comfort must be persona-gated and CREDIT-FREE \u2014 it must bypass handleRead and never route through it.\" Live code already complies (HomeScreen.tsx:1441-1456) and this design does not touch it."
+  },
+  {
+   "move": "Sermon Notes stays below the reading; the comfort graduation prompt is never re-added",
+   "source": "Rulings: \"Sermon Notes row is demoted below the reading for congregation/deeper_study/pastor_leader/comfort\"; \"Comfort's 'Feeling Stronger?' graduation prompt is removed for good \u2014 never re-add.\""
+  },
+  {
+   "move": "No weekly-review card for this persona",
+   "source": "Ruling: \"weekly-review-for-all and a leaders featured row were explicitly REJECTED by Ashley \u2014 do not build them.\" The rhythm line therefore lives in the greeting, as one line, not a card. Live: features.weeklyReview is already false for deeper_study (persona-config.ts:399)."
+  },
+  {
+   "move": "The whole reshape ships behind a preview link",
+   "source": "Ruling: \"NEVER re-merge or ship a big IA/visual rebuild of the opening screen to prod without Ashley previewing and explicitly approving it first\" and \"Ashley must see a deploy preview before merging.\" This design reshapes the deeper_study opening screen, so it is preview-gated by definition."
+  },
+  {
+   "move": "Campus study notes as the pastor's self-serve lever",
+   "source": "Code: intake corner_add publishes typed items to campus_content with CORNER_TYPES including \"note\" (intake-core.js:40, 295-303; intake.js:264-276), and the intake questions themselves are editable data (intake.js:721-756). campus-content.js refuses direct POSTs and points at /staff, so the intake form is already the sanctioned authoring path."
+  },
+  {
+   "move": "dw_read_days must union-merge across devices, not overwrite",
+   "source": "Rulings: \"Never rebuild a synced dw_* record from React state\" and applyCloudData must not clobber newer local content. Code precedent to copy exactly: the highlights union-merge in cloudSync.ts:320-335, which merges per key rather than replacing."
+  }
+ ],
+ "open_decisions": [
+  "\"Read with\" one person \u2014 the research calls it the one social feature the Pew decline argues for (weekly Bible-study group participation fell 24% \u2192 13%, 2014-2025) and your own research doc lists the decision as yours: day-count only, or nothing at all. It is not in this two-week build either way; it needs your word before it is designed.",
+  "The rhythm floor: does a week count as kept at 4 days read out of 7, or 5? This sets what \"12 weeks running\" means and it cannot be changed later without invalidating everyone's number, so it is worth deciding once, now.",
+  "Is \"Move the plan to today\" allowed on Through the Bible in a Year, or must a year plan stay calendar-true? Rebasing is the grace mechanic, but it means the reader finishes the Bible in 365 reading days rather than 365 calendar days. My recommendation is yes, allow it, and say so in the copy \u2014 but it is a plan-integrity call, not a design one.",
+  "Chronological is the plan the research names first for this persona and the catalogue does not have one. Adding it is a data addition to plans.ts, but a new plan id is referenced in four places (personalization.ts, SetupPromptModal.tsx, PlansScreen.tsx, PastorStudyOnboarding.tsx) and all four must be rewired. Build it, or leave the three we have?",
+  "Once the six named commentaries are wired in, does AI Insight stay as the last-resort tab for chapters with no published note, or is it dropped for this persona? It is labelled honestly either way; the question is whether you want an AI paragraph next to Calvin.",
+  "\"Read like paper\" \u2014 larger type, no chrome \u2014 is a real research finding for this persona (89% of Bible users still prefer print) and it is not in this two-week build. Worth doing later, or not at all?"
+ ],
+ "risks": [
+  "This is a reshape of the opening screen for one persona, which is the exact class of change that was rejected on 1 Sep. It ships behind a deploy preview, it is not merged without your word, and the preview link is the deliverable \u2014 not the merge.",
+  "Collapsing commentary can read as \"stripped\", which is the specific complaint that killed the last opening-screen change. The mitigation is structural: nothing leaves the screen. Commentary keeps a source line and a two-line preview; Compare and Greek & Hebrew are promoted from chrome into a visible, named Study row. The screen gets richer in labelling and quieter in noise. If the preview still reads thin, the fallback is to keep commentary's first paragraph rather than two lines \u2014 a one-value change, not a rebuild.",
+  "Completion numbers will drop the week this ships, because handleRead stops crediting the plan day on chapter expand. That drop is the fix working, not a regression. It must be written into the PR description or it will be read as a bug in a fortnight.",
+  "dw_read_days is a new synced key. Done wrong it either resurrects deleted days or wipes a second device's history. It follows the highlights union-merge pattern exactly (cloudSync.ts:320-335): merge the set of date strings, never replace, and never rebuild it from React state.",
+  "Rebasing a plan's startedAt writes to dw_activeplans, which merges across devices. It must read the record fresh from localStorage and touch only that plan's startedAt, or a second device's completed days are overwritten by stale mount-time state.",
+  "The reminder change cannot be verified on a deploy preview \u2014 pushSupported() allowlists only prod, www and localhost. It is proven on localhost before merge and re-checked on prod after.",
+  "streak.ts is shared by all five personas. The rhythm counter is a separate module read only by the deeper_study greeting; streak.ts is not modified. If it were, every other path's greeting and milestone behaviour would move at the same time.",
+  "New CSS uses the dw-st-* prefix. dw-path-* is taken by the Plans-tab chooser and dw-cp-* by the path sheet; dw-st-* and dw-study-* currently have zero occurrences in src/, so the prefix is clean.",
+  "If any plan JSON or /books content changes as part of this, /books/* must stay network-first with cache as offline fallback, and CACHE_NAME, STATIC_CACHE and SW_VERSION are bumped together \u2014 otherwise returning readers never see the change."
+ ],
+ "build_steps": [
+  {
+   "step": "Rhythm counter \u2014 the new number, in isolation, before any UI moves. dw_read_days as an append-only array of en-CA local date strings written only by handleMarkRead and the audio-ended completion; daysInLastSeven() and weeksRunning() derived from it; union-merge on cloud pull following the highlights pattern; local date axis throughout, never toISOString.",
+   "files": "NEW src/utils/rhythm.ts; NEW src/utils/rhythm.test.ts; src/utils/storage.ts (LS.readDays); src/utils/cloudSync.ts (union merge beside highlights, ~line 320)",
+   "check": "npx vitest run src/utils/rhythm.test.ts \u2014 five weekday reads then two days off returns 5, not 1; a 12-week Mon-Fri pattern returns weeksRunning 12; a 10-day gap returns 0 and preserves bestRun; union merge of two device histories loses no date and duplicates none."
+  },
+  {
+   "step": "Greeting reads the rhythm for deeper_study only. Rhythm line renders from the second read day; the returning-after-a-gap line reuses streak_reset_best's shape; the milestone banner is suppressed for this persona.",
+   "files": "src/utils/persona-config.ts (deeper_study cases in getGreeting, all four languages); src/sections/GreetingSection.tsx; src/utils/i18n.ts (study_rhythm_days, study_rhythm_weeks, study_rhythm_low, study_rhythm_back)",
+   "check": "npm run build, then in preview with dw_setup={persona:'deeper_study',source:'settings'} and a seeded dw_read_days: the greeting reads \"5 of the last 7 days.\", no flame, no exclamation mark, and the other four personas' greetings are byte-identical to main."
+  },
+  {
+   "step": "Kill the duplicate chapter. Plan cards collapse to their header line (plan \u00b7 day \u00b7 Listen) for any passage whose chapter is already in heroChapterRefs; the hero keeps the text.",
+   "files": "src/screens/HomeScreen.tsx (plan_scripture block, ~3221-3350); NEW src/screens/HomeScreen.duplicate.test.tsx",
+   "check": "npx vitest run \u2014 with an active plan, exactly one ScripturePassage renders for the day's chapter. Live preview: deeper_study with dw_activeplans set shows the chapter once."
+  },
+  {
+   "step": "Study row and Study drawer. One named row under the last verse; the drawer sourced from the study library (fetchStudyPassage, fetchStudyCommentary, fetchTaggedChapter, fetchLexiconEntry) with cross-references and Strong's; AI Insight last and labelled; commentary feature value 'expanded' \u2192 'preview' for deeper_study.",
+   "files": "NEW src/components/StudyDrawer.tsx; src/screens/HomeScreen.tsx (commentary block ~3352-3415, Compare button ~2603-2624, Greek/Hebrew toggle ~3233-3247); src/utils/persona-config.ts:394; src/utils/i18n.ts; src/index.css (dw-st-* only)",
+   "check": "npm run build; live preview on a chapter outside the curated 20 (e.g. Genesis 12) shows named public-domain commentaries, not an AI paragraph. The drawer uses useSubView alone \u2014 no useModalA11y, no aria-modal \u2014 and Android back closes it once, leaving no orphan history entry."
+  },
+  {
+   "step": "Completion integrity. handleRead opens and loads only; markPlanDayComplete moves out of it. Crediting stays in handleMarkRead and the audio-ended path, both already gated by dw_reading_done.",
+   "files": "src/screens/HomeScreen.tsx:733-756; NEW src/screens/HomeScreen.completion.test.tsx",
+   "check": "npx vitest run \u2014 expanding a plan passage leaves dw_activeplans.completedDays unchanged; Mark as read adds exactly one day; a second Mark as read the same day is a no-op."
+  },
+  {
+   "step": "Catch-up. daysBehind = calcPlanDay \u2212 completedDays.length floored at 0; banner above the reading; sheet with per-reading buttons; rebase helper that merges into dw_activeplans read fresh from localStorage.",
+   "files": "NEW src/components/CatchUpSheet.tsx; NEW src/utils/planCatchUp.ts; NEW src/utils/planCatchUp.test.ts; src/screens/HomeScreen.tsx (banner mount above the hero); src/utils/i18n.ts",
+   "check": "npx vitest run \u2014 a plan started 12 days ago with 9 completed days reports 3 behind; rebase sets startedAt so calcPlanDay returns 12 today and completedDays is untouched; rebase called twice is idempotent. Live preview: the banner appears, one tap reads the oldest waiting chapter, and the mounted-with-a-live-open-prop pattern means the sheet paints nothing while closed."
+  },
+  {
+   "step": "Plan chooser, three cards. Renders in the empty plan_scripture slot and after a plan finishes; December variant offers 1 January on year-long plans.",
+   "files": "src/screens/HomeScreen.tsx (plan_scripture empty branch); NEW src/components/StudyPlanChooser.tsx; src/utils/persona-config.ts:17; src/utils/i18n.ts",
+   "check": "Live preview with dw_activeplans cleared: three cards plus \"See all plans\", tapping one starts it dated today and Home re-seeds to day 1. Plans tab still lists the full catalogue."
+  },
+  {
+   "step": "Reminder knows the plan. Client sends next_passage and next_label on subscribe and whenever the plan day advances; push-send uses them when present, falls back to the global rotation when absent; three-unopened back-off.",
+   "files": "src/utils/push.ts; netlify/functions/push-subscribe.js; netlify/functions/push-send.js; NEW supabase migration adding next_passage, next_label, last_opened_at to push_subscriptions (additive, nullable, in the repo)",
+   "check": "On localhost only \u2014 pushSupported() allowlists prod/www/localhost, never a deploy preview. Subscribe with a plan active, force a send, and the body reads \"Day 12 of Through the Bible in a Year\". Then verify once on prod after merge."
+  },
+  {
+   "step": "Campus study notes, the pastor's lever. Nullable ref on campus_content, optional ref on the corner_add item, and the drawer reads campus notes for the open chapter.",
+   "files": "NEW supabase migration (campus_content.ref, nullable); netlify/functions/lib/intake-core.js (corner_add item ref, sanitised); netlify/functions/campus-content.js (return ref); src/components/StudyDrawer.tsx",
+   "check": "Publish a note on Genesis 12 through /staff as a campus user; it appears in that campus's deeper_study Study drawer as \"From {campus} \u00b7 {author}\" and in no other campus. npx vitest run src/utils/intake-core.test.ts stays green."
+  },
+  {
+   "step": "Events and rollups. Add the new types to the allowlist, fire them at the new call sites, segment the dashboard by persona.",
+   "files": "src/utils/analytics.ts:30-36; src/screens/HomeScreen.tsx call sites; src/components/StudyDrawer.tsx; src/components/CatchUpSheet.tsx; netlify/functions/analytics-dashboard.js; src/components/AnalyticsDashboard.tsx",
+   "check": "Network tab shows track-activity POSTs for study_open, study_tool_open, study_read_complete and study_catchup_* with the right details; the dashboard shows D7 and D30 split by persona and a median days-read-in-7 for deeper_study."
+  },
+  {
+   "step": "Preview and hand over. Branch, build, adversarial pre-deploy review on data loss and sync, PR, wait for the deploy-preview build, send Ashley the link, do not merge without his word.",
+   "files": "PR on a branch off main; docs note in the PR body listing the expected completion-rate drop and the persona-test localStorage recipe",
+   "check": "Deploy preview loads with dw_setup={persona:'deeper_study',source:'settings'}, dw_profile, dw_cookie_consent='accepted', dw_v7_pathway_done='true' and an active plan: chapter renders once, Study row present, rhythm line correct, catch-up banner correct when behind. Merged only after Ashley says yes to the preview."
+  }
+ ]
+}

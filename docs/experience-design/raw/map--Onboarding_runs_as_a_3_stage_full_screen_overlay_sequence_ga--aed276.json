@@ -1,0 +1,123 @@
+{
+ "ai": "Not directly gated in this onboarding path; BibleAI is a separate global surface (App.tsx:486-495) mounted only when not on home/journal. AI persona system-prompt additions live in persona-config.ts (e.g. new_to_faith ai.systemPromptAddition, persona-config.ts:~lines near sectionOrder blocks) but that is downstream of path choice, not part of onboarding itself.",
+ "audio": "Day1Landing's reading card and HomeScreen hero both use hero_audio in sectionOrder (persona-config.ts:286, 337, 388, 440, 512) but audio playback itself is not part of the onboarding files reviewed \u2014 GAP: audio component wiring not read.",
+ "completion_and_streak": "\"Mark as read\" (Day1Landing.tsx:147-149) calls markDay1Read (coldStart.ts:169-191): stamps dw_reading_done=today, advances dw_pathway_progress (currentDay+1, completedDays), calls recordStreakToday(), and fires dw-reading-completed event. That event flips hasReadOnce in App.tsx:276-280, which is the trigger for both PathAskedOnce and the push-onboarding gate.",
+ "copy_keys": [
+  "day1_eyebrow \u2014 i18n.ts:790",
+  "day1_of_40 \u2014 i18n.ts:792",
+  "read_btn / mark_as_read \u2014 used in Day1Landing.tsx:107,148 (defined elsewhere in i18n.ts, not shown in this excerpt)",
+  "path_landing_prompt \u2014 i18n.ts:945",
+  "path_landing_link \u2014 i18n.ts:946",
+  "path_sheet_title \u2014 i18n.ts:909",
+  "path_sheet_sub \u2014 i18n.ts:910",
+  "path_pastor_note \u2014 i18n.ts:911",
+  "path_sheet_footer \u2014 i18n.ts:922",
+  "path_new_head/promise/cta \u2014 i18n.ts:923-925",
+  "path_member_head/promise/cta \u2014 i18n.ts:926-928",
+  "path_study_head/promise/cta \u2014 i18n.ts:929-931",
+  "path_leader_head/promise/cta \u2014 i18n.ts:932-934",
+  "path_comfort_head/promise/cta \u2014 i18n.ts:935-937",
+  "path_short_new/member/study/leader/comfort \u2014 i18n.ts:938-942",
+  "path_swatch_label \u2014 i18n.ts:943",
+  "path_arrival_eyebrow/pastor/member/study/new/comfort/signed_in/sign_in/dismiss \u2014 i18n.ts:912-920",
+  "path_ask_title/body/yes/other/eyebrow \u2014 i18n.ts:947-951",
+  "persona_new/member/study/leader/comfort (+ _desc) \u2014 i18n.ts:70-78 (used in EmailGate persona step)",
+  "email_nudge_title/body/cta/later \u2014 i18n.ts:624-627",
+  "welcome_daily_word, choose_focus_desc, setup_profile_title/desc, valid_email_error, something_wrong_error, skip_for_now, welcome_short, profile_ready \u2014 EmailGate.tsx:79,168,178,234,237,278,281,343,360,363 (keys defined elsewhere in i18n.ts, not in reviewed excerpt)"
+ ],
+ "dev_needed_today": [
+  "Adding/removing a persona ('path') requires a developer: PATHS array + Persona type in src/utils/choosePath.ts / persona-config.ts, plus icon mapping in ChoosePathSheet.tsx:42-48, plus i18n keys and PERSONA_CONFIGS entries \u2014 no admin UI exists.",
+  "Changing sectionOrder per persona (what renders on Home, e.g. adding/removing 'ai_prompt' or 'commentary') is hard-coded in persona-config.ts (lines 284-337, 387-445, 505-545) \u2014 code change + rebuild required.",
+  "Changing the Day1Landing hero copy/verse: src/data/day1-landing.ts (day1Copy function) \u2014 code file, no CMS.",
+  "Changing when PathAskedOnce/push-onboarding/EmailGate fire (the gating logic, e.g. needsPathAsk in coldStart.ts:214-222) requires editing App.tsx state wiring \u2014 not a config flag.",
+  "Adding a new campus to HomeContextChips requires editing src/data/tokens.ts (CAMPUSES) \u2014 no self-serve admin.",
+  "The EmailGate persona step (step 1 of the modal, EmailGate.tsx:225-266) is a second, separate 5-persona picker independent of ChoosePathSheet \u2014 any copy/behavior change to it needs its own code edit (PERSONA_I18N map, EmailGate.tsx:16-22).",
+  "Changing REAL_CHOICE_SOURCES (what counts as a stamped/synced choice vs. a silent default) is a hardcoded Set in coldStart.ts:21 \u2014 code change."
+ ],
+ "first_visit": "\"Cold device (no dw_setup or dw_setup.source not in REAL_CHOICE_SOURCES): App.tsx pre-render calls startGraceSeriesIfCold('default') (App.tsx:68, coldStart.ts:84-100) which silently writes dw_setup={persona:new_to_faith, source:'default'} and enrolls the 40-day 'New & Returning to Faith' series (does NOT stamp to cloud \u2014 coldStart.ts:9,84-100). needsDay1Landing() returns true (coldStart.ts:139-149) so App.tsx:235-237,423-432 renders Day1Landing full-screen instead of the tab shell. Day1Landing (Day1Landing.tsx) shows: wordmark + LanguageSwitch (80-90), eyebrow 'Day 1 of 40 \u00b7 {series}' (92-94), title (95-97), and while unopened a single 'Read' CTA plus one quiet text line 'Not new to faith? Choose your path' opening ChoosePathSheet door='landing' (98-121). Tapping Read (handleRead, Day1Landing.tsx:56-63) calls beginDay1 (coldStart.ts:152-155, sets dw_day1_begun=1) and expands the reading section in place (verse card, pastoral paragraphs, PathwayQuestions, 'Mark as read' CTA, Day1Landing.tsx:123-151). Tapping 'Mark as read' (handleMarkRead, Day1Landing.tsx:65-70) calls markDay1Read (coldStart.ts:169-191) then onDone, which flips App.tsx state (App.tsx:426-429) and the app now renders the normal tab shell/Home. Immediately after that first read, three post-reading full-screen/overlay moments are gated in sequence in App.tsx: PathAskedOnce (App.tsx:286-291,535-540) if needsPathAsk(setup) is true, then push opt-in (App.tsx:311-319,541-543) if not comfort persona, then (on Home) EmailNudgeCard/EmailGate for the email hand-off (EmailGate.tsx, EmailNudgeCard.tsx) \u2014 the code comment states these never stack.\"",
+ "renders_in_order": [
+  {
+   "element": "Pre-render cold-start stamp",
+   "file_line": "src/App.tsx:64-68; src/utils/coldStart.ts:84-100",
+   "gate": "isColdStart() true (no real-choice source, not mid-series)",
+   "what_it_does": "Writes dw_setup={persona:'new_to_faith',source:'default'} and enrolls the 40-day grace series before React mounts, so Home never streaks/records until user taps through"
+  },
+  {
+   "element": "Day1Landing (full-screen, replaces tab shell)",
+   "file_line": "src/App.tsx:235-237,423-432; src/components/Day1Landing.tsx:72-169",
+   "gate": "needsDay1Landing() true \u2014 coldStart.ts:139-149",
+   "what_it_does": "Wordmark + language switch, 'Day 1 of 40' eyebrow, title, single Read CTA, one quiet 'Choose your path' text-link opening ChoosePathSheet door='landing'"
+  },
+  {
+   "element": "Day1 reading section (in-place expansion, same component)",
+   "file_line": "src/components/Day1Landing.tsx:98-155",
+   "gate": "readingOpen after tapping Read",
+   "what_it_does": "Verse card, pastoral paragraphs, PathwayQuestions(day=1), 'Mark as read' CTA"
+  },
+  {
+   "element": "Day1Reading (separate full-screen surface)",
+   "file_line": "src/App.tsx:238-240,434-438",
+   "gate": "needsDay1Reading() true \u2014 only reachable if a device already began Day1 but hasn't read (e.g. refresh mid-flow); coldStart.ts:158-166",
+   "what_it_does": "Superdesign reading surface until Mark as read"
+  },
+  {
+   "element": "Tab shell / HomeScreen",
+   "file_line": "src/App.tsx:440-578",
+   "gate": "!showDay1Landing && !showDay1Reading",
+   "what_it_does": "Normal app: TabBar, SeamBar, active tab panel, PathSwatch/HomeContextChips live inside HomeScreen (not reviewed directly)"
+  },
+  {
+   "element": "PathAskedOnce (full-screen overlay, Door 3)",
+   "file_line": "src/App.tsx:286-291,535-540; src/components/PathAskedOnce.tsx:14-57",
+   "gate": "onboardingActive && !pathAsked && hasReadOnce && needsPathAsk(setup) \u2014 coldStart.ts:214-222 (never comfort, never after real choice, once only via dw_path_asked)",
+   "what_it_does": "Check icon, 'Day 1, done.' title, body question, sage 'Yes, keep going' CTA (marks asked, stays), and 'I'm here for something else' link opening ChoosePathSheet door='asked'"
+  },
+  {
+   "element": "PushOptIn (full-screen)",
+   "file_line": "src/App.tsx:311-319,541-543",
+   "gate": "onboardingActive && !pushOnboarded && hasReadOnce && persona!=='comfort' && !showPathAsk",
+   "what_it_does": "Notification permission ask, evidence-timed after first finished reading, never for comfort, never stacked with PathAskedOnce"
+  },
+  {
+   "element": "EmailGate (modal overlay, triggered elsewhere e.g. EmailNudgeCard or write actions)",
+   "file_line": "src/App.tsx:480; src/components/EmailGate.tsx:41-372",
+   "gate": "showEmailGate state from UserContext; step defaults to 'email' if dw_setup.persona already exists, else 'persona' step first (EmailGate.tsx:46-48)",
+   "what_it_does": "Step persona (5-card picker, own copy from PERSONA_I18N) \u2192 step email (first/last/email/campus, PCO lookup \u2192 Supabase recall \u2192 register) \u2192 step done"
+  },
+  {
+   "element": "EmailNudgeCard (inline card on Home, not full-screen)",
+   "file_line": "src/components/EmailNudgeCard.tsx:16-90",
+   "gate": "!dismissed && hasRead && pushDone && !userProfile?.email",
+   "what_it_does": "Slim backup-your-progress nudge with CTA calling requireEmail() (opens EmailGate) and a 'Not now' dismiss (localStorage dw_email_nudge_dismissed)"
+  },
+  {
+   "element": "ChoosePathSheet (bottom sheet, Door 1/2/3/4 \u2014 landing, home swatch, asked-once, Settings)",
+   "file_line": "src/components/ChoosePathSheet.tsx:121-260; hosted in App.tsx:563-576",
+   "gate": "pathSheet.open state, opened via CHOOSE_PATH_EVENT from any door",
+   "what_it_does": "Lists PATHS as tappable cards (icon, head, promise); one tap saves+opens (commit(), ChoosePathSheet.tsx:161-175); tapping current path just closes; pastor sign-in shows a note + 'Sign out of pastor account' row"
+  },
+  {
+   "element": "PathArrivalStrip (inline dismissible line under Home greeting)",
+   "file_line": "src/components/PathArrivalStrip.tsx:22-97",
+   "gate": "rendered by HomeScreen (not reviewed) after a path is saved/changed; keyed by persona via COPY map (lines 14-20)",
+   "what_it_does": "Names the path in the user's words, points at what's already open; pastor variant shows sign-in state or a 'Sign in for campus tools' link"
+  }
+ ],
+ "return_visit": "\"If dw_v7_pathway_done is set and dw_setup.source is a real-choice source (onboarding/settings/upgrade) with a persona, isColdStart() is false (coldStart.ts:56-59) and needsDay1Landing()/needsDay1Reading() are both false \u2014 App.tsx skips straight to the tab shell (App.tsx:440-578) with HomeScreen showing that persona's sectionOrder. If mid-series (progress.enrolled && (completedDays.length>0 || currentDay>1)), isColdStart() is also false (coldStart.ts:65-68) even without a real-choice source, so a defaulted new_to_faith reader who has read Day 2+ also skips the landing. The persona swatch (PathSwatch, ChoosePathSheet.tsx:85-119) and HomeContextChips campus chip (HomeContextChips.tsx:20-161) remain visible in the Home header on every return visit for self-serve path/campus changes.\"",
+ "self_serve_levers": [
+  "PathSwatch in Home header \u2014 visible for every persona, opens ChoosePathSheet door='home' (ChoosePathSheet.tsx:85-119)",
+  "HomeContextChips campus picker \u2014 \ud83d\udccd chip in Home header, applies on tap, no Settings trip (HomeContextChips.tsx:20-161)",
+  "ChoosePathSheet \u2014 change path any time from landing text-link, Home swatch, asked-once link, or Settings; one tap saves+opens (ChoosePathSheet.tsx:161-175)",
+  "PathAskedOnce 'I'm here for something else' link \u2014 reopens ChoosePathSheet door='asked' (PathAskedOnce.tsx:45-51)",
+  "PathArrivalStrip dismiss (X button) \u2014 one-time dismissible confirmation, no persistence flag shown beyond render lifecycle (PathArrivalStrip.tsx:83-95)",
+  "EmailGate 'Skip for now' \u2014 bypasses email capture, sets dw_email_gate_skipped (EmailGate.tsx:174-180)",
+  "EmailNudgeCard 'Not now' \u2014 dismisses the backup nudge, sets dw_email_nudge_dismissed (EmailNudgeCard.tsx:73-77)",
+  "LanguageSwitch in Day1Landing header \u2014 changes lang live, remounts copy via dw-lang-changed (Day1Landing.tsx:33-39,89)",
+  "Pastor sign-out row inside ChoosePathSheet when pastorSignedIn (ChoosePathSheet.tsx:240-253)"
+ ],
+ "summary": "Onboarding runs as a 3-stage full-screen/overlay sequence gated purely by localStorage state read before or during React mount (no server-side onboarding state). Stage 1: a cold device is silently auto-enrolled as new_to_faith/source:'default' and shown the full-screen Day1Landing (Superdesign-locked hero, one 'Read' CTA + a quiet 'Choose your path' link). Stage 2: after 'Mark as read' fires dw-reading-completed, three evidence-timed prompts are strictly sequenced and never stacked \u2014 PathAskedOnce (Door 3, asked once), PushOptIn, then later an EmailNudgeCard/EmailGate hand-off for cloud backup. Stage 3 (ongoing/return visits): a persistent PathSwatch in the Home header and a HomeContextChips campus chip give self-serve path/campus changes at any time via one shared ChoosePathSheet bottom sheet, which is the single source of truth for saving/stamping setup.source. Real, sync-worthy choices use source values 'onboarding'|'settings'|'upgrade' (REAL_CHOICE_SOURCES, coldStart.ts:21); silent/auto defaults use 'default'|'sunday-guest' and must never overwrite a real choice (isRealChoiceSource, coldStart.ts:22-24). A separate, independent 5-persona picker also exists inside EmailGate's own 'persona' step for users without a saved persona at the point email capture triggers.",
+ "tests_that_lock_behaviour": [
+  "src/utils/coldStart.test.ts \u2014 'treats an empty device as cold', 'enrolls new_to_faith on Day 1 and marks the picker done', 'does not overwrite a real onboarding/settings choice', 'does not reset someone already mid-series', 'starts a visitor who never finished the five-choice picker', 'is fill-only for chapters_per_day', 'shows the Superdesign landing until Read', 'does not show the landing after a real Settings persona choice', 'does not show the landing mid-series', 'shows the reading screen after Read until Mark as read', 'enrolls the 40-day journey without changing persona', 'does not reset a series already in progress', 'asks a defaulted reader right after Day 1 is marked read', 'never asks after a real choice, for comfort, or once the flag is set', 'does not interrupt someone already past Day 1 of the journey'",
+  "src/components/ChoosePathSheet.test.tsx \u2014 'opens on the current path, ticked, with no second CTA to find below the fold', 'one tap: a first real choice saves with source onboarding, marks asked-once, closes, and reports the change', 'a change after a real choice saves with source settings \u2014 never default', 'tapping the path you already have just closes', 'paints nothing while closed (mounted with a live open prop)', 'a signed-in pastor can still change path (a real choice), and sign-out is offered beside it', 'sign out of pastor account calls clearStaffIdentity and closes', 'shows the short label and a chevron \u2014 never a lock, even for a signed-in pastor'"
+ ]
+}

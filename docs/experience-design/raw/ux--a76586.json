@@ -1,0 +1,82 @@
+{
+ "findings": [
+  {
+   "element": "SURFACE / VERDICT \u2014 Comfort design (Comfort Home, seam door, Comfort Now, Talk to someone, steady card, AI safety card). FOR: a congregant in crisis on a phone, often late, often offline-ish; plus a pastor texting a link.",
+   "ruling": "VERDICT: FIX FIRST (11). The subtraction work is right and should ship: killing the duplicate chapter, pairing verse to chapter, removing the count/grade/quota, keeping the door out of the path sheet and off a sixth tab, and holding the whole thing behind a deploy preview. The defects are all in the new safety plumbing, where a wrong answer is worse than no feature.",
+   "severity": "info",
+   "change": "Ship steps 1-3 (instrumentation, one-entry content, kill the duplicate) as one preview PR; hold the crisis-line and pastoral-request work until findings 1-4 and 7 are closed."
+  },
+  {
+   "element": "Crisis-line region resolver, timezone tier \u2014 /Users/ashleymarkevans/futures-daily-word/src/utils/geo.ts:26-31 `campusFromTimezone` maps every `America/*` timezone to 'US'",
+   "ruling": "Never show the wrong country's number \u2014 the design's own worst-case failure. Reusing or mirroring this helper shows 988 to a reader in Rio (America/Sao_Paulo), Bogota or Mexico City the moment IP fails or they are offline; Futures has a Brazilian campus.",
+   "severity": "blocker",
+   "change": "Write an independent tz->country allowlist in src/utils/crisis-lines.ts (explicit prefixes per supported line only) returning `unknown` for anything unlisted, and add a test asserting no input path ever returns 988; never call campusFromTimezone from the crisis resolver."
+  },
+  {
+   "element": "Region cache \u2014 /Users/ashleymarkevans/futures-daily-word/src/utils/geo.ts:47-57 `detectCountry()` caches the country in sessionStorage",
+   "ruling": "The design promises the crisis line renders offline, always, from local data. sessionStorage dies with the tab, so a cold offline open \u2014 the exact 2am case \u2014 resolves to unknown and shows no number.",
+   "severity": "blocker",
+   "change": "On every successful resolve, persist `{region, source, line}` to localStorage under dw_crisis_region and paint the card from that on mount before any network call."
+  },
+  {
+   "element": "Resolver precedence 'campus beats everything' vs CAMPUSES \u2014 /Users/ashleymarkevans/futures-daily-word/src/data/tokens.ts:79 `{ id: 'other', name: 'Non-Futures Church', region: 'Other' }`",
+   "ruling": "A saved campus of 'Non-Futures Church' (or any region the lines file has no entry for) terminates resolution, so a reader in Atlanta who picked it sees no number when IP would have given 988. Duty of care lost to a data value, silently.",
+   "severity": "blocker",
+   "change": "Treat region 'Other'/absent/unmapped as unresolved and fall through campus -> IP -> timezone; only a total absence of signal shows the local-emergency sentence and the directory link."
+  },
+  {
+   "element": "?comfort=1 cold-device door vs the app's other overlays \u2014 /Users/ashleymarkevans/futures-daily-word/src/App.tsx:498 `{!needsPushOnboarding && !showPathAsk && <CookieConsent />}`, :480 EmailGate, :236-239 Day1Landing, PWAInstall",
+   "ruling": "The design only excludes saveSetup, Door 3 and push. The link a pastor texts to a hospital car park therefore opens on a cold device with a cookie banner, and can pick up the install prompt and Day 1 landing, on top of the verse. 'Nothing is asked of you here' is then false on the first paint.",
+   "severity": "blocker",
+   "change": "Add COMFORT_DEEP_LINK beside SERMON_DEEP_LINK at App.tsx:35 and gate CookieConsent, EmailGate, PWAInstall, EmailNudge and Day1Landing off it exactly as the sermon deep link already does."
+  },
+  {
+   "element": "Self-serve levers \u2014 public/comfort/care.json and public/comfort/lines.json described as 'a campus pastor edits a JSON file'",
+   "ruling": "Self-serve over developer levers: a file in public/ needs a git commit, a build and a deploy \u2014 that is Ashley, not a pastor, and a crisis number or a care pastor changing is exactly the hard-week edit that must not queue behind him. The design's own honest-exception paragraph does not cover these two.",
+   "severity": "should",
+   "change": "Keep content.json and flags.json as repo assets, but move the per-campus care recipient and the per-region crisis line into the existing `campus_content` Supabase table served by netlify/functions/campus-content.js, so a change is a row edit with the JSON as bundled fallback."
+  },
+  {
+   "element": "Seam comfort door \u2014 /Users/ashleymarkevans/futures-daily-word/src/index.css:824-836 `.dw-seam-bar { height: calc(34px + var(--safe-top)) }`, `.dw-seam-link { font-size: 11px }`, and :876-881 `:root .dw-seam-bar a.dw-seam-link { color: var(--dw-gold) !important }`",
+   "ruling": "Mobile first, tap targets: the one tap that must never miss would be an ~11px label in a 34px strip, third item at 375px between the wordmark, 'Daily Word' and 'Futures Church \u2197'. And the !important rule repaints any new anchor gold, not the muted weight the design specifies \u2014 two accents in the chrome.",
+   "severity": "should",
+   "change": "Render it as `<button class=\"dw-cmf-seam\">` (escapes the .dw-seam-link rule) with a 44px min hit area overflowing the strip, and hide the 'Daily Word' word below 390px so three items fit without wrapping."
+  },
+  {
+   "element": "'Talk to a pastor' CTA \u2014 shipped in build step 5 while the route that delivers it (step 9, pastoral_requests) is held dark pending the named-recipient decision",
+   "ruling": "Duty of care created and not met, which the design names as its top risk, and a control that does nothing on a crisis screen. Also: never point a person at a control that cannot act.",
+   "severity": "should",
+   "change": "Until a named recipient exists per campus, the button does not render at all \u2014 the card ships as crisis line + campus phone + one honest sentence; no greyed or dead CTA."
+  },
+  {
+   "element": "Pastoral request form \u2014 'Failed: That didn't send' copy with no stated placement, and no empty-field handling",
+   "ruling": "Errors render where the eye is, beside the button pressed; noValidate plus an explicit required check, because iOS native validation is silent. A crisis message that silently fails validation is the worst version of this bug.",
+   "severity": "should",
+   "change": "Set noValidate on the form; an empty textarea on Send renders one line directly under Send ('Write a line or two first'), and the send-failure line renders in that same spot with the crisis number beneath it."
+  },
+  {
+   "element": "Return-day check-in copy ('Still here. Want the same passage, or a new one?') and the AI quick prompt 'Why does this hurt so much'",
+   "ruling": "Internal contradiction with the path's printed, unchangeable promise 'Comfort scriptures. Nothing else asked of you' and with the design's own presence-before-explanation principle (Pargament). A two-button question is an ask; a prompt that requests a reason invites the explanation the design excludes Romans 8:28 for.",
+   "severity": "should",
+   "change": "Make the check-in a single plain link, 'Read a different passage', and replace the first quick prompt with a presence one ('Say the thing you can't say out loud'); keep 'Read me something for tonight'."
+  },
+  {
+   "element": "Comfort repaint \u2014 /Users/ashleymarkevans/futures-daily-word/src/components/ComfortSection.tsx:178-183 and ~212-216, /Users/ashleymarkevans/futures-daily-word/src/sections/ComfortVerseBannerSection.tsx:52 `linear-gradient(135deg, rgba(92,107,192,\u2026))`",
+   "ruling": "The change list says move the indigo values to tokens, which yields clay-tinted gradients. No decorative gradients; quiet, generous, one accent \u2014 and low stimulus is the whole point of this screen.",
+   "severity": "nit",
+   "change": "Flat `--dw-surface` panels on `--dw-canvas` with a 1px `--dw-border`; no gradient anywhere on a comfort surface, and add the gradient string to the step-3 grep check alongside the indigo hexes."
+  },
+  {
+   "element": "Book cards in the comfort done state ('When you're ready, there's more here')",
+   "ruling": "Listed as an open decision; it is the only remaining ask on a path that promises none, and it is a sales surface on a crisis screen. Nothing counts, nothing is asked.",
+   "severity": "nit",
+   "change": "Cut book cards from comfort entirely rather than moving them into the done state; leave the done line as the last thing on the screen."
+  },
+  {
+   "element": "RIGHT \u2014 keep these",
+   "ruling": "One passage instead of two (the hero fallback at HomeScreen.tsx:1302-1305 as the only chapter surface, ComfortSection reduced to the after-reading frame) is the single biggest user win and is correctly diagnosed. Removing 'Reading x of y', 'You're doing great' and the ask_lock quota (ComfortSection.tsx:96, :300-303, :297-356) honours the printed promise. Pairing verse to chapter, keeping the date-keyed localDayIndex, keeping the streak recorded but invisible, no push, no graduation, no sixth tab, no sixth path card, useSubView alone with a live open prop, and the whole thing behind a deploy preview Ashley approves.",
+   "severity": "info",
+   "change": "Keep as designed; do not let the safety-plumbing fixes delay the duplicate-chapter removal \u2014 it can ship as its own preview PR."
+  }
+ ]
+}

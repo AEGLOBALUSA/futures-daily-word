@@ -118,7 +118,7 @@ export function DoneCelebration({
               margin: '0 0 18px',
             }}
           >
-            🔥 {t('done_streak_line').replace('{x}', String(streakCount))}
+            {t('done_streak_line').replace('{x}', String(streakCount))}
           </p>
         )}
         <button

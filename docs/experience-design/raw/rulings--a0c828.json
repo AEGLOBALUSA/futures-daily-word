@@ -1,0 +1,171 @@
+{
+ "rulings": [
+  {
+   "rule": "NEVER re-merge or ship a big IA/visual rebuild of the opening screen to prod without Ashley previewing and explicitly approving it first (same class as the locked look).",
+   "source": "feedback_daily_word_today_rebuild_rejected, 1 Sep 2026, line 10-11",
+   "applies_to": "opening/home screen, any big IA reshape"
+  },
+  {
+   "rule": "If HomeScreen is ever re-extracted/retired, the ten src/sections/* files and their tests must come back with it.",
+   "source": "feedback_daily_word_today_rebuild_rejected, line 12",
+   "applies_to": "HomeScreen refactors"
+  },
+  {
+   "rule": "Comfort's 'Feeling Stronger?' graduation prompt is removed for good \u2014 never re-add.",
+   "source": "feedback_daily_word_today_rebuild_rejected (PHASE 2, PR #82), 2 Sep 2026, line 16",
+   "applies_to": "comfort path"
+  },
+  {
+   "rule": "comfortMode toolbar is Note+Close ONLY.",
+   "source": "feedback_daily_word_today_rebuild_rejected, line 16",
+   "applies_to": "comfort path"
+  },
+  {
+   "rule": "The arrival-open seed for congregation/deeper_study/pastor_leader/comfort must be persona-gated and CREDIT-FREE \u2014 it must bypass handleRead and never route through it (handleRead credits the plan day).",
+   "source": "feedback_daily_word_today_rebuild_rejected, PHASE 2, line 16",
+   "applies_to": "congregation, deeper_study, pastor_leader, comfort \u2014 arrival seed"
+  },
+  {
+   "rule": "A full-screen host surface that opens overlays (study sheet/note drawer/Bible AI) must use useSubView ALONE, not useSubView plus useModalA11y/aria-modal, or nested focus traps break keyboard/back-button navigation.",
+   "source": "feedback_daily_word_today_rebuild_rejected, 28-agent review finding 1, line 18",
+   "applies_to": "any full-screen surface with overlays, e.g. Day N surface, BibleAI"
+  },
+  {
+   "rule": "A conditionally-mounted card using useSubView(true,...) must stay MOUNTED with a live open prop, not be conditionally mounted, or it orphans a history entry per close and breaks Android back.",
+   "source": "feedback_daily_word_today_rebuild_rejected, finding 2, line 18",
+   "applies_to": "any subview-driven card"
+  },
+  {
+   "rule": "I'm New / new_to_faith path is exempt from the open-reading-on-arrival pattern \u2014 it uses the journey hero \u2192 full-screen Day N instead.",
+   "source": "feedback_daily_word_today_rebuild_rejected, line 16",
+   "applies_to": "new_to_faith path"
+  },
+  {
+   "rule": "Sermon Notes row is demoted below the reading for congregation/deeper_study/pastor_leader/comfort; I'm New keeps it above only in the Sunday window (QR guests).",
+   "source": "feedback_daily_word_today_rebuild_rejected, line 16",
+   "applies_to": "all five paths, home layout"
+  },
+  {
+   "rule": "Ashley must see a deploy preview before merging; a PR can sit open awaiting his deploy-preview look and must not be merged without his word.",
+   "source": "feedback_daily_word_today_rebuild_rejected, PR #81 note, line 20",
+   "applies_to": "new_to_faith simple-home change, generally any UI PR"
+  },
+  {
+   "rule": "Choose-your-path is ONE sheet ('Where are you today?') with five cards, THREE doors to reach it (landing line under Read, path swatch pill on Home visible for every persona, an asked-once screen after first Mark as read) \u2014 never a gate that blocks first use.",
+   "source": "project_daily_word_choose_your_path, 2 Sep 2026, line 65-70",
+   "applies_to": "path picker / ChoosePathSheet"
+  },
+  {
+   "rule": "The asked-once Door 3 screen is never shown for comfort or for users who already made a real choice; result is synced via dw_path_asked.",
+   "source": "project_daily_word_choose_your_path, line 70",
+   "applies_to": "comfort path, real-choice users"
+  },
+  {
+   "rule": "saveSetup must gate on source!=='default' \u2014 only REAL_CHOICE_SOURCES (onboarding/settings/upgrade) count as a real choice; auto-defaults never stamp as a real choice.",
+   "source": "project_daily_word_choose_your_path, line 69; project_daily_word_platform_polish sync rules, line 118",
+   "applies_to": "persona/path assignment logic"
+  },
+  {
+   "rule": "Tapping a card in the sheet must save AND open the screen immediately (commit(next)); no separate CTA below the fold \u2014 a bottom sheet must never put its only committing control under a scrolling list.",
+   "source": "project_daily_word_choose_your_path, 'One tap opens the path' 2 Sep 2026, line 87",
+   "applies_to": "ChoosePathSheet"
+  },
+  {
+   "rule": "Pastor lock is removed \u2014 a signed-in pastor can pick any path as a real choice; sheet shows a note plus 'Sign out of pastor account', no lock glyph.",
+   "source": "project_daily_word_choose_your_path, PR #89, line 75",
+   "applies_to": "pastor_leader path, ChoosePathSheet"
+  },
+  {
+   "rule": "Saving a path from the sheet must navigate to that screen (App navigates Home after a real change, not just close the sheet).",
+   "source": "project_daily_word_choose_your_path, PR #89, line 75",
+   "applies_to": "ChoosePathSheet, Settings-initiated path change"
+  },
+  {
+   "rule": "The sheet must fit a phone without scrolling \u2014 measured target ~481px tall at 390 width (537 with pastor sign-out row); typographic compaction only, no copy changes.",
+   "source": "project_daily_word_choose_your_path, PR #95, line 89",
+   "applies_to": "ChoosePathSheet layout"
+  },
+  {
+   "rule": "Use unused CSS class prefixes for new components \u2014 dw-path-* was already taken by the Plans-tab Superdesign chooser; the sheet uses dw-cp-* instead.",
+   "source": "project_daily_word_choose_your_path, line 81",
+   "applies_to": "CSS naming for new Daily Word components"
+  },
+  {
+   "rule": "Reflect & Respond questions are written for every lesson day and are PART OF THE LESSON, positioned directly under the lesson text, before Mark Complete (not at the foot below the chapter).",
+   "source": "project_daily_word_journey_questions, ruled 2 Sep 2026, line 100",
+   "applies_to": "new_to_faith 40-day journey, Day N surface"
+  },
+  {
+   "rule": "Day 1 landing (cold-visitor) shows Day 1's questions under the pastoral text before Mark as read.",
+   "source": "project_daily_word_journey_questions, line 100",
+   "applies_to": "Day1Landing, new_to_faith"
+  },
+  {
+   "rule": "Any edit to /books/*.json content will be invisible to returning users unless the service worker cache strategy for that asset class is checked \u2014 /books/* must be network-first with cache as offline fallback only (fixed in PR #84); bump CACHE_NAME/STATIC_CACHE and SW_VERSION together for any sw.js change.",
+   "source": "reference_daily_word_sw_books_cache_trap, 1-2 Sep 2026, lines 199-204",
+   "applies_to": "any content/JSON change under /books or /bible, service worker"
+  },
+  {
+   "rule": "applyCloudData must not overwrite journal (its jsonFields) \u2014 raw cloud data resurrects deleted entries; syncOnStartup's tombstone merge is authoritative.",
+   "source": "project_daily_word_platform_polish, 2026-06-25, line 115",
+   "applies_to": "journal sync"
+  },
+  {
+   "rule": "applyMisc is FILL-ONLY \u2014 cloud must never clobber newer local content; writes to dw_user_story/dw_sermon_notes/dw_prayed_for call pushNow().",
+   "source": "project_daily_word_platform_polish, line 116",
+   "applies_to": "misc synced fields, sermon notes, prayer list, user story"
+  },
+  {
+   "rule": "Deletes are tombstones (deleted:true), never hard deletes, for journal and highlights.",
+   "source": "project_daily_word_platform_polish, line 117",
+   "applies_to": "journal, highlights"
+  },
+  {
+   "rule": "Never rebuild a synced dw_* record from React state \u2014 merge into what is currently in localStorage and touch only your own fields, or a second device's cloud progress gets overwritten by stale mount-time state.",
+   "source": "feedback_daily_word_today_rebuild_rejected, PR #64, 29 Aug 2026, line 50",
+   "applies_to": "any dw_* synced record, e.g. dw_pathway_progress"
+  },
+  {
+   "rule": "Never reuse a bundled image filename for new content \u2014 overwriting hero-N.jpg serves stale cached bytes across browser and CDN; rename to fresh filenames and update the index.html preload link.",
+   "source": "project_daily_word_platform_polish, hero carousel, line 129",
+   "applies_to": "hero images / any bundled asset swap"
+  },
+  {
+   "rule": "Plan/reading day logic must use local date (toLocaleDateString('en-CA')) matching calcPlanDay's local midnight \u2014 never mix in UTC toISOString date logic.",
+   "source": "project_daily_word_platform_polish, DATE-AXIS RULE, line 133",
+   "applies_to": "plan day / reading-done rollover logic"
+  },
+  {
+   "rule": "pushSupported() only allowlists futuresdailyword.com/www/localhost \u2014 push cannot be verified on a deploy preview or the futures.church proxy, only localhost or prod.",
+   "source": "project_daily_word_platform_polish, Push section, line 139",
+   "applies_to": "push notification testing/verification"
+  },
+  {
+   "rule": "A plan id is referenced in four places (personalization.ts, SetupPromptModal.tsx, PlansScreen.tsx, PastorStudyOnboarding.tsx) and all four must be rewired or the wizard starts a dead plan.",
+   "source": "project_daily_word_platform_polish, line 135",
+   "applies_to": "reading plans data changes"
+  },
+  {
+   "rule": "NLT translation is removed everywhere (no API key) \u2014 never reintroduce as a default.",
+   "source": "project_daily_word_platform_polish, line 137",
+   "applies_to": "scripture translation options"
+  },
+  {
+   "rule": "Sermon frameworks limited to 4D and H.E.A.T. only (both defined on record); P.A.I.D., Five Fences, Five Batons are not defined anywhere and must never be invented.",
+   "source": "project_daily_word_pastor_sign_in, Phases 2-4, line 169",
+   "applies_to": "pastor_leader sermon prep content"
+  },
+  {
+   "rule": "Translated content (comfort devotions, questions, etc.) is CLAUDE-DRAFTED, ASHLEY APPROVES BEFORE SHIP \u2014 never auto-published without his sign-off, except where he has explicitly delegated (e.g. comfort translations he waived review on).",
+   "source": "project_daily_word_deep_dive_aug2026, Owner decision 7, line 47",
+   "applies_to": "es/pt/id translated content"
+  },
+  {
+   "rule": "Catalogue: only rename '30-Day Faith Pathway' to 'Foundations of Faith' and merge the two comfort verse cards; weekly-review-for-all and a leaders featured row were explicitly REJECTED by Ashley \u2014 do not build them.",
+   "source": "project_daily_word_deep_dive_aug2026, Owner decision 8, line 48",
+   "applies_to": "catalogue/plans screen"
+  }
+ ],
+ "locked_look": "Ashley's locked look for Daily Word is rich and editorial, never minimal or stripped: \"bible app feel,\" \"fresh clean inviting,\" then refined to \"editorial and minimalistic, bright airy warm,\" with italics removed except for special purposes and any dark-mode override rejected; light is the default theme (deep terracotta clay #A8552F, ivory canvas #FAF6EF, ink text ramp), the hero reading panel stays white with dark upright scripture in both themes as deliberate \"paper mode,\" and the DM Serif Text bundled font must not be reintroduced because it renders italic even at normal style \u2014 the correct serif is the Georgia stack (project_daily_word_platform_polish, 2026-06-25/26, lines 121-126; feedback_daily_word_today_rebuild_rejected, 1 Sep 2026, line 3).\n\n",
+ "preview_gate": "Any big IA/visual reshape of the opening screen (or comparable owner-preview-gated change) must ship behind a deploy preview link that Ashley personally reviews and explicitly approves before it merges to main/production, never straight to main (feedback_daily_word_today_rebuild_rejected, 1 Sep 2026, line 11)."
+}

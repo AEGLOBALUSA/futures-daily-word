@@ -10,6 +10,8 @@
  * All sync is non-blocking. If it fails, localStorage still works.
  */
 import { API_BASE } from './api-base';
+import { mergeReadDays } from './readDaysMerge';
+import type { ReadDaysRecord } from './readDaysMerge';
 
 // ── localStorage keys that sync to the cloud ──
 const SYNC_KEYS = {
@@ -48,8 +50,13 @@ const MISC_KEYS = [
   'dw_preach_outline',       // the pastor's sermon outline (structured JSON — newest-wins,
                              // deliberately OFF the authored dw_sermon_ prefix so a device
                              // with an older copy takes the cloud's newer one)
+  'dw_read_days',            // genuine-reading-day date set — add-only, union-merged (see UNION_MISC)
 ] as const;
 const MISC_PREFIXES = ['dw_sermon_', 'dw_book_today_'];
+
+// Add-only misc keys (date/id sets) that must be UNION-merged on apply, never
+// resolved by newest-wins — otherwise a second device's read days are lost.
+const UNION_MISC = new Set(['dw_read_days']);
 
 /** The exact key predicate for the misc bag — shared by collectMisc (what we push)
  *  and applyMisc (what we accept). applyMisc MUST enforce this too: without it a
@@ -95,6 +102,12 @@ export function syncMisc(key: string, value: string) {
 // push-time union in collectMisc (see both sites).
 let lastCloudPrayedFor: unknown[] | null = null;
 
+// The cloud's read-days record from the last pull, captured in applyMisc for the
+// push-time union in collectMisc (see both sites). Without this a stale device
+// (one that never re-pulled) would push its shorter local list and DELETE every
+// read day the cloud gained from other devices since — mirrors lastCloudPrayedFor.
+let lastCloudReadDays: unknown = null;
+
 /** Collect the misc-bag keys (static list + dynamic prefixes) + the meta map. */
 function collectMisc(): Record<string, string> {
   const out: Record<string, string> = {};
@@ -117,6 +130,18 @@ function collectMisc(): Record<string, string> {
       const localRaw = JSON.parse(out['dw_prayed_for'] || '[]') as unknown;
       const localArr = Array.isArray(localRaw) ? localRaw : [];
       out['dw_prayed_for'] = JSON.stringify([...new Set([...localArr, ...lastCloudPrayedFor])]);
+    } catch { /* ignore */ }
+  }
+  // dw_read_days is the same shape of problem: a device whose last pull is stale
+  // (open for days, never re-synced) would otherwise push its shorter local list
+  // and the server rebuilds the misc bag from exactly what was sent — silently
+  // deleting every read day another device added to the cloud in the meantime.
+  // Push the UNION of local + the last-pulled cloud copy instead (apply merges too).
+  if (lastCloudReadDays != null) {
+    try {
+      const localRaw = out['dw_read_days'] ? (JSON.parse(out['dw_read_days']) as unknown) : [];
+      const merged: ReadDaysRecord = mergeReadDays(localRaw, lastCloudReadDays);
+      out['dw_read_days'] = JSON.stringify(merged);
     } catch { /* ignore */ }
   }
   return out;
@@ -144,10 +169,47 @@ function applyMisc(misc: unknown) {
     }
   } catch { /* ignore */ }
 
+  // Remember the cloud's read-days record for collectMisc's push-time union.
+  try {
+    const rd = bag['dw_read_days'];
+    if (typeof rd === 'string') {
+      lastCloudReadDays = JSON.parse(rd) as unknown;
+    }
+  } catch { /* ignore */ }
+
   for (const [k, v] of Object.entries(bag)) {
     if (k === MISC_META_KEY) continue;
     if (!isSyncedMiscKey(k)) continue; // whitelist — see isSyncedMiscKey
     if (typeof v !== 'string' || !v) continue;
+    if (UNION_MISC.has(k)) {
+      // Add-only date set — merge cloud into local instead of fill-only /
+      // newest-wins, so neither device's read days are ever dropped.
+      // The local parse is separated from the merge/write so an unreadable
+      // local value falls back to the cloud copy instead of skipping the key
+      // entirely — otherwise a corrupt local value discarded the cloud's whole
+      // read-day history too (the reader saw zero, then their next genuine
+      // read pushed a single day over everything the cloud held).
+      let localVal: unknown = [];
+      let localReadable = true;
+      try {
+        const localRaw = localStorage.getItem(k);
+        localVal = localRaw ? JSON.parse(localRaw) : [];
+      } catch {
+        localReadable = false;
+      }
+      try {
+        if (localReadable) {
+          const cloudVal = JSON.parse(v) as unknown;
+          const merged = mergeReadDays(localVal, cloudVal);
+          localStorage.setItem(k, JSON.stringify(merged));
+        } else {
+          // Local is unreadable — fall back to the cloud's copy rather than
+          // dropping the key.
+          localStorage.setItem(k, v);
+        }
+      } catch { /* quota / cloud parse */ }
+      continue;
+    }
     const local = localStorage.getItem(k);
     const localEmpty = local == null || local === '' || local === '[]' || local === '{}' || local === 'null';
     if (localEmpty) {
@@ -202,6 +264,7 @@ export function resetSyncSession() {
   pendingPush = null;
   lastSyncVersion = 0;
   lastCloudPrayedFor = null;
+  lastCloudReadDays = null;
 }
 
 /** Atomically read-and-clear the coalesced push request (a helper function so TS
@@ -286,6 +349,35 @@ function prunePlanTombstones(map: Record<string, unknown>) {
   }
 }
 
+/** Streak merge grace window, days — matches recordStreakToday's freeze window, where a
+ *  gap of up to 2 missed days is still an unbroken run. */
+const STREAK_MERGE_GRACE_DAYS = 2;
+
+/** Decide which side of a streak record wins a merge.
+ *  cloud wins when: there's no local record; same day and cloud has a higher count;
+ *  cloud is strictly newer and its count isn't a regression; or cloud is newer by MORE
+ *  than the grace window (a genuinely later run after a real break, even with a lower
+ *  count, since a legitimate reset must be allowed to take effect). Otherwise local wins —
+ *  this is the protection against a cloud record that's newer by only 1-2 days but holds
+ *  a LOWER count, which is a stale/reset view, not a genuine new run. */
+export function streakMergeWinner(
+  local: { count?: number; lastDate?: string } | null | undefined,
+  cloud: { count?: number; lastDate?: string } | null | undefined,
+): 'cloud' | 'local' {
+  if (!local || Object.keys(local).length === 0) return 'cloud';
+  const cd = String(cloud?.lastDate || '');
+  const ld = String(local.lastDate || '');
+  const cCount = cloud?.count || 0;
+  const lCount = local.count || 0;
+  if (cd === ld && cCount > lCount) return 'cloud';
+  if (cd > ld && cCount >= lCount) return 'cloud';
+  if (cd > ld) {
+    const gapDays = Math.round((Date.parse(cd) - Date.parse(ld)) / 86400000);
+    if (gapDays > STREAK_MERGE_GRACE_DAYS) return 'cloud';
+  }
+  return 'local';
+}
+
 /** Write cloud data into localStorage (without overwriting non-empty local with empty cloud).
  *  NOTE: the journal is deliberately NOT in this list. syncOnStartup merges the journal
  *  (mergeJournals, tombstone-aware) and writes the merged result itself; applying the RAW
@@ -334,19 +426,17 @@ function applyCloudData(data: Record<string, unknown>) {
     }
   }
 
-  // Streak — keep the side whose lastDate is later (tie → higher count) instead of
-  // blind cloud-wins: a second device pulling an older cloud copy must not
-  // un-record today or regress the count another device already pushed.
+  // Streak — merge by lastDate + count, with a grace window against a reset
+  // clobbering a higher count from another device: a cloud record that is newer
+  // by only 1-2 days but holds a LOWER count is a stale/reset view (the freeze
+  // grace lets a run continue after up to 2 missed days), not a genuine new run,
+  // so local wins. Only a gap of MORE than GRACE days lets a lower cloud count
+  // (a legitimate reset after a real break) take effect.
   {
     const cs = asRecord(data.streak) as { count?: number; lastDate?: string } | null;
     if (cs && Object.keys(cs).length > 0) {
       const ls = asRecord(readJSON(SYNC_KEYS.streak, {})) as { count?: number; lastDate?: string } | null;
-      const cd = String(cs.lastDate || '');
-      const ld = String(ls?.lastDate || '');
-      const cloudWins = !ls || Object.keys(ls).length === 0
-        || cd > ld
-        || (cd === ld && (cs.count || 0) > (ls?.count || 0));
-      if (cloudWins) {
+      if (streakMergeWinner(ls, cs) === 'cloud') {
         try { localStorage.setItem(SYNC_KEYS.streak, JSON.stringify(cs)); } catch { /* quota */ }
       }
     }

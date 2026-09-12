@@ -111,7 +111,7 @@ export function getGreeting(persona: Persona, name: string, streak: number, lang
   // Streak memory: on a reset day, acknowledge the longest run rather than greeting
   // a long-time reader like a first-timer. Personas whose greetings never surface
   // the streak (new_to_faith, comfort) keep their own lines.
-  if (streak === 1 && persona !== 'new_to_faith' && persona !== 'comfort') {
+  if (streak === 1 && persona !== 'new_to_faith' && persona !== 'comfort' && persona !== 'deeper_study') {
     const best = getStreak().bestCount;
     if (best >= 3) {
       const prefix = lang === 'id' ? `Selamat ${tod}, ${first}. ` : opener ? `${opener}, ${first}. ` : `Good ${tod}, ${first}. `;
@@ -130,9 +130,7 @@ export function getGreeting(persona: Persona, name: string, streak: number, lang
           ? `${opener}, ${first}. Día ${streak} — sigue así.`
           : `${opener}, ${first}. Qué bueno que estés aquí.`;
       case 'deeper_study':
-        return streak > 1
-          ? `${opener}, ${first}. Día ${streak}.`
-          : `${opener}, ${first}.`;
+        return `${opener}, ${first}.`;
       case 'pastor_leader':
         return streak > 30
           ? `${opener}, ${first}. ${streak} días. Lideras desde una copa llena.`
@@ -167,9 +165,7 @@ export function getGreeting(persona: Persona, name: string, streak: number, lang
           ? `${opener}, ${first}. Dia ${streak} — continue assim.`
           : `${opener}, ${first}. Que bom ter você aqui.`;
       case 'deeper_study':
-        return streak > 1
-          ? `${opener}, ${first}. Dia ${streak}.`
-          : `${opener}, ${first}.`;
+        return `${opener}, ${first}.`;
       case 'pastor_leader':
         return streak > 30
           ? `${opener}, ${first}. ${streak} dias. Você lidera com o copo cheio.`
@@ -204,9 +200,7 @@ export function getGreeting(persona: Persona, name: string, streak: number, lang
           ? `Selamat ${tod}, ${first}. Hari ${streak} — terus semangat.`
           : `Selamat ${tod}, ${first}. Senang Anda di sini.`;
       case 'deeper_study':
-        return streak > 1
-          ? `Selamat ${tod}, ${first}. Hari ${streak}.`
-          : `Selamat ${tod}, ${first}.`;
+        return `Selamat ${tod}, ${first}.`;
       case 'pastor_leader':
         return streak > 30
           ? `Selamat ${tod}, ${first}. ${streak} hari. Anda memimpin dari cawan yang penuh.`
@@ -240,9 +234,7 @@ export function getGreeting(persona: Persona, name: string, streak: number, lang
         ? `Good ${tod}, ${first}. Day ${streak} — keep going.`
         : `Good ${tod}, ${first}. Glad you're here.`;
     case 'deeper_study':
-      return streak > 1
-        ? `Good ${tod}, ${first}. Day ${streak}.`
-        : `Good ${tod}, ${first}.`;
+      return `Good ${tod}, ${first}.`;
     case 'pastor_leader':
       return streak > 30
         ? `Good ${tod}, ${first}. ${streak} days. You're leading from a full cup.`
@@ -338,7 +330,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'hero_audio',
       'scripture',
       'ai_prompt',
-      'campus_count',
     ],
     features: {
       commentary: 'collapsed',
@@ -444,7 +435,6 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       'pastoral_prompt',
       'commentary',
       'ai_prompt',
-      'campus_count',
       'book_cards',
     ],
     features: {

@@ -1,0 +1,731 @@
+{
+ "item": "Deeper study \u2014 the devout daily reader (deeper_study)",
+ "angle": "A veteran pastor's read of the person who already shows up. He is not looking to be motivated; he is looking not to be interrupted. Design the app as a study desk: the text open, the tools within arm's reach, the record kept, nothing talking.",
+ "thesis": "This reader's home screen currently promises depth and then hides it. The arrival strip tells him \"Commentary is open below, with Compare and the original languages\" (i18n.ts:915), but the only persistent Greek/Hebrew control lives inside a section that renders nothing unless he has an active plan (HomeScreen.tsx:3235 gated by 3223-3225), his day-one screen is a plan funnel with no scripture in it at all (heroChapterRefs has floors for comfort and pastor_leader but not for him, HomeScreen.tsx:1302-1315), the same chapter is printed twice (open in the hero, collapsed again in Today's Study), and tapping \"Read\" on that second copy silently credits his plan day behind his back (handleRead, HomeScreen.tsx:754-755). Fix the promise, not the persona: put the two depth tools next to the reading, give him a chapter on day one, delete the duplicate, make completion deliberate and single, key commentary to what is actually open, and give the two moments that matter to a long-haul reader \u2014 a skipped day and a finished plan \u2014 an honest next step. Add no cards, no badges, no encouragement. IMPORTANT: the docs named in my brief (docs/PERSONA-RESEARCH-2026-09-10.md and the scratchpad rulings packet dw-rulings.md) are not on disk \u2014 I searched the repo and every scratchpad. Every move below traces to the rulings JSON supplied inline in my brief or to a file:line in the live code, never to a research line I could not read.",
+ "principles": [
+  "Never explain a devout reader's own practice back to him. The Bible AI teaser ('Bible AI can break down Greek and Hebrew words\u2026', BibleAIPromptSection.tsx:29-32) reads as a stranger describing his morning. It also self-destructs after one use, so it is an ad, not a feature.",
+  "Tools belong beside the text, not in a section below it. Compare is in the hero (HomeScreen.tsx:2603-2624); Gk/Heb is a thousand lines down (3235). One toolbar.",
+  "One chapter, printed once. The hero already has a chapter slider and pills for multi-chapter days (HomeScreen.tsx:2408-2470), so Today's Study is a second printing of what is already open.",
+  "Completion is a decision, not a side effect. Mark as read is the act; expanding a passage is not.",
+  "Be honest about what is AI. The curated set is eight sources over the same twenty chapters (src/data/commentary.ts); most days he gets one 'AI Insight'. Label it plainly and never dress it as a named commentator \u2014 a name is not evidence.",
+  "A skipped day is a small grief for this reader, not a streak problem. Name the day that is still there, offer it in one tap, never guilt him.",
+  "A finished plan is a real moment. Today the plan day clamps at totalDays (HomeScreen.tsx:885) and he re-reads the last chapter forever.",
+  "No weekly review. features.weeklyReview is false for this persona (persona-config.ts:396) and weekly-review-for-all was explicitly rejected \u2014 do not build it back in under another name.",
+  "Richer and clearer, never stripped. Everything here keeps the photo plate, the white paper panel, the Georgia upright serif and the editorial chrome; nothing is removed except a duplicate and an ad."
+ ],
+ "journey": {
+  "day0": "He taps 'I want to go deeper in the Word' in the sheet, is saved with source 'onboarding', and lands on Home. Today he lands on the hero funnel 'Choose your reading plan' plus a second plan card below it \u2014 two asks and no scripture. After: a rotating study chapter is already open in the paper panel with Compare and Gk/Heb live above it, and there is exactly one plan ask, below the reading.",
+  "first_session": "Chapter open on arrival, credit-free (the seed bypasses handleRead, HomeScreen.tsx:1441-1456). He taps a word, gets Greek, taps Go deeper, the AI answers with cross-references (persona-config.ts:418-420). He writes one line under the passage and taps Mark as read. Total taps to the text: zero.",
+  "return_visit": "'Good morning, Ashley. Day 34.' (persona-config.ts:242-245). Hero eyebrow reads 'NEW TESTAMENT IN 90 DAYS \u2014 DAY 34'. Today's chapter is open. Commentary is already expanded under it. Nothing asks him for anything.",
+  "week2": "The Notes tab is now a study record \u2014 fourteen entries, each stamped with the chapter it came from, filterable by the Study tag. The reflection question has not repeated: a seven-question bank rotates by day index, so he is answering a new question rather than 'What stood out to you in today's reading?' for the fourteenth time.",
+  "missed_day": "He misses Tuesday. The plan advances on the calendar regardless (calcPlanDay, HomeScreen.tsx:124-140) and Tuesday's chapters are gone. After: one quiet line under the date strip \u2014 'You're on Day 34. Day 33 is still there.' with 'Read Day 33', which sets the existing planDayOffset. No red dot, no badge, no apology asked of him. It disappears the moment he reads it or taps the \u00d7.",
+  "seasonal": "Day 90 of the New Testament plan. The finish card fires once today (DoneCelebration with planFinish, HomeScreen.tsx:726) and then the plan clamps at Day 90 forever and serves him the same chapter every morning for the rest of his life. After: a Finished card takes the place of the plan reading \u2014 'You finished the New Testament in 90 Days' with three real next steps and 'Read it again', and until he picks, the hero falls to the study floor rather than repeating."
+ },
+ "screens": [
+  {
+   "name": "'Where are you today?' \u2014 the Deep study card",
+   "purpose": "The one door onto this path. It should promise only what the screen actually delivers.",
+   "order": [
+    "Title 'Where are you today?'",
+    "Sub-line",
+    "Card: I'm new to faith, or coming back",
+    "Card: I'm part of Futures Church",
+    "Card: I want to go deeper in the Word",
+    "Card: I'm a pastor and I teach and preach",
+    "Card: I'm going through something hard",
+    "Footer line",
+    "Sign out of pastor account (only when a pastor is signed in)"
+   ],
+   "copy": [
+    {
+     "element": "Card head (existing, path_study_head)",
+     "text": "I want to go deeper in the Word"
+    },
+    {
+     "element": "Card promise (existing, path_study_promise)",
+     "text": "Commentary, original languages, cross-references."
+    },
+    {
+     "element": "Card CTA (existing, path_study_cta)",
+     "text": "Open the study reading"
+    },
+    {
+     "element": "Footer (existing, path_sheet_footer)",
+     "text": "Not a test. Not a form. Just where you're starting from."
+    }
+   ],
+   "states": [
+    "Closed \u2014 mounted with a live open prop, painting nothing (locked by ChoosePathSheet.test.tsx)",
+    "Open on the current path, ticked, no second CTA below the fold",
+    "One tap on Deep study saves (source 'onboarding' first time, 'settings' on a change) and navigates to Home immediately",
+    "Tapping the path he already has just closes",
+    "Pastor signed in \u2014 a note plus 'Sign out of pastor account', no lock glyph",
+    "Fits 390px wide at ~481px tall without scrolling (537 with the sign-out row)"
+   ],
+   "keep": [
+    "Every word and every behaviour. This sheet is settled by ruling and by test; nothing here changes."
+   ],
+   "change": [],
+   "remove": []
+  },
+  {
+   "name": "Home \u2014 day one, before he has picked a plan",
+   "purpose": "Hand a devout reader scripture on the first screen, and ask for the plan once, below it.",
+   "order": [
+    "Header: wordmark \u00b7 path swatch 'Study' \u00b7 campus chip \u00b7 Search",
+    "Greeting",
+    "Path arrival strip (once, after the sheet)",
+    "Hero photo plate: eyebrow, date, play button, chapter caption",
+    "Hero tool row: translations \u00b7 Compare \u00b7 Gk/Heb",
+    "Paper panel \u2014 the chapter, already open",
+    "Reflect \u2014 one-tap capture under the passage",
+    "Mark as read",
+    "Commentary \u2014 expanded",
+    "Set your reading (the single plan ask)",
+    "Sermon Notes row"
+   ],
+   "copy": [
+    {
+     "element": "Greeting (existing)",
+     "text": "Good morning, Ashley."
+    },
+    {
+     "element": "Path arrival strip (existing, path_arrival_study)",
+     "text": "You're in the study reading. Commentary is open below, with Compare and the original languages."
+    },
+    {
+     "element": "Hero eyebrow (existing, todays_reading)",
+     "text": "Today's Reading"
+    },
+    {
+     "element": "Hero caption",
+     "text": "John 1 \u00b7 ESV \u00b7 Human reader"
+    },
+    {
+     "element": "Tool row (existing keys compare_label, gk_heb)",
+     "text": "Compare   Gk/Heb"
+    },
+    {
+     "element": "Reflect label + day-1 prompt (new bank)",
+     "text": "Reflect \u2014 What did you notice today that you had not noticed before?"
+    },
+    {
+     "element": "Mark as read (existing)",
+     "text": "Mark as read"
+    },
+    {
+     "element": "Plan ask, head",
+     "text": "Set your reading"
+    },
+    {
+     "element": "Plan ask, body",
+     "text": "Pick a plan and everything here follows it \u2014 the chapter, the commentary, the tools."
+    },
+    {
+     "element": "Plan ask, primary + sub",
+     "text": "Help me choose \u2014 a few options, picked for the time you have"
+    },
+    {
+     "element": "Plan ask, secondary + sub",
+     "text": "I know what I want \u2014 straight to the full list"
+    },
+    {
+     "element": "Plan ask, dismiss",
+     "text": "Later"
+    },
+    {
+     "element": "Plan ask, re-entry after Later",
+     "text": "Ready to set your reading?  \u00b7  Let's go"
+    },
+    {
+     "element": "Sermon Notes row (existing)",
+     "text": "Sermon Notes \u00b7 Futures Church"
+    }
+   ],
+   "states": [
+    "Floor chapter rotates by local day index; it is never served over a real plan or reading slot",
+    "Plan ask self-dismisses the instant any plan exists, including one started on the Plans tab or arriving by cloud sync",
+    "'Later' collapses it to the one-line re-entry",
+    "Offline \u2014 KJV serves and the caption names the translation actually served, not the one requested",
+    "Commentary card is absent only when there is genuinely nothing for the chapter"
+   ],
+   "keep": [
+    "Photo plate, white paper panel in both themes, Georgia upright scripture, the credit-free arrival seed, InlineReflection sitting directly under the passage, Mark as read as the only completion control"
+   ],
+   "change": [
+    "Give deeper_study a day-one floor chapter so the first screen is scripture, the way comfort and pastor_leader already are",
+    "Collapse two plan asks into one, and put it below the reading",
+    "Move Compare and Gk/Heb into one tool row on the hero",
+    "Demote the Sermon Notes row below the reading, per ruling"
+   ],
+   "remove": [
+    "The 'Choose your reading plan' hero funnel for this persona",
+    "The Bible AI teaser card"
+   ]
+  },
+  {
+   "name": "Home \u2014 the daily screen (a plan running)",
+   "purpose": "The screen he sees roughly 350 times a year. It should be the same shape every morning and should not ask him for anything.",
+   "order": [
+    "Header: wordmark \u00b7 path swatch 'Study' \u00b7 campus chip \u00b7 Search",
+    "Greeting with the day count",
+    "Catch-up line (only when a day was skipped)",
+    "Hero photo plate: plan + day eyebrow, date, \u2039 play \u203a, chapter caption",
+    "Chapter slider + pills (only when the day has more than one chapter)",
+    "Hero tool row: translations \u00b7 Compare \u00b7 Gk/Heb",
+    "Action bar: Read/Hide \u00b7 Restart \u00b7 Bible AI \u00b7 Search",
+    "Paper panel \u2014 today's chapter, open",
+    "Reflect \u2014 rotating prompt, autosaving",
+    "Mark as read",
+    "Commentary \u2014 expanded, source tabs",
+    "Additional reading (only if he keeps reading slots beyond the plan)",
+    "Sermon Notes row"
+   ],
+   "copy": [
+    {
+     "element": "Greeting (existing)",
+     "text": "Good morning, Ashley. Day 34."
+    },
+    {
+     "element": "Hero eyebrow (existing planLabel)",
+     "text": "New Testament in 90 Days \u2014 Day 34"
+    },
+    {
+     "element": "Chapter counter (existing)",
+     "text": "Chapter 1 of 3"
+    },
+    {
+     "element": "Reflect prompt (rotates by day, new bank)",
+     "text": "Where does this passage argue with you?"
+    },
+    {
+     "element": "Mark as read, after (existing)",
+     "text": "\u2713 Read today"
+    },
+    {
+     "element": "Commentary header (existing)",
+     "text": "Commentary"
+    },
+    {
+     "element": "Additional reading header",
+     "text": "Additional reading"
+    }
+   ],
+   "states": [
+    "Arrival \u2014 chapter open, credit-free, never through handleRead",
+    "Multi-chapter day \u2014 slider and pills switch the open chapter; play continues the chain from the current chapter",
+    "Read today \u2014 the button is a quiet outline, not a filled success button, and it does not re-fire",
+    "Streak reset day \u2014 the greeting names his longest run instead of greeting him like a first-timer (streak_reset_best, i18n.ts:425)",
+    "Audio playing \u2014 wave next to the control, floating Stop button",
+    "Additional reading renders only when he has slots beyond the plan's chapters; otherwise nothing"
+   ],
+   "keep": [
+    "The whole hero: photo plate, eyebrow, date, play, chapter slider and pills, action bar, translation strip",
+    "Commentary pre-expanded for this persona",
+    "The terse 'Day 34' greeting \u2014 no exclamation, no cheerleading",
+    "The gold Bible AI button in the action bar"
+   ],
+   "change": [
+    "Today's Study now renders only chapters that are not already open in the hero \u2014 which for a plan reader is none, so the section falls silent",
+    "Commentary keys off the chapters actually open rather than only off plan passages"
+   ],
+   "remove": [
+    "The duplicate plan card that re-printed today's chapter behind a second Read button",
+    "The hardcoded English 'Tap for Greek/Hebrew' toggle (its i18n'd twin moves to the hero tool row)"
+   ]
+  },
+  {
+   "name": "The reading panel and the selection sheet",
+   "purpose": "The desk itself. Everything he does to a text happens here without leaving the page.",
+   "order": [
+    "Passage reference \u00b7 translation served",
+    "Chapter text, upright Georgia, full height, page scrolls as one surface",
+    "Greek/Hebrew underlines when the mode is on",
+    "Reflect capture",
+    "Mark as read",
+    "On selection: the floating toolbar"
+   ],
+   "copy": [
+    {
+     "element": "Selection toolbar (existing keys)",
+     "text": "Copy \u00b7 Listen \u00b7 Share \u00b7 Note \u00b7 Gk/Heb \u00b7 Ask AI"
+    },
+    {
+     "element": "Greek popup action (existing)",
+     "text": "Go deeper"
+    },
+    {
+     "element": "Reflect saved state (existing)",
+     "text": "\u2713 Saved \u00b7 6:12 AM"
+    }
+   ],
+   "states": [
+    "Idle \u2014 no toolbar",
+    "Text selected \u2014 toolbar with Copy, Listen, Share, Note, Gk/Heb, Ask AI",
+    "Gk/Heb on \u2014 tapping a word opens the Greek/Hebrew popup with Go deeper into the AI",
+    "Compare on \u2014 the second translation prints under the passage with its own label",
+    "Note drawer open \u2014 full-screen host uses useSubView alone, no nested focus trap",
+    "Saving \u2014 'Saving\u2026' then '\u2713 Saved \u00b7 time'; a draft survives navigating away"
+   ],
+   "keep": [
+    "The whole selection toolbar and the word-tap flow \u2014 this is the persona's best-built surface and nothing about it needs changing",
+    "The white paper panel with dark upright scripture in both themes"
+   ],
+   "change": [
+    "Gk/Heb is now also a persistent pill above the passage, so he does not have to select text to discover it"
+   ],
+   "remove": []
+  },
+  {
+   "name": "Commentary",
+   "purpose": "The one place the app can be caught overclaiming. Say plainly what is a published commentator and what is the app's own AI.",
+   "order": [
+    "Header 'Commentary'",
+    "Source tabs (only when there is more than one)",
+    "Source \u00b7 chapter label",
+    "The text",
+    "Honesty line (only under an AI Insight entry)"
+   ],
+   "copy": [
+    {
+     "element": "Single-entry label (existing shape)",
+     "text": "MATTHEW HENRY \u00b7 Psalms 23"
+    },
+    {
+     "element": "AI entry label (existing)",
+     "text": "AI INSIGHT \u00b7 Romans 8"
+    },
+    {
+     "element": "Honesty line under an AI entry",
+     "text": "Written by this app's AI for this chapter, not by a published commentator."
+    },
+    {
+     "element": "Collapsed affordance (existing)",
+     "text": "Tap to read \u203a"
+    }
+   ],
+   "states": [
+    "Curated day \u2014 up to eight named sources as tabs, curated first",
+    "Uncurated day \u2014 one AI Insight entry with the honesty line, cached for 30 days",
+    "Slots-only reader \u2014 curated commentary now appears for his chapter too, instead of falling to AI",
+    "No commentary and no AI \u2014 the card does not render at all",
+    "Tapping the text selects it for the toolbar (unchanged)"
+   ],
+   "keep": [
+    "Expanded by default for this persona",
+    "The honest 'AI Insight' source name \u2014 it was already right",
+    "The multi-source tab strip"
+   ],
+   "change": [
+    "Build the entry list from the chapters actually open, not only from plan passages, so a reader on slots gets the curated set",
+    "Order curated sources before the AI entry",
+    "Track opening the card (it is currently untracked on Home)"
+   ],
+   "remove": []
+  },
+  {
+   "name": "The catch-up line",
+   "purpose": "Name the day he missed without making it a failure, and give it back in one tap.",
+   "order": [
+    "One line under the hero date strip",
+    "Inline text button",
+    "Dismiss \u00d7"
+   ],
+   "copy": [
+    {
+     "element": "Line",
+     "text": "You're on Day 34. Day 33 is still there."
+    },
+    {
+     "element": "Button",
+     "text": "Read Day 33"
+    },
+    {
+     "element": "Dismiss",
+     "text": "\u00d7"
+    }
+   ],
+   "states": [
+    "Hidden when the plan's calendar day equals the next uncompleted day",
+    "Shown when exactly one or more days were skipped \u2014 it names only the earliest one, never a list",
+    "Tapping sets the existing day offset; the hero, commentary and tools all follow to that day",
+    "Dismissed for the rest of the day; it does not return until another day is skipped",
+    "Never shown on the day the plan started, and never on a finished plan"
+   ],
+   "keep": [
+    "The existing day-back and day-forward chevrons on the hero \u2014 this line just tells him why he would use them"
+   ],
+   "change": [],
+   "remove": [
+    "Nothing \u2014 but resist any temptation to add a badge, a count of missed days, or a red dot"
+   ]
+  },
+  {
+   "name": "Done",
+   "purpose": "Close the loop and get out of the way in under four seconds.",
+   "order": [
+    "Check mark",
+    "One line",
+    "Auto-dismiss"
+   ],
+   "copy": [
+    {
+     "element": "Line, streak \u2265 2 (existing)",
+     "text": "34 days and counting \u2014 you're building something."
+    },
+    {
+     "element": "Line, first day back after a reset (existing)",
+     "text": "Day 1 \u2014 your longest run is 61 days. It starts the same way."
+    }
+   ],
+   "states": [
+    "Auto-dismisses at 3.6 seconds, or on tap",
+    "Milestone days hand off to the existing milestone modal rather than stacking",
+    "Never appears twice in a day"
+   ],
+   "keep": [
+    "All of it. This is already calm, already honest, and already the right length."
+   ],
+   "change": [],
+   "remove": []
+  },
+  {
+   "name": "Plan finished",
+   "purpose": "The moment a long-haul reader crosses a line. Today it is a dead end that silently repeats the last chapter forever.",
+   "order": [
+    "Eyebrow 'Finished'",
+    "Head",
+    "One line",
+    "Three next steps",
+    "Browse all plans"
+   ],
+   "copy": [
+    {
+     "element": "Eyebrow",
+     "text": "Finished"
+    },
+    {
+     "element": "Head",
+     "text": "You finished the New Testament in 90 Days."
+    },
+    {
+     "element": "Body",
+     "text": "Ninety days, start to finish. Where do you want to go next?"
+    },
+    {
+     "element": "Option 1",
+     "text": "Read it again"
+    },
+    {
+     "element": "Option 2",
+     "text": "Through the Bible in a Year"
+    },
+    {
+     "element": "Option 3",
+     "text": "Psalms & Proverbs"
+    },
+    {
+     "element": "Link",
+     "text": "Browse all plans"
+    }
+   ],
+   "states": [
+    "Appears the morning after the last day is completed, in place of the plan reading",
+    "Stays until he starts something; it is not dismissible by accident",
+    "While it is up, the hero serves the study floor chapter \u2014 never a silent repeat of the last day, never an empty hero",
+    "Starting a plan from here replaces the card with that plan's Day 1 immediately",
+    "Multiple plans \u2014 the card names only the one that finished; other running plans are untouched"
+   ],
+   "keep": [
+    "The one-shot finish celebration on the day itself"
+   ],
+   "change": [
+    "Finished plans stop producing a reading, so the last day cannot repeat"
+   ],
+   "remove": [
+    "The clamped, endlessly-repeating final day"
+   ]
+  },
+  {
+   "name": "Notes \u2014 the study record",
+   "purpose": "By week two this is why he stays. It should read as a record of what he has been in, with no analytics on top.",
+   "order": [
+    "Header 'Notes'",
+    "Filter chips: All \u00b7 Study \u00b7 Prayer \u00b7 Saved",
+    "Entries, newest first: chapter reference \u00b7 date \u00b7 text",
+    "New entry"
+   ],
+   "copy": [
+    {
+     "element": "Filter chip",
+     "text": "Study"
+    },
+    {
+     "element": "Empty state",
+     "text": "Anything you write under a reading lands here, with the chapter it came from."
+    }
+   ],
+   "states": [
+    "Entries written from the hero carry the chapter reference automatically",
+    "Deletes are tombstones, never hard deletes; a second device cannot resurrect them",
+    "Filter chips come from this persona's tag list (reflection, prayer, gratitude, sermon, study, exegesis, word-study, cross-reference)"
+   ],
+   "keep": [
+    "The whole screen. The record is the reward; do not decorate it."
+   ],
+   "change": [
+    "Reflections captured from the hero on this path are tagged 'study' automatically, so the existing chip becomes useful without any new UI"
+   ],
+   "remove": [
+    "No weekly review card, no days-read tile, no 'your week in the Word' \u2014 weeklyReview stays false for this persona and weekly-review-for-all was rejected"
+   ]
+  },
+  {
+   "name": "The daily notification and its settings",
+   "purpose": "The one thing that reaches him when the app is closed. It currently names a chapter he is not reading.",
+   "order": [
+    "Notification title",
+    "Body",
+    "Settings: Notifications card \u2014 on/off, then reminder hour"
+   ],
+   "copy": [
+    {
+     "element": "Notification, plan reader",
+     "text": "New Testament in 90 Days \u2014 Day 34. Romans 8 is ready."
+    },
+    {
+     "element": "Notification, no plan",
+     "text": "Your reading is ready."
+    },
+    {
+     "element": "Settings card header (existing)",
+     "text": "Notifications"
+    },
+    {
+     "element": "Settings toggle (existing)",
+     "text": "Turn on reminders"
+    }
+   ],
+   "states": [
+    "Sends once per local day at his chosen hour, with a two-hour catch-up window",
+    "Falls back to the generic line whenever the server does not know his plan",
+    "Push unsupported \u2014 the card offers a calendar reminder at the same hour instead",
+    "Never sent to the comfort path"
+   ],
+   "keep": [
+    "The hourly cron, the once-per-local-day ledger, the reminder-hour picker, the calendar fallback"
+   ],
+   "change": [
+    "Carry his current plan reference with the subscription so the notification names the chapter he is actually on",
+    "Add Spanish and Portuguese templates \u2014 today Futuros readers get English"
+   ],
+   "remove": []
+  }
+ ],
+ "comfort_access": "Two doors, both already built, and one honest limit. The path swatch sits in the Home header for every persona and opens the one sheet in a tap; the comfort card there reads \"I'm going through something hard \u2014 Comfort scriptures. Nothing else asked of you,\" which is the right sentence for a man who has read every morning for four years and this morning cannot. Saving it navigates him straight there, and the comfort path never asks him the once-only path question and never opts him into push. The limit worth naming to Ashley: a devout reader in grief will usually not re-declare himself; he will just stop opening the app. So the second door matters more \u2014 the Ask surface has to be able to hold a hard question without flinching, and it does (the selection toolbar's Ask AI and the gold button both carry the chapter he is in as context). Nothing else should be added: no \"are you okay\" prompts, no check-in cards, and never anything resembling the \"Feeling Stronger?\" graduation prompt, which is removed for good.",
+ "reminders": "One notification a day at an hour he sets, and it tells the truth. Today the body names a chapter from a fixed forty-passage rotation on the server, which is not his plan \u2014 for a man on Day 34 of the New Testament that is small and grating. Carry the plan reference with the subscription (written from the plan passages the client already persists) and send \"New Testament in 90 Days \u2014 Day 34. Romans 8 is ready.\" When the server does not know, fall back to \"Your reading is ready\" rather than naming the wrong book. Nothing else: no streak-at-risk push, no \"you haven't read in three days\", no second nudge. This reader does not need to be chased, and a chasing notification is the fastest way to make a four-year habit feel supervised. The reminder hour and the on/off switch stay where they are in Settings, and the calendar fallback stays for devices without push. Spanish and Portuguese templates are missing entirely \u2014 those are Claude-drafted and Ashley signs them off before they ship.",
+ "instrumentation": [
+  "reading_complete \u2014 fires only from Mark as read, with the chapter. Today 'daily_reading' fires on expand, so nothing in the data distinguishes opening from reading. Add to the TRACKED_EVENTS allowlist in src/utils/analytics.ts:31-37.",
+  "daily_reading \u2014 keep, but it must never fire from the arrival seed. Assert that in the test: the seed calls loadPassage directly and must not route through handleRead.",
+  "commentary_open \u2014 the Home commentary card is currently untracked; only the note drawer's AI commentary fires trackBehavior('commentary') (VerseNoteDrawer.tsx:207). Without it you cannot tell whether the persona's headline feature is used.",
+  "commentary_source \u2014 which tab he lands on, curated vs 'AI Insight'. This is the number that says whether the curated twenty chapters are worth extending.",
+  "greek_hebrew \u2014 already fires on word tap (HomeScreen.tsx:1743) but not on the mode toggle. Fire on toggle too, so reachability can be measured before and after the tool row moves.",
+  "compare_on \u2014 no event today. If Compare is genuinely used, it earns its place in the tool row; if not, that is worth knowing.",
+  "catchup_read \u2014 the catch-up line was shown, and whether he took it. Proves whether a missed day is a real problem or a designer's assumption.",
+  "plan_finished / plan_started_after_finish \u2014 the pair that proves the finish card ends a dead end rather than ending a habit.",
+  "ai_prompt (exists) \u2014 watch the rate after the teaser card is removed. If it holds or rises, the teaser was an ad; if it falls, put a quieter entry back.",
+  "journal_save (exists) \u2014 entries per reader per week is the honest week-two retention measure for this persona, better than streak length.",
+  "Caveat to record: src/utils/behavior.ts:53 stamps events with a UTC date, so an Australian reading at 8am local is filed to the previous day. Do not use dw_behavior_v1 dates for any day-boundary claim; the plan/streak axis is local and must stay that way."
+ ],
+ "self_serve_levers": [
+  "src/data/commentary.ts \u2014 a campus pastor or Ashley adds a chapter key under any of the eight named sources and it appears the next deploy. Today it is eight sources over the same twenty chapters, which is why most days fall to AI; this is the single highest-value content lever on this path. It is a bundled module, so the /books/* service-worker cache trap does not apply.",
+  "src/data/study.ts (new) \u2014 the day-one floor chapter rotation, a plain array of chapter references in exactly the shape src/data/pastor.ts:8 already uses. Editing the list changes what a plan-less study reader opens on, with no other code touched.",
+  "src/utils/persona-config.ts, deeper_study journal.prompts \u2014 the rotating reflection bank, as a list of i18n keys. Adding, removing or reordering questions is a one-line edit; the text itself lives with all the other copy in src/utils/i18n.ts, which is also where Spanish, Portuguese and Indonesian go.",
+  "src/utils/persona-config.ts, deeper_study journal.tags \u2014 the filter chips on the Notes tab for this path.",
+  "src/data/plans.ts \u2014 plans, their day-by-day passages and totalDays. Warning to carry: changing a plan id means rewiring four files (personalization.ts, SetupPromptModal.tsx, PlansScreen.tsx, PastorStudyOnboarding.tsx) or the wizard starts a dead plan. Adding or editing passages inside an existing id is safe.",
+  "netlify/functions/push-send.js \u2014 notification wording and the verse snippets, per language. Adding Spanish and Portuguese is a data edit in this one file; it is a deploy, not an admin screen.",
+  "In the app, for the reader himself: the path swatch in the Home header, the campus chip beside it, the reminder hour and push toggle in Settings, the translation strip and Compare and Gk/Heb on the reading, and Restart on any plan from the Plans tab.",
+  "Named honestly as NOT self-serve: persona sectionOrder, the milestone day lists (duplicated in two files with different values), the weekly-review question bank, the push cadence, and adding a campus. All of those are developer edits today."
+ ],
+ "evidence": [
+  {
+   "move": "Flagging that neither named input document exists \u2014 docs/PERSONA-RESEARCH-2026-09-10.md and the scratchpad rulings packet are both absent, so nothing below is sourced to a research line I could not read",
+   "source": "Verified absent: docs/ contains only CHURCH-HOMEPAGE-CTA.md, PASTOR-LOGIN-HANDOFF.md, PASTOR-STUDY-PREACH-PLAN.md, PASTORS-SERMON-PREP-APP.md, two session handoffs, audit-2026-08-25/, comfort-translations-draft-2026-08-26.md; the scratchpad directory is empty; a machine-wide find for *PERSONA-RESEARCH* and dw-rulings returned nothing"
+  },
+  {
+   "move": "Put Gk/Heb beside Compare on the hero tool row",
+   "source": "setGreekHebrewMode has exactly one persistent call site, HomeScreen.tsx:3235, inside a section that returns null when todaysPlanPassages.length === 0 (3223-3225) \u2014 so the persona's headline feature is unreachable without an active plan, while features.greekHebrew is 'full' (persona-config.ts:395)"
+  },
+  {
+   "move": "Making that tool row true to the arrival promise",
+   "source": "path_arrival_study, i18n.ts:915 \u2014 'You're in the study reading. Commentary is open below, with Compare and the original languages.' The strip promises both tools; the screen delivers one"
+  },
+  {
+   "move": "Delete the hardcoded English Greek/Hebrew toggle",
+   "source": "HomeScreen.tsx:3245 renders the literal strings 'Greek/Hebrew ON' / 'Tap for Greek/Hebrew' while the i18n'd twin already exists as gk_heb and hide_reading (i18n.ts:687, 268) and is used in HighlightToolbar.tsx:176-181"
+  },
+  {
+   "move": "Give deeper_study a day-one floor chapter",
+   "source": "heroChapterRefs falls back for comfort, new_to_faith and pastor_leader only (HomeScreen.tsx:1302-1315); with no plan and no slots a study reader hits the 'Choose your reading plan' hero at 2211-2240 \u2014 scripture-free"
+  },
+  {
+   "move": "Building that floor as src/data/study.ts with a matching test",
+   "source": "src/data/pastor.ts:1-12 is the exact precedent, and src/screens/home-pastor-floor.test.ts:15-30 pins it \u2014 same shape, same guard that it never serves over a real reading"
+  },
+  {
+   "move": "Collapse two plan asks into one, below the reading",
+   "source": "The hero funnel (HomeScreen.tsx:2211-2240) and the PastorStudyOnboarding card (mounted at 2876, study branch at PastorStudyOnboarding.tsx:268-296) both ask for a plan on the same day-0 screen"
+  },
+  {
+   "move": "Retire the duplicate Today's Study card for this persona",
+   "source": "heroChapterRefs is built from todaysPlanPassages first (HomeScreen.tsx:1291-1297) and the hero auto-opens it (1449-1456), while plan_scripture prints the same chapter again collapsed behind a Read button (3221-3350) \u2014 and the hero already has a slider and pills for every chapter of the day (2408-2470), so nothing is lost"
+  },
+  {
+   "move": "One completion path \u2014 Mark as read only",
+   "source": "handleRead credits the plan day on expand (HomeScreen.tsx:754-755) while handleMarkRead is the deliberate path (717-731); the comment at 712-715 states the intent was to replace auto-marking because 'completion needs intent'"
+  },
+  {
+   "move": "Keeping the arrival seed credit-free and out of handleRead",
+   "source": "Ruling: the arrival-open seed for congregation/deeper_study/pastor_leader/comfort must be persona-gated and credit-free, bypassing handleRead (feedback_daily_word_today_rebuild_rejected, PHASE 2). Live and correct at HomeScreen.tsx:1441-1456"
+  },
+  {
+   "move": "Key commentary to the chapters actually open",
+   "source": "allCommentaries iterates todaysPlanPassages only (HomeScreen.tsx:909-921), so a reader on reading slots gets the AI fallback even for Psalms 23, which has eight curated sources in src/data/commentary.ts"
+  },
+  {
+   "move": "Add an honesty line under an AI Insight entry",
+   "source": "src/data/commentary.ts holds eight sources over the same twenty chapters, so on a 90-day plan most days fall to the single AI entry (HomeScreen.tsx:924-926); Ashley's standing rule is that a name is not evidence"
+  },
+  {
+   "move": "Rotate the reflection question from a per-persona bank",
+   "source": "persona-config.ts:418 sets deeper_study journal.prompts to an empty array while congregation, pastor_leader and comfort have banks (315, 473, 544), and the day-indexed rotation mechanism already exists at PastoralReflectionSection.tsx:23-26; the hero currently passes the same reflect_prompt_default every day (HomeScreen.tsx:2695-2697)"
+  },
+  {
+   "move": "The catch-up line, driven by the existing day offset",
+   "source": "calcPlanDay is calendar-based and clamped (HomeScreen.tsx:124-140), so a missed day is skipped permanently; the day-back control already exists as planDayOffset with chevrons at 2335 and 2382, date-keyed so it resets nightly (820)"
+  },
+  {
+   "move": "The plan-finished card, and stopping the repeat",
+   "source": "dn = Math.max(1, Math.min(rawDay + planDayOffset, plan.totalDays)) at HomeScreen.tsx:885 clamps at the last day forever, while the finish celebration is one-shot behind finishedCelebrated (704-708, 726)"
+  },
+  {
+   "move": "Demote the Sermon Notes row below the reading",
+   "source": "Ruling: Sermon Notes is demoted below the reading for congregation/deeper_study/pastor_leader/comfort, above only for I'm New in the Sunday window. Live code renders {sermonNotesRow} once, above the hero, for every persona (HomeScreen.tsx:2106, comment 'just below the greeting, always visible'); isSundayWindow() already exists at src/utils/sunday.ts:9"
+  },
+  {
+   "move": "Remove the Bible AI teaser card",
+   "source": "BibleAIPromptSection.tsx:12 returns null once any ai_prompt event exists, so it is a one-time ad; its copy is hardcoded English (16-45) with no i18n; and it renders at HomeScreen.tsx:2918, above the reading tools it advertises"
+  },
+  {
+   "move": "No weekly review for this persona",
+   "source": "Ruling: weekly-review-for-all was explicitly rejected (project_daily_word_deep_dive_aug2026, Owner decision 8); persona-config.ts:396 already sets weeklyReview: false"
+  },
+  {
+   "move": "Keeping the sheet, the swatch and the three doors untouched",
+   "source": "Rulings: one sheet with five cards and three doors, never a gate; one tap saves and opens; saving navigates; fits a phone without scrolling; pastor lock removed \u2014 all locked by ChoosePathSheet.test.tsx"
+  },
+  {
+   "move": "Shipping all of this behind a deploy preview Ashley approves",
+   "source": "Ruling: never re-merge or ship a big IA/visual rebuild of the opening screen without Ashley previewing and explicitly approving first; a PR may sit open awaiting his deploy-preview look"
+  },
+  {
+   "move": "Carry the plan reference into the notification",
+   "source": "push-send.js:24-30 sends from a fixed forty-passage ALL_PASSAGES rotation unrelated to the reader's plan; the client already persists dw_todays_plan_passages (HomeScreen.tsx:901)"
+  },
+  {
+   "move": "Add Spanish and Portuguese notification templates",
+   "source": "push-send.js:120-138 defines TEMPLATES for en and id only, and getTemplate falls back to en (146-147) \u2014 Futuros readers get English. Translated content is Claude-drafted and Ashley approves before ship (project_daily_word_deep_dive_aug2026, Owner decision 7)"
+  },
+  {
+   "move": "Not touching plan ids anywhere in this work",
+   "source": "Ruling: a plan id is referenced in four places and all four must be rewired or the wizard starts a dead plan; the deeper_study id list is already duplicated in persona-config.ts:17 and SetupPromptModal.tsx:28"
+  },
+  {
+   "move": "Naming the UTC caveat rather than designing around it",
+   "source": "src/utils/behavior.ts:53 stamps new Date().toISOString().slice(0,10); the DATE-AXIS ruling requires local dates for plan and reading-day logic, which calcPlanDay (HomeScreen.tsx:124-140) and dw_reading_done (719-720) correctly use"
+  }
+ ],
+ "open_decisions": [
+  "The study floor chapter list \u2014 roughly thirty chapters for a reader who wants depth, in the shape of PASTOR_CHAPTERS. Ashley's pick, or Claude drafts a list and he strikes what he does not want. Nothing ships until he has seen it, because it becomes the first screen a plan-less study reader ever sees.",
+  "The seven reflection questions. I have drafted them plain and direct with no jargon; he approves the wording, or replaces the bank. If he would rather keep one fixed question, say so and the bank is dropped \u2014 the mechanism costs nothing either way.",
+  "The AI Insight honesty line. Mine reads 'Written by this app's AI for this chapter, not by a published commentator.' His call whether that sentence goes in, and in whose words.",
+  "Removing the plan-day credit from handleRead is a cross-persona change, not a deeper_study one: congregation and pastor_leader currently also get a day credited by expanding a passage. Fix it for everyone, or gate it to this path only?",
+  "The same duplicate-chapter redundancy exists for pastor_leader, which also renders plan_scripture over the same hero chapters. Fix it there in this pass, or leave the pastor home alone until he has seen this one?",
+  "The notification: add a plan reference column to push_subscriptions so it can name his actual chapter (a Supabase migration, kept in the repo, plus two small function edits), or leave the generic 'Your reading is ready' and stop naming a passage at all?",
+  "Spanish and Portuguese notification copy \u2014 Claude drafts, he signs off before it sends to a single Futuros phone.",
+  "The preview approval itself. One branch, one deploy-preview link, his eyes on the deeper_study home and on all five personas for the Sermon Notes move, before anything merges."
+ ],
+ "risks": [
+  "This is cumulatively a reshape of the deeper_study home, which is exactly the class of change that was reverted on 1 September as 'completely stripped'. The defence is that every change here adds or relocates, and only two things are removed: a duplicate printing of the same chapter, and an advertisement. The photo plate, the paper panel, the Georgia serif, the commentary card and the editorial chrome all stay. Say that out loud on the preview.",
+  "The Sermon Notes demotion touches all five paths from one line of code. It is his own ruling, but it will be the most visible difference on four home screens, so it needs its own look on the preview rather than being folded in silently.",
+  "Removing the plan-day credit from handleRead changes what a completed day means. Anyone mid-plan who had been crediting days by expanding will see their plan stop advancing unless they tap Mark as read. That is the correct behaviour and it is what the code comment says was intended, but it is a behaviour change to a synced record and it should be called out, not slipped in.",
+  "Never rebuild dw_activeplans or any dw_* record from React state when writing the finished-plan flag \u2014 merge into what is in localStorage and touch only that field, or a second device's progress is overwritten by stale mount-time state.",
+  "The finished-plan change alters todaysPlanPassages, which is also written to dw_todays_plan_passages for the Study Notes tab and drives heroChapterRefs, the commentary list and the audio chain. Every one of those needs a live check, not just a build.",
+  "Push cannot be verified on a deploy preview \u2014 pushSupported allowlists futuresdailyword.com, www and localhost only. Verify the notification change on localhost or on production after merge, never on the preview link, and do not report it as tested from the preview.",
+  "Extending commentary coverage is the highest-value lever but it is real writing work: eight sources over twenty chapters today. If nobody writes more, the honesty line will be on screen most mornings. That is still better than the alternative, but he should decide it knowingly.",
+  "Adding i18n keys without the Spanish, Portuguese and Indonesian rows leaves t() returning the raw key on screen for Futuros readers. Every new key ships with all four languages in the same commit.",
+  "Home already carries hardcoded English beyond the toggle I am removing \u2014 'ADDITIONAL READING' / \"TODAY'S CHAPTERS\" (HomeScreen.tsx:3453), 'Share' (3481), 'Add' (3502). Fixing them is a separate small pass; do not let it expand this one."
+ ],
+ "build_steps": [
+  {
+   "step": "Open the preview branch and the gate. Everything below lands on one branch and merges only on Ashley's word after he has opened the deploy-preview link.",
+   "files": "branch study/home-2026-09 off main; PR opened, not merged",
+   "check": "PR exists with a passing deploy-preview build and a comment naming the five personas to look at; no squash-merge until he replies"
+  },
+  {
+   "step": "Day-one floor: a rotating study chapter so a plan-less reader never lands on a funnel.",
+   "files": "new src/data/study.ts (STUDY_CHAPTERS, ~30 refs, shaped exactly like src/data/pastor.ts:8); src/screens/HomeScreen.tsx heroChapterRefs memo (1302-1315), add the deeper_study branch beside the pastor one; new src/screens/home-study-floor.test.ts mirroring home-pastor-floor.test.ts",
+   "check": "npx vitest run src/screens/home-study-floor.test.ts, then preview with dw_setup={persona:'deeper_study',source:'settings'}, no dw_activeplans, no dw_reading_slots \u2014 the hero shows a chapter open in the paper panel, not 'Choose your reading plan'"
+  },
+  {
+   "step": "One tool row: Gk/Heb beside Compare on the hero, and the English duplicate deleted.",
+   "files": "src/screens/HomeScreen.tsx \u2014 add the pill at the Compare block (2603-2624) using t('gk_heb') and t('hide_reading'); delete the toggle at 3233-3247",
+   "check": "npx tsc -b && npm run build; grep -R 'Tap for Greek/Hebrew' src/ returns nothing; on preview with NO active plan, toggle Gk/Heb and tap a word \u2014 the Greek popup opens and Go deeper reaches the AI"
+  },
+  {
+   "step": "Retire the duplicate chapter card for this path.",
+   "files": "src/screens/HomeScreen.tsx plan_scripture gate (3222) \u2014 render only passages not present in heroChapterRefs, the same dedupe shape already used at 3443-3450",
+   "check": "preview a 3-chapter day: hero pills show all three, the chapter counter reads 'Chapter 1 of 3', Today's Study renders nothing, Additional reading shows only extra slots"
+  },
+  {
+   "step": "One completion path.",
+   "files": "src/screens/HomeScreen.tsx \u2014 remove the markPlanDayComplete call from handleRead (754-755), leaving handleMarkRead (717-731) and the pathway save path as the only crediting sites; new src/screens/home-completion.test.ts pinning the call sites and pinning that the arrival seed does not route through handleRead",
+   "check": "npx vitest run src/screens/home-completion.test.ts; on preview, expand a chapter and confirm the Plans tab day is unchanged, then Mark as read and confirm it advances exactly one day"
+  },
+  {
+   "step": "Commentary keyed to what is open, ordered, honest and tracked.",
+   "files": "src/screens/HomeScreen.tsx 909-926 \u2014 build from deduped heroChapterRefs, curated first, AI Insight last; add the honesty line under an AI entry; fire the commentary event on expand; src/utils/i18n.ts new key in four languages",
+   "check": "preview with dw_reading_slots=[{id:'1',book:'Psalms',currentChapter:23}] and no plan \u2014 the card shows the eight curated sources as tabs, not a lone AI Insight"
+  },
+  {
+   "step": "Rotating reflection bank.",
+   "files": "src/utils/persona-config.ts deeper_study journal.prompts (415-419) \u2192 a list of i18n keys; src/utils/i18n.ts new rows study_reflect_1..7 in en/es/pt/id; src/screens/HomeScreen.tsx hero InlineReflection prompt prop (2695-2697) picks by day index, falling back to reflect_prompt_default",
+   "check": "npx vitest run src/__tests__/persona-config.test.ts; preview two consecutive day offsets and confirm two different questions and that a saved entry still lands in Notes with its chapter"
+  },
+  {
+   "step": "Catch-up line.",
+   "files": "src/screens/HomeScreen.tsx \u2014 a line under the hero date strip when the plan's calendar day is ahead of the earliest uncompleted day, wired to the existing planDayOffset; src/utils/i18n.ts study_catchup_line and study_catchup_btn in four languages",
+   "check": "seed dw_activeplans with startedAt five days back and completedDays [1,2] \u2014 the line reads 'You're on Day 5. Day 3 is still there.', the button opens Day 3 with commentary and tools following, and the \u00d7 hides it for the day"
+  },
+  {
+   "step": "Plan finished.",
+   "files": "src/screens/HomeScreen.tsx \u2014 drop finished scripture plans out of todaysPlanPassages (866-904) so the last day cannot repeat, and render the Finished card in its place; merge the finished flag into the stored dw_activeplans record, never rebuild it from state; src/utils/i18n.ts new copy in four languages",
+   "check": "seed a completed gospel-john \u2014 the Finished card appears, the hero serves a study floor chapter rather than John 21 again, and starting a plan from the card replaces it with that plan's Day 1"
+  },
+  {
+   "step": "Sermon Notes demotion, per ruling.",
+   "files": "src/screens/HomeScreen.tsx:2106 \u2014 render the row after the reading block for congregation/deeper_study/pastor_leader/comfort, above it only when isNewPath && isSundayWindow() (src/utils/sunday.ts:9); assert the render order in home-study-floor.test.ts",
+   "check": "npx vitest run, then walk all five personas on the preview and confirm the row sits below the reading everywhere except I'm New inside the Sunday window"
+  },
+  {
+   "step": "Instrumentation.",
+   "files": "src/utils/analytics.ts TRACKED_EVENTS (31-37) add reading_complete, commentary_open, commentary_source, compare_on, greek_hebrew_on, plan_finished, catchup_read; call sites in src/screens/HomeScreen.tsx",
+   "check": "on preview with a profile email set, watch /api/track-activity in the network tab through one full loop \u2014 arrival, compare, Gk/Heb, commentary, reflect, Mark as read \u2014 and confirm reading_complete fires once and only from Mark as read"
+  },
+  {
+   "step": "Notification honesty and the missing languages.",
+   "files": "a Supabase migration kept in the repo adding push_subscriptions.plan_ref; netlify/functions/push-subscribe.js to accept and store it; netlify/functions/push-send.js to prefer it over the ALL_PASSAGES rotation and to gain es and pt TEMPLATES and VERSE_SNIPPETS",
+   "check": "verify on localhost or on production only \u2014 pushSupported allowlists futuresdailyword.com, www and localhost, so a deploy preview cannot prove this; send one test push per language and read the body before it goes near a congregation"
+  }
+ ]
+}

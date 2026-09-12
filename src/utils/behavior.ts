@@ -19,7 +19,7 @@ export type BehaviorEventType =
 
 export interface BehaviorEvent {
   type: BehaviorEventType
-  date: string              // ISO date string YYYY-MM-DD
+  date: string              // local en-CA date string YYYY-MM-DD
   ts: number                // unix ms
   meta?: string             // passage ref, emoji, prompt text, plan id, etc.
 }
@@ -51,7 +51,7 @@ export function trackBehavior(type: BehaviorEventType, meta?: string) {
     const existing = readEvents().filter(e => e.ts > cutoff)
     const next: BehaviorEvent = {
       type,
-      date: new Date().toISOString().slice(0, 10),
+      date: new Date().toLocaleDateString('en-CA'),
       ts: Date.now(),
       meta,
     }

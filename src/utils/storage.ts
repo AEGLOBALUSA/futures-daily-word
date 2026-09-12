@@ -33,6 +33,7 @@ export const LS = {
   bookPlans:          'dw_book_plans',
   pathwayProgress:    'dw_pathway_progress',
   streak:             'dw_streak_v2',
+  readDays:           'dw_read_days',
   // misc personal context
   userStory:          'dw_user_story',
   prayedFor:          'dw_prayed_for',

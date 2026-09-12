@@ -1,0 +1,619 @@
+{
+ "item": "new_to_faith \u2014 New to faith and returning",
+ "angle": "Veteran pastor / pastoral counsellor: what the person feels at each moment, the words that land and the words that wound, presence over problem-solving, the human next step.",
+ "thesis": "Two different people come through this one door \u2014 someone who has never opened a Bible, and someone who has been gone a while and does not want to be asked why. The app already gets Day 1 right: one short passage, plain words, one button, questions under the teaching, complete on the same screen. It loses them on Day 2, when the Day N surface stops serving 3-7 verses and starts serving a whole chapter of Paul, and calls the button \"Mark Complete\" on a journey whose first lesson is that God does not reward performance. The fix is not a new screen and not a smaller app. It is: size the daily unit to what Day 1 already is, put one plain-English meaning under the hard word, name the returning person once without asking why, stop calling reading \"complete\", and put a hand out on Day 10. Everything Ashley locked \u2014 the photo hero, the sage button, the journey-only home, the Superdesign landing, the ruled question placement \u2014 stays exactly as it is.",
+ "principles": [
+  "Never ask why they left. 51% of the dechurched think they may return and most left for mundane reasons \u2014 moved, inconvenience \u2014 not doctrine or scandal (research, Persona 1, Davis & Graham 2023). Practical friction is high; shame is lower than assumed. A question about the past is friction we add ourselves.",
+  "The second week is the product, not the first tap. Curiosity is up and conversion is not; the research's own headline is that the problem is the second week (cross-cutting 1). Day 1 is already right. Days 2-14 are where the design work belongs.",
+  "One short passage, not a chapter. Newcomer plans work as one thought plus a few verses; YouVersion raised plan completion by front-loading accessible material, and people quit early in hard opening material (Persona 1, Where they quit).",
+  "No word on this path may imply performance. The Day 1 lesson says grace \"doesn't reward performance \u2014 it replaces it\", and the button under it currently says Mark Complete. Language has to agree with the teaching.",
+  "Progress is the journey, never a streak. Day N of 40 waits for you; a streak punishes you. Guilt-framed streak reminders drive notification opt-out and uninstall (cross-cutting 6). The new_to_faith greeting already never mentions the streak \u2014 keep it that way.",
+  "Every visible line relates to the one sage button (Ashley, 1 Sep 2026). Anything added to this path must be part of the day's reading or it does not go on Home.",
+  "Richer and clearer, never stripped. Additions here are one line, one quiet row, one toggle \u2014 inside the locked editorial look, not a rebuild of it.",
+  "Presence beats problem-solving. The person new to faith who is also in crisis is the most exposed person in the whole app; comfort must be one tap from the reading without asking them to change who they are."
+ ],
+ "journey": {
+  "day0": "They land cold on futuresdailyword.com (or a Sunday QR). App.tsx pre-render silently enrols them as new_to_faith/source:'default' and Day1Landing replaces the tab shell. What they feel: 'I don't know what I'm doing' or 'I've been gone a long time'. What they see: wordmark, language switch, 'Day 1 of 40 \u00b7 New & Returning to Faith', 'Grace Changes Everything', one new line naming both people, one Read button, and the quiet 'Not new to faith? Choose your path' link. No account, no picker, no gate. KEEP ALL OF IT \u2014 this screen already does its job.",
+  "first_session": "Tap Read: the reading opens in place (no navigation, no new screen). Ephesians 2:8-9 on the white paper card, one plain-meaning line under the reference ('Grace: a gift you didn't earn'), three short pastoral paragraphs, Day 1's two Reflect & Respond questions, 'Day 1 of 40', 'Mark as read'. Tapping it stamps the day, advances the journey, records the streak silently, and hands off to the ruled sequence: PathAskedOnce \u2192 push ask \u2192 later the email card. Total: about four minutes, one decision, nothing asked of them they cannot answer.",
+  "return_visit": "Day 2 opens straight to the tab shell \u2014 no landing, no picker. Home is the journey and nothing else: greeting, the 'how it works' line, the photo hero carrying 'Day 2 of 40', the day's title, the progress bar and one sage Read button. Tapping it opens the full-screen Day N surface. THIS is where today's design does its work: the assigned verses open (2 Corinthians 5:17, not all of 2 Corinthians 5), 'Read the whole chapter' sits under them for the day they want more, the glossary row offers the one hard word, then the teaching, then the two questions, then 'Mark as read'.",
+  "week2": "Days 8-14 are the doctrinal middle of the journey \u2014 Romans 3 on sin, 1 John 1 on repentance, Acts 2 on the Holy Spirit. Longest lessons in the whole 40 (2,540 chars on Day 8). The verse-sized reading matters most here. Day 10 ('Rest \u2014 You Don't Have to Earn It', Matthew 11:28-30) carries the one relational move: a single quiet card under the questions offering to have someone from their campus read it with them. Once, dismissible, never a chat, never blocking. By Day 14 they have a 14-day progress bar, answers saved against ten days, and one human who knows they exist.",
+  "missed_day": "They miss two, four, nine days. Nothing chases them. The streak engine bridges one day with its freeze and otherwise resets quietly; the new_to_faith greeting never surfaces a streak, so there is nothing to lose. On return the journey is exactly where they left it \u2014 Day 7 is still Day 7 \u2014 and one line acknowledges the gap without counting it: 'Day 7 has been waiting for you.' Never 'you missed 3 days', never a broken-flame graphic, never a catch-up offer. The push reminder names the day, never the streak.",
+  "seasonal": "Day 40 is the one calendar moment this path has, and today it ends on '\u2713 Day 40 complete' and silence \u2014 a person finishes forty days of finding faith and the app says nothing. Day 40 closes with a named ending and one next step: the congregation path offered through the existing ChoosePathSheet as a real choice (source 'upgrade'). This is NOT comfort's banned 'Feeling Stronger?' graduation prompt \u2014 that ruling is scoped to the comfort path, where nothing may ever be asked of the reader; a completion moment at the end of a 40-day journey the person chose is a different object, and it needs Ashley's explicit word before it is built."
+ },
+ "screens": [
+  {
+   "name": "Day 1 landing (cold arrival) \u2014 src/components/Day1Landing.tsx",
+   "purpose": "The first thing a person who may never have opened a Bible sees. It must ask nothing, explain little, and get them reading in one tap. Superdesign-locked; treat every pixel as ruled unless the evidence forces it.",
+   "order": [
+    "Header: wordmark (left) + LanguageSwitch pill (right)",
+    "Eyebrow: 'Day 1 of 40 \u00b7 New & Returning to Faith'",
+    "Title: 'Grace Changes Everything'",
+    "NEW \u2014 one line naming both people, directly under the title",
+    "Sage Read button (the only button)",
+    "Quiet text line: 'Not new to faith? Choose your path' (Door 1 \u2014 ruled, verbatim)"
+   ],
+   "copy": [
+    {
+     "element": "Eyebrow (unchanged, i18n day1_eyebrow)",
+     "text": "Day 1 of 40 \u00b7 New & Returning to Faith"
+    },
+    {
+     "element": "Title (unchanged, day1-landing.ts DAY1_TITLE)",
+     "text": "Grace Changes Everything"
+    },
+    {
+     "element": "NEW line under the title (new key day1_both_doors)",
+     "text": "New to this, or finding your way back. Same first day. Nothing to catch up on."
+    },
+    {
+     "element": "Primary button (unchanged, i18n read_btn)",
+     "text": "Read"
+    },
+    {
+     "element": "Door 1 line (unchanged, i18n path_landing_prompt + path_landing_link)",
+     "text": "Not new to faith? Choose your path"
+    }
+   ],
+   "states": [
+    "Closed (default): title, new line, Read, Door 1 line. One button on screen.",
+    "Open: the Read button is replaced in place by the reading section \u2014 no navigation, no second screen.",
+    "Refresh mid-flow: startOpen=true reopens the reading (already handled by needsDay1Reading).",
+    "Language switched: the whole screen re-renders in place via dw-lang-changed; the new line needs all four languages or t() prints the raw key.",
+    "Sunday QR guest: identical screen; beginDay1 stamps source 'sunday-guest' instead of 'default'."
+   ],
+   "keep": [
+    "The entire Superdesign layout, spacing and type scale.",
+    "One button only. No chips, no picker, no 'new / coming back' segmented control \u2014 a question before the reading is precisely the gate Ashley removed on 26 Aug ('it was the gate where people opened and never read'; 23 of 28 enrolments stuck on day 1).",
+    "The Door 1 quiet line and its wording, verbatim.",
+    "LanguageSwitch in the header.",
+    "aria-modal/useModalA11y here \u2014 this screen opens no sibling overlays except ChoosePathSheet, which is document-level; the no-focus-trap rule applies to the Day N surface, not this one."
+   ],
+   "change": [
+    "Add exactly one <p> under the title. It is copy, not a control, so Day1Landing.test.tsx's CTA count (buttons without aria-haspopup) is unaffected.",
+    "Add the one-line plain meaning under the verse reference in the open state (see next screen)."
+   ],
+   "remove": [
+    "Nothing."
+   ]
+  },
+  {
+   "name": "Day 1 reading (expanded in place) \u2014 src/components/Day1Landing.tsx",
+   "purpose": "Their first four minutes in scripture. It has to feel finishable before they start it.",
+   "order": [
+    "White paper verse card: gold rule, Ephesians 2:8-9 in quotes, reference",
+    "NEW \u2014 one plain-meaning line under the reference",
+    "Three short pastoral paragraphs",
+    "Reflect & Respond: Day 1's two questions with answer boxes (ruled 2 Sep \u2014 part of the lesson, above the completion control)",
+    "'Day 1 of 40'",
+    "'Mark as read' (sage, full width)"
+   ],
+   "copy": [
+    {
+     "element": "NEW plain-meaning line (new key journey_word_grace, or the shared glossary record)",
+     "text": "Grace: a gift you didn't earn and don't pay back."
+    },
+    {
+     "element": "Completion note (unchanged, i18n day1_of_40)",
+     "text": "Day 1 of 40"
+    },
+    {
+     "element": "Primary button (unchanged, i18n mark_as_read)",
+     "text": "Mark as read"
+    }
+   ],
+   "states": [
+    "Questions empty (default) \u2014 no validation, never required, never blocks Mark as read.",
+    "Questions answered \u2014 saved to dw_pathway_qa_1 and visible again on the Day N surface (already true, verified 2 Sep).",
+    "Marked read \u2014 markDay1Read stamps dw_reading_done (local en-CA date), advances to Day 2, records the streak, fires dw-reading-completed, leaves the gate."
+   ],
+   "keep": [
+    "Question placement under the pastoral text before Mark as read \u2014 ruled 2 Sep, do not move.",
+    "The 3-7 verse unit. This screen is already the size the research asks for; it is the model the Day N surface must copy.",
+    "The white paper card with dark upright scripture in both themes (locked look, 'paper mode').",
+    "markDay1Read's single-unit behaviour \u2014 one action completes the day."
+   ],
+   "change": [
+    "Add the plain-meaning line under the verse reference. Small muted sans, upright (italics are banned except special purposes)."
+   ],
+   "remove": [
+    "Nothing."
+   ]
+  },
+  {
+   "name": "Asked-once, Door 3 \u2014 src/components/PathAskedOnce.tsx",
+   "purpose": "The only safe place to ask who they are: after the reading, never before it. This is where the two doors live \u2014 'new' and 'coming back' \u2014 as two ways of saying yes, not as a question at the door.",
+   "order": [
+    "Sage check glyph",
+    "Title: 'Day 1, done.'",
+    "Body question (unchanged)",
+    "Sage button 1: 'Yes \u2014 I'm new to this'",
+    "Sage-outline button 2: 'Yes \u2014 I'm coming back'",
+    "Text link: 'I'm here for something else' (opens ChoosePathSheet door='asked')",
+    "Eyebrow: 'Asked once \u00b7 Never again'"
+   ],
+   "copy": [
+    {
+     "element": "Title (unchanged, i18n path_ask_title)",
+     "text": "Day 1, done."
+    },
+    {
+     "element": "Body (unchanged, i18n path_ask_body)",
+     "text": "The 40-day journey is built for someone new to faith or coming back to it. Is that you?"
+    },
+    {
+     "element": "Button 1 (new key path_ask_yes_new)",
+     "text": "Yes \u2014 I'm new to this"
+    },
+    {
+     "element": "Button 2 (new key path_ask_yes_back)",
+     "text": "Yes \u2014 I'm coming back"
+    },
+    {
+     "element": "Link (unchanged, i18n path_ask_other)",
+     "text": "I'm here for something else"
+    },
+    {
+     "element": "Eyebrow (unchanged, i18n path_ask_eyebrow)",
+     "text": "Asked once \u00b7 Never again"
+    }
+   ],
+   "states": [
+    "Shown once only: onboardingActive && !pathAsked && hasReadOnce && needsPathAsk(setup). Never for comfort, never after a real choice, never stacked with the push ask \u2014 all ruled, all already enforced in App.tsx:286-291.",
+    "Either Yes: markPathAsked() AND saveSetup({persona:'new_to_faith', source:'onboarding'}) AND write dw_journey_entry = 'new' | 'returning'. Screen closes, push ask follows.",
+    "'Something else': unchanged \u2014 opens the sheet at door='asked'.",
+    "Second device: dw_path_asked and dw_setup both ride the misc bag, so it never returns."
+   ],
+   "keep": [
+    "The whole gate stack position \u2014 after the first Mark as read, before the push ask, never stacked.",
+    "The body copy verbatim. It already names both people; the buttons now let them say which.",
+    "The 'something else' link and its sheet door."
+   ],
+   "change": [
+    "Split the single Yes into two Yeses. Same commitment, same persona, one extra bit of truth we currently throw away.",
+    "Both Yeses must stamp a REAL choice. Today 'Yes, keep going' only calls markPathAsked() (App.tsx:288-291) \u2014 the person stays source:'default', so their explicit yes never reaches the cloud and a second device treats them as cold. An explicit yes is an onboarding choice under the REAL_CHOICE_SOURCES ruling.",
+    "dw_journey_entry rides the misc bag, stamped in dw_misc_meta (newest-wins, like dw_setup) \u2014 not fill-only, and merged into what is currently in localStorage, never rebuilt from React state."
+   ],
+   "remove": [
+    "The single generic Yes button. path_ask_yes becomes unused \u2014 keep the key, same as the unused path_*_cta keys."
+   ]
+  },
+  {
+   "name": "Push opt-in \u2014 src/components/PushOptIn.tsx (unchanged surface, changed reminder register)",
+   "purpose": "Ask for the reminder at the only honest moment: after they have actually finished a reading.",
+   "order": [
+    "(Screen unchanged \u2014 evidence-timed permission ask)"
+   ],
+   "copy": [
+    {
+     "element": "Daily push body for this path (push-send.js template, new_to_faith variant)",
+     "text": "Day {n} is ready when you are."
+    },
+    {
+     "element": "Push body after a gap of 2+ days",
+     "text": "Day {n} is still here."
+    }
+   ],
+   "states": [
+    "Shown once: onboardingActive && !pushOnboarded && hasReadOnce && persona!=='comfort' && !showPathAsk.",
+    "Permission denied or 'Maybe later': the calendar-reminder fallback path is used; pushSupported() only allowlists futuresdailyword.com/www/localhost, so this is verifiable on prod or localhost only, never on a deploy preview.",
+    "Subscribed: one send per local day at the stored preferred hour, 2-hour catch-up window."
+   ],
+   "keep": [
+    "The evidence timing and the never-stacked sequencing \u2014 both ruled.",
+    "One nudge a day. The cron already enforces a once-per-local-day ledger."
+   ],
+   "change": [
+    "The reminder text for this path names the DAY, never the streak and never a count of missed days. Guilt-framed streak reminders are the documented cause of notification opt-out and uninstall (cross-cutting 6)."
+   ],
+   "remove": [
+    "Any streak language from this path's push templates."
+   ]
+  },
+  {
+   "name": "Home \u2014 the journey home \u2014 src/screens/HomeScreen.tsx (new_to_faith branch)",
+   "purpose": "One object: today's day of the 40. Everything else was already removed by Ashley's own ruling and stays removed.",
+   "order": [
+    "Header row: LanguageSwitch + PathSwatch pill (ruled visible for every persona)",
+    "Greeting",
+    "PathArrivalStrip \u2014 only after a path was just saved, dismissible",
+    "Sermon Notes row \u2014 ONLY inside the Sunday window (ruled; see change list)",
+    "'How it works' line",
+    "Journey hero: photo carousel, 'Day N of 40 \u00b7 New & Returning to Faith', day title, sage progress bar, one sage Read button",
+    "Nothing else"
+   ],
+   "copy": [
+    {
+     "element": "Greeting \u2014 first-time / entry 'new' (unchanged, persona-config getGreeting)",
+     "text": "Welcome, {first}. We're glad you're here."
+    },
+    {
+     "element": "Greeting \u2014 entry 'returning' (new)",
+     "text": "Good to have you back, {first}. Pick it up where you are."
+    },
+    {
+     "element": "Greeting \u2014 after a gap of 2+ days, either entry (new)",
+     "text": "Day {n} is still here, {first}."
+    },
+    {
+     "element": "How-it-works line (unchanged, i18n pathway_how_it_works)",
+     "text": "Each day: one scripture, one short teaching, one step. About five minutes."
+    },
+    {
+     "element": "Hero eyebrow (unchanged)",
+     "text": "Day {n} of 40 \u00b7 New & Returning to Faith"
+    },
+    {
+     "element": "Hero button (unchanged, i18n read_btn / read_today)",
+     "text": "Read"
+    },
+    {
+     "element": "Hero button after today's reading (unchanged)",
+     "text": "\u2713 Read today"
+    }
+   ],
+   "states": [
+    "Journey data still loading: the pathway-loading hero, never the 'Choose your reading plan' funnel and never the shared audio hero \u2014 even for a new believer who happens to hold reading slots (already correct at HomeScreen.tsx:2131).",
+    "Read today: the button reads '\u2713 Read today' and still opens the day.",
+    "Gap of 2+ days since lastCompletedDate: the greeting swaps to the waiting line. Computed from lastCompletedDate with toLocaleDateString('en-CA') only \u2014 never toISOString (DATE-AXIS RULE).",
+    "Day 40 completed: the completion close (owner decision below).",
+    "Sunday, inside the service window: the Sermon Notes row appears above the hero for QR guests."
+   ],
+   "keep": [
+    "The photo hero, the sage Read button, the progress bar, the journey-only home. Ashley's own follow-up on 1 Sep: 'the person needs to see the green button for the 40 day journey and any text on the screen must be related to that button\u2026 and the picture and graphics still stay.'",
+    "No AI launcher, no chips, no search, no Daily Quote, no Active Plans strip, no PromoAds on this path (PR #81, live).",
+    "PathSwatch \u2014 the ruled third door out, visible for every persona including this one.",
+    "The greeting never mentioning the streak (persona-config.ts:114 excludes new_to_faith from the streak-reset line). That is already the no-shame design."
+   ],
+   "change": [
+    "Gate the Sermon Notes row for this path on the Sunday window. RULING GAP FOUND: the ruling says I'm New keeps it above the reading ONLY in the Sunday window, but HomeScreen.tsx:2106 renders sermonNotesRow unconditionally for every persona, and the only dw-new-home CSS in src/index.css (lines 960-963) hides the AI launcher, nothing else. Today a brand-new believer's second-ever screen leads with a dark Sermon Notes banner on a Tuesday.",
+    "Extend the how-it-works line from completedDays < 3 to completedDays < 7 \u2014 the habit is not formed inside week one, and busyness is the number one reason reading declines.",
+    "Greeting variant for entry='returning', and the gap line."
+   ],
+   "remove": [
+    "The Sermon Notes row on non-Sunday days for this path (restores the ruling)."
+   ]
+  },
+  {
+   "name": "Day N surface (Days 2-40) \u2014 src/components/NewBelieverLessonCard.tsx",
+   "purpose": "The screen they meet every day for six weeks. Today it is where a 3-7 verse journey turns into a whole chapter of Paul, and where a grace lesson ends in a button that says Complete.",
+   "order": [
+    "Back",
+    "Day header card: 'Day N of 40' + series, progress bar, day title, theme",
+    "(conditional) Gap line: 'Day N has been waiting for you.'",
+    "Verses card, white paper: reference \u00b7 translation; the DAY'S ASSIGNED VERSES, open",
+    "'Read the whole chapter' toggle",
+    "(conditional) Glossary row: up to two words from today's text",
+    "Lesson \u2014 the pastoral teaching",
+    "Reflect & Respond: the day's two questions with answer boxes (ruled placement)",
+    "'Mark as read' (primary)",
+    "(after completion) 'Day N done. Day N+1 is here tomorrow.' + 'Show me now'",
+    "Share (demoted, its own row below)",
+    "(Day 10 only, once) Read-it-with-someone card",
+    "Foot line: comfort tap"
+   ],
+   "copy": [
+    {
+     "element": "Gap line (new key journey_waiting)",
+     "text": "Day {n} has been waiting for you."
+    },
+    {
+     "element": "Whole-chapter toggle, closed (new key journey_whole_chapter)",
+     "text": "Read the whole chapter"
+    },
+    {
+     "element": "Whole-chapter toggle, open (new key journey_just_todays_verses)",
+     "text": "Just today's verses"
+    },
+    {
+     "element": "Glossary row label (new key journey_new_word)",
+     "text": "New word?"
+    },
+    {
+     "element": "Primary button (existing key mark_as_read \u2014 replaces mark_complete on this path)",
+     "text": "Mark as read"
+    },
+    {
+     "element": "Primary button, already done (unchanged, i18n completed_check)",
+     "text": "\u2713 Read"
+    },
+    {
+     "element": "Completion note (unchanged, i18n pathway_day_complete)",
+     "text": "\u2713 Day {x} complete \u2014 Day {y} will be here tomorrow"
+    },
+    {
+     "element": "Day 10 card, eyebrow (new key journey_connect_eyebrow)",
+     "text": "Day 10"
+    },
+    {
+     "element": "Day 10 card, body (new key journey_connect_body)",
+     "text": "You don't have to do this on your own. Someone from your campus will read these with you, at your pace."
+    },
+    {
+     "element": "Day 10 card, CTA (new key journey_connect_cta)",
+     "text": "Ask someone to read with me"
+    },
+    {
+     "element": "Day 10 card, dismiss (new key journey_connect_later)",
+     "text": "Not now"
+    },
+    {
+     "element": "Day 10 card, after sending (new key journey_connect_sent)",
+     "text": "Sent. Someone will reach out this week."
+    },
+    {
+     "element": "Comfort foot line (new key journey_comfort_line + journey_comfort_link)",
+     "text": "Going through something hard right now? Open comfort"
+    }
+   ],
+   "states": [
+    "Loading: the verses card shows 'Loading scripture' with the sage spinner (keep \u2014 the overnight-resume spin was fixed by the pathwayDisplayDay dep, do not regress it).",
+    "Verses open (default): only reading.verses render, e.g. Romans 3:23-24 out of Romans 3.",
+    "Whole chapter open: all verses render; verse-tap refs stay on the real verse numbers so highlights created either way match.",
+    "Offline / ESV unavailable: the chapter arrives as bundled KJV and the translation chip says so. The fetch must stay a WHOLE-CHAPTER fetch \u2014 fetchKJV only matches '<book> <chapter>' (src/utils/api.ts) and cannot resolve a verse range. Slice client-side, never at the fetch.",
+    "Peek (tomorrow's lesson via 'Show me now'): title/theme/lesson only, no verses panel \u2014 keep exactly as built; it is what stops a reader binging all 40 days.",
+    "Completed today: primary is a flat '\u2713 Read', completion note shows, 'Show me now' offered.",
+    "Gap of 2+ days: the waiting line renders in the day header. Never at 0-1 days, never with a count of days missed.",
+    "Day 10, not yet acted on: the connect card renders once under the questions. Dismissed or sent: never again."
+   ],
+   "keep": [
+    "The ruled order: questions directly under the lesson text, before the completion control (PR #84, 2 Sep). Do not move them back to the foot.",
+    "useSubView(open, onClose) ALONE \u2014 no useModalA11y, no aria-modal. This surface opens the study sheet, the note drawer and Bible AI as DOM siblings; a document-level trap made them keyboard-unreachable and let Escape close the surface underneath them (28-agent finding 1). Pinned by home-journey.test.ts.",
+    "The card stays MOUNTED with a live open prop \u2014 a conditional mount orphans one history entry per close and kills Android back (finding 2).",
+    "The white paper verses card with forced light ink in both themes.",
+    "The shared pathwayDisplayDay so the hero, the lesson and the Read tab can never disagree.",
+    "savePathwayProgressFromLesson's single-unit completion and its dw-reading-completed event \u2014 the gate-stack timing depends on it.",
+    "The sage token family (var(--dw-new)); no raw greens."
+   ],
+   "change": [
+    "Serve the day's assigned verses by default; the whole chapter behind one toggle. This is the single highest-value change on the path and the one the research names twice (short unit; they quit early in hard opening material). Day 8 currently opens 31 verses of Romans 3 for someone eight days into faith.",
+    "Rename the primary action to 'Mark as read' \u2014 the same words as the landing and the hero. One verb for one act, and no performance word on a grace journey.",
+    "Add the glossary row under the verses (60% of Americans cannot name five of the Ten Commandments; the research asks for a 1-2 sentence explainer beside each reading).",
+    "Add the gap line, the Day 10 connect card and the comfort foot line.",
+    "Demote Share to its own row below the completion note so nothing sits level with the primary action (Ashley: every line on this path relates to the one button)."
+   ],
+   "remove": [
+    "The whole chapter as the default reading unit.",
+    "The word 'Complete' from this path's primary button.",
+    "Share from the primary action row."
+   ]
+  },
+  {
+   "name": "Comfort from the journey (overlay) \u2014 new surface, reachable from the Day N foot line",
+   "purpose": "The person new to faith who is also in trouble is the most exposed reader in the app. They must be able to reach comfort without giving up who they said they were.",
+   "order": [
+    "Comfort chapter, opened directly, low chrome",
+    "Note + Close toolbar only",
+    "Close returns to the Day N surface, on the same day, nothing lost"
+   ],
+   "copy": [
+    {
+     "element": "Entry line on Day N (new key journey_comfort_line)",
+     "text": "Going through something hard right now?"
+    },
+    {
+     "element": "Entry link (new key journey_comfort_link)",
+     "text": "Open comfort"
+    }
+   ],
+   "states": [
+    "Open: the comfort chapter renders read-only. Nothing is asked, nothing is counted, no streak, no 'complete'.",
+    "Close: back to Day N, same day, same scroll position.",
+    "Never: it must not change dw_setup, must not call saveSetup, and must not credit the plan or pathway day \u2014 it bypasses handleRead entirely, the same rule class as the ruled persona arrival seed."
+   ],
+   "keep": [
+    "comfortMode toolbar = Note + Close ONLY (ruled).",
+    "No 'Feeling Stronger?' graduation prompt anywhere near this (ruled, removed for good)."
+   ],
+   "change": [
+    "Nothing about the comfort path itself. This is a doorway into it, not a change to it."
+   ],
+   "remove": [
+    "Nothing."
+   ]
+  },
+  {
+   "name": "Email nudge card \u2014 src/components/EmailNudgeCard.tsx (copy only)",
+   "purpose": "Give them one honest reason to leave an email, in their own terms.",
+   "order": [
+    "Slim inline card on Home, after push is resolved, only when no email is on file"
+   ],
+   "copy": [
+    {
+     "element": "Body for this path (new_to_faith variant of email_nudge_body)",
+     "text": "Your 40 days live on this phone only. Add an email and they follow you to any device."
+    },
+    {
+     "element": "CTA (unchanged, i18n email_nudge_cta)",
+     "text": "Add email"
+    },
+    {
+     "element": "Dismiss (unchanged, i18n email_nudge_later)",
+     "text": "Not now"
+    }
+   ],
+   "states": [
+    "Gated: !dismissed && hasRead && pushDone && !userProfile?.email. Never stacked with PathAskedOnce or the push ask.",
+    "Dismissed: dw_email_nudge_dismissed, never returns."
+   ],
+   "keep": [
+    "The sequencing and the 'Not now' escape.",
+    "EmailGate's 'Skip for now'."
+   ],
+   "change": [
+    "The body line, for this path only \u2014 name the 40 days, not 'your progress'."
+   ],
+   "remove": [
+    "Nothing."
+   ]
+  }
+ ],
+ "comfort_access": "One tap, from the reading, without changing who they said they were. The line sits at the foot of the Day N surface \u2014 'Going through something hard right now? Open comfort' \u2014 and opens the comfort chapter as an overlay above the journey. It does NOT call saveSetup, so their saved path stays new_to_faith (research: 'crisis is not a persona someone chooses on a good day'); it does NOT route through handleRead, so it credits nothing (same rule class as the ruled credit-free arrival seed); the toolbar is Note + Close only (ruled); and there is no graduation prompt of any kind (ruled, comfort). Closing returns them to the same day, nothing lost. It does NOT go on the I'm-New Home \u2014 Ashley's 1 Sep ruling is that every line on that screen relates to the sage journey button, and a comfort card on Home would be the first thing to break it. The same line also belongs on the More tab for every path; that is the cross-cutting build, not this one. Whether it may ALSO appear on Home for this path is an owner decision, listed below. Safety flow (crisis language typed into Bible AI or a prayer request \u2192 gentle confirm \u2192 region-correct line: 988 US, 13 11 14 AU, 0800 543 354 NZ) is the cross-cutting comfort build and must land there, not be forked here; the research's finding that only 35% of mental-health apps show crisis resources in-app is the reason it cannot wait.",
+ "reminders": "One a day, named by the day, never by the streak. The push body for this path is 'Day {n} is ready when you are.' and, after a gap of two or more days, 'Day {n} is still here.' \u2014 no count of missed days, no flame, no 'don't lose your streak'. Guilt-framed streak reminders are the documented driver of notification opt-out and uninstall (cross-cutting 6), and this is the persona least able to absorb a scolding. The ask itself stays exactly where it is: after the first finished reading, never before, never stacked (ruled). Timing: the cron already sends at each subscriber's stored preferred_hour with a 2-hour catch-up window; the research's behaviour-inferred timing (nudge when they actually open, after 5-7 sessions) is a genuine improvement but it is a push-send.js change that affects every path, so it belongs to the cross-cutting reminders build, not this one. Missed days: the streak engine's single freeze, replenished after 7 days, is the streak-repair mechanic the research asks for and it already exists \u2014 leave it alone. Note for anyone touching it: the milestone list is duplicated in two files (streak.ts:14 and GreetingSection.tsx:6) and they disagree; any no-shame change has to touch both or the greeting will celebrate a milestone the engine does not recognise.",
+ "instrumentation": [
+  "FIRST, FIX THE PIPE. track() only writes to Supabase when dw_profile.email exists (src/utils/analytics.ts:69-82) \u2014 and this persona has no email until AFTER the first read, the push ask and the email card. The one persona whose D1/D7 we most need is the one the app's own activity table cannot see. gaEvent (analytics.ts:22-27) adds only `campus`, so there is no persona dimension in GA4 either. Add an anonymous dw_anon_id plus `persona` and `journey_day` to every event, and let track-activity.js accept anon_id when there is no email. Nothing below is measurable until this lands.",
+  "journey_entry \u2014 detail 'new' | 'returning', fired from the two Yeses on PathAskedOnce. The split the research asks to A/B: 7-day retention, returning framing vs generic.",
+  "journey_day_open \u2014 detail day number. Opens of the Day N surface, per day. The 40-day drop curve, which no public source will ever supply.",
+  "journey_day_read \u2014 detail day number. Completion per day. Day-1 completion vs day-2 completion is the whole thesis of this design.",
+  "journey_whole_chapter \u2014 detail day number. How often anyone taps past the assigned verses. If this is high, the sizing decision was wrong and the default should move; if it is near zero, the chapter default was pure friction.",
+  "journey_glossary_tap \u2014 detail the term. Proves or kills the literacy scaffold, and tells us which words actually stop people.",
+  "journey_question_answered \u2014 detail day number. Are the Reflect & Respond questions used, or ignored under the teaching?",
+  "journey_connect_tap / journey_connect_dismiss \u2014 detail day 10. The relational move: taken, or declined.",
+  "journey_return \u2014 detail days_since_last. Gives the return curve and the gap-line trigger rate in one event.",
+  "comfort_tap_from_journey \u2014 how many people on this path reach for comfort, which no one currently knows.",
+  "push_unsubscribe \u2014 detail persona. The guilt check: if reminder opt-out on this path is above the others, the copy is wounding.",
+  "day1_abandon \u2014 Read tapped, Mark as read never fired, session ended. The single number that says whether Day 1 is the right size.",
+  "Rollup: D1 / D7 / D14 / D30 by persona and by journey_entry, one nightly job. The research's build-first item, scoped to the one path where we already have a natural cohort."
+ ],
+ "self_serve_levers": [
+  "TODAY, WITHOUT A DEVELOPER: language (LanguageSwitch on the landing and in the Home header), campus (HomeContextChips \ud83d\udccd chip \u2014 but note it is hidden on this path, so a defaulted new believer cannot set their campus until they change path; that is why the Day 10 connect card has to resolve the campus itself), path (PathSwatch \u2192 ChoosePathSheet, one tap saves and opens), and the Sunday QR guest flow (?sunday=1). That is the whole list. Every word of the 40-day journey is a repo file.",
+  "LEVER 1 \u2014 the campus welcome line. A campus_content row of type 'journey_welcome' per campus, published from /staff exactly the way campus-corner items already are (intake.js action 'submit', read back by campus-content.js). It renders as the one supporting line under the journey hero for readers at that campus, falling back to the shipped pathway_how_it_works line. A campus pastor owns one sentence on the screen their new believers see every day, with no deploy.",
+  "LEVER 2 \u2014 who receives the Day 10 request. Already self-serve: the receiving pastor is resolved from staff_roster.campus_id, which admin maintains through intake.js roster_save. Adding or changing the person who reaches out is a roster edit, not a code change. (Ashley must still rule WHO that is per campus \u2014 it is in his open decisions.)",
+  "LEVER 3 \u2014 the glossary. A journey_glossary table (term, plain_meaning, lang, active) edited in /staff behind the existing admin-only guard, exactly like intake_questions (question_save / question_delete / question_reorder). Deliberately ADMIN-only, not campus-pastor: a one-line definition of grace or repentance is doctrine in miniature and should not fork by campus. A bundled default in src/data/journey-glossary.ts ships with the app so the row is optional and the feature works offline.",
+  "LEVER 4 \u2014 reminder copy. push-send.js TEMPLATES are hardcoded arrays; a push_templates table (persona, lang, body, active) read by the cron makes the daily wording admin-editable. Until then, every wording change is a function deploy.",
+  "NOT SELF-SERVE, AND HONEST ABOUT IT \u2014 the 40 days themselves. Title, theme, lesson, questions and the assigned verses live in books/faith-pathway.json in the repo, in four languages, and any edit there is subject to the service-worker ruling: /books/* must stay network-first with cache as offline fallback only, and CACHE_NAME/STATIC_CACHE plus SW_VERSION bump together for any sw.js change. The smallest lever that changes this: keep the JSON as the shipped default and let an admin-only journey_overrides row (day, field, lang, value) merge over it at load \u2014 fill-only, same discipline as applyMisc, so a bad row can never delete a shipped day. That is a build, not a config, and it is Ashley's call whether it is worth it.",
+  "ALSO NOT SELF-SERVE: adding or removing a path (PATHS + Persona type + ChoosePathSheet icon map + i18n + PERSONA_CONFIGS), changing sectionOrder, changing the Day 1 landing copy (src/data/day1-landing.ts), and changing when the gates fire (coldStart.ts needsPathAsk, App.tsx wiring)."
+ ],
+ "evidence": [
+  {
+   "move": "Day's assigned verses open by default, whole chapter behind one toggle",
+   "source": "Research, Persona 1: 'Default day 1 = 3-7 verses plain language, not a chapter'; 'YouVersion found newcomer plans work as one thought plus a few verses'; Where they quit: 'Early, in the hard opening material. YouVersion raised plan completion by reordering to front-load accessible passages.' Cross-cutting 3: 'The felt need is a smaller unit of reading, not more content.' Live gap: HomeScreen.tsx:855-857 deliberately fetches the full chapter and NewBelieverLessonCard renders all of it, so Day 8 opens 31 verses of Romans 3."
+  },
+  {
+   "move": "Slice client-side; never change the fetch to a verse range",
+   "source": "src/utils/api.ts fetchKJV matches /^(.+?)\\s+(\\d+)$/ \u2014 chapter only. A verse-range fetch would lose the offline KJV fallback entirely. ScripturePassage already parses [N] markers via parseVerses, so filtering is free and keeps highlight refs on real verse numbers."
+  },
+  {
+   "move": "'Mark as read' replaces 'Mark Complete' on this path",
+   "source": "Ashley's own Day 1 lesson text (books/faith-pathway.json day 1): 'It doesn't reward performance\u2014it replaces it.' Plus the recorded PR #64 bug: the hero's 'Mark as read' and the lesson's 'Mark Complete' wrote to different stores and a reader could finish the day and still be told 'Day 1 \u00b7 Just getting started'. One verb, one act."
+  },
+  {
+   "move": "Two doors ('new' / 'coming back') live on the asked-once screen, never at the door",
+   "source": "Research, Persona 1 journey Day 0: 'two doors inside one card, New to this and Coming back. Same 40-day journey, different first line.' Ruling, project_daily_word_choose_your_path line 65: the five-choice first-run picker was removed because 'it was the gate where people opened and never read' (23 of 28 enrolments stuck on day 1). Put the question AFTER the reading, where the ruled Door 3 already sits."
+  },
+  {
+   "move": "Both Yeses stamp source 'onboarding'",
+   "source": "Ruling: saveSetup gates on source!=='default'; REAL_CHOICE_SOURCES = onboarding/settings/upgrade. Live gap: App.tsx:288-291 handlePathAsked only calls markPathAsked() \u2014 an explicit yes never becomes a real choice, so it never syncs and a second device treats the reader as cold."
+  },
+  {
+   "move": "One line under the Day 1 title naming both people",
+   "source": "Research, Persona 1: 'Ordinary, no-explanation re-entry for the returning'; 'The returning line says come back, nothing to explain'; 'most dechurched left for mundane reasons\u2026 practical friction high, shame lower than assumed'. Delivered as copy, not a control, so the locked Superdesign layout and the CTA-count test both hold."
+  },
+  {
+   "move": "Plain-meaning glossary line under the verses",
+   "source": "Research, Persona 1 needs: 'Literacy scaffolding (60% of Americans cannot name five Commandments)'; design implication: '1-2 sentence glossary/explainer beside each reading'; journey Day 1: 'A one-line what this word means under any hard word.'"
+  },
+  {
+   "move": "Day 10 read-it-with-someone card",
+   "source": "Research, Persona 1 journey Week 2: 'Add one relational move by day 10: someone at Futures would love to read this with you, which is an intake action, not a chat.' Plus 'Dechurched are reached by relational invitation into a stable community, not persuasion' (Best-in-class) and Persona 3's Pew finding that weekly Bible-study group participation fell 24% \u2192 13%."
+  },
+  {
+   "move": "Greeting never mentions the streak; gap line never counts missed days",
+   "source": "Cross-cutting 6: 'Streaks work until they shame. Guilt-framed streak reminders drive notification opt-out and uninstall\u2026 with streak repair rather than a hard reset.' Already half-built: persona-config.ts:114 excludes new_to_faith from the streak-reset greeting, and streak.ts:65-66 gives one freeze replenished after 7 days."
+  },
+  {
+   "move": "Push names the day, not the streak",
+   "source": "Same as above, plus Persona 2 journey: 'once a day, neutral wording. Never your streak is about to die.'"
+  },
+  {
+   "move": "Sermon Notes row gated to the Sunday window on this path",
+   "source": "Ruling, feedback_daily_word_today_rebuild_rejected line 16: 'Sermon Notes row is demoted below the reading for congregation/deeper_study/pastor_leader/comfort; I'm New keeps it above only in the Sunday window (QR guests).' Live gap: HomeScreen.tsx:2106 renders it unconditionally; the only dw-new-home CSS (src/index.css:960-963) hides the AI launcher and nothing else."
+  },
+  {
+   "move": "Home stays journey-only; comfort line goes on the reading, not on Home",
+   "source": "Ruling, PR #81 follow-up (Ashley, 1 Sep): 'make the journey for the new christian very simple. the person needs to see the green button for the 40 day journey and any text on the screen must be related to that button\u2026 and the picture and graphics still stay.'"
+  },
+  {
+   "move": "Comfort reachable without switching the saved path, credit-free",
+   "source": "Research, Persona 6 journey: 'From every path: a persistent one-tap I need comfort now that opens comfort without switching the saved path. Crisis is not a persona someone chooses on a good day.' Build order 2: 'Comfort from everywhere\u2026 smallest build, highest duty of care.' Credit-free rule from the ruled arrival seed: it must bypass handleRead, which credits the plan day."
+  },
+  {
+   "move": "Questions stay directly under the lesson, above the completion control",
+   "source": "Ruling, project_daily_word_journey_questions (2 Sep): 'questions are PART OF THE LESSON \u2014 on the Day N surface they sit directly under the lesson text, before Mark Complete.' Pinned by pathway-questions.test.ts. Not moved."
+  },
+  {
+   "move": "useSubView alone on the Day N surface; card stays mounted with a live open prop",
+   "source": "Ruling, 28-agent review findings 1 and 2. Pinned by home-journey.test.ts, which asserts /useSubView\\(open, onClose\\)/ and the absence of useModalA11y and aria-modal."
+  },
+  {
+   "move": "Instrumentation before anything else",
+   "source": "Research, What to build first, item 1: 'Instrumentation. D1/D7/D30 by path, session length, completion, reminder opt-out. Nothing above can be tested without it, and no public source will ever supply it.' Cross-cutting 7 names it the single biggest gap. Live gap: analytics.ts:69-82 drops every event for a user with no email \u2014 i.e. every cold new believer."
+  },
+  {
+   "move": "Day 40 gets an ending",
+   "source": "Research, Persona 1 and cross-cutting 5 (calendar moments and time-boxed shared challenges drive the spikes); live gap: pathway_day_complete_final is '\u2713 Day 40 complete' and nothing follows it. Flagged as an owner decision precisely because the comfort graduation prompt is banned and the two must not be confused."
+  }
+ ],
+ "open_decisions": [
+  "Day 40. Does the fortieth day get a named ending and one offer of the congregation path (a real choice, source 'upgrade' through the existing sheet)? This is NOT comfort's banned 'Feeling Stronger?' prompt \u2014 that ruling is scoped to the comfort path, where nothing may ever be asked. But it is close enough in shape that it needs Ashley's explicit word before anyone builds it.",
+  "Who at each campus receives the Day 10 'read with me' request, and what they are expected to do with it. The research names this as his decision. Without a named person per campus the card is a promise the app cannot keep, and it should not ship.",
+  "The comfort line on Home. It is designed onto the Day N surface only, because his 1 Sep ruling says every line on the I'm-New home relates to the sage journey button. If he wants it on Home too, it is one muted line under the hero \u2014 his call, not a designer's.",
+  "The returning greeting. 'Good to have you back, {first}. Pick it up where you are.' changes a line he has seen on the front page for months. If he would rather the two doors stay analytics-only, the split still measures 7-day retention and the greeting stays exactly as it is.",
+  "Translated copy sign-off. The new lines (both-doors line, waiting line, whole-chapter toggle, glossary, Day 10 card, comfort line) need es/pt/id or t() prints raw keys. Under his ruling Claude drafts and he approves before ship \u2014 he waived review only for the comfort devotions. Does he want to read these, or delegate them the same way?",
+  "Anonymous analytics. Sending a dw_anon_id for pre-email readers is the only way to see this persona's retention at all. It must respect dw_cookie_consent. His call whether an anonymous id before consent is acceptable, or whether the events wait for the accept."
+ ],
+ "risks": [
+  "This touches the two most owner-preview-gated surfaces in the app: the Superdesign Day 1 landing and the Day N reading surface. PR #80 deleted HomeScreen and ten sections and was reverted the same night with 'what have you done\u2026 you have completely stripped. go back.' Nothing here merges without Ashley on a deploy preview saying so. Note also: the repo does not allow auto-merge, and a rebase plus force-push needs about 20 seconds before GitHub reports MERGEABLE.",
+  "Verse filtering could break highlights. ScripturePassage builds highlight refs as `${passageRef}:${verseNum}` \u2014 the filter must keep the real verse numbers, or a highlight made on the sliced view will not match one made on the whole chapter, and the two views will disagree about the same verse.",
+  "Do not touch the fetch. fetchKJV cannot resolve a verse range; a well-meaning 'just fetch the verses' change silently kills the offline KJV fallback and every reader without ESV gets an empty card.",
+  "dw_journey_entry is a synced dw_* record. It must be merged into what is currently in localStorage and touch only its own field. Rebuilding a dw_* record from React state is the mistake that destroyed nine completed days in PR #64. It also needs a dw_misc_meta stamp to be newest-wins, or it will behave as fill-only and a later correction will never propagate.",
+  "The i18n-keys regression test fails on any key missing a language. Six or seven new keys \u00d7 four languages, and existing entries use \\uXXXX escapes.",
+  "Changing the primary button's word touches a store boundary that has bitten before. 'Mark as read' and 'Mark Complete' were once two different actions writing two different stores; the rename must be copy only \u2014 savePathwayProgressFromLesson stays the single completion path, and dw_reading_done stays stamped from the local en-CA date.",
+  "No /books edit is proposed, so no service-worker bump is needed. If anyone extends this into the JSON, /books/* must stay network-first and CACHE_NAME/STATIC_CACHE plus SW_VERSION bump together \u2014 and returning readers only see the change on the SECOND open after deploy.",
+  "Push cannot be verified on a deploy preview. pushSupported() allowlists futuresdailyword.com/www/localhost only, so any reminder-copy change is verifiable on prod or localhost, never on the preview Ashley is looking at.",
+  "The Day 10 card is a promise from a real church. If no one at the campus is watching the intake queue, a new believer asks for help on day 10 and hears nothing. That is worse than not offering. Ship the card only after the receiving person exists.",
+  "Anonymous analytics is a privacy question, not just a plumbing one. It must respect dw_cookie_consent and must never carry anything identifying.",
+  "node_modules is not installed locally (Netlify builds it) \u2014 a fresh worktree needs its own npm ci. And the main tree regularly carries another session's uncommitted work; do this in an isolated worktree."
+ ],
+ "build_steps": [
+  {
+   "step": "1. Instrumentation first \u2014 make this persona visible at all. Add an anonymous dw_anon_id, add persona and journey_day to every event, and let the activity function accept anon_id when there is no email. Respect dw_cookie_consent.",
+   "files": "src/utils/analytics.ts (gaEvent params at :22-27; the email gate at :69-82; TRACKED_EVENTS at :30-37 \u2014 add journey_entry, journey_day_open, journey_day_read, journey_whole_chapter, journey_glossary_tap, journey_question_answered, journey_connect_tap, journey_connect_dismiss, journey_return, comfort_tap_from_journey, day1_abandon); netlify/functions/track-activity.js; a migration in supabase/migrations/ adding anon_id + persona (migrations stay in the repo)",
+   "check": "npx vitest run && npx tsc -b. Then on prod, in a fresh private window: tap Read, tap Mark as read, and confirm a row lands with a persona and no email attached. GA4 shows persona as a dimension on daily_reading."
+  },
+  {
+   "step": "2. Right-size the Day N reading. Add a verseRange prop to ScripturePassage that filters the parsed verses without changing their numbers, pass the day's reading.verses, and add the 'Read the whole chapter' toggle. Do not touch the fetch.",
+   "files": "src/components/ScripturePassage.tsx (verseRange prop over the parseVerses result at :39); src/components/NewBelieverLessonCard.tsx (the verses card, ~:163-205); src/utils/i18n.ts (journey_whole_chapter, journey_just_todays_verses \u00d74 languages)",
+   "check": "npx vitest run. Live on the preview as new_to_faith with dw_pathway_progress.currentDay=8: Romans 3:23-24 renders alone, the toggle reveals all 31 verses, a highlight made in either view shows in the other, and with ESV blocked the KJV fallback still fills the card."
+  },
+  {
+   "step": "3. Rename the primary action and demote Share. Copy only \u2014 the completion path is untouched.",
+   "files": "src/components/NewBelieverLessonCard.tsx (the actions row at ~:212-260 \u2014 t('mark_complete') becomes trans('mark_as_read', lang); move the Share button to its own row below the completion note)",
+   "check": "npx vitest run src/screens/home-journey.test.ts. Live: completing Day 2 still stamps dw_reading_done, fires dw-reading-completed, advances pathwayDisplayDay, and the hero and the Read tab agree."
+  },
+  {
+   "step": "4. Two Yeses on the asked-once screen, both stamping a real choice, plus the entry-aware greeting.",
+   "files": "src/components/PathAskedOnce.tsx (split the Yes at :34-48); src/App.tsx (handlePathAsked at :288-291 \u2014 add saveSetup({persona:'new_to_faith', source:'onboarding'}) and the dw_journey_entry write, merged into current localStorage); src/utils/coldStart.ts (export JOURNEY_ENTRY_KEY); src/utils/cloudSync.ts (MISC_KEYS at :35-51, plus a dw_misc_meta stamp so it is newest-wins); src/utils/persona-config.ts (getGreeting new_to_faith returning + gap variants, all four languages); src/utils/i18n.ts (path_ask_yes_new, path_ask_yes_back)",
+   "check": "npx vitest run src/utils/coldStart.test.ts src/__tests__/i18n-keys.test.ts src/utils/greeting-languages.test.ts. Live: either Yes closes the screen, the push ask follows, dw_setup.source reads 'onboarding', dw_journey_entry is set, and reloading never re-asks."
+  },
+  {
+   "step": "5. Glossary \u2014 bundled default plus the admin lever.",
+   "files": "src/data/journey-glossary.ts (term \u2192 one plain sentence, en/es/pt/id); src/components/JourneyGlossary.tsx (the 'New word?' row, \u22642 terms, tap expands inline); mounted in src/components/NewBelieverLessonCard.tsx under the verses card and in src/components/Day1Landing.tsx under the verse reference; later: a journey_glossary table behind the admin-only guard in netlify/functions/intake.js (mirror questions_list / question_save / question_delete)",
+   "check": "npx vitest run. Live: Day 1 offers 'grace' and expands to one sentence with no network call; Day 9 offers 'repentance'; a day with no matching term renders no row at all."
+  },
+  {
+   "step": "6. Restore the ruled Sermon Notes gate for this path.",
+   "files": "src/screens/HomeScreen.tsx:2106 \u2014 {(!isNewPath || isSundayWindow()) && sermonNotesRow}; import isSundayWindow from src/utils/sunday.ts; add a guard to src/screens/home-journey.test.ts",
+   "check": "npx vitest run src/screens/home-journey.test.ts. Live as new_to_faith on a weekday: no dark Sermon Notes banner above the hero. With the clock set into the Sunday window: it returns."
+  },
+  {
+   "step": "7. The waiting line and the gap-aware greeting.",
+   "files": "src/utils/journeyGap.ts (days since pathwayProgress.lastCompletedDate using toLocaleDateString('en-CA') only \u2014 never toISOString); src/components/NewBelieverLessonCard.tsx (day header card); src/screens/HomeScreen.tsx (greeting); src/utils/i18n.ts (journey_waiting \u00d74)",
+   "check": "npx vitest run. Live: set lastCompletedDate three days back \u2192 both lines appear; at 0 and 1 days neither appears; the day number never changes because of a gap."
+  },
+  {
+   "step": "8. Day 10 connect card.",
+   "files": "src/components/JourneyConnectCard.tsx; mounted once in src/components/NewBelieverLessonCard.tsx under the questions, gated on currentDay===10 && !dismissed && !sent; submits through the existing intake pipeline (netlify/functions/intake.js action 'submit') resolved against staff_roster.campus_id; localStorage dw_journey_connect; src/utils/i18n.ts (journey_connect_* \u00d74)",
+   "check": "npx vitest run. Live on the preview: the card shows once on Day 10, 'Not now' never brings it back, sending shows the sent line, and the row lands for the right campus. Do not enable in production until Ashley names the receiving person per campus."
+  },
+  {
+   "step": "9. Comfort from the journey.",
+   "files": "src/components/NewBelieverLessonCard.tsx (foot line); a comfort overlay reachable without saveSetup and without handleRead (reuse ComfortSection's chapter render with the ruled Note+Close toolbar); src/utils/i18n.ts (journey_comfort_line, journey_comfort_link \u00d74)",
+   "check": "npx vitest run. Live: opening comfort from Day 6 leaves dw_setup.persona as new_to_faith, leaves dw_reading_done and dw_pathway_progress untouched, shows Note and Close only, no graduation prompt anywhere, and closing lands back on Day 6."
+  },
+  {
+   "step": "10. Ship it the way the ruling says. Isolated worktree, npm ci, branch feat/journey-first-two-weeks, full gate, PR, deploy-preview link to Ashley, and it sits open until he says merge.",
+   "files": "new worktree off main; docs/ note recording the two live gaps found (Sermon Notes gate absent at HomeScreen.tsx:2106; explicit Yes never stamps a real choice at App.tsx:288-291)",
+   "check": "npx tsc -b && npm run build && npx vitest run all green (run the gate bare \u2014 a `cmd | tail` pipeline masks the exit code). gh pr view --json mergeable polled before any merge. Verify translations on PROD, not the preview: a deploy preview's /api returns 403 and scripture falls back to offline KJV."
+  }
+ ]
+}

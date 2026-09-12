@@ -15,6 +15,7 @@ import { ListenButton } from '../components/ListenButton';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush } from '../utils/cloudSync';
 import { recordStreakToday } from '../utils/streak';
+import { recordReadDay } from '../utils/readDays';
 import { getPersonaConfig } from '../utils/persona-config';
 import { BibleAI } from '../components/BibleAI';
 import { t, getLang } from '../utils/i18n';
@@ -724,6 +725,7 @@ function ScriptureModal({
         };
     trackBehavior('note_created', entry.verseRef || '');
     track('journal_save', entry.type || 'journal');
+    recordReadDay('journal');
     onSave(entry);
     setNoteSaved(true);
     setTimeout(() => { setNoteSaved(false); onClose(); }, 1200);
@@ -1608,6 +1610,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
     trackBehavior('note_created');
     track('journal_save', editingEntry.type || 'journal');
     recordStreakToday(); // journaling counts toward the daily streak, not just opening Home
+    recordReadDay('journal');
     setEntries(all.filter(e => !e.deleted));
     // Show "Saved!" confirmation before closing
     setEditorSaved(true);

@@ -1,5 +1,5 @@
 /**
- * Home header campus chip ("📍 Gwinnett"). Tap it to pick the campus right
+ * Home header campus chip ("Gwinnett"). Tap it to pick the campus right
  * there; applies on the tap, no trip through Settings.
  *
  * The persona chip that used to sit beside it became the PathSwatch in the
@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, MapPin } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
 import { CAMPUSES } from '../data/tokens';
 import { useSubView } from '../utils/useSubView';
@@ -78,7 +78,7 @@ export function HomeContextChips({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={campus ? `📍 ${campusLabel}` : t('select_your_campus', lang)}
+        aria-label={campus ? campusLabel : t('select_your_campus', lang)}
         onClick={toggle}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -87,7 +87,8 @@ export function HomeContextChips({
           fontSize: 11, fontWeight: 500, color: 'var(--dw-text-muted)',
         }}
       >
-        📍 {campusLabel}
+        <MapPin size={11} />
+        {campusLabel}
         <ChevronDown size={11} style={{ opacity: 0.7, transform: open ? 'rotate(180deg)' : undefined }} />
       </button>
 

@@ -1,0 +1,28 @@
+{
+ "summary": "test",
+ "renders_in_order": [
+  {
+   "element": "a",
+   "file_line": "b",
+   "gate": "c",
+   "what_it_does": "d"
+  }
+ ],
+ "first_visit": "a",
+ "return_visit": "a",
+ "completion_and_streak": "a",
+ "audio": "a",
+ "ai": "a",
+ "copy_keys": [
+  "a"
+ ],
+ "self_serve_levers": [
+  "a"
+ ],
+ "dev_needed_today": [
+  "a"
+ ],
+ "tests_that_lock_behaviour": [
+  "a"
+ ]
+}

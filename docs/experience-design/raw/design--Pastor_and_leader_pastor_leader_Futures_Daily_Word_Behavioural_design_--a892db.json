@@ -1,0 +1,717 @@
+{
+ "item": "Pastor and leader (pastor_leader) \u2014 Futures Daily Word",
+ "angle": "Behavioural design: the unit of reading, the trigger, the reward, the grace, the identity language, the return visit \u2014 for a person whose whole week is already full of other people's Bible reading.",
+ "thesis": "A pastor does not need help doing the work. He needs the app to protect the ten minutes that produce nothing. The research says ~70% of SBC pastors already spend 8+ hours a week on sermon prep, 65% report loneliness (up from 42% in 2015) and 38% considered quitting in the past year (research, Persona 5). The behaviour at risk is not prep; it is the reading that is not for anyone else. So the design makes the personal reading the immediate, zero-decision move and puts every work surface one deliberate tap behind it \u2014 and then gives the work a real reward loop, because a pastor who reads with a pen in hand ends the week with Sunday already started. Right now the app does the opposite: the Preach card sits above the reading (HomeScreen.tsx:2106 vs the hero at 2138) and leaves the PWA entirely (PREP_URL, line 74). The identity line the app already writes \u2014 \"This is your time \u2014 not ministry, just you and God\" (persona-config.ts) \u2014 is the best sentence in the pastor path and the layout contradicts it before he scrolls.",
+ "principles": [
+  "Personal first, work second. The reading and Between You & God own the screen; every prep surface is one tap below it. This restores Ashley's own 2 Sep ruling (Sermon Notes row demoted below the reading for pastor_leader) that PR #97 reversed.",
+  "Richer and clearer, never stripped. Nothing is deleted. Cards that arrive open and heavy arrive closed and named, keeping their full typography and the locked look when opened (ivory canvas, terracotta accent, white paper-mode reading panel, Georgia serif).",
+  "Never show a pastor a number the app made up. The Sunday card's \"days this week\" is currently Math.min(streak, 7) (HomeScreen.tsx:117) \u2014 a fabrication. Campus Overview already refuses to fabricate; the habit surfaces must match that standard or the whole trust panel is theatre.",
+  "The AI finds and organises; the pastor writes. 79% of pastors worry AI could replace God's role, 63% pastoral leadership, 71% are cautious (research, Persona 5). Every AI surface names its role and its sources on the same screen.",
+  "Reward the behaviour we want, not speed. The celebration is \"Sunday is not blank\", attached to filing verses while reading \u2014 not \"minutes saved\", which would import the productivity framing that kills the protected ten minutes.",
+  "Grace without accounting. No streak number until it is worth something, a real freeze already exists in streak.ts, and a return after a gap is greeted with \"nothing to make up\" \u2014 guilt-framed streak nudges drive notification opt-out and uninstall (research, cross-cutting 6).",
+  "Comfort is reachable from the pastor path without changing his path. Crisis is not a persona a pastor picks on a good day (research, Persona 6)."
+ ],
+ "journey": {
+  "day0": "He arrives at pastor_leader through one of the four ChoosePathSheet doors; tapping the card saves with a real source and navigates Home (commit(next), ruling). PathArrivalStrip names the path once and shows sign-in state. The arrival seed opens today's reading credit-free, bypassing handleRead (ruling). If he has no plan, PastorStudyOnboarding renders below the reading in the plan_scripture gate; if he never answers it, PASTOR_CHAPTERS keeps the hero full (src/data/pastor.ts) so Day 0 requires zero decisions. Nothing asks him to prep. The only new thing on Day 0 is one quiet line under Between You & God: \"Tap and hold any verse to file it for Sunday.\"",
+  "first_session": "Greeting uses the identity line, not a count. Reading is already open on the plate with audio. Directly under it, Between You & God with one of the fifteen leadership prompts and two buttons. Then, closed: Study this passage. Then For your message with its new subline. Then the plan cards, then the chapters, then Campus Overview, then Preach \u2014 which now sits below the reading and says out loud that it leaves Daily Word. Mark as read credits the day and writes the new dw_read_days ledger. Push is asked only after that first completed reading (already evidence-timed in App.tsx) and never inside the reading.",
+  "return_visit": "Same shape, no re-onboarding \u2014 PastorStudyOnboarding self-dismisses once any plan exists. Greeting bands on real read-days, not opens. From day 3 or 4 the This week's prep card appears above the fold-line of the second screen, because by then he has filed something; if he has filed nothing it does not render and the quiet filing hint stays for the first seven days only, then goes.",
+  "week2": "The prep bag has material, so three things change without any new prompt: the prep card shows a count and the preaching focus, the outline prompt in Bible AI has his own filed verses to shape, and the Sunday card has a real second tile. This is the compounding loop \u2014 read, file, Sunday is easier, read again. Sources become visible in the study card the first time he opens it, so by week 2 he has seen which commentary is public-domain and which line is AI.",
+  "missed_day": "streak.ts already bridges one missed day with a freeze replenished after 7 days (streak.ts:65-66) \u2014 keep it, untouched. Two or more days away resets the count, and that is where the copy matters: the greeting reads \"You're back. Nothing to make up.\" No red, no lost-progress language, no catch-up plan, no make-up reading. The push after a gap names the chapter, never the streak.",
+  "seasonal": "The pastor's calendar moment is not Easter, it is Sunday, every week, forever, plus whatever series he is preaching. dw_sermon_prep_focus already holds the series. Use it: the hero eyebrow reads PREACHING \u00b7 {focus} when a focus is set and PASTOR STUDY when it is not, and the Sunday card leads with the focus. Church-wide seasonal reads (research, cross-cutting 5) reach the pastor as a campus lever he sets for others, not as a nudge aimed at him."
+ },
+ "screens": [
+  {
+   "name": "Choose your path \u2014 the pastor card",
+   "purpose": "The door. It must save and open in one tap and must never lock a signed-in pastor out of another path.",
+   "order": [
+    "Sheet title \"Where are you today?\"",
+    "Sub-line",
+    "Five path cards, pastor fourth, current one ticked",
+    "Pastor note line (only when signed in)",
+    "Sign out of pastor account row (only when signed in)",
+    "Footer (hides under 560px tall)"
+   ],
+   "copy": [
+    {
+     "element": "Pastor card head (path_leader_head)",
+     "text": "I'm a pastor and I teach and preach"
+    },
+    {
+     "element": "Pastor card promise (path_leader_promise)",
+     "text": "Study tools and sermon prep. Pastors sign in for campus tools."
+    },
+    {
+     "element": "Swatch short label (path_short_leader)",
+     "text": "Pastor"
+    }
+   ],
+   "states": [
+    "Closed \u2014 paints nothing, but stays mounted with a live open prop (ruling; ChoosePathSheet.test.tsx pins it)",
+    "Open, pastor is the current path \u2014 ticked, tapping it just closes",
+    "Open, pastor is not current \u2014 one tap saves with source 'settings' (or 'onboarding' for a first real choice) and navigates Home",
+    "Signed in as pastor \u2014 note plus sign-out row, no lock glyph, sheet ~537px at 390 wide",
+    "Not signed in \u2014 no note row, sheet ~481px"
+   ],
+   "keep": [
+    "One tap saves and opens; no CTA below the fold (PR #93 ruling)",
+    "The pastor lock is gone \u2014 a signed-in pastor picks any path as a real choice (PR #89 ruling)",
+    "Three doors to the sheet plus Settings; never a gate that blocks first use",
+    "dw-cp-* class prefix",
+    "The measured no-scroll geometry \u2014 no copy is added to this sheet"
+   ],
+   "change": [],
+   "remove": []
+  },
+  {
+   "name": "Home \u2014 pastor, first session, no plan yet",
+   "purpose": "Land him in his own reading with nothing to decide, and let the work wait.",
+   "order": [
+    "Greeting (identity line) + search",
+    "PathArrivalStrip \u2014 once, dismissible",
+    "Hero photo plate + today's reading, already open, audio on the plate, eyebrow PASTOR STUDY",
+    "Between you and God",
+    "\"If today is hard, open comfort\" \u2014 one quiet line",
+    "Filing hint \u2014 first 7 days only",
+    "Set up your reading (PastorStudyOnboarding, plan_scripture gate)",
+    "For your message (Bible AI entry, with its new subline)",
+    "Study this passage \u2014 closed",
+    "Campus overview (or the code prompt)",
+    "Preach \u2192 Pastors Sermon Prep",
+    "Books"
+   ],
+   "copy": [
+    {
+     "element": "Greeting, 0\u20133 read days in the last 7",
+     "text": "Good morning, Ashley. This is your time \u2014 not ministry, just you and God."
+    },
+    {
+     "element": "Hero eyebrow, no preaching focus set",
+     "text": "PASTOR STUDY"
+    },
+    {
+     "element": "Path arrival strip (path_arrival_pastor, rewritten for the new order)",
+     "text": "You're in the pastor study. Today's chapter is open, and Between you and God sits under it. Preach is below that."
+    },
+    {
+     "element": "Filing hint, first 7 days only",
+     "text": "Tap and hold any verse to file it for Sunday."
+    },
+    {
+     "element": "Comfort line",
+     "text": "If today is hard, open comfort"
+    },
+    {
+     "element": "Preach card sub (preach_card_sub)",
+     "text": "Opens Pastors Sermon Prep \u2014 you'll leave Daily Word"
+    }
+   ],
+   "states": [
+    "No plan and no slots \u2014 hero serves the PASTOR_CHAPTERS rotation so it is never blank",
+    "Wizard offered / dismissed (\"Later\" leaves the gentle re-entry card) / completed",
+    "Offline \u2014 cached chapter renders, audio and Campus Overview show their own fallbacks",
+    "Signed in as pastor with a campus \u2014 Campus Overview shows real tiles",
+    "Not signed in \u2014 Campus Overview shows the code prompt, nothing fabricated"
+   ],
+   "keep": [
+    "The arrival seed is persona-gated and credit-free, bypassing handleRead (ruling)",
+    "The PASTOR_CHAPTERS hero fallback (pinned by home-pastor-floor.test.ts)",
+    "The wizard below the reading, self-dismissing once any plan exists",
+    "The locked look end to end: ivory canvas, white paper-mode reading panel with dark upright Georgia scripture, terracotta accent, no italics, no dark override"
+   ],
+   "change": [
+    "Move {sermonNotesRow} from HomeScreen.tsx:2106 (above the hero) to below the reading block \u2014 restores the 2 Sep demotion ruling that PR #97 reversed",
+    "Rewrite path_arrival_pastor: it currently says \"Preach is the card above\", which becomes false",
+    "Greeting bands read the new dw_read_days ledger, not the open-counting streak; the identity line covers 0\u20133 read days instead of only day 1",
+    "preach_card_sub says the card leaves the app",
+    "Hero eyebrow reads PREACHING \u00b7 {focus} when dw_sermon_prep_focus is set"
+   ],
+   "remove": [
+    "Nothing is removed from this screen."
+   ]
+  },
+  {
+   "name": "Home \u2014 pastor, returning, with a plan",
+   "purpose": "The two-week steady state: read, file, and see the pile grow.",
+   "order": [
+    "Greeting (band by real read-days)",
+    "Hero plate + today's plan passage, open, audio",
+    "Between you and God",
+    "This week's prep \u2014 only when items exist",
+    "For your message",
+    "Today's study (plan passages, Greek/Hebrew toggle)",
+    "Study this passage \u2014 closed",
+    "Today's chapters",
+    "Daily quote / word of the day",
+    "Sunday card \u2014 Sundays only",
+    "Campus overview",
+    "Preach",
+    "Books"
+   ],
+   "copy": [
+    {
+     "element": "Greeting, 4\u20136 read days in the last 7",
+     "text": "Good morning, Ashley. Four days this week. This time matters."
+    },
+    {
+     "element": "Greeting, 7 read days or a 30+ day run",
+     "text": "Good morning, Ashley. Thirty days. You're leading from a full cup."
+    },
+    {
+     "element": "Greeting, back after 2+ days away",
+     "text": "Good morning, Ashley. You're back. Nothing to make up."
+    },
+    {
+     "element": "Milestone banner, pastor variant (replaces the generic one)",
+     "text": "Thirty days of your own time with God. That is what you preach out of."
+    },
+    {
+     "element": "Milestone dismiss",
+     "text": "Close"
+    }
+   ],
+   "states": [
+    "Read today \u2014 the hero shows the completed state, no second ask",
+    "Not read today \u2014 Mark as read on the hero",
+    "Returned after a freeze was spent \u2014 repair line, no red, no lost-progress language",
+    "Sunday \u2014 the Sunday card renders in its existing position",
+    "Plan finished \u2014 the existing plan-finish celebration, unchanged"
+   ],
+   "keep": [
+    "recordStreakToday stays the single source of truth and keeps its one-freeze-per-7-days repair (streak.ts) \u2014 no semantic change to the streak engine",
+    "The three completion write sites and the dw_reading_done same-day guard",
+    "Greek/Hebrew full mode on the plan cards",
+    "Book cards last"
+   ],
+   "change": [
+    "Greeting thresholds move from streak count to dw_read_days, so a pastor who only opened the app is not congratulated for reading",
+    "Pastor milestone copy loses the flame emoji, \"Milestone Reached\" and \"You're amazing\" \u2014 none of that is Ashley's register",
+    "Insert the This week's prep card directly after Between you and God"
+   ],
+   "remove": [
+    "The exclamation-mark milestone copy for this persona only; the generic banner stays for everyone else until Ashley says otherwise."
+   ]
+  },
+  {
+   "name": "Between you and God",
+   "purpose": "The one prompt nobody else asks him. This card is the reason a lonely pastor comes back.",
+   "order": [
+    "Eyebrow",
+    "Today's prompt (one of fifteen, rotating by day number)",
+    "Journal this \u00b7 Talk it through",
+    "Comfort line",
+    "Add your own prompts (text link, from week 2)"
+   ],
+   "copy": [
+    {
+     "element": "Eyebrow",
+     "text": "BETWEEN YOU AND GOD"
+    },
+    {
+     "element": "Buttons",
+     "text": "Journal this  /  Talk it through"
+    },
+    {
+     "element": "Comfort line",
+     "text": "If today is hard, open comfort"
+    },
+    {
+     "element": "Own-prompts link (appears once he has answered three)",
+     "text": "Write your own prompts"
+    }
+   ],
+   "states": [
+    "Default \u2014 today's prompt",
+    "Answered today \u2014 the card stays but the prompt is stamped \"Journalled\" with a link to the entry",
+    "Own prompts saved \u2014 his list rotates first, the bundled fifteen behind it",
+    "Spanish, Portuguese, Indonesian \u2014 currently English-only, fixed by keying the literals"
+   ],
+   "keep": [
+    "The fifteen leadership prompts in persona-config.ts:473-487 \u2014 they are strong and they are his voice",
+    "Position directly under the reading (the 1 Sep persona-flow spec)",
+    "Journal prefill via dw_journal_prefill, and Talk it through seeding Bible AI context"
+   ],
+   "change": [
+    "Key the three hardcoded English literals in PastoralReflectionSection.tsx:34, 62, 76 \u2014 a Futuros pastor reads \"Between You & God\", \"Journal This\", \"Talk It Through\" in English today",
+    "Sentence case on the buttons",
+    "Add the comfort line and, from week 2, the own-prompts link"
+   ],
+   "remove": []
+  },
+  {
+   "name": "This week's prep \u2014 new card",
+   "purpose": "The reward loop. Filing a verse while reading currently disappears into a store nothing on screen displays; this card makes the pile visible and makes Sunday feel started.",
+   "order": [
+    "Eyebrow + count",
+    "Preaching focus line (or the prompt to set one)",
+    "Filed items, newest first, each with a remove \u00d7",
+    "Make an outline  \u00b7  Send to Prep"
+   ],
+   "copy": [
+    {
+     "element": "Eyebrow",
+     "text": "THIS WEEK'S PREP"
+    },
+    {
+     "element": "Count, one item",
+     "text": "One verse filed. Sunday has a starting point."
+    },
+    {
+     "element": "Count, more than one",
+     "text": "Six verses filed. Sunday is not blank."
+    },
+    {
+     "element": "Focus set",
+     "text": "Preaching: Romans, weeks 3 of 6"
+    },
+    {
+     "element": "Focus not set",
+     "text": "What are you preaching through?"
+    },
+    {
+     "element": "Primary button",
+     "text": "Make an outline"
+    },
+    {
+     "element": "Secondary button",
+     "text": "Send to Prep"
+    },
+    {
+     "element": "Removed-item toast",
+     "text": "Removed. It's still in your highlights."
+    }
+   ],
+   "states": [
+    "Zero items \u2014 the card does not render at all; the filing hint under Between you and God carries the first week",
+    "1\u20133 items \u2014 count line, list, both buttons",
+    "4+ items \u2014 list clipped to five with \"Show all\"",
+    "Focus empty \u2014 the focus line is a tappable input that writes dw_sermon_prep_focus",
+    "At the 40-item cap \u2014 oldest drop out silently, as sermonPrep.ts already does"
+   ],
+   "keep": [
+    "sermonPrep.ts as the only writer (getPrepItems/addPrepItem/removePrepItem) \u2014 it already rides the misc bag under the 20KB per-key cap and calls syncMisc",
+    "\"File to sermon\" on HighlightToolbar exactly as it is",
+    "The dw-sermon-prep-updated event as the refresh bus"
+   ],
+   "change": [
+    "Nothing existing; this is an addition, mounted on a new pastor-only sectionOrder key placed after pastoral_prompt"
+   ],
+   "remove": [
+    "The write-only black hole: dw_sermon_prep is filed by the reading surfaces but its only display, SermonWorkspace inside PreachScreen, is dead code unmounted from App.tsx (pinned by home-pastor-floor.test.ts). Either this card replaces it or the pastor is filing into nothing."
+   ]
+  },
+  {
+   "name": "Study this passage",
+   "purpose": "The study desk \u2014 one tap away instead of open on arrival, and honest about where every line came from.",
+   "order": [
+    "Header + Open affordance",
+    "Source chips (when more than one commentary)",
+    "Commentary text",
+    "Source and licence footer line",
+    "AI study note \u2014 a separate block, never a chip beside the real commentaries"
+   ],
+   "copy": [
+    {
+     "element": "Header (replaces \"Commentary\")",
+     "text": "Study this passage"
+    },
+    {
+     "element": "Collapsed affordance",
+     "text": "Open"
+    },
+    {
+     "element": "Source footer",
+     "text": "Matthew Henry \u00b7 Public domain. See every source"
+    },
+    {
+     "element": "AI block eyebrow",
+     "text": "AI STUDY NOTE"
+    },
+    {
+     "element": "AI block footer",
+     "text": "This is a study aid. The scripture text and every reference above come from the source list, not from AI."
+    }
+   ],
+   "states": [
+    "Closed \u2014 the default for pastor_leader (this is the change)",
+    "Open, curated commentary present",
+    "Open, outside the curated set \u2014 the AI note is the only entry and is labelled as such",
+    "Sources loading / unavailable \u2014 the footer line is omitted, never a spinner in the reading flow",
+    "Offline \u2014 cached commentary renders, the source list link says it needs a connection"
+   ],
+   "keep": [
+    "The card, its typography, the source chip strip, the tap-to-select-for-AI behaviour, and the fetchAICommentary fallback for days outside the ~20 curated chapters",
+    "StudySourcesCard in Settings \u2014 the footer link opens the same data (fetchStudySources already returns name, licence, attribution, url, share_alike)"
+   ],
+   "change": [
+    "persona-config.ts pastor_leader features.commentary: 'expanded' \u2192 'collapsed'. Research says the recurring complaint about study surfaces is clutter arriving by default, and for this persona the analysis desk arriving before he has read a line is exactly what pushes the personal reading off screen.",
+    "Header renamed so the closed card names more than commentary",
+    "Add the source-and-licence footer \u2014 the trust panel the research asks for, made visible rather than buried in Settings",
+    "Split the AI fallback out of the commentary chip strip; today it sits in the same row as Matthew Henry, which is the mixing that produces distrust"
+   ],
+   "remove": [
+    "\"AI Insight\" as a peer chip alongside public-domain commentaries."
+   ]
+  },
+  {
+   "name": "For your message \u2014 Bible AI, pastor block",
+   "purpose": "Four quick prompts that do research, framed so nobody could mistake them for a ghostwriter.",
+   "order": [
+    "Section header",
+    "Role subline (new)",
+    "Give me three teaching angles on this passage",
+    "Find an illustration for this idea",
+    "What's the Greek or Hebrew behind this word?",
+    "Shape my filed verses into an outline",
+    "Outline shape control (4D \u00b7 H.E.A.T. \u00b7 Just points) \u2014 shown only on the outline prompt"
+   ],
+   "copy": [
+    {
+     "element": "Header (ai_pastor_section)",
+     "text": "For your message"
+    },
+    {
+     "element": "Subline (new)",
+     "text": "It finds and organises. You write the message."
+    },
+    {
+     "element": "Outline prompt label (ai_pastor_outline)",
+     "text": "Shape my filed verses into an outline"
+    },
+    {
+     "element": "Outline shape (ai_pastor_outline_shape)",
+     "text": "Big idea, three points, one weekly action."
+    },
+    {
+     "element": "No filed items (ai_pastor_no_highlights)",
+     "text": "I have not filed anything yet, so build it from {ref}."
+    },
+    {
+     "element": "Crisis-language confirm (new, shared)",
+     "text": "That sounds heavy. Do you want someone to call?"
+    }
+   ],
+   "states": [
+    "Nothing selected \u2014 the Greek prompt swaps to the whole-passage label (already live)",
+    "Text selected \u2014 the selection is quoted and attributed to its verse only when it has one",
+    "Prep bag has items \u2014 the outline prompt sends them; empty \u2014 it falls back to the passage",
+    "A prior ask is in flight \u2014 queue it, never abort (the PR #82 fix)",
+    "Crisis language typed \u2014 gentle confirm, then the region-correct line and the disclosure that this is scripture and a church, not counselling"
+   ],
+   "keep": [
+    "All four prompt kinds, the pure buildPastorPrompt shapes and their unit tests (BibleAI.pastor.test.tsx)",
+    "The ministry-partner system prompt addition \u2014 vision and strategy, not feelings",
+    "BibleAI on useSubView alone, no nested focus trap (ruling)",
+    "Scripture text always from the verified tables, never the model"
+   ],
+   "change": [
+    "Add the role subline directly under the header \u2014 the research names this the highest-leverage copy change in the app for this persona",
+    "Rename the outline prompt so it names his own material as the input",
+    "Add the outline shape control, limited to 4D (Discover/Develop/Deploy/Depart) and H.E.A.T. (Hungry/Effective/Adaptable/Transferable), the only two frameworks on record \u2014 P.A.I.D., Five Fences and Five Batons must never appear"
+   ],
+   "remove": []
+  },
+  {
+   "name": "Sunday",
+   "purpose": "The weekly beat that is actually his: he is about to preach, not review his devotional life.",
+   "order": [
+    "Header",
+    "Week of {date}",
+    "Two tiles: days you read \u00b7 verses filed",
+    "One question",
+    "Journal this \u00b7 Open my prep",
+    "Dismiss \u00d7"
+   ],
+   "copy": [
+    {
+     "element": "Header, pastor variant",
+     "text": "SUNDAY"
+    },
+    {
+     "element": "Tile labels",
+     "text": "days you read  /  verses filed"
+    },
+    {
+     "element": "Question 1",
+     "text": "What are you carrying into today?"
+    },
+    {
+     "element": "Question 2",
+     "text": "Who will be in the room that you're praying for?"
+    },
+    {
+     "element": "Question 3",
+     "text": "What did God say to you this week that no one else heard?"
+    },
+    {
+     "element": "Question 4",
+     "text": "What is the one thing you want them to walk out with?"
+    },
+    {
+     "element": "Buttons",
+     "text": "Journal this  /  Open my prep"
+    }
+   ],
+   "states": [
+    "Sundays only, and only once dismissed is not set for the week key",
+    "Fewer than 3 read days \u2014 does not render (existing gate)",
+    "Zero filed verses \u2014 the second tile reads 0 and the question still shows; no scolding",
+    "Dismissed \u2014 gone for that week key"
+   ],
+   "keep": [
+    "Sunday-only, pastor-only. Ashley explicitly rejected weekly-review-for-all \u2014 do not widen it.",
+    "Dismiss writing dw_week_review_dismissed against the week key",
+    "The card's warm gradient and its position"
+   ],
+   "change": [
+    "Replace \"days this week = Math.min(streak, 7)\" (HomeScreen.tsx:117) with a real count from dw_read_days. Showing a pastor a made-up number in the same app that refuses to fabricate campus numbers is the fastest way to lose him.",
+    "Replace the streak tile with verses filed \u2014 a work number he can act on",
+    "Replace the four generic questions with the pastor bank above, for pastor_leader only",
+    "Add the two buttons; the card currently ends in a question with nowhere to put the answer"
+   ],
+   "remove": [
+    "The fabricated days-read figure."
+   ]
+  },
+  {
+   "name": "Campus overview",
+   "purpose": "The one place the app tells a pastor something about his people. It already refuses to invent numbers; keep it that way.",
+   "order": [
+    "CAMPUS OVERVIEW eyebrow",
+    "Four tiles: reading today \u00b7 active this week \u00b7 prayer requests \u00b7 campus name",
+    "Or: the code prompt with input and View stats"
+   ],
+   "copy": [
+    {
+     "element": "Tile labels (to be keyed, currently hardcoded English)",
+     "text": "reading today  /  active this week  /  prayer requests"
+    },
+    {
+     "element": "Code prompt (campus_stats_prompt)",
+     "text": "Enter your campus pastor code to see live stats for your campus."
+    },
+    {
+     "element": "Error (campus_stats_error)",
+     "text": "Couldn't load live stats \u2014 check your campus code."
+    }
+   ],
+   "states": [
+    "Signed in with a roster campus \u2014 real tiles from /api/analytics-dashboard",
+    "Hand-typed code \u2014 accepted and kept (no signin marker, survives boot)",
+    "Code minted for a different campus \u2014 the app re-asks on boot",
+    "No code \u2014 the prompt, and no numbers at all",
+    "Loading / error"
+   ],
+   "keep": [
+    "Everything. Real numbers or none is already the standard here, and the one derivation path through lib/campus-code.js.",
+    "The staff sign-in flow and the 'Sign out of pastor account' row in the sheet"
+   ],
+   "change": [
+    "Key the three tile labels for es/pt/id"
+   ],
+   "remove": []
+  },
+  {
+   "name": "Reminders \u2014 More \u2192 Notifications",
+   "purpose": "One nudge a day, at the hour he actually opens, that never mentions a streak.",
+   "order": [
+    "Notifications header",
+    "Push toggle (or the calendar fallback where push is unsupported)",
+    "Reminder hour picker",
+    "One line naming the promise"
+   ],
+   "copy": [
+    {
+     "element": "Promise line (new)",
+     "text": "One reminder a day, at the time you usually read. Nothing else."
+    },
+    {
+     "element": "Push text, default",
+     "text": "Today's chapter is open. This one is just for you."
+    },
+    {
+     "element": "Push text, alternate",
+     "text": "Ten minutes, before anyone needs you."
+    },
+    {
+     "element": "Push text, after a missed day",
+     "text": "Yesterday got away. Today's chapter is open."
+    }
+   ],
+   "states": [
+    "Push supported (prod or localhost only) \u2014 toggle plus hour picker",
+    "Push unsupported (deploy preview, futures.church proxy) \u2014 the calendar-reminder fallback, unchanged",
+    "Hour never set \u2014 after 5\u20137 sessions, default the picker to his modal open hour from the ledger and say so",
+    "Unsubscribed \u2014 only when the revoke actually succeeded (unsubscribePush already returns a boolean)"
+   ],
+   "keep": [
+    "pushSupported()'s allowlist and the calendar fallback",
+    "The bounded-timeout PushOptIn flow \u2014 it once trapped the whole app",
+    "Evidence timing: the ask comes after the first completed reading, never for comfort, never stacked with PathAskedOnce",
+    "The hourly cron with its 2-hour catch-up window and once-per-local-day ledger"
+   ],
+   "change": [
+    "Default the reminder hour from observed opens rather than a fixed value",
+    "Add pastor copy variants, and add es/pt templates \u2014 push-send.js has EN and ID only, so a Futuros pastor gets an English push today",
+    "Never send streak-loss language"
+   ],
+   "remove": [
+    "Any guilt-framed variant, now and in future \u2014 the research is explicit that these drive opt-out and uninstall."
+   ]
+  }
+ ],
+ "comfort_access": "One shared, path-neutral comfort door, reachable for a pastor without changing his saved path. It appears as a single quiet line at the foot of Between you and God \u2014 \"If today is hard, open comfort\" \u2014 and opens the comfort chapter as a full-screen sub-view over Home using useSubView alone, never useSubView plus useModalA11y (ruling: nested focus traps break keyboard and Android back). Inside it: one passage, slow audio first, low stimulus, the comfortMode toolbar restricted to Note and Close only, no streak, no count, no \"complete\", and no \"Feeling Stronger?\" graduation prompt, ever. It must never call saveSetup \u2014 his path stays pastor_leader, nothing is stamped, nothing syncs a persona change. This matters more for this persona than any other: 38% of pastors considered quitting in the past year and 65% report loneliness (research, Persona 5), and crisis is not something anyone selects from a menu on a good day (research, Persona 6). Paired with it, the safety flow: crisis language typed into Bible AI or a prayer request triggers a gentle confirm, then the region-correct line (988 in the US, 13 11 14 in Australia, 0800 543 354 in New Zealand) and a first-use disclosure that this is scripture and a church, not counselling \u2014 81% of mental-health apps carry a liability disclaimer instead of a crisis resource and only 35% show one in-app, some with the wrong country's number (research, Persona 6, Crisis 2021). Which lines per congregation, and who at each campus receives a pastor's own prayer request, are Ashley's calls.",
+ "reminders": "One push a day, no more, timed to when he actually opens rather than a number he guessed at setup \u2014 Duolingo's behaviour-inferred timing, which the research names as the pattern to copy (cross-cutting 6). The new dw_read_days ledger stores the local date and hour of each real completion for the last 14 days; after 5\u20137 sessions the reminder hour picker in More defaults to his modal hour and the card says so in one line. Copy is neutral and names the chapter, never the streak: \"Today's chapter is open. This one is just for you.\" After a missed day the message acknowledges the gap and offers today, with no accounting: \"Yesterday got away. Today's chapter is open.\" Guilt-framed streak reminders drive notification opt-out and uninstall, and that is a permanent loss of the only channel we have. Three live constraints hold: the ask fires only after the first completed reading and never stacks with PathAskedOnce (App.tsx gating, keep it); templates live hardcoded in netlify/functions/push-send.js with EN and ID only, so es/pt must be added there or Futuros pastors keep getting English; and pushSupported() allowlists futuresdailyword.com, www and localhost only, so none of this is verifiable on a deploy preview \u2014 verify on prod or localhost. The grace side stays in streak.ts exactly as it is: one freeze, replenished after 7 days, count bridged rather than reset. No new freeze rules.",
+ "instrumentation": [
+  "pastor_read_done \u2014 a pastor completed the personal reading. Detail: read-days in the last 7, whether a plan or the PASTOR_CHAPTERS fallback served it. This is the D1/D7/D30 numerator for this path and the research says no public source will ever supply it.",
+  "pastor_prep_file \u2014 a verse was filed to the prep bag from the reading. Detail: ref. Proves the reward loop's trigger fires while reading, not in a separate work session.",
+  "pastor_prep_card_view / pastor_prep_handoff \u2014 the This week's prep card was seen, and its items were sent to Prep or to the outline prompt. Proves the filed pile is worth making visible; if handoff never fires, the card is decoration.",
+  "pastor_preach_exit \u2014 the Preach card was tapped. Detail: its screen position (above/below the reading) and the session's elapsed time before the tap. This is the single measurement that settles the demotion: if exits hold steady but pastor_read_done rises, the move worked.",
+  "pastor_study_open \u2014 Study this passage was expanded. Detail: which surface (commentary, greek, crossrefs, sources). If this collapses to near zero, the closed default is wrong and it goes back.",
+  "pastor_source_open \u2014 the source-and-licence footer or the sources list was opened. Directly tests the research's trust-panel claim.",
+  "pastor_ai_prompt \u2014 one of the four quick prompts fired. Detail: kind, whether a selection existed, whether the prep bag had items. trackBehavior already fires client-side as 'pastor:{kind}'; it needs a server-side allowlist entry to survive.",
+  "pastor_ai_subline_cohort \u2014 the framing A/B: 'For your message' alone versus with the 'It finds and organises' subline, measured on prompt-tap rate and on 7-day return. The research calls this the highest-leverage copy change for this persona; it is worthless untested.",
+  "pastor_sunday_card \u2014 shown, dismissed, or answered. Detail: read-days and filed count at the time. Tells us whether the Sunday beat is real.",
+  "pastor_comfort_open \u2014 comfort opened from the pastor path, with no persona change. Detail: entry point. Duty-of-care reach, and it must be reported separately from comfort-persona usage.",
+  "pastor_streak_repair \u2014 a freeze was spent. Detail: gap length. Proves grace is being used rather than people quietly leaving.",
+  "pastor_reminder_set / pastor_reminder_off \u2014 hour chosen, and every opt-out. Opt-out rate is the guard-rail metric on all reminder copy.",
+  "Path attached to the existing events: daily_reading, app_open and page_view must carry the persona in their detail, or D1/D7/D30 cannot be cut by path at all \u2014 which is the research's number-one build.",
+  "One dw_events table and one nightly rollup by path and cohort week. Everything above is unreadable without it, and TRACKED_EVENTS in src/utils/analytics.ts:24-31 is a hardcoded allowlist that silently drops anything not listed."
+ ],
+ "self_serve_levers": [
+  "Already self-serve, keep: the preaching focus (dw_sermon_prep_focus \u2014 set in the wizard's step 13 or edited on the prep card), the campus code and campus (provisioned by pastor sign-in through my-campus-code, never typed by the client), the reminder hour and push on/off in More, the language switch, and the path itself through the swatch pill in the Home header.",
+  "NEW, zero backend: Write your own prompts. A pastor adds his own Between you and God prompts; his list rotates first and the bundled fifteen sit behind it. Stored as a personal dw_ key on the misc bag, fill-only, never campus-shared. This converts the single most hardcoded pastor content bank (persona-config.ts:473-487) into something he owns, and costs one small component.",
+  "NEW, zero backend: his own Sunday question. Same store, same rotation rule, replaces the bank on his device only.",
+  "NEW, intake-backed and campus-scoped: Campus reading. A campus pastor sets this week's passage for his campus; it replaces the PASTOR_CHAPTERS rotation as the hero fallback for readers at that campus. It goes through the existing intake pattern \u2014 format_preview, explicit confirm, submit \u2014 additive-only, campus-scoped, and every mint logged, exactly like the campus corner. If it ships as a /books/*.json asset it must be network-first with cache as offline fallback only, and CACHE_NAME, STATIC_CACHE and SW_VERSION all bump together, or returning readers never see the edit.",
+  "Still needs a developer, and should be named honestly rather than pretended away: PASTOR_CHAPTERS itself (src/data/pastor.ts), the wizard's plan mappings (PastorStudyOnboarding.tsx:147-256), the push templates and verse rotation (netlify/functions/push-send.js), the plan catalogue \u2014 where a plan id is referenced in four places and all four must be rewired or the wizard starts a dead plan \u2014 and the PREP_URL constant (HomeScreen.tsx:74). None of these has an admin surface today and none should be faked as one."
+ ],
+ "evidence": [
+  {
+   "move": "Personal reading above every work surface; move the Preach card below the reading.",
+   "source": "Ashley's own 2 Sep ruling: \"Sermon Notes row is demoted below the reading for congregation/deeper_study/pastor_leader/comfort\" (feedback_daily_word_today_rebuild_rejected, PHASE 2, line 16). Live code contradicts it \u2014 sermonNotesRow renders at HomeScreen.tsx:2106, the hero at 2138, after PR #97 moved it back to \"just below the greeting, always visible\"."
+  },
+  {
+   "move": "The whole thesis \u2014 protect the ten minutes that produce nothing.",
+   "source": "Research, Persona 5: ~70% of SBC pastors spend 8+ hours a week on sermon prep, 21% spend 15+; Barna 65% report loneliness, up from 42% in 2015; 38% considered quitting in the past year."
+  },
+  {
+   "move": "\"It finds and organises. You write the message.\" subline, and the outline prompt named after his own filed verses.",
+   "source": "Research, Persona 5: \"the AI is a research assistant, never the writer\u2026 'Study aid' copy, not 'AI writer'. Test this framing directly against adoption; it is the highest-leverage copy change in the app.\" Barna/Gloo Dec 2025: 79% worry AI could replace God's role, 63% pastoral leadership, 71% cautious."
+  },
+  {
+   "move": "Source and licence line inside the study card; AI note split out of the commentary chip strip.",
+   "source": "Research, Persona 5: \"Trust panel: every commentary, cross-reference and lexicon result shows its source and licence inline\u2026 This is already the architecture (study.js, public-domain and CC sources) and should be visible, not hidden in Settings.\" Plus: reviewers document AI tools fabricating cross-references on less-common passages. Live: StudySourcesCard is in Settings only; the AI fallback sits as a peer chip labelled \"AI Insight\" (HomeScreen.tsx:924)."
+  },
+  {
+   "move": "Commentary arrives closed behind \"Study this passage\".",
+   "source": "Research, Persona 3 (the same study surfaces): the recurring complaint is \"it keeps adding functionality, it's getting so cluttered\", and depth tools are wanted \"when wanted, not by default\". Cross-cutting 3: busyness is the #1 reason reading declines, 40\u201358% across ABS/Barna years; the felt need is a smaller unit."
+  },
+  {
+   "move": "This week's prep card as the reward loop.",
+   "source": "Research, Persona 5: \"Time saved: show it\" and Sermonary users reporting 4\u20138 hours saved a week \u2014 reframed to the pile rather than the clock, because a productivity metric on a devotional imports the framing that kills it. Live gap: dw_sermon_prep is written by HighlightToolbar but its only display, SermonWorkspace in PreachScreen, is dead code unmounted from App.tsx (home-pastor-floor.test.ts:72-76)."
+  },
+  {
+   "move": "Kill the fabricated \"days this week\" number.",
+   "source": "HomeScreen.tsx:117, daysRead = Math.min(streak, 7) \u2014 and the streak itself increments on any Home mount (HomeScreen.tsx:786-795), so it counts opens, not reading. Against the app's own standard in Campus Overview, which \"never fabricates numbers\"."
+  },
+  {
+   "move": "Identity language before counting; \"You're back. Nothing to make up.\"",
+   "source": "Research, cross-cutting 6: \"Streaks work until they shame. Guilt-framed streak reminders drive notification opt-out and uninstall\u2026 streak repair rather than a hard reset.\" Persona 3: identity language (\"you read five days most weeks\") with a reset without shame. The app's own best line already exists: \"This is your time \u2014 not ministry, just you and God\" (persona-config.ts)."
+  },
+  {
+   "move": "Behaviour-inferred reminder hour, one a day.",
+   "source": "Research, Persona 2 and cross-cutting 6: \"one nudge a day, timed to when the person actually last opened (Duolingo's behaviour-inferred timing)\"."
+  },
+  {
+   "move": "The Sunday beat rather than a seasonal campaign.",
+   "source": "Research, cross-cutting 5: calendar moments drive the spikes; time-boxed shared events beat steady nudges. For a pastor the recurring calendar moment is Sunday. The pastor-only weekly review already exists and Ashley explicitly rejected widening it (project_daily_word_deep_dive_aug2026, Owner decision 8)."
+  },
+  {
+   "move": "One-tap comfort from the pastor path without switching path.",
+   "source": "Research, Persona 6 and \"What to build first\" item 2: \"From every path: a persistent one-tap 'I need comfort now' that opens comfort without switching the saved path. Crisis is not a persona someone chooses on a good day.\""
+  },
+  {
+   "move": "Outline shapes limited to 4D and H.E.A.T.",
+   "source": "Ruling: only 4D (Discover/Develop/Deploy/Depart) and H.E.A.T. (Hungry/Effective/Adaptable/Transferable) are defined on record; P.A.I.D., Five Fences and Five Batons are not defined anywhere and must never be invented (project_daily_word_pastor_sign_in, Phases 2-4)."
+  },
+  {
+   "move": "Key the English literals in the pastoral card and the campus tiles.",
+   "source": "PastoralReflectionSection.tsx:34, 62, 76 and HomeScreen.tsx:4258-4270 are hardcoded English. The app serves Futuros Spanish congregations; translated content is Claude-drafted and Ashley approves before ship (project_daily_word_deep_dive_aug2026, Owner decision 7)."
+  },
+  {
+   "move": "Instrumentation first.",
+   "source": "Research, \"What to build first\" item 1: \"D1/D7/D30 by path, session length, completion, reminder opt-out. Nothing above can be tested without it, and no public source will ever supply it.\""
+  }
+ ],
+ "open_decisions": [
+  "The Preach card moving below the reading. It restores your own 2 Sep demotion ruling, but PR #97 deliberately put it back under the greeting as \"always visible\" \u2014 so one of the two was a mistake and only you know which. Everything else in this design assumes the reading comes first.",
+  "Commentary arriving closed for pastors behind \"Study this passage\". Nothing is removed and the open state is identical, but it changes what a pastor sees on arrival, so it is the item most likely to read as \"stripped\" on the preview link.",
+  "Whether 4D and H.E.A.T. appear inside the app as outline shapes on the AI prompt. They are the only two frameworks on record; putting them in the product is a decision about your own material, not a design question.",
+  "The crisis lines per congregation (988 US, 13 11 14 AU, 0800 543 354 NZ are drafted) and who at each campus receives a pastor's own prayer request \u2014 including whether a pastor's request routes to a peer rather than to his own campus.",
+  "Whether a campus pastor may set a campus reading through intake, or whether the reading stays central and campuses only get the campus corner.",
+  "Whether pastor push copy differs from congregation copy, and whether Spanish and Portuguese push templates are commissioned now \u2014 today a Futuros pastor gets an English notification.",
+  "Whether the pastor tier is priced flat, and at what (the research flags the Logos subscription backlash; nothing in this design depends on the answer)."
+ ],
+ "risks": [
+  "Moving the Preach card below the reading will reduce taps on it. That is the point, but if Pastors Sermon Prep sessions fall without pastor_read_done rising, the trade failed \u2014 pastor_preach_exit with its position in the detail is the instrument that settles it, and the move is one line to revert.",
+  "The closed commentary default is the one change that could read as \"completely stripped\" again. Mitigate by shipping it on the preview link with both states visible and the card's full typography intact when open, and by naming that nothing was deleted.",
+  "dw_read_days is a new synced key. It must merge into what is currently in localStorage and touch only its own field \u2014 never be rebuilt from React state, which once destroyed nine days of a reader's progress across devices \u2014 and it rides the misc bag fill-only with pushNow on write.",
+  "Adding a prep_bag key to pastor_leader's sectionOrder touches persona-config.ts, which is pinned by tests for the other four personas; the diff must show no other persona's sectionOrder moving.",
+  "Extending TRACKED_EVENTS requires the server aggregate to tolerate event types it does not know, or new events are silently dropped and the whole instrumentation build reads as working while recording nothing.",
+  "The campus-reading lever inherits a known, accepted exposure: any @futures.church mailbox can self-assign a campus on its first /staff submission and then obtain that campus's code. It adds no new power over the campus corner, but it must stay campus-scoped, additive-only and logged.",
+  "Push copy and templates live in a Netlify function with no CMS, so every wording change is a deploy \u2014 and none of it is verifiable on a deploy preview, only on prod or localhost.",
+  "The Sunday card change must not widen beyond pastor_leader; weekly-review-for-all was explicitly rejected.",
+  "Every new string needs en/es/pt/id or t() renders the raw key on screen, and translated content is drafted then approved before ship."
+ ],
+ "build_steps": [
+  {
+   "step": "1. A truthful read-day ledger. Write dw_read_days (last 14 local en-CA dates plus the hour) from the real completion sites only \u2014 never from the passive mount call \u2014 and leave streak.ts semantically untouched. This is the foundation for the greeting bands, the Sunday tiles and the inferred reminder hour.",
+   "files": "src/utils/streak.ts (new exported helper only), src/screens/HomeScreen.tsx handleMarkRead (~717-731) and savePathwayProgressFromLesson (~584-598) and the last-chapter auto-complete (~1562), src/utils/storage.ts key constant, src/utils/cloudSync.ts misc registration",
+   "check": "New vitest spec: recording twice in one local day appends one entry; a date crossing local midnight appends a second; the array never exceeds 14; the ledger is merged into current localStorage, not rebuilt from state. Existing streak tests stay green. Verify with the DATE-AXIS rule \u2014 toLocaleDateString('en-CA') everywhere, no toISOString."
+  },
+  {
+   "step": "2. Restore the demotion. Move {sermonNotesRow} from HomeScreen.tsx:2106 to directly below the reading block for the four non-new_to_faith personas; new_to_faith keeps it above only in the Sunday window. Rewrite path_arrival_pastor, which currently says \"Preach is the card above\", and change preach_card_sub to say the card leaves Daily Word.",
+   "files": "src/screens/HomeScreen.tsx (2106 \u2192 below the hero), src/utils/i18n.ts path_arrival_pastor \u00d74 languages, src/screens/HomeScreen.tsx local t map preach_card_sub \u00d74",
+   "check": "New src/screens/home-pastor-order.test.ts asserting the sermonNotesRow JSX index is greater than the hero index for pastor_leader and less than it for new_to_faith in the Sunday window. home-pastor-floor.test.ts still green (PREP_URL assign for pastors, chooser for everyone else). npx tsc -b && npm run build."
+  },
+  {
+   "step": "3. This week's prep card. New pastor-only section reading sermonPrep.ts, mounted on a new sectionOrder key placed after pastoral_prompt; renders nothing when the bag is empty; hosts the focus input, the item list with remove, Make an outline and Send to Prep.",
+   "files": "src/sections/PrepThisWeekSection.tsx (new), src/sections/index.ts, src/utils/persona-config.ts pastor_leader sectionOrder, src/screens/HomeScreen.tsx mount after the pastoral_prompt gate (~2842), src/utils/i18n.ts new keys \u00d74 languages",
+   "check": "New spec: zero items renders null; one item renders the singular line; removing an item calls removePrepItem and does not touch other misc keys; the focus input writes through setPreachingFocus so syncMisc fires. Confirm no other persona's sectionOrder changed in the diff."
+  },
+  {
+   "step": "4. Study this passage. Flip pastor_leader's commentary feature to collapsed, rename the header, add the source-and-licence footer from fetchStudySources, and split the AI fallback out of the commentary chip strip into its own labelled block.",
+   "files": "src/utils/persona-config.ts (features.commentary), src/screens/HomeScreen.tsx commentary card (3355-3414) and the AI fallback push (924), src/utils/study.ts (reuse fetchStudySources), src/utils/i18n.ts new keys \u00d74",
+   "check": "Persona test in preview with dw_setup={persona:'pastor_leader',source:'settings'}: the card is closed on arrival, opens on tap, shows the source and licence, and the AI note is visually and semantically separate. deeper_study still arrives expanded. Note the app's own /api returns 403 on a deploy preview, so verify commentary text on prod."
+  },
+  {
+   "step": "5. Framing and language. Add the AI role subline, rename the outline prompt, key the three hardcoded literals in the pastoral card and the three campus tile labels, re-band the pastor greeting onto dw_read_days, and replace the pastor milestone copy.",
+   "files": "src/components/BibleAI.tsx (subline under ai_pastor_section), src/utils/pastorPrompts.ts + i18n ai_pastor_outline, src/components/PastoralReflectionSection.tsx:34/62/76, src/screens/HomeScreen.tsx:4258-4270, src/utils/persona-config.ts getGreeting pastor branches \u00d74 languages, the milestone banner",
+   "check": "npx vitest run src/__tests__/i18n-keys.test.ts \u2014 no raw keys reach the screen and every new key has en/es/pt/id. BibleAI.pastor.test.tsx still pins the four prompt kinds and the exact outline payload. Spot-check the pastor Home in es and pt: no English literals remain."
+  },
+  {
+   "step": "6. The Sunday card for pastors. Real days-read from the ledger, verses filed as the second tile, the pastor question bank, and the two buttons.",
+   "files": "src/screens/HomeScreen.tsx getWeekReviewData (100-121) and the mount at 3959, src/components/WeeklyReviewCard.tsx, src/utils/i18n.ts new keys \u00d74. Note src/sections/WeeklyReviewSection.tsx is the extracted-but-unmounted sibling kept by ruling \u2014 update it to match so the two never drift.",
+   "check": "Spec pinning: Sunday only, still pastor-only, days-read comes from the ledger and not from the streak, and the card is unchanged for every other persona. Manually set a ledger with 4 of the last 7 days and confirm the tile reads 4, not 7."
+  },
+  {
+   "step": "7. Comfort from the pastor path, plus the safety flow. One shared line and one sub-view, on useSubView alone, comfortMode toolbar Note and Close only, never writing dw_setup.",
+   "files": "src/components/ComfortSection.tsx (reused as the sub-view body), src/components/PastoralReflectionSection.tsx (the line), src/components/BibleAI.tsx (crisis-language confirm and the region line), src/data/tokens.ts or a new region-lines constant, src/utils/i18n.ts \u00d74",
+   "check": "Spec asserting the sub-view mounts with useSubView and no aria-modal or useModalA11y anywhere in its tree, that Android back closes it once with no orphaned history entry, that dw_setup is untouched after opening and closing it, and that no \"Feeling Stronger?\" string exists anywhere in the repo."
+  },
+  {
+   "step": "8. Instrumentation. Add the pastor events to the client allowlist and attach the persona to daily_reading, app_open and page_view; stand up the dw_events table and the nightly rollup by path.",
+   "files": "src/utils/analytics.ts TRACKED_EVENTS (24-31) and the call sites in HomeScreen/BibleAI/PrepThisWeekSection, netlify/functions/track-activity.js, netlify/functions/analytics-dashboard.js, a repo migration under supabase/migrations",
+   "check": "Fire each new event locally and confirm it reaches the table with the persona in its detail; confirm an unknown event type is ignored rather than erroring; migration lives in the repo and applies cleanly. RLS on, no anon or authenticated grants."
+  },
+  {
+   "step": "9. Reminders. Default the hour from the ledger, add the pastor copy variants, and add es/pt templates.",
+   "files": "src/utils/push.ts, src/screens/MoreScreen.tsx notifications card (643-720), netlify/functions/push-send.js TEMPLATES and VERSE_SNIPPETS",
+   "check": "Verify on prod or localhost only \u2014 pushSupported() allowlists futuresdailyword.com, www and localhost, so the deploy preview shows the calendar fallback. Confirm one send per local day per subscriber, the 2-hour catch-up window intact, and that no template mentions a streak."
+  },
+  {
+   "step": "10. The levers. First the client-only ones \u2014 write your own Between you and God prompts and your own Sunday question, personal, misc-synced, fill-only. Then the campus reading through intake, additive-only and campus-scoped.",
+   "files": "src/components/PastoralReflectionSection.tsx + a small editor, src/utils/cloudSync.ts misc keys, then netlify/functions/intake.js (new campus_reading action, format_preview \u2192 confirm \u2192 submit) and src/data/pastor.ts as the offline fallback",
+   "check": "Personal prompts: a second device does not clobber them (fill-only, newest-wins on the cadence key), and the bundled fifteen still rotate behind them. Campus reading: the preview step shows exactly what will publish, the action is logged, and if the payload ships as /books/*.json confirm network-first with cache as offline fallback only and bump CACHE_NAME, STATIC_CACHE and SW_VERSION together."
+  }
+ ]
+}

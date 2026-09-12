@@ -1,0 +1,12 @@
+{
+ "issues": [
+  {
+   "move": "Step 6 check command",
+   "problem": "Cites a test file path that does not exist at the stated location",
+   "evidence": "Step 6's check references src/screens/PathArrivalStrip.test.tsx; the actual file is at src/components/PathArrivalStrip.test.tsx (confirmed via find; src/screens/PathArrivalStrip.test.tsx does not exist).",
+   "fix": "Correct the path in the build step to src/components/PathArrivalStrip.test.tsx before it is handed to whoever runs the check."
+  }
+ ],
+ "lens": "phone-and-no-dev",
+ "refuted": true
+}

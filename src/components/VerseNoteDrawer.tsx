@@ -6,6 +6,7 @@ import { trackBehavior } from '../utils/behavior';
 import { fetchAICommentary } from '../utils/api';
 import { MarkdownText } from './MarkdownText';
 import { pushNow } from '../utils/cloudSync';
+import { recordReadDay } from '../utils/readDays';
 import { t, getLang } from '../utils/i18n';
 import { useModalA11y } from '../utils/useModalA11y';
 
@@ -219,7 +220,7 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
       return;
     }
     const ref = selection.verseRefs[0] || '';
-    if (!entryIdRef.current) trackBehavior('note_created', ref); // count the note once, not every autosave
+    if (!entryIdRef.current) { trackBehavior('note_created', ref); recordReadDay('journal'); } // count the note once, not every autosave
     // Fix 3: if the user was reading commentary while writing the note, capture that context too.
     const activeCommentary = commentaries[selectedSourceIdx];
     let commentarySource: string | undefined;

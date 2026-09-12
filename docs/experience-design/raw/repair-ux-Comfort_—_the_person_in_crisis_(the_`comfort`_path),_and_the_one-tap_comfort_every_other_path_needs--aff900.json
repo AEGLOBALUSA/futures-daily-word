@@ -1,0 +1,945 @@
+{
+ "item": "Comfort \u2014 the person in crisis (the `comfort` path), and the one-tap comfort every other path needs",
+ "angle": "Design the whole comfort experience from the moment someone falls into it: one passage handed over before anything is asked, reachable in one tap from every screen without changing anyone's saved path, with a region-correct crisis line that fails to no number rather than the wrong one, a real human on the same screen as the scripture only when a real human is actually behind the button, and every count, quota, grade and graduation removed, because all of it says perform to a person who cannot.",
+ "thesis": "Comfort is not a path anyone picks on a good day. It is a moment they fall into, usually late, usually alone, usually from whatever screen they were already on. So comfort has to be one tap from everywhere without touching the saved path, has to hand over the deliverable \u2014 one verse, one chapter, read aloud \u2014 before it asks for anything, and has to put the right country's number on the reading screen rather than two taps away in More. Ashley's instinct here is already right and the research confirms it: just the scriptures, nothing asked, no graduation. What the research adds is duty of care (only 35% of mental-health apps show crisis resources in-app; some show the wrong country's number). What the live code adds is more damning than either: this screen shows today's chapter TWICE, with two translation pickers and two Listen buttons; the verse sitting above the reading is routinely from a different book than the reading; and after two chapters the app tells a person in crisis 'You're doing great' and asks them to commit to a daily quota \u2014 breaking the path's own printed promise, 'Comfort scriptures. Nothing else asked of you.' The biggest win here is subtraction that makes the screen warmer, not thinner: one passage instead of two, one verse that belongs to it, one honest care card that was never there at all. That subtraction ships first and on its own. The safety plumbing behind it \u2014 the region resolver, the private pastoral route \u2014 ships second, because it is the part where a wrong answer is worse than no feature: reusing the app's existing geo helper would show 988 to a reader in Rio, its existing cache would show no number at all on a cold offline open at 2am, a saved campus of 'Non-Futures Church' would silently kill the resolve, and the link a pastor texts to a hospital car park would land on a cookie banner. Each of those is now closed in the design rather than discovered in the build.",
+ "principles": [
+  "The deliverable is at the top and already open. Verse, then Listen, then the chapter \u2014 never a Read button hiding the thing they came for.",
+  "Nothing is asked. Not an amount, not an email, not a notification, not a path change, not a rating, not a two-button question. Anything the app can infer, it infers silently.",
+  "Nothing counts. No streak shown, no 'Reading 2 of 3', no 'complete', no grading. The streak keeps recording for Ashley's numbers and stays invisible.",
+  "One passage. Low stimulus. If two things on the screen are both scripture, one of them is noise \u2014 and today, literally, one of them is a duplicate.",
+  "Nothing is sold. No book cards, no promo row, no 'when you're ready there's more here'. A crisis screen is not a storefront, and the done line is the last thing on it.",
+  "Presence before explanation, in the verses AND in the prompts. Verses that say God is near, not verses that explain why this happened. Romans 8:28 and Jeremiah 29:11 are explanation verses and are excluded from the crisis surface (Pargament: negative religious coping predicts decline). A quick prompt that asks 'why does this hurt' invites the same explanation from the other direction.",
+  "The crisis line is on the reading screen, always, offline included \u2014 never behind a tab, never behind a network call, never waiting on a fetch to paint.",
+  "Never show the wrong country's number. Resolve by country, never by a guess wider than a country; a timezone tier is an explicit allowlist of zones, never a continent prefix; and when the answer is not certain, show none. A wrong number is worse than no number.",
+  "A resolve that succeeded once must survive a cold offline open. The resolved region lives in localStorage and paints on mount, before any network call. sessionStorage dies with the tab, and the tab is dead at 2am.",
+  "No signal terminates the resolve. A campus we have no line for, or no campus at all, falls through to the next tier rather than ending in silence. Only a total absence of signal shows the local-emergency sentence.",
+  "A control that cannot act does not render. No greyed button, no dead CTA, no 'Talk to a pastor' pointing at an inbox nobody watches. The card ships without the button rather than with a broken one.",
+  "A safety card never blocks, never lectures, never reports. It appears beside the answer and the answer still comes.",
+  "Comfort never nudges. No push, no 'we missed you', no seasonal challenge, no graduation to another path \u2014 ever.",
+  "Calm inside the locked look: fewer elements on the warm ivory canvas, the white paper panel, upright Georgia, flat surfaces with a hairline border and no decorative gradients anywhere. Never dark, never stripped. The research asks for 'dark and calm'; the ruling wins, and calm is achieved by removing chrome.",
+  "A door that promises nothing is asked must open onto nothing being asked \u2014 no cookie banner, no email gate, no install prompt, no Day 1 landing on the first paint.",
+  "Nothing the person types is ever stored in an analytics event."
+ ],
+ "journey": {
+  "day0": "Two arrivals, both one tap, neither a declaration. (a) The path card already in the sheet \u2014 'I'm going through something hard / Comfort scriptures. Nothing else asked of you' \u2014 which saves with source onboarding and opens the screen immediately, per the one-tap-commits ruling. Unchanged, every word. (b) NEW, and the more likely arrival: the word Comfort sitting quietly in the seam strip above every screen, on every path, before it was ever needed. One tap opens Comfort Now full-screen. No saveSetup call at all, so no source is ever stamped; no plan day credited, no dw_setup written, no Door 3 screen, no push ask, no email gate. Close returns them exactly where they were. A third door for the pastor: futuresdailyword.com/?comfort=1 opens the same surface on a cold device \u2014 the link you text to someone in a hospital car park. That link must land on the verse and nothing else, so it suppresses for that session every overlay the sermon deep link already suppresses plus the ones it does not: the cookie banner, the email gate, the install prompt, the email nudge and the Day 1 landing. Unlike the sermon link it writes nothing at all to localStorage \u2014 no persona activation, no skip flag \u2014 it is an in-memory boolean for the session and the query param is stripped with replaceState. Research: 'Crisis is not a persona someone chooses on a good day.'",
+  "first_session": "Two to four minutes, and nothing is asked in any of them. Greeting with no day count (already date-keyed, verified). Today's anchor verse, large, on the white paper panel \u2014 and from today it is the verse that belongs to today's chapter. Listen as the primary control above the text, because reading may be beyond them. The chapter open underneath, once, with no translation pills in front of it. 'Pray this with me' if they want it, and it stays open until they close it. 'I've finished reading' brings one short thought from that chapter. Then 'That's enough for today.' \u2014 and that is the last thing on the screen. Talk to someone is on screen the whole time, not revealed at the end: the region-correct crisis line always, the campus's own published contact when it has one, and the 'Talk to a pastor' button only where a named person is actually receiving. One honest sentence on first open: this is scripture and a church, not counselling.",
+  "return_visit": "Same shape, next chapter in the rotation, keyed to the local date. No reference to the gap, no count, no welcome-back \u2014 a welcome-back implies the absence was noticed. If they made a steady card it now sits under the reading, their own handwriting above ours. From day two, one plain link above the verse: 'Read a different passage'. Not a question, not two buttons, not 'still here' \u2014 the path's printed promise is that nothing is asked, and a two-button question is an ask. It is a link they can ignore, and it ships behind a flag as an A/B because the research explicitly flags the next-day check-in as plausible but unsourced.",
+  "week2": "Nothing new, and that is the design: week two is built to look like day two. If they read more than one chapter on two separate days, the app quietly sets dw_comfort_daily to that amount and says so once in the done state \u2014 'There'll be two ready for you tomorrow', with a 'Change this' link. It never asks the question. No milestone, no 'you've been here 14 days', no suggestion the season should be over. No streak, no push, no graduation prompt, no 'Feeling Stronger?' \u2014 removed for good and locked by pathway-upgrades.test.ts. Any behaviour-triggered escalation at week two (surfacing the pastor row harder because someone has been in crisis a while) was considered and rejected: it reads as surveillance and there is no evidence for the timing.",
+  "missed_day": "Nothing happens. No catch-up, no 'we missed you', no reset message, no gap in a chart, no badge, no streak-repair prompt. recordStreakToday() still runs on mount and still syncs, so the streak survives if they later move to another path; the UI still suppresses it for comfort. The screen on day nine is identical to the screen on day two, and the greeting rotates on day-of-month so it has no idea they were gone. Research: guilt-framed reminders drive notification opt-out and uninstall, and this is the reader least able to absorb one.",
+  "seasonal": "Comfort opts out of the calendar. No Lent challenge, no 1 January plan start, no church-wide live 'reading today' count \u2014 the calendar-spike finding is about the movable middle, and a time-boxed challenge aimed at someone in crisis is a demand. The inversion instead: an optional `dates` block in public/comfort/content.json mapping a local date to a chapter override plus one line, so 24 December can be Psalm 121 with 'Christmas is hard for a lot of people. This one is for you.', or Mother's Day, Father's Day, Easter Saturday, the anniversary of a local loss. Say plainly what this lever is: content.json is a repo asset, so the hard-dates block is a central edit Ashley makes (or approves), not something a campus pastor changes in a hard week \u2014 the two things a campus genuinely needs to change fast, its care contact and its crisis line, live in the database instead. No countdown, no participation count, no shared total."
+ },
+ "screens": [
+  {
+   "name": "Comfort Home (the saved comfort path)",
+   "purpose": "Hand over one verse and one chapter, read aloud, with the right country's number and a person in reach \u2014 and ask for nothing, sell nothing, count nothing. Today this screen shows the chapter twice; that is the single biggest fix and it ships on its own.",
+   "order": [
+    "Greeting \u2014 rotating comfort line, no day count",
+    "'Read a different passage' \u2014 one plain link, day 2+ only, behind the A/B flag",
+    "Anchor verse strip \u2014 today's verse, now paired to today's chapter, with 'Pray this with me' folded in",
+    "Hero reading panel \u2014 the ONLY chapter surface: Listen primary above the text, scripture open, 'Sit with this' inline reflection",
+    "'I've finished reading' \u2192 'A thought from this chapter' (devotion, inline)",
+    "Talk to someone \u2014 region-correct crisis line always, campus contact when published, pastor CTA only when a named recipient exists, one-line disclosure",
+    "If today gets hard \u2014 the steady card (empty invite, or their saved card)",
+    "Ask a question \u2014 Bible AI in comfort framing, with presence-first comfort quick prompts",
+    "Done line \u2014 'That's enough for today' + what's ready tomorrow. The last thing on the screen."
+   ],
+   "copy": [
+    {
+     "element": "Greeting (keep as live, date-keyed)",
+     "text": "God is with you today, {first}."
+    },
+    {
+     "element": "Anchor verse eyebrow (keep key comfort_word_for_you)",
+     "text": "A WORD FOR YOU TODAY"
+    },
+    {
+     "element": "Anchor verse + ref (now from the same entry as today's chapter)",
+     "text": "Even though I walk through the darkest valley, I will fear no evil, for you are with me. \u2014 Psalm 23:4"
+    },
+    {
+     "element": "Reading card right-hand line \u2014 always this, never a count",
+     "text": "Take your time"
+    },
+    {
+     "element": "Listen button (primary, above the text)",
+     "text": "Listen \u00b7 4 min"
+    },
+    {
+     "element": "Prayer toggle (replaces bare 'Pray')",
+     "text": "Pray this with me"
+    },
+    {
+     "element": "Inline reflection label / prompt (keep as live)",
+     "text": "Sit with this \u2014 Which words brought you the most peace today?"
+    },
+    {
+     "element": "Finish CTA (keep as live)",
+     "text": "I've finished reading"
+    },
+    {
+     "element": "Devotion header (keep as live)",
+     "text": "A THOUGHT FROM THIS CHAPTER"
+    },
+    {
+     "element": "Done line",
+     "text": "That's enough for today. God is with you. Come back whenever you need Him."
+    },
+    {
+     "element": "Tomorrow line, inferred \u2014 one chapter",
+     "text": "There'll be one ready for you tomorrow."
+    },
+    {
+     "element": "Tomorrow line, inferred \u2014 more than one",
+     "text": "There'll be {n} ready for you tomorrow."
+    },
+    {
+     "element": "Tomorrow line, change link",
+     "text": "Change this"
+    },
+    {
+     "element": "Different-passage link (day 2+, flagged)",
+     "text": "Read a different passage"
+    },
+    {
+     "element": "Bible AI entry line",
+     "text": "Ask a question"
+    },
+    {
+     "element": "Bible AI comfort quick prompts (presence, never explanation)",
+     "text": "Say the thing you can't say out loud  /  Where is God in this  /  Read me something for tonight"
+    }
+   ],
+   "states": [
+    "First open: everything above; the disclosure line under the care card shown once.",
+    "Loaded and unread: verse, Listen, chapter open, no devotion yet, no done line.",
+    "Read: devotion inline, done line replaces the finish CTA, and the done line is the last element \u2014 nothing follows it.",
+    "Chapter has no devotion: the thought control is never shown at all, rather than shown and then silently skipped \u2014 today advanceAfterDevotion() is called during render when a devotion is missing, which is a setState-during-render bug.",
+    "Returning (day 2+): identical, new chapter, plus the 'Read a different passage' link above the verse when the flag is on.",
+    "Missed days: identical to returning. No gap language anywhere.",
+    "Care card, named recipient on file for this campus: crisis line, campus contact, 'Talk to a pastor' button.",
+    "Care card, no named recipient yet: crisis line, campus contact if the campus published one, and the honest sentence. The button does not render at all \u2014 not greyed, not disabled, absent.",
+    "Offline: 'You're offline. This is saved on your phone.' Verse, cached chapter text, prayer, care card and crisis number all render from local data \u2014 the number from the dw_crisis_region cache, painted on mount with no network call. Listen is not shown; in its place one plain line, 'Audio comes back when you're online.' Nothing greyed.",
+    "Chapter failed to load: 'We couldn't load the chapter. Here's the verse \u2014 that's enough for now.' plus 'Try again'. Verse, prayer, care card and crisis line all still render.",
+    "Audio unavailable (ESV endpoint down): Listen hidden, same plain honest line, text unaffected. A hidden failure in crisis is worse than an honest one.",
+    "Signed out / no campus set: Talk to someone shows a one-row campus picker inline, not a trip to Settings \u2014 and the crisis line still resolves by IP or timezone in the meantime rather than waiting for the picker."
+   ],
+   "keep": [
+    "The rotating date-keyed comfort greeting with no streak and no day count (persona-config.ts:144-153 es, :181-190 pt, :218-227 id, and the en equivalent) \u2014 plain, warm, on register.",
+    "Streak UI suppressed for comfort (HomeScreen.tsx ~2004) while recordStreakToday() keeps running.",
+    "No 'Choose Your Plan' funnel \u2014 the 'scripture' section correctly returns null for comfort with no plan or slots (HomeScreen.tsx:3434-3442).",
+    "The guided prayer that stays open until the reader closes it (ComfortVerseBannerSection.tsx:40-43) \u2014 Ashley's own merge ruling.",
+    "localDayIndex() local-date rotation (ComfortSection.tsx:20-23) \u2014 the DATE-AXIS ruling.",
+    "The 30-chapter rotation, the devotions, the four guided prayers and the es/pt/id translations already approved.",
+    "The white paper hero panel with upright Georgia scripture in both themes; no italics; no dark override.",
+    "comfortMode toolbar = Note + Close only (HighlightToolbar.tsx:164-185).",
+    "No graduation prompt and no comfort row in UPGRADE_CONDITIONS, locked by its test.",
+    "Sermon Notes absent entirely (features.sermonNotes: false) \u2014 already stricter than the demote-below-the-reading ruling requires.",
+    "Comfort excluded from the full-screen PushOptIn (App.tsx:311-312) and from the asked-once Door 3 screen.",
+    "Auto-served content stays credit-free \u2014 no handleRead, no plan-day credit."
+   ],
+   "change": [
+    "KILL THE DUPLICATE. The hero becomes the only chapter surface: keep the heroChapterRefs comfort fallback (HomeScreen.tsx:1302-1305) and strip ComfortSection's own chapter render, its second translation picker and its second Listen button (ComfortSection.tsx:104-175). ComfortSection becomes the after-reading frame only: devotion, done line, inferred tomorrow line.",
+    "Pair the anchor verse to today's chapter. COMFORT_VERSES (16 entries, ComfortVerseBannerSection.tsx:13-30) and COMFORT_CHAPTERS (30) are day-indexed independently, so Psalm 34:18 routinely sits above Psalm 23. One data entry per day: chapter + its own anchor verse + its devotion.",
+    "Exclude the explanation verses \u2014 Romans 8:28 (line 18) and Jeremiah 29:11 (line 28) \u2014 from the crisis surface. In acute grief these two are the verses most often experienced as dismissal.",
+    "Promote Listen above the passage text as the primary control; demote the translation control to small text under the passage. Zero decisions before the first word.",
+    "Repaint to the locked palette AND flatten it. ComfortSection and ComfortVerseBannerSection hardcode pre-relook indigo \u2014 rgba(92,107,192,\u2026), #5C6BC0, #4A6070, #37474F \u2014 making comfort the only path not wearing the ivory/clay look. Do not port the gradients across to clay: comfort surfaces become flat --dw-surface panels on --dw-canvas with a 1px --dw-border, no linear-gradient anywhere (ComfortSection.tsx:181, :219; ComfortVerseBannerSection.tsx:52). Low stimulus is the whole point of this screen.",
+    "Move Talk to someone out of More onto the reading screen, always visible, and keep a copy in More.",
+    "Infer dw_comfort_daily from behaviour instead of asking, and state it once in the done state with a 'Change this' link.",
+    "Comfort quick prompts in the AI row replace the generic six, and every one of them is a presence prompt \u2014 no 'why does this hurt so much', which invites exactly the explanation Romans 8:28 was excluded for.",
+    "sectionOrder for comfort becomes: greeting, comfort_verse_banner, comfort_after_reading, comfort_care, comfort_steady, ai_prompt, comfort_done. The live list is greeting, comfort_verse_banner, hero_audio, scripture, comfort_scripture, ai_prompt, comfort_card, book_cards (persona-config.ts:510-519) \u2014 'comfort_scripture' is renamed to 'comfort_after_reading' and hero_audio, scripture, comfort_card and book_cards all go."
+   ],
+   "remove": [
+    "The duplicate chapter \u2014 today's passage renders twice on one screen (hero fallback at HomeScreen.tsx:1302-1305 plus ComfortSection at HomeScreen.tsx:2892), each with its own translation pills and Listen button.",
+    "The ask_lock step \u2014 'You're doing great.' + 'Would you like to set a daily reading amount so we can have something ready for you each day?' (ComfortSection.tsx:300-303). A commitment question put to someone in crisis, and a direct contradiction of the path's printed promise.",
+    "The ask_more step (ComfortSection.tsx:261-295) \u2014 replaced by a plain 'Read another' link that asks nothing.",
+    "The 'Reading {x} of {y}' counter (comfort_reading_x_of_y, ComfortSection.tsx:96) \u2014 a count is a count.",
+    "'You're doing great.' (comfort_doing_great) \u2014 grading someone whose life is coming apart, and it reads as praise for using the app.",
+    "The dead sectionOrder keys: 'hero_audio' (declared at persona-config.ts:513, never checked anywhere in HomeScreen), 'comfort_card' (:517, retired into the verse banner by Ashley's merge) and 'scripture' (:514, renders null for comfort by design).",
+    "UpgradePromptCard mounting at all for comfort \u2014 it currently mounts and returns null via checkForUpgrade; gating it out at the mount site removes the standing risk of a future comfort condition, and the stale comment still naming 'Feeling Stronger?' goes with it.",
+    "Book cards, entirely \u2014 'book_cards' comes out of the comfort sectionOrder and does not reappear in the done state. The line between 'when you're ready, there's more here' and selling a book to someone in crisis is too thin to walk, and the done line should be the last thing on the screen.",
+    "The decorative gradients on every comfort surface \u2014 not recoloured to clay, removed.",
+    "Any gold AI aurora treatment on this path \u2014 the HighlightToolbar already excludes it under comfortMode; the AI row should match."
+   ]
+  },
+  {
+   "name": "The comfort door (seam chrome, every screen, every path)",
+   "purpose": "One persistent tap to comfort from anywhere, without switching the saved path. The smallest build for the highest duty of care \u2014 the research's own build item 2.",
+   "order": [
+    "Existing: Futures wordmark + 'Daily Word' (left; the word 'Daily Word' hides below 390px so three items fit)",
+    "NEW: heart outline glyph + the word Comfort (centre-right, quiet weight, --dw-text-muted, 44px hit area)",
+    "Existing: 'Futures Church \u2197' link (right)"
+   ],
+   "copy": [
+    {
+     "element": "Seam link label",
+     "text": "Comfort"
+    },
+    {
+     "element": "aria-label",
+     "text": "Open comfort now"
+    }
+   ],
+   "states": [
+    "Default \u2014 quiet, muted, same visual weight as the church link. On a good day it reads as a section name, not an alarm.",
+    "Pressed \u2014 opens Comfort Now full-screen (useSubView alone).",
+    "Already on the comfort path \u2014 the door is absent; they are already there.",
+    "Narrow phone (below 390px) \u2014 the 'Daily Word' word is hidden so wordmark, Comfort and 'Futures Church \u2197' sit on one line without wrapping; the mark and both links stay.",
+    "Embedded (IS_EMBEDDED) \u2014 the seam is hidden today (App.tsx:458 `{!IS_EMBEDDED && <SeamBar />}`), so the futures.church iframe embed would have no comfort door. Named as an owner decision, not silently accepted.",
+    "After use \u2014 unchanged. It never remembers, never says 'again', never counts."
+   ],
+   "keep": [
+    "The seam itself, its brand lockup and the 'Futures Church \u2197' link \u2014 untouched.",
+    "Its position above every screen, so the door is on Journal, Plans, Campus and Settings too, not only Home."
+   ],
+   "change": [
+    "Add one element to Seam.tsx. This is chrome rather than an IA reshape, but it is visible on the opening screen, so it still ships behind the deploy preview Ashley approves.",
+    "Render it as `<button class=\"dw-cmf-seam\">`, NOT as an `<a class=\"dw-seam-link\">`. Two reasons, both live in index.css: `.dw-seam-link` is 11px (index.css:824-836) inside a 34px strip, which is not a tap target for the one tap that must never miss; and `:root .dw-seam-bar a.dw-seam-link { color: var(--dw-gold) !important }` (index.css:876-881) would repaint it gold, putting two accents in the chrome instead of the muted weight this door needs.",
+    "Give it a 44px minimum hit area that overflows the 34px strip vertically (padding plus negative margin, or an expanded ::before), so the touch target is full-size without making the strip taller."
+   ],
+   "remove": [
+    "No sixth tab. The tab bar is five and a permanent Crisis tab labels the person every day of their life.",
+    "No sixth card on the path sheet \u2014 it is five cards and must fit a phone at ~481px.",
+    "No header icon competing with the PathSwatch. No interstitial, no badge, no banner."
+   ]
+  },
+  {
+   "name": "Comfort Now (full-screen, from the seam, the deep link, or More)",
+   "purpose": "Give a reader on any other path the same word in one tap on a bad day, without touching their saved path, their plan, their streak or their progress \u2014 and without a single thing being asked on the way in.",
+   "order": [
+    "Close (top-left, the only chrome)",
+    "One line: nothing is asked of you here",
+    "Anchor verse, large, on the white paper panel",
+    "Listen \u00b7 N min \u2014 primary",
+    "Today's chapter, open, no translation pills above it",
+    "Pray this with me",
+    "Talk to someone \u2014 crisis line always, campus contact when published, pastor CTA only when a named recipient exists, disclosure"
+   ],
+   "copy": [
+    {
+     "element": "Eyebrow",
+     "text": "A WORD FOR YOU TODAY"
+    },
+    {
+     "element": "Opening line",
+     "text": "Nothing is asked of you here."
+    },
+    {
+     "element": "Listen sub-line",
+     "text": "Read to you, slowly."
+    },
+    {
+     "element": "Care card title",
+     "text": "You don't have to carry this on your own."
+    },
+    {
+     "element": "Offline / passage failed",
+     "text": "The chapter didn't load. The verse above is yours \u2014 it works offline."
+    },
+    {
+     "element": "Close (aria-label)",
+     "text": "Close"
+    }
+   ],
+   "states": [
+    "First open from another path: verse, Listen, chapter, prayer, care card, disclosure. No greeting, no steady card, no AI, no done state, no book cards \u2014 one thing.",
+    "Second and later opens: identical. It never offers to change their path, on any visit, ever, and says nothing about paths \u2014 introducing 'your path hasn't changed' introduces a worry they did not have.",
+    "Opened from ?comfort=1 on a cold device: identical, and the first paint is the verse and nothing else. It does not run the cold-start path stamp or the Day 1 landing, AND it suppresses the cookie banner, the email gate, the install prompt and the email nudge for that session \u2014 otherwise the screen that promises 'nothing is asked of you here' opens with a consent banner over it.",
+    "Opened from ?comfort=1 with no cookie consent on file: the banner stays suppressed and no analytics fire at all for that session. Consent absent means no events, which is the privacy-preserving read and is stated here so the deep-link count is understood to be an undercount rather than treated as one.",
+    "Loading: the verse paints immediately from local data and never waits on a network; the chapter shows a skeleton on the paper panel; the crisis line paints from the dw_crisis_region cache, never from a pending fetch.",
+    "Offline: cached chapter, static care card and crisis number all render; Listen hidden.",
+    "Closed: returns to exactly the screen and scroll position they came from."
+   ],
+   "keep": [
+    "The comfort content itself \u2014 same data, same rotation, same local day index as the comfort path."
+   ],
+   "change": [
+    "Host it with useSubView(open, onClose) ALONE \u2014 no useModalA11y, no aria-modal, or the nested focus trap breaks keyboard and the Android back button.",
+    "Mount it ALWAYS with a live `open` prop rather than conditionally mounting, or every close orphans a history entry.",
+    "Add COMFORT_DEEP_LINK as an in-memory const beside SERMON_DEEP_LINK (App.tsx:35) and gate CookieConsent (App.tsx:498), EmailGate (:480), PWAInstall, EmailNudge and Day1Landing (:236-239) off it exactly as the sermon deep link already does \u2014 with one deliberate difference: SERMON_DEEP_LINK calls activateSundayGuest() and writes dw_email_gate_skipped to localStorage, and the comfort link writes NOTHING. It parses the param, strips it with history.replaceState, and lives as a boolean for that session only."
+   ],
+   "remove": [
+    "Any call to saveSetup, syncSetup, handleRead or the persona sheet from this surface. Opening comfort on a hard day must never stamp a real choice and must never credit a plan day.",
+    "No streak. No day count. No 'x of y'. No Mark as read. No completion. No book cards."
+   ]
+  },
+  {
+   "name": "Talk to someone (the care card, the region resolver, and the private pastoral request)",
+   "purpose": "Put the right country's crisis line in front of them on the reading screen, working offline, with a real person beside it wherever a real person is actually receiving \u2014 and route the message privately, never onto the public prayer wall.",
+   "order": [
+    "Title",
+    "One sentence about who reads it and where it does not go",
+    "Region-correct crisis line, always visible, never behind a tap, painted from cache on mount",
+    "The campus's own published contact, when it has published one",
+    "'Talk to a pastor' button \u2014 only when a named recipient exists for that campus",
+    "One-line disclosure (first open only)",
+    "Inside the form: text area, name toggle, Send, the message line directly under Send, and the crisis line again beneath that"
+   ],
+   "copy": [
+    {
+     "element": "Title",
+     "text": "You don't have to carry this on your own."
+    },
+    {
+     "element": "Body",
+     "text": "Someone from {campus} will read this. It doesn't go on the prayer wall."
+    },
+    {
+     "element": "Body \u2014 no named recipient yet",
+     "text": "Here's who to call right now."
+    },
+    {
+     "element": "CTA (renders only where a named recipient exists)",
+     "text": "Talk to a pastor"
+    },
+    {
+     "element": "Placeholder",
+     "text": "You don't have to explain it well."
+    },
+    {
+     "element": "Name toggle, off",
+     "text": "Send it without my name \u2014 we won't be able to reply"
+    },
+    {
+     "element": "Send",
+     "text": "Send it"
+    },
+    {
+     "element": "Empty field on Send \u2014 directly under the button",
+     "text": "Write a line or two first."
+    },
+    {
+     "element": "Sent confirmation",
+     "text": "It's sent. Someone from {campus} will see it."
+    },
+    {
+     "element": "Offline",
+     "text": "You're offline. We'll send it the moment you're back."
+    },
+    {
+     "element": "Failed \u2014 directly under the button, crisis line beneath it",
+     "text": "That didn't send. Try again, or call one of these."
+    },
+    {
+     "element": "Crisis line \u2014 US",
+     "text": "If you're in danger right now, call or text 988. Someone answers any time, day or night."
+    },
+    {
+     "element": "Crisis line \u2014 Australia",
+     "text": "If you're in danger right now, call Lifeline on 13 11 14. Someone answers any time, day or night."
+    },
+    {
+     "element": "Crisis line \u2014 New Zealand",
+     "text": "If you're in danger right now, call or text 0800 543 354. Someone answers any time, day or night."
+    },
+    {
+     "element": "Crisis line \u2014 country known, no line on file",
+     "text": "If you're in danger right now, call your local emergency number."
+    },
+    {
+     "element": "Crisis line \u2014 region unknown",
+     "text": "If you're in danger right now, call your local emergency number."
+    },
+    {
+     "element": "Crisis line \u2014 no number, link",
+     "text": "Find a crisis line near you"
+    },
+    {
+     "element": "Disclosure (shown once)",
+     "text": "This is scripture and a church, not counselling. If you need a professional, ask us and we'll help you find one."
+    }
+   ],
+   "states": [
+    "Resolution order, and no tier may terminate it early: (1) saved campus whose country has a line on file \u2192 that line; (2) saved campus whose country is known but has no line (id-, br- today) \u2192 the honest no-number state, NOT a fall-through and never a guess; (3) saved campus of 'other' / no campus / a campus whose country cannot be mapped \u2192 fall through to IP; (4) IP country from /api/geo \u2192 its line, or the honest no-number state for a valid code with no line; (5) no IP answer \u2192 the timezone allowlist; (6) nothing \u2192 unknown.",
+    "Campus tier resolves on the campus id's country prefix (au-, us-, br-, id-), never on the free-text `region` label \u2014 CAMPUSES carries region 'North America', which is a continent, not a country, and 'Other' for Non-Futures Church (tokens.ts:79).",
+    "Saved campus 'Non-Futures Church': treated as no signal, falls straight through to IP, so a reader in Atlanta who picked it still gets 988. Today that value would end the resolve in silence.",
+    "Timezone tier: an explicit allowlist of zones per supported line only \u2014 Australia/* for AU; Pacific/Auckland and Pacific/Chatham for NZ; the named US zones (America/New_York, America/Chicago, America/Denver, America/Los_Angeles, America/Phoenix, America/Anchorage, America/Detroit, America/Indiana/*, America/Kentucky/*, Pacific/Honolulu) for US. Anything unlisted is unknown. America/Sao_Paulo, America/Bogota and America/Mexico_City resolve to unknown, never to US.",
+    "Region known, no line on file (Indonesia, Brazil today): the honest line, the campus contact, and the picker. Do not invent a number.",
+    "Region unknown: NO number at all \u2014 the local-emergency sentence plus the directory link plus the picker. Never a guessed number, never a US default.",
+    "Cached: every successful resolve, including the honest no-number states, writes {region, source, line, resolvedAt} to localStorage under dw_crisis_region. The card paints from that on mount, synchronously, before any network call. Switching campus clears it and re-resolves.",
+    "Offline, cold open (the 2am case): the card renders from dw_crisis_region; the tel: link still dials; the message queues and the copy says so \u2014 and it must actually queue, the copy must not lie.",
+    "Named recipient on file for this campus: the pastor CTA renders and the form works.",
+    "No named recipient yet: the CTA does not render at all. The card is the crisis line, the campus contact if published, and the honest sentence. No greyed button, no 'coming soon', no control that cannot act.",
+    "No campus set: a one-row inline picker, not a trip to Settings \u2014 and the line still resolves by IP or timezone meanwhile.",
+    "No email on file: the message still sends. The existing prayer form calls requireEmail() and blocks; an email gate in front of a cry for help is indefensible. A deliberate departure from the prayer-wall pattern.",
+    "Anonymous: sends, and the copy has already said no reply is possible.",
+    "Empty textarea on Send: one line directly under the Send button, no native validation (the form is noValidate \u2014 iOS native validation is silent and a crisis message that fails silently is the worst version of this bug).",
+    "Send failed: the same spot under the button, with the crisis number repeated beneath it.",
+    "Already sent today: the button becomes the confirmation line; the crisis line stays."
+   ],
+   "keep": [
+    "The plain register already in the MoreScreen card: 'Our pastoral care team is here for you. You don't have to walk through this alone.'",
+    "The campus picker data (CAMPUSES) and the existing per-campus concept.",
+    "The public prayer wall, untouched, on the Messages tab for the personas it suits."
+   ],
+   "change": [
+    "Move it from More (MoreScreen.tsx:784-841) onto the comfort reading screen and into Comfort Now; keep a copy in More.",
+    "Render the More block for EVERY persona, not only comfort (it is gated on setup?.persona === 'comfort' at MoreScreen.tsx:785) \u2014 crisis is not a persona someone chose on a good day, and someone who used the door once should not have to change persona to find it again.",
+    "Run every string through t(). The whole block is hardcoded English today, which means the Futuros, Brazilian and Indonesian congregations get an English crisis message.",
+    "Write the resolver fresh in src/utils/crisis-lines.ts and never call campusFromTimezone (geo.ts:26-33) from it \u2014 that helper maps every America/* zone to 'US', which would put 988 in front of a reader in Rio the moment IP fails or they are offline, and Futures has a Brazilian campus. It may reuse detectCountry()'s endpoint but not its cache.",
+    "Cache to localStorage under dw_crisis_region, not sessionStorage. detectCountry() caches in sessionStorage (geo.ts:47-57), which dies with the tab, so a cold offline open \u2014 the exact case this feature exists for \u2014 would resolve to unknown and show nothing. This key is a derived cache, not authored content: it is device-local, it is NOT added to the misc sync list, and it is safe to lose.",
+    "Read the per-campus care contact and the per-region crisis line from the existing campus_content table via netlify/functions/campus-content.js (rows typed care_contact and crisis_line), written through the /staff intake form that already publishes to that table, with the bundled JSON as the offline and first-paint fallback. A crisis number or a care pastor changing is exactly the hard-week edit that must not queue behind a git commit and a deploy.",
+    "Never await that fetch before painting. Bundled fallback plus dw_crisis_region paint on mount; a campus_content answer upgrades the card in place if and when it arrives.",
+    "Write to a NEW pastoral_requests table, not public.prayers \u2014 the prayer-wall function has no private flag and everything inserted there is readable on the wall."
+   ],
+   "remove": [
+    "The hardcoded 'Crisis support: 988 Suicide & Crisis Lifeline (call or text 988)' line (MoreScreen.tsx:838) as the only safety surface, and its assumption that every reader is American \u2014 Futures has 8 Australian, 5 Indonesian and 1 Brazilian campus.",
+    "mailto:care@futures.church (MoreScreen.tsx:810) as the primary human route: one Atlanta address for a church in four countries, and a mailto that fails silently on a phone with no mail client, so the person never learns their message did not go. It stays only as the error fallback.",
+    "The requireEmail() gate, for this form only.",
+    "Any fallback path that returns a number the resolver is not certain of \u2014 in particular any 'default to US' branch, and any use of a continent-wide timezone prefix."
+   ]
+  },
+  {
+   "name": "If today gets hard (the steady card)",
+   "purpose": "Let them write down, while they can still think, the three things they will not be able to think of later. Wysa's most-used feature, over 49% of crisis users.",
+   "order": [
+    "Title",
+    "One line of why",
+    "Slot 1 \u2014 Who you'll call",
+    "Slot 2 \u2014 What steadies you",
+    "Slot 3 \u2014 A verse you want to come back to",
+    "Save"
+   ],
+   "copy": [
+    {
+     "element": "Title",
+     "text": "If today gets hard"
+    },
+    {
+     "element": "Body",
+     "text": "Write these down now, while you can think straight. They'll be here when you can't."
+    },
+    {
+     "element": "Field 1",
+     "text": "Who you'll call \u2014 a name and a number"
+    },
+    {
+     "element": "Field 2",
+     "text": "What steadies you \u2014 a walk, music, sitting outside"
+    },
+    {
+     "element": "Field 3",
+     "text": "A verse you want to come back to"
+    },
+    {
+     "element": "Verse field helper",
+     "text": "Tap a verse while you're reading and it lands here."
+    },
+    {
+     "element": "Save",
+     "text": "Save it"
+    },
+    {
+     "element": "Filled state, slot 1 action",
+     "text": "Call {name}"
+    },
+    {
+     "element": "Filled state footer",
+     "text": "Change this"
+    }
+   ],
+   "states": [
+    "Empty (never made): the invite, three fields, Save. Not a modal \u2014 a card below the reading, never a nag.",
+    "Partially filled: saves what's there. No validation, no required fields, no error states. One field is a card.",
+    "Filled: the three lines shown plainly with 'Change this', sitting directly under the reading from then on \u2014 and at the top on a return visit, so the first thing on screen is their own handwriting, not ours.",
+    "Editing one slot: inline, no full-screen form.",
+    "Slot 3 auto-filled by the most recent kept verse; the person can change it.",
+    "Offline: writes to localStorage and syncs later.",
+    "Second device: fill-only merge \u2014 a cloud copy never overwrites a newer local card."
+   ],
+   "keep": [
+    "The journal's existing prayer entry type and prompts as the longer-form place to write."
+   ],
+   "change": [
+    "New key dw_steady_card in storage.ts, added to MISC_KEYS and to the AUTHORED_MISC set in cloudSync.ts (cloudSync.ts:35, :69) so applyMisc treats it as fill-only and every write calls pushNow() \u2014 the same rule as dw_user_story / dw_sermon_notes / dw_prayed_for. Merge into what is currently in localStorage; never rebuild the record from React state. Deletes are tombstones."
+   ],
+   "remove": [
+    "No reminder to complete it, ever. An unfinished safety card is not a task.",
+    "No prompts, no suggested answers, no AI help writing it. Our words in this card would defeat its purpose."
+   ]
+  },
+  {
+   "name": "Ask a question (Bible AI, comfort framing, and the safety card on every path)",
+   "purpose": "Let them say the thing out loud, and make sure that when what they say is dark, the right number \u2014 and a human option where one really exists \u2014 appears beside the answer. There is zero crisis handling in the AI path today.",
+   "order": [
+    "Disclosure line above the input, first open for comfort, dismissible once",
+    "The conversation as it is today",
+    "On a flagged turn: the safety card, above the streaming answer",
+    "The answer, unchanged"
+   ],
+   "copy": [
+    {
+     "element": "Entry body",
+     "text": "No question is too small, and nothing you say here goes anywhere else."
+    },
+    {
+     "element": "Disclosure",
+     "text": "This helps you read the Bible. It isn't a counsellor."
+    },
+    {
+     "element": "Disclosure link",
+     "text": "Who to call"
+    },
+    {
+     "element": "Safety card line 1",
+     "text": "That sounds heavy, and I don't want to leave you with words on a screen."
+    },
+    {
+     "element": "Safety card CTA (renders only where a named recipient exists)",
+     "text": "Talk to a pastor"
+    },
+    {
+     "element": "Safety card line 2",
+     "text": "[region-correct crisis line, same copy and same resolver as Talk to someone]"
+    },
+    {
+     "element": "Dismiss",
+     "text": "Close"
+    },
+    {
+     "element": "Prayer-request variant (on submit)",
+     "text": "Your request is with the team. While you wait, here's who to call."
+    }
+   ],
+   "states": [
+    "No flag: nothing changes; the softer comfort system prompt does its work.",
+    "Flagged: the message still sends and the answer still comes. Never block it \u2014 blocking someone who just typed the hardest sentence of their life is abandonment.",
+    "Flagged, no named recipient for that campus: the card shows the crisis line and the campus contact only. The pastor CTA is absent rather than dead.",
+    "False positive: dismissible with one tap, never re-fires in the same conversation. Nothing is sent anywhere; the text itself is never logged, only that the card fired.",
+    "Shown after a journal or prayer save on any path, not only comfort.",
+    "Flag list has no approved entry for the current language: nothing fires. Better silent than a mistranslated safety prompt.",
+    "Offline: AI unavailable; the entry line says 'Ask a question when you're back online' and the care card is still on screen above it."
+   ],
+   "keep": [
+    "The comfort systemPromptAddition (persona-config.ts:550-553) \u2014 'Lead with comfort before teaching\u2026 gently encourage them to talk to their pastor or a trusted friend.' It is well written.",
+    "BibleAI's existing useSubView(isOpen, onClose) host pattern."
+   ],
+   "change": [
+    "Add a client-side phrase check in src/data/crisis-terms.ts, per language, run before send. Add the same check to the prayer-request textarea in MessagesScreen before submit.",
+    "Extend the comfort systemPromptAddition with two sentences: never diagnose, and never suggest the person needs more faith or that there is a reason for this. Negative religious coping predicts decline, and an AI is exactly where it slips in.",
+    "On a flagged turn, one extra system instruction so the model leads with presence and names the line.",
+    "The quick prompts on the comfort AI row are presence prompts only \u2014 'Say the thing you can't say out loud', 'Where is God in this', 'Read me something for tonight'. No prompt asks why this is happening."
+   ],
+   "remove": [
+    "Nothing from the AI itself. No hard block, no keyword refusal, no auto-escalation to a human without their tap.",
+    "The unstated assumption that a softer tone is a safety feature. It is not; it is a tone."
+   ]
+  },
+  {
+   "name": "Read a different passage (day 2 onward, behind a flag)",
+   "purpose": "Give them the one choice that is actually theirs, as a link they can ignore rather than a question they have to answer. The only element here with no evidence behind it, so it ships as an experiment.",
+   "order": [
+    "One plain link above the anchor verse"
+   ],
+   "copy": [
+    {
+     "element": "Link",
+     "text": "Read a different passage"
+    }
+   ],
+   "states": [
+    "Day 2+ with a previous read: the link sits above the verse, quiet, one line, no question mark and no buttons.",
+    "Never read before: absent.",
+    "After tapping: the link disappears for the day; the next chapter loads in place. No confirmation, no toast.",
+    "Missed several days: identical \u2014 it never says how many, and it never says 'still here', which is a comment on the gap by another route.",
+    "Offline: the link picks the next chapter whose text is cached; if none is cached it says 'This one's saved on your phone' and stays put."
+   ],
+   "keep": [
+    "The 30-chapter local-date rotation as the default when they tap nothing."
+   ],
+   "change": [
+    "Ship behind a flag and A/B it. The research is explicit that the next-day check-in is 'plausible, unsourced, worth testing.'",
+    "Make it a link, not a two-button question. 'Still here. Want the same passage, or a new one?' is an ask, and the path's printed promise \u2014 unchangeable, and correct \u2014 is that nothing is asked. The default is already the same passage rotation, so the only thing worth surfacing is the departure from it."
+   ],
+   "remove": [
+    "Any version of this that references the gap ('It's been 4 days'), a count, or a streak.",
+    "The 'The same one' button \u2014 the same one is what happens if they do nothing, and a button for the default is a question in disguise."
+   ]
+  },
+  {
+   "name": "More \u2192 Comfort (and Talk to someone, for every persona)",
+   "purpose": "Hold the levers the reader owns, out of the way of the reading, and keep the safety resources findable when they are calm enough to look.",
+   "order": [
+    "COMFORT header",
+    "How much to have ready each day",
+    "Talk to someone (second copy)",
+    "Who to call",
+    "If today gets hard",
+    "Change path",
+    "Foot disclosure"
+   ],
+   "copy": [
+    {
+     "element": "Header",
+     "text": "COMFORT"
+    },
+    {
+     "element": "Daily amount label",
+     "text": "How much to have ready each day"
+    },
+    {
+     "element": "Options",
+     "text": "One chapter / Two chapters / Three chapters"
+    },
+    {
+     "element": "Change path row",
+     "text": "Where are you today?"
+    },
+    {
+     "element": "Foot",
+     "text": "Daily Word is scripture and a church, not counselling."
+    }
+   ],
+   "states": [
+    "Comfort persona: the full block.",
+    "Not comfort, but has used Comfort Now: show Who to call and If today gets hard. Someone who used the door once should not have to find it again through a persona change.",
+    "Any persona: Talk to someone renders \u2014 it is no longer gated on persona === 'comfort'.",
+    "Amount never set: shows 'One chapter' selected, with no 'not set' or 'default' language.",
+    "Amount inferred from behaviour: shows the inferred value, selected, with no explanation of how it got there.",
+    "Region unresolved: Who to call opens straight to the country picker; picking a country writes dw_crisis_region with source 'picker' and it persists.",
+    "Signed-in pastor on the comfort path: allowed, with the sign-out row beside it and no lock glyph."
+   ],
+   "keep": [
+    "The path swatch and the one 'Where are you today?' sheet with five cards as the only way to change path.",
+    "The pastor lock staying removed."
+   ],
+   "change": [
+    "This is where the daily-amount question went. It is a setting now, not an interruption.",
+    "Every string through t()."
+   ],
+   "remove": [
+    "Nothing."
+   ]
+  },
+  {
+   "name": "Choose-your-path sheet \u2014 the comfort card",
+   "purpose": "Door into the path. Already correct; listed to say explicitly that it does not change.",
+   "order": [
+    "Heart icon",
+    "'I'm going through something hard'",
+    "'Comfort scriptures. Nothing else asked of you.'",
+    "Tap saves and opens"
+   ],
+   "copy": [
+    {
+     "element": "Head (keep, unchanged)",
+     "text": "I'm going through something hard"
+    },
+    {
+     "element": "Promise (keep, unchanged)",
+     "text": "Comfort scriptures. Nothing else asked of you."
+    }
+   ],
+   "states": [
+    "Not current path \u2014 tappable, saves with source onboarding or settings and opens Home immediately.",
+    "Current path \u2014 a tick; tapping just closes.",
+    "Pastor signed in \u2014 still selectable as a real choice, with the sign-out row beside it."
+   ],
+   "keep": [
+    "Every word. The sheet is height-budgeted at ~481px on a 390-wide phone (537 with the pastor row) and the ruling permits typographic compaction only, no copy changes.",
+    "One tap saves AND opens; no second CTA below the fold.",
+    "Comfort is never shown the asked-once Door 3 screen."
+   ],
+   "change": [
+    "Nothing."
+   ],
+   "remove": [
+    "Nothing. In particular, no sixth card \u2014 the comfort door lives in the seam, not in this sheet."
+   ]
+  }
+ ],
+ "comfort_access": "Four doors, none of them a gate, none of them touching the saved path. (1) The path card in the one 'Where are you today?' sheet \u2014 'I'm going through something hard' \u2014 which saves comfort as a real choice and opens it. Unchanged, every word. (2) NEW and primary: the word Comfort with a heart outline in the seam strip that already sits above EVERY screen on EVERY path (Seam.tsx, mounted at App.tsx:458). Rendered as a `<button class=\"dw-cmf-seam\">` rather than an `<a class=\"dw-seam-link\">`, because the existing seam-link rule is 11px in a 34px strip (index.css:824-836) and `:root .dw-seam-bar a.dw-seam-link { color: var(--dw-gold) !important }` (index.css:876-881) would repaint it gold; it gets a 44px hit area that overflows the strip and the muted weight the design asks for, and the word 'Daily Word' hides below 390px so three items sit on one line. aria-label 'Open comfort now'. Because it is in the seam rather than on Home, the door is also on Journal, Plans, Campus and Settings. It opens Comfort Now full-screen via useSubView ALONE \u2014 never useSubView plus useModalA11y \u2014 mounted with a live `open` prop rather than conditionally mounted, so it neither breaks the nested focus trap nor orphans a history entry per close. It writes nothing: no saveSetup, no dw_setup stamp, no dw_path_asked, no plan-day credit, no handleRead. (3) A row at the top of More, 'I need comfort today', plus the all-persona Talk to someone block. (4) futuresdailyword.com/?comfort=1 \u2014 a shareable link that opens the overlay on a cold device without running the cold-start path stamp or the Day 1 landing, and which also suppresses the cookie banner (App.tsx:498), the email gate (:480), the install prompt and the email nudge for that session, because a screen that says 'nothing is asked of you here' cannot open underneath a consent dialog. It is parsed as COMFORT_DEEP_LINK beside SERMON_DEEP_LINK (App.tsx:35) but, unlike the sermon link, writes nothing to localStorage at all \u2014 no activateSundayGuest, no dw_email_gate_skipped \u2014 it strips its param with replaceState and lives as a session boolean. The prayer-request flow in Messages is a fifth, incidental route via the safety card. Two things deliberately rejected: a sixth tab (the shell is five, and a permanent Crisis tab labels the person every day of their life) and a sixth card on the path sheet (five cards, ~481px, must not scroll). One gap named rather than hidden: the seam is suppressed when IS_EMBEDDED, so the futures.church iframe embed would have no comfort door \u2014 an owner decision.",
+ "reminders": "None, by default and by design. Comfort gets no push notification: App.tsx:311-312 already excludes the comfort persona from the push opt-in, and that stays. The research is direct about why \u2014 guilt-framed streak reminders drive notification opt-out and uninstall, and the harm list for this persona names guilt outright. So there is no daily comfort reminder, no missed-day catch-up, no streak-repair prompt, no 'we missed you', and no re-engagement push about a gap. The streak is recorded silently on mount and never displayed, so it survives if the person later moves to another path. The only 'return' mechanic is the in-app link on the next visit \u2014 'Read a different passage' \u2014 which they have to open the app to see, and which is a link rather than a question. Two consequences stated plainly rather than discovered later in a dashboard review. First, comfort will look worse than every other path on any retention metric that depends on a nudge \u2014 that is expected, it is the point, and it must not be read as failure, because the fix a dashboard would suggest is the one thing this persona must never get. Second, if someone arrives at comfort through the seam door while their saved path is congregation or deeper_study, their own path's reminder keeps running unchanged; the door must not touch push state in either direction. Two candidate designs proposed a small opt-in comfort reminder \u2014 one-shot, offered in context, no streak language. It is not built here. It crosses a live standing exclusion, and it is a notification to someone in crisis, which is Ashley's call and not a designer's. It is carried as an open decision with the copy already drafted, so it is one small PR away if he says yes.",
+ "instrumentation": [
+  "comfort_opened {source: seam|path|more|deeplink|prayer, persona_at_open, first_time} \u2014 the reachability number: what fraction of comfort sessions arrive from a path other than comfort. This is the research's own named test and the number that says whether the seam door was worth building. Honest caveat: a ?comfort=1 arrival with no cookie consent on file fires nothing at all, because the deep link suppresses the consent banner and no consent means no events \u2014 the deeplink source is a floor, not a count.",
+  "comfort_listen_started / comfort_listen_completed {ref, seconds} \u2014 proves the audio-first ordering. If listens are near zero, Listen is in the wrong place, not the wrong feature.",
+  "comfort_passage_read {ref, source} \u2014 fires on 'I've finished reading'. Must NOT credit a plan day and must not route through handleRead; the arrival seed for comfort is credit-free by ruling.",
+  "comfort_prayer_opened {ref} \u2014 the guided prayer is the retained crisis-facing feature; this is the only evidence it earns its place.",
+  "comfort_care_tapped {channel: pastor|line|campus_contact, region, region_source} \u2014 the duty-of-care number. If pastor taps happen and nobody at that campus answers, that is a failure with a name on it. The pastor channel can only fire where a named recipient exists, because that is the only case where the button renders.",
+  "comfort_line_shown {region, region_source: campus|ip|timezone|cache|picker|unknown, had_number: bool} \u2014 watch the unknown rate AND the had_number:false rate. A high unknown rate means people in crisis are seeing no number, which is the exact industry failure the research names; region_source 'cache' is what proves the localStorage cache is actually carrying the cold offline open.",
+  "comfort_safety_shown {surface: ai|prayer|journal, lang} and comfort_safety_dismissed {surface, seconds_to_dismiss} \u2014 trigger rate and the false-positive proxy. Fast dismissals clustering, or a dismissal rate above roughly 80%, means the word list is too loose and should be narrowed, not celebrated.",
+  "comfort_steady_saved {fields_filled: 1-3} and comfort_steady_opened \u2014 opened-per-saved is the number that says whether the card is an artifact or a form. Wysa's equivalent reached over 49% of crisis users; if ours is under 10%, the card is in the wrong place on the screen.",
+  "comfort_return_next_day {entry_source, days_since_last} \u2014 D1/D7/D30 for this path specifically, via the nightly per-path rollup. No public source exists for Bible-app retention or for the comfort-to-discipleship transition; only our own instrumentation can ever answer it.",
+  "comfort_daily_inferred {n} \u2014 proves the inference actually fires now that the question is gone. If this never fires, dw_comfort_daily silently stays 0 and the tomorrow line never appears.",
+  "comfort_offline_render {had_text: bool, had_line: bool} \u2014 proves the crisis number and the chapter really do render with no network, from localStorage and not from a fetch. The one event that must never be zero-truthy.",
+  "app_open gains a `path` detail \u2014 the only way to get D1/D7/D30 by path at all.",
+  "TRAP: TRACKED_EVENTS in src/utils/analytics.ts:31-38 is an allowlist and trackActivity returns silently at line 45 for any name not on it. Every name above must be added in the same PR or the dashboard shows a clean zero and the feature looks unused.",
+  "PRIVACY: none of these carry the text of what the person wrote or typed. comfort_safety_shown records that it fired and which surface, never the phrase. comfort_steady_saved records which slots, never their contents. The phone number on the steady card is the most sensitive thing this app will ever hold and it never reaches an event. The matcher runs entirely client-side; its input never reaches fetch, localStorage or an analytics detail field \u2014 only the boolean result. dw_crisis_region holds a country and a source, never a location finer than that, and it never leaves the device except as the region field on these events."
+ ],
+ "self_serve_levers": [
+  "campus_content rows, written through the /staff intake form that already publishes to that table and read by netlify/functions/campus-content.js \u2014 this is where the two things a campus genuinely needs to change in a hard week live, because a file in public/ needs a git commit, a build and a deploy, which is Ashley and not a pastor. Row type care_contact: the pastor's name, the destination inbox, the campus's own published contact, and the response promise printed on the card. Row type crisis_line: the number, label, tel: href and hours sentence for that campus's country. Both are read after paint and only ever upgrade a card that has already rendered from local data. Today every campus in four countries shares one hardcoded mailto:care@futures.church (MoreScreen.tsx:810).",
+  "public/comfort/content.json \u2014 30 entries of {chapter, anchorVerseRef, anchorVerseText, devotion, prayer, tone} in en/es/pt/id, plus an optional `dates` block mapping a local date to a chapter override and one line of copy (the whole seasonal design for this path). A repo asset, edited centrally, deployed \u2014 say that plainly rather than calling it a pastor lever; the win is that a devotion change is a JSON edit instead of a TSX edit, not that it skips a deploy. NON-NEGOTIABLE CONDITION: this is a new asset class under the /books service-worker trap, so it must be network-first with cache as offline fallback only, and CACHE_NAME, STATIC_CACHE and SW_VERSION bump together \u2014 or every returning user reads last month's devotion forever, invisibly, because the failure never shows on a fresh browser.",
+  "public/comfort/lines.json \u2014 the bundled fallback copy of the crisis line per region: label, number, tel: href, hours sentence, plus the directory URL used when the region is unknown. It is the offline and first-paint source; the live source of truth is the campus_content crisis_line row, so a number that changes overnight changes in the database and reaches phones without a deploy.",
+  "public/comfort/flags.json \u2014 the crisis-language phrase list, per language, with an explicit false-positive exclusion list. A repo asset on purpose: it decides when a card about self-harm appears on someone's screen, so it goes through review and a deploy, never a form. Needs a named owner per language (see open decisions), and must never be machine-translated from English.",
+  "The comfort push template set, if Ashley ever rules yes on a reminder \u2014 read from content.json at send time with a hardcoded fallback, rather than joining the seven-variant arrays in push-send.js that need a function redeploy.",
+  "dw_comfort_daily \u2014 the reader's own lever, already synced through syncMisc, now a setting in More instead of an interruption mid-flow.",
+  "dw_steady_card \u2014 the reader's own artifact, fill-only, tombstoned deletes.",
+  "dw_crisis_region \u2014 device-local, derived, safe to lose, never synced: a cache so the right number survives a cold offline open, plus the country the reader picked for themselves if they used the picker.",
+  "The campus chip \u2014 already user-owned, and now load-bearing, because it is what resolves the crisis line to the right country first.",
+  "The ?comfort=1 link \u2014 a campus pastor's own distribution lever, needing nothing from anyone.",
+  "HONEST EXCEPTION, say it plainly: the comfort sectionOrder, the featured plan categories, the phrase-check threshold, the timezone allowlist and the analytics allowlist stay developer edits. The two things that must move fast in a hard week \u2014 a campus's care contact and its crisis number \u2014 are database rows behind the existing staff form; everything that changes the shape of the screen, or decides when a safety card fires, is code, and should be. None of these should acquire an admin UI for this build."
+ ],
+ "evidence": [
+  {
+   "move": "Comfort reachable in one tap from every path, without changing the saved path",
+   "source": "PERSONA-RESEARCH persona-research.md:144 \u2014 'From every path: a persistent one-tap I need comfort now that opens comfort without switching the saved path. Crisis is not a persona someone chooses on a good day.' Plus :176 build item 2 \u2014 'Comfort from everywhere. One persistent tap\u2026 Smallest build, highest duty of care.'"
+  },
+  {
+   "move": "The door lives in the seam, which is already mounted above every screen on every path",
+   "source": "Code: App.tsx:458 `{!IS_EMBEDDED && <SeamBar />}`, src/components/Seam.tsx. Verified \u2014 this is why the door works on Journal, Plans and Settings, not only Home, and why the embed gap is real and named."
+  },
+  {
+   "move": "The seam door is a button with a 44px hit area, not an anchor styled as a seam link",
+   "source": "Code, verified: index.css:824-836 sets .dw-seam-bar to `height: calc(34px + var(--safe-top))` and .dw-seam-link to 11px; index.css:876-881 forces `color: var(--dw-gold) !important` on `:root .dw-seam-bar a.dw-seam-link`. An 11px anchor in a 34px strip is not a tap target for the one tap that must never miss, and the gold rule would give the chrome two accents."
+  },
+  {
+   "move": "Kill the duplicate chapter \u2014 today's passage renders TWICE on one comfort screen",
+   "source": "Code, verified: HomeScreen.tsx:1302-1305 pushes COMFORT_CHAPTERS[localDayIndex()] into heroChapterRefs when a comfort user has no plan and no slots, and HomeScreen.tsx:2892 then mounts <ComfortSection>, which renders the same chapter again at ComfortSection.tsx:81-175 with its own translation picker (:104-122) and its own Listen button (:129-146). Two copies of one passage fails 'one passage, low stimulus' (research :145)."
+  },
+  {
+   "move": "Pair the anchor verse to today's chapter",
+   "source": "Code, verified: COMFORT_VERSES has 16 entries (ComfortVerseBannerSection.tsx:13-30) indexed by localDayIndex() % 16 at :46, while COMFORT_CHAPTERS has 30 indexed independently at ComfortSection.tsx:50 \u2014 so the verse above the reading is routinely from a different book than the reading."
+  },
+  {
+   "move": "Audio first, one passage, low stimulus, no streak, no count, no 'complete'",
+   "source": "persona-research.md:145 \u2014 'Delivery: slow audio first, one passage, low stimulus, dark and calm, no streak, no count, no complete.'"
+  },
+  {
+   "move": "Remove 'Reading {x} of {y}' and 'You're doing great'",
+   "source": "Research :145 ('no streak, no count, no complete') and cross-cutting finding 6 at :12 ('Streaks work until they shame'). Verified live: comfort_reading_x_of_y at ComfortSection.tsx:96, comfort_doing_great at :300."
+  },
+  {
+   "move": "Remove the ask_lock daily-amount question and infer it instead",
+   "source": "The path's own printed promise, i18n path_comfort_promise: 'Comfort scriptures. Nothing else asked of you.' Verified live at ComfortSection.tsx:297-356 \u2014 after two chapters the app grades the reader and asks them to commit to a quota. Research :139: presence and acknowledgement over problem-solving."
+  },
+  {
+   "move": "The return-day element is a link, not a two-button question",
+   "source": "Same printed promise, applied consistently: a two-button question ('same passage, or a new one?') is an ask, and the default \u2014 the same local-date rotation \u2014 already happens if the reader does nothing. Research :148 authorises testing a check-in, not asking a question; it stays behind the A/B flag either way."
+  },
+  {
+   "move": "Presence verses AND presence prompts; Romans 8:28 and Jeremiah 29:11 excluded from the crisis surface",
+   "source": "persona-research.md:139 \u2014 'Positive religious coping (God's presence, benevolent reframing) predicts better outcomes; negative coping (punishing God, have more faith) predicts decline (Pargament & Koenig 2004, longitudinal).' Plus :141 'Clumsy comfort language.' Both verses verified live in COMFORT_VERSES at ComfortVerseBannerSection.tsx:18 and :28. The same logic removes 'Why does this hurt so much' from the AI quick prompts \u2014 it invites the explanation the verses were excluded for."
+  },
+  {
+   "move": "Region-correct crisis line on the reading screen, and NO number at all when the region is unknown",
+   "source": "persona-research.md:141 \u2014 'only 35% of mental-health apps show crisis resources in-app, 81% carry liability disclaimers instead, and some show the wrong country's hotline (Crisis journal, 2021).' Lines at :146 \u2014 988 US, 13 11 14 AU, 0800 543 354 NZ."
+  },
+  {
+   "move": "The resolver never reuses campusFromTimezone, and the timezone tier is an explicit zone allowlist",
+   "source": "Code, verified: src/utils/geo.ts:26-33 returns 'US' for any tz starting 'America/'. That is correct for a college house-ad and catastrophic for a crisis line \u2014 America/Sao_Paulo, America/Bogota and America/Mexico_City would all be told to call 988, and Futures has a Brazilian campus (tokens.ts, br-rio)."
+  },
+  {
+   "move": "The resolved region is cached in localStorage, not sessionStorage, and paints on mount",
+   "source": "Code, verified: src/utils/geo.ts:47-57 caches the IP country in sessionStorage, which does not survive a closed tab. The 2am cold offline open is the exact case this feature exists for, and it would resolve to unknown and show no number."
+  },
+  {
+   "move": "A campus we have no line for never terminates the resolve",
+   "source": "Code, verified: src/data/tokens.ts:79 \u2014 `{ id: 'other', name: 'Non-Futures Church', region: 'Other' }`. A reader in Atlanta who chose that campus would see no number, when IP would have given 988. Also verified: CAMPUSES regions are 'Australia', 'North America', 'Indonesia', 'Brazil', 'Other' \u2014 continent labels, not countries, which is why the resolver keys on the campus id's country prefix (au-, us-, br-, id-) instead."
+  },
+  {
+   "move": "The ?comfort=1 door suppresses every first-paint overlay, not just the persona stamp",
+   "source": "Code, verified: App.tsx:35 SERMON_DEEP_LINK is the existing pattern; App.tsx:480 gates EmailGate on it, :498 gates CookieConsent on `!needsPushOnboarding && !showPathAsk`, and :236-239 gates Day1Landing on it. Without an equivalent COMFORT_DEEP_LINK, the link a pastor texts to a hospital car park opens under a cookie banner and can pick up the install prompt and the Day 1 landing \u2014 making 'Nothing is asked of you here' false on the first paint."
+  },
+  {
+   "move": "The care contact and the crisis number are database rows behind the existing staff form, not files in public/",
+   "source": "Code, verified: netlify/functions/campus-content.js serves per-campus rows from the campus_content table with a public GET and returns POSTs to the staff intake ('Campus updates go through the staff form at /staff'). A file in public/ needs a commit, a build and a deploy \u2014 that is Ashley, not a pastor, and a crisis number changing is exactly the hard-week edit that must not queue behind him."
+  },
+  {
+   "move": "One short honest disclosure beside the resource, not a liability wall",
+   "source": "persona-research.md:146 \u2014 'Disclose on first use that this is scripture and a church, not counselling' \u2014 read against the 81%-carry-disclaimers-instead-of-resources finding, which is why it is one sentence next to the number rather than a paragraph in front of it."
+  },
+  {
+   "move": "A safety card that appears beside the answer and never blocks it",
+   "source": "persona-research.md:146 \u2014 'if the person types crisis language into Bible AI or a prayer request, confirm gently, then show the region-correct line\u2026 the Woebot and Wysa pattern.' Live gap: there is no crisis handling anywhere in the AI path today; the softer comfort tone at persona-config.ts:550-553 is the only safety-adjacent behaviour that exists, and a tone is not a safety feature."
+  },
+  {
+   "move": "The AI prompt gains 'never diagnose, never suggest more faith is needed'",
+   "source": "persona-research.md:139, Pargament negative-coping finding \u2014 an AI is exactly where 'have more faith' slips in."
+  },
+  {
+   "move": "Private prayer request to a real campus pastor, off the public wall, with no email gate",
+   "source": "persona-research.md:147 \u2014 'prayer request to a real campus pastor.' Live gap: MoreScreen.tsx:810 sends every campus in four countries to one hardcoded mailto:care@futures.church, and MoreScreen.tsx:785 gates the whole block on persona === 'comfort' so nobody else can find it."
+  },
+  {
+   "move": "The 'Talk to a pastor' button does not render until a named person is receiving",
+   "source": "The design's own top risk \u2014 duty of care created and not met \u2014 plus the standing rule never to point a person at a control that cannot act. A dead or greyed CTA on a crisis screen is a second disappointment to the reader least able to absorb one, so the card ships as crisis line plus the campus's published contact plus one honest sentence, and the button arrives with the recipient."
+  },
+  {
+   "move": "Errors render under the button that was pressed, with noValidate on the form",
+   "source": "Standing form rule: iOS native validation is silent, so a required-field block with no visible message reads as a broken Send \u2014 and a crisis message that silently fails validation is the worst version of that bug."
+  },
+  {
+   "move": "The steady card \u2014 who you'll call, what steadies you, a verse you chose",
+   "source": "persona-research.md:147 \u2014 'a co-created when it's bad card (who to call, what steadies you, a verse you chose), which was Wysa's most-used feature (over 49% of crisis users).'"
+  },
+  {
+   "move": "No push notification for comfort",
+   "source": "persona-research.md:12 \u2014 'Guilt-framed streak reminders drive notification opt-out and uninstall.' Already live at App.tsx:311-312; this design keeps it rather than carving an exception."
+  },
+  {
+   "move": "No graduation prompt, no 'Feeling Stronger?', on any surface old or new",
+   "source": "Ruling: feedback_daily_word_today_rebuild_rejected, PHASE 2, PR #82 \u2014 removed for good, never re-add. Locked by pathway-upgrades.test.ts. The research independently confirms it at :143 \u2014 'there is no published evidence on a comfort-to-discipleship transition at all.'"
+  },
+  {
+   "move": "No book cards anywhere on the comfort path, including the done state",
+   "source": "The path promises nothing is asked; a promo row is an ask with a price attached, and the done line should be the last thing a person in crisis reads. Live: 'book_cards' is the last key in the comfort sectionOrder at persona-config.ts:510-519 and comes out."
+  },
+  {
+   "move": "The comfort door and Comfort Now never stamp a path choice",
+   "source": "Ruling: saveSetup gates on source !== 'default'; only onboarding/settings/upgrade count as a real choice. A crisis tap is not a considered choice, so this surface never calls saveSetup at all."
+  },
+  {
+   "move": "Comfort Now hosted with useSubView ALONE, mounted always with a live open prop",
+   "source": "Rulings: 28-agent review findings 1 and 2 \u2014 useSubView plus useModalA11y/aria-modal breaks keyboard and back-button navigation through nested focus traps; a conditionally-mounted useSubView card orphans a history entry per close and breaks Android back."
+  },
+  {
+   "move": "The arrival-open comfort seed stays credit-free",
+   "source": "Ruling: the arrival-open seed for congregation/deeper_study/pastor_leader/comfort must be persona-gated and CREDIT-FREE \u2014 it must bypass handleRead and never route through it."
+  },
+  {
+   "move": "comfortMode toolbar stays Note + Close only",
+   "source": "Ruling: comfortMode toolbar is Note+Close ONLY \u2014 verified live at HighlightToolbar.tsx:164-185, unchanged by this design."
+  },
+  {
+   "move": "Comfort is never shown the asked-once Door 3 screen; the sheet stays five cards at ~481px with no copy changes",
+   "source": "Rulings: project_daily_word_choose_your_path \u2014 Door 3 never shown for comfort; the sheet must fit a phone without scrolling, typographic compaction only. Hence the door is in the seam, not a sixth card."
+  },
+  {
+   "move": "Repaint comfort onto the locked palette, flat, with no gradients",
+   "source": "Locked look: light default, deep terracotta clay #A8552F on ivory #FAF6EF, dark-mode override rejected, paper-mode reading panel, quiet and generous with one accent and no decorative gradients. Verified live: comfort is the only path still wearing pre-relook indigo \u2014 rgba(92,107,192,\u2026) at ComfortSection.tsx:167/181/219 and ComfortVerseBannerSection.tsx:52, #5C6BC0 at :85, #4A6070 at ComfortSection.tsx:133, #37474F at ComfortVerseBannerSection.tsx:110 \u2014 and three of those are linear-gradient fills, which is why the repaint flattens rather than re-tints them."
+  },
+  {
+   "move": "Low stimulus achieved by fewer elements on the ivory canvas, NOT by a dark surface",
+   "source": "The research asks for 'dark and calm' (:145); the locked look rejects any dark-mode override and keeps light as default with the white paper reading panel. Ruling beats research, stated plainly rather than quietly ignored."
+  },
+  {
+   "move": "Comfort content moved to network-first JSON",
+   "source": "Ruling: reference_daily_word_sw_books_cache_trap \u2014 any content edit is invisible to returning users unless that asset class is network-first with cache as offline fallback only; bump CACHE_NAME/STATIC_CACHE and SW_VERSION together."
+  },
+  {
+   "move": "The steady card is a fill-only synced misc field that pushes on write",
+   "source": "Ruling: project_daily_word_platform_polish \u2014 applyMisc is FILL-ONLY, cloud must never clobber newer local content, authored keys call pushNow(); deletes are tombstones; never rebuild a synced dw_* record from React state (PR #64). Verified live: MISC_KEYS at cloudSync.ts:35, AUTHORED_MISC at :69."
+  },
+  {
+   "move": "Plan/day logic uses the local date",
+   "source": "Ruling: DATE-AXIS \u2014 toLocaleDateString('en-CA') matching calcPlanDay's local midnight, never UTC. Verified correct and preserved at ComfortSection.tsx:20-23."
+  },
+  {
+   "move": "The 14 new anchor verses need Ashley's sign-off before ship",
+   "source": "Ruling: translated/new content is Claude-drafted and Ashley approves before ship, except where explicitly delegated \u2014 he waived review on the comfort TRANSLATIONS, not on new English. Pairing verse to chapter takes the list from 16 to 30."
+  },
+  {
+   "move": "Instrumentation named and built before anything else",
+   "source": "persona-research.md:175, build item 1 \u2014 'Instrumentation. D1/D7/D30 by path, session length, completion, reminder opt-out. Nothing above can be tested without it, and no public source will ever supply it.' Plus cross-cutting 7 at :13, which names it the single biggest gap. Verified trap: TRACKED_EVENTS is an allowlist at analytics.ts:31-38 and trackActivity returns silently at :45."
+  },
+  {
+   "move": "Every reshape of the opening screen behind a deploy preview Ashley approves",
+   "source": "Ruling: feedback_daily_word_today_rebuild_rejected, 1 Sep 2026, line 11 \u2014 never merge a big IA/visual rebuild of the opening screen without his preview and explicit approval; a PR can sit open awaiting his look."
+  }
+ ],
+ "open_decisions": [
+  "The crisis lines per country. US 988, AU 13 11 14 and NZ 0800 543 354 are drafted. Futures has 5 campuses in Indonesia and 1 in Brazil and the research supplies no line for either, so an id or br reader lands in the honest 'we know your country and have no number for it' state and sees the local-emergency sentence plus the directory link. Ashley supplies those two lines, or rules that those regions stay in that state. Until he rules, the fallback is structural rather than a TODO \u2014 no code path can produce 988 for them, by test.",
+  "Who receives 'Talk to a pastor' at each campus, by name, and what response promise the app is allowed to print. 'Someone from {campus} will read this' is the safe default; 'someone will get back to you' is a promise the app cannot keep at 2am on its own. This gates the button, not the card: until a named recipient exists for a campus, that campus's card renders the crisis line, the campus's published contact and the honest sentence, with no button at all \u2014 so the rest of the design ships whole and the button appears campus by campus as recipients are named.",
+  "Whether the pastoral request sends without an email address. Designed here to send \u2014 an email gate in front of a cry for help is indefensible, and it is a deliberate departure from the prayer-wall pattern, which blocks on requireEmail(). Confirm.",
+  "Whether comfort gets any push at all. Designed here as none, matching the live exclusion. Two of the three source designs proposed a single opt-in, one-shot, in-context check-in with no streak language, offered at the done state. The copy is drafted and it is one small PR away. It crosses a standing line, so it is his call.",
+  "Whether the comfort door in the seam is visible to every persona from day one, or only after someone has used comfort once. Day one is the recommendation \u2014 the whole point is that it is already there before it is needed \u2014 but it puts a word about crisis on a pastor's and a new believer's screen every day.",
+  "The seam is hidden when IS_EMBEDDED (App.tsx:458), so the futures.church iframe embed of Daily Word would have no comfort door. Add one there, or accept the gap.",
+  "The 14 new anchor verses. Pairing verse to chapter takes the list from 16 to 30, so 14 pairings are Claude-drafted new English and need his sign-off; his waiver covered the comfort translations, not new English.",
+  "Do Romans 8:28 and Jeremiah 29:11 stay in the general comfort verse rotation? They are excluded from the crisis surface either way. In acute grief these two are the verses most often experienced as dismissal rather than comfort.",
+  "Who may edit flags.json, the crisis-language word list, per language. It stays a repo asset behind review and a deploy precisely because it decides when a card about self-harm appears on someone's screen \u2014 but it needs a named reviewer who speaks each language, or the id and pt lists cannot ship at all and the card simply never fires in those languages.",
+  "Who at each campus may write the care_contact and crisis_line rows through the /staff form, since those two rows are now live-editable without a deploy. The lever is deliberately fast; the governance is a decision, and a wrong number entered there reaches phones within a session.",
+  "Whether dw_steady_card syncs to the cloud at all. It will hold a phone number \u2014 the most sensitive record this app has ever held. Default here: yes, through misc, fill-only, tombstoned deletes. Say if it should be device-only.",
+  "Whether a person who uses the comfort door three times in one week gets any human follow-up, and from whom. If yes, it comes from a pastor, not from the app.",
+  "Whether the seasonal hard-dates block in content.json is his alone. As designed it is a repo edit and therefore centrally authored; a campus-local version would mean another campus_content row type, which is not built here."
+ ],
+ "risks": [
+  "Duty of care created and not met. A private 'Talk to a pastor' at 2am with nobody reading until Tuesday is worse than not offering it, to the people least able to absorb a second disappointment. Closed structurally rather than by intent: the button does not render for a campus with no named recipient, the copy promises a reader and never a time, and the crisis line sits on the card whether or not a pastor is behind it.",
+  "Showing the wrong country's number \u2014 the worst failure in the design and the exact one the research names. Three live code paths would have produced it and all three are now closed by design: campusFromTimezone (geo.ts:26-33) maps every America/* zone to US and is never called by the resolver; the resolver keys on the campus id's country prefix rather than the continent label in CAMPUSES; and no branch anywhere may return a number the resolver is not certain of. comfort_line_shown's unknown rate is watched from day one, and a test asserts no input path returns 988 unless the country is US.",
+  "The number missing at exactly the moment it is needed. detectCountry() caches in sessionStorage (geo.ts:47-57), which is gone on a cold open, and campus_content is a network call. Closed by painting from bundled data plus dw_crisis_region in localStorage on mount, and never awaiting a fetch before the card renders. comfort_offline_render {had_line} is the event that must never be zero-truthy.",
+  "A silent resolve failure caused by a data value. A saved campus of 'Non-Futures Church' (tokens.ts:79) or any campus whose country has no mapping now falls through to IP and timezone instead of ending the resolve; only a total absence of signal reaches the no-number state.",
+  "The comfort deep link landing on a consent dialog. ?comfort=1 opens on a cold device where CookieConsent, EmailGate, PWAInstall, EmailNudge and Day1Landing are all live; without COMFORT_DEEP_LINK gating them, the screen that says 'nothing is asked of you here' opens with three things asked. Consequence accepted and stated: with consent suppressed, that session fires no analytics at all, so the deeplink count is a floor.",
+  "A missed true positive in the safety check, which is far worse than a false one. The word list must be per-language and reviewed by a speaker, never machine-translated from English \u2014 'aku ingin mengakhiri semuanya' is not reachable from an English list. The confirm does not fire at all for a language whose list is unapproved.",
+  "A false-positive safety card reading as surveillance \u2014 'I'm dying of embarrassment' triggering a suicide line is patronising and drives people off the feature. It never blocks, never sends, never stores the text, one tap dismisses it for that conversation, and the dismissal rate is the tuning signal rather than the success metric.",
+  "Anything from this leaking to the public prayer wall. Separate table, separate function, and a check that specifically confirms nothing appears on the wall \u2014 the existing prayer-wall function has no private flag and everything inserted there is readable.",
+  "Comfort Now leaking into another persona's progress. It is reachable from four paths; if it stamps dw_reading_done, advances a plan day or writes dw_setup, it corrupts the exact records the arrival-seed and never-rebuild-from-React-state rulings exist to protect. This needs a byte-identical assertion test, not a code review.",
+  "Removing the ask_lock step removes the only place dw_comfort_daily was ever set (ComfortSection.tsx:315). If the inference never fires, the value silently stays 0 and the tomorrow line never appears \u2014 which is why comfort_daily_inferred is on the event list.",
+  "The service-worker content trap. Moving devotions and verses to JSON without making that class network-first means every returning user reads stale content indefinitely, and the failure is invisible from a fresh browser \u2014 which is exactly how it was missed the first time.",
+  "A live-editable crisis number is a fast lever pointed at a sensitive target. Moving care_contact and crisis_line into campus_content means a wrong row reaches phones within a session with no deploy and no review. That is the right trade for a number that changes overnight, but it makes the /staff write permission a real access-control question, not a convenience.",
+  "The Comfort Home reshape is an IA change to an opening screen, and the last one was reverted the same night for being 'completely stripped'. This one removes a literal duplicate and adds warmth, care and a person \u2014 it is richer and clearer, not thinner \u2014 but it still ships behind a preview link and does not merge without his word.",
+  "Comfort Now opening as a full-screen host over Home is precisely the pattern that produced the two back-button findings. useSubView alone, always mounted with a live open prop, and an Android back pass in the preview before he looks at it.",
+  "The comfort path will under-perform every other path on retention charts because it deliberately has no reminder, no streak and no graduation. If that is read as failure in a dashboard review, the fix suggested will be to add a nudge, which is the one thing this persona must never get. Write the expectation down before the first rollup runs.",
+  "Reminder copy drift, if a comfort push is ever approved. Comfort's templates would be one PR away from picking up 'don't break your streak'. A test asserting the comfort set contains none of day, streak, missed, catch up, or back is cheap insurance.",
+  "The steady card riding in the misc JSONB column with a phone number in it. applyMisc is fill-only and deletes are tombstones per the rulings, but this is the first genuinely sensitive record the app has held."
+ ],
+ "build_steps": [
+  {
+   "step": "PR A \u2014 the subtraction. Steps 1 to 3 ship as one branch and one deploy preview, on their own, and do not wait on any safety decision. This is the biggest user win in the design and the part with no open questions left in it.",
+   "files": "one branch, one PR; the three steps below",
+   "check": "Ashley opens the preview and sees the comfort screen with one chapter on it instead of two."
+  },
+  {
+   "step": "1. Instrumentation first, as the research orders it. Add every comfort_* event to the allowlist, add a `path` detail to app_open, add a typed helper, and add a per-path nightly rollup to the dashboard.",
+   "files": "src/utils/analytics.ts (TRACKED_EVENTS, lines 31-38); src/utils/comfort-events.ts (new); netlify/functions/analytics-dashboard.js; src/components/AnalyticsDashboard.tsx",
+   "check": "npx vitest run with a spec asserting every name in comfort-events.ts is present in TRACKED_EVENTS. A name missing from the allowlist is dropped silently at analytics.ts:45 and the dashboard shows a clean zero, so assert presence \u2014 never the absence of an error. Then drive one scripted comfort session on localhost and confirm the sequence in the Supabase activity table."
+  },
+  {
+   "step": "2. Reshape comfort content into one entry per day and move it to network-first JSON: 30 entries of {chapter, anchorVerseRef, anchorVerseText, devotion, prayer, tone} in en/es/pt/id plus the optional `dates` block, so verse and chapter always come from the same entry. Tag Romans 8:28 and Jeremiah 29:11 as 'explanation' so the crisis surface never draws them. Keep the bundled TS export as the offline fallback.",
+   "files": "public/comfort/content.json (new); src/data/comfort.ts (becomes a typed loader with the bundled array as offline fallback); src/sections/ComfortVerseBannerSection.tsx (COMFORT_VERSES + GUIDED_PRAYERS move out of the render file, lines 13-37); public/sw.js (network-first for /comfort/*, bump CACHE_NAME + STATIC_CACHE + SW_VERSION together)",
+   "check": "npx vitest run src/data/comfort.test.ts \u2014 30 entries, every entry has an anchor verse and a devotion in all four languages, localDayIndex() returns verse and chapter from the SAME entry, a missing JSON falls back to the bundled data, and the chosen verse and chapter for a fixed local date are unchanged by the move (the localDayIndex invariant must not shift by a day). Then the real check: edit one devotion, deploy, and confirm the new text appears on a browser that ALREADY has the app cached \u2014 the /books trap only shows itself on a warm cache."
+  },
+  {
+   "step": "3. Kill the duplicate. Make the hero the only chapter surface: keep the heroChapterRefs comfort fallback and strip ComfortSection's own chapter render, its translation picker and its Listen button. ComfortSection becomes the after-reading frame \u2014 devotion, done line, inferred tomorrow line \u2014 with the counter, the grading line and the ask_lock quota question removed, and the thought control never shown when a chapter has no devotion (which also fixes the setState-during-render at ComfortSection.tsx:212). Repaint both files onto the locked tokens as FLAT panels, and drop book_cards from the comfort sectionOrder entirely.",
+   "files": "src/components/ComfortSection.tsx; src/sections/ComfortVerseBannerSection.tsx; src/screens/HomeScreen.tsx (comfort render block ~2887-2917); src/utils/persona-config.ts (comfort sectionOrder lines 510-519: drop 'hero_audio', 'scripture', 'comfort_card', 'book_cards'; rename 'comfort_scripture' to 'comfort_after_reading'; add 'comfort_care', 'comfort_steady', 'comfort_done'); HomeScreen UpgradePromptCard mount (gate out for comfort)",
+   "check": "npx vitest run src/components/ComfortSection.test.tsx \u2014 'renders today's chapter exactly once on the comfort home', 'asks no question after reading', 'shows no count', 'never renders comfort_reading_x_of_y or comfort_doing_great', 'renders no book cards in any state', 'the done line is the last child of the comfort column', 'infers dw_comfort_daily from chapters read on two separate days', 'no thought control when the chapter has no devotion'. Then `grep -rn '92,107,192\\|5C6BC0\\|4A6070\\|37474F\\|linear-gradient' src/components/ComfortSection.tsx src/sections/ComfortVerseBannerSection.tsx` returns nothing, `npm run build` is clean, the existing pathway-upgrades test still passes, and a live persona pass in the dw-dev preview at 390px with dw_setup={persona:'comfort',source:'settings'}."
+  },
+  {
+   "step": "GATE \u2014 PR B does not open until two things are true: the named-recipient decision is answered for at least one campus (or accepted as button-dark everywhere), and the crisis lines Ashley is supplying for id/br are either given or ruled to stay in the no-number state. Steps 4 to 11 are the safety plumbing, where a wrong answer is worse than no feature, and none of it is needed to ship PR A.",
+   "files": "none \u2014 this is a decision gate, recorded so the sequencing is deliberate rather than accidental",
+   "check": "Written answers to open decisions 1 and 2. PR A can be live in production while this gate is still closed."
+  },
+  {
+   "step": "4. Crisis lines data and the region resolver \u2014 campus with a line first, IP second, timezone allowlist third, picker fourth, no default ever, and no tier allowed to terminate the chain early.",
+   "files": "src/utils/crisis-lines.ts (new resolver \u2014 writes its own tz allowlist, never imports campusFromTimezone from geo.ts); src/utils/storage.ts (dw_crisis_region key constant, device-local, NOT added to the misc sync list); public/comfort/lines.json (new, bundled fallback); netlify/functions/campus-content.js (read crisis_line and care_contact row types); src/data/tokens.ts (resolve on the campus id country prefix, not the region label)",
+   "check": "npx vitest run src/utils/crisis-lines.test.ts, table-driven over all 22 campuses plus no-campus: 'a campus with a line on file beats IP', 'a campus of other falls through to IP', 'an Indonesian or Brazilian campus reaches known-no-line and never falls through to a guess', 'IP beats timezone', 'America/Sao_Paulo returns unknown', 'America/Bogota returns unknown', 'America/Mexico_City returns unknown', 'Australia/Adelaide returns the AU line', 'Pacific/Auckland returns the NZ line', 'an unrecognised country code never falls back to US', 'an unknown region returns no number at all'. Assert explicitly that NO input path returns 988 unless the country is US, and add an import-graph assertion that crisis-lines.ts does not import geo.ts's campusFromTimezone. Then a persistence test: resolve once, clear sessionStorage, simulate offline, remount, and assert the card still paints the same number from dw_crisis_region with zero fetches."
+  },
+  {
+   "step": "5. The care card and the Who-to-call sheet, on the reading screen and in More for every persona, fully i18n-keyed, with the pastor CTA rendered only where a named recipient exists. New CSS prefix dw-cmf-* (dw-cp-* is ChoosePathSheet, dw-path-* is the Plans chooser).",
+   "files": "src/components/ComfortCareCard.tsx (new); src/components/CrisisLinesSheet.tsx (new); src/screens/MoreScreen.tsx (replace the hardcoded English block at 784-841 and ungate it from persona === 'comfort'); src/utils/i18n.ts; src/index.css",
+   "check": "npx vitest run \u2014 'renders the crisis line before any fetch resolves', 'renders no pastor button when the campus has no named recipient', 'never renders a disabled or greyed pastor button', 'a campus_content answer arriving late upgrades the card without clearing the number already shown'. Then npm run build, open the preview with a US campus and again with an AU campus and read the numbers off the screen, throttle to offline and confirm the number and the tel: link still render from local data."
+  },
+  {
+   "step": "6. The seam comfort door, the Comfort Now surface, the More row and the ?comfort=1 deep link. useSubView ALONE, always mounted with a live open prop, and the deep link gates every first-paint overlay.",
+   "files": "src/components/Seam.tsx (a <button class=\"dw-cmf-seam\">, 44px hit area, muted \u2014 NOT an a.dw-seam-link, which index.css:876-881 forces gold); src/components/ComfortNow.tsx (new); src/App.tsx (COMFORT_DEEP_LINK beside SERMON_DEEP_LINK at :35, writing nothing to localStorage; gate CookieConsent at :498, EmailGate at :480, PWAInstall, EmailNudge and Day1Landing at :236-239 off it; mount ComfortNow always); src/screens/MoreScreen.tsx (top row); src/index.css (dw-cmf-seam, and the <390px rule hiding .dw-seam-name)",
+   "check": "npx vitest run src/components/ComfortNow.test.tsx \u2014 'opens without writing dw_setup', 'stays mounted while closed and paints nothing', 'adds exactly one history entry per open', 'ten open/close cycles leave history.length unchanged', 'never calls saveSetup or handleRead', and for the link: 'COMFORT_DEEP_LINK writes nothing to localStorage', 'CookieConsent, EmailGate, PWAInstall, EmailNudge and Day1Landing all render null under it'. Then the important manual ones: snapshot dw_setup, dw_reading_done and dw_pathway_progress, open Comfort Now from the congregation path, read, close, and assert all three are byte-identical; open ?comfort=1 in a clean private window and confirm the verse is the only thing on the first paint; measure the seam button's hit box at 375px and confirm it is at least 44px and not gold; an Android back pass on each of the four paths."
+  },
+  {
+   "step": "7. The steady card, synced correctly.",
+   "files": "src/components/SteadyCard.tsx (new); src/utils/storage.ts (dw_steady_card key constant); src/utils/cloudSync.ts (add to MISC_KEYS at :35 and to the AUTHORED_MISC set at :69; writes call pushNow())",
+   "check": "npx vitest run src/utils/cloudSync.test.ts \u2014 a new case asserting a cloud dw_steady_card never overwrites a newer local one, matching the existing dw_user_story behaviour, and that every write calls pushNow(). Then fill a slot on device A, flush, and confirm it appears on device B; edit on B while A holds a newer value and confirm fill-only holds. Merge into what is in localStorage; never rebuild the record from React state."
+  },
+  {
+   "step": "8. The safety flow: the client-side language check plus the card, on Bible AI, the prayer-request submit and the journal save. Never blocks, never logs the text. Harden the comfort AI prompt and swap the quick prompts to presence-only.",
+   "files": "src/utils/crisis-language.ts (new); public/comfort/flags.json (new, per-language list + exclusions, repo asset by design); src/components/BibleAI.tsx (render above the streaming answer; the once-only first-use disclosure; the three comfort quick prompts); netlify/functions/claude.js (flagged-turn system instruction); src/utils/persona-config.ts (systemPromptAddition, lines 550-553); src/screens/MessagesScreen.tsx; src/screens/JournalScreen.tsx",
+   "check": "npx vitest run src/utils/crisis-language.test.ts against a 40-phrase fixture including at least 15 false-positive traps ('I'm dying to know', 'this deadline is killing me', 'killer worship set', 'dead tired', 'I could murder a coffee') alongside true positives in en/es/pt/id. Assert the detector returns a reason code and NEVER the input text, and that its input never reaches fetch, localStorage or an analytics detail field. Assert the comfort quick prompts contain no 'why' question. Then in preview: a flagged phrase still sends, the card appears once, dismiss does not re-fire in the same conversation, the card shows no pastor button for a campus with no recipient, and a language with no approved list fires nothing."
+  },
+  {
+   "step": "9. The private pastoral request \u2014 a route that is not the prayer wall, with no email gate, and a form that fails visibly.",
+   "files": "src/components/ReachPastor.tsx (new; form is noValidate, the empty-field line and the failure line both render directly under Send with the crisis number beneath); netlify/functions/pastoral-request.js (new); supabase/migrations/<ts>_pastoral_requests.sql (new, IN THE REPO per the standing rule); src/screens/HomeScreen.tsx and ComfortNow (mount)",
+   "check": "netlify dev, POST a test request, assert a 200 and that the row lands in pastoral_requests addressed to the recipient the campus's care_contact row names \u2014 then load the public prayer wall and confirm it is NOT there. Send with no email on file and confirm it still sends. Press Send with an empty textarea and confirm one visible line appears under the button (and that no silent native validation fires). Record the shared mail account in the subscriptions register before the first send, and register the /staff write path for care_contact at the same time."
+  },
+  {
+   "step": "10. The 'Read a different passage' link, behind a flag, as an A/B \u2014 the one element with no evidence behind it.",
+   "files": "src/components/ComfortSection.tsx (the link above the verse); the existing flag mechanism",
+   "check": "npx vitest run \u2014 the link never renders on a first-ever session, is a single control and not a two-button question, never references a gap or a count, never renders the words 'still here', and resolves from cache when offline."
+  },
+  {
+   "step": "11. Lock the closed doors with tests so no future card re-opens one.",
+   "files": "src/utils/pathway-upgrades.test.ts (extend); src/components/ComfortNow.test.tsx; src/components/HighlightToolbar.test.tsx (new or extend); src/utils/crisis-lines.test.ts",
+   "check": "npx vitest run: no comfort entry in UPGRADE_CONDITIONS, no graduation copy on ANY comfort surface including the new ones, no book-card or promo component on any comfort surface, comfortMode renders Note and Close and nothing else, Comfort Now never calls saveSetup or handleRead, the crisis-line resolver never returns a number for a region that has none and never returns 988 outside the US, and no comfort surface contains a linear-gradient."
+  },
+  {
+   "step": "12. One deploy preview per PR, and wait. PR A reshapes an opening screen and PR B adds a door to the seam on five paths \u2014 the same class as the rebuild reverted on 1 September, so neither merges on anyone else's judgment.",
+   "files": "two branches, two PRs, no merge to main; plus a two-minute walkthrough note per PR: for A, comfort home before/after (the duplicate gone, the done line last); for B, the seam door from congregation, the care card in US and AU and with no recipient named, ?comfort=1 in a clean private window, the safety card firing and being dismissed, and the offline state",
+   "check": "Ashley opens the preview on his phone, walks the comfort path and the comfort-from-congregation path, and says yes in writing. Each PR sits open until he does. Note that push cannot be verified on a preview at all \u2014 pushSupported() allowlists futuresdailyword.com, www and localhost only \u2014 which is moot here because no comfort push is built, and must stay moot unless he rules otherwise."
+  }
+ ]
+}
