@@ -158,4 +158,25 @@ describe('getGreeting', () => {
       expect(typeof greeting).toBe('string');
     }
   });
+
+  it("deeper_study greeting is name-only, no digit, for any streak in any language", () => {
+    const streaks = [0, 1, 5, 40];
+    const langs: (string | undefined)[] = [undefined, 'es', 'pt', 'id'];
+    for (const lang of langs) {
+      for (const streak of streaks) {
+        const greeting = getGreeting('deeper_study', 'Sam', streak, lang);
+        expect(greeting).not.toMatch(/[0-9]/);
+      }
+    }
+  });
+
+  it('congregation and pastor_leader greetings still contain the number', () => {
+    expect(getGreeting('congregation', 'Alex', 5)).toContain('5');
+    expect(getGreeting('pastor_leader', 'Alex', 35)).toContain('35');
+  });
+
+  it("neither congregation's nor pastor_leader's sectionOrder contains 'campus_count'", () => {
+    expect(PERSONA_CONFIGS.congregation.sectionOrder).not.toContain('campus_count');
+    expect(PERSONA_CONFIGS.pastor_leader.sectionOrder).not.toContain('campus_count');
+  });
 });

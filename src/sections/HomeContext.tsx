@@ -7,6 +7,8 @@ import { createContext, useContext } from 'react';
 import type { TranslationCode } from '../utils/api';
 import type { PersonaConfig } from '../utils/persona-config';
 
+export interface CampusStats { campus: string; readingToday: number; activeThisWeek: number; prayerCount: number }
+
 export interface HomeContextValue {
   // Persona
   personaConfig: PersonaConfig;
@@ -43,6 +45,8 @@ export interface HomeContextValue {
   userProfile: { firstName?: string; campus?: string; email?: string } | null;
   setup: { persona?: string } | null;
   streakCount: number;
+  readDayCount: number;
+  campusStats: CampusStats | null;
 
   // Plans
   todaysPlanPassages: Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; author: string; body: string } }>;

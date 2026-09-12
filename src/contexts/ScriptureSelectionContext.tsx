@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { schedulePush, pushNow } from '../utils/cloudSync';
+import { recordReadDay } from '../utils/readDays';
 
 export interface ScriptureHighlight {
   verseKey: string;
@@ -164,6 +165,7 @@ export function ScriptureSelectionProvider({ children }: { children: ReactNode }
       next[verseKey] = { verseKey, text, timestamp: Date.now(), color: 'gold' };
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    if (!wasHighlighted) recordReadDay('highlight');
 
     // Fix 1: mirror the highlight into the Journal so it appears in the Notes tab automatically.
     if (wasHighlighted) {

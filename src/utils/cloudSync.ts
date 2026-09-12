@@ -10,6 +10,7 @@
  * All sync is non-blocking. If it fails, localStorage still works.
  */
 import { API_BASE } from './api-base';
+import { mergeReadDays } from './readDaysMerge';
 
 // ── localStorage keys that sync to the cloud ──
 const SYNC_KEYS = {
@@ -48,8 +49,13 @@ const MISC_KEYS = [
   'dw_preach_outline',       // the pastor's sermon outline (structured JSON — newest-wins,
                              // deliberately OFF the authored dw_sermon_ prefix so a device
                              // with an older copy takes the cloud's newer one)
+  'dw_read_days',            // genuine-reading-day date set — add-only, union-merged (see UNION_MISC)
 ] as const;
 const MISC_PREFIXES = ['dw_sermon_', 'dw_book_today_'];
+
+// Add-only misc keys (date/id sets) that must be UNION-merged on apply, never
+// resolved by newest-wins — otherwise a second device's read days are lost.
+const UNION_MISC = new Set(['dw_read_days']);
 
 /** The exact key predicate for the misc bag — shared by collectMisc (what we push)
  *  and applyMisc (what we accept). applyMisc MUST enforce this too: without it a
@@ -148,6 +154,18 @@ function applyMisc(misc: unknown) {
     if (k === MISC_META_KEY) continue;
     if (!isSyncedMiscKey(k)) continue; // whitelist — see isSyncedMiscKey
     if (typeof v !== 'string' || !v) continue;
+    if (UNION_MISC.has(k)) {
+      // Add-only date set — merge cloud into local instead of fill-only /
+      // newest-wins, so neither device's read days are ever dropped.
+      try {
+        const localRaw = localStorage.getItem(k);
+        const localVal = localRaw ? JSON.parse(localRaw) : [];
+        const cloudVal = JSON.parse(v) as unknown;
+        const merged = mergeReadDays(localVal, cloudVal);
+        localStorage.setItem(k, JSON.stringify(merged));
+      } catch { /* quota / parse */ }
+      continue;
+    }
     const local = localStorage.getItem(k);
     const localEmpty = local == null || local === '' || local === '[]' || local === '{}' || local === 'null';
     if (localEmpty) {

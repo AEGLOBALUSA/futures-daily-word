@@ -1,13 +1,13 @@
 import { getGreeting } from '../utils/persona-config';
 import { useHome } from './HomeContext';
 import { useState, useEffect } from 'react';
-import { getLang } from '../utils/i18n';
+import { getLang, t } from '../utils/i18n';
 
 const MILESTONE_STREAKS = [7, 14, 21, 30, 40, 50, 60, 75, 100, 150, 200, 300, 365];
 
 export function GreetingSection() {
-  const { personaConfig, userProfile, streakCount } = useHome();
-  const greetingText = getGreeting(personaConfig.persona, userProfile?.firstName || '', streakCount, getLang());
+  const { personaConfig, userProfile, streakCount, readDayCount } = useHome();
+  const greetingText = getGreeting(personaConfig.persona, userProfile?.firstName || '', readDayCount, getLang());
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function GreetingSection() {
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
             }}>
-              🔥 Milestone Reached
+              {t('greeting_milestone_label')}
             </p>
             <p style={{
               fontSize: 16,
@@ -59,7 +59,7 @@ export function GreetingSection() {
               margin: 0,
               fontWeight: 500,
             }}>
-              You've got a {streakCount}-day streak!
+              {t('greeting_milestone_streak').replace('{x}', String(streakCount))}
             </p>
             <p style={{
               fontSize: 13,
@@ -67,7 +67,7 @@ export function GreetingSection() {
               color: 'var(--dw-text-secondary)',
               margin: '6px 0 0',
             }}>
-              Keep the momentum going. You're amazing.
+              {t('greeting_milestone_keep')}
             </p>
           </div>
           <button

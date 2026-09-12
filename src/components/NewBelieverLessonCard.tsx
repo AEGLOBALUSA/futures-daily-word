@@ -11,9 +11,10 @@
  * HomeScreen wires to savePathwayProgressFromLesson (stamps dw_reading_done,
  * fires dw-reading-completed — the ruled gate-stack timing is unchanged).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Loader2, Share2 } from 'lucide-react';
 import { t as trans } from '../utils/i18n';
+import { track } from '../utils/analytics';
 import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
 import { shareContent } from '../utils/share';
@@ -75,6 +76,16 @@ export function NewBelieverLessonCard({
   // arrives with the journey hero tomorrow, so the verses panel hides in peek.
   const isPeek = currentDay !== displayDay;
   const dayData = pathwayData.days?.find((d: PathwayDay) => d.day === currentDay);
+  // Fire once per open/day pair — a re-render while the surface stays open on
+  // the same day must not re-emit the open event.
+  const openTrackedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const key = `${open}-${displayDay}`;
+    if (openTrackedRef.current === key) return;
+    openTrackedRef.current = key;
+    track('journey_day_open', String(displayDay));
+  }, [open, displayDay]);
   if (!open || !dayData) return null;
   const completed = pathwayProgress.completedDays?.length || 0;
   const totalDays = pathwayData.days?.length || 40;
@@ -220,6 +231,7 @@ export function NewBelieverLessonCard({
                   const newCompleted = [...pathwayProgress.completedDays, currentDay];
                   const nextDay = Math.min(totalDays, currentDay + 1);
                   setShowNext(false);
+                  track('journey_day_complete', String(currentDay));
                   savePathwayProgress({
                     ...pathwayProgress,
                     completedDays: newCompleted,

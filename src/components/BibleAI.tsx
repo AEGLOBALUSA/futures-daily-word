@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { trackBehavior } from '../utils/behavior'
 import { getPersonaConfig } from '../utils/persona-config'
-import { Send, ChevronDown, ChevronLeft, Copy, Bookmark, BookmarkPlus, RotateCcw } from 'lucide-react';
+import { Send, ChevronDown, ChevronLeft, Copy, Bookmark, BookmarkPlus, RotateCcw, Lightbulb } from 'lucide-react';
 import { schedulePush } from '../utils/cloudSync'
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext'
 import { t, getLang } from '../utils/i18n';
@@ -644,7 +644,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
                     alignItems: 'flex-start',
                     gap: 8,
                   }}>
-                    <span style={{ fontSize: 14, flexShrink: 0 }}>💡</span>
+                    <Lightbulb size={14} style={{ flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ marginBottom: 6 }}>
                         {t("tip_season", lang)}
