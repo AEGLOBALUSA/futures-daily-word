@@ -211,12 +211,54 @@ export async function updatePushTime(hour: number): Promise<boolean> {
         subscription: subscription.toJSON(),
         preferredHour: hour,
         timezone: getTimeZone(),
+        lang: getLang(),
       }),
     });
     return !!(res && res.ok);
   } catch {
     return false;
   }
+}
+
+/**
+ * Re-point an existing push subscription's stored `lang` when the reader
+ * changes language, so the (already-registered) Spanish/Portuguese templates
+ * can actually reach someone who subscribed under a different language.
+ * No-ops when there is no active subscription — this must never fire for a
+ * non-subscriber or create one. Guards against a double-fire updating the
+ * same lang twice in a row (repeated toggles between two languages are still
+ * allowed, since each is a real change the server needs to know about).
+ */
+let lastSyncedPushLang: string | null = null;
+async function syncPushLangOnChange(): Promise<void> {
+  try {
+    if (!isPushSubscribed()) return;
+    const lang = getLang();
+    if (lang === lastSyncedPushLang) return;
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((res) => setTimeout(() => res(null), 5000)),
+    ]);
+    if (!registration) return;
+    const subscription = await withTimeout(registration.pushManager.getSubscription(), 8000, null);
+    if (!subscription) return;
+    const res = await fetchWithTimeout(`${API_BASE}/api/push-subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update',
+        subscription: subscription.toJSON(),
+        lang,
+      }),
+    });
+    if (res && res.ok) lastSyncedPushLang = lang;
+  } catch {
+    // best-effort — a failed re-point just leaves the reader on their old lang
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('dw-lang-changed', () => { void syncPushLangOnChange(); });
 }
 
 /**

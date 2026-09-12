@@ -11,23 +11,32 @@ import { LS } from './storage';
 import { syncMisc } from './cloudSync';
 import { track } from './analytics';
 import { recordStreakToday } from './streak';
-import { localToday, mergeReadDays } from './readDaysMerge';
+import { localToday, mergeReadDays, readDaysTotal } from './readDaysMerge';
 
 export type ReadTrigger = 'complete' | 'pathway' | 'audio' | 'highlight' | 'journal';
 
-/** Read + sanitise the stored read-days array from localStorage. */
+/** Read + sanitise the stored read-days array from localStorage (the retained
+ *  window only — use getReadDayCount() for the true total). */
 export function getReadDays(): string[] {
   try {
     const raw = localStorage.getItem(LS.readDays);
     const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return mergeReadDays(parsed, []);
+    return mergeReadDays(parsed, []).dates;
   } catch {
     return [];
   }
 }
 
+/** The true total read-day count — retained window plus dates already
+ *  evicted from it, so this never freezes once the window fills. */
 export function getReadDayCount(): number {
-  return getReadDays().length;
+  try {
+    const raw = localStorage.getItem(LS.readDays);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return readDaysTotal(mergeReadDays(parsed, []));
+  } catch {
+    return 0;
+  }
 }
 
 /** Record today as a genuine read day (idempotent per calendar day) and roll the
@@ -43,17 +52,17 @@ export function recordReadDay(trigger: ReadTrigger): { dates: string[]; count: n
     stored = [];
   }
   const current = mergeReadDays(stored, []);
-  const isNew = !current.includes(today);
+  const isNew = !current.dates.includes(today);
 
-  let dates = current;
+  let record = current;
   if (isNew) {
-    dates = mergeReadDays(stored, [today]);
-    syncMisc(LS.readDays, JSON.stringify(dates));
+    record = mergeReadDays(stored, [today]);
+    syncMisc(LS.readDays, JSON.stringify(record));
     track('read_day', trigger);
     window.dispatchEvent(new Event('dw-read-day'));
   }
 
   const streak = recordStreakToday();
 
-  return { dates, count: dates.length, isNew, streak };
+  return { dates: record.dates, count: readDaysTotal(record), isNew, streak };
 }

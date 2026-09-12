@@ -11,6 +11,7 @@
  */
 import { API_BASE } from './api-base';
 import { mergeReadDays } from './readDaysMerge';
+import type { ReadDaysRecord } from './readDaysMerge';
 
 // ── localStorage keys that sync to the cloud ──
 const SYNC_KEYS = {
@@ -101,6 +102,12 @@ export function syncMisc(key: string, value: string) {
 // push-time union in collectMisc (see both sites).
 let lastCloudPrayedFor: unknown[] | null = null;
 
+// The cloud's read-days record from the last pull, captured in applyMisc for the
+// push-time union in collectMisc (see both sites). Without this a stale device
+// (one that never re-pulled) would push its shorter local list and DELETE every
+// read day the cloud gained from other devices since — mirrors lastCloudPrayedFor.
+let lastCloudReadDays: unknown = null;
+
 /** Collect the misc-bag keys (static list + dynamic prefixes) + the meta map. */
 function collectMisc(): Record<string, string> {
   const out: Record<string, string> = {};
@@ -123,6 +130,18 @@ function collectMisc(): Record<string, string> {
       const localRaw = JSON.parse(out['dw_prayed_for'] || '[]') as unknown;
       const localArr = Array.isArray(localRaw) ? localRaw : [];
       out['dw_prayed_for'] = JSON.stringify([...new Set([...localArr, ...lastCloudPrayedFor])]);
+    } catch { /* ignore */ }
+  }
+  // dw_read_days is the same shape of problem: a device whose last pull is stale
+  // (open for days, never re-synced) would otherwise push its shorter local list
+  // and the server rebuilds the misc bag from exactly what was sent — silently
+  // deleting every read day another device added to the cloud in the meantime.
+  // Push the UNION of local + the last-pulled cloud copy instead (apply merges too).
+  if (lastCloudReadDays != null) {
+    try {
+      const localRaw = out['dw_read_days'] ? (JSON.parse(out['dw_read_days']) as unknown) : [];
+      const merged: ReadDaysRecord = mergeReadDays(localRaw, lastCloudReadDays);
+      out['dw_read_days'] = JSON.stringify(merged);
     } catch { /* ignore */ }
   }
   return out;
@@ -150,6 +169,14 @@ function applyMisc(misc: unknown) {
     }
   } catch { /* ignore */ }
 
+  // Remember the cloud's read-days record for collectMisc's push-time union.
+  try {
+    const rd = bag['dw_read_days'];
+    if (typeof rd === 'string') {
+      lastCloudReadDays = JSON.parse(rd) as unknown;
+    }
+  } catch { /* ignore */ }
+
   for (const [k, v] of Object.entries(bag)) {
     if (k === MISC_META_KEY) continue;
     if (!isSyncedMiscKey(k)) continue; // whitelist — see isSyncedMiscKey
@@ -157,13 +184,30 @@ function applyMisc(misc: unknown) {
     if (UNION_MISC.has(k)) {
       // Add-only date set — merge cloud into local instead of fill-only /
       // newest-wins, so neither device's read days are ever dropped.
+      // The local parse is separated from the merge/write so an unreadable
+      // local value falls back to the cloud copy instead of skipping the key
+      // entirely — otherwise a corrupt local value discarded the cloud's whole
+      // read-day history too (the reader saw zero, then their next genuine
+      // read pushed a single day over everything the cloud held).
+      let localVal: unknown = [];
+      let localReadable = true;
       try {
         const localRaw = localStorage.getItem(k);
-        const localVal = localRaw ? JSON.parse(localRaw) : [];
-        const cloudVal = JSON.parse(v) as unknown;
-        const merged = mergeReadDays(localVal, cloudVal);
-        localStorage.setItem(k, JSON.stringify(merged));
-      } catch { /* quota / parse */ }
+        localVal = localRaw ? JSON.parse(localRaw) : [];
+      } catch {
+        localReadable = false;
+      }
+      try {
+        if (localReadable) {
+          const cloudVal = JSON.parse(v) as unknown;
+          const merged = mergeReadDays(localVal, cloudVal);
+          localStorage.setItem(k, JSON.stringify(merged));
+        } else {
+          // Local is unreadable — fall back to the cloud's copy rather than
+          // dropping the key.
+          localStorage.setItem(k, v);
+        }
+      } catch { /* quota / cloud parse */ }
       continue;
     }
     const local = localStorage.getItem(k);
@@ -220,6 +264,7 @@ export function resetSyncSession() {
   pendingPush = null;
   lastSyncVersion = 0;
   lastCloudPrayedFor = null;
+  lastCloudReadDays = null;
 }
 
 /** Atomically read-and-clear the coalesced push request (a helper function so TS

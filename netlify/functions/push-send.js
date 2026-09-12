@@ -1,7 +1,7 @@
 const webpush = require("web-push");
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
-const { getVerseSnippet, getTemplate } = require("./lib/push-templates.js");
+const { getVerseSnippet, getTemplate, normLang } = require("./lib/push-templates.js");
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
@@ -118,10 +118,13 @@ exports.handler = async (event) => {
 
   const tzCache = buildTimezoneHourCache();
 
-  // Cache payloads per language to avoid rebuilding for each subscriber
-  const payloadCache = {};
+  // Cache payloads per language to avoid rebuilding for each subscriber.
+  // Prototype-less store + normalised key so a crafted/inherited lang value
+  // (e.g. "constructor", region-tagged "es-MX", mixed-case "EN") can never
+  // read back a Function from Object.prototype as a false cache hit.
+  const payloadCache = Object.create(null);
   function getPayload(lang) {
-    const key = lang || 'en';
+    const key = normLang(lang);
     if (!payloadCache[key]) {
       payloadCache[key] = buildPayload(passage, key);
     }

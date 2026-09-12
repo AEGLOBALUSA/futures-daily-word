@@ -62,6 +62,15 @@ exports.handler = async (event) => {
     const { events } = body;
     const db = getSupabase();
 
+    // Validate the payload BEFORE authenticating. migrateRequest mints a session
+    // token and persists its hash into profiles.session_token_hashes, which is
+    // capped at 5 — so minting one for a request we are about to reject would
+    // evict the reader's real token and start 401ing their cloud sync. Nothing
+    // in this check depends on the caller's identity, so it belongs first.
+    if (!events || !Array.isArray(events) || events.length === 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Events array required" }) };
+    }
+
     // Authenticate via session token
     let email = await authenticateRequest(event, db);
     let migrationToken = null;
@@ -72,31 +81,33 @@ exports.handler = async (event) => {
       email = migration.email;
       migrationToken = migration.token;
     }
-
-    if (!events || !Array.isArray(events) || events.length === 0) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "Events array required" }) };
-    }
     // Cap at 50 events per request to prevent abuse
     if (events.length > 50) events.length = 50;
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Build rows to insert — shape-validated by buildActivityRows; the client's
-    // TRACKED_EVENTS allowlist is the single name gate.
+    // Build rows to insert — buildActivityRows validates shape AND gates
+    // event_type against the known TRACKED_EVENTS list server-side (the origin
+    // check alone is not a name gate for a non-browser caller).
     const rows = buildActivityRows(cleanEmail, events);
 
     if (rows.length === 0) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, note: "No valid events" }) };
     }
 
-    // Batch insert all activity events
+    // Batch insert all activity events. Analytics is best-effort — a failed
+    // insert must never cost a freshly minted session token (migrateRequest
+    // already persisted its hash into profiles.session_token_hashes before we
+    // got here), so log and carry on instead of throwing.
     const { error: insertError } = await db.from("activity_events").insert(rows);
-    if (insertError) throw insertError;
-
-    // Also update lastActiveAt on the profile
-    await db.from("profiles")
-      .update({ last_active_at: new Date().toISOString() })
-      .eq("email", cleanEmail);
+    if (insertError) {
+      console.error("Track activity insert error:", insertError);
+    } else {
+      // Also update lastActiveAt on the profile
+      await db.from("profiles")
+        .update({ last_active_at: new Date().toISOString() })
+        .eq("email", cleanEmail);
+    }
 
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
   } catch (err) {
