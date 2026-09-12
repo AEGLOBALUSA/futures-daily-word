@@ -1,7 +1,7 @@
 const webpush = require("web-push");
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
-const { getVerseSnippet, getTemplate, normLang } = require("./lib/push-templates.js");
+const { getVerseSnippet, getTemplate, normLang, getPassageLabel, ALL_PASSAGES } = require("./lib/push-templates.js");
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
@@ -21,15 +21,6 @@ function getSupabase() {
   }
   return supabase;
 }
-
-const ALL_PASSAGES = [
-  "Psalms 23","Romans 8","John 3","Philippians 4","Isaiah 40","Genesis 1","Matthew 5",
-  "Psalms 91","1 Corinthians 13","John 1","Proverbs 3","Ephesians 6","Hebrews 11",
-  "Romans 12","Isaiah 55","Matthew 6","Psalms 119","James 1","Galatians 5","Colossians 3",
-  "John 15","Revelation 1","Joshua 1","2 Timothy 1","1 Peter 5","Psalms 1","Romans 5",
-  "Jeremiah 29","Matthew 7","Luke 15","Psalms 27","Ephesians 2","Isaiah 53","John 14",
-  "2 Corinthians 5","Psalms 139","Deuteronomy 31","Acts 2","1 John 4","Psalm 46"
-];
 
 function getTodaysPassage() {
   const now = new Date();
@@ -87,9 +78,10 @@ function getLocalDate(timezone, dateCache) {
 function buildPayload(passage, lang) {
   const verse = getVerseSnippet(passage, lang);
   const template = getTemplate(lang);
+  const passageLabel = getPassageLabel(passage, lang);
   return JSON.stringify({
     title: template.title,
-    body: template.body.replace("{passage}", passage).replace("{verse}", verse),
+    body: template.body.replace("{passage}", passageLabel).replace("{verse}", verse),
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-72.png",
     url: "/",

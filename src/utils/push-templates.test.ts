@@ -69,4 +69,33 @@ describe('push-templates', () => {
     const template = pt.getTemplate('es');
     expect(pt.TEMPLATES.es).toContainEqual(template);
   });
+
+  it('has an untranslated-passage-reference free render for es and pt across every template', () => {
+    const englishBookNames = pt.ALL_PASSAGES.map((p: string) => p.replace(/\s+\d+$/, ''));
+    for (const lang of ['es', 'pt']) {
+      for (const passage of pt.ALL_PASSAGES) {
+        const label = pt.getPassageLabel(passage, lang);
+        const verse = pt.getVerseSnippet(passage, lang);
+        for (const template of pt.TEMPLATES[lang]) {
+          const body = template.body.replace('{passage}', label).replace('{verse}', verse);
+          for (const bookName of englishBookNames) {
+            expect(body).not.toContain(bookName);
+          }
+        }
+      }
+    }
+  });
+
+  it('never renders the verse-then-passage colon collision (".":) in es or pt', () => {
+    for (const lang of ['es', 'pt']) {
+      for (const passage of pt.ALL_PASSAGES) {
+        const label = pt.getPassageLabel(passage, lang);
+        const verse = pt.getVerseSnippet(passage, lang);
+        for (const template of pt.TEMPLATES[lang]) {
+          const body = template.body.replace('{passage}', label).replace('{verse}', verse);
+          expect(body).not.toContain('.":');
+        }
+      }
+    }
+  });
 });

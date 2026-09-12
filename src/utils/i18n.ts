@@ -568,7 +568,7 @@ const UI: Translations = {
 
   // \u2500\u2500 DONE CELEBRATION \u2500\u2500
   done_title: { en: "Today's reading, done.", es: 'La lectura de hoy, completada.', pt: 'A leitura de hoje, conclu\u00edda.', id: 'Bacaan hari ini, selesai.' },
-  plan_complete_title: { en: 'Plan complete \ud83c\udf89', es: 'Plan completado \ud83c\udf89', pt: 'Plano conclu\u00eddo \ud83c\udf89', id: 'Rencana selesai \ud83c\udf89' },
+  plan_complete_title: { en: 'Plan complete', es: 'Plan completado', pt: 'Plano conclu\u00eddo', id: 'Rencana selesai' },
   done_days_counting: { en: "{x} days and counting \u2014 you're building something.", es: '{x} d\u00edas y contando \u2014 est\u00e1s construyendo algo.', pt: '{x} dias e contando \u2014 voc\u00ea est\u00e1 construindo algo.', id: '{x} hari dan terus bertambah \u2014 kamu sedang membangun sesuatu.' },
   done_showed_up: { en: 'You showed up today. That\u2019s how it starts.', es: 'Hoy te presentaste. As\u00ed es como empieza.', pt: 'Voc\u00ea apareceu hoje. \u00c9 assim que come\u00e7a.', id: 'Kamu hadir hari ini. Begitulah semuanya dimulai.' },
   done_plan_body: { en: '{title} \u2014 {days} days in the Word. You finished.', es: '{title} \u2014 {days} d\u00edas en la Palabra. Lo terminaste.', pt: '{title} \u2014 {days} dias na Palavra. Voc\u00ea terminou.', id: '{title} \u2014 {days} hari dalam Firman. Kamu menyelesaikannya.' },

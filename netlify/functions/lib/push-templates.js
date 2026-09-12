@@ -2,6 +2,89 @@
 // Extracted from push-send.js so the templates module can be unit-tested on its
 // own. Neutral scripture-snippet framing only — no streak/guilt/urgency language.
 
+// The 40 rotating passages sent by push-send.js (moved here from push-send.js
+// so this module can also carry their translated scripture-reference labels).
+const ALL_PASSAGES = [
+  "Psalms 23","Romans 8","John 3","Philippians 4","Isaiah 40","Genesis 1","Matthew 5",
+  "Psalms 91","1 Corinthians 13","John 1","Proverbs 3","Ephesians 6","Hebrews 11",
+  "Romans 12","Isaiah 55","Matthew 6","Psalms 119","James 1","Galatians 5","Colossians 3",
+  "John 15","Revelation 1","Joshua 1","2 Timothy 1","1 Peter 5","Psalms 1","Romans 5",
+  "Jeremiah 29","Matthew 7","Luke 15","Psalms 27","Ephesians 2","Isaiah 53","John 14",
+  "2 Corinthians 5","Psalms 139","Deuteronomy 31","Acts 2","1 John 4","Psalm 46"
+];
+
+// Translated scripture-reference labels for {passage}, keyed by language then
+// by the exact ALL_PASSAGES string. Spellings are taken verbatim from
+// src/data/translations.ts (BOOK_NAME_ES / BOOK_NAME_PT / BOOK_NAME_ID) — this
+// file cannot import from src/ (netlify functions are plain JS/CJS), so the
+// values are reproduced here rather than referenced.
+const PASSAGE_LABELS = {
+  en: {
+    "Psalms 23": "Psalms 23", "Romans 8": "Romans 8", "John 3": "John 3",
+    "Philippians 4": "Philippians 4", "Isaiah 40": "Isaiah 40", "Genesis 1": "Genesis 1",
+    "Matthew 5": "Matthew 5", "Psalms 91": "Psalms 91", "1 Corinthians 13": "1 Corinthians 13",
+    "John 1": "John 1", "Proverbs 3": "Proverbs 3", "Ephesians 6": "Ephesians 6",
+    "Hebrews 11": "Hebrews 11", "Romans 12": "Romans 12", "Isaiah 55": "Isaiah 55",
+    "Matthew 6": "Matthew 6", "Psalms 119": "Psalms 119", "James 1": "James 1",
+    "Galatians 5": "Galatians 5", "Colossians 3": "Colossians 3", "John 15": "John 15",
+    "Revelation 1": "Revelation 1", "Joshua 1": "Joshua 1", "2 Timothy 1": "2 Timothy 1",
+    "1 Peter 5": "1 Peter 5", "Psalms 1": "Psalms 1", "Romans 5": "Romans 5",
+    "Jeremiah 29": "Jeremiah 29", "Matthew 7": "Matthew 7", "Luke 15": "Luke 15",
+    "Psalms 27": "Psalms 27", "Ephesians 2": "Ephesians 2", "Isaiah 53": "Isaiah 53",
+    "John 14": "John 14", "2 Corinthians 5": "2 Corinthians 5", "Psalms 139": "Psalms 139",
+    "Deuteronomy 31": "Deuteronomy 31", "Acts 2": "Acts 2", "1 John 4": "1 John 4",
+    "Psalm 46": "Psalm 46",
+  },
+  id: {
+    "Psalms 23": "Mazmur 23", "Romans 8": "Roma 8", "John 3": "Yohanes 3",
+    "Philippians 4": "Filipi 4", "Isaiah 40": "Yesaya 40", "Genesis 1": "Kejadian 1",
+    "Matthew 5": "Matius 5", "Psalms 91": "Mazmur 91", "1 Corinthians 13": "1 Korintus 13",
+    "John 1": "Yohanes 1", "Proverbs 3": "Amsal 3", "Ephesians 6": "Efesus 6",
+    "Hebrews 11": "Ibrani 11", "Romans 12": "Roma 12", "Isaiah 55": "Yesaya 55",
+    "Matthew 6": "Matius 6", "Psalms 119": "Mazmur 119", "James 1": "Yakobus 1",
+    "Galatians 5": "Galatia 5", "Colossians 3": "Kolose 3", "John 15": "Yohanes 15",
+    "Revelation 1": "Wahyu 1", "Joshua 1": "Yosua 1", "2 Timothy 1": "2 Timotius 1",
+    "1 Peter 5": "1 Petrus 5", "Psalms 1": "Mazmur 1", "Romans 5": "Roma 5",
+    "Jeremiah 29": "Yeremia 29", "Matthew 7": "Matius 7", "Luke 15": "Lukas 15",
+    "Psalms 27": "Mazmur 27", "Ephesians 2": "Efesus 2", "Isaiah 53": "Yesaya 53",
+    "John 14": "Yohanes 14", "2 Corinthians 5": "2 Korintus 5", "Psalms 139": "Mazmur 139",
+    "Deuteronomy 31": "Ulangan 31", "Acts 2": "Kisah Para Rasul 2", "1 John 4": "1 Yohanes 4",
+    "Psalm 46": "Mazmur 46",
+  },
+  es: {
+    "Psalms 23": "Salmos 23", "Romans 8": "Romanos 8", "John 3": "Juan 3",
+    "Philippians 4": "Filipenses 4", "Isaiah 40": "Isaías 40", "Genesis 1": "Génesis 1",
+    "Matthew 5": "Mateo 5", "Psalms 91": "Salmos 91", "1 Corinthians 13": "1 Corintios 13",
+    "John 1": "Juan 1", "Proverbs 3": "Proverbios 3", "Ephesians 6": "Efesios 6",
+    "Hebrews 11": "Hebreos 11", "Romans 12": "Romanos 12", "Isaiah 55": "Isaías 55",
+    "Matthew 6": "Mateo 6", "Psalms 119": "Salmos 119", "James 1": "Santiago 1",
+    "Galatians 5": "Gálatas 5", "Colossians 3": "Colosenses 3", "John 15": "Juan 15",
+    "Revelation 1": "Apocalipsis 1", "Joshua 1": "Josué 1", "2 Timothy 1": "2 Timoteo 1",
+    "1 Peter 5": "1 Pedro 5", "Psalms 1": "Salmos 1", "Romans 5": "Romanos 5",
+    "Jeremiah 29": "Jeremías 29", "Matthew 7": "Mateo 7", "Luke 15": "Lucas 15",
+    "Psalms 27": "Salmos 27", "Ephesians 2": "Efesios 2", "Isaiah 53": "Isaías 53",
+    "John 14": "Juan 14", "2 Corinthians 5": "2 Corintios 5", "Psalms 139": "Salmos 139",
+    "Deuteronomy 31": "Deuteronomio 31", "Acts 2": "Hechos 2", "1 John 4": "1 Juan 4",
+    "Psalm 46": "Salmos 46",
+  },
+  pt: {
+    "Psalms 23": "Salmos 23", "Romans 8": "Romanos 8", "John 3": "João 3",
+    "Philippians 4": "Filipenses 4", "Isaiah 40": "Isaías 40", "Genesis 1": "Gênesis 1",
+    "Matthew 5": "Mateus 5", "Psalms 91": "Salmos 91", "1 Corinthians 13": "1 Coríntios 13",
+    "John 1": "João 1", "Proverbs 3": "Provérbios 3", "Ephesians 6": "Efésios 6",
+    "Hebrews 11": "Hebreus 11", "Romans 12": "Romanos 12", "Isaiah 55": "Isaías 55",
+    "Matthew 6": "Mateus 6", "Psalms 119": "Salmos 119", "James 1": "Tiago 1",
+    "Galatians 5": "Gálatas 5", "Colossians 3": "Colossenses 3", "John 15": "João 15",
+    "Revelation 1": "Apocalipse 1", "Joshua 1": "Josué 1", "2 Timothy 1": "2 Timóteo 1",
+    "1 Peter 5": "1 Pedro 5", "Psalms 1": "Salmos 1", "Romans 5": "Romanos 5",
+    "Jeremiah 29": "Jeremias 29", "Matthew 7": "Mateus 7", "Luke 15": "Lucas 15",
+    "Psalms 27": "Salmos 27", "Ephesians 2": "Efésios 2", "Isaiah 53": "Isaías 53",
+    "John 14": "João 14", "2 Corinthians 5": "2 Coríntios 5", "Psalms 139": "Salmos 139",
+    "Deuteronomy 31": "Deuteronômio 31", "Acts 2": "Atos 2", "1 John 4": "1 João 4",
+    "Psalm 46": "Salmos 46",
+  },
+};
+
 const VERSE_SNIPPETS = {
   en: {
     "Psalms 23": "The Lord is my shepherd — I shall not want.",
@@ -196,19 +279,19 @@ const TEMPLATES = {
     { title: "Tu Lectura Diaria", body: "{passage}: \"{verse}\"" },
     { title: "Buenos Días", body: "{passage} te espera: \"{verse}\"" },
     { title: "Palabra Diaria", body: "Lectura de hoy: {passage}: \"{verse}\"" },
-    { title: "Tiempo en la Palabra", body: "\"{verse}\": {passage} está listo para ti." },
+    { title: "Tiempo en la Palabra", body: "\"{verse}\" {passage} está listo para ti." },
     { title: "Tu Lectura de Hoy", body: "{passage}. \"{verse}\"" },
     { title: "Palabra Diaria", body: "Abre tu corazón a {passage} hoy: \"{verse}\"" },
-    { title: "Escritura de Hoy", body: "\"{verse}\": Comienza tu día en {passage}." },
+    { title: "Escritura de Hoy", body: "\"{verse}\" Comienza tu día en {passage}." },
   ],
   pt: [
     { title: "Sua Leitura Diária", body: "{passage}: \"{verse}\"" },
     { title: "Bom Dia", body: "{passage} está te esperando: \"{verse}\"" },
     { title: "Palavra Diária", body: "Leitura de hoje: {passage}: \"{verse}\"" },
-    { title: "Tempo na Palavra", body: "\"{verse}\": {passage} está pronto para você." },
+    { title: "Tempo na Palavra", body: "\"{verse}\" {passage} está pronto para você." },
     { title: "Sua Leitura de Hoje", body: "{passage}. \"{verse}\"" },
     { title: "Palavra Diária", body: "Abra seu coração para {passage} hoje: \"{verse}\"" },
-    { title: "Escritura de Hoje", body: "\"{verse}\": Comece o seu dia em {passage}." },
+    { title: "Escritura de Hoje", body: "\"{verse}\" Comece o seu dia em {passage}." },
   ],
 };
 
@@ -243,11 +326,22 @@ function getTemplate(lang) {
   return langTemplates[Math.floor(Math.random() * langTemplates.length)];
 }
 
+// Translated {passage} label — falls back to English (the raw passage key)
+// for any passage or language PASSAGE_LABELS doesn't cover.
+function getPassageLabel(passage, lang) {
+  const normalized = normLang(lang);
+  const langLabels = PASSAGE_LABELS[normalized] || PASSAGE_LABELS.en;
+  return langLabels[passage] || PASSAGE_LABELS.en[passage] || passage;
+}
+
 module.exports = {
+  ALL_PASSAGES,
+  PASSAGE_LABELS,
   VERSE_SNIPPETS,
   TEMPLATES,
   DEFAULT_BODY,
   normLang,
   getVerseSnippet,
   getTemplate,
+  getPassageLabel,
 };

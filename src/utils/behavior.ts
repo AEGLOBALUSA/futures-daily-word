@@ -24,6 +24,8 @@ export interface BehaviorEvent {
   meta?: string             // passage ref, emoji, prompt text, plan id, etc.
 }
 
+import { localToday } from './readDaysMerge'
+
 const KEY = 'dw_behavior_v1'
 const MAX_EVENTS = 500
 const MAX_DAYS   = 60
@@ -51,7 +53,7 @@ export function trackBehavior(type: BehaviorEventType, meta?: string) {
     const existing = readEvents().filter(e => e.ts > cutoff)
     const next: BehaviorEvent = {
       type,
-      date: new Date().toLocaleDateString('en-CA'),
+      date: localToday(),
       ts: Date.now(),
       meta,
     }

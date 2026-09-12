@@ -99,17 +99,26 @@ export function syncMisc(key: string, value: string) {
 }
 
 // The cloud's prayed-for set from the last pull, captured in applyMisc for the
-// push-time union in collectMisc (see both sites).
-let lastCloudPrayedFor: unknown[] | null = null;
+// push-time union in collectMisc (see both sites). Keyed by the email it was
+// pulled for — an account switch (email gate, no resetSyncSession call on that
+// path) must not let one account's cached cloud copy leak into another
+// account's push; collectMisc ignores the cache when the email doesn't match.
+let lastCloudPrayedFor: { email: string; value: unknown[] } | null = null;
 
 // The cloud's read-days record from the last pull, captured in applyMisc for the
 // push-time union in collectMisc (see both sites). Without this a stale device
 // (one that never re-pulled) would push its shorter local list and DELETE every
 // read day the cloud gained from other devices since — mirrors lastCloudPrayedFor.
-let lastCloudReadDays: unknown = null;
+// Keyed by email for the same reason: an ordinary account switch never calls
+// resetSyncSession (that only fires on the staff path), so an unkeyed cache
+// would fold the PREVIOUS account's read days into the NEW account's very
+// first push, before that account has any cloud row of its own.
+let lastCloudReadDays: { email: string; value: unknown } | null = null;
 
-/** Collect the misc-bag keys (static list + dynamic prefixes) + the meta map. */
-function collectMisc(): Record<string, string> {
+/** Collect the misc-bag keys (static list + dynamic prefixes) + the meta map.
+ *  `email` is the account this push is FOR — used to gate the cross-account
+ *  cached-cloud-copy union below (see lastCloudReadDays / lastCloudPrayedFor). */
+function collectMisc(email: string): Record<string, string> {
   const out: Record<string, string> = {};
   try {
     for (let i = 0; i < localStorage.length; i++) {
@@ -125,11 +134,11 @@ function collectMisc(): Record<string, string> {
   // devices' sets would otherwise never converge — the cloud kept only the last
   // pusher's copy and a reinstall lost the other device's prayer entries. Push the
   // UNION of local + the last-pulled cloud copy instead (apply stays fill-only).
-  if (Array.isArray(lastCloudPrayedFor) && lastCloudPrayedFor.length) {
+  if (lastCloudPrayedFor && lastCloudPrayedFor.email === email && lastCloudPrayedFor.value.length) {
     try {
       const localRaw = JSON.parse(out['dw_prayed_for'] || '[]') as unknown;
       const localArr = Array.isArray(localRaw) ? localRaw : [];
-      out['dw_prayed_for'] = JSON.stringify([...new Set([...localArr, ...lastCloudPrayedFor])]);
+      out['dw_prayed_for'] = JSON.stringify([...new Set([...localArr, ...lastCloudPrayedFor.value])]);
     } catch { /* ignore */ }
   }
   // dw_read_days is the same shape of problem: a device whose last pull is stale
@@ -137,11 +146,18 @@ function collectMisc(): Record<string, string> {
   // and the server rebuilds the misc bag from exactly what was sent — silently
   // deleting every read day another device added to the cloud in the meantime.
   // Push the UNION of local + the last-pulled cloud copy instead (apply merges too).
-  if (lastCloudReadDays != null) {
+  // Gated on email match: an unkeyed cache would fold a PREVIOUS account's read
+  // days into a freshly-signed-in account's very first push (M10).
+  if (lastCloudReadDays != null && lastCloudReadDays.email === email) {
     try {
       const localRaw = out['dw_read_days'] ? (JSON.parse(out['dw_read_days']) as unknown) : [];
-      const merged: ReadDaysRecord = mergeReadDays(localRaw, lastCloudReadDays);
+      const merged: ReadDaysRecord = mergeReadDays(localRaw, lastCloudReadDays.value);
       out['dw_read_days'] = JSON.stringify(merged);
+      // Write the merged record back to localStorage too, so the pushed copy and
+      // the stored copy never diverge (m3) — otherwise the next pull re-evicts
+      // dates the stored copy still holds in `dates` and double-counts the
+      // overflow into `dropped` every cycle.
+      try { localStorage.setItem('dw_read_days', out['dw_read_days']); } catch { /* quota */ }
     } catch { /* ignore */ }
   }
   return out;
@@ -153,7 +169,7 @@ function collectMisc(): Record<string, string> {
  *  - Other keys with a NEWER cloud timestamp → cloud wins (cross-device update),
  *    so e.g. persona/language/reading-cadence chosen on one device follow the user
  *    without ever overwriting a fresher local edit (per-key updatedAt comparison). */
-function applyMisc(misc: unknown) {
+function applyMisc(misc: unknown, email: string) {
   if (!misc || typeof misc !== 'object') return;
   const bag = misc as Record<string, unknown>;
   let cloudMeta: Record<string, number> = {};
@@ -161,19 +177,21 @@ function applyMisc(misc: unknown) {
   const localMeta = readMiscMeta();
 
   // Remember the cloud's prayed-for set for collectMisc's push-time union.
+  // Keyed by the email this was pulled for (M10) — see lastCloudPrayedFor's decl.
   try {
     const cp = bag['dw_prayed_for'];
     if (typeof cp === 'string') {
       const parsed = JSON.parse(cp) as unknown;
-      if (Array.isArray(parsed)) lastCloudPrayedFor = parsed;
+      if (Array.isArray(parsed)) lastCloudPrayedFor = { email, value: parsed };
     }
   } catch { /* ignore */ }
 
   // Remember the cloud's read-days record for collectMisc's push-time union.
+  // Keyed by the email this was pulled for (M10) — see lastCloudReadDays's decl.
   try {
     const rd = bag['dw_read_days'];
     if (typeof rd === 'string') {
-      lastCloudReadDays = JSON.parse(rd) as unknown;
+      lastCloudReadDays = { email, value: JSON.parse(rd) as unknown };
     }
   } catch { /* ignore */ }
 
@@ -291,8 +309,11 @@ function readString(key: string): string {
   return localStorage.getItem(key) || '';
 }
 
-/** Collect all syncable data from localStorage */
-export function collectLocalData() {
+/** Collect all syncable data from localStorage.
+ *  `email` is the account this snapshot is being pushed FOR — threaded through
+ *  to collectMisc so its cross-account cache guard (M10) can tell whether the
+ *  cached cloud copy belongs to this account or a previous one. */
+export function collectLocalData(email: string) {
   return {
     journal:           readJSON(SYNC_KEYS.journal, []) as unknown[],
     highlights:        readJSON(SYNC_KEYS.highlights, {}) as Record<string, unknown>,
@@ -306,7 +327,7 @@ export function collectLocalData() {
     translation:       readString(SYNC_KEYS.translation),
     translationManual: readString(SYNC_KEYS.translationManual),
     profilePic:        readString(SYNC_KEYS.profilePic),
-    misc:              collectMisc(),
+    misc:              collectMisc(email),
   };
 }
 
@@ -384,7 +405,7 @@ export function streakMergeWinner(
  *  cloud journal here would clobber that merge and resurrect deleted (tombstoned) entries.
  *  Every setItem is individually guarded so one quota failure (e.g. a huge restored
  *  profilePic) can't abort the rest of the restore. */
-function applyCloudData(data: Record<string, unknown>) {
+function applyCloudData(data: Record<string, unknown>, email: string) {
   // Fields kept on simple "non-empty cloud wins". Highlights/streak/plans get real
   // per-entry merges below because users edit them on several devices.
   const jsonFields: Array<[string, string]> = [
@@ -493,7 +514,7 @@ function applyCloudData(data: Record<string, unknown>) {
   }
 
   // The misc bag (sermon fill-ins, "my season" story, reading cadence, etc.)
-  applyMisc(data.misc);
+  applyMisc(data.misc, email);
 }
 
 /** Track conflicts detected during merge for potential user notification */
@@ -640,7 +661,7 @@ export async function pushToCloud(email: string, opts?: { keepalive?: boolean })
   isSyncing = true;
   pendingPush = null; // this run's snapshot covers everything requested so far
   try {
-    const data = collectLocalData();
+    const data = collectLocalData(email);
     const result = await apiCall('push', { email, data, lastSyncVersion }, opts);
     if (result.success) {
       lastSyncVersion = result.syncVersion || lastSyncVersion;
@@ -731,7 +752,7 @@ export async function syncOnStartup(email: string) {
     }
 
     // Apply other cloud data (preferences, streak, plans, etc.)
-    applyCloudData(cloud);
+    applyCloudData(cloud, email);
 
     // Push the merged state back to cloud
     await pushToCloud(email);

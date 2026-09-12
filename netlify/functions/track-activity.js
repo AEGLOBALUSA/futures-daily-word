@@ -58,7 +58,15 @@ exports.handler = async (event) => {
   }
 
   try {
-    const body = JSON.parse(event.body);
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch {
+      body = null;
+    }
+    if (!body || typeof body !== "object") {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON body" }) };
+    }
     const { events } = body;
     const db = getSupabase();
 
@@ -102,12 +110,15 @@ exports.handler = async (event) => {
     const { error: insertError } = await db.from("activity_events").insert(rows);
     if (insertError) {
       console.error("Track activity insert error:", insertError);
-    } else {
-      // Also update lastActiveAt on the profile
-      await db.from("profiles")
-        .update({ last_active_at: new Date().toISOString() })
-        .eq("email", cleanEmail);
     }
+
+    // Update lastActiveAt on the profile unconditionally — the presence
+    // heartbeat has no dependency on the activity_events insert succeeding,
+    // and analytics-dashboard.js reads last_active_at alone for active-today/
+    // week/month, so a transient insert error must not also sag those numbers.
+    await db.from("profiles")
+      .update({ last_active_at: new Date().toISOString() })
+      .eq("email", cleanEmail);
 
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
   } catch (err) {
