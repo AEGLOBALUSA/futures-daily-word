@@ -11,5 +11,11 @@
 alter table public.activity_events add column if not exists path text;
 alter table public.activity_events add column if not exists journey_day integer;
 
-comment on column public.activity_events.path is 'Reader path at the time of the event: comfort, new_to_faith, pastor_leader, or deeper_study. Nullable; not every event is path-scoped.';
+-- The column comment below lists all five reader paths (the earlier draft
+-- omitted `congregation`, the default path for a church member and therefore
+-- likely the largest bucket -- anyone reading D1/D7/D30 retention per path
+-- from the comment alone would have silently mis-bucketed the biggest
+-- cohort). The authoritative set is the five personas in
+-- src/utils/persona-config.ts.
+comment on column public.activity_events.path is 'Reader path at the time of the event, one of the five personas in src/utils/persona-config.ts: new_to_faith, congregation, deeper_study, pastor_leader, comfort. Nullable; not every event is path-scoped, and the value is validated server-side in netlify/functions/lib/activity-rows.js.';
 comment on column public.activity_events.journey_day is 'For new_to_faith readers, the journey day (dw_pathway_progress.currentDay) active when the event fired. Nullable; not applicable outside the new_to_faith journey.';

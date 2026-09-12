@@ -18,6 +18,10 @@ export const TRACKED_EVENTS = [
   // new_to_faith.md:469-472 — Day N journey surface
   'journey_day_open', 'journey_day_complete',
 
+  // No call site in src emits any of the names below yet (spec'd ahead of
+  // build, per the doc refs) — this is an allowlist, not a list of events
+  // that currently fire.
+
   // pastor_leader.md:684
   'pastor_prompt',
 
@@ -34,6 +38,12 @@ export const TRACKED_EVENTS = [
   'plan_finished', 'plan_started_after_finish', 'comfort_peek',
   'reminder_set', 'push_unsubscribe', 'offline_read', 'greek_hebrew',
   'ai_prompt',
+
+  // verified track('...') call sites missing from the allowlist (wave 0 repairs)
+  'congregation_sheet_open', 'congregation_chosen', 'path_sheet_open',
+  'path_chosen', 'pastor_sign_in', 'pastor_sign_out', 'new_to_faith_start',
+  'house_ad_books', 'house_ad_college', 'house_ad_selah',
+  'plan_day_manual_nav', 'plan_day_calendar_rollover', 'plans_search_row',
 ] as const;
 
 export type TrackedEvent = (typeof TRACKED_EVENTS)[number];

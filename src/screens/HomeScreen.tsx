@@ -35,7 +35,7 @@ import { UpgradePromptCard } from '../components/UpgradePromptCard';
 import { BibleAIPromptSection, ComfortVerseBannerSection } from '../sections';
 import type { TabId } from '../components/TabBar';
 import { schedulePush, syncMisc, flushNow } from '../utils/cloudSync';
-import { getStreak } from '../utils/streak';
+import { getStreak, resolveStreak } from '../utils/streak';
 import { getReadDayCount, recordReadDay } from '../utils/readDays';
 import type { CampusStats } from '../sections/HomeContext';
 import { getDailyWord } from '../data/daily-words';
@@ -113,7 +113,7 @@ function getWeekReviewData(): { weekLabel: string; daysRead: number; streak: num
     const weekKey = `${today.getFullYear()}-W${Math.ceil(today.getDate() / 7)}-${today.getMonth()}`;
     const dismissed = localStorage.getItem('dw_week_review_dismissed');
     if (dismissed === weekKey) return null;
-    const streak = getStreak().count;
+    const streak = resolveStreak().count;
     if (streak < 3) return null;
     const daysRead = Math.min(streak, 7);
     const question = WEEK_REVIEW_QUESTIONS[Math.floor(today.getDate() / 7) % WEEK_REVIEW_QUESTIONS.length];
@@ -172,9 +172,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // silent switch would leave the staff token behind on a device that no
   // longer looks like a pastor's. Home stays mounted across tabs, so this is
   // event-driven (dw-staff-session-changed), not read once at mount.
+  const resolvedStreakCount = resolveStreak().count;
   const greetingText = useMemo(
-    () => getGreeting(personaConfig.persona, userProfile?.firstName || '', getStreak().count, getLang()),
-    [personaConfig.persona, userProfile?.firstName],
+    () => getGreeting(personaConfig.persona, userProfile?.firstName || '', resolvedStreakCount, getLang()),
+    [personaConfig.persona, userProfile?.firstName, resolvedStreakCount],
   );
 
 
@@ -1167,8 +1168,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     setAudioError(false);
     trackBehavior('audio_played', passage);
     track('audio_play', passage, { translation });
-    const r = recordReadDay('audio');
-    setReadDayCount(r.count);
 
     try {
       const cacheKey = `${passage}_${translation}`;
@@ -1179,6 +1178,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       }
       if (src) {
         await AP.playUrl(passage, src);
+        const r = recordReadDay('audio');
+        setReadDayCount(r.count);
       } else {
         setAudioError(true);
       }

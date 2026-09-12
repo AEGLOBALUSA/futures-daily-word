@@ -11,7 +11,7 @@
 
 import type { Persona } from './persona-config';
 import type { PathwayProgress } from '../data/pathway-types';
-import { recordStreakToday } from './streak';
+import { recordReadDay } from './readDays';
 
 export const GRACE_SERIES_PERSONA: Persona = 'new_to_faith';
 export const GRACE_SERIES_TITLE = 'New & Returning to Faith';
@@ -168,6 +168,10 @@ export function needsDay1Reading(): boolean {
 /** Mark Day 1 read — stamps the day, advances the 40-day series, records streak. */
 export function markDay1Read(): void {
   const today = new Date().toLocaleDateString('en-CA');
+  // Bank the read day BEFORE stamping dw_reading_done: that stamp doubles as
+  // the "hero reading finished today" flag and the early-return guard that
+  // blocks any further read-day/plan-day credit for the rest of the day.
+  recordReadDay('complete');
   try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
   try {
     const progress = readPathwayProgress();
@@ -186,7 +190,6 @@ export function markDay1Read(): void {
       localStorage.setItem('dw_pathway_progress', JSON.stringify(next));
     }
   } catch { /* quota */ }
-  recordStreakToday();
   try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* ignore */ }
 }
 

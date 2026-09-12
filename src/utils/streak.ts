@@ -35,6 +35,48 @@ export function getStreak(): StreakState {
   }
 }
 
+/** Shared "does lastDate match this local calendar day" check, including the one-time
+ *  legacy UTC-stamp tolerance. Factored out so recordStreakToday (which writes) and
+ *  resolveStreak (which only reads) can never disagree on break detection. */
+function matchesDay(raw: StreakState, legacy: boolean, local: string, daysAgo: number): boolean {
+  const utcStr = () => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString().slice(0, 10); };
+  return raw.lastDate === local || (legacy && raw.lastDate === utcStr());
+}
+
+function isLegacyRecord(): boolean {
+  try { return !('bestCount' in JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { return false; }
+}
+
+/** Read-only resolver: applies the same break-detection logic as recordStreakToday
+ *  (today / yesterday / day-before-with-a-freeze keep the stored count; otherwise the
+ *  streak has lapsed and resolves to 0) WITHOUT writing to localStorage, mutating the
+ *  stored record, or dispatching any event. Safe to call on every render. */
+export function resolveStreak(): StreakState {
+  const today = new Date().toLocaleDateString('en-CA');
+  try {
+    const raw = getStreak();
+    const legacy = isLegacyRecord();
+
+    if (matchesDay(raw, legacy, today, 0)) return raw;
+
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    const yStr = y.toLocaleDateString('en-CA');
+    const db = new Date(); db.setDate(db.getDate() - 2);
+    const dbStr = db.toLocaleDateString('en-CA');
+
+    if (matchesDay(raw, legacy, yStr, 1)) return raw;
+
+    const spentAt = Date.parse(raw.lastFreezeWeek);
+    const freezesAvailable = !Number.isFinite(spentAt) || Date.now() - spentAt >= 7 * 86400000 ? 1 : (raw.freezesAvailable ?? 1);
+    if (matchesDay(raw, legacy, dbStr, 2) && freezesAvailable > 0) return raw;
+
+    // Streak has lapsed — resolve to broken without touching storage.
+    return { ...raw, count: 0 };
+  } catch {
+    return { ...DEFAULT };
+  }
+}
+
 /** Mark today as an active day. Idempotent per calendar day (calling it many times
  *  a day only counts once). Returns the new count, whether it advanced, and whether
  *  it hit a milestone. Includes the one-per-week "freeze" grace for a single missed day. */
@@ -48,10 +90,8 @@ export function recordStreakToday(): { count: number; isNew: boolean; isMileston
     // stamps (and predate bestCount, which every save now writes). For those records only,
     // accept the UTC rendering of today/yesterday/day-before too, so no existing user's
     // streak breaks on deploy. Once re-saved here, comparisons are strictly local.
-    let legacy = false;
-    try { legacy = !('bestCount' in JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { /* treat as new */ }
-    const utcStr = (daysAgo: number) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString().slice(0, 10); };
-    const matches = (local: string, daysAgo: number) => raw.lastDate === local || (legacy && raw.lastDate === utcStr(daysAgo));
+    const legacy = isLegacyRecord();
+    const matches = (local: string, daysAgo: number) => matchesDay(raw, legacy, local, daysAgo);
 
     if (matches(today, 0)) return { count: raw.count, isNew: false, isMilestone: false };
 

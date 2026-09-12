@@ -12,7 +12,8 @@ import { useSubView } from '../utils/useSubView';
 import { EmptyState } from '../components/EmptyState';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
-import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
+import { getStreak as getStreakState } from '../utils/streak';
+import { recordReadDay } from '../utils/readDays';
 import { t, getLang, tField } from '../utils/i18n';
 import { PERSONA_PLAN_IDS, isNewChristianPersona, type Persona } from '../utils/persona-config';
 import { PathwayPicker } from '../components/PathwayPicker';
@@ -312,7 +313,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
     plans[planId] = plan;
     savePlans(plans);
     setActivePlans({ ...plans });
-    recordStreakToday();
+    recordReadDay('complete');
     setStreak(streakDisplay());
   }, []);
 
