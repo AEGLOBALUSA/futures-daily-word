@@ -13,7 +13,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Check, ChevronRight, Loader2 } from 'lucide-react';
 import { pushNow } from '../utils/cloudSync';
-import { recordStreakToday } from '../utils/streak';
+import { recordReadDay } from '../utils/readDays';
 import { t, getLang } from '../utils/i18n';
 
 interface InlineReflectionProps {
@@ -127,7 +127,7 @@ export function InlineReflection({
       localStorage.removeItem(dKey); // the note is in the journal now — the draft has served its purpose
       window.dispatchEvent(new Event('dw-journal-updated'));
       pushNow();
-      recordStreakToday(); // reflecting is real engagement — it counts toward the streak
+      recordReadDay('journal'); // reflecting is real engagement — it counts toward the streak
     } catch { /* ignore */ }
     // Brief, honest "Saving…" beat (the write is already done) so the user SEES the confirmation land.
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);

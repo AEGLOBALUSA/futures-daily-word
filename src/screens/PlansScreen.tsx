@@ -12,7 +12,8 @@ import { useSubView } from '../utils/useSubView';
 import { EmptyState } from '../components/EmptyState';
 import * as AP from '../utils/audioPlayer';
 import { schedulePush, flushNow } from '../utils/cloudSync';
-import { getStreak as getStreakState, recordStreakToday } from '../utils/streak';
+import { resolveStreak } from '../utils/streak';
+import { recordReadDay } from '../utils/readDays';
 import { t, getLang, tField } from '../utils/i18n';
 import { PERSONA_PLAN_IDS, isNewChristianPersona, type Persona } from '../utils/persona-config';
 import { PathwayPicker } from '../components/PathwayPicker';
@@ -103,20 +104,12 @@ function savePlans(plans: Record<string, PlanProgress>) {
   try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
 }
 
-// Streak now lives in one shared module (src/utils/streak.ts). This derives the
-// number shown on the Plans tab: the current count if the user read today or
-// yesterday, else 0 (a streak not yet broken but not yet continued today).
+// Streak lives in one shared module (src/utils/streak.ts). The Plans tab shows
+// the same number Home shows: resolveStreak() applies the break rule and the
+// freeze grace read-only, so a freeze-covered gap is never shown as broken here
+// while Home shows it alive (13 Sep 2026 verifier finding).
 function streakDisplay(): number {
-  const s = getStreakState();
-  // LOCAL calendar days (repo invariant) — UTC slices showed 0 to evening readers.
-  const today = new Date().toLocaleDateString('en-CA');
-  const y = new Date(); y.setDate(y.getDate() - 1);
-  const yesterday = y.toLocaleDateString('en-CA');
-  // Upgrade tolerance: older builds stored lastDate as the UTC day, which can sit
-  // one day AHEAD of local in the evening — accept it so existing streaks don't blink.
-  const utcToday = new Date().toISOString().slice(0, 10);
-  if (s.lastDate === today || s.lastDate === yesterday || s.lastDate === utcToday) return s.count || 0;
-  return 0;
+  return resolveStreak().count || 0;
 }
 
 
@@ -312,7 +305,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
     plans[planId] = plan;
     savePlans(plans);
     setActivePlans({ ...plans });
-    recordStreakToday();
+    recordReadDay('complete');
     setStreak(streakDisplay());
   }, []);
 

@@ -9,8 +9,8 @@
  * the streak also advances from genuine reading interactions.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync, readdirSync, statSync } from 'fs';
+import { resolve, join } from 'path';
 
 const home = readFileSync(resolve(__dirname, 'HomeScreen.tsx'), 'utf8');
 
@@ -62,5 +62,55 @@ describe('no decorative UI emoji glyphs remain', () => {
     // eslint-disable-next-line no-control-regex
     const matches = home.match(/[\u{1F300}-\u{1FAFF}]/gu);
     expect(matches).toBeNull();
+  });
+});
+
+// Deliberate non-targets: files whose contents intentionally hold characters
+// this sweep would otherwise flag (documented decisions, not oversights).
+const DECORATIVE_EMOJI_NON_TARGETS = new Set([
+  resolve(__dirname, '../utils/behavior.ts'),
+  resolve(__dirname, '../utils/personalization.ts'),
+  resolve(__dirname, '../data/bible-sections.ts'),
+]);
+
+/** Recursively collect every .ts/.tsx file under a directory. */
+function collectSourceFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      out.push(...collectSourceFiles(full));
+    } else if (/\.(ts|tsx)$/.test(entry)) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+describe('no decorative UI emoji glyphs remain anywhere under src', () => {
+  const srcRoot = resolve(__dirname, '..');
+  const files = collectSourceFiles(srcRoot).filter(f => !DECORATIVE_EMOJI_NON_TARGETS.has(f));
+
+  it('no source file (outside the declared non-targets) contains a literal pictograph', () => {
+    const offenders: string[] = [];
+    for (const file of files) {
+      const contents = readFileSync(file, 'utf8');
+      // eslint-disable-next-line no-control-regex
+      if (/[\u{1F300}-\u{1FAFF}]/gu.test(contents)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('no source file (outside the declared non-targets) contains an escaped emoji surrogate pair', () => {
+    // Matches a \uXXXX escape whose code unit is a high surrogate (D800-DBFF),
+    // the leading half of an escaped astral-plane emoji pair.
+    const escapedHighSurrogate = /\\u[dD][89abAB][0-9a-fA-F]{2}/;
+    const offenders: string[] = [];
+    for (const file of files) {
+      const contents = readFileSync(file, 'utf8');
+      if (escapedHighSurrogate.test(contents)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
   });
 });
