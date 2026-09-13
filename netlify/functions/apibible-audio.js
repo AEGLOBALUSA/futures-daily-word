@@ -9,7 +9,7 @@
  * We map our codes to their Bible IDs and audio fileset IDs.
  */
 
-const { ALLOWED_ORIGINS, isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
+const { isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
 
 function getCorsHeaders(origin) {
   const allowed = getAllowedOrigin(origin);
@@ -78,7 +78,7 @@ exports.handler = async (event) => {
   // Origin validation — only allow requests from our app
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const originIsAllowed = isAllowedOrigin(origin);
-  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
+  const isSameOrigin = !origin && isAllowedOrigin(referer);
   if (!originIsAllowed && !isSameOrigin && !(!origin && !referer)) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
   }

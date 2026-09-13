@@ -10,7 +10,7 @@
  *         ENGKJVN2DA = English, KJV, New Testament, Drama, Audio
  */
 
-const { ALLOWED_ORIGINS, isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
+const { isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
 
 function getCorsHeaders(origin) {
   const allowed = getAllowedOrigin(origin);
@@ -86,7 +86,7 @@ exports.handler = async (event) => {
   // open proxy on the paid Bible Brain key, callable from any origin.
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const originIsAllowed = isAllowedOrigin(origin);
-  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
+  const isSameOrigin = !origin && isAllowedOrigin(referer);
   const isNoOrigin = !origin && !referer;
   if (!originIsAllowed && !isSameOrigin && !isNoOrigin) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };

@@ -17,12 +17,11 @@ const PREVIEW_ORIGIN = 'https://deploy-preview-109--futures-daily-word.netlify.a
 const EVIL_ORIGIN = 'https://evil.example';
 const LOOKALIKE_ORIGIN = 'https://deploy-preview-109--futures-daily-word.netlify.app.evil.example';
 
-function event({ origin, query = {} }) {
-  return {
-    httpMethod: 'GET',
-    headers: origin ? { origin } : {},
-    queryStringParameters: query,
-  };
+function event({ origin, referer, query = {} }) {
+  const headers = {};
+  if (origin) headers.origin = origin;
+  if (referer) headers.referer = referer;
+  return { httpMethod: 'GET', headers, queryStringParameters: query };
 }
 
 describe('esv.js — deploy-preview origins are not refused', () => {
@@ -60,6 +59,17 @@ describe('esv.js — deploy-preview origins are not refused', () => {
     expect(res.statusCode).toBe(403);
     expect(esvFetch).not.toHaveBeenCalled();
   });
+  // A same-origin browser fetch sends no Origin header at all, only a Referer.
+  it('does not refuse a Referer-only request from a deploy preview', async () => {
+    const res = await handler(event({ referer: PREVIEW_ORIGIN + '/?v=1', query: { q: 'John 3:16' } }));
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('still refuses a Referer-only request from an unrelated site', async () => {
+    const res = await handler(event({ referer: EVIL_ORIGIN + '/page', query: { q: 'John 3:16' } }));
+    expect(res.statusCode).toBe(403);
+    expect(esvFetch).not.toHaveBeenCalled();
+  });
 });
 
 describe('bolls.js — deploy-preview origins are not refused', () => {
@@ -93,6 +103,17 @@ describe('bolls.js — deploy-preview origins are not refused', () => {
 
   it('still refuses a look-alike origin that merely starts with the preview host', async () => {
     const res = await handler(event({ origin: LOOKALIKE_ORIGIN, query: { q: 'John 3' } }));
+    expect(res.statusCode).toBe(403);
+    expect(bollsFetch).not.toHaveBeenCalled();
+  });
+
+  it('does not refuse a Referer-only request from a deploy preview', async () => {
+    const res = await handler(event({ referer: PREVIEW_ORIGIN + '/', query: { q: 'John 3' } }));
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('still refuses a Referer-only request from an unrelated site', async () => {
+    const res = await handler(event({ referer: EVIL_ORIGIN + '/', query: { q: 'John 3' } }));
     expect(res.statusCode).toBe(403);
     expect(bollsFetch).not.toHaveBeenCalled();
   });

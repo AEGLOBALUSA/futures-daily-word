@@ -1,4 +1,4 @@
-const { ALLOWED_ORIGINS, isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
+const { isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
 
 function getCorsHeaders(origin) {
   const allowed = getAllowedOrigin(origin);
@@ -56,7 +56,7 @@ exports.handler = async (event) => {
   // Origin check — block cross-origin requests not from our app
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const originIsAllowed = isAllowedOrigin(origin);
-  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
+  const isSameOrigin = !origin && isAllowedOrigin(referer);
   const isNoOrigin = !origin && !referer;
   if (!originIsAllowed && !isSameOrigin && !isNoOrigin) {
     return {
