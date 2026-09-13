@@ -5,7 +5,13 @@
  *
  * In development (localhost), we use relative paths so Vite's proxy works.
  */
-export const API_BASE = import.meta.env.DEV ? '' : 'https://futuresdailyword.com';
+// Netlify deploy previews and branch deploys (<name>--futures-daily-word.netlify.app)
+// serve their own functions; calling the production host from there is blocked by
+// the CSP (connect-src has no futuresdailyword.com entry), which is why every
+// preview fell back to offline KJV. Same-origin on those hosts, absolute elsewhere.
+const onNetlifyPreview =
+  typeof window !== 'undefined' && /--futures-daily-word\.netlify\.app$/.test(window.location.host);
+export const API_BASE = import.meta.env.DEV || onNetlifyPreview ? '' : 'https://futuresdailyword.com';
 
 /**
  * Origin for APIs that live on this Daily Word deploy (staff intake, published
