@@ -32,9 +32,9 @@ exports.handler = async (event) => {
   const num = (params.num || '').toUpperCase();
   const testament = (params.testament || 'NT').toUpperCase();
 
-  const { ALLOWED_ORIGINS } = require('./lib/cors');
+  const { getAllowedOrigin } = require('./lib/cors');
   const origin = event.headers?.origin || event.headers?.Origin || "";
-  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const corsOrigin = getAllowedOrigin(origin);
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'public, max-age=86400',

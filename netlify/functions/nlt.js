@@ -1,4 +1,4 @@
-const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { ALLOWED_ORIGINS, isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
 
 // In-memory passage cache — shared across warm invocations of this function instance.
 // Bible text is immutable, so caching is safe. Caps at 200 entries to bound memory.
@@ -7,7 +7,7 @@ const CACHE_MAX = 200;
 const CACHE_TTL = 3600000; // 1 hour
 
 function getCorsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowed = getAllowedOrigin(origin);
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -75,10 +75,10 @@ exports.handler = async (event) => {
 
   // Origin check
   const referer = event.headers?.referer || event.headers?.Referer || '';
-  const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
+  const originIsAllowed = isAllowedOrigin(origin);
   const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
   const isNoOrigin = !origin && !referer;
-  if (!isAllowedOrigin && !isSameOrigin && !isNoOrigin) {
+  if (!originIsAllowed && !isSameOrigin && !isNoOrigin) {
     return {
       statusCode: 403,
       headers: corsHeaders,
