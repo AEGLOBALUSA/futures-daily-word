@@ -7,11 +7,10 @@ import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, 
 import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
-import { fetchPassage, getServedTranslation, fetchStrongsMap, fetchAICommentary } from '../utils/api';
+import { fetchPassage, getServedTranslation, fetchStrongsMap } from '../utils/api';
 import type { TranslationCode, StrongsMap } from '../utils/api';
 import * as AP from '../utils/audioPlayer';
 import { QUOTES } from '../data/quotes';
-import { COMMENTARY } from '../data/commentary';
 import { CAMPUSES } from '../data/tokens';
 import { useUser } from '../contexts/UserContext';
 import { HighlightToolbar } from '../components/HighlightToolbar';
@@ -64,6 +63,9 @@ import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../uti
 import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
 import { hapticTap } from '../utils/haptics';
+import { CommentaryCard } from '../components/study/CommentaryCard';
+import { CrossRefsCard } from '../components/study/CrossRefsCard';
+import { StudySourcesSheet } from '../components/study/StudySourcesSheet';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 import { t as tI18n, tField, getLang, dateLocale } from '../utils/i18n';
 
@@ -357,6 +359,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioCurrentPassage, setAudioCurrentPassage] = useState<string | null>(null);
   const [showNoteDrawer, setShowNoteDrawer] = useState(false);
+  const [showStudySources, setShowStudySources] = useState(false);
   // Sticky reading action bar: shown while the expanded chapter is on screen.
   // Callback ref (not useRef+effect) because the reading surface remounts per
   // chapter (key={readKey}) — the observer must follow the fresh node.
@@ -480,12 +483,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // Weekly review
   const [weekReview] = useState(() => getWeekReviewData());
   const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
-  const [selectedCommentaryIdx, setSelectedCommentaryIdx] = useState(0);
-  const [commentaryExpanded, setCommentaryExpanded] = useState(pf.commentary === 'expanded');
-  // AI fallback for days outside the curated commentary set — only fetched for
-  // personas whose commentary arrives expanded (deeper_study, pastor_leader),
-  // labelled honestly as AI Insight. fetchAICommentary caches 30 days locally.
-  const [aiCommentary, setAiCommentary] = useState<{ passage: string; text: string } | null>(null);
   const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
   const lang = localStorage.getItem('dw_lang') || 'en';
 
@@ -917,29 +914,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       return filtered;
     } catch { return [] as Array<{ planId: string; planTitle: string; passage: string; dayNum: number; devotional?: { title: string; titleId?: string; author: string; body: string; bodyId?: string } }>; }
   })();
-
-  // Commentary covers EVERY passage of the day (not just the first) — each entry
-  // keeps its passage so the card can label which chapter it belongs to.
-  const commentarySources = COMMENTARY as Record<string, Record<string, string>>;
-  const allCommentaries: { source: string; text: string; passage: string }[] = [];
-  {
-    const seenCommentaryRefs = new Set<string>();
-    for (const { passage } of todaysPlanPassages) {
-      if (seenCommentaryRefs.has(passage)) continue;
-      seenCommentaryRefs.add(passage);
-      for (const [source, entries] of Object.entries(commentarySources)) {
-        if (entries[passage]) {
-          allCommentaries.push({ source, text: entries[passage], passage });
-        }
-      }
-    }
-  }
-  // Outside the curated set, expanded-commentary personas still land with
-  // commentary: the AI fallback slots in as the sole entry, honestly labelled.
-  if (allCommentaries.length === 0 && aiCommentary && pf.commentary === 'expanded') {
-    allCommentaries.push({ source: 'AI Insight', text: aiCommentary.text, passage: aiCommentary.passage });
-  }
-  const commentaryPassageCount = new Set(allCommentaries.map(c => c.passage)).size;
 
   // If the user has an active Ashley-Jane plan, sync the devotion to that plan's day
   // instead of using the calendar-based rotation (which doesn't match the hero reading)
@@ -1464,22 +1438,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     loadPassage(ref);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroKey, dayOffset, translation, planDayOffset]);
-
-  // Commentary must actually be there when it "arrives expanded": the curated
-  // set covers ~20 chapters, so on other days deeper_study / pastor_leader get
-  // the drawer's AI commentary (30-day cached) for today's chapter instead.
-  useEffect(() => {
-    if (pf.commentary !== 'expanded') return;
-    if (allCommentaries.length > 0 && allCommentaries[0].source !== 'AI Insight') return;
-    const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
-    if (!ref) { setAiCommentary(null); return; }
-    let alive = true;
-    fetchAICommentary(expandChapterRef(ref), lang)
-      .then(text => { if (alive && text) setAiCommentary({ passage: expandChapterRef(ref), text }); })
-      .catch(() => { /* commentary is best-effort */ });
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heroKey, lang, pf.commentary]);
 
   useEffect(() => {
     return AP.onStateChange((st) => {
@@ -3274,69 +3232,23 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           );
         })()}
 
-        {/* 5. Commentary — persona-gated: hidden / collapsed / expanded. Sits
-            directly after TODAY'S STUDY so it reads next to the passages it
-            comments on; entries now cover every passage of the day. */}
-        {pf.commentary !== 'hidden' && allCommentaries.length > 0 && (
-          <Card style={{ marginBottom: 16 }}>
-            <div
-              onClick={() => !commentaryExpanded && setCommentaryExpanded(true)}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: commentaryExpanded ? 'default' : 'pointer', marginBottom: commentaryExpanded ? 10 : 0 }}
-            >
-              <h2 className="text-section-header" style={{ margin: 0 }}>{tI18n('commentary_label', lang)}</h2>
-              {!commentaryExpanded && (
-                <span style={{ fontSize: 12, color: 'var(--dw-accent)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{tI18n('tap_to_read', lang)}</span>
-              )}
-            </div>
-            {commentaryExpanded && (
-              <>
-                {/* Source tab strip — labels carry the passage when the day has
-                    commentary on more than one chapter */}
-                {allCommentaries.length > 1 && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                    {allCommentaries.map((c, i) => (
-                      <button
-                        key={`${c.passage}_${c.source}`}
-                        onClick={() => setSelectedCommentaryIdx(i)}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 20,
-                          border: '1px solid',
-                          borderColor: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'var(--dw-border, #E8E6E0)',
-                          background: i === selectedCommentaryIdx ? 'var(--dw-accent)' : 'transparent',
-                          color: i === selectedCommentaryIdx ? '#fff' : 'var(--dw-text-muted)',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-sans)',
-                          cursor: 'pointer',
-                          letterSpacing: '0.02em',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        {commentaryPassageCount > 1 ? `${c.passage} · ${c.source}` : c.source}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {/* Selected commentary text */}
-                {allCommentaries[selectedCommentaryIdx] && (
-                  <>
-                    {allCommentaries.length === 1 && (
-                      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--dw-accent)', letterSpacing: '0.06em', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
-                        {allCommentaries[0].source.toUpperCase()} · {allCommentaries[0].passage}
-                      </p>
-                    )}
-                    <p
-                      onClick={() => setSelection({ text: allCommentaries[selectedCommentaryIdx].text, verseRefs: [allCommentaries[selectedCommentaryIdx].passage], source: 'tap' })}
-                      style={{ color: 'var(--dw-text-secondary)', fontSize: 14, lineHeight: 1.65, fontFamily: 'var(--font-serif-text)', cursor: 'pointer', WebkitUserSelect: 'text', userSelect: 'text' }}
-                    >
-                      {allCommentaries[selectedCommentaryIdx].text}
-                    </p>
-                  </>
-                )}
-              </>
-            )}
-          </Card>
+        {pf.commentary !== 'hidden' && (
+          <CommentaryCard
+            chapterRef={expandChapterRef(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '')}
+            lang={lang}
+            mode={pf.commentary}
+            sourced={personaConfig.persona === 'deeper_study' || personaConfig.persona === 'pastor_leader'}
+            onSelectText={(text, ref) => setSelection({ text, verseRefs: [ref], source: 'tap' })}
+            onOpenSources={() => setShowStudySources(true)}
+          />
+        )}
+        {(personaConfig.persona === 'deeper_study' || personaConfig.persona === 'pastor_leader') && (
+          <CrossRefsCard
+            chapterRef={expandChapterRef(heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || '')}
+            translation={translation}
+            lang={lang}
+            onSelectText={(text, ref) => setSelection({ text, verseRefs: [ref], source: 'tap' })}
+          />
         )}
 
         {/* Pastoral Reflection Prompt moved directly under the reading (persona-flow
@@ -4468,6 +4380,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           }
         }}
         planContext={todaysPlanPassages.length > 0 ? `${todaysPlanPassages[0].planTitle} — Day ${todaysPlanPassages[0].dayNum}` : undefined}
+      />
+      <StudySourcesSheet
+        open={showStudySources}
+        onClose={() => setShowStudySources(false)}
+        lang={lang}
       />
       {/* Full-screen Day N — the journey reading surface (new_to_faith only).
           Mounted whenever eligible (not just while open) so its useSubView can

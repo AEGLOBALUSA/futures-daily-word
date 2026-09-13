@@ -25,6 +25,7 @@ export interface StudyIllustration { id: string; topic: string; title: string | 
 export interface StudySource {
   id: string; name: string; licence: string; attribution: string; url: string | null;
   share_alike: boolean; language: string; loaded_at: string | null; record_count: number | null;
+  edition: string | null;
 }
 export interface StudyPassage {
   ref: string; book: string; chapter: number; verse: number | null; verseEnd: number | null; testament: 'OT' | 'NT';
@@ -70,10 +71,21 @@ export function fetchStudyPassage(ref: string, opts?: { depth?: 'summary' | 'ful
   return get<StudyPassage>(params);
 }
 
-/** Every entry of ONE commentary on a passage (the passage response only carries previews). */
-export async function fetchStudyCommentary(ref: string, sourceId: string): Promise<StudyCommentaryEntry[]> {
+/** The reading screen's one call per chapter: commentary + cross-references only,
+ *  at summary depth. Rides the same session memo as every other call here, so
+ *  switching tabs on an already-open chapter costs nothing further. */
+export function fetchChapterStudy(ref: string): Promise<{ ref: string; commentary: StudyCommentary[]; crossRefs: { verse: number; refs: StudyCrossRef[] }[] } | null> {
+  return get({ ref, depth: 'summary', only: 'commentary,crossrefs' });
+}
+
+/** Every entry of ONE commentary on a passage (the passage response only carries previews).
+ *  Returns `null` on a failed or non-ok fetch (get<T>() already collapses those to null) —
+ *  that is a fetch failure, not a genuinely empty chapter, and callers must not treat the
+ *  two the same. `[]` means the response was ok and simply had no entries. */
+export async function fetchStudyCommentary(ref: string, sourceId: string): Promise<StudyCommentaryEntry[] | null> {
   const r = await get<{ ref: string; commentary: StudyCommentary[] }>({ ref, only: 'commentary', commentary: sourceId });
-  return r?.commentary?.[0]?.entries || [];
+  if (!r) return null;
+  return r.commentary?.[0]?.entries || [];
 }
 
 /** One Strong's number → lexicon entry, or null when the layer has none. */

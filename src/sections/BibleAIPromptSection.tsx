@@ -1,4 +1,8 @@
+import { t, getLang } from '../utils/i18n';
+
 export function BibleAIPromptSection({ onOpenAI, persona }: { onOpenAI: () => void; persona: string }) {
+  const lang = getLang();
+
   // Check if user has ever used AI
   const hasUsedAI = (() => {
     try {
@@ -14,36 +18,32 @@ export function BibleAIPromptSection({ onOpenAI, persona }: { onOpenAI: () => vo
   // Persona-specific messaging
   const messages: Record<
     string,
-    { title: string; subtitle: string }
+    { titleKey: string; subKey: string }
   > = {
     new_to_faith: {
-      title: 'New here? Ask Bible AI anything',
-      subtitle:
-        "Not sure what this passage means? Tap here — it's like having a friend who knows the Bible really well.",
+      titleKey: 'ai_teaser_new_title',
+      subKey: 'ai_teaser_new_sub',
     },
     congregation: {
-      title: 'Go deeper with Bible AI',
-      subtitle:
-        "Ask questions about today's reading, get historical context, or explore how it applies to your life.",
+      titleKey: 'ai_teaser_cong_title',
+      subKey: 'ai_teaser_cong_sub',
     },
     deeper_study: {
-      title: 'Explore the original languages',
-      subtitle:
-        'Bible AI can break down Greek and Hebrew words, cross-reference passages, and provide scholarly context.',
+      titleKey: 'ai_teaser_study_title',
+      subKey: 'ai_teaser_study_sub',
     },
     pastor_leader: {
-      title: 'Bible AI for sermon prep',
-      subtitle:
-        "Get teaching angles, illustration ideas, and deeper context for today's passage.",
+      titleKey: 'ai_teaser_pastor_title',
+      subKey: 'ai_teaser_pastor_sub',
     },
     comfort: {
-      title: 'Talk to Bible AI about what you\'re feeling',
-      subtitle:
-        'You can ask anything — even the hard questions. Bible AI responds with compassion and Scripture.',
+      titleKey: 'ai_teaser_comfort_title',
+      subKey: 'ai_teaser_comfort_sub',
     },
   };
 
-  const msg = messages[persona] || messages.congregation;
+  const msgKeys = messages[persona] || messages.congregation;
+  const msg = { title: t(msgKeys.titleKey, lang), subtitle: t(msgKeys.subKey, lang) };
 
   return (
     <button
