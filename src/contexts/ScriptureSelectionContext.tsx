@@ -21,6 +21,10 @@ interface ScriptureSelectionContextValue {
   setSelection: (s: ScriptureSelection | null) => void;
   highlights: Record<string, ScriptureHighlight>;
   toggleHighlight: (verseKey: string, text: string) => void;
+  /** Sets the toolbar selection only — no highlight, no note, no push. Used by
+      the newPath verse tap so opening "What this means" stays read-only; an
+      explicit Highlight action in the toolbar still calls toggleHighlight. */
+  selectVerse: (verseKey: string, text: string) => void;
   clearHighlights: () => void;
   greekHebrewMode: boolean;
   setGreekHebrewMode: (v: boolean) => void;
@@ -184,6 +188,10 @@ export function ScriptureSelectionProvider({ children }: { children: ReactNode }
     setSelection({ text, verseRefs: [verseKey], source: 'tap' });
   }, []);
 
+  const selectVerse = useCallback((verseKey: string, text: string) => {
+    setSelection({ text, verseRefs: [verseKey], source: 'tap' });
+  }, []);
+
   const clearHighlights = useCallback(() => {
     setHighlights({});
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
@@ -209,7 +217,7 @@ export function ScriptureSelectionProvider({ children }: { children: ReactNode }
   return (
     <ScriptureSelectionContext.Provider value={{
       selection, setSelection,
-      highlights, toggleHighlight, clearHighlights,
+      highlights, toggleHighlight, selectVerse, clearHighlights,
       greekHebrewMode, setGreekHebrewMode,
       activePopupWord, setActivePopupWord,
       setCurrentPlanContext,

@@ -21,6 +21,7 @@ import { shareContent } from '../utils/share';
 import { useSubView } from '../utils/useSubView';
 import { PathwayQuestions } from './PathwayAnswer';
 import { localizedQuestions } from '../utils/pathwayQuestions';
+import { sliceVerseRange } from '../utils/verseRange';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
 
 
@@ -44,11 +45,16 @@ interface NewBelieverLessonCardProps {
   passageText?: string;
   /** Translation actually served for the chapter (may differ offline). */
   servedTranslation?: string;
+  /** The day's assigned verse range, e.g. '8-9' (books/faith-pathway.json reading.verses). */
+  verseSpec?: string;
+  /** Human ref for the assigned range, e.g. 'Ephesians 2:8-9' (reading.ref). */
+  rangedRef?: string;
 }
 
 export function NewBelieverLessonCard({
   pathwayData, pathwayProgress, displayDay, lang, t, scriptureFontSize,
   savePathwayProgress, open, onClose, passageText, servedTranslation,
+  verseSpec, rangedRef,
 }: NewBelieverLessonCardProps) {
   // Completion moment: hold the just-completed lesson on screen (with a
   // "Day N complete" note) instead of instantly swapping to tomorrow's. The day
@@ -60,6 +66,10 @@ export function NewBelieverLessonCard({
   // open across midnight keeps it set, and completing the new day would jump the
   // card a day ahead of the chapter the journey is on.
   useEffect(() => { setShowNext(false); }, [displayDay]);
+  // The verses panel defaults to the day's assigned range; "Read the whole
+  // chapter" reveals the rest. Resets whenever the day moves on, so a reader
+  // who expanded yesterday's chapter doesn't carry that open into today's.
+  const [showWholeChapter, setShowWholeChapter] = useState(false);
   // One history entry while open, so the back gesture closes this surface
   // instead of ejecting the user from the tab. Deliberately no modal focus
   // trap: the study sheet, note drawer and Bible AI mount as DOM siblings
@@ -72,6 +82,7 @@ export function NewBelieverLessonCard({
     ? (pathwayProgress.lastCompletedDay ?? null)
     : null;
   const currentDay = showNext ? (pathwayProgress.currentDay || 1) : displayDay;
+  useEffect(() => { setShowWholeChapter(false); }, [currentDay]);
   // Peeking tomorrow shows its title/theme/lesson only — tomorrow's chapter
   // arrives with the journey hero tomorrow, so the verses panel hides in peek.
   const isPeek = currentDay !== displayDay;
@@ -103,6 +114,16 @@ export function NewBelieverLessonCard({
     : dayData.lesson;
   const dayReading = dayData.reading;
   const chapterRef = dayReading ? `${dayReading.book} ${dayReading.chapter}` : '';
+  // The slice may fail (no [N] markers, or the chapter served short of the
+  // named verses) even when verseSpec is set. While passageText is still
+  // loading we don't yet know, so keep treating verseSpec as effective —
+  // only fall back to the whole-chapter presentation once the loaded text
+  // proves the range can't be applied.
+  const rangedSlice = passageText !== undefined && verseSpec
+    ? sliceVerseRange(passageText, verseSpec)
+    : undefined;
+  const rangeFailed = passageText !== undefined && !!verseSpec && rangedSlice === null;
+  const effectiveVerseSpec = rangeFailed ? undefined : verseSpec;
   const pathTitle = lang === 'es' ? (pathwayData.titleEs || pathwayData.title)
     : lang === 'pt' ? (pathwayData.titlePt || pathwayData.title)
     : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
@@ -187,7 +208,7 @@ export function NewBelieverLessonCard({
               color: 'var(--dw-new)',
               fontFamily: 'var(--font-sans)', marginBottom: 20, marginTop: 4,
             }}>
-              {dayReading?.ref || chapterRef}
+              {(effectiveVerseSpec && !showWholeChapter ? (rangedRef || chapterRef) : chapterRef)}
               {servedTranslation && <span style={{ fontWeight: 500, opacity: 0.6 }}> · {servedTranslation}</span>}
             </p>
             {passageText ? (
@@ -200,11 +221,29 @@ export function NewBelieverLessonCard({
                 ['--dw-surface-raised' as string]: 'rgba(255,255,255,0.06)',
               }}>
                 <ScripturePassage
-                  text={passageText}
+                  text={effectiveVerseSpec && !showWholeChapter ? (rangedSlice as string) : passageText}
                   passageRef={chapterRef}
                   fontSize={scriptureFontSize}
                   newPath
                 />
+                {/* Never removed and never hidden once the range is showing —
+                    the assigned verses are the default, the whole chapter is
+                    one tap under it (never the other way round). Hidden
+                    entirely when the range couldn't be applied — there's
+                    nothing to toggle back to. */}
+                {effectiveVerseSpec && (
+                  <button
+                    onClick={() => setShowWholeChapter((v) => !v)}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '10px 0 0', marginTop: 4,
+                      color: 'var(--dw-new)', fontSize: 13, fontWeight: 600,
+                      fontFamily: 'var(--font-sans)', textDecoration: 'underline',
+                    }}
+                  >
+                    {showWholeChapter ? trans('show_days_verses', lang) : trans('read_whole_chapter', lang)}
+                  </button>
+                )}
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>

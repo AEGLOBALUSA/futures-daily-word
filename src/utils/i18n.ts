@@ -145,6 +145,7 @@ const UI: Translations = {
   quick_connect: { en: 'Connect this to the rest of Scripture', es: 'Conecta esto con el resto de las Escrituras', pt: 'Conecte isso com o restante das Escrituras', id: 'Hubungkan ini dengan seluruh Kitab Suci' },
   quick_god: { en: 'What is God saying to me through this?', es: '\u00bfQu\u00e9 me est\u00e1 diciendo Dios a trav\u00e9s de esto?', pt: 'O que Deus est\u00e1 me dizendo atrav\u00e9s disso?', id: 'Apa yang Tuhan katakan kepada saya melalui ini?' },
   greek_hebrew: { en: 'Greek & Hebrew Word Meanings', es: 'Significados de palabras en griego y hebreo', pt: 'Significados de palavras em grego e hebraico', id: 'Arti Kata Yunani & Ibrani' },
+  greek_hebrew_toggle: { en: 'Greek & Hebrew', es: 'Griego y hebreo', pt: 'Grego e hebraico', id: 'Yunani & Ibrani' },
   original_lang: { en: 'Original language breakdown', es: 'Desglose del idioma original', pt: 'Detalhamento do idioma original', id: 'Rincian bahasa asli' },
   or_choose_quick: { en: '\u2014 or choose a quick question \u2014', es: '\u2014 o elige una pregunta r\u00e1pida \u2014', pt: '\u2014 ou escolha uma pergunta r\u00e1pida \u2014', id: '\u2014 atau pilih pertanyaan cepat \u2014' },
 
@@ -390,7 +391,6 @@ const UI: Translations = {
   chapters_3_desc: { en: 'Deeper immersion', es: 'Inmersi\u00f3n m\u00e1s profunda', pt: 'Imers\u00e3o mais profunda', id: 'Pendalaman lebih' },
 
   // \u2500\u2500 COMFORT DAILY READING \u2500\u2500
-  comfort_reading_x_of_y: { en: 'Reading {x} of {y}', es: 'Lectura {x} de {y}', pt: 'Leitura {x} de {y}', id: 'Bacaan {x} dari {y}' },
   comfort_change_daily: { en: 'Change daily amount', es: 'Cambiar la cantidad diaria', pt: 'Alterar a quantidade di\u00e1ria', id: 'Ubah jumlah harian' },
 
   // \u2500\u2500 PATHWAY COMPLETION MOMENT \u2500\u2500
@@ -668,6 +668,9 @@ const UI: Translations = {
   promo_selah_cta: { en: 'Learn more', es: 'Saber m\u00e1s', pt: 'Saiba mais', id: 'Pelajari' },
   continue_journey: { en: 'Continue Journey', es: 'Continuar el camino', pt: 'Continuar a jornada', id: 'Lanjutkan Perjalanan' },
   todays_study: { en: "TODAY'S STUDY", es: 'ESTUDIO DE HOY', pt: 'ESTUDO DE HOJE', id: 'STUDI HARI INI' },
+  also_today: { en: 'ALSO TODAY', es: 'TAMBI\u00c9N HOY', pt: 'TAMB\u00c9M HOJE', id: 'JUGA HARI INI' },
+  read_whole_chapter: { en: 'Read the whole chapter', es: 'Leer el cap\u00edtulo completo', pt: 'Ler o cap\u00edtulo inteiro', id: 'Baca seluruh pasal' },
+  show_days_verses: { en: "Show today's verses", es: 'Ver los vers\u00edculos de hoy', pt: 'Ver os vers\u00edculos de hoje', id: 'Tampilkan ayat hari ini' },
   for_you: { en: 'FOR YOU', es: 'PARA TI', pt: 'PARA VOC\u00ca', id: 'UNTUKMU' },
   remove_reading_slot: { en: 'Remove reading slot', es: 'Eliminar espacio de lectura', pt: 'Remover espa\u00e7o de leitura', id: 'Hapus slot bacaan' },
   remove_slot_confirm: { en: 'Remove this reading slot?', es: '\u00bfEliminar este espacio de lectura?', pt: 'Remover este espa\u00e7o de leitura?', id: 'Hapus slot bacaan ini?' },
@@ -688,10 +691,12 @@ const UI: Translations = {
   deselect_all: { en: 'Deselect All', es: 'Deseleccionar todo', pt: 'Desmarcar tudo', id: 'Batalkan Pilih Semua' },
   tap_word_hint: { en: 'Tap any word to explore its original meaning', es: 'Toca cualquier palabra para explorar su significado original', pt: 'Toque em qualquer palavra para explorar seu significado original', id: 'Ketuk kata mana pun untuk menjelajahi makna aslinya' },
   gk_heb: { en: 'Gk/Heb', es: 'Gr/Heb', pt: 'Gr/Heb', id: 'Yun/Ibr' },
+  highlight_label: { en: 'Highlight', es: 'Destacar', pt: 'Destacar', id: 'Sorot' },
 
   // \u2500\u2500 INLINE REFLECTION \u2500\u2500
   reflect_label: { en: 'Reflect', es: 'Reflexiona', pt: 'Reflita', id: 'Renungkan' },
   sit_with_this: { en: 'Sit with this', es: 'Med\u00edtalo', pt: 'Medite nisso', id: 'Renungkan ini' },
+  todays_thought: { en: "TODAY'S THOUGHT", es: 'EL PENSAMIENTO DE HOY', pt: 'O PENSAMENTO DE HOJE', id: 'RENUNGAN HARI INI' },
   reflect_prompt_default: { en: "What stood out to you in today's reading?", es: '\u00bfQu\u00e9 te llam\u00f3 la atenci\u00f3n en la lectura de hoy?', pt: 'O que chamou sua aten\u00e7\u00e3o na leitura de hoje?', id: 'Apa yang menonjol bagimu dari bacaan hari ini?' },
   reflect_prompt_comfort: { en: 'Which words brought you the most peace today?', es: '\u00bfQu\u00e9 palabras te trajeron m\u00e1s paz hoy?', pt: 'Quais palavras trouxeram mais paz a voc\u00ea hoje?', id: 'Kata-kata mana yang paling memberimu kedamaian hari ini?' },
   save_reflection: { en: 'Save reflection', es: 'Guardar reflexi\u00f3n', pt: 'Salvar reflex\u00e3o', id: 'Simpan refleksi' },
@@ -712,8 +717,6 @@ const UI: Translations = {
   comfort_read_another: { en: "Would you like to read another passage from God's Word?", es: '\u00bfTe gustar\u00eda leer otro pasaje de la Palabra de Dios?', pt: 'Gostaria de ler outra passagem da Palavra de Deus?', id: 'Mau membaca bagian lain dari Firman Tuhan?' },
   comfort_yes_more: { en: 'Yes, keep going', es: 'S\u00ed, sigamos', pt: 'Sim, continuar', id: 'Ya, lanjutkan' },
   comfort_enough_today: { en: "That's enough for today", es: 'Suficiente por hoy', pt: 'Por hoje \u00e9 suficiente', id: 'Cukup untuk hari ini' },
-  comfort_doing_great: { en: "You're doing great.", es: 'Lo est\u00e1s haciendo muy bien.', pt: 'Voc\u00ea est\u00e1 indo muito bem.', id: 'Kamu melakukannya dengan baik.' },
-  comfort_set_daily_q: { en: 'Would you like to set a daily reading amount so we can have something ready for you each day?', es: '\u00bfQuieres fijar una cantidad de lectura diaria para que tengamos algo listo para ti cada d\u00eda?', pt: 'Quer definir uma quantidade de leitura di\u00e1ria para termos algo pronto para voc\u00ea a cada dia?', id: 'Mau menetapkan jumlah bacaan harian agar kami menyiapkan sesuatu untukmu setiap hari?' },
   comfort_one_more: { en: 'Just give me one more for now', es: 'Dame solo uno m\u00e1s por ahora', pt: 'S\u00f3 mais um por enquanto', id: 'Beri aku satu lagi untuk sekarang' },
   comfort_good_today: { en: "I'm good for today", es: 'Estoy bien por hoy', pt: 'Estou bem por hoje', id: 'Sudah cukup untukku hari ini' },
   comfort_set_daily_one: { en: "You're set for 1 chapter a day. We'll have something ready for you tomorrow.", es: 'Quedaste con 1 cap\u00edtulo al d\u00eda. Tendremos algo listo para ti ma\u00f1ana.', pt: 'Ficou definido 1 cap\u00edtulo por dia. Teremos algo pronto para voc\u00ea amanh\u00e3.', id: 'Kamu diatur untuk 1 pasal per hari. Kami akan menyiapkan sesuatu untukmu besok.' },
@@ -913,7 +916,7 @@ const UI: Translations = {
   path_sheet_sub: { en: 'Daily Word opens on a different first screen for each. Change it any time.', es: 'Daily Word abre en una primera pantalla distinta para cada uno. Cámbialo cuando quieras.', pt: 'O Daily Word abre em uma primeira tela diferente para cada um. Mude quando quiser.', id: 'Daily Word membuka layar pertama yang berbeda untuk masing-masing. Ubah kapan saja.' },
   path_pastor_note: { en: 'Signed in as pastor. Pick any path; your pastor tools return when you choose Leader again.', es: 'Sesión iniciada como pastor. Elige cualquier camino; tus herramientas de pastor vuelven cuando elijas Líder de nuevo.', pt: 'Conectado como pastor. Escolha qualquer caminho; suas ferramentas de pastor voltam quando escolher Líder de novo.', id: 'Masuk sebagai pendeta. Pilih jalur apa pun; alat pendeta Anda kembali saat memilih Pemimpin lagi.' },
   path_arrival_eyebrow: { en: 'Your path', es: 'Tu camino', pt: 'Seu caminho', id: 'Jalur Anda' },
-  path_arrival_pastor: { en: "You're in the pastor study. Today's chapter is open with commentary, and Between You & God sits below it. Preach is the card above.", es: 'Estás en el estudio pastoral. El capítulo de hoy está abierto con comentario, y Entre tú y Dios está debajo. Predicar es la tarjeta de arriba.', pt: 'Você está no estudo pastoral. O capítulo de hoje está aberto com comentário, e Entre Você e Deus fica logo abaixo. Pregar é o cartão acima.', id: 'Anda berada di studi pendeta. Pasal hari ini terbuka dengan komentar, dan Antara Anda dan Tuhan ada di bawahnya. Berkhotbah adalah kartu di atas.' },
+  path_arrival_pastor: { en: "You're in the pastor study. Today's chapter is open with commentary, and Between You & God sits below it. Preach sits under that.", es: 'Estás en el estudio pastoral. El capítulo de hoy está abierto con comentario, y Entre tú y Dios está debajo. Predicar está debajo de eso.', pt: 'Você está no estudo pastoral. O capítulo de hoje está aberto com comentário, e Entre Você e Deus fica logo abaixo. Pregar fica logo abaixo.', id: 'Anda berada di studi pendeta. Pasal hari ini terbuka dengan komentar, dan Antara Anda dan Tuhan ada di bawahnya. Berkhotbah ada di bawahnya.' },
   path_arrival_member: { en: "You're on today's reading with Ashley & Jane. It's already open below.", es: 'Estás en la lectura de hoy con Ashley y Jane. Ya está abierta abajo.', pt: 'Você está na leitura de hoje com Ashley e Jane. Já está aberta abaixo.', id: 'Anda berada di bacaan hari ini bersama Ashley & Jane. Sudah terbuka di bawah.' },
   path_arrival_study: { en: "You're in the study reading. Commentary is open below, with Compare and the original languages.", es: 'Estás en la lectura de estudio. El comentario está abierto abajo, con Comparar y los idiomas originales.', pt: 'Você está na leitura de estudo. O comentário está aberto abaixo, com Comparar e as línguas originais.', id: 'Anda berada di bacaan studi. Komentar terbuka di bawah, dengan Bandingkan dan bahasa asli.' },
   path_arrival_new: { en: "You're on the 40-day journey. Today's day is the card below.", es: 'Estás en el camino de 40 días. El día de hoy es la tarjeta de abajo.', pt: 'Você está na jornada de 40 dias. O dia de hoje é o cartão abaixo.', id: 'Anda berada di perjalanan 40 hari. Hari ini adalah kartu di bawah.' },

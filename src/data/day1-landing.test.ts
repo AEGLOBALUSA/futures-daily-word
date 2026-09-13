@@ -40,4 +40,11 @@ describe('Day 1 landing copy (existing series, not Superdesign placeholders)', (
     expect([...day1Copy('id').questions]).toEqual(day1.questionsId);
     expect([...day1Copy('fr').questions]).toEqual(day1.questions);
   });
+
+  it('DAY1_VERSE_REF matches day 1\'s assigned reading range, and the bundled text is that range only', () => {
+    const json = JSON.parse(readFileSync(join(__dirname, '..', '..', 'books', 'faith-pathway.json'), 'utf-8'));
+    const day1 = json.days.find((d: { day: number }) => d.day === 1);
+    expect(DAY1_VERSE_REF).toBe(day1.reading.ref);
+    expect(DAY1_VERSE_TEXT).not.toMatch(/dead in trespasses and sins/i);
+  });
 });

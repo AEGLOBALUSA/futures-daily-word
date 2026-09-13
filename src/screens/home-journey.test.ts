@@ -33,7 +33,7 @@ describe("I'm New journey flow", () => {
   it('the Day N surface IS the reading — verses render on it', () => {
     // The actual JSX mount, not just an import or comment.
     expect(card).toMatch(/<ScripturePassage\s/);
-    expect(card).toMatch(/text=\{passageText\}/);
+    expect(card).toMatch(/text=\{effectiveVerseSpec && !showWholeChapter \? \(rangedSlice as string\) : passageText\}/);
     // Back gesture support: one history entry while open, consumed on UI close
     // (the card stays mounted and passes live open state — a hardcoded `true`
     // leaked an entry per close).

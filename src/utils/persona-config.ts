@@ -51,6 +51,11 @@ export interface PersonaConfig {
     adminTools: boolean;
     faithPathway: boolean;
     bookCards: string[];
+    /** Comfort ruling (docs/experience-design comfort.md): comfort never shows a
+     *  streak, a count, a complete moment, or a milestone overlay — 'none' here
+     *  is the single gate for that. Every other persona is 'full'. Do not scatter
+     *  persona === 'comfort' checks elsewhere for this; read this flag instead. */
+    celebrations: 'full' | 'none';
   };
 
   /** Plan filtering */
@@ -296,6 +301,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       adminTools: false,
       faithPathway: true,
       bookCards: [],
+      celebrations: 'full',
     },
     plans: {
       showFullCatalog: false,
@@ -346,6 +352,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       adminTools: false,
       faithPathway: false,
       bookCards: [],
+      celebrations: 'full',
     },
     plans: {
       showFullCatalog: true,
@@ -398,6 +405,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       adminTools: false,
       faithPathway: false,
       bookCards: [],
+      celebrations: 'full',
     },
     plans: {
       showFullCatalog: true,
@@ -452,6 +460,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       adminTools: true,
       faithPathway: false,
       bookCards: ['grace-and-truth', 'no-more-fear'],
+      celebrations: 'full',
     },
     plans: {
       showFullCatalog: true,
@@ -522,6 +531,8 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
       adminTools: false,
       faithPathway: false,
       bookCards: ['grace-and-truth', 'no-more-fear'],
+      // Comfort ruling: no streak, no count, no complete, no milestone overlay.
+      celebrations: 'none',
     },
     plans: {
       showFullCatalog: false,

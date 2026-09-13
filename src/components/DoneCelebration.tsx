@@ -13,10 +13,12 @@ export function DoneCelebration({
   streakCount,
   planFinish,
   onClose,
+  showCount = true,
 }: {
   streakCount: number;
   planFinish?: { title: string; days: number };
   onClose: () => void;
+  showCount?: boolean;
 }) {
   const isPlan = !!planFinish;
   useEffect(() => {
@@ -25,14 +27,18 @@ export function DoneCelebration({
   }, [onClose, isPlan]);
 
   // Streak memory: on a reset day, acknowledge the longest run instead of
-  // greeting a returning reader like a first-timer.
-  const best = getStreak().bestCount;
-  const message =
-    streakCount >= 2
-      ? t('done_days_counting').replace('{x}', String(streakCount))
-      : streakCount === 1 && best >= 3
-      ? t('streak_reset_best').replace('{best}', String(best))
-      : t('done_showed_up');
+  // greeting a returning reader like a first-timer. Not consulted when
+  // showCount is false (comfort path never displays a number or streak).
+  const message = !showCount
+    ? t('done_showed_up')
+    : (() => {
+        const best = getStreak().bestCount;
+        return streakCount >= 2
+          ? t('done_days_counting').replace('{x}', String(streakCount))
+          : streakCount === 1 && best >= 3
+          ? t('streak_reset_best').replace('{best}', String(best))
+          : t('done_showed_up');
+      })();
 
   return (
     <div
@@ -82,7 +88,7 @@ export function DoneCelebration({
             boxShadow: isPlan ? '0 0 0 8px rgba(200,144,107,0.18)' : '0 0 0 8px rgba(62,107,74,0.15)',
           }}
         >
-          {isPlan ? <PartyPopper size={32} color="#fff" strokeWidth={2.4} /> : <Check size={32} color="#fff" strokeWidth={3} />}
+          {isPlan && showCount ? <PartyPopper size={32} color="#fff" strokeWidth={2.4} /> : <Check size={32} color="#fff" strokeWidth={3} />}
         </div>
         <p
           style={{
@@ -105,10 +111,12 @@ export function DoneCelebration({
           }}
         >
           {planFinish
-            ? t('done_plan_body').replace('{title}', planFinish.title).replace('{days}', String(planFinish.days))
+            ? (showCount
+                ? t('done_plan_body').replace('{title}', planFinish.title).replace('{days}', String(planFinish.days))
+                : planFinish.title)
             : message}
         </p>
-        {!isPlan && streakCount >= 2 && (
+        {!isPlan && showCount && streakCount >= 2 && (
           <p
             style={{
               fontSize: 15,

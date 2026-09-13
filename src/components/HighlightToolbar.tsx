@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2, Pause, FolderPlus } from 'lucide-react';
+import { Copy, Share2, BookOpen, Languages, Sparkles, X, Check, Volume2, Pause, FolderPlus, Highlighter } from 'lucide-react';
 import { AudioWave } from './AudioWave';
 import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import * as AP from '../utils/audioPlayer';
@@ -22,7 +22,7 @@ interface HighlightToolbarProps {
 }
 
 export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, newPath = false, onWhatThisMeans, comfortMode = false }: HighlightToolbarProps) {
-  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode } = useScriptureSelection();
+  const { selection, setSelection, greekHebrewMode, setGreekHebrewMode, toggleHighlight } = useScriptureSelection();
   const lang = getLang();
   const [copied, setCopied] = useState(false);
   const [filed, setFiled] = useState(false);
@@ -68,6 +68,13 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, n
         await AP.playUrl('highlight-listen', src);
       } else { setListening(false); }
     } catch { setListening(false); }
+  };
+
+  // I'm-New study sheet: the verse tap only sets the selection (read-only) —
+  // this is the one explicit action on that sheet that persists a highlight.
+  const handleHighlight = () => {
+    if (!selection) return;
+    toggleHighlight(selection.verseRefs[0] || '', selection.text);
   };
 
   const handleDismiss = () => {
@@ -160,6 +167,7 @@ export function HighlightToolbar({ onOpenNotes, onGoDeeper, basicMode = false, n
             </span>
           </button>
         )}
+        {newPath && selection?.source === 'tap' && btn(handleHighlight, <Highlighter size={16} />, t('highlight_label', lang))}
         {newPath && btn(onOpenNotes, <BookOpen size={16} />, t('j_note', lang))}
         {!newPath && !comfortMode && btn(handleCopy,
           copied ? <Check size={16} color="var(--dw-success)" /> : <Copy size={16} />,
