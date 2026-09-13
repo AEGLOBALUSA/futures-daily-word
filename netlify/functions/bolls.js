@@ -7,10 +7,10 @@ const passageCache = new Map();
 const CACHE_MAX = 200;
 const CACHE_TTL = 3600000; // 1 hour
 
-const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { isAllowedOrigin } = require('./lib/cors');
 
 function getCorsHeaders(origin) {
-  if (ALLOWED_ORIGINS.includes(origin)) {
+  if (isAllowedOrigin(origin)) {
     return { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'GET, OPTIONS' };
   }
   return {};
@@ -91,10 +91,10 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers: corsHeaders, body: '' };
   }
 
-  const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
-  const isAllowedReferer = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
+  const originIsAllowed = isAllowedOrigin(origin);
+  const isAllowedReferer = !origin && isAllowedOrigin(referer);
   const isSameOrigin = !origin && !referer;
-  if (!isAllowedOrigin && !isAllowedReferer && !isSameOrigin) {
+  if (!originIsAllowed && !isAllowedReferer && !isSameOrigin) {
     return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Forbidden' }) };
   }
 

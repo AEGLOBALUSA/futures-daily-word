@@ -88,6 +88,39 @@ describe('PERSONA_CONFIGS', () => {
     expect(isNewChristianPersona('new_returning')).toBe(true);
     expect(isNewChristianPersona('congregation')).toBe(false);
   });
+
+  it('every persona defines celebrations', () => {
+    for (const key of ALL_PERSONAS) {
+      expect(['full', 'none']).toContain(PERSONA_CONFIGS[key].features.celebrations);
+    }
+  });
+
+  it('comfort is the only persona with celebrations: none (no streak, no count, no complete, no milestone)', () => {
+    const withNone = ALL_PERSONAS.filter((key) => PERSONA_CONFIGS[key].features.celebrations === 'none');
+    expect(withNone).toEqual(['comfort']);
+    for (const key of ALL_PERSONAS) {
+      if (key === 'comfort') continue;
+      expect(PERSONA_CONFIGS[key].features.celebrations).toBe('full');
+    }
+  });
+
+  it('the five personas are unchanged in number and in sectionOrder length', () => {
+    expect(ALL_PERSONAS).toHaveLength(5);
+    const lengths: Record<Persona, number> = {
+      new_to_faith: PERSONA_CONFIGS.new_to_faith.sectionOrder.length,
+      congregation: PERSONA_CONFIGS.congregation.sectionOrder.length,
+      deeper_study: PERSONA_CONFIGS.deeper_study.sectionOrder.length,
+      pastor_leader: PERSONA_CONFIGS.pastor_leader.sectionOrder.length,
+      comfort: PERSONA_CONFIGS.comfort.sectionOrder.length,
+    };
+    expect(lengths).toEqual({
+      new_to_faith: 4,
+      congregation: 4,
+      deeper_study: 6,
+      pastor_leader: 8,
+      comfort: 8,
+    });
+  });
 });
 
 describe('getPersonaConfig', () => {

@@ -58,6 +58,8 @@ import { PathSwatch } from '../components/ChoosePathSheet';
 import { getCongregation, congregationLabel, onCongregationChange, openCongregationChooser } from '../utils/congregation';
 import { PathArrivalStrip } from '../components/PathArrivalStrip';
 import { readPathArrival, clearPathArrival } from '../utils/choosePath';
+import { isSundayWindow } from '../utils/sunday';
+import { chapterOf, notInHero } from '../utils/heroDedupe';
 import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
 import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
@@ -605,7 +607,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     const heroPassage = heroChapterRefs[0];
     if (heroPassage) {
       const planResult = markPlanDayComplete(heroPassage);
-      if (planResult?.planFinished) setPlanFinish({ title: planResult.planTitle, days: planResult.planDays });
+      if (planResult?.planFinished && pf.celebrations === 'full') setPlanFinish({ title: planResult.planTitle, days: planResult.planDays });
     }
     try { localStorage.setItem('dw_reading_done', today); } catch { /* quota */ }
     setReadDoneToday(true);
@@ -736,15 +738,15 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     completeTodaysPathwayDay(passage);
     const r = recordReadDay('complete');
     setReadDayCount(r.count);
-    if (r.streak.isNew && r.streak.isMilestone) {
+    if (r.streak.isNew && r.streak.isMilestone && pf.celebrations === 'full') {
       setTimeout(() => setShowMilestone(r.streak.count), 600);
     }
     setReadDoneToday(true);
     hapticTap(18);
     if (result?.planFinished) {
-      setPlanFinish({ title: result.planTitle, days: result.planDays });
+      if (pf.celebrations === 'full') setPlanFinish({ title: result.planTitle, days: result.planDays });
     } else {
-      setDoneCelebration(getStreak().count);
+      if (pf.celebrations === 'full') setDoneCelebration(getStreak().count);
     }
   };
 
@@ -864,7 +866,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     if (!dayData) return;
     const reading = dayData.reading;
     if (!reading) return;
-    // Use full chapter as the reading (e.g., "Ephesians 2" instead of "Ephesians 2:8-9")
+    // Load the whole chapter once; the Day N card serves the day's verse range from it
+    // (reading.verses) and offers the whole chapter one tap under. Wave B, 13 Sep 2026.
     const fullChapter = `${reading.book} ${reading.chapter}`;
     loadPassage(fullChapter);
   // pathwayDisplayDay is a dep: at the midnight rollover the display day
@@ -940,20 +943,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   // If the user has an active Ashley-Jane plan, sync the devotion to that plan's day
   // instead of using the calendar-based rotation (which doesn't match the hero reading)
-  const planDevotion = todaysPlanPassages.find(p => p.devotional)?.devotional;
+  const devotionEntry = todaysPlanPassages.find(p => p.devotional);
+  const planDevotion = devotionEntry?.devotional;
   const planVerse = todaysPlanPassages[0]?.passage || '';
+  const devotionPassage = devotionEntry?.passage || '';
   const todaysDevotion = planDevotion
     ? { title: planDevotion.title, titleId: (planDevotion as Record<string, string>).titleId || '', body: planDevotion.body, bodyId: (planDevotion as Record<string, string>).bodyId || '', verse: planVerse, author: planDevotion.author, source: 'ashley-jane' as const }
     : null;
-
-  // Auto-load devotion-connected scripture for congregation persona
-  useEffect(() => {
-    if (!personaConfig.sectionOrder.includes('devotion_scripture')) return;
-    const devVerse = todaysDevotion?.verse || ''; // e.g. "2 Timothy 1"
-    if (!devVerse) return;
-    loadPassage(devVerse);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todaysDevotion?.verse, translation]);
 
   // Preload audio for plan passages in the background once text is available
   useEffect(() => {
@@ -1301,7 +1297,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
 
   // ── Hero chapter refs — all today's passages expanded to full chapter level (memoized) ──
-  const expandChapterRef = useCallback((ref: string) => ref.replace(/:\d+(-\d+)?$/, '').trim(), []);
+  const expandChapterRef = useCallback((ref: string) => chapterOf(ref), []);
   const heroChapterRefs = useMemo(() => {
     const refs = [
       ...todaysPlanPassages.map(p => expandChapterRef(p.passage)),
@@ -1581,7 +1577,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           setTimeout(() => handleMarkRead(ref), 0);
         } else {
           const done = markPlanDayComplete(ref);
-          if (done?.planFinished) {
+          if (done?.planFinished && pf.celebrations === 'full') {
             // The one-shot finishedCelebrated flag was previously consumed here
             // silently — surface the plan-finish celebration instead.
             const finish = { title: done.planTitle, days: done.planDays };
@@ -1787,10 +1783,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const isNewPath = isNewChristianPersona(personaConfig.persona);
 
   // Sermon notes — one tap from Home, kept slim. Its position depends on the
-  // path: above the hero ONLY for I'm-New in the Sunday window (the QR guest
-  // flow lands people as new_to_faith and they need it up top on a Sunday);
-  // for the four returning personas it renders BELOW the reading — nothing
-  // sits above today's reading (persona-flow spec, 1 Sep).
+  // path: above the hero ONLY for I'm-New, and only inside the Sunday window
+  // (the QR guest flow lands people as new_to_faith and they need it up top
+  // on a Sunday); for the other four personas it renders BELOW the reading —
+  // and below Between You & God on the pastor path — so nothing sits above
+  // today's reading (persona-flow spec, 1 Sep; demotion ruling, 10 Sep).
   // Three Sermon Notes — Futures USA / Futures Australia / Futuros USA. The
   // banner opens the chooser (a real drop-down, every tap); a pick opens the
   // notes for that church. The sub-line names the one currently chosen.
@@ -1852,7 +1849,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   return (
     <div className="screen-container">
       {doneCelebration !== null && (
-        <DoneCelebration streakCount={doneCelebration} onClose={() => {
+        <DoneCelebration streakCount={doneCelebration} showCount={pf.celebrations === 'full'} onClose={() => {
           setDoneCelebration(null);
           // Announce the finished reading only once this moment is closed, so the
           // push ask (which waits on it) can never land on top of the celebration
@@ -1861,7 +1858,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         }} />
       )}
       {planFinish !== null && (
-        <DoneCelebration streakCount={0} planFinish={planFinish} onClose={() => {
+        <DoneCelebration streakCount={0} planFinish={planFinish} showCount={pf.celebrations === 'full'} onClose={() => {
           setPlanFinish(null);
           try { window.dispatchEvent(new Event('dw-reading-completed')); } catch { /* SSR/tests */ }
         }} />
@@ -2116,8 +2113,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           />
         )}
 
-        {/* Sermon notes — just below the greeting, always visible */}
-        {sermonNotesRow}
+        {/* Sermon notes — I'm-New only, and only inside the Sunday window */}
+        {isNewPath && isSundayWindow() && sermonNotesRow}
 
         {/* What this actually is — one line, for the persona that has never used
             a Bible app. Only while they are early in the pathway. */}
@@ -2313,7 +2310,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                   textShadow: '0 1px 12px rgba(20,12,6,0.6)', pointerEvents: 'none',
                 }}>
                   <p style={{ fontSize: 27, fontWeight: 400, fontFamily: 'var(--font-serif-text, Georgia, serif)', margin: 0, lineHeight: 1.08 }}>
-                    {allLabels[0]}
+                    {allLabels[heroChapterIndex] || allLabels[0]}
                   </p>
                   {/* Caption used to hardcode "ESV · Human Reader" no matter what the
                       reader was actually set to (or fell back to). Show the real one;
@@ -2636,6 +2633,30 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                       {tI18n('compare_label', lang)}
                     </button>
                   )}
+
+                  {/* Greek/Hebrew toggle — hero control, independent of a plan */}
+                  {pf.greekHebrew === 'full' && (
+                    <button
+                      onClick={() => setGreekHebrewMode(!greekHebrewMode)}
+                      aria-pressed={greekHebrewMode}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        fontSize: 11, fontWeight: 700,
+                        fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.04em',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        border: greekHebrewMode ? '1.5px solid var(--dw-gold)' : '1.5px solid var(--dw-border)',
+                        background: greekHebrewMode ? 'rgba(154,123,46,0.2)' : 'transparent',
+                        color: greekHebrewMode ? 'var(--dw-gold)' : 'var(--dw-text-muted)',
+                        marginLeft: 'auto',
+                        marginRight: 8,
+                      }}
+                    >
+                      {tI18n('greek_hebrew_toggle', lang)}
+                    </button>
+                  )}
                 </div>
 
                 {/* ── Expanded scripture text — calm reading surface, visually distinct from hero ── */}
@@ -2701,6 +2722,35 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                             newPath={isNewPath}
                           />
                         </div>
+                        {/* Congregation: Ashley & Jane's thought for the day, under the passage,
+                            beside the REFLECT prompt. Fixes the dead devotion_scripture gate —
+                            this replaces it at the cause instead of resurrecting the old section. */}
+                        {personaConfig.persona === 'congregation' && todaysDevotion && chapterOf(readRef) === chapterOf(devotionPassage) && (
+                          <div style={{
+                            marginTop: 20, paddingTop: 20,
+                            borderTop: '1px solid rgba(150,112,72,0.2)',
+                          }}>
+                            <p style={{
+                              fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+                              textTransform: 'uppercase', color: '#A06A42',
+                              fontFamily: 'var(--font-sans)', marginBottom: 10,
+                            }}>
+                              {tI18n('todays_thought', lang)}
+                            </p>
+                            <p style={{
+                              fontSize: 15, fontWeight: 600, color: '#2A2218',
+                              fontFamily: 'var(--font-sans)', marginBottom: 6,
+                            }}>
+                              {lang === 'id' && todaysDevotion.titleId ? todaysDevotion.titleId : todaysDevotion.title}
+                            </p>
+                            <p style={{
+                              fontSize: 14, lineHeight: 1.6, color: '#2A2218',
+                              fontFamily: 'var(--font-sans)',
+                            }}>
+                              {lang === 'id' && todaysDevotion.bodyId ? todaysDevotion.bodyId : todaysDevotion.body}
+                            </p>
+                          </div>
+                        )}
                         {/* Read → reflect, in place: a one-tap journal capture right under the passage.
                             key={readRef} remounts it per chapter so the panel (which stays mounted as
                             the chapter auto-advances) never shows a stale 'Saved' state for a prior chapter. */}
@@ -2855,6 +2905,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           />
         )}
 
+        {/* Sermon Notes / Preach — below the reading and Between You & God for
+            the four returning personas (demotion ruling, 10 Sep). */}
+        {!isNewPath && sermonNotesRow}
+
         {/* Post-first-reading backup nudge — appears only after the push prompt
             is resolved, so the two post-reading moments never stack. */}
         <PWAInstallBanner />
@@ -2905,21 +2959,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
              order) — it used to sit ninth, below setup CTAs and book promos. */}
         {personaConfig.sectionOrder.includes('comfort_scripture') && (
           <ComfortSection
-            translation={translation}
-            translations={getTranslationsForPersona('comfort', appLanguage)}
-            handleTranslationChange={handleTranslationChange}
             lang={lang}
-            t={t}
-            passageTexts={passageTexts}
-            loadingPassages={loadingPassages}
-            loadPassage={loadPassage}
-            audioPlaying={audioPlaying}
-            audioLoading={audioLoading}
-            audioCurrentPassage={audioCurrentPassage}
-            handleListen={handleListen}
-            renderScripture={renderScripture}
-            greekHebrewMode={greekHebrewMode}
-            scriptureFontSize={scriptureFontSize}
+            readCompletedToday={readDoneToday}
+            heroChapter={heroChapterRefs[heroChapterIndex] || heroChapterRefs[0]}
           />
         )}
 
@@ -3111,157 +3153,26 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
         {/* Listen bar removed — hero card handles audio. Scripture search moved to Study tab. */}
 
-        {/* Devotion of the Day removed from home page */}
-
         {/* Comfort Scripture section moved up — it renders directly after the
             comfort verse banner now (see above). */}
-
-        {/* ── Today's Reading — shows plan chapters when active, else devotion scripture ── */}
-        {personaConfig.sectionOrder.includes('devotion_scripture') && (todaysPlanPassages.length > 0 || todaysDevotion?.verse) && (() => {
-          const hasPlanPassages = todaysPlanPassages.length > 0;
-          const devPassage = hasPlanPassages ? todaysPlanPassages[0].passage : (todaysDevotion?.verse || ''); // e.g. "Genesis 37" or "2 Timothy 1"
-          const isComfort = personaConfig.persona === 'comfort';
-          const devScriptureTranslations: TranslationCode[] = getTranslationsForPersona(
-            isComfort ? 'comfort' : personaConfig.persona, appLanguage
-          );
-          const tKey = `${devPassage}_${translation}`;
-          const passageText = passageTexts[tKey];
-          const isLoading = loadingPassages.has(devPassage);
-          const isPlayingThis = audioPlaying && audioCurrentPassage === devPassage;
-          const isLoadingAudio = audioLoading && audioCurrentPassage === devPassage;
-
-          return (
-            <Card style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <h2 className="text-section-header" style={{ margin: 0 }}>
-                  {isComfort ? "TODAY'S SCRIPTURE" : t('todays_reading')}
-                </h2>
-                <span style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
-                  {hasPlanPassages ? `${tI18n('p_day_of', lang)} ${todaysPlanPassages[0].dayNum} · ${todaysPlanPassages[0].planTitle}` : (isComfort ? tI18n('read_own_pace', lang) : tI18n('from_todays_devotion', lang))}
-                </span>
-              </div>
-
-              {/* Translation picker */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                {devScriptureTranslations.map(t => (
-                  <button
-                    key={t}
-                    onClick={() => handleTranslationChange(t)}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 20,
-                      fontSize: 12, fontWeight: 700,
-                      fontFamily: 'var(--font-sans)',
-                      letterSpacing: '0.04em',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      border: t === translation ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
-                      background: t === translation ? 'var(--dw-accent)' : 'transparent',
-                      color: t === translation ? '#fff' : 'var(--dw-text-muted)',
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              {/* Chapter heading + listen */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                  {devPassage}
-                </p>
-                <button
-                  onClick={() => handleListen(devPassage)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    background: isPlayingThis ? 'var(--dw-accent-hover)' : 'var(--dw-accent)',
-                    border: 'none', borderRadius: 10, padding: '8px 14px',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                    color: '#fff', fontFamily: 'var(--font-sans)',
-                  }}
-                >
-                  {isLoadingAudio ? (
-                    <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> {tI18n('j_loading', lang)}…</>
-                  ) : isPlayingThis ? (
-                    <><AudioWave height={14} color="#fff" /> <Pause size={14} /> {tI18n('pause', lang)}</>
-                  ) : (
-                    <><Headphones size={14} /> {tI18n('j_listen', lang)}</>
-                  )}
-                </button>
-              </div>
-
-              {/* Scripture text */}
-              {isLoading ? (
-                <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
-              ) : passageText ? (
-                <ScripturePassage
-                  text={passageText}
-                  passageRef={devPassage}
-                  renderScripture={renderScripture}
-                  greekHebrewMode={greekHebrewMode}
-                  fontSize={scriptureFontSize}
-                />
-              ) : (
-                <button
-                  onClick={() => loadPassage(devPassage)}
-                  style={{
-                    background: 'var(--dw-accent-bg)', border: '1px solid var(--dw-accent)',
-                    borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  <BookOpen size={16} /> {t('read_btn')} {devPassage}
-                </button>
-              )}
-
-              {/* Reflection prompt — now an inline one-tap journal capture */}
-              <InlineReflection
-                tone={isComfort ? 'comfort' : 'default'}
-                newPath={isNewPath}
-                label={isComfort ? tI18n('sit_with_this', lang) : tI18n('reflect_label', lang)}
-                prompt={isComfort
-                  ? tI18n('reflect_prompt_comfort', lang)
-                  : tI18n('reflect_prompt_default', lang)}
-                verseRef={devPassage}
-              />
-              {/* NOTE: the enclosing section gates on the never-set 'devotion_scripture'
-                  key, so this is dead until that section is revived; the live reflection
-                  lives in the hero reading panel below. */}
-            </Card>
-          );
-        })()}
 
         {/* ── Plan-Driven Scripture (deeper_study / pastor_leader) — full depth tools ── */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (() => {
           if (todaysPlanPassages.length === 0) {
             return null; // Onboarding is rendered above (after hero)
           }
-
+          const alsoPassages = notInHero(todaysPlanPassages, p => p.passage, heroChapterRefs);
+          if (alsoPassages.length === 0) {
+            return null; // Everything today is already in the hero — nothing "also" to show
+          }
 
           return (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <h2 className="text-section-header" style={{ margin: 0 }}>{tI18n('todays_study', lang)}</h2>
-                {/* Greek/Hebrew mode toggle */}
-                {pf.greekHebrew === 'full' && (
-                  <button
-                    onClick={() => setGreekHebrewMode(!greekHebrewMode)}
-                    style={{
-                      padding: '4px 10px', borderRadius: 16, fontSize: 11, fontWeight: 700,
-                      fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', cursor: 'pointer',
-                      border: greekHebrewMode ? '1.5px solid var(--dw-gold)' : '1.5px solid var(--dw-border)',
-                      background: greekHebrewMode ? 'rgba(154,123,46,0.2)' : 'transparent',
-                      color: greekHebrewMode ? 'var(--dw-gold)' : 'var(--dw-text-muted)',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {greekHebrewMode ? 'Greek/Hebrew ON' : 'Tap for Greek/Hebrew'}
-                  </button>
-                )}
+                <h2 className="text-section-header" style={{ margin: 0 }}>{tI18n('also_today', lang)}</h2>
               </div>
 
-              {todaysPlanPassages.map(({ planId, planTitle, passage, dayNum }) => {
+              {alsoPassages.map(({ planId, planTitle, passage, dayNum }) => {
                 const tKey = `${passage}_${translation}`;
                 const txt = passageTexts[tKey];
                 const isLoading = loadingPassages.has(passage);
@@ -3462,17 +3373,27 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           const slotsOnlyMode = hasPlanScripture && hasPlanPassages;
           const visibleSlots = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
           if (slotsOnlyMode && visibleSlots.length === 0) return null;
+          const alsoPassages = notInHero(todaysPlanPassages, p => p.passage, heroChapterRefs);
+          const alsoSlots = notInHero(visibleSlots, s => `${s.book} ${s.currentChapter}`, heroChapterRefs);
+          if (!(readingSlots.length === 0 && todaysPlanPassages.length === 0) && alsoPassages.length === 0 && alsoSlots.length === 0) return null;
+          // "ALSO TODAY" only makes sense once a hero chapter is showing AND there's
+          // something else besides it to read — the empty state and slots-only mode
+          // (nothing left after the hero de-dupe) keep their own headings instead.
+          const showAlsoTodayLabel = heroChapterRefs.length > 0 && (alsoPassages.length > 0 || alsoSlots.length > 0);
+          const sectionHeaderLabel = showAlsoTodayLabel
+            ? tI18n('also_today', lang)
+            : (slotsOnlyMode ? 'ADDITIONAL READING' : "TODAY'S CHAPTERS");
           return (
           <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, background: 'var(--dw-surface)', border: '1px solid var(--dw-border-subtle)', borderRadius: 12, padding: '12px 16px' }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--dw-text-muted)', margin: 0 }}>{slotsOnlyMode ? 'ADDITIONAL READING' : "TODAY'S CHAPTERS"}</p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--dw-text-muted)', margin: 0 }}>{sectionHeaderLabel}</p>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={() => {
-                // All visible passages = plan passages + reading slot passages
-                const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
+                // Only the passages this section actually renders (post hero de-dupe) —
+                // not every plan passage / slot, some of which live in the hero instead.
                 const allPassageIds = [
-                  ...todaysPlanPassages.map(p => p.passage),
-                  ...slotPassages.map(s => `${s.book} ${s.currentChapter}`),
+                  ...alsoPassages.map(p => p.passage),
+                  ...alsoSlots.map(s => `${s.book} ${s.currentChapter}`),
                 ];
                 // Trigger loading + expand all so texts become available
                 allPassageIds.forEach(p => loadPassage(p));
@@ -3490,10 +3411,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 }
               }} className={isNewPath ? 'dw-select-all-new' : undefined} style={{ background: isNewPath ? 'var(--dw-new-soft)' : 'var(--dw-accent-bg)', border:'1px solid var(--dw-border)', borderRadius:16, padding:'4px 12px', fontSize:12, color: isNewPath ? 'var(--dw-new)' : 'var(--dw-accent)', cursor:'pointer', fontFamily:'var(--font-sans)', fontWeight:600 }}>{t('select_all_passages')}</button>
               <button onClick={() => {
-                const slotPassages = readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length));
                 const passageRefs = [
-                  ...todaysPlanPassages.map(p => p.passage),
-                  ...slotPassages.map(s => `${s.book} ${s.currentChapter}`),
+                  ...alsoPassages.map(p => p.passage),
+                  ...alsoSlots.map(s => `${s.book} ${s.currentChapter}`),
                 ];
                 shareContent({
                   title: 'Daily Bible Reading',
@@ -3546,7 +3466,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* Plan passages — hidden in slotsOnlyMode (plan_scripture section shows them with deep tools) */}
-              {!slotsOnlyMode && todaysPlanPassages.map(({ planId, planTitle, passage, dayNum }) => {
+              {!slotsOnlyMode && alsoPassages.map(({ planId, planTitle, passage, dayNum }) => {
         const tKey = passage + '_' + translation;
         const txt = passageTexts[tKey];
         return (
@@ -3635,7 +3555,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </div>
         );
       })
-              }{readingSlots.slice(0, Math.max(0, chaptersPerDay - todaysPlanPassages.length)).map(slot => {
+              }{alsoSlots.map(slot => {
                 const passage = `${slot.book} ${slot.currentChapter}`;
                 const maxChapter = BOOK_CHAPTERS[slot.book] || 1;
                 const textKey = `${passage}_${translation}`;
@@ -4448,7 +4368,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         }
       `}</style>
       {/* Milestone celebration overlay */}
-      {showMilestone !== null && (
+      {showMilestone !== null && pf.celebrations === 'full' && (
         <div
           onClick={() => setShowMilestone(null)}
           style={{
@@ -4568,6 +4488,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             onClose={() => setShowJourneyDay(false)}
             passageText={jRef ? passageTexts[`${jRef}_${translation}`] : undefined}
             servedTranslation={jRef ? getServedTranslation(jRef, translation) : undefined}
+            verseSpec={pathwayData?.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay)?.reading?.verses}
+            rangedRef={pathwayData?.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay)?.reading?.ref}
           />
         );
       })()}

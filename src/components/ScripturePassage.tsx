@@ -35,17 +35,24 @@ export function ScripturePassage({
   fontSize = 15,
   newPath = false,
 }: ScripturePassageProps) {
-  const { selection, setSelection, highlights, toggleHighlight } = useScriptureSelection();
+  const { selection, setSelection, highlights, toggleHighlight, selectVerse } = useScriptureSelection();
 
   const verses = useMemo(() => parseVerses(text), [text]);
 
   // Tapping a verse toggles a persistent highlight (which also auto-creates
   // a Notes entry via ScriptureSelectionContext) AND fires the toolbar.
   // Mirrors ScriptureBlock's behavior so Home and Bible reader are consistent.
+  // On newPath (I'm New study sheet) the tap only sets the toolbar selection —
+  // no highlight, no auto-saved note — so opening "What this means" stays
+  // read-only; an explicit Highlight action in the toolbar still persists.
   const handleVerseTap = (verseNum: number, verseText: string) => {
     if (greekHebrewMode) return; // in Gk/Heb mode, word taps take priority
     const ref = verseNum > 0 ? `${passageRef}:${verseNum}` : passageRef;
-    toggleHighlight(ref, verseText);
+    if (newPath) {
+      selectVerse(ref, verseText);
+    } else {
+      toggleHighlight(ref, verseText);
+    }
   };
 
   // Determine if a specific verse is currently selected (Select All) or highlighted
@@ -118,7 +125,11 @@ export function ScripturePassage({
         const verseRef =
           v.verse > 0 ? `${passageRef}:${v.verse}` : passageRef;
         const isHighlighted = !!highlights[verseRef];
-        const isSelected = isAllSelected || isHighlighted;
+        // newPath tap only sets a read-only selection (source 'tap') — it
+        // should still paint gold/selected even though no highlight is
+        // persisted until the toolbar's explicit Highlight action.
+        const isTapSelected = selection?.source === 'tap' && selectedRef === verseRef;
+        const isSelected = isAllSelected || isHighlighted || isTapSelected;
 
         return (
           <p
