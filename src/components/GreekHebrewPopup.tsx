@@ -5,6 +5,8 @@ import { t, getLang } from '../utils/i18n';
 import { API_BASE } from '../utils/api-base';
 import { useModalA11y } from '../utils/useModalA11y';
 import { fetchLexiconEntry } from '../utils/study';
+import { useStudySources } from '../utils/useStudySources';
+import { formatProvenance, provenanceForSource } from '../utils/provenance';
 
 interface StrongsEntry {
   word: string;
@@ -12,6 +14,8 @@ interface StrongsEntry {
   definition: string;
   fullDefinition: string;
   usage: string;
+  sourceId?: string;
+  fallbackSource?: string;
 }
 
 export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) => void }) {
@@ -20,6 +24,7 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
   const [entry, setEntry] = useState<StrongsEntry | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const studySources = useStudySources();
 
   useEffect(() => {
     if (!activePopupWord) { setEntry(null); return; }
@@ -45,10 +50,12 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
             definition: lex.gloss || lex.definition || '',
             fullDefinition: lex.definition && lex.definition !== lex.gloss ? lex.definition : '',
             usage: lex.usage || '',
+            sourceId: lex.source_id,
           } as StrongsEntry;
         }
         return fetch(`${API_BASE}/.netlify/functions/strongs?num=${encodeURIComponent(activePopupWord.strongsNum)}&testament=${activePopupWord.testament}`)
-          .then(r => r.json()) as Promise<StrongsEntry>;
+          .then(r => r.json())
+          .then((d: StrongsEntry & { source?: string }) => ({ ...d, fallbackSource: d.source })) as Promise<StrongsEntry>;
       })
       .then(d => { if (alive) setEntry(d && d.word ? d : unavailable()); })
       .catch(() => { if (alive) setEntry(unavailable()); })
@@ -146,10 +153,34 @@ export function GreekHebrewPopup({ onGoDeeper }: { onGoDeeper: (word: string) =>
             )}
 
             {entry.usage && (
-              <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>
                 {entry.usage}
               </p>
             )}
+
+            {/* Provenance */}
+            {(() => {
+              let provenance = '';
+              if (entry.sourceId) {
+                provenance = formatProvenance(
+                  provenanceForSource(entry.sourceId, studySources, entry.sourceId, t('prov_share_alike', lang))
+                );
+              } else if (entry.fallbackSource === 'dw-inline') {
+                provenance = t('prov_dw_inline_dictionary', lang);
+              } else if (entry.fallbackSource === 'bolls-bdbt') {
+                provenance = t('prov_bdbt', lang);
+              } else {
+                provenance = t('prov_source_unknown', lang);
+              }
+              return provenance ? (
+                <p
+                  data-testid="lexicon-provenance"
+                  style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 16 }}
+                >
+                  {provenance}
+                </p>
+              ) : null;
+            })()}
 
             {/* Study this word */}
             <button

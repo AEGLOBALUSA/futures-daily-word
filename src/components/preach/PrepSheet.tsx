@@ -262,10 +262,14 @@ export function PrepSheet({ passage, onPassageChange, onAddToOutline, lang }: {
     const key = `${passage}|${c.sourceId}`;
     if (loadedEntries[key]) return loadedEntries[key];
     setLoadingEntries(prev => ({ ...prev, [c.sourceId]: true }));
-    const entries = await fetchStudyCommentary(passage, c.sourceId);
+    const fetched = await fetchStudyCommentary(passage, c.sourceId);
+    // null = the fetch failed (offline, 429, 5xx). The prep sheet keeps its
+    // pre-B2 behaviour and treats that like an empty result; it is not cached
+    // as loaded, so the next tap retries.
+    const entries = fetched ?? [];
     // Keyed by passage too: a fetch that resolves after the passage changed
     // is stored under ITS passage, never shown under the new one.
-    setLoadedEntries(prev => ({ ...prev, [key]: entries }));
+    if (fetched !== null) setLoadedEntries(prev => ({ ...prev, [key]: entries }));
     setLoadingEntries(prev => ({ ...prev, [c.sourceId]: false }));
     return entries;
   }, [loadedEntries, passage]);

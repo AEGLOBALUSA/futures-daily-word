@@ -201,20 +201,17 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
     if (aiResponse.includes('apply') || aiResponse.includes('practical') || aiResponse.includes('life') || aiResponse.includes('terapkan') || aiResponse.includes('praktis') || aiResponse.includes('hidup')) {
       suggestions.push(isId ? 'Berikan saya cara spesifik untuk menerapkan ini hari ini' : 'Give me a specific way to apply this today')
     }
-    if (aiResponse.includes('cross-reference') || aiResponse.includes('other passage') || aiResponse.includes('also says') || aiResponse.includes('referensi silang') || aiResponse.includes('bagian lain')) {
-      suggestions.push(isId ? 'Bagian lain apa yang terhubung dengan tema ini?' : 'What other passages connect to this theme?')
-    }
     // Always offer these general ones if we don't have enough
     const general = isId ? [
       'Dalami lebih lanjut — apa yang saya lewatkan?',
       'Bagaimana Anda menjelaskan ini kepada seseorang yang baru mengenal iman?',
       'Apa arti ini untuk kehidupan sehari-hari saya?',
-      'Apakah ada referensi silang yang harus saya lihat?',
+      'Tunjukkan bagian dalam pasal ini yang membawa gagasan ini',
     ] : [
       'Go deeper on this — what am I missing?',
       'How would you explain this to someone new to faith?',
       'What does this mean for my daily life?',
-      'Are there any cross-references I should look at?',
+      'Point me to the passages in this chapter that carry this idea',
     ]
     while (suggestions.length < 2) {
       const pick = general[Math.floor(Math.random() * general.length)]
@@ -823,6 +820,12 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
                       </button>
                     ))}
                   </div>
+                  <p data-testid="pastor-framing" style={{
+                    fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)',
+                    lineHeight: 1.5, marginTop: 10,
+                  }}>
+                    {t('ai_pastor_framing', lang)}
+                  </p>
                 </div>
               )}
 

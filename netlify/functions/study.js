@@ -68,22 +68,29 @@ async function crossRefs(ref) {
   return [...byVerse.entries()].map(([verse, refs]) => ({ verse, refs }));
 }
 
-/** Commentary entries overlapping the span, grouped by source. */
+/** Commentary entries overlapping the span, grouped by source.
+ *  Six commentaries on a long chapter can exceed PostgREST's 1,000-row cap,
+ *  so the query pages the same way crossRefs() does. */
 async function commentary(ref, sourceIds, depth) {
-  let q = db().from("study_commentary")
-    .select("source_id, verse_from, verse_to, content")
-    .eq("book", ref.book).eq("chapter", ref.chapter)
-    .order("source_id").order("verse_from");
-  if (sourceIds && sourceIds.length) q = q.in("source_id", sourceIds);
-  if (ref.verse) {
-    // Chapter-level material (0,0) plus anything overlapping the span.
-    const end = ref.verseEnd || ref.verse;
-    q = q.or(`and(verse_from.eq.0,verse_to.eq.0),and(verse_from.lte.${end},verse_to.gte.${ref.verse})`);
+  const rows = [];
+  for (let from = 0; from < 8000; from += 1000) {
+    let q = db().from("study_commentary")
+      .select("source_id, verse_from, verse_to, content")
+      .eq("book", ref.book).eq("chapter", ref.chapter)
+      .order("source_id").order("verse_from");
+    if (sourceIds && sourceIds.length) q = q.in("source_id", sourceIds);
+    if (ref.verse) {
+      // Chapter-level material (0,0) plus anything overlapping the span.
+      const end = ref.verseEnd || ref.verse;
+      q = q.or(`and(verse_from.eq.0,verse_to.eq.0),and(verse_from.lte.${end},verse_to.gte.${ref.verse})`);
+    }
+    const { data, error } = await q.range(from, from + 999);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) break;
   }
-  const { data, error } = await q;
-  if (error) throw error;
   const bySource = new Map();
-  for (const r of data || []) {
+  for (const r of rows) {
     const list = bySource.get(r.source_id) || [];
     list.push({ verseFrom: r.verse_from, verseTo: r.verse_to, content: r.content });
     bySource.set(r.source_id, list);
@@ -234,9 +241,17 @@ exports.handler = async (event) => {
   const CACHE = "public, max-age=86400, s-maxage=86400";
   try {
     if (p.sources) {
-      const { data, error } = await db().from("study_sources")
-        .select("id, name, licence, attribution, url, share_alike, language, loaded_at, record_count")
+      // A deploy preview can run before the `edition` migration is applied,
+      // so try it and fall back to the column set without it rather than 400.
+      let { data, error } = await db().from("study_sources")
+        .select("id, name, licence, attribution, url, share_alike, language, loaded_at, record_count, edition")
         .order("name");
+      if (error && (error.code === "42703" || /edition/.test(error.message || ""))) {
+        ({ data, error } = await db().from("study_sources")
+          .select("id, name, licence, attribution, url, share_alike, language, loaded_at, record_count")
+          .order("name"));
+        if (!error) data = (data || []).map(r => ({ ...r, edition: null }));
+      }
       if (error) throw error;
       return json(200, { sources: data || [] }, h, "public, max-age=3600");
     }
@@ -288,6 +303,40 @@ exports.handler = async (event) => {
       // Commentary defaults to summary (count + preview per source); ?depth=full
       // inlines every entry — fine for a verse span, heavy for a chapter.
       const depth = p.depth === "full" ? "full" : "summary";
+      // ?only=commentary,crossrefs (etc): the reading screen's cheap chapter
+      // call — run and return just those sections. Empty (the normal case)
+      // keeps today's full response byte-identical.
+      const ONLY_SECTIONS = ["commentary", "crossrefs", "words", "places", "people", "topics", "illustrations"];
+      const onlySections = p.only ? String(p.only).split(",").map(s => s.trim()).filter(s => ONLY_SECTIONS.includes(s)) : [];
+      if (onlySections.length) {
+        const base = { ref: formatRef(ref), book: ref.book, chapter: ref.chapter, verse: ref.verse || null, verseEnd: ref.verseEnd, testament: isOldTestament(ref.book) ? "OT" : "NT", depth };
+        if (onlySections.includes("commentary")) base.commentary = await commentary(ref, commentarySources, depth);
+        if (onlySections.includes("crossrefs")) base.crossRefs = await crossRefs(ref);
+        if (onlySections.includes("words")) {
+          const wd = await words(ref);
+          base.words = wd.words;
+          base.lexicon = wd.lexicon;
+        }
+        if (onlySections.includes("places") || onlySections.includes("people")) {
+          const pp = await placesAndPeople(ref);
+          if (onlySections.includes("places")) base.places = pp.places;
+          if (onlySections.includes("people")) base.people = pp.people;
+        }
+        if (onlySections.includes("topics") || onlySections.includes("illustrations")) {
+          const tp = await topics(ref);
+          if (onlySections.includes("topics")) base.topics = tp;
+          if (onlySections.includes("illustrations")) {
+            let illustrations = [];
+            for (const topic of tp.slice(0, 3)) {
+              if (illustrations.length >= 6) break;
+              const hits = await illustrationsFor(topic.replace(/,.*$/, ""), 6 - illustrations.length, { topicOnly: true });
+              for (const hit of hits) if (!illustrations.some(x => x.id === hit.id)) illustrations.push(hit);
+            }
+            base.illustrations = illustrations;
+          }
+        }
+        return json(200, base, h, CACHE);
+      }
       const [xr, cm, wd, pp, tp] = await Promise.all([
         crossRefs(ref), commentary(ref, commentarySources, depth), words(ref), placesAndPeople(ref), topics(ref),
       ]);

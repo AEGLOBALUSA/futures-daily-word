@@ -54,6 +54,7 @@ exports.handler = async (event) => {
         definition: e.def,
         fullDefinition: e.full,
         usage: e.usage,
+        source: 'dw-inline',
       }),
     };
   }
@@ -89,6 +90,7 @@ exports.handler = async (event) => {
             definition: short || 'See full entry',
             fullDefinition: plain.slice(0, 1200),
             usage: '',
+            source: 'bolls-bdbt',
           }),
         };
       }
@@ -105,6 +107,7 @@ exports.handler = async (event) => {
       definition: 'Definition not available offline',
       fullDefinition: 'For a full definition, search this word in a Strongs concordance.',
       usage: '',
+      source: 'unknown',
     }),
   };
 };

@@ -388,16 +388,34 @@ export function clearVerseCache(): void {
 // are instant and don't re-bill.
 const AI_COMMENTARY_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 const AI_COMMENTARY_MAX = 80; // cap stored entries so a heavy user can't exhaust quota
-const aiCommentaryInFlight = new Map<string, Promise<string>>();
+const aiCommentaryInFlight = new Map<string, Promise<{ text: string; model: string | null }>>();
 
-/** Evict the oldest dw_ai_commentary_* entries (and any expired ones) so the cache
- *  stays bounded — localStorage has no automatic eviction. */
+// Prompt version prefix. Bump this whenever the system prompt sent to the AI
+// commentary function changes shape — an unbumped prefix would let paragraphs
+// generated under the old prompt (e.g. the one that asked for a cross-reference)
+// survive the 30-day TTL and render under the new 'AI insight' heading as if
+// they matched it.
+const AI_COMMENTARY_CACHE_PREFIX = 'dw_ai_commentary_v2_';
+// Any prefix used by an earlier prompt version. Swept by pruneAICommentaryCache()
+// so stale entries can never be read again, even though fetchAICommentarySourced()
+// no longer looks at this key shape.
+const AI_COMMENTARY_LEGACY_PREFIXES = ['dw_ai_commentary_'];
+
+/** Evict the oldest dw_ai_commentary_v2_* entries (and any expired ones) so the cache
+ *  stays bounded — localStorage has no automatic eviction. Also sweeps entries written
+ *  under a legacy (pre-versioned) prompt so they cannot be read again. */
 function pruneAICommentaryCache() {
   try {
     const entries: Array<{ key: string; ts: number }> = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (!k || !k.startsWith('dw_ai_commentary_')) continue;
+      if (!k) continue;
+      if (!k.startsWith(AI_COMMENTARY_CACHE_PREFIX)) {
+        // Stale prompt-version entry (or the pre-versioning key shape) — drop it
+        // outright, regardless of its TTL, so it can never surface again.
+        if (AI_COMMENTARY_LEGACY_PREFIXES.some(p => k.startsWith(p))) localStorage.removeItem(k);
+        continue;
+      }
       let ts = 0;
       try { ts = JSON.parse(localStorage.getItem(k) || '{}').ts || 0; } catch { /* treat as oldest */ }
       if (ts && Date.now() - ts >= AI_COMMENTARY_TTL) { localStorage.removeItem(k); continue; }
@@ -411,16 +429,19 @@ function pruneAICommentaryCache() {
   } catch { /* ignore */ }
 }
 
-export async function fetchAICommentary(passageRef: string, lang: string = 'en'): Promise<string> {
+export async function fetchAICommentarySourced(passageRef: string, lang: string = 'en'): Promise<{ text: string; model: string | null } | null> {
   const ref = passageRef.trim();
-  const cacheKey = `dw_ai_commentary_${ref}_${lang}`.replace(/\s+/g, '_');
+  if (!ref) return null;
+  const cacheKey = `${AI_COMMENTARY_CACHE_PREFIX}${ref}_${lang}`.replace(/\s+/g, '_');
 
   // localStorage cache (survives reloads; the real cost-saver)
   try {
     const raw = localStorage.getItem(cacheKey);
     if (raw) {
       const cached = JSON.parse(raw);
-      if (cached?.text && Date.now() - cached.ts < AI_COMMENTARY_TTL) return cached.text;
+      if (cached?.text && Date.now() - cached.ts < AI_COMMENTARY_TTL) {
+        return { text: cached.text, model: cached.model ?? null };
+      }
     }
   } catch { /* ignore */ }
 
@@ -432,9 +453,9 @@ export async function fetchAICommentary(passageRef: string, lang: string = 'en')
     const system =
       `You are a warm, trustworthy Bible commentator for Futures Church Daily Word. ` +
       `Write a concise commentary on the passage the user names: explain its context and ` +
-      `meaning, surface one original-language or cross-reference insight where it helps, and ` +
+      `meaning, point to the words and verses in the passage itself where it helps, and ` +
       `close with a sentence of application. 2-3 short paragraphs, pastoral and clear, no ` +
-      `headings or lists. Respond in ${langName}.`;
+      `headings or lists. Respond in ${langName}. Do not cite chapter-and-verse references from memory.`;
     const res = await fetch(`${API_BASE}/.netlify/functions/claude`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -448,9 +469,10 @@ export async function fetchAICommentary(passageRef: string, lang: string = 'en')
     const data = await res.json();
     const text: string = data?.content?.[0]?.text || '';
     if (!text) throw new Error('Empty AI commentary');
+    const model: string | null = data?.model ?? null;
     pruneAICommentaryCache();
-    try { localStorage.setItem(cacheKey, JSON.stringify({ text, ts: Date.now() })); } catch { /* quota */ }
-    return text;
+    try { localStorage.setItem(cacheKey, JSON.stringify({ text, model, ts: Date.now() })); } catch { /* quota */ }
+    return { text, model };
   })();
 
   aiCommentaryInFlight.set(cacheKey, request);
@@ -459,6 +481,11 @@ export async function fetchAICommentary(passageRef: string, lang: string = 'en')
   } finally {
     aiCommentaryInFlight.delete(cacheKey);
   }
+}
+
+export async function fetchAICommentary(passageRef: string, lang: string = 'en'): Promise<string> {
+  const result = await fetchAICommentarySourced(passageRef, lang);
+  return result?.text || '';
 }
 
 /** Word → Strong's numbers for a passage, from bolls' KJV S-tags (via /api/bolls

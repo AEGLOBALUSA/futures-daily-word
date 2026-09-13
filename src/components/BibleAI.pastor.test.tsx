@@ -74,6 +74,24 @@ describe('BibleAI pastor quick-prompts', () => {
     expect(el.textContent).toContain('What does this passage mean?');
   });
 
+  it('shows the study-assistant framing line inside the pastor-prompts block, after all four buttons', () => {
+    const el = mount('pastor_leader');
+    const block = el.querySelector('[data-testid="pastor-prompts"]') as HTMLElement;
+    const framing = block.querySelector('[data-testid="pastor-framing"]') as HTMLElement;
+    expect(framing).toBeTruthy();
+    expect(framing.textContent).toContain('A study assistant, not a ghostwriter.');
+    const buttons = [...block.querySelectorAll('button')];
+    expect(buttons).toHaveLength(4);
+    const framingIndex = [...block.children].findIndex(c => c.contains(framing));
+    const lastButtonContainerIndex = [...block.children].findIndex(c => c.contains(buttons[buttons.length - 1]));
+    expect(framingIndex).toBeGreaterThan(lastButtonContainerIndex);
+  });
+
+  it('renders no pastor framing line for a non-pastor persona', () => {
+    const el = mount('congregation');
+    expect(el.querySelector('[data-testid="pastor-framing"]')).toBeNull();
+  });
+
   it('the outline prompt sends the sermon-prep bag, anchored on the pastor prompt', async () => {
     localStorage.setItem('dw_sermon_prep', JSON.stringify([
       { id: 'p1', ref: 'Romans 8:1', text: 'There is therefore now no condemnation', ts: 2 },
