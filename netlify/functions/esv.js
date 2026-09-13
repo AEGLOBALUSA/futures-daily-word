@@ -1,4 +1,4 @@
-const { ALLOWED_ORIGINS, isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
+const { isAllowedOrigin, getAllowedOrigin } = require('./lib/cors');
 
 // In-memory passage cache — shared across warm invocations of this function instance.
 // Bible text is immutable, so caching is safe. Caps at 200 entries to bound memory.
@@ -31,7 +31,7 @@ exports.handler = async (event) => {
   // Origin check — block cross-origin requests not from our app
   const referer = event.headers?.referer || event.headers?.Referer || '';
   const originIsAllowed = isAllowedOrigin(origin);
-  const isSameOrigin = !origin && ALLOWED_ORIGINS.some(o => referer === o || referer.startsWith(o + '/'));
+  const isSameOrigin = !origin && isAllowedOrigin(referer);
   const isNoOrigin = !origin && !referer;
   if (!originIsAllowed && !isSameOrigin && !isNoOrigin) {
     return {
