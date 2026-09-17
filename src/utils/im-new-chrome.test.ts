@@ -19,10 +19,12 @@ describe('I\'m New path — sage chrome, one lever', () => {
     expect(app).toMatch("classList.toggle('dw-persona-new', isNewChristianPersona(setup?.persona))");
   });
 
-  it('MoreScreen gates PromoAds behind !newPathSettings', () => {
-    const more = src('screens/MoreScreen.tsx');
-    expect(more).toMatch(/\{!newPathSettings\s*&&\s*\(/);
+  it('leaves the house ads on More for every path, this one included', () => {
+    // Ashley, 18 Sep 2026: the ads should be seen, and as good as the church
+    // site's. An earlier cut of this branch hid them here for I'm New.
+    const more = readFileSync(join(ROOT, 'src/screens/MoreScreen.tsx'), 'utf-8');
     expect(more).toMatch(/<PromoAds \/>/);
+    expect(more).not.toMatch(/!newPathSettings\s*&&\s*\(\s*<div[^>]*>\s*<PromoAds/);
   });
 
   it('plans.ts renames faith-pathway to Bible Basics and drops the old title', () => {
