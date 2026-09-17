@@ -28,7 +28,10 @@ export function CloseTheDay({ day, lang, onReread, children }: CloseTheDayProps)
 
   function onAnyAnswerChanged(prevAll: string[], nextAll: string[]) {
     if (answeredDayRef.current === day) return;
-    const becameAnswered = nextAll.some((v, i) => v.trim() && !(prevAll[i] || '').trim());
+    // From what is stored, not from this mount: reopening the day and filling a
+    // second box is the same day answered, not a new one.
+    const wasEmpty = prevAll.every(v => !(v || '').trim());
+    const becameAnswered = wasEmpty && nextAll.some(v => v.trim());
     if (becameAnswered) {
       answeredDayRef.current = day;
       track('journey_close_answered', String(day));

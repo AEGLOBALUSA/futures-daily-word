@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { t as trans } from '../utils/i18n';
 import { track } from '../utils/analytics';
-import { handoffStage, markHandoff, shouldShowHandoff, type HandoffStage } from '../utils/journeyClose';
+import { handoffStage, markHandoff, shouldShowHandoff, type HandoffStage, readHandoff } from '../utils/journeyClose';
 
 export interface JourneyHandoffCardProps {
   completedCount: number;
@@ -26,9 +26,9 @@ export function JourneyHandoffCard({ completedCount, totalDays, lang, onOpenCamp
 
   if (!stage || hidden) return null;
 
-  const title = stage === 'd14'
-    ? trans('j_handoff_title', lang)
-    : trans('j_handoff_done_title', lang).replace('{n}', String(totalDays));
+  // One question on both cards. "You finished the journey" is said by the close
+  // itself on the last day, where it cannot be dismissed along with this card.
+  const title = trans('j_handoff_title', lang);
   const body = stage === 'd14'
     ? trans('j_handoff_body', lang)
     : trans('j_handoff_done_body', lang);
@@ -54,8 +54,12 @@ export function JourneyHandoffCard({ completedCount, totalDays, lang, onOpenCamp
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
         <button
           onClick={() => {
+            // Count a person once: the d40 card stays up after it is opened, and a
+            // tab that stays mounted would otherwise let d14 be tapped again.
+            const firstOpen = readHandoff()[stage] !== 'opened';
             markHandoff(stage, 'opened');
-            track('journey_handoff_open', stage);
+            if (firstOpen) track('journey_handoff_open', stage);
+            if (stage === 'd14') setHidden(true);
             onOpenCampus();
           }}
           style={{

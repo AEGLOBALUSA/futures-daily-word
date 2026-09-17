@@ -19,6 +19,7 @@ import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
 import { shareContent } from '../utils/share';
 import { useSubView } from '../utils/useSubView';
+import { closeThenNavigate } from '../utils/closeThenNavigate';
 import { PathwayQuestions } from './PathwayAnswer';
 import { localizedQuestions } from '../utils/pathwayQuestions';
 import { localizedPlain } from '../utils/pathwayPlain';
@@ -357,6 +358,13 @@ export function NewBelieverLessonCard({
                 lang={lang}
                 onReread={chapterRef ? () => readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
               >
+                {/* The end of the forty days is said here, where it cannot be
+                    dismissed — the handoff card below can be. */}
+                {currentDay >= totalDays && (
+                  <p style={{ margin: '4px 0 0', fontSize: 15, fontWeight: 600, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)' }}>
+                    {trans('j_handoff_done_title', lang).replace('{n}', String(totalDays))}
+                  </p>
+                )}
                 {completedToday !== null && completedToday < totalDays && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
                     <p style={{ margin: 0, fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)' }}>
@@ -381,7 +389,7 @@ export function NewBelieverLessonCard({
                   completedCount={completed}
                   totalDays={totalDays}
                   lang={lang}
-                  onOpenCampus={() => onNavigate('messages')}
+                  onOpenCampus={() => closeThenNavigate(onClose, () => onNavigate('messages'))}
                   onChoosePath={() => openChoosePath('home')}
                 />
               )}
