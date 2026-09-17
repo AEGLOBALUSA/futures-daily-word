@@ -19,6 +19,18 @@ describe('I\'m New path — sage chrome, one lever', () => {
     expect(app).toMatch("classList.toggle('dw-persona-new', isNewChristianPersona(setup?.persona))");
   });
 
+  it('outranks the dark-mode white-ink rule, on accent backgrounds only', () => {
+    // The older rule is :root:not([data-theme="light"]) [style*="background"][style*="var(--dw-accent)"]:not(.dw-journey-new)
+    // with !important — (0,5,0). A plain body-class rule loses to it (seen on the
+    // deploy preview, 18 Sep). And a looser match would blacken accent TEXT buttons.
+    const css = src('index.css');
+    expect(css).toMatch(/:root:not\(\[data-theme="light"\]\) body\.dw-persona-new \[style\*="background: var\(--dw-accent\)"\]:not\(\.dw-journey-new\)/);
+    const block = css.slice(css.indexOf('body.dw-persona-new {'), css.indexOf('/* ---------- Base ---------- */'));
+    expect(block).toMatch(/color:\s*var\(--dw-new-on-fill\)\s*!important/);
+    expect(block).not.toMatch(/body\.dw-persona-new \[style\*="var\(--dw-accent\)"\]/);
+    expect(block).not.toMatch(/body\.dw-persona-new button\[style/);
+  });
+
   it('leaves the house ads on More for every path, this one included', () => {
     // Ashley, 18 Sep 2026: the ads should be seen, and as good as the church
     // site's. An earlier cut of this branch hid them here for I'm New.

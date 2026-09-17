@@ -300,13 +300,18 @@ body.dw-persona-new {
 }
 body.dw-persona-new .dw-btn-primary { color: var(--dw-new-on-fill) !important; }
 /* Most accent fills in the app are inline styles that hard-code white ink
-   (More, Campus, Notes, the install banner). White on the dark-theme sage is
-   2.4:1. The on-fill token is charcoal in dark and white in light, so one rule
-   is right in both — the twin of the light-mode rule further down. */
-body.dw-persona-new [style*="background: var(--dw-accent)"],
-body.dw-persona-new [style*="background:var(--dw-accent)"],
-body.dw-persona-new [style*="background-color: var(--dw-accent)"],
-body.dw-persona-new [style*="background-color:var(--dw-accent)"] {
+   (More, Campus, Notes, the install banner), and a dark-mode contrast rule
+   further down forces that white with !important at specificity (0,5,0).
+   White on the dark-theme sage is 2.4:1. This has to outrank that rule, so it
+   repeats its :root:not() and :not() parts and adds the body class: (0,5,1).
+   It matches accent BACKGROUNDS only — a looser [style*="var(--dw-accent)"]
+   would also catch accent-coloured text buttons and turn them charcoal on a
+   dark page. Light theme needs nothing: white on the light sage is right, and
+   the light-mode rule already says so. */
+:root:not([data-theme="light"]) body.dw-persona-new [style*="background: var(--dw-accent)"]:not(.dw-journey-new),
+:root:not([data-theme="light"]) body.dw-persona-new [style*="background:var(--dw-accent)"]:not(.dw-journey-new),
+:root:not([data-theme="light"]) body.dw-persona-new [style*="background-color: var(--dw-accent)"]:not(.dw-journey-new),
+:root:not([data-theme="light"]) body.dw-persona-new [style*="background-color:var(--dw-accent)"]:not(.dw-journey-new) {
   color: var(--dw-new-on-fill) !important;
 }
 /* Dark theme sets the active tab to a literal white, which never reads the
