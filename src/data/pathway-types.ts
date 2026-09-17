@@ -20,6 +20,12 @@ export interface PathwayDay {
   lessonEs?: string;
   lessonPt?: string;
   lessonId?: string;
+  // One plain lead sentence shown above the lesson on days that introduce hard
+  // church language; content lives in books/faith-pathway.json.
+  plain?: string;
+  plainEs?: string;
+  plainPt?: string;
+  plainId?: string;
   reading?: { book: string; chapter: number; verses: string; ref: string };
 }
 

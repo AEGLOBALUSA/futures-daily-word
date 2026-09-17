@@ -21,8 +21,13 @@ import { shareContent } from '../utils/share';
 import { useSubView } from '../utils/useSubView';
 import { PathwayQuestions } from './PathwayAnswer';
 import { localizedQuestions } from '../utils/pathwayQuestions';
+import { localizedPlain } from '../utils/pathwayPlain';
 import { sliceVerseRange } from '../utils/verseRange';
+import { CloseTheDay } from './CloseTheDay';
+import { JourneyHandoffCard } from './JourneyHandoffCard';
+import { openChoosePath } from '../utils/choosePath';
 import type { PathwayDay, PathwayData, PathwayProgress } from '../data/pathway-types';
+import type { TabId } from './TabBar';
 
 
 interface NewBelieverLessonCardProps {
@@ -49,12 +54,14 @@ interface NewBelieverLessonCardProps {
   verseSpec?: string;
   /** Human ref for the assigned range, e.g. 'Ephesians 2:8-9' (reading.ref). */
   rangedRef?: string;
+  /** Switches tabs for the post-journey handoff (Connect Group door). */
+  onNavigate?: (tab: TabId) => void;
 }
 
 export function NewBelieverLessonCard({
   pathwayData, pathwayProgress, displayDay, lang, t, scriptureFontSize,
   savePathwayProgress, open, onClose, passageText, servedTranslation,
-  verseSpec, rangedRef,
+  verseSpec, rangedRef, onNavigate,
 }: NewBelieverLessonCardProps) {
   // Completion moment: hold the just-completed lesson on screen (with a
   // "Day N complete" note) instead of instantly swapping to tomorrow's. The day
@@ -97,6 +104,9 @@ export function NewBelieverLessonCard({
     openTrackedRef.current = key;
     track('journey_day_open', String(displayDay));
   }, [open, displayDay]);
+  // The reading surface, so "Read it again" (CloseTheDay) can scroll back up
+  // to it without a second useSubView or any history push.
+  const readingRef = useRef<HTMLDivElement>(null);
   if (!open || !dayData) return null;
   const completed = pathwayProgress.completedDays?.length || 0;
   const totalDays = pathwayData.days?.length || 40;
@@ -129,6 +139,7 @@ export function NewBelieverLessonCard({
     : lang === 'id' ? (pathwayData.titleId || pathwayData.title)
     : pathwayData.title;
   const isCompleted = pathwayProgress.completedDays.includes(currentDay);
+  const plainSentence = localizedPlain(dayData, lang);
 
   return (
     // The wrapper keeps the historical scroll-anchor id for deep links.
@@ -193,7 +204,7 @@ export function NewBelieverLessonCard({
             reading (white in BOTH themes, dark upright scripture — see CLAUDE.md);
             ScripturePassage gives verse-tap highlighting + the study sheet. */}
         {!isPeek && chapterRef && (
-          <div className="dw-reading-surface" style={{
+          <div ref={readingRef} className="dw-reading-surface" style={{
             position: 'relative',
             background: '#FFFFFF',
             textShadow: 'none',
@@ -256,6 +267,27 @@ export function NewBelieverLessonCard({
 
         {/* The pastoral word + completion */}
         <Card className="dw-new-journey" style={{ marginBottom: 16 }}>
+          {plainSentence && (
+            <div style={{
+              borderLeft: '2px solid var(--dw-new-soft)', paddingLeft: 12, marginBottom: 14,
+            }}>
+              <p style={{
+                margin: '0 0 4px', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: 'var(--dw-new)', fontFamily: 'var(--font-sans)',
+              }}>
+                {trans('j_plain_label', lang)}
+              </p>
+              <p style={{
+                margin: '0 0 4px', fontSize: scriptureFontSize + 2, color: 'var(--dw-text-secondary)',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                {plainSentence}
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+                {trans('j_plain_later', lang)}
+              </p>
+            </div>
+          )}
           {dayLesson && (
             <p className="text-devotion" style={{ whiteSpace: 'pre-line', fontSize: scriptureFontSize + 2 }}>{dayLesson}</p>
           )}
@@ -313,33 +345,45 @@ export function NewBelieverLessonCard({
             </div>
           </div>
 
-          {/* Completion moment — shown until the reader asks for the next lesson */}
-          {completedToday !== null && !showNext && (
-            <div style={{
-              marginTop: 12, padding: '12px 14px',
-              background: 'var(--dw-surface)', border: '1px solid var(--dw-border)',
-              borderRadius: 10,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-            }}>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)' }}>
-                {completedToday < totalDays
-                  ? trans('pathway_day_complete', lang)
-                      .replace('{x}', String(completedToday))
-                      .replace('{y}', String(completedToday + 1))
-                  : trans('pathway_day_complete_final', lang).replace('{x}', String(completedToday))}
-              </p>
-              {completedToday < totalDays && (
-                <button
-                  onClick={() => setShowNext(true)}
-                  style={{
-                    background: 'transparent', border: 'none', padding: '4px 6px',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                    color: 'var(--dw-new)', fontFamily: 'var(--font-sans)',
-                    textDecoration: 'underline', whiteSpace: 'nowrap',
-                  }}
-                >
-                  {trans('pathway_show_now', lang)}
-                </button>
+          {/* The day's close — sage questions, then (14/40 days) the Connect
+              Group handoff. isCompleted (permanent, once the day is in
+              completedDays) keeps this visible on a finished day even long
+              after lastCompletedDate has moved on; completedToday (only
+              today's calendar date) is what still gates the tomorrow line. */}
+          {isCompleted && !isPeek && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--dw-border)' }}>
+              <CloseTheDay
+                day={currentDay}
+                lang={lang}
+                onReread={chapterRef ? () => readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
+              >
+                {completedToday !== null && completedToday < totalDays && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)' }}>
+                      {trans('j_close_tomorrow', lang).replace('{y}', String(completedToday + 1))}
+                    </p>
+                    <button
+                      onClick={() => setShowNext(true)}
+                      style={{
+                        background: 'transparent', border: 'none', padding: '4px 6px',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        color: 'var(--dw-new)', fontFamily: 'var(--font-sans)',
+                        textDecoration: 'underline', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {trans('pathway_show_now', lang)}
+                    </button>
+                  </div>
+                )}
+              </CloseTheDay>
+              {onNavigate && (
+                <JourneyHandoffCard
+                  completedCount={completed}
+                  totalDays={totalDays}
+                  lang={lang}
+                  onOpenCampus={() => onNavigate('messages')}
+                  onChoosePath={() => openChoosePath('home')}
+                />
               )}
             </div>
           )}

@@ -10,7 +10,7 @@ export type Persona = 'new_to_faith' | 'congregation' | 'deeper_study' | 'pastor
 /** Plans tab filter — each path shows matching plans, not the full unfiltered catalog.
  *  new_to_faith is empty on purpose: that path is the 40-day New & Returning to
  *  Faith journey (`dw_pathway_progress`), not a catalog list. Do not put
- *  catalog `faith-pathway` (30-day Foundations of Faith) here. */
+ *  catalog `faith-pathway` (30-day Bible Basics) here. */
 export const PERSONA_PLAN_IDS: Record<Persona, readonly string[]> = {
   new_to_faith: [],
   congregation: ['ashley-jane-daily-word', 'faith-pathway', 'gospel-john', 'gratitude', 'prayer-life', 'purpose-calling'],
@@ -270,7 +270,7 @@ export const PERSONA_CONFIGS: Record<Persona, PersonaConfig> = {
   // ── 1. NEW TO FAITH ─────────────────────────────────────────────
   new_to_faith: {
     persona: 'new_to_faith',
-    label: "I'm New to This",
+    label: "I'm new to faith, or coming back",
     labelId: 'Saya Baru',
     description: 'Starting or reigniting my faith journey',
     descriptionId: 'Memulai atau menghidupkan kembali perjalanan iman saya',

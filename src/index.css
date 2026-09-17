@@ -288,6 +288,18 @@
   color-scheme: light;
 }
 
+/* I'm New path — sage chrome, app-wide, one lever. Body class is toggled in
+   App.tsx (not scoped to Home) so the accent stays sage on every screen the
+   new_to_faith / new-Christian-journey reader visits, not just the home tab.
+   In dark the sage field carries charcoal ink (--dw-new-on-fill), never white. */
+body.dw-persona-new {
+  --dw-accent: var(--dw-new);
+  --dw-accent-hover: var(--dw-new-hover);
+  --dw-accent-active: var(--dw-new-hover);
+  --dw-accent-bg: var(--dw-new-soft);
+}
+body.dw-persona-new .dw-btn-primary { color: var(--dw-new-on-fill); }
+
 /* ---------- Base ---------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 

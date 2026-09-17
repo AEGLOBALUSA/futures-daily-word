@@ -1135,10 +1135,13 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         </div>
 
         {/* More from Futures — journal back page above the church footer,
-            never under © Futures Global. */}
-        <div style={{ marginLeft: -24, marginRight: -24 }}>
-          <PromoAds />
-        </div>
+            never under © Futures Global. Gated off the I'm New path: house
+            ads have no place in front of a reader who is just arriving. */}
+        {!newPathSettings && (
+          <div style={{ marginLeft: -24, marginRight: -24 }}>
+            <PromoAds />
+          </div>
+        )}
 
         {/* Futures Church family seam */}
         <SeamFooter />
