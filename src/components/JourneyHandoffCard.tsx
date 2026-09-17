@@ -92,8 +92,9 @@ export function JourneyHandoffCard({ completedCount, totalDays, lang, onOpenCamp
             setHidden(true);
           }}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            color: 'var(--dw-text-muted)', fontSize: 13, fontWeight: 600,
+            // As easy to take as the yes: a real target, not a footnote.
+            background: 'none', border: 'none', cursor: 'pointer', padding: '8px 12px',
+            color: 'var(--dw-text-secondary)', fontSize: 13, fontWeight: 600,
             fontFamily: 'var(--font-sans)', minHeight: 44,
           }}
         >

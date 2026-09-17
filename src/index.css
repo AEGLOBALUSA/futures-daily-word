@@ -298,7 +298,23 @@ body.dw-persona-new {
   --dw-accent-active: var(--dw-new-hover);
   --dw-accent-bg: var(--dw-new-soft);
 }
-body.dw-persona-new .dw-btn-primary { color: var(--dw-new-on-fill); }
+body.dw-persona-new .dw-btn-primary { color: var(--dw-new-on-fill) !important; }
+/* Most accent fills in the app are inline styles that hard-code white ink
+   (More, Campus, Notes, the install banner). White on the dark-theme sage is
+   2.4:1. The on-fill token is charcoal in dark and white in light, so one rule
+   is right in both — the twin of the light-mode rule further down. */
+body.dw-persona-new [style*="background: var(--dw-accent)"],
+body.dw-persona-new [style*="background:var(--dw-accent)"],
+body.dw-persona-new [style*="background-color: var(--dw-accent)"],
+body.dw-persona-new [style*="background-color:var(--dw-accent)"] {
+  color: var(--dw-new-on-fill) !important;
+}
+/* Dark theme sets the active tab to a literal white, which never reads the
+   token (and sits at 100% against 75% for the rest). Light already follows it. */
+body.dw-persona-new .tab-bar-item.active { color: var(--dw-new); }
+/* Reflect & Respond and Close the day are labelled in --dw-info blue by
+   default: a second accent on the one surface the sage identity owns. */
+body.dw-persona-new .today-questions-label { color: var(--dw-new); }
 
 /* ---------- Base ---------- */
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1198,7 +1214,8 @@ body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
   border: 1.5px solid var(--dw-border);
   border-radius: 14px;
   color: var(--dw-text-primary);
-  font-size: 15px;
+  /* 16px, not 15: under 16 iOS Safari zooms the page on focus and never zooms back. */
+  font-size: 16px;
   font-family: var(--font-sans);
   line-height: 1.65;
   resize: none;
