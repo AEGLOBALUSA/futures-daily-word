@@ -497,7 +497,10 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: 'calc(14px + env(safe-area-inset-top, 0px)) 18px 10px',
+          // Clears the seam brand bar (fixed, 34px, z 200) the way the Day N
+          // surface does — the sheet never reached the top before, so Back was
+          // half under it on the first full-page build.
+          padding: 'calc(34px + env(safe-area-inset-top, 0px) + 10px) 18px 10px',
           borderBottom: '1px solid var(--dw-border, #E8E6E0)',
           flexShrink: 0,
         }}>
