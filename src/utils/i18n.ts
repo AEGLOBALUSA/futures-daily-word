@@ -663,6 +663,12 @@ const UI: Translations = {
   ws_hide: { en: 'Hide', es: 'Ocultar', pt: 'Ocultar', id: 'Sembunyikan' },
   remove_label: { en: 'Remove', es: 'Quitar', pt: 'Remover', id: 'Hapus' },
   promo_more_from: { en: 'More from Futures', es: 'M\u00e1s de Futures', pt: 'Mais da Futures', id: 'Lainnya dari Futures' },
+  // The books scene — the church site's own invitation copy, word for word
+  // (futures-church-web lib/i18n/dicts, bookInvite.*), so the app and the site never disagree.
+  promo_books_eyebrow: { en: 'A gift from Futures', es: 'Un regalo de Futures', pt: 'Um presente da Futures', id: 'Hadiah dari Futures' },
+  promo_books_headline: { en: 'Free books. Practical faith.', es: 'Libros gratuitos. Fe práctica.', pt: 'Livros gratuitos. Fé na prática.', id: 'Buku gratis. Iman yang nyata.' },
+  promo_books_desc: { en: 'Explore free ebooks and audiobooks from our pastors, with teaching you can take into everyday life.', es: 'Explora libros digitales y audiolibros gratuitos de nuestros pastores, con enseñanzas para tu vida diaria.', pt: 'Explore livros digitais e audiolivros gratuitos dos nossos pastores, com ensinamentos para o dia a dia.', id: 'Jelajahi buku digital dan buku audio gratis dari para pendeta kami, dengan pengajaran untuk kehidupan sehari-hari.' },
+  promo_books_cta: { en: 'Explore the free books', es: 'Explorar los libros gratuitos', pt: 'Explorar os livros gratuitos', id: 'Jelajahi buku gratis' },
   promo_books_label: { en: 'Free books', es: 'Libros gratis', pt: 'Livros gr\u00e1tis', id: 'Buku gratis' },
   promo_books_title: { en: 'Books by Ps Ashley & Jane', es: 'Libros de los pastores Ashley y Jane', pt: 'Livros dos pastores Ashley e Jane', id: 'Buku dari Ps Ashley & Jane' },
   promo_books_sub: { en: 'Read them free at futures.church', es: 'L\u00e9elos gratis en futures.church', pt: 'Leia gr\u00e1tis em futures.church', id: 'Baca gratis di futures.church' },
