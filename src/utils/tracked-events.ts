@@ -44,6 +44,9 @@ export const TRACKED_EVENTS = [
   'path_chosen', 'pastor_sign_in', 'pastor_sign_out', 'new_to_faith_start',
   'house_ad_books', 'house_ad_college', 'house_ad_selah',
   'plan_day_manual_nav', 'plan_day_calendar_rollover', 'plans_search_row',
+
+  // I'm New close + handoff, 17 Sep 2026
+  'journey_close_answered', 'journey_handoff_open', 'journey_handoff_dismiss',
 ] as const;
 
 export type TrackedEvent = (typeof TRACKED_EVENTS)[number];

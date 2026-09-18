@@ -4408,6 +4408,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             servedTranslation={jRef ? getServedTranslation(jRef, translation) : undefined}
             verseSpec={pathwayData?.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay)?.reading?.verses}
             rangedRef={pathwayData?.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay)?.reading?.ref}
+            onNavigate={onNavigate}
           />
         );
       })()}
