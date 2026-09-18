@@ -475,29 +475,14 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
         @keyframes aiBeam { 0% { left: -60%; opacity: 0; } 8% { opacity: 1; } 40% { left: 160%; opacity: 0; } 100% { left: 160%; opacity: 0; } }
       `}</style>
 
-      {/* Panel backdrop */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.3)',
-            zIndex: 92,
-          }}
-        />
-      )}
-
-      {/* Slide-up panel */}
+      {/* The AI writes on the full page (Ashley, 18 Sep 2026): no part-height
+          sheet, no rounded lid, no backdrop — the surface IS the screen, and Back is
+          the way out (useSubView gives it the hardware back button too). */}
       <div
         style={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '82vh',
+          inset: 0,
           background: 'var(--dw-canvas, #FAFAF8)',
-          borderRadius: '20px 20px 0 0',
           zIndex: 93,
           display: 'flex',
           flexDirection: 'column',
@@ -512,7 +497,10 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 18px 10px',
+          // Clears the seam brand bar (fixed, 34px, z 200) the way the Day N
+          // surface does — the sheet never reached the top before, so Back was
+          // half under it on the first full-page build.
+          padding: 'calc(34px + env(safe-area-inset-top, 0px) + 10px) 18px 10px',
           borderBottom: '1px solid var(--dw-border, #E8E6E0)',
           flexShrink: 0,
         }}>
@@ -616,9 +604,12 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch' as any,
           overscrollBehavior: 'contain',
-          padding: '12px 16px',
+          padding: '16px 20px',
           minHeight: 0,
         }}>
+          {/* One reading column, the width of the Day N surface, so a wide
+              screen still reads as a page rather than a strip. */}
+          <div style={{ maxWidth: 640, margin: '0 auto' }}>
           {messages.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '16px 8px 16px' }}>
               {/* Season & Context tip banner */}
@@ -674,7 +665,6 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
               {/* ── TOP: Prominent input box — first thing the user sees ── */}
               <div style={{
                 width: '100%',
-                maxWidth: 380,
                 margin: '0 auto 20px',
                 position: 'relative',
               }}>
@@ -759,7 +749,6 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
                 }}
                 style={{
                   width: '100%',
-                  maxWidth: 340,
                   margin: '0 auto 16px',
                   padding: '12px 16px',
                   background: 'linear-gradient(135deg, rgba(154,123,46,0.12), rgba(154,123,46,0.06))',
@@ -787,7 +776,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
                   Greek / outline the persona system prompt has promised since V7.
                   pastor_leader only; nothing changes for anyone else. */}
               {pastorMode && (
-                <div data-testid="pastor-prompts" style={{ width: '100%', maxWidth: 340, margin: '0 auto 18px' }}>
+                <div data-testid="pastor-prompts" style={{ width: '100%', margin: '0 auto 18px' }}>
                   <p style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
                     color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)',
@@ -852,7 +841,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
                   {selectedText.substring(0, 200)}{selectedText.length > 200 ? '…' : ''}
                 </div>
               )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 340, margin: '0 auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', margin: '0 auto' }}>
                 {promptsToShow.map(p => (
                   <button
                     key={p}
@@ -889,17 +878,24 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
                   >
                     <div
                       role={m.role === 'assistant' ? 'assistant' : undefined}
-                      style={{
+                      style={m.role === 'user' ? {
                         maxWidth: '82%',
                         padding: '10px 14px',
-                        borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                        background: m.role === 'user'
-                          ? 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)'
-                          : 'var(--dw-card, #F5F3EF)',
-                        color: m.role === 'user' ? '#fff' : 'var(--dw-text)',
+                        borderRadius: '16px 16px 4px 16px',
+                        background: 'linear-gradient(135deg, #7A5200, #C8920E, #F5C842)',
+                        color: '#fff',
                         fontSize: 14,
                         lineHeight: 1.55,
                         fontFamily: 'var(--font-sans)',
+                      } : {
+                        // The answer is the page: full width, no card, the upright
+                        // reading serif at book leading (never italic — see CLAUDE.md).
+                        width: '100%',
+                        padding: '4px 0 0',
+                        color: 'var(--dw-text)',
+                        fontSize: 16,
+                        lineHeight: 1.7,
+                        fontFamily: 'var(--font-serif-text)',
                       }}
                     >
                       {/* Assistant replies come back as Markdown; rendering the raw
@@ -1032,6 +1028,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
               <div ref={messagesEndRef} />
             </>
           )}
+          </div>
         </div>
 
         {/* Input bar — prominent */}
