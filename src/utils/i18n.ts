@@ -38,7 +38,6 @@ const UI: Translations = {
   search: { en: 'Search', es: 'Buscar', pt: 'Pesquisar', id: 'Cari' },
   search_the_bible: { en: 'Search the Bible', es: 'Buscar en la Biblia', pt: 'Pesquisar na B\u00edblia', id: 'Cari di Alkitab' },
   welcome_msg: { en: 'Welcome, friend. We\'re glad you\'re here.', es: 'Bienvenido, amigo. Nos alegra que est\u00e9s aqu\u00ed.', pt: 'Bem-vindo, amigo. Estamos felizes que voc\u00ea est\u00e1 aqui.', id: 'Selamat datang, teman. Kami senang Anda di sini.' },
-  im_new_to_this: { en: "I'm New to This", es: 'Soy Nuevo en Esto', pt: 'Sou Novo Nisso', id: 'Saya Baru' },
   mark_complete: { en: 'Mark Complete', es: 'Marcar completo', pt: 'Marcar completo', id: 'Tandai Selesai' },
   share: { en: 'Share', es: 'Compartir', pt: 'Compartilhar', id: 'Bagikan' },
   day_x_of_y: { en: 'DAY {x} OF {y}', es: 'D\u00cdA {x} DE {y}', pt: 'DIA {x} DE {y}', id: 'HARI {x} DARI {y}' },
@@ -67,7 +66,7 @@ const UI: Translations = {
   email_label: { en: 'Email', es: 'Correo', pt: 'E-mail', id: 'Email' },
   not_set: { en: 'Not set', es: 'No configurado', pt: 'N\u00e3o definido', id: 'Belum diatur' },
   your_journey: { en: 'YOUR JOURNEY', es: 'TU CAMINO', pt: 'SUA JORNADA', id: 'PERJALANAN ANDA' },
-  persona_new: { en: "I'm New to This", es: 'Soy Nuevo en Esto', pt: 'Sou Novo Nisso', id: 'Saya Baru' },
+  persona_new: { en: "I'm new to faith, or coming back", es: 'Soy nuevo en la fe, o estoy volviendo', pt: 'Sou novo na fé, ou estou voltando', id: 'Saya baru dalam iman, atau sedang kembali' },
   persona_new_desc: { en: 'Starting or reigniting my faith journey', es: 'Comenzando o reavivando mi camino de fe', pt: 'Come\u00e7ando ou reacendendo minha jornada de f\u00e9', id: 'Memulai atau menghidupkan kembali perjalanan iman saya' },
   persona_member: { en: 'Church Member', es: 'Miembro de la Iglesia', pt: 'Membro da Igreja', id: 'Anggota Gereja' },
   persona_member_desc: { en: 'Growing in my daily walk with God', es: 'Creciendo en mi caminar diario con Dios', pt: 'Crescendo em minha caminhada di\u00e1ria com Deus', id: 'Bertumbuh dalam perjalanan harian saya bersama Tuhan' },
@@ -238,9 +237,6 @@ const UI: Translations = {
   p_days_in_row: { en: 'day(s) in a row.', es: 'd\u00eda(s) seguido(s).', pt: 'dia(s) seguido(s).', id: 'hari berturut-turut.' },
   p_complete_to_start: { en: 'Complete a plan day to start your reading streak.', es: 'Completa un d\u00eda del plan para comenzar tu racha.', pt: 'Complete um dia do plano para come\u00e7ar sua sequ\u00eancia.', id: 'Selesaikan satu hari rencana untuk memulai beruntunmu.' },
   p_recommended: { en: 'RECOMMENDED FOR YOU', es: 'RECOMENDADO PARA TI', pt: 'RECOMENDADO PARA VOC\u00ca', id: 'DIREKOMENDASIKAN UNTUKMU' },
-  p_faith_pathway: { en: '30-Day Faith Pathway', es: 'Camino de Fe de 30 D\u00edas', pt: 'Caminho de F\u00e9 de 30 Dias', id: 'Jalur Iman 30 Hari' },
-  p_faith_desc: { en: 'Perfect for new believers \u2014 a guided journey through faith foundations.', es: 'Perfecto para nuevos creyentes \u2014 un viaje guiado por los fundamentos de la fe.', pt: 'Perfeito para novos crentes \u2014 uma jornada guiada pelos fundamentos da f\u00e9.', id: 'Sempurna untuk orang percaya baru \u2014 perjalanan terpandu melalui dasar-dasar iman.' },
-  p_start_faith: { en: 'Start Faith Pathway', es: 'Comenzar Camino de Fe', pt: 'Iniciar Caminho de F\u00e9', id: 'Mulai Jalur Iman' },
   p_plans_and_more: { en: 'Plans & More', es: 'Planes y M\u00e1s', pt: 'Planos e Mais', id: 'Rencana & Lainnya' },
   p_plans_subtitle: { en: 'Your reading plans, devotion, and community', es: 'Tus planes de lectura, devocional y comunidad', pt: 'Seus planos de leitura, devocional e comunidade', id: 'Rencana bacaan, renungan, dan komunitasmu' },
 
@@ -394,12 +390,32 @@ const UI: Translations = {
   comfort_change_daily: { en: 'Change daily amount', es: 'Cambiar la cantidad diaria', pt: 'Alterar a quantidade di\u00e1ria', id: 'Ubah jumlah harian' },
 
   // \u2500\u2500 PATHWAY COMPLETION MOMENT \u2500\u2500
-  pathway_day_complete: { en: '\u2713 Day {x} complete \u2014 Day {y} will be here tomorrow', es: '\u2713 D\u00eda {x} completado \u2014 el d\u00eda {y} estar\u00e1 aqu\u00ed ma\u00f1ana', pt: '\u2713 Dia {x} conclu\u00eddo \u2014 o dia {y} estar\u00e1 aqui amanh\u00e3', id: '\u2713 Hari {x} selesai \u2014 hari {y} akan tersedia besok' },
-  pathway_day_complete_final: { en: '\u2713 Day {x} complete', es: '\u2713 D\u00eda {x} completado', pt: '\u2713 Dia {x} conclu\u00eddo', id: '\u2713 Hari {x} selesai' },
   pathway_show_now: { en: 'Show me now', es: 'Mostrar ahora', pt: 'Mostrar agora', id: 'Tampilkan sekarang' },
   pathway_answer_placeholder: { en: 'Write here\u2026', es: 'Escribe aqu\u00ed\u2026', pt: 'Escreva aqui\u2026', id: 'Tulis di sini\u2026' },
   pathway_hero_loading: { en: 'Today\u2019s reading is loading\u2026', es: 'La lectura de hoy se est\u00e1 cargando\u2026', pt: 'A leitura de hoje est\u00e1 carregando\u2026', id: 'Bacaan hari ini sedang dimuat\u2026' },
   pathway_how_it_works: { en: 'Each day: one scripture, one short teaching, one step. About five minutes.', es: 'Cada d\u00eda: una escritura, una ense\u00f1anza breve, un paso. Unos cinco minutos.', pt: 'Cada dia: uma escritura, um ensino curto, um passo. Cerca de cinco minutos.', id: 'Setiap hari: satu ayat, satu pengajaran singkat, satu langkah. Sekitar lima menit.' },
+
+  // \u2500\u2500 CLOSE THE DAY + HANDOFF (I'm New path, 17 Sep 2026) \u2500\u2500
+  j_close_done: { en: 'Day {x} done.', es: 'D\u00eda {x} completado.', pt: 'Dia {x} conclu\u00eddo.', id: 'Hari {x} selesai.' },
+  j_close_identity_1: { en: 'You belong.', es: 'Perteneces aqu\u00ed.', pt: 'Voc\u00ea pertence aqui.', id: 'Anda diterima di sini.' },
+  j_close_identity_2: { en: 'Grace already found you.', es: 'La gracia ya te encontr\u00f3.', pt: 'A gra\u00e7a j\u00e1 te encontrou.', id: 'Anugerah sudah menemukan Anda.' },
+  j_close_identity_3: { en: 'You are new in Christ.', es: 'En Cristo tienes vida nueva.', pt: 'Em Cristo voc\u00ea tem vida nova.', id: 'Anda baru di dalam Kristus.' },
+  j_close_title: { en: 'Close the day', es: 'Cierra el d\u00eda', pt: 'Encerre o dia', id: 'Tutup hari ini' },
+  j_close_intro: { en: 'Two or three minutes. Skip anything that feels like too much.', es: 'Dos o tres minutos. Salta lo que sientas que es demasiado.', pt: 'Dois ou tr\u00eas minutos. Pule o que parecer demais.', id: 'Dua atau tiga menit. Lewati saja jika terasa terlalu berat.' },
+  j_close_reread: { en: 'Notice one line again.', es: 'Fij\u00e1te de nuevo en una l\u00ednea.', pt: 'Repare de novo em uma linha.', id: 'Perhatikan satu baris lagi.' },
+  j_close_q1: { en: "What did you notice about God's heart?", es: '\u00bfQu\u00e9 notaste sobre el coraz\u00f3n de Dios?', pt: 'O que voc\u00ea percebeu sobre o cora\u00e7\u00e3o de Deus?', id: 'Apa yang Anda perhatikan tentang hati Tuhan?' },
+  j_close_q2: { en: 'Where do you need grace today?', es: '\u00bfD\u00f3nde necesitas gracia hoy?', pt: 'Onde voc\u00ea precisa de gra\u00e7a hoje?', id: 'Di mana Anda membutuhkan anugerah hari ini?' },
+  j_close_q3: { en: 'One small step of love or obedience \u2014 what is it?', es: 'Un peque\u00f1o paso de amor u obediencia \u2014 \u00bfcu\u00e1l es?', pt: 'Um pequeno passo de amor ou obedi\u00eancia \u2014 qual \u00e9?', id: 'Satu langkah kecil kasih atau ketaatan \u2014 apa itu?' },
+  j_close_tomorrow: { en: 'Day {y} will be here tomorrow.', es: 'El d\u00eda {y} estar\u00e1 aqu\u00ed ma\u00f1ana.', pt: 'O dia {y} estar\u00e1 aqui amanh\u00e3.', id: 'Hari {y} akan tersedia besok.' },
+  j_plain_label: { en: 'In plain words', es: 'En palabras sencillas', pt: 'Em palavras simples', id: 'Dalam kata-kata sederhana' },
+  j_plain_later: { en: 'If this is new to you, take what you can today. You can come back to it later.', es: 'Si esto es nuevo para ti, toma lo que puedas hoy. Puedes volver a esto m\u00e1s tarde.', pt: 'Se isso \u00e9 novo para voc\u00ea, aproveite o que puder hoje. Voc\u00ea pode voltar a isso depois.', id: 'Jika ini baru bagi Anda, ambil sebisanya hari ini. Anda bisa kembali lagi nanti.' },
+  j_handoff_title: { en: 'Want a person with you?', es: '\u00bfQuieres tener a alguien contigo?', pt: 'Quer ter algu\u00e9m com voc\u00ea?', id: 'Ingin ditemani seseorang?' },
+  j_handoff_body: { en: "You don't have to do this on your own. A Connect Group is a small group that meets to grow together. Ask about one at your campus this Sunday.", es: 'No tienes que hacer esto por tu cuenta. Un Grupo de Conexi\u00f3n es un grupo peque\u00f1o que se re\u00fane para crecer juntos. Pregunta por uno en tu campus este domingo.', pt: 'Voc\u00ea n\u00e3o precisa fazer isso por conta pr\u00f3pria. Um Grupo de Conex\u00e3o \u00e9 um grupo pequeno que se re\u00fane para crescer juntos. Pergunte sobre um no seu campus neste domingo.', id: 'Anda tidak perlu melakukan ini sendirian. Kelompok Koneksi adalah kelompok kecil yang berkumpul untuk bertumbuh bersama. Tanyakan tentang itu di campus Anda hari Minggu ini.' },
+  j_handoff_cta: { en: 'See my campus', es: 'Ver mi campus', pt: 'Ver meu campus', id: 'Lihat campus saya' },
+  j_handoff_later: { en: 'Not now', es: 'Ahora no', pt: 'Agora n\u00e3o', id: 'Belum sekarang' },
+  j_handoff_done_title: { en: '{n} days. You finished the journey.', es: '{n} d\u00edas. Terminaste el camino.', pt: '{n} dias. Voc\u00ea terminou a jornada.', id: '{n} hari. Anda telah menyelesaikan perjalanan ini.' },
+  j_handoff_done_body: { en: "You are loved, and you are new in Christ. You don't have to walk the next part on your own. A Connect Group is a small group that meets to grow together. Ask about one at your campus this Sunday.", es: 'Dios te ama, y en Cristo tienes vida nueva. No tienes que caminar lo que sigue por tu cuenta. Un Grupo de Conexi\u00f3n es un grupo peque\u00f1o que se re\u00fane para crecer juntos. Pregunta por uno en tu campus este domingo.', pt: 'Deus te ama, e em Cristo voc\u00ea tem vida nova. Voc\u00ea n\u00e3o precisa caminhar o que vem a seguir por conta pr\u00f3pria. Um Grupo de Conex\u00e3o \u00e9 um grupo pequeno que se re\u00fane para crescer juntos. Pergunte sobre um no seu campus neste domingo.', id: 'Anda dikasihi, dan Anda baru di dalam Kristus. Anda tidak perlu menjalani langkah berikutnya sendirian. Kelompok Koneksi adalah kelompok kecil yang berkumpul untuk bertumbuh bersama. Tanyakan tentang itu di campus Anda hari Minggu ini.' },
+  j_handoff_next: { en: "Choose what's next", es: 'Elige qu\u00e9 sigue', pt: 'Escolha o que vem a seguir', id: 'Pilih langkah berikutnya' },
 
   // ── FONT SIZE CONTROLS ──
   font_size_label: { en: 'Font Size', es: 'Tama\u00f1o de Fuente', pt: 'Tamanho da Fonte', id: 'Ukuran Font' },
@@ -471,7 +487,6 @@ const UI: Translations = {
 
   // \u2500\u2500 PATHWAY PICKER (first-run bottom actions) \u2500\u2500
   keep_current_path: { en: 'Keep my current path \u2192', es: 'Mantener mi camino actual \u2192', pt: 'Manter meu caminho atual \u2192', id: 'Pertahankan jalurku saat ini \u2192' },
-  not_sure_start_member: { en: 'Not sure? Start with Church Member \u2192', es: '\u00bfNo est\u00e1s seguro? Comienza como Miembro de la Iglesia \u2192', pt: 'N\u00e3o tem certeza? Comece como Membro da Igreja \u2192', id: 'Belum yakin? Mulai sebagai Anggota Gereja \u2192' },
 
   // \u2500\u2500 PUSH OPT-IN (first-run reminder gate) \u2500\u2500
   push_optin_title: { en: 'One gentle nudge a day', es: 'Un suave recordatorio al d\u00eda', pt: 'Um lembrete gentil por dia', id: 'Satu pengingat lembut setiap hari' },

@@ -51,7 +51,16 @@ const MISC_KEYS = [
                              // deliberately OFF the authored dw_sermon_ prefix so a device
                              // with an older copy takes the cloud's newer one)
   'dw_read_days',            // genuine-reading-day date set — add-only, union-merged (see UNION_MISC)
+  'dw_journey_handoff',      // I'm New handoff cards: which were opened or dismissed (flags only, newest-wins)
 ] as const;
+// NOT here, on purpose: 'dw_pathway_qa_' (the journey's per-day answers, written
+// by PathwayAnswer.tsx and journeyClose.ts). They call syncMisc but have never
+// matched this list, so they live on the device only. Turning them on needs two
+// things first — a per-slot merge (the record has two writers, and the server
+// replaces the whole bag on push) and per-account attribution (a staff sign-in
+// on a shared device would push one person's private answers into another
+// account's row). Both were found in review on 17 Sep 2026; see
+// docs/im-new/SYNC-ANSWERS-FOLLOW-UP.md before adding the prefix.
 const MISC_PREFIXES = ['dw_sermon_', 'dw_book_today_'];
 
 // Add-only misc keys (date/id sets) that must be UNION-merged on apply, never
@@ -63,7 +72,7 @@ const UNION_MISC = new Set(['dw_read_days']);
  *  poisoned or stale cloud bag could write ANY localStorage key on this device
  *  (dw_profile, dw_session_token, dw_journal — a side door around the
  *  tombstone-aware journal merge). */
-function isSyncedMiscKey(k: string): boolean {
+export function isSyncedMiscKey(k: string): boolean {
   return (MISC_KEYS as readonly string[]).includes(k) || MISC_PREFIXES.some(p => k.startsWith(p));
 }
 
@@ -74,7 +83,7 @@ const MISC_META_KEY = 'dw_misc_meta';
 // Free-text user content: ALWAYS fill-only (never clobber a local edit, even with a
 // newer cloud timestamp), because these aren't structured for a real merge.
 const AUTHORED_MISC = new Set(['dw_user_story', 'dw_sermon_notes', 'dw_prayed_for']);
-function isAuthored(k: string): boolean {
+export function isAuthored(k: string): boolean {
   return AUTHORED_MISC.has(k) || k.startsWith('dw_sermon_');
 }
 

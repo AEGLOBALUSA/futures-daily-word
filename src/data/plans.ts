@@ -283,14 +283,14 @@ export const PLAN_CATALOGUE: PlanDef[] = [
   // ── Foundation & Spiritual Growth ─────────────────────────────────────────
   {
     id: 'faith-pathway',
-    title: 'Foundations of Faith',
-    titleId: 'Dasar-Dasar Iman',
-    titleEs: 'Fundamentos de la Fe',
-    titlePt: 'Fundamentos da Fé',
-    description: 'A guided journey through the foundations of faith — designed for new believers and anyone returning to Scripture.',
-    descriptionId: 'Perjalanan terpandu melalui dasar-dasar iman — dirancang untuk orang percaya baru dan siapa pun yang ingin kembali mendalami Alkitab.',
-    descriptionEs: 'Un recorrido guiado por los fundamentos de la fe — diseñado para nuevos creyentes y para quienes desean volver a las Escrituras.',
-    descriptionPt: 'Uma jornada guiada pelos fundamentos da fé — feita para novos crentes e para quem deseja retornar às Escrituras.',
+    title: 'Bible Basics: 30 Days',
+    titleId: 'Dasar-Dasar Alkitab: 30 Hari',
+    titleEs: 'Lo Básico de la Biblia: 30 Días',
+    titlePt: 'O Básico da Bíblia: 30 Dias',
+    description: 'Thirty chapters that cover the basics of the faith, one chapter a day.',
+    descriptionId: 'Tiga puluh pasal yang mencakup dasar-dasar iman, satu pasal setiap hari.',
+    descriptionEs: 'Treinta capítulos que cubren lo básico de la fe, un capítulo por día.',
+    descriptionPt: 'Trinta capítulos que cobrem o básico da fé, um capítulo por dia.',
     totalDays: 30,
     category: 'Foundation',
     passages: [
