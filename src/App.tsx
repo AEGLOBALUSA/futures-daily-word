@@ -28,6 +28,7 @@ import { OPEN_CONGREGATION_EVENT, setCongregation } from './utils/congregation';
 import { isCongregationId } from './data/congregations';
 import { PathAskedOnce } from './components/PathAskedOnce';
 import { CHOOSE_PATH_EVENT, hasPathBeenAsked, markPathAsked, type PathDoor } from './utils/choosePath';
+import { isNewChristianPersona } from './utils/persona-config';
 import { restoreStaffSession } from './utils/staffIdentity';
 import { useStaffIdentity } from './utils/useStaffIdentity';
 
@@ -216,6 +217,14 @@ function AppContent() {
   }, []);
   const { userProfile, setup } = useUser();
   const { selection } = useScriptureSelection();
+
+  // Sage chrome for the I'm New path, app-wide — lives here (not on HomeScreen's
+  // own dw-new-home class) because that class is mount-scoped to Home and
+  // disappears the moment the reader leaves it; App stays mounted everywhere.
+  useEffect(() => {
+    document.body.classList.toggle('dw-persona-new', isNewChristianPersona(setup?.persona));
+    return () => { document.body.classList.remove('dw-persona-new'); };
+  }, [setup?.persona]);
 
   // Pastor sign-in (Settings → Pastor account): a stored staff session re-stamps
   // the pastor identity on every open, so a signed-in pastor never logs in twice.
