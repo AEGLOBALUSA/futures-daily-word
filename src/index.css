@@ -240,7 +240,7 @@
   /* Editorial / minimal — bright, airy, warm. A magazine on warm ivory:
      ink text, a warm clay accent (the brand red softened to earth), the
      photography carries the colour. No coral. */
-  --dw-canvas: #FAF6EF;          /* warm ivory ground */
+  --dw-canvas: #FFFFFF;          /* white ground, Ashley 24 Sep 2026 */
   --dw-surface: #FFFFFF;
   --dw-surface-hover: #F4EEE3;
   --dw-surface-active: #ECE3D4;
