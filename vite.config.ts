@@ -9,7 +9,9 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    sri({ algorithm: 'sha384' }),
+    // px.js changes on futures.church independently of this build. Pinning an
+    // integrity hash would stop Pulse the next time that script is updated.
+    sri({ algorithm: 'sha384', skipResources: ['https://futures.church/px.js'] }),
     {
       name: 'copy-static-dirs',
       closeBundle() {
