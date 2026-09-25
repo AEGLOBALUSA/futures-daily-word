@@ -147,8 +147,8 @@ export function setMediaSession(info: MediaSessionInfo): void {
       title: info.title,
       artist: info.artist ?? 'Daily Word',
       artwork: [
-        { src: `${API_BASE}/icons/icon-192.png`, sizes: '192x192', type: 'image/png' },
-        { src: `${API_BASE}/icons/icon-512.png`, sizes: '512x512', type: 'image/png' },
+        { src: `${API_BASE}/icons/icon-192x192.png`, sizes: '192x192', type: 'image/png' },
+        { src: `${API_BASE}/icons/icon-512x512.png`, sizes: '512x512', type: 'image/png' },
       ],
     });
     ms.setActionHandler('play', () => { void resume(); });

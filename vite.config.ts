@@ -13,6 +13,9 @@ export default defineConfig({
     {
       name: 'copy-static-dirs',
       closeBundle() {
+        // PWA icons live in public/icons (stable URLs for the manifest). This
+        // copy is only the root logos; do not also drop app icons at repo-root
+        // /icons — Vite would fingerprint those into /assets and drift from the manifest.
         for (const dir of ['books', 'essays', 'data', 'bible', 'icons']) {
           const src = resolve(dir)
           if (existsSync(src)) {
@@ -27,7 +30,7 @@ export default defineConfig({
         }
         // manifest.json intentionally NOT copied from the repo root — a stale dark
         // root copy used to overwrite public/manifest.json (the light one) in dist.
-        for (const file of ['robots.txt', 'sitemap.xml', '_redirects', '404.html', 'privacy.html', 'terms.html', 'apple-touch-icon.png']) {
+        for (const file of ['robots.txt', 'sitemap.xml', '_redirects', '404.html', 'privacy.html', 'terms.html']) {
           const src = resolve(file)
           if (existsSync(src)) {
             copyFileSync(src, resolve('dist', file))

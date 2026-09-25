@@ -82,8 +82,8 @@ function buildPayload(passage, lang) {
   return JSON.stringify({
     title: template.title,
     body: template.body.replace("{passage}", passageLabel).replace("{verse}", verse),
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-72.png",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-72x72.png",
     url: "/",
     passage: passage
   });
