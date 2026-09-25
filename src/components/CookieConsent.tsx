@@ -4,10 +4,11 @@ import { t, getLang } from '../utils/i18n';
 /**
  * Cookie consent banner. Shows once until the user accepts or declines.
  *
- * Analytics (GA4 + Pulse) are NOT loaded until this returns 'accepted' — see the
- * consent gate in index.html. Previously the tags loaded on every first visit and
- * this banner only set `ga-disable-*` after the fact, so a first-time visitor was
- * measured (and given _ga cookies) before they had answered.
+ * GA4 is NOT loaded until this returns 'accepted' — see the consent gate in
+ * index.html. Pulse (futures.church/px.js) loads on every visit and is not
+ * gated here. Previously both tags loaded on every first visit and this banner
+ * only set `ga-disable-*` after the fact, so a first-time visitor was measured
+ * by Google (and given _ga cookies) before they had answered.
  */
 export function CookieConsent() {
   const [visible, setVisible] = useState(() => {
