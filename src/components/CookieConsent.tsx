@@ -4,10 +4,11 @@ import { t, getLang } from '../utils/i18n';
 /**
  * Cookie consent banner. Shows once until the user accepts or declines.
  *
- * Analytics (GA4 + Pulse) are NOT loaded until this returns 'accepted' — see the
- * consent gate in index.html. Previously the tags loaded on every first visit and
- * this banner only set `ga-disable-*` after the fact, so a first-time visitor was
- * measured (and given _ga cookies) before they had answered.
+ * GA4 is NOT loaded until this returns 'accepted' — see the consent gate in
+ * index.html. Pulse (px.js) is cookieless and loads on every visit, outside
+ * this gate. Previously both tags loaded on every first visit and this banner
+ * only set `ga-disable-*` after the fact, so a first-time visitor was given
+ * _ga cookies before they had answered.
  */
 export function CookieConsent() {
   const [visible, setVisible] = useState(() => {
@@ -22,15 +23,15 @@ export function CookieConsent() {
 
   const handleAccept = () => {
     try { localStorage.setItem('dw_cookie_consent', 'accepted'); } catch {}
-    // Load the tags now, so consent takes effect without needing a reload.
+    // Load GA4 now, so consent takes effect without needing a reload. Pulse is already on the page.
     (window as unknown as { __dwLoadAnalytics?: () => void }).__dwLoadAnalytics?.();
     setVisible(false);
   };
 
   const handleDecline = () => {
     try { localStorage.setItem('dw_cookie_consent', 'declined'); } catch {}
-    // Nothing has loaded yet (the gate in index.html held it back); belt-and-braces
-    // in case a tag was injected some other way.
+    // GA4 has not loaded (the gate in index.html held it back); belt-and-braces
+    // in case the tag was injected some other way. Pulse is cookieless and stays loaded.
     (window as unknown as Record<string, unknown>)[`ga-disable-G-E0CGKS9P9Q`] = true;
     setVisible(false);
   };

@@ -27,7 +27,7 @@ export default defineConfig({
         }
         // manifest.json intentionally NOT copied from the repo root — a stale dark
         // root copy used to overwrite public/manifest.json (the light one) in dist.
-        for (const file of ['robots.txt', 'sitemap.xml', '_redirects', '404.html', 'privacy.html', 'terms.html', 'apple-touch-icon.png']) {
+        for (const file of ['robots.txt', 'sitemap.xml', '_redirects', '404.html', 'privacy.html', 'terms.html', 'apple-touch-icon.png', 'favicon.ico']) {
           const src = resolve(file)
           if (existsSync(src)) {
             copyFileSync(src, resolve('dist', file))
