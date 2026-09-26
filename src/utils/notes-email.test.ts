@@ -146,13 +146,29 @@ describe('notes email — what goes out', () => {
 });
 
 describe('notes email — no links in a person\'s answers (relay defence, 3 Sep 2026)', () => {
-  it('removes scheme URLs, www hosts and bare host.tld tokens, and keeps the rest of the sentence', () => {
+  it('removes scheme URLs, www hosts, addresses, and any host with a path or a non-word top level', () => {
     expect(m.stripLinks('see https://evil.example/login?x=1 now')).toBe('see [link removed] now');
     expect(m.stripLinks('go to www.phish.co/reset')).toBe('go to [link removed]');
     expect(m.stripLinks('visit futures.church/looking today')).toBe('visit [link removed] today');
     expect(m.stripLinks('bit.ly/abc and Romans 8:1')).toBe('[link removed] and Romans 8:1');
-    expect(m.stripLinks('Grace is a gift. Amen.')).toBe('Grace is a gift. Amen.');
-    expect(m.stripLinks('e.g. the 3.16 verse')).toBe('e.g. the 3.16 verse');
+    expect(m.stripLinks('Verify your account at futures-secure.tk/login')).toBe('Verify your account at [link removed]');
+    for (const host of ['evil.de/x', 'evil.id/reset', 'evil.mx', 'evil.es', 'evil.top', 'evil.shop', 'evil.xyz', 'evil.com.br/path']) {
+      expect(m.stripLinks(`go to ${host} now`)).toBe('go to [link removed] now');
+    }
+    expect(m.stripLinks('write to attacker@evil.tk today')).toBe('write to [link removed] today');
+  });
+
+  it('leaves the person\'s own sentences alone, including a missing space after a full stop', () => {
+    for (const line of [
+      'Grace is a gift. Amen.',
+      'e.g. the 3.16 verse',
+      'John 3.16 says so',
+      'I want to bring my sister to church.To pray with her',
+      'Jesus loves.Me even now',
+      'Lord help.Us this week',
+      'Quiero hablar con Dios.Me siento en paz',
+      'Read Romans 8.no fear',
+    ]) expect(m.stripLinks(line)).toBe(line);
   });
 
   it('applies to every accepted answer before it is bounded', () => {
@@ -161,5 +177,25 @@ describe('notes email — no links in a person\'s answers (relay defence, 3 Sep 
     const mail = m.renderNotesEmail({ sermon: SERMON, responses: picked, lang: 'en' });
     expect(mail.html).not.toContain('x.example');
     expect(mail.text).not.toContain('x.example');
+  });
+
+  it('a note that simply ends with an ellipsis is not reported as cut', () => {
+    const picked = m.pickResponses(SERMON, { 'ws-notes': 'I will pray more\u2026' });
+    expect(m.wasCut(picked)).toBe(false);
+    expect(m.renderNotesEmail({ sermon: SERMON, responses: picked, lang: 'en' }).text).not.toContain('cut here');
+  });
+
+  it('a title with a replacement pattern stays literal in the subject', () => {
+    expect(m.renderNotesEmail({ sermon: { ...SERMON, title: 'Worth $& more' }, responses: {}, lang: 'en' }).subject).toBe('Your notes — Worth $& more');
+  });
+});
+
+describe('sermon-notes-email — one inbox, one allowance', () => {
+  const fn = require('../../netlify/functions/sermon-notes-email.js');
+  it('collapses plus-tags everywhere and dots on Gmail', () => {
+    expect(fn.canonicalInbox('victim+1@gmail.com')).toBe('victim@gmail.com');
+    expect(fn.canonicalInbox('v.ic.tim@googlemail.com')).toBe('victim@gmail.com');
+    expect(fn.canonicalInbox('a+b@futures.church')).toBe('a@futures.church');
+    expect(fn.canonicalInbox('first.last@futures.church')).toBe('first.last@futures.church');
   });
 });

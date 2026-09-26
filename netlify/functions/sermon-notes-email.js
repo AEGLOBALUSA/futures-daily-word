@@ -27,11 +27,16 @@
  *   - the subject and every heading are ours; the person's words appear only
  *     as their answers, escaped;
  *   - brakes through the shared limiter (rate_limit_hits, created 3 Sep 2026;
- *     fail-open by design): a global ceiling per hour and per day that no
- *     Sunday reaches but a script does, a per-connection bucket sized for a
- *     whole room on one wifi (never a handful — the /lean-in lesson), and a
- *     per-address cap counted ONLY after a successful send, so a refused or
- *     failed request never spends the person's allowance.
+ *     fail-open by design): a per-connection bucket sized for a whole room on
+ *     one wifi (never a handful — the /lean-in lesson), checked FIRST and the
+ *     only one that counts attempts; then a global ceiling per hour and per
+ *     day and a per-address cap, all three counted ONLY after a successful
+ *     send — so a refused or failed request never spends anyone's allowance,
+ *     and a script cannot switch the feature off for a congregation by being
+ *     refused two thousand times. (Residual, accepted: one connection can
+ *     spend real sends against the global ceiling; those are visible in
+ *     Resend.) The address key is canonical — plus-tags dropped, Gmail dots
+ *     dropped — so one inbox is one allowance.
  * The stronger gate — a Turnstile on the field — is a decision for Ashley:
  * it needs a Cloudflare site for this app.
  *
@@ -49,7 +54,10 @@ const { pickResponses, renderNotesEmail } = require("./lib/notes-email");
 const RESEND_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Futures Daily Word <notes@futuresdailyword.com>";
 const APP_URL = "https://futuresdailyword.com";
-const MAX_BODY_BYTES = 64 * 1024;
+// Big enough that the size story ends INSIDE the email (a cut value ends with
+// an ellipsis and the email says so — lib/notes-email.js), never with a 413:
+// six workspace boxes at their cap plus the blanks is ~130 KB of JSON.
+const MAX_BODY_BYTES = 512 * 1024;
 const LANGS = new Set(["en", "es", "pt", "id"]);
 
 // Brakes. Sized for real Sundays first (three congregations, one after
@@ -94,6 +102,21 @@ function clientIp(event) {
 function validEmail(raw) {
   const e = String(raw || "").trim().toLowerCase().slice(0, 200);
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) ? e : "";
+}
+
+/**
+ * One inbox, one allowance. `victim+1@`, `victim+2@` and (on Gmail) `v.ictim@`
+ * are the same mailbox; the brake keys on this form, the email still goes to
+ * the address as typed.
+ */
+function canonicalInbox(email) {
+  const at = email.lastIndexOf("@");
+  let local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  const plus = local.indexOf("+");
+  if (plus > 0) local = local.slice(0, plus);
+  if (domain === "gmail.com" || domain === "googlemail.com") local = local.replace(/\./g, "");
+  return `${local}@${domain === "googlemail.com" ? "gmail.com" : domain}`;
 }
 
 /** For logs: never the whole address. */
@@ -203,20 +226,22 @@ exports.handler = async (event) => {
   const lang = LANGS.has(body.lang) ? body.lang : "en";
 
   // Brakes before any read. Fail-open by the limiter's design (an infra blip
-  // never blocks a person from their notes). The global ceilings are the real
-  // bound on abuse; the connection bucket is room-sized on purpose.
-  if (await isSharedRateLimited("sermon-notes-email-all-hour", "all", GLOBAL_PER_HOUR, HOUR_MS)
-    || await isSharedRateLimited("sermon-notes-email-all-day", "all", GLOBAL_PER_DAY, DAY_MS)) {
-    console.warn("[sermon-notes-email] global ceiling reached");
-    return json(event, 429, { error: "A lot of notes are being sent right now. Try again in a little while." });
-  }
+  // never blocks a person from their notes).
+  // 1. Per connection, room-sized, attempts counted — the only bucket a refused
+  //    request spends, and it is the refused caller's own.
   const ip = clientIp(event);
   if (await isSharedRateLimited("sermon-notes-email", ip, PER_CONNECTION_PER_10_MIN, 10 * 60 * 1000)) {
     return json(event, 429, { error: "Too many sends from this connection. Try again in a few minutes." });
   }
-  // Per address: counted only once a send has actually gone out (below), so
-  // six refusals never lock a person out of notes they never received.
-  const addrKey = crypto.createHash("sha256").update(email).digest("hex").slice(0, 32);
+  // 2. Global ceilings and 3. the address cap: read here, recorded only after
+  //    a send has actually gone out (below). A script being refused all night
+  //    never touches them.
+  if (await countSharedHits("sermon-notes-email-all-hour", "all", HOUR_MS) >= GLOBAL_PER_HOUR
+    || await countSharedHits("sermon-notes-email-all-day", "all", DAY_MS) >= GLOBAL_PER_DAY) {
+    console.warn("[sermon-notes-email] global ceiling reached");
+    return json(event, 429, { error: "A lot of notes are being sent right now. Try again in a little while." });
+  }
+  const addrKey = crypto.createHash("sha256").update(canonicalInbox(email)).digest("hex").slice(0, 32);
   if (await countSharedHits("sermon-notes-email-addr", addrKey, DAY_MS) >= PER_ADDRESS_PER_DAY) {
     return json(event, 429, { error: "That address has reached today's limit for notes emails." });
   }
@@ -239,7 +264,11 @@ exports.handler = async (event) => {
         error: sent.error === "not_configured" ? "Email isn't set up yet." : "That didn't send. Try again."
       });
     }
-    await recordSharedHit("sermon-notes-email-addr", addrKey);
+    await Promise.all([
+      recordSharedHit("sermon-notes-email-addr", addrKey),
+      recordSharedHit("sermon-notes-email-all-hour", "all"),
+      recordSharedHit("sermon-notes-email-all-day", "all")
+    ]);
     console.log(`[sermon-notes-email] sent sermon=${sermonId} congregation=${congregation} to=${maskEmail(email)} answers=${Object.keys(responses).length} id=${sent.id || ""}`);
 
     const recorded = await recordInHub({ email, congregation, sermonId });
@@ -249,3 +278,5 @@ exports.handler = async (event) => {
     return json(event, 500, { error: "That didn't send. Try again." });
   }
 };
+
+exports.canonicalInbox = canonicalInbox;
