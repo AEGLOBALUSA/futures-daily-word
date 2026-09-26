@@ -5,5 +5,10 @@
 /privacy    /privacy.html   200
 /terms      /terms.html     200
 
+# Browsers request /favicon.ico on their own. There is no published ICO
+# (a 16px PNG-in-ICO does not paint in Chrome). Send the brand PNG instead
+# of letting the SPA fallback return index.html.
+/favicon.ico    /icons/icon-192.png    302
+
 # SPA fallback
 /*    /index.html   200

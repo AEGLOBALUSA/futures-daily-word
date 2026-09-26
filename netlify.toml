@@ -17,6 +17,13 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
+# Automatic /favicon.ico requests. No ICO is published; this must precede
+# the SPA fallback or the response is index.html.
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/icons/icon-192.png"
+  status = 302
+
 # SPA fallback - last redirect
 [[redirects]]
   from = "/*"
