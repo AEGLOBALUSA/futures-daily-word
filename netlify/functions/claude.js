@@ -25,6 +25,7 @@ const { isSharedRateLimited } = require('./lib/rate-limit');
 // Anthropic (the outbound payload is rebuilt field by field below).
 const TOKEN_REQUIRED_ORIGINS = new Set([
   'https://pastors-sermon-prep.netlify.app',
+  'https://sermonprep.futures.church',
 ]);
 
 let supabase = null;
