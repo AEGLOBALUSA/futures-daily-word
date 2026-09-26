@@ -20,7 +20,9 @@ const ALLOWED_ORIGINS = [
   // Pastors Sermon Prep — the standalone pastor app (AEGLOBALUSA/pastors-sermon-prep).
   // It shares this backend's intake (staff sign-in, password change, Sunday
   // publish), pastor-admin (campus code), published-sermon and user-sync.
-  'https://pastors-sermon-prep.netlify.app'
+  // sermonprep.futures.church = the canonical custom-domain origin.
+  'https://pastors-sermon-prep.netlify.app',
+  'https://sermonprep.futures.church',
 ];
 
 /** Parse Origin (or Referer URL) into an origin string for allowlist checks. */
