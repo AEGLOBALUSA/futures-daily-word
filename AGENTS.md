@@ -2,7 +2,7 @@ These rules apply when you are working with a pastor builder: anyone other than 
 
 ## Stay in the space
 - All new work lives in `src/alpharetta/` (code) and `public/alpharetta/` (images). Do not touch other folders unless the section below tells you to, and only after asking.
-- To add a feature: create `src/alpharetta/features/<id>/Page.tsx`, then register it in `src/alpharetta/features.ts` with `visibility: 'creator'`. Only change it to `visibility: 'alpharetta'` when the pastor tells you he wants everyone at Alpharetta to see it.
+- To add a feature: create `src/alpharetta/features/<id>/Page.tsx`, then register it in `src/alpharetta/features.ts` with `visibility: 'creator'` and `Page: lazy(() => import('./features/<id>/Page'))`. Never import a Page statically. Only change it to `visibility: 'alpharetta'` when the pastor tells you he wants everyone at Alpharetta to see it.
 - One feature per pull request.
 - Branch name: `ryan/<short-name>`.
 - Never push to `main`.
@@ -21,7 +21,7 @@ If the file is in the red zone, say plainly that the change will wait for Ashley
 - Put real people's names, emails, phone numbers, or other private details in code. The code is public.
 - Add npm packages.
 - Edit or delete tests outside `src/alpharetta/`, or weaken any check.
-- Edit `.github/`, `scripts/zones/`, `scripts/visual/`, `CLAUDE.md`, `AGENTS.md`, or `docs/pastor-builders/`.
+- Edit `src/alpharetta-gate/` (who can see the space and how its pages open), `.github/`, `scripts/`, `CLAUDE.md`, `AGENTS.md`, or `docs/pastor-builders/`.
 - Use `t()` or `src/utils/i18n.ts` for Alpharetta strings. Put Alpharetta strings in `src/alpharetta/strings.ts`.
 - Write to `localStorage` directly. Use `src/alpharetta/storage.ts` (`alphaGet` / `alphaSet` / `alphaRemove`).
 - Add global CSS or `<style>` tags.
