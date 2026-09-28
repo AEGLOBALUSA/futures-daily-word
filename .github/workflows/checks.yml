@@ -1,0 +1,182 @@
+name: checks
+
+on:
+  pull_request:
+    # No 'edited': ticking the box in the description changes nothing these checks look at.
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run
+
+  smoke:
+    name: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Determine base sha
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "sha=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout base
+        id: checkout_base
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          path: .base
+          ref: ${{ steps.base.outputs.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install PR dependencies
+        run: npm ci
+
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build PR app
+        run: npm run build
+
+      - name: Install base dependencies (reuse node_modules when the lockfile is unchanged)
+        if: steps.checkout_base.outcome == 'success'
+        run: |
+          if [ -f .base/package-lock.json ] && diff -q package-lock.json .base/package-lock.json > /dev/null 2>&1; then
+            echo "Lockfile unchanged — reusing node_modules"
+            ln -s "$PWD/node_modules" .base/node_modules
+          else
+            echo "Lockfile changed (or missing) — installing base dependencies"
+            (cd .base && npm ci)
+          fi
+
+      - name: Build base app
+        id: build_base
+        if: steps.checkout_base.outcome == 'success'
+        continue-on-error: true
+        run: (cd .base && npm run build)
+
+      - name: Serve PR and base apps
+        run: |
+          node scripts/visual/server.mjs dist 4174 > .pr-server.log 2>&1 &
+          echo $! > .pr-server.pid
+          if [ "${{ steps.build_base.outcome }}" = "success" ]; then
+            node scripts/visual/server.mjs .base/dist 4175 > .base-server.log 2>&1 &
+            echo $! > .base-server.pid
+          fi
+          for i in $(seq 1 30); do curl -sf http://localhost:4174 > /dev/null && break; sleep 1; done
+
+      - name: Walk PR app
+        run: WALK_BASE_URL=http://localhost:4174 WALK_OUT_DIR=.visual/pr npx playwright test e2e/walk.e2e.ts
+
+      - name: Walk base app
+        if: steps.build_base.outcome == 'success'
+        run: |
+          for i in $(seq 1 30); do curl -sf http://localhost:4175 > /dev/null && break; sleep 1; done
+          WALK_BASE_URL=http://localhost:4175 WALK_OUT_DIR=.visual/base npx playwright test e2e/walk.e2e.ts
+
+      - name: Stop servers
+        if: always()
+        run: |
+          [ -f .pr-server.pid ] && kill "$(cat .pr-server.pid)" || true
+          [ -f .base-server.pid ] && kill "$(cat .base-server.pid)" || true
+
+      - name: Diff + verdict + comment body
+        if: always()
+        id: report
+        continue-on-error: true
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ "${{ steps.build_base.outcome }}" = "success" ]; then
+            node scripts/visual/report.mjs --pr-dir=.visual/pr --base-dir=.visual/base --diff-dir=.visual/diff --out-dir=.visual --artifacts-url="$RUN_URL"
+          else
+            node scripts/visual/report.mjs --pr-dir=.visual/pr --diff-dir=.visual/diff --out-dir=.visual --artifacts-url="$RUN_URL"
+          fi
+
+      - name: Upload screenshots + diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screens
+          path: .visual/**
+          if-no-files-found: warn
+
+      - name: Post or update PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- visual-check -->';
+            let body = marker + '\n\n_The visual-check run had no comment to post._';
+            try {
+              body = fs.readFileSync('.visual/comment.md', 'utf8');
+            } catch {}
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail on new findings
+        if: always()
+        run: |
+          if [ "${{ steps.report.outcome }}" != "success" ]; then
+            echo "The PR app has findings the base app did not have — see the PR comment / .visual/verdict.json in the screens artifact."
+            exit 1
+          fi

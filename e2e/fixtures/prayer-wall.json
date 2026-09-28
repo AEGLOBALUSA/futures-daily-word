@@ -1,0 +1,22 @@
+{
+  "prayers": [
+    {
+      "id": "fixture-prayer-1",
+      "name": "Sam",
+      "campus": "us-kennesaw",
+      "campusName": "Futures Kennesaw",
+      "prayer": "Praying for my family this week — fixture prayer for the visual-check walk-through.",
+      "prayerCount": 4,
+      "timeAgo": "2d"
+    },
+    {
+      "id": "fixture-prayer-2",
+      "name": "Anonymous",
+      "campus": "us-alpharetta",
+      "campusName": "Futures Alpharetta",
+      "prayer": "Thankful for the sermon on Sunday. Fixture prayer only.",
+      "prayerCount": 1,
+      "timeAgo": "5d"
+    }
+  ]
+}

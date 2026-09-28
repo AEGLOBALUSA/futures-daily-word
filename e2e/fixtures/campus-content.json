@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "id": "fixture-post-1",
+      "type": "announcement",
+      "title": "Welcome home this Sunday",
+      "content": "Sample pastor's corner update used only for the visual-check walk-through.",
+      "author": "Test Pastor",
+      "date": "2026-09-20T14:00:00.000Z"
+    },
+    {
+      "id": "fixture-post-2",
+      "type": "sermon_note",
+      "title": "This week's sermon notes",
+      "content": "A short fixture note so the campus corner has real-looking content in screenshots.",
+      "author": "Test Pastor",
+      "date": "2026-09-13T14:00:00.000Z"
+    }
+  ]
+}
