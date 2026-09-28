@@ -1,0 +1,96 @@
+name: post-deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  live-check:
+    name: live-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Poll version.json until it matches this commit
+        id: poll
+        run: |
+          SHA="${{ github.sha }}"
+          CACHE_BUST="${{ github.run_id }}-${{ github.run_attempt }}"
+          MATCHED=false
+          for i in $(seq 1 36); do
+            COMMIT=$(curl -sf "https://futuresdailyword.com/version.json?cb=${CACHE_BUST}-${i}" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).commit||'')}catch{console.log('')}})" || true)
+            echo "Attempt $i: live commit is '${COMMIT}'"
+            if [ "$COMMIT" = "$SHA" ]; then
+              MATCHED=true
+              break
+            fi
+            sleep 20
+          done
+          echo "matched=$MATCHED" >> "$GITHUB_OUTPUT"
+
+      - name: Live check against the real site
+        id: livecheck
+        if: steps.poll.outputs.matched == 'true'
+        continue-on-error: true
+        run: LIVE_BASE_URL=https://futuresdailyword.com npx playwright test e2e/live.e2e.ts
+
+      - name: Open an issue if the deploy didn't land or the live check failed
+        if: steps.poll.outputs.matched != 'true' || steps.livecheck.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.sha;
+            const shortSha = sha.slice(0, 7);
+            const matched = '${{ steps.poll.outputs.matched }}' === 'true';
+            const title = matched
+              ? `Live check failed after ${shortSha}`
+              : `The site didn't update after ${shortSha}`;
+
+            let prLine = '';
+            try {
+              const { data: pulls } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                commit_sha: sha,
+              });
+              if (pulls.length) {
+                prLine = `This came from #${pulls[0].number} ("${pulls[0].title}").\n\n`;
+              }
+            } catch (err) {
+              core.warning(`Could not look up the pull request for ${sha}: ${err}`);
+            }
+
+            const reason = matched
+              ? "The site updated to this commit, but the live check found a problem (a broken page or a script error) on futuresdailyword.com."
+              : "futuresdailyword.com never picked up this commit within 12 minutes of the deploy.";
+
+            const body = [
+              `@AEGLOBALUSA @${context.actor}`,
+              '',
+              reason,
+              '',
+              prLine + 'Open the pull request and press Revert, then merge the revert.',
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+            });
