@@ -57,23 +57,30 @@ export function hasTick(body = '') {
   return body.split(/\r?\n/).some((line) => /^\s*[-*]\s*\[[xX]\]\s*I['’]ve read what this changes/m.test(line));
 }
 
-export function isRevert({ headRef = '', title = '' }) {
-  return headRef.startsWith('revert-') || title.startsWith('Revert "');
+export function isRevert({ headRef = '', title = '', body = '' }) {
+  return /^revert-\d+-/.test(headRef) && /Reverts [\w.-]+\/[\w.-]+#\d+/.test(body);
+}
+
+export function ownerApproved({ reviews, owner, headSha }) {
+  const decisive = reviews.filter((review) => review.user?.login === owner && !['COMMENTED', 'PENDING'].includes(review.state));
+  const latest = decisive.reduce((current, review) => !current || new Date(review.submitted_at ?? 0) >= new Date(current.submitted_at ?? 0) ? review : current, null);
+  return latest?.state === 'APPROVED' && latest.commit_id === headSha;
 }
 
 const trim = (text) => text.length <= 140 ? text : `${text.slice(0, 137)}...`;
 
-export function decide({ author, owner, results, body, now, revert, ownerApproved }) {
-  if (author === owner) return { zones: { state: 'success', description: "Ashley's own change" }, hold: { state: 'success', description: "Ashley's own change" } };
+export function decide({ author, owner, results, body, now, revert, ownerApproved, ownerOnly, complete }) {
+  if (!complete) return { zones: { state: 'failure', description: 'Too many files to check here. Split this into smaller pull requests.' }, hold: { state: 'success', description: 'Not paused' } };
+  if (author === owner && ownerOnly) return { zones: { state: 'success', description: "Ashley's own change" }, hold: { state: 'success', description: "Ashley's own change" } };
   const red = results.find((result) => result.zone === 'red');
   const amber = results.some((result) => result.zone === 'amber');
   const zones = red
     ? (ownerApproved ? { state: 'success', description: "Ashley's approval is recorded" } : { state: 'failure', description: trim(`Waiting for Ashley's approval: this touches ${red.why}`) })
     : amber
-      ? (hasTick(body) ? { state: 'success', description: 'The note was read' } : { state: 'failure', description: 'Read the note on this pull request, then tick the box in the description' })
+      ? (revert || hasTick(body) ? { state: 'success', description: revert ? 'Verified revert' : 'The note was read' } : { state: 'failure', description: 'Read the note on this pull request, then tick the box in the description' })
       : { state: 'success', description: 'Only the Alpharetta space' };
   const hold = isSundayHold(now) && !revert
-    ? { state: 'failure', description: 'Merges pause Saturday 6 pm to Sunday 2 pm Atlanta time. Reverts still go through.' }
+    ? { state: 'failure', description: 'Merges pause Saturday 6 pm to Sunday 2 pm Atlanta time. Reverts still go through. After Ashley approves, this turns green within the hour.' }
     : { state: 'success', description: 'Not paused' };
   return { zones, hold };
 }
@@ -89,12 +96,13 @@ function bullets(results, zone) {
   return [...grouped].map(([why, paths]) => `- ${why}: ${paths.map((path) => `\`${path}\``).join(', ')}`).join('\n');
 }
 
-export function buildComment({ results, holdActive }) {
+export function buildComment({ results, holdActive, ownerCommitWarning = false }) {
   const red = results.some((result) => result.zone === 'red');
   const amber = results.some((result) => result.zone === 'amber');
   let text;
   if (!red && !amber) text = '✅ This change stays inside the Alpharetta space. When the checks are green, you can merge it.';
-  else if (!red) text = `⚠️ This change reaches past the Alpharetta space. It changes things every campus sees:\n${bullets(results, 'amber')}\nWhen you've read this, tick "I've read what this changes" in the description above. The other checks show whether the rest of the app still works.`;
-  else text = `🛑 This change touches the deeper parts of the app, so it waits for Ashley's approval:\n${bullets(results, 'red')}${amber ? `\nIt also changes things every campus sees:\n${bullets(results, 'amber')}` : ''}`;
+  else if (!red) text = `⚠️ This change reaches past the Alpharetta space. It changes things every campus sees:\n${bullets(results, 'amber')}\nTick this box in the description: \`- [ ] I've read what this changes\`. The other checks show whether the rest of the app still works.`;
+  else text = `🛑 This change touches the deeper parts of the app, so it waits for Ashley's approval:\n${bullets(results, 'red')}${amber ? `\nIt also changes things every campus sees:\n${bullets(results, 'amber')}` : ''}\nAfter Ashley approves, this turns green within the hour.`;
+  if (ownerCommitWarning) text += "\nCommits made by other tools under other identities make the owner's pull request follow the full rules. The owner can still merge through his bypass.";
   return `${text}${holdActive ? '\n⏸️ Merges pause from Saturday 6 pm to Sunday 2 pm Atlanta time.' : ''}\n<!-- zones-check -->`;
 }

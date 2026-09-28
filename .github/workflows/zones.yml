@@ -2,15 +2,11 @@ name: zones
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, edited, ready_for_review]
-  pull_request_review:
-    types: [submitted, dismissed]
   schedule:
-    # UTC. Covers the Atlanta Saturday 6 pm and Sunday 2 pm edges in both EDT and EST.
-    - cron: '5 22 * * 6'
-    - cron: '5 23 * * 6'
-    - cron: '5 18 * * 0'
-    - cron: '5 19 * * 0'
-  workflow_dispatch: {}
+    # UTC. Sweep hourly, with 15-minute coverage across the Atlanta Sunday edges in both EDT and EST.
+    - cron: '0 * * * *'
+    - cron: '*/15 21-23 * * 6'
+    - cron: '*/15 0-19 * * 0'
 permissions:
   contents: read
   pull-requests: write
@@ -26,7 +22,7 @@ jobs:
     name: zone-note
     runs-on: ubuntu-latest
     steps:
-      # ALWAYS the default branch: a pull request can never change these rules for itself.
+      # ALWAYS the default branch: pull_request_target and schedule run this definition from the default branch.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.repository.default_branch }}

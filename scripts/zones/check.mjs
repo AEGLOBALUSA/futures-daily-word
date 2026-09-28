@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { buildComment, classifyFiles, decide, isRevert } from './classify.mjs';
+import { buildComment, classifyFiles, decide, isRevert, ownerApproved as isOwnerApproved } from './classify.mjs';
 
 const token = process.env.GITHUB_TOKEN;
 const repo = process.env.GITHUB_REPOSITORY;
@@ -22,25 +22,34 @@ async function all(path) {
   }
 }
 
-async function processPr(pr, zones) {
+async function processPr(listed, zones) {
+  // Always the full, current PR: list results and event payloads can be stale or omit changed_files.
+  const pr = await gh('GET', `/repos/${repo}/pulls/${listed.number}`);
   if (pr.state !== 'open') return;
   const files = await all(`/repos/${repo}/pulls/${pr.number}/files`);
   const results = classifyFiles(files, zones);
+  const complete = typeof pr.changed_files !== 'number' || files.length >= pr.changed_files;
   const red = results.some((result) => result.zone === 'red');
+  const amber = results.some((result) => result.zone === 'amber');
   let ownerApproved = false;
   if (red) {
     const reviews = await all(`/repos/${repo}/pulls/${pr.number}/reviews`);
-    const latest = new Map();
-    for (const review of reviews) if (review.user?.login === zones.owner && !['COMMENTED', 'PENDING'].includes(review.state)) latest.set(review.user.login, review.state);
-    ownerApproved = latest.get(zones.owner) === 'APPROVED';
+    ownerApproved = isOwnerApproved({ reviews, owner: zones.owner, headSha: pr.head.sha });
   }
-  const decision = decide({ author: pr.user.login, owner: zones.owner, results, body: pr.body ?? '', now: new Date(), revert: isRevert({ headRef: pr.head.ref, title: pr.title }), ownerApproved });
+  const commits = await all(`/repos/${repo}/pulls/${pr.number}/commits`);
+  const author = pr.user?.login;
+  const ownerOnly = author === zones.owner && commits.every((commit) => commit.author?.login === zones.owner);
+  const revert = isRevert({ headRef: pr.head?.ref, title: pr.title, body: pr.body ?? '' });
+  const decision = decide({ author, owner: zones.owner, results, body: pr.body ?? '', now: new Date(), revert, ownerApproved, ownerOnly, complete });
   const target = pr.html_url;
   await gh('POST', `/repos/${repo}/statuses/${pr.head.sha}`, { state: decision.zones.state, context: 'zones', description: decision.zones.description, target_url: target });
   await gh('POST', `/repos/${repo}/statuses/${pr.head.sha}`, { state: decision.hold.state, context: 'sunday-hold', description: decision.hold.description, target_url: target });
-  if (pr.user.login !== zones.owner) {
+  if (amber && !revert && !ownerOnly && !(pr.body ?? '').split(/\r?\n/).some((line) => /^\s*[-*]\s*\[[ xX]\]\s*I['’]ve read what this changes/m.test(line))) {
+    await gh('PATCH', `/repos/${repo}/pulls/${pr.number}`, { body: `${pr.body ?? ''}\n\n- [ ] I've read what this changes` });
+  }
+  if (author !== zones.owner || (author === zones.owner && !ownerOnly)) {
     const comments = await all(`/repos/${repo}/issues/${pr.number}/comments`);
-    const body = buildComment({ results, holdActive: decision.hold.state === 'failure' });
+    const body = buildComment({ results, holdActive: decision.hold.state === 'failure', ownerCommitWarning: author === zones.owner && !ownerOnly });
     const existing = comments.find((comment) => comment.body?.includes('<!-- zones-check -->'));
     if (existing) {
       if (existing.body !== body) await gh('PATCH', `/repos/${repo}/issues/comments/${existing.id}`, { body });
@@ -53,10 +62,19 @@ try {
   const zones = JSON.parse(fs.readFileSync('.github/zones.json', 'utf8'));
   const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
   const eventName = process.env.GITHUB_EVENT_NAME;
-  const prs = eventName === 'schedule' || eventName === 'workflow_dispatch'
+  const prs = eventName === 'schedule'
     ? await all(`/repos/${repo}/pulls?state=open`)
     : [event.pull_request ?? await gh('GET', `/repos/${repo}/pulls/${event.number}`)];
-  for (const pr of prs) await processPr(pr, zones);
+  let failed = false;
+  for (const pr of prs) {
+    try {
+      await processPr(pr, zones);
+    } catch (error) {
+      failed = true;
+      console.error(`#${pr.number}: ${error.message}`);
+    }
+  }
+  if (failed) process.exitCode = 1;
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;
