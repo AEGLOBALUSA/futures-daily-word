@@ -10,6 +10,7 @@ import { t, getLang } from '../utils/i18n';
 import type { TabId } from '../components/TabBar';
 import { pushNow } from '../utils/cloudSync';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
+import { ALPHARETTA_TAB_LABEL, useAlpharettaTab } from '../alpharetta-gate/AlpharettaSlot';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -268,7 +269,12 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
 
   // 'notes' (Sermons) sub-tab retired (Ashley, 26 Aug 2026): it was a stranded
   // third sermon-note surface — sermon notes live in Notes → Sermon now.
-  const [activeTab, setActiveTab] = useState<'pastor' | 'prayer'>('pastor');
+  const { showTab: alpharettaAllowed, panel: alpharettaPanel } = useAlpharettaTab(userProfile?.campus);
+  const [activeTab, setActiveTab] = useState<'pastor' | 'prayer' | 'alpharetta'>('pastor');
+
+  useEffect(() => {
+    if (activeTab === 'alpharetta' && !alpharettaAllowed) setActiveTab('pastor');
+  }, [activeTab, alpharettaAllowed]);
 
   // Re-tap of the Campus tab in the tab bar → back to the tab's root state.
   useEffect(() => {
@@ -296,7 +302,7 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
           background: 'var(--dw-surface)', borderRadius: 12, padding: 4,
           border: '1px solid var(--dw-border)',
         }}>
-          {(['pastor', 'prayer'] as const).map(tab => (
+          {(['pastor', 'prayer', ...(alpharettaAllowed ? ['alpharetta' as const] : [])] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               flex: 1, padding: '10px 0',
               background: activeTab === tab ? 'var(--dw-accent)' : 'transparent',
@@ -305,7 +311,7 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
               fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
               transition: 'all 0.2s ease',
             }}>
-              {tab === 'pastor' ? t("pastors_corner", lang) : t("prayer_wall", lang)}
+              {tab === 'pastor' ? t("pastors_corner", lang) : tab === 'prayer' ? t("prayer_wall", lang) : ALPHARETTA_TAB_LABEL}
             </button>
           ))}
         </div>
@@ -330,7 +336,9 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
 
       {activeTab === 'pastor'
         ? <PastorsCornerPanel userProfile={userProfile} />
-        : <PrayerWallPanel userProfile={userProfile} requireEmail={requireEmail} />
+        : activeTab === 'prayer'
+          ? <PrayerWallPanel userProfile={userProfile} requireEmail={requireEmail} />
+          : <div style={{ padding: '0 24px 24px' }}>{alpharettaPanel}</div>
       }
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

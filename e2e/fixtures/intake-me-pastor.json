@@ -1,0 +1,8 @@
+{
+  "staff": {
+    "email": "pastor@example.com",
+    "role": "campus",
+    "campusId": "us-alpharetta",
+    "name": "Test Pastor"
+  }
+}

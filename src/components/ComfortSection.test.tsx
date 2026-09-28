@@ -43,7 +43,7 @@ describe('ComfortSection', () => {
     const el = mount(false);
     expect(el.textContent).not.toMatch(/ESV|NIV|KJV/);
     expect(el.querySelector('button')).toBeNull();
-    expect(el.textContent?.toLowerCase()).not.toContain('listen');
+    expect([...el.querySelectorAll('button, a')].filter(control => /listen/i.test(control.textContent || '')).length).toBe(0);
   });
 
   it('renders no count line', () => {

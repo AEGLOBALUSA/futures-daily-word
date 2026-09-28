@@ -1,0 +1,35 @@
+name: zones
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  schedule:
+    # UTC. Sweep hourly, with 15-minute coverage across the Atlanta Sunday edges in both EDT and EST.
+    - cron: '0 * * * *'
+    - cron: '*/15 21-23 * * 6'
+    - cron: '*/15 0-19 * * 0'
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+concurrency:
+  group: zones-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  zones:
+    # Not named 'zones': the required check is the commit status this script posts,
+    # and a job called 'zones' would pass whenever the script merely ran.
+    name: zone-note
+    runs-on: ubuntu-latest
+    steps:
+      # ALWAYS the default branch: pull_request_target and schedule run this definition from the default branch.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/zones/check.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
