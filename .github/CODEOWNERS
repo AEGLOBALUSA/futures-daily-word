@@ -21,6 +21,12 @@
 /capacitor.config.ts @AEGLOBALUSA
 *.test.ts @AEGLOBALUSA
 *.test.tsx @AEGLOBALUSA
+/src/__tests__/ @AEGLOBALUSA
+/e2e/ @AEGLOBALUSA
+/tests/ @AEGLOBALUSA
+*.test.js @AEGLOBALUSA
+*.test.mjs @AEGLOBALUSA
+/src/alpharetta-gate/ @AEGLOBALUSA
 /.github/ @AEGLOBALUSA
 /scripts/ @AEGLOBALUSA
 /scripts/zones/ @AEGLOBALUSA

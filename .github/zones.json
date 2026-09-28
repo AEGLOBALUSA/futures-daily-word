@@ -62,8 +62,17 @@
     },
     {
       "patterns": [
+        "src/alpharetta-gate/**"
+      ],
+      "why": "who can see the Alpharetta space and how its pages open"
+    },
+    {
+      "patterns": [
         "**/*.test.ts",
         "**/*.test.tsx",
+        "tests/**",
+        "**/*.test.js",
+        "**/*.test.mjs",
         "src/__tests__/**",
         "e2e/**"
       ],
