@@ -265,7 +265,10 @@ async function runView(
 
     const screenshotRel = `${view.name}.png`;
     try {
-      await page.screenshot({ path: path.join(outDir, screenshotRel), fullPage: true });
+      // animations: 'disabled' freezes shimmer/pulse animations (e.g. the AI button's sheen), which
+      // ignore prefers-reduced-motion and otherwise make two identical builds look different. The AI
+      // launcher's sheen still drifts frame to frame, so it is masked.
+      await page.screenshot({ path: path.join(outDir, screenshotRel), fullPage: true, animations: 'disabled', caret: 'hide', mask: [page.locator('.dw-ai-launcher')] });
     } catch { /* best effort */ }
 
     const issue: ViewIssues = {

@@ -59,22 +59,16 @@ function buildComment({ diffRows, baseBuilt, artifactsUrl }) {
   const nonAlpharetta = changed.filter((r) => !r.alpharetta);
   const alpharetta = changed.filter((r) => r.alpharetta);
 
-  if (nonAlpharetta.length === 0 && alpharetta.length === 0) {
+  if (nonAlpharetta.length === 0) {
     lines.push('No screen outside the Alpharetta space changed.');
   } else {
-    lines.push('Screens outside the Alpharetta space that look different — every campus sees these:');
-    if (nonAlpharetta.length === 0) {
-      lines.push('- none');
-    } else {
-      for (const r of nonAlpharetta) lines.push(`- ${r.name} (${(r.fraction * 100).toFixed(1)}% of the screen changed)`);
-    }
+    lines.push('Screens outside the Alpharetta space that look different. Every campus sees these:');
+    for (const r of nonAlpharetta) lines.push(`- ${r.name} (${(r.fraction * 100).toFixed(1)}% of the screen changed)`);
+  }
+  if (alpharetta.length) {
     lines.push('');
-    lines.push('Alpharetta space:');
-    if (alpharetta.length === 0) {
-      lines.push('- none');
-    } else {
-      for (const r of alpharetta) lines.push(`- ${r.name} (${(r.fraction * 100).toFixed(1)}% of the screen changed)`);
-    }
+    lines.push('Changed in the Alpharetta space:');
+    for (const r of alpharetta) lines.push(`- ${r.name} (${(r.fraction * 100).toFixed(1)}% of the screen changed)`);
   }
   lines.push('');
   lines.push(`[See the pictures in the run's artifacts](${artifactsUrl})`);
