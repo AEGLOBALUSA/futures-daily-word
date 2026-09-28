@@ -1,0 +1,177 @@
+{
+  "owner": "AEGLOBALUSA",
+  "green": [
+    "src/alpharetta/**",
+    "public/alpharetta/**"
+  ],
+  "red": [
+    {
+      "patterns": [
+        "netlify/functions/**"
+      ],
+      "why": "the server: it can read and change everyone's data, and the Pastors Sermon Prep and Preach It Back apps use it too"
+    },
+    {
+      "patterns": [
+        "supabase/**",
+        "**/*.sql"
+      ],
+      "why": "the database"
+    },
+    {
+      "patterns": [
+        "public/sw.js"
+      ],
+      "why": "the file that updates the app on people's phones; a mistake can leave installed phones stuck on an old version"
+    },
+    {
+      "patterns": [
+        "src/utils/cloudSync.ts",
+        "src/utils/storage.ts"
+      ],
+      "why": "people's saved notes, highlights and settings"
+    },
+    {
+      "patterns": [
+        "netlify.toml",
+        "_redirects",
+        "index.html",
+        "404.html",
+        "offline.html"
+      ],
+      "why": "how the site is served and kept secure"
+    },
+    {
+      "patterns": [
+        "package.json",
+        "package-lock.json",
+        ".npmrc"
+      ],
+      "why": "outside code the app downloads when it builds"
+    },
+    {
+      "patterns": [
+        "vite.config.*",
+        "vitest.config.*",
+        "tsconfig*.json",
+        "eslint.config.js",
+        "playwright.config.*",
+        "capacitor.config.ts"
+      ],
+      "why": "how the app is built and checked"
+    },
+    {
+      "patterns": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "src/__tests__/**",
+        "e2e/**"
+      ],
+      "why": "the tests that check the app still works"
+    },
+    {
+      "patterns": [
+        ".github/**",
+        "scripts/zones/**",
+        "scripts/visual/**"
+      ],
+      "why": "the safety checks themselves"
+    },
+    {
+      "patterns": [
+        "CLAUDE.md",
+        "AGENTS.md",
+        "docs/pastor-builders/**"
+      ],
+      "why": "the rules the building assistant follows"
+    },
+    {
+      "patterns": [
+        "scripts/**"
+      ],
+      "why": "tools that run when the app is built or its data is loaded"
+    }
+  ],
+  "amber": [
+    {
+      "patterns": [
+        "src/utils/i18n.ts"
+      ],
+      "why": "every word in the app, in English, Spanish, Portuguese and Indonesian"
+    },
+    {
+      "patterns": [
+        "src/index.css",
+        "src/App.css"
+      ],
+      "why": "the look of every screen"
+    },
+    {
+      "patterns": [
+        "src/App.tsx",
+        "src/main.tsx",
+        "src/components/TabBar.tsx"
+      ],
+      "why": "the app's navigation for everyone"
+    },
+    {
+      "patterns": [
+        "src/screens/MessagesScreen.tsx"
+      ],
+      "why": "the Campus tab for every campus (Pastor's Corner and Prayer Wall)"
+    },
+    {
+      "patterns": [
+        "src/screens/HomeScreen.tsx",
+        "src/sections/**"
+      ],
+      "why": "the Home screen for everyone"
+    },
+    {
+      "patterns": [
+        "src/staff/**"
+      ],
+      "why": "the staff form every pastor uses"
+    },
+    {
+      "patterns": [
+        "src/screens/PreachScreen.tsx",
+        "src/components/preach/**"
+      ],
+      "why": "Sunday sermon publishing"
+    },
+    {
+      "patterns": [
+        "src/screens/**"
+      ],
+      "why": "a main screen every campus uses"
+    },
+    {
+      "patterns": [
+        "src/components/**"
+      ],
+      "why": "a shared building block used across the app"
+    },
+    {
+      "patterns": [
+        "src/utils/**",
+        "src/contexts/**",
+        "src/data/**"
+      ],
+      "why": "shared code and content used across the app"
+    },
+    {
+      "patterns": [
+        "public/**"
+      ],
+      "why": "files the app serves to everyone"
+    },
+    {
+      "patterns": [
+        "docs/**"
+      ],
+      "why": "project notes"
+    }
+  ],
+  "amberFallback": "a part of the app every campus uses"
+}

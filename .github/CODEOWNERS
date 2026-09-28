@@ -1,0 +1,33 @@
+# This file mirrors the red list in .github/zones.json.
+/netlify/functions/ @AEGLOBALUSA
+/supabase/ @AEGLOBALUSA
+*.sql @AEGLOBALUSA
+/public/sw.js @AEGLOBALUSA
+/src/utils/cloudSync.ts @AEGLOBALUSA
+/src/utils/storage.ts @AEGLOBALUSA
+/netlify.toml @AEGLOBALUSA
+/_redirects @AEGLOBALUSA
+/index.html @AEGLOBALUSA
+/404.html @AEGLOBALUSA
+/offline.html @AEGLOBALUSA
+/package.json @AEGLOBALUSA
+/package-lock.json @AEGLOBALUSA
+/.npmrc @AEGLOBALUSA
+/vite.config.* @AEGLOBALUSA
+/vitest.config.* @AEGLOBALUSA
+/tsconfig*.json @AEGLOBALUSA
+/eslint.config.js @AEGLOBALUSA
+/playwright.config.* @AEGLOBALUSA
+/capacitor.config.ts @AEGLOBALUSA
+*.test.ts @AEGLOBALUSA
+*.test.tsx @AEGLOBALUSA
+/.github/ @AEGLOBALUSA
+/scripts/ @AEGLOBALUSA
+/scripts/zones/ @AEGLOBALUSA
+/scripts/visual/ @AEGLOBALUSA
+/CLAUDE.md @AEGLOBALUSA
+/AGENTS.md @AEGLOBALUSA
+/docs/pastor-builders/ @AEGLOBALUSA
+# These are the Alpharetta builder's own space.
+/src/alpharetta/
+/public/alpharetta/
