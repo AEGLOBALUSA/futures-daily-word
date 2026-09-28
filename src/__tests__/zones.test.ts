@@ -62,9 +62,9 @@ describe('Sunday hold and pull request decisions', () => {
 
 describe('zone comments', () => {
   it('uses each zone header and the marker', () => {
-    expect(buildComment({ results: [result('green')], holdActive: false })).toContain('✅ This change stays inside');
-    expect(buildComment({ results: [result('amber', 'the shared app')], holdActive: false })).toContain('⚠️ This change reaches past');
-    expect(buildComment({ results: [result('red', 'the database'), result('amber', 'shared code')], holdActive: true })).toContain('🛑 This change touches');
+    expect(buildComment({ results: [result('green')], holdActive: false })).toContain('This change stays inside');
+    expect(buildComment({ results: [result('amber', 'the shared app')], holdActive: false })).toContain('This change reaches past');
+    expect(buildComment({ results: [result('red', 'the database'), result('amber', 'shared code')], holdActive: true })).toContain('This change touches the deeper parts');
     expect(buildComment({ results: [result('green')], holdActive: true })).toContain('<!-- zones-check -->');
   });
 });
