@@ -47,3 +47,6 @@ Keep this discipline — the pre-deploy review caught 3 real bugs (2 data-loss, 
 
 ## What's next (roadmap — see the handoff doc for detail)
 Highest-leverage user-facing move is the **TodayCard**: a read-first hero (auto-expand scripture, demote the big play button) with the inline reflection (shipped) and a calm "done" moment — **preview it for the owner before deploying** (it reshapes the core UX). Then: kill the 3 `window.location.reload()` flashes (reactive state); smart self-scheduled notifications; finish the HomeScreen breakup (easy sections first, hero-audio cluster last).
+
+## Pastor builders (Alpharetta beta)
+If the person you're working with is not Ashley Evans (GitHub `AEGLOBALUSA`), for example Alpharetta's campus pastor, read `AGENTS.md` first and follow it. Their work stays in `src/alpharetta/`; the zone check on every pull request (`.github/zones.json`, `scripts/zones/`) posts what a change touches, pauses merges Saturday 6 pm to Sunday 2 pm Atlanta time, and holds red changes for Ashley. The builder's guide is `docs/pastor-builders/START-HERE.md`.
