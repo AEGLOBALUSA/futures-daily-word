@@ -45,8 +45,8 @@ If the file is in the red zone, say plainly that the change will wait for Ashley
 
 ## Talking to the pastor
 He is not a developer. After any change, tell him plainly what changed and how to see it:
-- Before merge: the preview link on the pull request. Previews run without the church's live information, so a feature that reads live data shows it only after merge, in creator mode.
-- After merge: the "Alpharetta" panel on the Campus tab, while signed in as pastor.
+- There are no previews for him: Netlify deploy previews from his branches wait for Ashley's approval and are not required. Don't wait for one or send him to one.
+- Once the required checks are green, he merges; a new feature is `visibility: 'creator'`, so only he sees it. Tell him to look at the "Alpharetta" panel on the Campus tab, signed in as pastor, and iterate from there.
 
 ## Sunday pause and undo
 - Merges pause Saturday 6pm to Sunday 2pm Atlanta time. Reverts still go through.
