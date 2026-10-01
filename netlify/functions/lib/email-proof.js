@@ -14,7 +14,8 @@
  *   dwproof-code:<tokenHash>:<sha256(email|tokenHash|code)>   a live code
  *   dwproof-send:<email>:<ip>                                  a send, per address AND caller IP
  *   dwproof-send:<email>                                       a send, per address (loose backstop)
- *   dwproof-send-new:<email>                                   a send to an address that has never held a proven token
+ *   dwproof-send-new:<email>:<ip>                              a send to an address that has never held a proven token, per caller IP
+ *   dwproof-send-new:<email>                                   the same, per address (loose backstop)
  *   dwproof-send-ip:<ip>                                       a send, per caller IP
  *   dwproof-send-all                                           a send to an address with a proven history, global
  *   dwproof-send-all-new                                       a send to an address with no proven history, global
@@ -54,9 +55,15 @@ const SEND_GLOBAL_NEW_HOUR = 150;
 // stranger's: anyone can register it (new email) and register it again (existing
 // email) to get an unproven token, then ask for a code to be mailed to it. So an
 // address with no proven history gets a much smaller budget of its own: one send
-// per 15 minutes and two a day. A real new reader needs one; a typo a second.
+// per 15 minutes and two a day from one caller IP. A real new reader needs one; a
+// typo a second. It is per IP so that a stranger's two sends cannot block the
+// reader's second device for the day (every reader who joined since the proof
+// change has no proven history: their first device holds an "r:" token). The
+// address-wide backstop of six a day, the per-IP 20 / hour, the address 30 / day
+// and the global 150 / hour for never-proven addresses bound the fan-out.
 const SEND_NEW_15M = 1;
 const SEND_NEW_DAY = 2;
+const SEND_NEW_ALL_IPS_DAY = 6;
 // A code belongs to one token, so the per-TOKEN limit is what stops guessing: 5
 // tries on a 1-in-a-million code, and a token only has a code after a send,
 // which the per-address send limits cap. The per-ADDRESS limit is only a loose
@@ -190,7 +197,8 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
   // Send limits (fail closed): 3 / 15 min and 8 / day per address and caller
   // IP, 30 / day per address from any IP, 20 / hour per caller IP, and a global
   // hourly cap (300 for addresses with a proven history, 150 for the rest). An
-  // address that has never held a proven token also gets 1 / 15 min and 2 / day.
+  // address that has never held a proven token also gets 1 / 15 min and 2 / day
+  // per caller IP, and 6 / day from all IPs together.
   //
   // Two passes. The first only reads, so an ordinary refused retry writes
   // nothing. The second is what makes the limits hold under a parallel burst
@@ -208,8 +216,9 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
     const proven = await hasProvenHistory(db, email);
     const stages = [
       { key: `dwproof-send:${email}:${realIp}`, limits: [[15 * MIN, SEND_PER_EMAIL_15M], [DAY, SEND_PER_EMAIL_DAY]], error: "too_many" },
+      ...(proven ? [] : [{ key: `dwproof-send-new:${email}:${realIp}`, limits: [[15 * MIN, SEND_NEW_15M], [DAY, SEND_NEW_DAY]], error: "too_many" }]),
       { key: `dwproof-send-ip:${realIp}`, limits: [[HOUR, SEND_PER_IP_HOUR]], error: "too_many" },
-      ...(proven ? [] : [{ key: `dwproof-send-new:${email}`, limits: [[15 * MIN, SEND_NEW_15M], [DAY, SEND_NEW_DAY]], error: "too_many" }]),
+      ...(proven ? [] : [{ key: `dwproof-send-new:${email}`, limits: [[DAY, SEND_NEW_ALL_IPS_DAY]], error: "too_many" }]),
       { key: `dwproof-send:${email}`, limits: [[DAY, SEND_PER_EMAIL_ALL_IPS_DAY]], error: "too_many" },
       proven
         ? { key: "dwproof-send-all", limits: [[HOUR, SEND_GLOBAL_HOUR]], error: "busy" }

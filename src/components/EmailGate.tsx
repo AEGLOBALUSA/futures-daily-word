@@ -53,7 +53,7 @@ export function EmailGate() {
   const [campus, setCampus] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [_done, setDone] = useState(false);
+  const [, setDone] = useState(false);
 
   // Each time the gate (re)opens for a user who already has a persona, skip past the
   // picker. Guards the re-open case where this component stays mounted between opens.
@@ -96,10 +96,14 @@ export function EmailGate() {
         });
         if (pcoRes.ok) {
           const pcoData = await pcoRes.json();
-          if (pcoData.person) {
-            profile.firstName = pcoData.person.firstName || '';
-            profile.lastName = pcoData.person.lastName || '';
-            if (pcoData.person.campus) profile.campus = pcoData.person.campus;
+          // pco-sync answers with `profile` (`person` is the older name). Since
+          // pco-sync stopped writing anything for an unproven caller, this is
+          // the only way a new PCO reader's name and campus reach register.
+          const pp = pcoData.profile || pcoData.person;
+          if (pp) {
+            profile.firstName = pp.firstName || '';
+            profile.lastName = pp.lastName || '';
+            if (pp.campus) profile.campus = pp.campus;
           }
         }
       } catch { /* PCO optional */ }
