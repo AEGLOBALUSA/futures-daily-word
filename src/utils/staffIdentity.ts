@@ -9,7 +9,7 @@
  */
 import { intake, getStaffToken, setStaffToken } from '../staff/api';
 import { API_BASE, localApiBase } from './api-base';
-import { setSessionToken } from './sessionToken';
+import { getSessionToken, setSessionToken } from './sessionToken';
 import type { UserProfile, SetupState } from '../contexts/UserContext';
 
 export interface StaffRecord {
@@ -339,7 +339,12 @@ export async function registerCloudIdentity(profile: UserProfile, persona: strin
 export async function swapForProvenSyncToken(): Promise<boolean> {
   if (!getStaffToken()) return false;
   try {
-    const proven = await intake<{ token?: string | null }>('sync_token');
+    // Send the cloud token this device already holds: when it belongs to the staff
+    // address the server proves THAT token in place and hands it back, instead of
+    // minting a new proven token on every sign-in (the sixth would push out the
+    // oldest device's token).
+    const currentToken = getSessionToken();
+    const proven = await intake<{ token?: string | null }>('sync_token', currentToken ? { currentToken } : {});
     if (proven && typeof proven.token === 'string' && proven.token) {
       setSessionToken(proven.token);
       return true;

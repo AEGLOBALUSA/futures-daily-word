@@ -8,7 +8,13 @@
  * real client sends them (see lib/auth.js), and are compared structurally.
  *
  * `fake.failOn(table, op)` makes the next calls of that op on that table return
- * { error } so a test can prove a gate fails closed.
+ * { error } so a test can prove a gate fails closed. `fake.failOnce(table, op)`
+ * does the same for one call only, and `fake.answerOnce(table, op, result)`
+ * returns `result` for the next such call without touching the table (to stage a
+ * race, e.g. an existence read that misses a row another request just wrote).
+ *
+ * profiles.email is unique, as in the real table: a duplicate insert returns
+ * { error: { code: '23505' } }.
  *
  * NOTE: this file lives in tests/, never in netlify/functions/.
  */
@@ -24,6 +30,7 @@ export function createFakeSupabase(seed = {}) {
     ...clone(seed),
   };
   const failures = new Set();
+  const once = []; // [{ key, result }]
 
   function matches(row, filters) {
     return filters.every((f) => {
@@ -76,6 +83,8 @@ export function createFakeSupabase(seed = {}) {
     b.maybeSingle = () => { st.mode = 'maybe'; return b; };
 
     function run() {
+      const i = once.findIndex((o) => o.key === `${table}:${st.op}`);
+      if (i >= 0) return once.splice(i, 1)[0].result;
       if (failures.has(`${table}:${st.op}`)) {
         return { data: null, error: { message: `injected ${st.op} failure`, code: 'XX000' } };
       }
@@ -83,6 +92,9 @@ export function createFakeSupabase(seed = {}) {
       let out = [];
       if (st.op === 'insert') {
         const list = Array.isArray(st.payload) ? st.payload : [st.payload];
+        if (table === 'profiles' && list.some((r) => rows.some((x) => x.email === r.email))) {
+          return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "profiles_email_key"' } };
+        }
         for (const r of list) {
           const row = { ...clone(r) };
           if (table === 'rate_limit_hits' && !row.created_at) row.created_at = new Date().toISOString();
@@ -139,6 +151,8 @@ export function createFakeSupabase(seed = {}) {
     from: (table) => builder(table),
     rpc: async () => ({ data: null, error: null }),
     failOn: (table, op) => failures.add(`${table}:${op}`),
-    clearFailures: () => failures.clear(),
+    failOnce: (table, op) => once.push({ key: `${table}:${op}`, result: { data: null, error: { message: `injected ${op} failure`, code: 'XX000' } } }),
+    answerOnce: (table, op, result) => once.push({ key: `${table}:${op}`, result }),
+    clearFailures: () => { failures.clear(); once.length = 0; },
   };
 }

@@ -30,6 +30,7 @@
  */
 
 const crypto = require("crypto");
+const { clientIp } = require("./client-ip");
 
 // Migration rate limiter — prevent brute-force token issuance via email enumeration
 const migrationHits = {};
@@ -71,8 +72,9 @@ const FIRST_PREFIX = "r:";
 const MAX_PROVEN = 5;
 const MAX_FIRST = 3;
 const MAX_UNPROVEN = 3;
-// Hard ceiling on unproven entries when every one of them has a live code and so
-// may not be evicted (see issueToken).
+// Hard ceiling on unproven entries when every one of them is protected (a live
+// code, or minted in the last 10 minutes) and so may not be evicted: past it a
+// new unproven mint is refused (see capUnproven).
 const MAX_UNPROVEN_HARD = 5;
 
 // An emailed code lives this long (email-proof.js CODE_TTL_MS). Kept here so
@@ -80,6 +82,11 @@ const MAX_UNPROVEN_HARD = 5;
 const CODE_TTL_MS = 10 * 60 * 1000;
 /** rate_limit_hits key prefix under which the live codes of one token are stored. */
 const proofCodePrefix = (hash) => `dwproof-code:${hash}:`;
+// A freshly minted unproven token is left alone this long (within
+// MAX_UNPROVEN_HARD), so a reader who has not asked for a code yet is not pushed
+// out by three stranger tokens before they do. Recorded as dwproof-mint:<hash>.
+const MINT_GRACE_MS = 10 * 60 * 1000;
+const mintKey = (hash) => `dwproof-mint:${hash}`;
 
 const isUnproven = (h) => typeof h === "string" && h.startsWith(UNPROVEN_PREFIX);
 const isFirst = (h) => typeof h === "string" && h.startsWith(FIRST_PREFIX);
@@ -94,14 +101,14 @@ function capClass(hashes, inClass, max) {
   return hashes.filter((_, i) => !drop.has(i));
 }
 
-/** True when this unproven token has an emailed code that is still live. Any error counts as "no". */
-async function hasLiveCode(db, hash) {
+/** True when rate_limit_hits has a row matching `pattern` (LIKE) newer than `windowMs`. Any error counts as "no". */
+async function hasRecentRow(db, pattern, windowMs) {
   try {
-    const since = new Date(Date.now() - CODE_TTL_MS).toISOString();
+    const since = new Date(Date.now() - windowMs).toISOString();
     const { count, error } = await db
       .from("rate_limit_hits")
       .select("*", { count: "exact", head: true })
-      .like("key", proofCodePrefix(hash) + "%")
+      .like("key", pattern)
       .gte("created_at", since);
     return !error && count > 0;
   } catch {
@@ -109,27 +116,47 @@ async function hasLiveCode(db, hash) {
   }
 }
 
+/** True when this unproven token has an emailed code that is still live. Any error counts as "no". */
+const hasLiveCode = (db, hash) => hasRecentRow(db, proofCodePrefix(hash) + "%", CODE_TTL_MS);
+/** True when this unproven token was minted within MINT_GRACE_MS. Any error counts as "no". */
+const mintedRecently = (db, hash) => hasRecentRow(db, mintKey(hash), MINT_GRACE_MS);
+
 /**
  * Trim the unproven class to MAX_UNPROVEN, oldest first, but never drop the
- * entry just added, and skip a token that has a live emailed code: otherwise a
- * stranger minting tokens for a reader's address (5/min/IP) pushes the reader's
- * pending token out between "email me the code" and typing it, and the reader
- * gets 409 token_gone. The ceiling is MAX_UNPROVEN_HARD, so a flood still cannot
- * grow the array without limit.
+ * entry just added, and leave alone a token that has a live emailed code or was
+ * minted in the last 10 minutes: otherwise a stranger minting tokens for a
+ * reader's address pushes the reader's pending token out before they ask for a
+ * code, or between "email me the code" and typing it, and the reader gets 409
+ * token_gone. A protected token is never dropped to make room: when the class
+ * would still be above the ceiling MAX_UNPROVEN_HARD once every unprotected
+ * entry above MAX_UNPROVEN is gone (so every remaining one is protected), the new
+ * mint is REFUSED instead (returns null, issueToken throws and its callers hand
+ * out no token). A flood still cannot grow the array, and five stranger tokens
+ * from one IP inside the migration budget cannot push out the reader's own.
+ *
+ * @returns {Promise<string[]|null>} the trimmed array, or null to refuse the mint.
  */
 async function capUnproven(db, hashes, justAdded) {
   const idx = [];
   hashes.forEach((h, i) => { if (isUnproven(h)) idx.push(i); });
   if (idx.length <= MAX_UNPROVEN) return hashes;
+  // 0 = unprotected, 1 = minted recently, 2 = live code. The entry just added has no tier and is never dropped.
+  const tier = new Map();
+  for (const i of idx) {
+    if (hashes[i] === justAdded) continue;
+    const h = hashes[i].slice(UNPROVEN_PREFIX.length);
+    tier.set(i, (await hasLiveCode(db, h)) ? 2 : (await mintedRecently(db, h)) ? 1 : 0);
+  }
   const drop = new Set();
   let remaining = idx.length;
-  for (const i of idx) {
-    if (remaining <= MAX_UNPROVEN) break;
-    if (hashes[i] === justAdded) continue;
-    if (remaining <= MAX_UNPROVEN_HARD && await hasLiveCode(db, hashes[i].slice(UNPROVEN_PREFIX.length))) continue;
-    drop.add(i);
-    remaining--;
-  }
+  const dropTier = (t, floor) => {
+    for (const i of idx) {
+      if (remaining <= floor) return;
+      if (tier.get(i) === t && !drop.has(i)) { drop.add(i); remaining--; }
+    }
+  };
+  dropTier(0, MAX_UNPROVEN);
+  if (remaining > MAX_UNPROVEN_HARD) return null;
   return hashes.filter((_, i) => !drop.has(i));
 }
 
@@ -197,7 +224,9 @@ async function authenticateRequest(event, db) {
  * entries are capped at 5; a first-device token (`first: true`, only for the
  * request that created the profile) is stored as "r:<hash>", capped at 3; an
  * unproven token is stored as "u:<hash>" and the "u:" entries are capped at 3
- * (a token with a live emailed code is not evicted, see capUnproven). The
+ * (a token with a live emailed code, or minted in the last 10 minutes, is not
+ * evicted; when every slot up to 5 is held by such a token the new unproven
+ * mint throws, see capUnproven). The
  * classes never evict each other. Defaults to UNPROVEN: a caller has to say so
  * to hand out a trusted token.
  *
@@ -240,7 +269,12 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
     hashes.push(entry);
     if (isFirstDevice) hashes = capClass(hashes, isFirst, MAX_FIRST);
     else if (proven) hashes = capClass(hashes, isPlain, MAX_PROVEN);
-    else hashes = await capUnproven(db, hashes, entry);
+    else {
+      hashes = await capUnproven(db, hashes, entry);
+      // Every unproven slot is held by a token with a live code or minted in the
+      // last 10 minutes: no token, rather than pushing out a reader's own.
+      if (!hashes) throw new Error("Cannot issue token: unproven tokens at their ceiling");
+    }
 
     let update = db
       .from("profiles")
@@ -255,17 +289,21 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
     const { data: updated, error: updateErr } = await update.select("email");
 
     if (updateErr) {
-      // The guarded update itself failed (not a CAS miss). Fall back to the
-      // legacy unconditional write so token issuance never hard-breaks.
-      console.error("issueToken CAS update error, falling back:", updateErr.message);
-      const { error: plainErr } = await db
-        .from("profiles")
-        .update({ session_token_hashes: hashes })
-        .eq("email", email);
-      if (plainErr) throw new Error("Failed to store token: " + plainErr.message);
-      return raw;
+      // The guarded update itself failed (not a CAS miss). Fail closed, as
+      // promoteToken does: there is NO unguarded fallback write. `hashes` was
+      // built from a read that may now be stale, and writing it blind could
+      // bring back an "r:" token that a proof revoked in the meantime (a
+      // squatter's, which would then read the owner's journal) and drop the
+      // owner's freshly proven token. Every caller already catches this.
+      console.error("issueToken CAS update error:", updateErr.message);
+      throw new Error("Failed to store token");
     }
     if (updated && updated.length > 0) {
+      if (isUnproven(entry)) {
+        // Best effort: the mint record only buys this token a few minutes'
+        // grace in capUnproven. A failure here just means no grace.
+        try { await db.from("rate_limit_hits").insert({ key: mintKey(hash) }); } catch { /* grace only */ }
+      }
       return raw;
     }
     // Zero rows matched — a concurrent issue landed between our read and
@@ -273,6 +311,107 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
   }
 
   throw new Error("Failed to store token: concurrent update conflict");
+}
+
+/**
+ * Staff sign-in on a device that already holds a cloud token for the staff
+ * address: put a proven token in THAT token's slot instead of adding another,
+ * so repeated sign-ins on one device do not fill the proven cap (5) and push
+ * out the person's other devices.
+ *   - the plain hash is already there: nothing to rotate (every "r:" is still
+ *     removed) and the same raw token is handed back;
+ *   - "u:<hash>" or "r:<hash>": ROTATED, never promoted in place. Those tokens
+ *     were handed out with no proof, so someone else may hold a copy (a stranger
+ *     who typed the address on a shared device, a squatter who registered it
+ *     first). The old entry and every "r:" are removed and a freshly generated
+ *     token is appended as the newest proven entry, as promoteToken does, so the
+ *     planted copy dies and the token count stays the same;
+ *   - not in this profile at all: returns null and the caller issues a new token.
+ * A compare-and-swap on the array, like promoteToken. Fails closed: a database
+ * error throws "Failed to store token" (sync_token answers { token: null }).
+ *
+ * @param {string} raw the raw token the device holds.
+ * @returns {Promise<string|null>} the raw proven token the device must keep, or
+ *   null when `raw` is not a token of this profile.
+ */
+async function claimProvenToken(db, email, raw) {
+  const hash = hashToken(raw);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, error } = await db
+      .from("profiles")
+      .select("session_token_hashes")
+      .eq("email", email)
+      .single();
+    if (error || !data) throw new Error("Failed to store token");
+    const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : [];
+
+    let hashes;
+    let result;
+    if (prev.includes(hash)) {
+      if (!prev.some(isFirst)) return raw;
+      hashes = prev.filter((h) => !isFirst(h));
+      result = raw;
+    } else if (prev.includes(UNPROVEN_PREFIX + hash) || prev.includes(FIRST_PREFIX + hash)) {
+      const fresh = generateToken();
+      hashes = prev.filter((h) => h !== UNPROVEN_PREFIX + hash && !isFirst(h));
+      hashes.push(fresh.hash);
+      hashes = capClass(hashes, isPlain, MAX_PROVEN);
+      result = fresh.raw;
+    } else {
+      return null;
+    }
+
+    const { data: updated, error: updateErr } = await db
+      .from("profiles")
+      .update({ session_token_hashes: hashes })
+      .eq("email", email)
+      .eq("session_token_hashes", JSON.stringify(prev))
+      .select("email");
+    if (updateErr) {
+      console.error("claimProvenToken update error:", updateErr.message);
+      throw new Error("Failed to store token");
+    }
+    if (updated && updated.length > 0) return result;
+    // CAS miss — a concurrent token change landed; re-read and retry.
+  }
+  throw new Error("Failed to store token: concurrent update conflict");
+}
+
+/**
+ * Staff sign-out on a device: remove that device's cloud token from the staff
+ * address's profile, in whichever form it is stored (plain, "u:" or "r:"), so a
+ * sign-in later on the same device does not mint one more proven token that
+ * pushes out the person's phone (the proven cap is 5). A compare-and-swap on the
+ * array, like claimProvenToken. Only `email`'s own profile is ever touched; a
+ * token that is not in it changes nothing.
+ *
+ * @param {string} raw the raw token the device holds.
+ * @returns {Promise<boolean>} true when an entry was removed.
+ */
+async function revokeToken(db, email, raw) {
+  const hash = hashToken(raw);
+  const forms = new Set([hash, UNPROVEN_PREFIX + hash, FIRST_PREFIX + hash]);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, error } = await db
+      .from("profiles")
+      .select("session_token_hashes")
+      .eq("email", email)
+      .single();
+    if (error || !data) return false;
+    const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : [];
+    if (!prev.some((h) => forms.has(h))) return false;
+    const hashes = prev.filter((h) => !forms.has(h));
+    const { data: updated, error: updateErr } = await db
+      .from("profiles")
+      .update({ session_token_hashes: hashes })
+      .eq("email", email)
+      .eq("session_token_hashes", JSON.stringify(prev))
+      .select("email");
+    if (updateErr) throw new Error("Failed to revoke token");
+    if (updated && updated.length > 0) return true;
+    // CAS miss — a concurrent token change landed; re-read and retry.
+  }
+  throw new Error("Failed to revoke token: concurrent update conflict");
 }
 
 /**
@@ -326,7 +465,7 @@ async function promoteToken(db, email, hash) {
  * Returns { email, token } or null if rate-limited/invalid.
  */
 async function migrateRequest(event, db, bodyEmail) {
-  const ip = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  const ip = clientIp(event);
   if (checkMigrationRate(ip)) return null; // Rate limited
 
   if (!bodyEmail || typeof bodyEmail !== "string") return null;
@@ -352,6 +491,6 @@ async function migrateRequest(event, db, bodyEmail) {
 
 module.exports = {
   hashToken, generateToken, authenticateRequest, authenticateSession, issueToken,
-  promoteToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX, FIRST_PREFIX,
-  proofCodePrefix, CODE_TTL_MS,
+  promoteToken, claimProvenToken, revokeToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX, FIRST_PREFIX,
+  proofCodePrefix, CODE_TTL_MS, isPlain,
 };

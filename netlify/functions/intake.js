@@ -7,6 +7,8 @@ const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 const { getAllowedOrigin } = require("./lib/cors");
 const { isSharedRateLimited } = require("./lib/rate-limit");
+// The sign-in rate limits key on an address the client cannot choose (see lib/client-ip.js).
+const { clientIp } = require("./lib/client-ip");
 const {
   normalizeEmail,
   isAllowlistedEmail,
@@ -39,7 +41,7 @@ const {
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
-const { issueToken } = require("./lib/auth");
+const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 
 let supabase;
 function db() {
@@ -67,15 +69,6 @@ function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
-// The caller's address for the sign-in rate limits. Netlify sets
-// x-nf-client-connection-ip itself at the edge, so a client cannot choose it;
-// the first x-forwarded-for entry is whatever the client chose to send, so it is
-// only the last resort (local runs and tests, where neither Netlify header exists).
-function clientIp(event) {
-  const h = event.headers || {};
-  const raw = h["x-nf-client-connection-ip"] || h["client-ip"] || h["x-forwarded-for"] || "unknown";
-  return String(raw).split(",")[0].trim() || "unknown";
-}
 
 async function resolveStaff(email) {
   const e = normalizeEmail(email);
@@ -101,7 +94,73 @@ async function issueSetupCode(email) {
     updated_at: new Date().toISOString()
   }).eq("email", email);
   if (error) throw error;
+  // A fresh code starts with a clean slate of guesses.
+  await clearSetupMisses(email);
   return { code, expiresAt };
+}
+
+// Setup-code guesses, per 15 minutes: at most SETUP_CODE_MAX_ATTEMPTS from one
+// caller IP for an address, and SETUP_MISS_ADDRESS_CAP for the address from all
+// IPs together. The per-IP lock is the real one: a stranger on one connection
+// cannot keep a new pastor's code locked for its whole 72-hour life, because the
+// pastor on their own connection has their own five. The address-wide ceiling
+// only stops a spread-out flood; the code is bcrypt-hashed with about 49 bits,
+// so 50 guesses per 15 minutes keeps brute force far out of reach.
+const SETUP_MISS_WINDOW_MS = 15 * 60 * 1000;
+const SETUP_MISS_ADDRESS_CAP = 50;
+const setupMissKey = (email) => `intake-setup-miss:${email}`;
+const setupMissIpKey = (email, ip) => `${setupMissKey(email)}:${ip || "unknown"}`;
+// LIKE treats % and _ as wildcards (and \ as the escape); an address may hold _.
+const likeEscape = (s) => String(s).replace(/[\\%_]/g, (c) => "\\" + c);
+
+/** Remove every setup-miss row for `email` (the address-wide row and each per-IP row). Housekeeping only. */
+async function clearSetupMisses(email) {
+  try { await db().from("rate_limit_hits").delete().like("key", `${likeEscape(setupMissKey(email))}%`); } catch { /* housekeeping only */ }
+}
+
+async function countSetupMisses(key) {
+  const since = new Date(Date.now() - SETUP_MISS_WINDOW_MS).toISOString();
+  const { count, error } = await db().from("rate_limit_hits")
+    .select("*", { count: "exact", head: true })
+    .eq("key", key)
+    .gte("created_at", since);
+  if (error || count == null) throw error || new Error("no count");
+  return count;
+}
+
+/**
+ * Record one setup-code attempt for `email` from `ip` and say whether it may be
+ * checked. Two passes, as in sendProofCode (lib/email-proof.js):
+ *   1. read only: a caller already at a cap is refused and NOTHING is written,
+ *      so a locked caller cannot keep the window open by retrying;
+ *   2. insert this attempt's row, then count (its own row included), narrowest
+ *      key first, so N parallel guesses make N rows and only the first `cap`
+ *      can see a count within the cap; a burst refused per IP writes nothing to
+ *      the address-wide key.
+ * Each row is counted as a miss unless the code turns out right, when every row
+ * for the address is cleared. Reads and writes rate_limit_hits directly and
+ * FAILS CLOSED; lib/rate-limit.js fails open, which is the wrong way round here.
+ * @returns {Promise<"ok"|"locked"|"error">}
+ */
+async function setupMissLock(email, ip) {
+  try {
+    const stages = [
+      { key: setupMissIpKey(email, ip), cap: SETUP_CODE_MAX_ATTEMPTS },
+      { key: setupMissKey(email), cap: SETUP_MISS_ADDRESS_CAP },
+    ];
+    for (const st of stages) {
+      if ((await countSetupMisses(st.key)) >= st.cap) return "locked";
+    }
+    for (const st of stages) {
+      const { error: insErr } = await db().from("rate_limit_hits").insert({ key: st.key });
+      if (insErr) throw insErr;
+      if ((await countSetupMisses(st.key)) > st.cap) return "locked";
+    }
+    return "ok";
+  } catch (err) {
+    console.error("[intake] setup-code limiter unavailable:", err && err.message);
+    return "error";
+  }
 }
 
 const SETUP_REFUSED = "That setup code did not work. Check it, or ask Ashley Evans for a new one. If you have already set a password, sign in instead.";
@@ -411,14 +470,19 @@ exports.handler = async (event) => {
         verifySetupCode(String(body.setupCode), DUMMY_HASH); // same cost as a real check
         return refuse();
       }
+      // Wrong guesses lock this caller IP out of this address for a while (and
+      // the address as a whole only under a spread-out flood); they never burn
+      // the code (a stranger steered here by auth_status could otherwise destroy
+      // a new pastor's code with five guesses, and only Ashley can issue
+      // another), and a stranger's lock never refuses the pastor on their own
+      // connection. Each attempt writes its OWN row before the code is checked,
+      // then counts the rows, so parallel guesses are all counted (a
+      // read-then-write counter let them share one count). Fails closed: if the
+      // row cannot be written or counted, the attempt is refused.
+      const lock = await setupMissLock(email, ip);
+      if (lock === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      if (lock === "locked") return json(event, 429, { error: "Too many attempts. Try again later." });
       if (!verifySetupCode(String(body.setupCode), row.setup_code_hash)) {
-        const attempts = (row.setup_code_attempts || 0) + 1;
-        // Too many wrong guesses burns the code; Ashley issues a fresh one.
-        const burn = attempts >= SETUP_CODE_MAX_ATTEMPTS;
-        await db().from("staff_roster").update(burn
-          ? { setup_code_hash: null, setup_code_expires_at: null, setup_code_attempts: 0 }
-          : { setup_code_attempts: attempts }
-        ).eq("email", email).eq("setup_code_hash", row.setup_code_hash);
         return refuse();
       }
       const { data: claimed, error } = await db().from("staff_roster").update({
@@ -430,6 +494,8 @@ exports.handler = async (event) => {
       }).eq("email", email).is("password_hash", null).eq("setup_code_hash", row.setup_code_hash).select("email");
       if (error) throw error;
       if (!claimed || claimed.length !== 1) return refuse(); // someone else spent it first
+      // The code is spent; its attempt rows are of no further use.
+      await clearSetupMisses(email);
       const token = await issueSession(staff.email);
       return json(event, 200, { token, staff: publicStaff(staff) });
     }
@@ -460,7 +526,18 @@ exports.handler = async (event) => {
     const staff = await sessionStaff(event);
     if (!staff) return json(event, 401, { error: "Sign in required" });
 
+    // ── logout ── Ends this staff session. The device may also send the Daily
+    // Word cloud token it holds (`currentToken`): that token's entry is removed
+    // from the staff address's own profile (plain, "u:" or "r:"), so signing in
+    // again on this device does not mint one more proven token that pushes out
+    // the person's phone. Fails soft: sign-out still succeeds if that fails.
     if (action === "logout") {
+      const current = typeof body.currentToken === "string" ? body.currentToken.trim() : "";
+      if (/^[0-9a-f]{64}$/.test(current)) {
+        try { await revokeToken(db(), staff.email, current); } catch (err) {
+          console.error("[intake] logout could not revoke the cloud token:", err && err.message);
+        }
+      }
       const auth = event.headers.authorization || event.headers.Authorization || "";
       const raw = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
       if (raw) await db().from("staff_sessions").delete().eq("token_hash", hashToken(raw));
@@ -483,6 +560,12 @@ exports.handler = async (event) => {
     // this is what keeps the one-step staff sign-in.) The address comes from the
     // staff session, never from the request. No profile yet means nothing to
     // open: the client's register call creates it and gets a first-device token.
+    // The device sends the cloud token it already holds (`currentToken`); if that
+    // token belongs to this staff address, a proven token takes its slot (every
+    // "r:" still removed) and is handed back, so signing in again on the same
+    // device never mints a sixth proven token that pushes out another device. An
+    // unproven ("u:") or first-device ("r:") token is ROTATED, not promoted: a
+    // copy someone planted on the device must not become a proven token.
     if (action === "sync_token") {
       if (await isSharedRateLimited("intake-sync-token", ip, 10, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
@@ -490,6 +573,9 @@ exports.handler = async (event) => {
       const { data: profile } = await db().from("profiles").select("email").eq("email", staff.email).maybeSingle();
       if (!profile) return json(event, 200, { token: null });
       try {
+        const current = typeof body.currentToken === "string" ? body.currentToken.trim() : "";
+        const claimed = /^[0-9a-f]{64}$/.test(current) ? await claimProvenToken(db(), staff.email, current) : null;
+        if (claimed) return json(event, 200, { token: claimed });
         return json(event, 200, { token: await issueToken(db(), staff.email, { proven: true }) });
       } catch {
         return json(event, 200, { token: null });

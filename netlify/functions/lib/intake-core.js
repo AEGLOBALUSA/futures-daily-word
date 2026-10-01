@@ -420,7 +420,8 @@ function publicStaff(staff) {
 // ── Setup codes ─────────────────────────────────────────────────────────────
 // Ashley adds a person (roster_save) and the server issues a one-time code he
 // hands over. Choosing a first password needs that code. Stored hashed (bcrypt),
-// expires, works once, and is burned after a few wrong guesses. A person who
+// expires, and works once; a few wrong guesses lock the address out for 15
+// minutes (intake.js setupMissLock) without burning the code. A person who
 // has not been given a code cannot claim anything, whatever address they type.
 const SETUP_CODE_TTL_MS = 72 * 3600 * 1000;
 const SETUP_CODE_MAX_ATTEMPTS = 5;

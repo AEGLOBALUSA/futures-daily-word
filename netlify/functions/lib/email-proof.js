@@ -12,9 +12,13 @@
  * Storage: the shared `rate_limit_hits` table (key text, created_at), the same
  * table lib/rate-limit.js uses, so no migration is needed. Keys:
  *   dwproof-code:<tokenHash>:<sha256(email|tokenHash|code)>   a live code
- *   dwproof-send:<email>                                       a send, per address
+ *   dwproof-send:<email>:<ip>                                  a send, per address AND caller IP
+ *   dwproof-send:<email>                                       a send, per address (loose backstop)
+ *   dwproof-send-new:<email>:<ip>                              a send to an address that has never held a proven token, per caller IP
+ *   dwproof-send-new:<email>                                   the same, per address (loose backstop)
  *   dwproof-send-ip:<ip>                                       a send, per caller IP
- *   dwproof-send-all                                           a send, global
+ *   dwproof-send-all                                           a send to an address with a proven history, global
+ *   dwproof-send-all-new                                       a send to an address with no proven history, global
  *   dwproof-try:<email>                                        a try, per address (backstop)
  *   dwproof-tryt:<tokenHash>                                   a try, per token (the real guard)
  *
@@ -27,17 +31,39 @@
  */
 
 const crypto = require("crypto");
-const { promoteToken, proofCodePrefix, CODE_TTL_MS } = require("./auth");
+const { promoteToken, proofCodePrefix, CODE_TTL_MS, isPlain } = require("./auth");
 
 const RESEND_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Futures Daily Word <notes@futuresdailyword.com>";
 
+// The 3 / 15 min and 8 / day caps are per address AND caller IP, so a stranger
+// on another connection cannot use up a reader's sends for the day. The
+// address-wide cap is only a loose backstop against a spread-out flood.
 const SEND_PER_EMAIL_15M = 3;
 const SEND_PER_EMAIL_DAY = 8;
+const SEND_PER_EMAIL_ALL_IPS_DAY = 30;
 // One caller IP can ask for at most this many code emails an hour, so a single
 // attacker cannot spend the global cap (or many readers' per-address budgets).
 const SEND_PER_IP_HOUR = 20;
+// Two global buckets: sends to addresses that have held a proven token, and
+// sends to addresses that never have. Junk addresses (anyone can register one)
+// only ever spend the second, smaller bucket, so they cannot use up the budget
+// for readers who have proved before.
 const SEND_GLOBAL_HOUR = 300;
+const SEND_GLOBAL_NEW_HOUR = 150;
+// An address that has never held a proven token may be one nobody owns, or a
+// stranger's: anyone can register it (new email) and register it again (existing
+// email) to get an unproven token, then ask for a code to be mailed to it. So an
+// address with no proven history gets a much smaller budget of its own: one send
+// per 15 minutes and two a day from one caller IP. A real new reader needs one; a
+// typo a second. It is per IP so that a stranger's two sends cannot block the
+// reader's second device for the day (every reader who joined since the proof
+// change has no proven history: their first device holds an "r:" token). The
+// address-wide backstop of six a day, the per-IP 20 / hour, the address 30 / day
+// and the global 150 / hour for never-proven addresses bound the fan-out.
+const SEND_NEW_15M = 1;
+const SEND_NEW_DAY = 2;
+const SEND_NEW_ALL_IPS_DAY = 6;
 // A code belongs to one token, so the per-TOKEN limit is what stops guessing: 5
 // tries on a 1-in-a-million code, and a token only has a code after a send,
 // which the per-address send limits cap. The per-ADDRESS limit is only a loose
@@ -109,6 +135,19 @@ async function countRows(db, key, windowMs, like = false) {
   return count;
 }
 
+/**
+ * Has this address ever held a PROVEN token? Plain entries in
+ * session_token_hashes are only ever removed by the proven cap (5), so a profile
+ * that has had one still has one. "r:" (first-device) tokens do not count: nobody
+ * showed they own the inbox. Throws on any error (fail closed).
+ */
+async function hasProvenHistory(db, email) {
+  const { data, error } = await db.from("profiles").select("session_token_hashes").eq("email", email).maybeSingle();
+  if (error) throw new Error("proof history read failed");
+  const hashes = data && Array.isArray(data.session_token_hashes) ? data.session_token_hashes : [];
+  return hashes.some(isPlain);
+}
+
 async function insertRow(db, key) {
   const { error } = await db.from("rate_limit_hits").insert({ key });
   if (error) throw new Error("proof insert failed");
@@ -155,18 +194,49 @@ async function sendWithResend({ to, subject, html, text }) {
 async function sendProofCode(db, email, tokenHash, lang, ip) {
   if (!process.env.RESEND_API_KEY) return { ok: false, status: 503, error: "not_configured" };
 
-  // Send limits (fail closed): 3 / 15 min and 8 / day per address, 20 / hour per
-  // caller IP, 300 / hour overall.
+  // Send limits (fail closed): 3 / 15 min and 8 / day per address and caller
+  // IP, 30 / day per address from any IP, 20 / hour per caller IP, and a global
+  // hourly cap (300 for addresses with a proven history, 150 for the rest). An
+  // address that has never held a proven token also gets 1 / 15 min and 2 / day
+  // per caller IP, and 6 / day from all IPs together.
+  //
+  // Two passes. The first only reads, so an ordinary refused retry writes
+  // nothing. The second is what makes the limits hold under a parallel burst
+  // (Netlify spreads parallel calls across instances, so the in-memory limit in
+  // user-profile.js does not): each key gets this attempt's row FIRST and is
+  // only then counted, refusing when the count is above the cap (the row of this
+  // attempt is already in it). N parallel calls write N rows, so at most `cap` of
+  // them can see a count within the cap; the same shape as setupMissLock in
+  // intake.js. Keys go narrowest first (this caller on this address, then this
+  // caller, then the address, then the global bucket), so a burst refused at a
+  // narrow key never writes a row to a wider one. Rows of a refused attempt stay
+  // as recorded attempts, which only ever errs towards refusing.
   try {
-    const sendKey = `dwproof-send:${email}`;
-    const ipKey = `dwproof-send-ip:${ip || "unknown"}`;
-    if ((await countRows(db, sendKey, 15 * MIN)) >= SEND_PER_EMAIL_15M) return { ok: false, status: 429, error: "too_many" };
-    if ((await countRows(db, sendKey, DAY)) >= SEND_PER_EMAIL_DAY) return { ok: false, status: 429, error: "too_many" };
-    if ((await countRows(db, ipKey, HOUR)) >= SEND_PER_IP_HOUR) return { ok: false, status: 429, error: "too_many" };
-    if ((await countRows(db, "dwproof-send-all", HOUR)) >= SEND_GLOBAL_HOUR) return { ok: false, status: 429, error: "busy" };
-    await insertRow(db, sendKey);
-    await insertRow(db, ipKey);
-    await insertRow(db, "dwproof-send-all");
+    const realIp = ip || "unknown";
+    const proven = await hasProvenHistory(db, email);
+    const stages = [
+      { key: `dwproof-send:${email}:${realIp}`, limits: [[15 * MIN, SEND_PER_EMAIL_15M], [DAY, SEND_PER_EMAIL_DAY]], error: "too_many" },
+      ...(proven ? [] : [{ key: `dwproof-send-new:${email}:${realIp}`, limits: [[15 * MIN, SEND_NEW_15M], [DAY, SEND_NEW_DAY]], error: "too_many" }]),
+      { key: `dwproof-send-ip:${realIp}`, limits: [[HOUR, SEND_PER_IP_HOUR]], error: "too_many" },
+      ...(proven ? [] : [{ key: `dwproof-send-new:${email}`, limits: [[DAY, SEND_NEW_ALL_IPS_DAY]], error: "too_many" }]),
+      { key: `dwproof-send:${email}`, limits: [[DAY, SEND_PER_EMAIL_ALL_IPS_DAY]], error: "too_many" },
+      proven
+        ? { key: "dwproof-send-all", limits: [[HOUR, SEND_GLOBAL_HOUR]], error: "busy" }
+        : { key: "dwproof-send-all-new", limits: [[HOUR, SEND_GLOBAL_NEW_HOUR]], error: "busy" },
+    ];
+    // Pass 1: read only. Already at a cap means refuse, and nothing is written.
+    for (const st of stages) {
+      for (const [windowMs, cap] of st.limits) {
+        if ((await countRows(db, st.key, windowMs)) >= cap) return { ok: false, status: 429, error: st.error };
+      }
+    }
+    // Pass 2: insert, then count (this attempt's own row included).
+    for (const st of stages) {
+      await insertRow(db, st.key);
+      for (const [windowMs, cap] of st.limits) {
+        if ((await countRows(db, st.key, windowMs)) > cap) return { ok: false, status: 429, error: st.error };
+      }
+    }
   } catch (err) {
     console.error("[email-proof] send limiter unavailable:", err && err.message);
     return { ok: false, status: 503, error: "unavailable" };
@@ -205,11 +275,18 @@ async function verifyProofCode(db, email, tokenHash, code) {
   if (typeof code !== "string" || !/^\d{6}$/.test(code)) return { ok: false, status: 400, error: "invalid_code" };
 
   try {
-    // The attempt is recorded BEFORE anything is checked; if it cannot be
-    // recorded we refuse, so a broken counter can never mean unlimited tries.
+    // Each attempt is recorded BEFORE it is checked; if it cannot be recorded
+    // we refuse, so a broken counter can never mean unlimited tries.
+    // 1. The per-token guard first: a token over its limit stops here, before
+    //    anything is written against the address.
     await insertRow(db, `dwproof-tryt:${tokenHash}`);
-    await insertRow(db, `dwproof-try:${email}`);
     if ((await countRows(db, `dwproof-tryt:${tokenHash}`, 10 * MIN)) > TRIES_PER_TOKEN_10M) return { ok: false, status: 429, error: "too_many" };
+    // 2. A token with no live code cannot match anything, so its try costs the
+    //    address nothing: otherwise one stranger token (no code needed) could
+    //    fill the address's hourly tries and the reader's right code gets 429.
+    if ((await countRows(db, `${proofCodePrefix(tokenHash)}%`, CODE_TTL_MS, true)) < 1) return { ok: false, status: 400, error: "invalid_code" };
+    // 3. Only then the loose per-address backstop.
+    await insertRow(db, `dwproof-try:${email}`);
     if ((await countRows(db, `dwproof-try:${email}`, HOUR)) > TRIES_PER_EMAIL_HOUR) return { ok: false, status: 429, error: "too_many" };
 
     const matches = await countRows(db, codeKey(email, tokenHash, code), CODE_TTL_MS);

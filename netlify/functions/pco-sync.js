@@ -22,6 +22,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 const { authenticateSession } = require('./lib/auth');
 const { isSharedRateLimited } = require('./lib/rate-limit');
+const { clientIp } = require('./lib/client-ip');
 
 const PCO_BASE = "https://api.planningcenteronline.com/people/v2";
 
@@ -126,16 +127,16 @@ async function lookupByEmail(email) {
       e => e.attributes?.address?.toLowerCase() === email.toLowerCase()
     );
 
-    if (hasMatch || searchData.data.length === 1) {
+    // Only a person who really holds this address. The search also matches
+    // names, so a single hit (or the first of several) may be someone else
+    // entirely; copying their name and campus would be wrong.
+    if (hasMatch) {
       matchedPerson = person;
       break;
     }
   }
 
-  if (!matchedPerson) {
-    // Fall back to first result if only one
-    matchedPerson = searchData.data[0];
-  }
+  if (!matchedPerson) return null;
 
   const attrs = matchedPerson.attributes || {};
 
@@ -200,7 +201,7 @@ exports.handler = async (event) => {
     // has a profile, so it must not lift the cap on name + campus lookups.
     const session = await authenticateSession(event, getSupabase());
     if (!session || !session.proven || session.provisional) {
-      const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+      const clientIP = clientIp(event);
       if (await isSharedRateLimited("pco-sync", clientIP, 5)) {
         return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
       }
@@ -245,49 +246,43 @@ exports.handler = async (event) => {
         return { statusCode: 200, headers, body: JSON.stringify({ synced: false }) };
       }
 
-      // Upsert into Supabase profiles
-      const db = getSupabase();
-      const { data: existing } = await db.from("profiles").select("email").eq("email", email).single();
-
-      const profileData = {
-        first_name: pcoProfile.firstName,
-        last_name: pcoProfile.lastName,
+      const lookedUp = {
+        firstName: pcoProfile.firstName,
+        lastName: pcoProfile.lastName,
         email: email,
-        campus: pcoProfile.campusId || undefined,
-        last_active_at: new Date().toISOString()
+        campus: pcoProfile.campusId,
+        campusName: pcoProfile.campusName
       };
 
-      // Remove undefined values
-      Object.keys(profileData).forEach(k => profileData[k] === undefined && delete profileData[k]);
-
-      if (existing) {
-        // Update — only overwrite fields that have PCO data
-        const updates = {};
-        if (pcoProfile.firstName) updates.first_name = pcoProfile.firstName;
-        if (pcoProfile.lastName) updates.last_name = pcoProfile.lastName;
-        if (pcoProfile.campusId) updates.campus = pcoProfile.campusId;
-        updates.last_active_at = new Date().toISOString();
-
-        await db.from("profiles").update(updates).eq("email", email);
-      } else {
-        // Insert new
-        profileData.registered_at = new Date().toISOString();
-        await db.from("profiles").insert(profileData);
+      // Only the address's own proven owner gets anything written: a PROVEN,
+      // non-provisional token for this same address. Anyone else (no token, an
+      // unproven or first-device token, or a token for another address) gets the
+      // lookup back and nothing is written, and that includes creating a NEW
+      // profile. A first-time reader's EmailGate calls this before register; if
+      // sync created the row, register would take the existing-address path and
+      // drop their persona, language and campus, hand them an unproven token
+      // (a code before the first sync) and put them on the strangers' code
+      // budget. Left alone, register creates the row with everything it was
+      // sent and gives the first device a first-device token.
+      if (!(session && session.proven && !session.provisional && session.email === email)) {
+        return { statusCode: 200, headers, body: JSON.stringify({ synced: false, profile: lookedUp }) };
       }
+
+      // Update — only overwrite fields that have PCO data. A proven token for
+      // this address means its profile row exists; nothing is inserted here.
+      const db = getSupabase();
+      const updates = {};
+      if (pcoProfile.firstName) updates.first_name = pcoProfile.firstName;
+      if (pcoProfile.lastName) updates.last_name = pcoProfile.lastName;
+      if (pcoProfile.campusId) updates.campus = pcoProfile.campusId;
+      updates.last_active_at = new Date().toISOString();
+
+      await db.from("profiles").update(updates).eq("email", email);
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          synced: true,
-          profile: {
-            firstName: pcoProfile.firstName,
-            lastName: pcoProfile.lastName,
-            email: email,
-            campus: pcoProfile.campusId,
-            campusName: pcoProfile.campusName
-          }
-        })
+        body: JSON.stringify({ synced: true, profile: lookedUp })
       };
     }
 

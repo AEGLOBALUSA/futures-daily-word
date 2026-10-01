@@ -11,7 +11,7 @@
  *
  * NOTE: this file lives in tests/, never in netlify/functions/.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import Module from 'node:module';
 import { createRequire } from 'node:module';
 
@@ -45,12 +45,28 @@ function matches(row, filters) {
     if (f.op === 'neq') return row[f.col] !== f.val;
     if (f.op === 'lt') return row[f.col] < f.val;
     if (f.op === 'is') return (row[f.col] ?? null) === f.val;
+    if (f.op === 'gte') return row[f.col] != null && row[f.col] >= f.val;
+    if (f.op === 'like') {
+      // Postgres LIKE: % any run, _ one character, a backslash escapes the next character.
+      let re = '';
+      for (let i = 0; i < f.val.length; i++) {
+        const c = f.val[i];
+        if (c === '\\' && i + 1 < f.val.length) re += f.val[++i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        else if (c === '%') re += '.*';
+        else if (c === '_') re += '.';
+        else re += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      return typeof row[f.col] === 'string' && new RegExp('^' + re + '$', 's').test(row[f.col]);
+    }
     return true;
   });
 }
 
+// `failOn.add('rate_limit_hits:insert')` makes that op on that table return { error }.
+const failOn = new Set();
+
 function builder(table) {
-  const state = { op: 'select', filters: [], payload: null, opts: null, wantRows: false };
+  const state = { op: 'select', filters: [], payload: null, opts: null, wantRows: false, count: false };
   const rows = () => tables[table] || (tables[table] = []);
   const run = () => {
     const t = rows();
@@ -73,7 +89,7 @@ function builder(table) {
     return hits;
   };
   const b = {
-    select() { if (state.op !== 'select') state.wantRows = true; return b; },
+    select(_cols, o) { if (state.op !== 'select') state.wantRows = true; else if (o && o.count) state.count = true; return b; },
     insert(p) { state.op = 'insert'; state.payload = p; return b; },
     update(p) { state.op = 'update'; state.payload = p; return b; },
     upsert(p, o) { state.op = 'upsert'; state.payload = p; state.opts = o; return b; },
@@ -81,12 +97,18 @@ function builder(table) {
     eq(col, val) { state.filters.push({ op: 'eq', col, val }); return b; },
     neq(col, val) { state.filters.push({ op: 'neq', col, val }); return b; },
     lt(col, val) { state.filters.push({ op: 'lt', col, val }); return b; },
+    gte(col, val) { state.filters.push({ op: 'gte', col, val }); return b; },
     is(col, val) { state.filters.push({ op: 'is', col, val }); return b; },
+    like(col, val) { state.filters.push({ op: 'like', col, val }); return b; },
     order() { return b; },
     limit() { return b; },
     maybeSingle: async () => ({ data: run()[0] || null, error: null }),
     single: async () => { const r = run()[0]; return r ? { data: r, error: null } : { data: null, error: { message: 'no row' } }; },
-    then(resolve, reject) { return Promise.resolve({ data: run(), error: null }).then(resolve, reject); },
+    then(resolve, reject) {
+      if (failOn.has(`${table}:${state.op}`)) return Promise.resolve({ data: null, error: { message: 'injected failure' } }).then(resolve, reject);
+      const out = run();
+      return Promise.resolve(state.count ? { data: null, count: out.length, error: null } : { data: out, error: null }).then(resolve, reject);
+    },
   };
   return b;
 }
@@ -111,7 +133,7 @@ beforeAll(() => {
 
 afterAll(() => { Module._load = realLoad; });
 
-beforeEach(() => { resetTables(); limiterIps = []; });
+beforeEach(() => { resetTables(); limiterIps = []; failOn.clear(); });
 
 const { hashPassword, hashSetupCode } = require_('../../netlify/functions/lib/intake-core.js');
 const PASSWORD = 'a-long-test-passphrase-9';
@@ -228,24 +250,141 @@ describe('a first password needs the setup code Ashley issued', () => {
     expect(tables.staff_roster).toHaveLength(0);
   });
 
+  // Changed on purpose (Daily Word hardening F2, 1 Oct): a miss is now a row in
+  // rate_limit_hits (intake-setup-miss:<email>), not a setup_code_attempts count,
+  // and five misses lock the address for 15 minutes instead of burning the code.
+  const missRows = (email = 'new.pastor@futures.church') =>
+    (tables.rate_limit_hits || []).filter((r) => r.key === `intake-setup-miss:${email}`);
+
   it('refuses a WRONG code, counts the miss, and does not touch the password', async () => {
     addWithCode({ email: 'new.pastor@futures.church' });
     const r = await setUp('new.pastor@futures.church', { setupCode: 'AAAAA-AAAAA' });
     expect(r.status).toBe(403);
     expect(tables.staff_roster[0].password_hash).toBeNull();
-    expect(tables.staff_roster[0].setup_code_attempts).toBe(1);
+    expect(missRows()).toHaveLength(1);
     expect(tables.staff_sessions).toHaveLength(0);
   });
 
-  it('burns the code after five wrong guesses: even the right code is then refused', async () => {
-    addWithCode({ email: 'new.pastor@futures.church' });
-    for (let i = 0; i < 5; i++) {
-      expect((await setUp('new.pastor@futures.church', { setupCode: `BBBBB-BBBB${i}` })).status).toBe(403);
+  it('locks the address after five wrong guesses, without burning the code: it works again once the lock passes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    try {
+      addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+      for (let i = 0; i < 5; i++) {
+        expect((await setUp('new.pastor@futures.church', { setupCode: `BBBBB-BBBB${i}` })).status).toBe(403);
+      }
+      // a stranger's five guesses do not destroy the pastor's code ...
+      expect(tables.staff_roster[0].setup_code_hash).toBeTruthy();
+      // ... but even the right code waits out the lock
+      const locked = await setUp('new.pastor@futures.church');
+      expect(locked.status).toBe(429);
+      expect(tables.staff_roster[0].password_hash).toBeNull();
+      expect(tables.staff_sessions).toHaveLength(0);
+
+      vi.setSystemTime(new Date('2026-10-02T09:16:00Z'));
+      const later = await setUp('new.pastor@futures.church');
+      expect(later.status).toBe(200);
+      expect(tables.staff_roster[0].password_hash).toBeTruthy();
+      expect(tables.staff_roster[0].setup_code_hash).toBeNull();
+    } finally {
+      vi.useRealTimers();
     }
-    expect(tables.staff_roster[0].setup_code_hash).toBeNull();
+  });
+
+  it('counts parallel wrong guesses one by one: five at once still lock the address', async () => {
+    addWithCode({ email: 'new.pastor@futures.church' });
+    const guesses = await Promise.all(
+      Array.from({ length: 5 }, (_, i) => setUp('new.pastor@futures.church', { setupCode: `CCCCC-CCCC${i}` })),
+    );
+    expect(guesses.map((g) => g.status)).toEqual([403, 403, 403, 403, 403]);
+    expect(missRows()).toHaveLength(5);
     const r = await setUp('new.pastor@futures.church');
-    expect(r.status).toBe(403);
+    expect(r.status).toBe(429);
     expect(tables.staff_roster[0].password_hash).toBeNull();
+  });
+
+  it('twelve parallel guesses: no more than five are ever checked against the code', async () => {
+    addWithCode({ email: 'new.pastor@futures.church' });
+    const guesses = await Promise.all(
+      Array.from({ length: 12 }, (_, i) => setUp('new.pastor@futures.church', { setupCode: `DDDDD-DDD${String(i).padStart(2, '2')}` })),
+    );
+    expect(guesses.filter((g) => g.status === 403).length).toBeLessThanOrEqual(5);
+    expect(guesses.filter((g) => g.status === 429).length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('fails closed: when the attempt cannot be recorded, even the right code is refused', async () => {
+    addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+    failOn.add('rate_limit_hits:insert');
+    const r = await setUp('new.pastor@futures.church');
+    expect(r.status).toBe(503);
+    expect(tables.staff_roster[0].password_hash).toBeNull();
+    expect(tables.staff_roster[0].setup_code_hash).toBeTruthy();
+    expect(tables.staff_sessions).toHaveLength(0);
+  });
+
+  // Daily Word hardening round 4 (F2): the lock is per caller IP for an address,
+  // with a loose address-wide ceiling, and a locked caller writes nothing.
+  const fromIp = (ip) => ({ 'x-forwarded-for': ip });
+
+  it('a stranger locked on IP A does not lock out the owner: the right code works from IP B', async () => {
+    addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+    const A = '198.51.100.10';
+    for (let i = 0; i < 5; i++) {
+      expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: `EEEEE-EEEE${i}` }, null, fromIp(A))).status).toBe(403);
+    }
+    // IP A is locked, even with the right code
+    expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp(A))).status).toBe(429);
+    // the owner on their own connection is not
+    const owner = await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp('198.51.100.11'));
+    expect(owner.status).toBe(200);
+    expect(tables.staff_roster[0].password_hash).toBeTruthy();
+    // a successful claim clears every miss row for the address, per IP and address-wide
+    expect((tables.rate_limit_hits || []).filter((r) => r.key.startsWith('intake-setup-miss:new.pastor@futures.church'))).toHaveLength(0);
+  });
+
+  it('a locked caller writes nothing more, so retrying cannot keep the window open', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    try {
+      addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+      const A = '198.51.100.12';
+      for (let i = 0; i < 5; i++) await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: `FFFFF-FFFF${i}` }, null, fromIp(A));
+      const rows = (tables.rate_limit_hits || []).length;
+      for (let i = 0; i < 20; i++) {
+        vi.setSystemTime(new Date(Date.parse('2026-10-02T09:00:00Z') + (i + 1) * 30e3));
+        expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: 'GGGGG-GGGGG' }, null, fromIp(A))).status).toBe(429);
+      }
+      expect((tables.rate_limit_hits || []).length).toBe(rows);
+      // fifteen minutes after the last recorded miss, IP A gets its guesses back
+      vi.setSystemTime(new Date('2026-10-02T09:16:00Z'));
+      expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp(A))).status).toBe(200);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('parallel guesses from many IPs cannot pass the address-wide ceiling of 50 in 15 minutes', async () => {
+    addWithCode({ email: 'new.pastor@futures.church' });
+    const at = new Date().toISOString();
+    for (let i = 0; i < 48; i++) tables.rate_limit_hits = [...(tables.rate_limit_hits || []), { key: 'intake-setup-miss:new.pastor@futures.church', created_at: at }];
+    const guesses = await Promise.all(
+      Array.from({ length: 6 }, (_, i) => call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: `HHHHH-HHHH${i}` }, null, fromIp(`198.51.100.${30 + i}`))),
+    );
+    expect(guesses.filter((g) => g.status === 403).length).toBeLessThanOrEqual(2);
+    expect(guesses.filter((g) => g.status === 429).length).toBeGreaterThanOrEqual(4);
+    // once at the ceiling, even the right code from a fresh IP waits
+    expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp('198.51.100.99'))).status).toBe(429);
+  });
+
+  it('a reissued code clears the address\'s miss rows and no other address\'s ("_" is not a wildcard)', async () => {
+    const admin = await adminToken();
+    addRoster({ email: 'new_pastor@futures.church' });
+    const at = new Date().toISOString();
+    tables.rate_limit_hits = [
+      { key: 'intake-setup-miss:new_pastor@futures.church', created_at: at },
+      { key: 'intake-setup-miss:new_pastor@futures.church:198.51.100.40', created_at: at },
+      { key: 'intake-setup-miss:newXpastor@futures.church', created_at: at },
+    ];
+    expect((await call({ action: 'roster_issue_code', email: 'new_pastor@futures.church' }, admin)).status).toBe(200);
+    expect(tables.rate_limit_hits.map((r) => r.key)).toEqual(['intake-setup-miss:newXpastor@futures.church']);
   });
 
   it('refuses an EXPIRED code', async () => {
@@ -286,7 +425,7 @@ describe('a first password needs the setup code Ashley issued', () => {
     const r = await setUp('new.pastor@futures.church', { password: 'short' });
     expect(r.status).toBe(400);
     expect(tables.staff_roster[0].setup_code_hash).toBeTruthy();
-    expect(tables.staff_roster[0].setup_code_attempts).toBe(0);
+    expect((tables.rate_limit_hits || []).filter((r) => r.key.startsWith('intake-setup-miss:'))).toHaveLength(0);
   });
 
   it('two set_password calls racing on one row with the right code: exactly one wins', async () => {

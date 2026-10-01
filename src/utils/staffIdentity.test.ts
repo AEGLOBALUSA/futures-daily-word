@@ -1,9 +1,35 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 
 const api = vi.hoisted(() => ({
   token: '',
   intake: vi.fn(),
   setStaffToken: vi.fn((t: string) => { api.token = t; }),
+}));
+
+// The hook's two collaborators, mocked so the sign-in path can be driven without
+// a provider or a real sync engine.
+const sync = vi.hoisted(() => ({
+  proofRequired: false,
+  isProofRequired: vi.fn(() => sync.proofRequired),
+  retrySyncAfterProof: vi.fn(async () => {}),
+  resetSyncSession: vi.fn(),
+}));
+const userCtx = vi.hoisted(() => ({
+  userProfile: { email: 'ae@futures.global', firstName: 'Ashley', lastName: 'Evans', phone: '', church: '', city: '', campus: '' } as Record<string, string> | null,
+  setup: { persona: 'church_member', source: 'settings' } as Record<string, string> | null,
+  saveProfile: vi.fn(),
+  saveSetup: vi.fn(),
+}));
+
+vi.mock('./cloudSync', () => ({
+  isProofRequired: sync.isProofRequired,
+  retrySyncAfterProof: sync.retrySyncAfterProof,
+  resetSyncSession: sync.resetSyncSession,
+}));
+vi.mock('../contexts/UserContext', () => ({
+  useUser: () => userCtx,
 }));
 
 vi.mock('../staff/api', () => ({
@@ -19,6 +45,7 @@ import {
   provisionPastorCode, clearProvisionedPastorCode, getPastorCode, fetchMyCampusCode, PASTOR_CODE_EVENT,
   setHandTypedPastorCode, isAppStaffSignedIn, STAFF_SESSION_EVENT, swapForProvenSyncToken,
 } from './staffIdentity';
+import { useStaffIdentity } from './useStaffIdentity';
 
 const ASHLEY = { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true };
 
@@ -28,6 +55,13 @@ beforeEach(() => {
   api.setStaffToken.mockClear();
   resetStaffSessionCache();
   setAppStaffSignIn(true); // signed in through the app, not the /staff portal
+  sync.proofRequired = false;
+  sync.isProofRequired.mockClear();
+  sync.retrySyncAfterProof.mockReset();
+  sync.retrySyncAfterProof.mockResolvedValue(undefined);
+  sync.resetSyncSession.mockClear();
+  userCtx.saveProfile.mockClear();
+  userCtx.saveSetup.mockClear();
 });
 
 describe('looksLikeStaffEmail', () => {
@@ -218,7 +252,7 @@ describe('registerCloudIdentity', () => {
     api.intake.mockResolvedValue({ token: 'proven-token' });
     vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ success: true, sessionToken: 'unproven-token' }) })));
     expect(await registerCloudIdentity(profile, 'pastor_leader')).toBe(true);
-    expect(api.intake).toHaveBeenCalledWith('sync_token');
+    expect(api.intake).toHaveBeenCalledWith('sync_token', { currentToken: 'unproven-token' });
     expect(localStorage.getItem('dw_session_token')).toBe('proven-token');
     vi.unstubAllGlobals();
   });
@@ -248,8 +282,45 @@ describe('swapForProvenSyncToken (every staff sign-in, even when the device alre
     localStorage.setItem('dw_session_token', 'unproven-token');
     api.intake.mockResolvedValue({ token: 'proven-token' });
     expect(await swapForProvenSyncToken()).toBe(true);
-    expect(api.intake).toHaveBeenCalledWith('sync_token');
+    expect(api.intake).toHaveBeenCalledWith('sync_token', { currentToken: 'unproven-token' });
     expect(localStorage.getItem('dw_session_token')).toBe('proven-token');
+  });
+
+  it('F8: sends the cloud token the device already holds, so the server can prove it in place', async () => {
+    api.token = 'staff-session';
+    const held = 'a'.repeat(64);
+    localStorage.setItem('dw_session_token', held);
+    api.intake.mockResolvedValue({ token: held });
+    expect(await swapForProvenSyncToken()).toBe(true);
+    expect(api.intake).toHaveBeenCalledTimes(1);
+    expect(api.intake).toHaveBeenCalledWith('sync_token', { currentToken: held });
+    // The server handed the same token back: nothing new is stored.
+    expect(localStorage.getItem('dw_session_token')).toBe(held);
+  });
+
+  it('F8: a device with no cloud token sends no currentToken at all', async () => {
+    api.token = 'staff-session';
+    localStorage.removeItem('dw_session_token');
+    api.intake.mockResolvedValue({ token: 'fresh-proven' });
+    expect(await swapForProvenSyncToken()).toBe(true);
+    expect(api.intake).toHaveBeenCalledWith('sync_token', {});
+    expect(localStorage.getItem('dw_session_token')).toBe('fresh-proven');
+  });
+
+  it('F8: a failed call keeps the token the device holds', async () => {
+    api.token = 'staff-session';
+    localStorage.setItem('dw_session_token', 'device-token');
+    api.intake.mockRejectedValue(new Error('offline'));
+    expect(await swapForProvenSyncToken()).toBe(false);
+    expect(localStorage.getItem('dw_session_token')).toBe('device-token');
+  });
+
+  it('a token: null answer keeps the token the device holds and reports no swap', async () => {
+    api.token = 'staff-session';
+    localStorage.setItem('dw_session_token', 'device-token');
+    api.intake.mockResolvedValue({ token: null });
+    expect(await swapForProvenSyncToken()).toBe(false);
+    expect(localStorage.getItem('dw_session_token')).toBe('device-token');
   });
 
   it('without a staff session asks nothing and keeps the token', async () => {
@@ -441,5 +512,89 @@ describe('campus pastor code provisioning', () => {
     expect(getPastorCode()).toBe('HAND1234');
     clearProvisionedPastorCode();
     expect(getPastorCode()).toBe('HAND1234');
+  });
+});
+
+/** Mount the hook in a bare React root (no @testing-library/dom in this repo) and
+ *  hand back its latest return value. */
+function mountStaffIdentityHook() {
+  const out: { current: ReturnType<typeof useStaffIdentity> | null } = { current: null };
+  function Probe() { out.current = useStaffIdentity(); return null; }
+  const el = document.createElement('div');
+  const root = createRoot(el);
+  act(() => { root.render(createElement(Probe)); });
+  return {
+    api: () => out.current as ReturnType<typeof useStaffIdentity>,
+    unmount: () => act(() => root.unmount()),
+  };
+}
+
+describe('applyStaffIdentity — a sync parked on the emailed code (F7)', () => {
+  // The device already holds the pastor's address (see userCtx.userProfile), so a
+  // sign-in takes the same-address path: swap for a proven token, then sync again
+  // if the pull was parked waiting for a code.
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  async function signIn(opts?: { boot?: boolean }) {
+    const hook = mountStaffIdentityHook();
+    try {
+      await act(async () => { await hook.api().applyStaffIdentity(ASHLEY, opts); });
+    } finally {
+      hook.unmount();
+    }
+  }
+
+  beforeAll(() => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  });
+  beforeEach(() => {
+    api.token = 'staff-session';
+    localStorage.setItem('dw_session_token', 'device-token');
+    userCtx.userProfile = { email: 'ae@futures.global', firstName: 'Ashley', lastName: 'Evans', phone: '', church: '', city: '', campus: '' };
+    userCtx.setup = { persona: 'pastor_leader', source: 'settings' };
+  });
+
+  it('retries the sync once the proven token lands while the pull is parked on proof', async () => {
+    api.intake.mockResolvedValue({ token: 'proven-token' });
+    sync.proofRequired = true;
+    await signIn();
+    expect(localStorage.getItem('dw_session_token')).toBe('proven-token');
+    expect(sync.retrySyncAfterProof).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry when the sync was not parked on proof', async () => {
+    api.intake.mockResolvedValue({ token: 'proven-token' });
+    sync.proofRequired = false;
+    await signIn();
+    expect(sync.retrySyncAfterProof).not.toHaveBeenCalled();
+  });
+
+  it('does not retry when no proven token came back (the pull would just park again)', async () => {
+    api.intake.mockResolvedValue({ token: null });
+    sync.proofRequired = true;
+    await signIn();
+    expect(sync.retrySyncAfterProof).not.toHaveBeenCalled();
+  });
+
+  it('does not retry when the swap call fails', async () => {
+    api.intake.mockRejectedValue(new Error('offline'));
+    sync.proofRequired = true;
+    await signIn();
+    expect(sync.retrySyncAfterProof).not.toHaveBeenCalled();
+  });
+
+  it('a retry that rejects never fails the sign-in', async () => {
+    api.intake.mockResolvedValue({ token: 'proven-token' });
+    sync.proofRequired = true;
+    sync.retrySyncAfterProof.mockRejectedValue(new Error('network'));
+    await expect(signIn()).resolves.toBeUndefined();
+    expect(sync.retrySyncAfterProof).toHaveBeenCalledTimes(1);
+  });
+
+  it('the boot restore never swaps or retries', async () => {
+    sync.proofRequired = true;
+    await signIn({ boot: true });
+    expect(api.intake).not.toHaveBeenCalled();
+    expect(sync.retrySyncAfterProof).not.toHaveBeenCalled();
   });
 });

@@ -92,8 +92,8 @@ beforeEach(() => {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-async function call(handler, body, { token, ip, origin = ORIGIN } = {}) {
-  const headers = { origin, 'x-forwarded-for': ip || nextIp() };
+async function call(handler, body, { token, ip, origin = ORIGIN, headers: extra = {} } = {}) {
+  const headers = { origin, 'x-forwarded-for': ip || nextIp(), ...extra };
   if (token) headers.authorization = `Bearer ${token}`;
   const res = await handler({ httpMethod: 'POST', headers, body: JSON.stringify(body) });
   let json = {};
@@ -108,6 +108,20 @@ const hashes = (email = VICTIM) => profileRow(email).session_token_hashes;
 /** A stranger who knows only the address: a fresh UNPROVEN token via migrate. */
 async function strangerToken(email = VICTIM) {
   const r = await call(userSync, { action: 'pull', email });
+  expect(r.status).toBe(403);
+  expect(r.json.sessionToken).toMatch(/^[0-9a-f]{64}$/);
+  return r.json.sessionToken;
+}
+
+/**
+ * A stranger's migrate that may be refused: once every unproven slot (up to five)
+ * is held by a token with a live code or minted in the last 10 minutes, the mint
+ * is refused (401, no token) instead of pushing one of them out. Returns the
+ * token, or null when refused.
+ */
+async function strangerTry(email = VICTIM) {
+  const r = await call(userSync, { action: 'pull', email });
+  if (r.status === 401) return null;
   expect(r.status).toBe(403);
   expect(r.json.sessionToken).toMatch(/^[0-9a-f]{64}$/);
   return r.json.sessionToken;
@@ -299,12 +313,13 @@ describe('limits on the code', () => {
     expect(mine.status).toBe(200);
   });
 
-  it('refuses the 4th code email in 15 minutes', async () => {
+  it('refuses the 4th code email in 15 minutes from one connection', async () => {
     const token = await strangerToken();
+    const ip = '203.0.113.40';
     for (let i = 0; i < 3; i++) {
-      expect((await call(userProfile, { action: 'proof-send' }, { token })).status).toBe(200);
+      expect((await call(userProfile, { action: 'proof-send' }, { token, ip })).status).toBe(200);
     }
-    const fourth = await call(userProfile, { action: 'proof-send' }, { token });
+    const fourth = await call(userProfile, { action: 'proof-send' }, { token, ip });
     expect(fourth.status).toBe(429);
     expect(resend).toHaveBeenCalledTimes(3);
   });
@@ -382,9 +397,12 @@ describe('readers who are not affected', () => {
   });
 
   it('ten stranger migrations never push out the reader\'s real device token', async () => {
-    for (let i = 0; i < 10; i++) await strangerToken();
+    const got = [];
+    for (let i = 0; i < 10; i++) got.push(await strangerTry());
     expect(hashes()).toContain(DEVICE_HASH);
-    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(3);
+    // fresh unproven tokens get 10 minutes' grace, but never past the hard ceiling of five: the rest are refused
+    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(5);
+    expect(got.filter(Boolean)).toHaveLength(5);
     expect((await call(userSync, { action: 'pull' }, { token: DEVICE_RAW })).status).toBe(200);
   });
 
@@ -574,16 +592,18 @@ describe('a stranger cannot stop the real reader from proving', () => {
     const reader = await strangerToken();
     await call(userProfile, { action: 'proof-send' }, { token: reader });
     const code = sentCode();
-    for (let i = 0; i < 6; i++) await strangerToken();
+    for (let i = 0; i < 6; i++) await strangerTry();
     expect(hashes()).toContain('u:' + sha(reader));
     expect(hashes().filter((h) => h.startsWith('u:')).length).toBeLessThanOrEqual(5);
     const ok = await call(userProfile, { action: 'proof-verify', code }, { token: reader });
     expect(ok.status).toBe(200);
   });
 
-  it('a token with no live code is still evicted first', async () => {
+  it('a token with no live code, minted over 10 minutes ago, is still evicted first', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
     const idle = await strangerToken();
-    for (let i = 0; i < 4; i++) await strangerToken();
+    vi.setSystemTime(new Date('2026-10-02T09:11:00Z'));
+    for (let i = 0; i < 3; i++) await strangerToken();
     expect(hashes()).not.toContain('u:' + sha(idle));
     expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(3);
   });
@@ -700,5 +720,727 @@ describe('a pastor who signs in with a staff password keeps the one-step sync', 
     expect(r.status).toBe(200);
     expect(r.json.token).toBeNull();
     expect(db.tables.profiles.find((p) => p.email === STAFF)).toBeUndefined();
+  });
+});
+
+// ── Hardening, 1 Oct 2026 (adversarial check F1-F6) ──────────────────────────
+
+/** Netlify's own connection address (x-nf-client-connection-ip), with a different, client-chosen x-forwarded-for each call. */
+const fromNetlify = (nfIp) => ({ headers: { 'x-nf-client-connection-ip': nfIp } });
+
+describe('F1: per-IP limits key on an address the client cannot choose', () => {
+  it('proof-send: 20 an hour per connection, however x-forwarded-for is spoofed', async () => {
+    const nf = '198.18.1.1';
+    let refused = 0;
+    for (let i = 0; i < 24; i++) {
+      const email = `spoof${i}@example.com`;
+      db.tables.profiles.push({ email, session_token_hashes: [], lang: 'en' });
+      const token = await auth.issueToken(db, email, { proven: false });
+      const r = await call(userProfile, { action: 'proof-send' }, { token, ...fromNetlify(nf) });
+      if (r.status === 429) refused++;
+    }
+    expect(refused).toBe(4);
+    expect(resend).toHaveBeenCalledTimes(20);
+  });
+
+  it('migrate (user-sync): five unproven tokens a minute per connection, however x-forwarded-for is spoofed', async () => {
+    const nf = '198.18.1.2';
+    const tokens = [];
+    for (let i = 0; i < 6; i++) tokens.push((await call(userSync, { action: 'pull', email: VICTIM }, fromNetlify(nf))).json.sessionToken);
+    expect(tokens.slice(0, 5).every((t) => /^[0-9a-f]{64}$/.test(t))).toBe(true);
+    expect(tokens[5]).toBeUndefined();
+  });
+
+  it('register of an existing address: the migration limit holds per connection', async () => {
+    const nf = '198.18.1.3';
+    const tokens = [];
+    for (let i = 0; i < 6; i++) tokens.push((await call(userProfile, { action: 'register', email: VICTIM }, fromNetlify(nf))).json.sessionToken);
+    expect(tokens.filter(Boolean)).toHaveLength(5);
+    expect(tokens[5]).toBeUndefined();
+  });
+
+  it('pco-sync: the anonymous 5 a minute holds per connection', async () => {
+    const nf = '198.18.1.4';
+    const statuses = [];
+    for (let i = 0; i < 8; i++) statuses.push((await call(pcoSync, { action: 'lookup', email: VICTIM }, fromNetlify(nf))).status);
+    expect(statuses.slice(5)).toEqual([429, 429, 429]);
+  });
+
+  it('falls back to client-ip, then x-forwarded-for', () => {
+    const { clientIp } = createRequire(import.meta.url)('../../netlify/functions/lib/client-ip.js');
+    expect(clientIp({ headers: { 'x-nf-client-connection-ip': '1.1.1.1', 'client-ip': '2.2.2.2', 'x-forwarded-for': '3.3.3.3, 4.4.4.4' } })).toBe('1.1.1.1');
+    expect(clientIp({ headers: { 'client-ip': '2.2.2.2', 'x-forwarded-for': '3.3.3.3' } })).toBe('2.2.2.2');
+    expect(clientIp({ headers: { 'x-forwarded-for': '3.3.3.3, 4.4.4.4' } })).toBe('3.3.3.3');
+    expect(clientIp({ headers: {} })).toBe('unknown');
+  });
+
+  it('an address that has never held a proven token gets one code per 15 minutes and two a day from one connection', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    const STRANGER = 'never-signed-up@example.com';
+    const ip = '198.18.3.1';
+    // anyone can do this for any address: register it (new), register it again (existing) for an unproven token
+    expect((await call(userProfile, { action: 'register', email: STRANGER })).status).toBe(200);
+    const unproven = async () => (await call(userProfile, { action: 'register', email: STRANGER })).json.sessionToken;
+
+    const a = await unproven();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: a, ip })).status).toBe(200);
+    const b = await unproven();
+    const second = await call(userProfile, { action: 'proof-send' }, { token: b, ip });
+    expect(second.status).toBe(429);
+    expect(resend).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date('2026-10-02T09:16:00Z'));
+    expect((await call(userProfile, { action: 'proof-send' }, { token: b, ip })).status).toBe(200);
+
+    vi.setSystemTime(new Date('2026-10-02T09:32:00Z'));
+    const c = await unproven();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: c, ip })).status).toBe(429);
+    expect(resend).toHaveBeenCalledTimes(2);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === `dwproof-send-new:${STRANGER}:${ip}`)).toHaveLength(2);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === `dwproof-send-new:${STRANGER}`)).toHaveLength(2);
+  });
+
+  it('an address with a proven device keeps the ordinary budget (three in 15 minutes)', async () => {
+    const statuses = [];
+    for (let i = 0; i < 3; i++) {
+      const token = await strangerToken();
+      statuses.push((await call(userProfile, { action: 'proof-send' }, { token })).status);
+    }
+    expect(statuses).toEqual([200, 200, 200]);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key.startsWith('dwproof-send-new:'))).toHaveLength(0);
+  });
+
+  it('fails closed when the proven-history read fails', async () => {
+    const { sendProofCode } = createRequire(import.meta.url)('../../netlify/functions/lib/email-proof.js');
+    db.failOn('profiles', 'select');
+    const r = await sendProofCode(db, VICTIM, 'e'.repeat(64), 'en', '198.18.1.9');
+    expect(r).toMatchObject({ ok: false, status: 503 });
+    expect(resend).not.toHaveBeenCalled();
+    expect(db.tables.rate_limit_hits).toHaveLength(0);
+  });
+});
+
+describe('F3: a failed guarded write in issueToken stores nothing', () => {
+  it('throws instead of writing a stale array blind, so a revoked squatter token never comes back', async () => {
+    const NEWBIE = 'squat-f3@example.com';
+    const squat = (await call(userProfile, { action: 'register', email: NEWBIE, firstName: 'Mallory' })).json.sessionToken;
+    const stale = [...hashes(NEWBIE)]; // ['r:<squatter>'], what a slow concurrent issue read
+    // the owner proves the inbox: the squatter's "r:" token is revoked
+    const owner = (await call(userProfile, { action: 'register', email: NEWBIE })).json.sessionToken;
+    await call(userProfile, { action: 'proof-send' }, { token: owner });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: owner })).status).toBe(200);
+    const after = [...hashes(NEWBIE)];
+    expect(after).toEqual([sha(owner)]);
+
+    // a token issue that read the stale array, and whose guarded write errors
+    db.answerOnce('profiles', 'select', { data: { session_token_hashes: stale }, error: null });
+    db.failOnce('profiles', 'update');
+    await expect(auth.issueToken(db, NEWBIE, { proven: false })).rejects.toThrow('Failed to store token');
+
+    expect(hashes(NEWBIE)).toEqual(after);
+    expect((await call(userSync, { action: 'pull' }, { token: squat })).status).not.toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token: owner })).status).not.toBe(403);
+  });
+
+  it('sync_token answers { token: null } when the write fails', async () => {
+    const STAFF = 'pastor-f3@futures.church';
+    const RAW = 'd'.repeat(64);
+    db.tables.staff_roster = [{ email: STAFF, role: 'campus', campus_id: 'alpharetta', display_name: 'P' }];
+    db.tables.staff_sessions = [{ token_hash: sha(RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+    db.tables.profiles.push({ email: STAFF, session_token_hashes: ['r:' + 'f'.repeat(64)] });
+    db.failOnce('profiles', 'update');
+    const r = await call(intake, { action: 'sync_token' }, { token: RAW });
+    expect(r.status).toBe(200);
+    expect(r.json.token).toBeNull();
+    expect(hashes(STAFF)).toEqual(['r:' + 'f'.repeat(64)]);
+  });
+});
+
+describe('F4: register by a stranger only says "active" for an existing address', () => {
+  beforeEach(() => {
+    Object.assign(profileRow(), { phone: '', church: '', city: '', push_enabled: false });
+  });
+
+  it('with no token: no empty field is filled and push stays off', async () => {
+    const r = await call(userProfile, { action: 'register', email: VICTIM, phone: '999', church: 'Evil', city: 'Elsewhere', pushEnabled: true });
+    expect(r.status).toBe(200);
+    expect(profileRow()).toMatchObject({ phone: '', church: '', city: '', push_enabled: false, first_name: 'Vic' });
+    expect(profileRow().last_active_at).toBeTruthy();
+  });
+
+  it('with an unproven token for the address: still nothing', async () => {
+    const token = await strangerToken();
+    await call(userProfile, { action: 'register', email: VICTIM, phone: '999', pushEnabled: true }, { token });
+    expect(profileRow()).toMatchObject({ phone: '', push_enabled: false });
+  });
+
+  it('with a proven token for ANOTHER address: still nothing', async () => {
+    const OTHER_RAW = '9'.repeat(64);
+    db.tables.profiles.push({ email: 'other-f4@example.com', session_token_hashes: [sha(OTHER_RAW)] });
+    await call(userProfile, { action: 'register', email: VICTIM, phone: '999', pushEnabled: true }, { token: OTHER_RAW });
+    expect(profileRow()).toMatchObject({ phone: '', push_enabled: false });
+  });
+
+  it('the proven owner still fills empty fields and turns push on', async () => {
+    await call(userProfile, { action: 'register', email: VICTIM, phone: '999', city: 'Roswell', firstName: 'Mallory', pushEnabled: true }, { token: DEVICE_RAW });
+    expect(profileRow()).toMatchObject({ phone: '999', city: 'Roswell', push_enabled: true, first_name: 'Vic' });
+  });
+});
+
+describe('F5: register never overwrites an existing profile', () => {
+  it('a failed existence read is a 500, not a full overwrite', async () => {
+    const before = JSON.stringify(profileRow());
+    db.failOnce('profiles', 'select');
+    const r = await call(userProfile, { action: 'register', email: VICTIM, firstName: 'Mallory', phone: '999', campus: 'elsewhere', pushEnabled: true });
+    expect(r.status).toBe(500);
+    expect(r.json.sessionToken).toBeUndefined();
+    expect(JSON.stringify(profileRow())).toBe(before);
+  });
+
+  it('a register race (the read misses a row another request just wrote) falls back to the existing-address branch', async () => {
+    db.answerOnce('profiles', 'select', { data: null, error: null });
+    const r = await call(userProfile, { action: 'register', email: VICTIM, firstName: 'Mallory', phone: '999', campus: 'elsewhere' });
+    expect(r.status).toBe(200);
+    expect(profileRow()).toMatchObject({ first_name: 'Vic', phone: '555-0100', campus: 'alpharetta', push_enabled: false });
+    // and the loser gets an unproven token, never a first-device one
+    expect(hashes()).toContain('u:' + sha(r.json.sessionToken));
+    expect(hashes().some((h) => h.startsWith('r:'))).toBe(false);
+    expect(db.tables.profiles.filter((p) => p.email === VICTIM)).toHaveLength(1);
+  });
+});
+
+describe('F6: pco-sync only copies a PCO person who holds this exact address, and only for its proven owner', () => {
+  /** A PCO search answer: one person, holding `address`. */
+  function pcoAnswers(address, { first = 'Victoria', last = 'Timms', campus = 'Gwinnett' } = {}) {
+    const data = {
+      data: [{ id: 'p1', type: 'Person', attributes: { first_name: first, last_name: last },
+        relationships: { emails: { data: [{ id: 'e1' }] }, primary_campus: { data: { id: 'c1' } } } }],
+      included: [
+        { type: 'Email', id: 'e1', attributes: { address }, relationships: { person: { data: { id: 'p1' } } } },
+        { type: 'Campus', id: 'c1', attributes: { name: campus } },
+      ],
+    };
+    resend.mockImplementation(async () => ({ ok: true, status: 200, json: async () => data, text: async () => '' }));
+  }
+
+  beforeEach(() => { process.env.PCO_APP_ID = 'test-app'; process.env.PCO_SECRET = 'test-secret'; });
+  afterEach(() => { delete process.env.PCO_APP_ID; delete process.env.PCO_SECRET; });
+
+  it('a single search hit whose email is someone else\'s is not a match', async () => {
+    pcoAnswers('someone.else@example.com', { first: 'Mallory' });
+    const look = await call(pcoSync, { action: 'lookup', email: VICTIM });
+    expect(look.json.found).toBe(false);
+    expect(look.raw).not.toContain('Mallory');
+    const sync = await call(pcoSync, { action: 'sync', email: VICTIM }, { token: DEVICE_RAW });
+    expect(sync.json.synced).toBe(false);
+    expect(profileRow().first_name).toBe('Vic');
+  });
+
+  it('with no token, sync returns the lookup and writes nothing to an existing profile', async () => {
+    pcoAnswers(VICTIM);
+    const before = JSON.stringify(profileRow());
+    const r = await call(pcoSync, { action: 'sync', email: VICTIM });
+    expect(r.status).toBe(200);
+    expect(r.json.synced).toBe(false);
+    expect(r.json.profile).toMatchObject({ firstName: 'Victoria', campus: 'us-gwinnett' });
+    expect(JSON.stringify(profileRow())).toBe(before);
+  });
+
+  it('an unproven token, or a proven one for another address, writes nothing either', async () => {
+    pcoAnswers(VICTIM);
+    const before = JSON.stringify({ ...profileRow(), session_token_hashes: undefined });
+    const token = await strangerToken();
+    await call(pcoSync, { action: 'sync', email: VICTIM }, { token });
+    const OTHER_RAW = '8'.repeat(64);
+    db.tables.profiles.push({ email: 'other-f6@example.com', session_token_hashes: [sha(OTHER_RAW)] });
+    await call(pcoSync, { action: 'sync', email: VICTIM }, { token: OTHER_RAW });
+    expect(JSON.stringify({ ...profileRow(), session_token_hashes: undefined })).toBe(before);
+  });
+
+  it('the proven owner\'s own sync still updates name and campus', async () => {
+    pcoAnswers(VICTIM);
+    const r = await call(pcoSync, { action: 'sync', email: VICTIM }, { token: DEVICE_RAW });
+    expect(r.json.synced).toBe(true);
+    expect(profileRow()).toMatchObject({ first_name: 'Victoria', last_name: 'Timms', campus: 'us-gwinnett' });
+  });
+});
+
+// ── Hardening, 1 Oct 2026 (adversarial check F8-F10, server) ─────────────────
+
+describe('F8: a staff sign-in promotes the device\'s own token instead of minting a new one', () => {
+  const STAFF = 'pastor-f8@futures.church';
+  const STAFF_RAW = '7'.repeat(64);
+
+  function seedStaff(sessionHashes = []) {
+    db.tables.staff_roster = [{ email: STAFF, role: 'campus', campus_id: 'alpharetta', display_name: 'Pat' }];
+    db.tables.staff_sessions = [{ token_hash: sha(STAFF_RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+    db.tables.profiles.push({ email: STAFF, first_name: 'Pat', session_token_hashes: sessionHashes });
+    db.tables.user_data.push({ email: STAFF, journal: JOURNAL, sync_version: 1 });
+  }
+  const signIn = (currentToken) => call(intake, { action: 'sync_token', currentToken }, { token: STAFF_RAW });
+
+  it('an unproven "u:" device token is swapped for a fresh proven one in its slot', async () => {
+    seedStaff([sha('1'.repeat(64))]);
+    const device = (await call(userSync, { action: 'pull', email: STAFF })).json.sessionToken;
+    expect(hashes(STAFF)).toContain('u:' + sha(device));
+    const r = await signIn(device);
+    expect(r.status).toBe(200);
+    expect(r.json.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(r.json.token).not.toBe(device);
+    expect(hashes(STAFF)).toEqual([sha('1'.repeat(64)), sha(r.json.token)]);
+    expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token: device })).status).not.toBe(200);
+  });
+
+  it('a first-device "r:" token is swapped for a fresh proven one, and every other "r:" is removed', async () => {
+    const SQUAT = 's'.repeat(64);
+    const device = '6'.repeat(64);
+    seedStaff(['r:' + sha(SQUAT), 'r:' + sha(device)]);
+    const r = await signIn(device);
+    expect(r.json.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(r.json.token).not.toBe(device);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+  });
+
+  it('PROBE-U: a "u:" token a stranger planted on a shared device dies when the pastor signs in there', async () => {
+    seedStaff([sha('1'.repeat(64))]);
+    // a stranger types the pastor's address on the shared device and keeps a copy of its token
+    const planted = (await call(userSync, { action: 'pull', email: STAFF })).json.sessionToken;
+    expect((await call(userSync, { action: 'pull' }, { token: planted })).status).toBe(403);
+    // the pastor later signs in with the staff password on that device
+    const r = await signIn(planted);
+    expect(r.json.token).not.toBe(planted);
+    expect(hashes(STAFF)).toHaveLength(2); // F8: no extra proven token
+    // the stranger's copy still opens nothing; the pastor's device does
+    // the planted entry is gone outright, so the copy is an unknown token (401), not even unproven
+    const pull = await call(userSync, { action: 'pull' }, { token: planted });
+    expect(pull.status).toBe(401);
+    expect(pull.raw).not.toContain('PRIVATE prayer');
+    expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
+  });
+
+  it('PROBE-R: a squatter\'s "r:" token on a shared device dies when the pastor signs in there', async () => {
+    seedStaff([]);
+    db.tables.profiles = db.tables.profiles.filter((p) => p.email !== STAFF);
+    // Mallory registers the pastor's address first on the shared device and keeps a copy of its token
+    const squat = (await call(userProfile, { action: 'register', email: STAFF, firstName: 'Mallory' })).json.sessionToken;
+    expect(hashes(STAFF)).toEqual(['r:' + sha(squat)]);
+    const r = await signIn(squat);
+    expect(r.json.token).not.toBe(squat);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+    // the pastor pushes the journal from this device; Mallory's copy reads nothing
+    await call(userSync, { action: 'push', data: { journal: JOURNAL } }, { token: r.json.token });
+    const pull = await call(userSync, { action: 'pull' }, { token: squat });
+    expect(pull.status).toBe(401);
+    expect(pull.raw).not.toContain('PRIVATE prayer');
+  });
+
+  it('an already proven device token is handed back unchanged, and any "r:" is still removed', async () => {
+    const device = '5'.repeat(64);
+    seedStaff([sha(device), 'r:' + 'f'.repeat(64)]);
+    const r = await signIn(device);
+    expect(r.json.token).toBe(device);
+    expect(hashes(STAFF)).toEqual([sha(device)]);
+  });
+
+  it('six sign-ins on one device never push out the oldest other device', async () => {
+    const others = ['1', '2', '3', '4'].map((c) => sha(c.repeat(64)));
+    const device = '5'.repeat(64);
+    seedStaff([...others, sha(device)]);
+    for (let i = 0; i < 6; i++) expect((await signIn(device)).json.token).toBe(device);
+    expect(hashes(STAFF)).toEqual([...others, sha(device)]);
+  });
+
+  it('a token that is not this staff address\'s (another reader\'s, or junk) gets a fresh token and touches nothing else', async () => {
+    seedStaff([]);
+    const r = await signIn(DEVICE_RAW); // the victim reader's own device token
+    expect(r.json.token).not.toBe(DEVICE_RAW);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+    expect(hashes(VICTIM)).toEqual([DEVICE_HASH]);
+    const junk = await signIn('not-a-token');
+    expect(junk.json.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashes(STAFF)).toHaveLength(2);
+  });
+
+  it('fails closed: a failed write answers { token: null } and stores nothing', async () => {
+    const device = '6'.repeat(64);
+    seedStaff(['u:' + sha(device), 'r:' + 'f'.repeat(64)]);
+    db.failOnce('profiles', 'update');
+    const r = await signIn(device);
+    expect(r.json.token).toBeNull();
+    expect(hashes(STAFF)).toEqual(['u:' + sha(device), 'r:' + 'f'.repeat(64)]);
+  });
+});
+
+describe('F8 (server, round 4): staff logout removes the device\'s cloud token from the profile', () => {
+  const STAFF = 'pastor-logout@futures.church';
+  const STAFF_RAW = '8'.repeat(64);
+  const PHONE = sha('9'.repeat(64));
+
+  function seedStaff(sessionHashes) {
+    db.tables.staff_roster = [{ email: STAFF, role: 'campus', campus_id: 'alpharetta', display_name: 'Pat' }];
+    db.tables.staff_sessions = [{ token_hash: sha(STAFF_RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+    db.tables.profiles.push({ email: STAFF, first_name: 'Pat', session_token_hashes: sessionHashes });
+  }
+  const logout = (currentToken) => call(intake, { action: 'logout', currentToken }, { token: STAFF_RAW });
+
+  it('removes the plain (proven) entry of the token the device sends, and ends the staff session', async () => {
+    const device = '4'.repeat(64);
+    seedStaff([PHONE, sha(device)]);
+    const r = await logout(device);
+    expect(r.status).toBe(200);
+    expect(r.json).toEqual({ ok: true });
+    expect(hashes(STAFF)).toEqual([PHONE]);
+    expect(db.tables.staff_sessions).toHaveLength(0);
+    expect((await call(userSync, { action: 'pull' }, { token: device })).status).toBe(401);
+  });
+
+  it('removes a "u:" or "r:" entry as well', async () => {
+    const u = '3'.repeat(64);
+    const r = '2'.repeat(64);
+    seedStaff([PHONE, 'u:' + sha(u), 'r:' + sha(r)]);
+    await logout(u);
+    expect(hashes(STAFF)).toEqual([PHONE, 'r:' + sha(r)]);
+    db.tables.staff_sessions = [{ token_hash: sha(STAFF_RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+    await logout(r);
+    expect(hashes(STAFF)).toEqual([PHONE]);
+  });
+
+  it('five sign-out / sign-in cycles on one device keep the phone\'s proven token', async () => {
+    const others = ['a', 'b', 'c'].map((c) => sha(c.repeat(64)));
+    seedStaff([PHONE, ...others]);
+    for (let i = 0; i < 5; i++) {
+      db.tables.staff_sessions = [{ token_hash: sha(STAFF_RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+      const t = (await call(intake, { action: 'sync_token' }, { token: STAFF_RAW })).json.token;
+      expect(t).toMatch(/^[0-9a-f]{64}$/);
+      await logout(t);
+    }
+    expect(hashes(STAFF)).toEqual([PHONE, ...others]);
+  });
+
+  it('never touches another address\'s profile, and ignores a missing or malformed token', async () => {
+    seedStaff([PHONE]);
+    await logout(DEVICE_RAW); // the victim reader's own device token
+    expect(hashes(VICTIM)).toEqual([DEVICE_HASH]);
+    expect(hashes(STAFF)).toEqual([PHONE]);
+    for (const bad of [undefined, 'not-a-token', 'Z'.repeat(64)]) {
+      db.tables.staff_sessions = [{ token_hash: sha(STAFF_RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+      expect((await logout(bad)).status).toBe(200);
+    }
+    expect(hashes(STAFF)).toEqual([PHONE]);
+  });
+
+  it('needs a staff session: without one nothing is removed', async () => {
+    const device = '4'.repeat(64);
+    seedStaff([PHONE, sha(device)]);
+    expect((await call(intake, { action: 'logout', currentToken: device })).status).toBe(401);
+    expect(hashes(STAFF)).toEqual([PHONE, sha(device)]);
+  });
+
+  it('fails soft: a failed write still signs out', async () => {
+    const device = '4'.repeat(64);
+    seedStaff([PHONE, sha(device)]);
+    db.failOnce('profiles', 'update');
+    const r = await logout(device);
+    expect(r.status).toBe(200);
+    expect(r.json).toEqual({ ok: true });
+    expect(db.tables.staff_sessions).toHaveLength(0);
+  });
+});
+
+describe('a first-time reader who is in PCO (EmailGate: pco-sync sync, get, register)', () => {
+  const PIA = 'pia@example.com';
+
+  beforeEach(() => {
+    process.env.PCO_APP_ID = 'test-app'; process.env.PCO_SECRET = 'test-secret';
+    const data = {
+      data: [{ id: 'p1', type: 'Person', attributes: { first_name: 'Pia', last_name: 'Pco' },
+        relationships: { emails: { data: [{ id: 'e1' }] }, primary_campus: { data: null } } }],
+      included: [{ type: 'Email', id: 'e1', attributes: { address: PIA }, relationships: { person: { data: { id: 'p1' } } } }],
+    };
+    resend.mockImplementation(async (url) => (String(url).includes('planningcenteronline')
+      ? { ok: true, status: 200, json: async () => data, text: async () => '' }
+      : { ok: true, status: 200, json: async () => ({ id: 'em_1' }) }));
+  });
+  afterEach(() => { delete process.env.PCO_APP_ID; delete process.env.PCO_SECRET; });
+
+  async function emailGate(ip) {
+    const sync = await call(pcoSync, { action: 'sync', email: PIA }, { ip });
+    await call(userProfile, { action: 'get', email: PIA }, { ip });
+    const reg = await call(userProfile, {
+      action: 'register', email: PIA, firstName: 'Pia', lastName: 'Pco', persona: 'congregation', lang: 'es', campus: 'us-alpharetta',
+    }, { ip });
+    return { sync, reg };
+  }
+
+  it('R2: anonymous sync writes nothing, so register stores persona, language and campus and gives a first-device token', async () => {
+    const { sync, reg } = await emailGate();
+    expect(sync.json.synced).toBe(false);
+    expect(sync.json.profile).toMatchObject({ firstName: 'Pia', lastName: 'Pco' });
+    const token = reg.json.sessionToken;
+    expect(hashes(PIA)).toEqual(['r:' + sha(token)]);
+    expect(profileRow(PIA)).toMatchObject({ first_name: 'Pia', persona: 'congregation', lang: 'es', campus: 'us-alpharetta' });
+    const push = await call(userSync, { action: 'push', data: { journal: [{ id: 'p1', date: '2026-10-01', text: 'first', updatedAt: '2026-10-01T00:00:00Z' }] } }, { token });
+    expect(push.status).toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token })).status).toBe(200);
+  });
+
+  it('R2b: the first device syncs with no code, so the strangers\' code budget never applies', async () => {
+    const ip = '198.51.100.77';
+    const { reg } = await emailGate(ip);
+    const token = reg.json.sessionToken;
+    expect((await call(userSync, { action: 'push', data: { journal: [] } }, { token, ip })).status).toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token, ip })).status).toBe(200);
+    expect(resend.mock.calls.filter(([u]) => String(u).includes('resend'))).toHaveLength(0);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key.startsWith('dwproof-send'))).toHaveLength(0);
+  });
+});
+
+describe('F9: junk addresses cannot spend the send budget of readers who have proved before', () => {
+  const fill = (key, n) => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < n; i++) db.tables.rate_limit_hits.push({ key, created_at: at });
+  };
+
+  it('addresses with no proven history share a bucket of 150 an hour, apart from the 300 for proven addresses', async () => {
+    fill('dwproof-send-all-new', 150);
+    const NEW = 'brand-new-f9@example.com';
+    expect((await call(userProfile, { action: 'register', email: NEW })).status).toBe(200);
+    const unproven = (await call(userProfile, { action: 'register', email: NEW })).json.sessionToken;
+    const refused = await call(userProfile, { action: 'proof-send' }, { token: unproven });
+    expect(refused.status).toBe(429);
+    expect(refused.json.error).toBe('busy');
+
+    // the reader with a proven device still gets a code
+    const reader = await strangerToken();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: reader })).status).toBe(200);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === 'dwproof-send-all')).toHaveLength(1);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === 'dwproof-send-all-new')).toHaveLength(150);
+  });
+
+  it('a full proven bucket still refuses proven addresses', async () => {
+    fill('dwproof-send-all', 300);
+    const reader = await strangerToken();
+    const r = await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect(r.status).toBe(429);
+    expect(r.json.error).toBe('busy');
+  });
+});
+
+describe('F10: lockouts a stranger can cause', () => {
+  it('(a) a stranger on another connection cannot use up the reader\'s eight sends a day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    const evil = '203.0.113.60';
+    const statuses = [];
+    for (let i = 0; i < 9; i++) {
+      vi.setSystemTime(new Date(Date.parse('2026-10-02T09:00:00Z') + i * 16 * 60e3));
+      const t = await strangerToken();
+      statuses.push((await call(userProfile, { action: 'proof-send' }, { token: t, ip: evil })).status);
+    }
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 200, 200, 200, 429]);
+    // the reader, from their own connection, still gets a code and can prove
+    const reader = await strangerToken();
+    resend.mockClear();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: reader, ip: '203.0.113.61' })).status).toBe(200);
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: reader })).status).toBe(200);
+  });
+
+  it('(a) a loose address-wide backstop of 30 a day still holds across connections', async () => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < 30; i++) db.tables.rate_limit_hits.push({ key: `dwproof-send:${VICTIM}`, created_at: at });
+    const t = await strangerToken();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: t, ip: '203.0.113.62' })).status).toBe(429);
+    expect(resend).not.toHaveBeenCalled();
+  });
+
+  it('(a) a reader who joined since the proof change: a stranger\'s two sends on IP A do not block the second device on IP B', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    const READER = 'joined-recently@example.com';
+    const A = '203.0.113.63';
+    const B = '203.0.113.64';
+    // the reader's first device: a new address, an "r:" token, no proven history
+    const first = (await call(userProfile, { action: 'register', email: READER })).json.sessionToken;
+    expect(hashes(READER)).toEqual(['r:' + sha(first)]);
+    // a stranger on IP A asks for two codes, a quarter of an hour apart
+    const s1 = (await call(userProfile, { action: 'register', email: READER }, { ip: A })).json.sessionToken;
+    expect((await call(userProfile, { action: 'proof-send' }, { token: s1, ip: A })).status).toBe(200);
+    vi.setSystemTime(new Date('2026-10-02T09:16:00Z'));
+    const s2 = (await call(userProfile, { action: 'register', email: READER }, { ip: A })).json.sessionToken;
+    expect((await call(userProfile, { action: 'proof-send' }, { token: s2, ip: A })).status).toBe(200);
+    // the reader's second device, on IP B, still gets a code and proves
+    vi.setSystemTime(new Date('2026-10-02T09:20:00Z'));
+    const second = (await call(userProfile, { action: 'register', email: READER }, { ip: B })).json.sessionToken;
+    resend.mockClear();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: second, ip: B })).status).toBe(200);
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: second, ip: B })).status).toBe(200);
+  });
+
+  it('(a) an address with no proven history keeps a loose address-wide backstop of six sends a day', async () => {
+    const NEW = 'backstop-new@example.com';
+    db.tables.profiles.push({ email: NEW, session_token_hashes: [], lang: 'en' });
+    const at = new Date().toISOString();
+    for (let i = 0; i < 5; i++) db.tables.rate_limit_hits.push({ key: `dwproof-send-new:${NEW}`, created_at: at });
+    const t1 = await auth.issueToken(db, NEW, { proven: false });
+    expect((await call(userProfile, { action: 'proof-send' }, { token: t1, ip: '203.0.113.65' })).status).toBe(200);
+    const t2 = await auth.issueToken(db, NEW, { proven: false });
+    expect((await call(userProfile, { action: 'proof-send' }, { token: t2, ip: '203.0.113.66' })).status).toBe(429);
+    expect(resend).toHaveBeenCalledTimes(1);
+  });
+
+  it('(b) tries on a token with no code, or over its own limit, cost the address nothing', async () => {
+    // a stranger token that never asked for a code: 70 tries
+    const stranger = await strangerToken();
+    for (let i = 0; i < 70; i++) {
+      const r = await call(userProfile, { action: 'proof-verify', code: '000000' }, { token: stranger });
+      expect([400, 429]).toContain(r.status);
+    }
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === `dwproof-try:${VICTIM}`)).toHaveLength(0);
+
+    // a stranger token WITH a code, past its 5 tries, writes nothing more against the address
+    const withCode = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: withCode });
+    const wrong = String((Number(sentCode(0)) + 1) % 1000000).padStart(6, '0');
+    for (let i = 0; i < 20; i++) await call(userProfile, { action: 'proof-verify', code: wrong }, { token: withCode });
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === `dwproof-try:${VICTIM}`)).toHaveLength(5);
+
+    // the reader's right code still works
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode(1) }, { token: reader })).status).toBe(200);
+  });
+
+  it('(b) the per-address backstop of 60 tries an hour still applies to tokens with a code', async () => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < 60; i++) db.tables.rate_limit_hits.push({ key: `dwproof-try:${VICTIM}`, created_at: at });
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: reader })).status).toBe(429);
+  });
+
+  it('(c) a pending token that has not asked for a code yet survives three stranger tokens', async () => {
+    const reader = await strangerToken();
+    expect(db.tables.rate_limit_hits.some((r) => r.key === `dwproof-mint:${sha(reader)}`)).toBe(true);
+    for (let i = 0; i < 3; i++) await strangerToken();
+    expect(hashes()).toContain('u:' + sha(reader));
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: reader })).status).toBe(200);
+  });
+
+  it('(c) under a flood the hard ceiling of five holds, and a token with a live code outlasts merely fresh ones', async () => {
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    for (let i = 0; i < 8; i++) await strangerTry();
+    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(5);
+    expect(hashes()).toContain('u:' + sha(reader));
+    expect(hashes()).toContain(DEVICE_HASH);
+  });
+
+  it('(c) five stranger registers from one IP inside the migration budget do not push out a reader\'s freshly minted token', async () => {
+    // the reader, on their own connection, has just got an unproven token and not yet asked for a code
+    const reader = await strangerToken();
+    const evil = '203.0.113.67';
+    const got = [];
+    for (let i = 0; i < 5; i++) {
+      const r = await call(userProfile, { action: 'register', email: VICTIM }, { ip: evil });
+      expect(r.status).toBe(200);
+      got.push(r.json.sessionToken || null);
+    }
+    // four fill the hard ceiling of five; the fifth is refused rather than evict a protected token
+    expect(got.filter(Boolean)).toHaveLength(4);
+    expect(got[4]).toBeNull();
+    expect(hashes()).toContain('u:' + sha(reader));
+    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(5);
+    // the reader's proof still works
+    expect((await call(userProfile, { action: 'proof-send' }, { token: reader })).status).toBe(200);
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: reader })).status).toBe(200);
+  });
+
+  it('(c) a refused mint stores nothing, and the mint goes through again once a slot is no longer protected', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    for (let i = 0; i < 5; i++) expect(await strangerTry()).toBeTruthy();
+    const before = JSON.stringify(hashes());
+    await expect(auth.issueToken(db, VICTIM, { proven: false })).rejects.toThrow();
+    expect(JSON.stringify(hashes())).toBe(before);
+    vi.setSystemTime(new Date('2026-10-02T09:11:00Z'));
+    const later = await strangerTry();
+    expect(later).toBeTruthy();
+    expect(hashes()).toContain('u:' + sha(later));
+    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(3);
+  });
+});
+
+describe('F1 (send race): the send budgets hold under a parallel burst of proof-send calls', () => {
+  // Each budget used to be read before any row was written, so N calls fired
+  // together all saw the same count and all sent. Every call below is fired at
+  // once with Promise.all; the in-memory fake interleaves their reads and writes
+  // the way parallel function instances do.
+  const burst = (n, mk) => Promise.all(Array.from({ length: n }, (_, i) => mk(i)));
+  const unprovenFor = async (email) => auth.issueToken(db, email, { proven: false });
+  const fill = (key, n) => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < n; i++) db.tables.rate_limit_hits.push({ key, created_at: at });
+  };
+
+  it('a never-signed-up address gets at most one code from a burst on one connection', async () => {
+    const STRANGER = 'race-never@example.com';
+    db.tables.profiles.push({ email: STRANGER, session_token_hashes: [], lang: 'en' });
+    const tokens = [];
+    for (let i = 0; i < 5; i++) tokens.push(await unprovenFor(STRANGER));
+    const res = await burst(5, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ip: '203.0.113.170' }));
+    expect(res.filter((r) => r.status === 200).length).toBeLessThanOrEqual(1);
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(1);
+    expect(res.every((r) => [200, 429].includes(r.status))).toBe(true);
+  });
+
+  it('a never-signed-up address: a burst across connections stops at the address-wide six a day', async () => {
+    const STRANGER = 'race-never-spread@example.com';
+    db.tables.profiles.push({ email: STRANGER, session_token_hashes: [], lang: 'en' });
+    fill(`dwproof-send-new:${STRANGER}`, 5);
+    const tokens = [];
+    for (let i = 0; i < 5; i++) tokens.push(await unprovenFor(STRANGER));
+    const res = await burst(5, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ip: `203.0.113.${171 + i}` }));
+    expect(res.filter((r) => r.status === 200).length).toBeLessThanOrEqual(1);
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(1);
+  });
+
+  it('one connection gets at most three codes for one token from a burst', async () => {
+    const token = await strangerToken();
+    const res = await burst(6, () => call(userProfile, { action: 'proof-send' }, { token, ip: '203.0.113.180' }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(3);
+    expect(res.filter((r) => r.status === 429).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('one IP gets at most 20 code emails from a burst across addresses', async () => {
+    const tokens = [];
+    for (let i = 0; i < 28; i++) {
+      const email = `race-ip${i}@example.com`;
+      db.tables.profiles.push({ email, session_token_hashes: [], lang: 'en' });
+      tokens.push(await unprovenFor(email));
+    }
+    const res = await burst(28, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ...fromNetlify('198.18.2.1') }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(20);
+    expect(res.filter((r) => r.status === 429).length).toBeGreaterThanOrEqual(8);
+    // a burst refused per IP never reaches the global bucket past the per-IP cap
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === 'dwproof-send-all-new').length).toBeLessThanOrEqual(20);
+  });
+
+  it('the global bucket for never-proven addresses holds at 150 under a burst', async () => {
+    fill('dwproof-send-all-new', 149);
+    const tokens = [];
+    for (let i = 0; i < 5; i++) {
+      const email = `race-global${i}@example.com`;
+      db.tables.profiles.push({ email, session_token_hashes: [], lang: 'en' });
+      tokens.push(await unprovenFor(email));
+    }
+    await burst(5, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ip: `203.0.113.${190 + i}` }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(1);
+  });
+
+  it('the global bucket for proven addresses holds at 300 under a burst', async () => {
+    fill('dwproof-send-all', 299);
+    const tokens = [];
+    for (let i = 0; i < 5; i++) tokens.push(await strangerToken());
+    await burst(5, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ip: `203.0.113.${200 + i}` }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(1);
   });
 });
