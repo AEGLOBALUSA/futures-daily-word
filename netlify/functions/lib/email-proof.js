@@ -13,13 +13,19 @@
  * table lib/rate-limit.js uses, so no migration is needed. Keys:
  *   dwproof-code:<tokenHash>:<sha256(email|tokenHash|code)>   a live code
  * <ip> is the caller's rate-limit key (lib/client-ip.js rateLimitKeyIp): an IPv4
- * address as it is, an IPv6 address reduced to its /64.
- *   dwproof-send:<email>:<ip>                                  a send, per address AND caller IP
- *   dwproof-send:<email>                                       a send, per address (loose backstop)
- *   dwproof-send-new:<email>:<ip>                              a send to an address that has never held a proven token, per caller IP
- *   dwproof-send-new:<email>                                   the same, per address (loose backstop, enforced only
+ * address as it is, an IPv6 address reduced to its /64. <pfx> is the coarser
+ * rateLimitPrefixKey: an IPv4 address as it is, an IPv6 address reduced to its /48.
+ * <ek> is sha256(email) in hex. An address may contain ':' (the address regex
+ * of older profiles allowed it), so an address written into a key raw made
+ * "reader@example.com:<ip>" share keys with reader@example.com from <ip>; a
+ * fixed-length hash cannot run into the part after it.
+ *   dwproof-send:<ek>:<ip>                                     a send, per address AND caller IP
+ *   dwproof-send:<ek>                                          a send, per address (loose backstop)
+ *   dwproof-send-new:<ek>:<ip>                                 a send to an address that has never held a proven token, per caller IP
+ *   dwproof-send-new:<ek>                                      the same, per address (loose backstop, enforced only
  *                                                              on a caller whose own IP already sent to it that day)
  *   dwproof-send-ip:<ip>                                       a send, per caller IP
+ *   dwproof-send-pfx:<pfx>                                     a send, per caller IPv6 /48 (one connection)
  *   dwproof-send-all                                           a send to an address with a proven history, global
  *   dwproof-send-all-new                                       a send to an address with no proven history, global
  *   dwproof-try:<email>                                        a try, per address (backstop)
@@ -35,7 +41,7 @@
 
 const crypto = require("crypto");
 const { promoteToken, proofCodePrefix, CODE_TTL_MS, isPlain } = require("./auth");
-const { rateLimitKeyIp } = require("./client-ip");
+const { rateLimitKeyIp, rateLimitPrefixKey } = require("./client-ip");
 
 const RESEND_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Futures Daily Word <notes@futuresdailyword.com>";
@@ -49,6 +55,11 @@ const SEND_PER_EMAIL_ALL_IPS_DAY = 30;
 // One caller IP can ask for at most this many code emails an hour, so a single
 // attacker cannot spend the global cap (or many readers' per-address budgets).
 const SEND_PER_IP_HOUR = 20;
+// One IPv6 connection (its /48: a delegated /56 or /48 holds 256 or 65,536 /64s)
+// can ask for at most this many an hour, so it takes at least four connections
+// to fill the 150 / hour bucket for never-proven addresses. For IPv4 the prefix
+// is the address, so the 20 / hour per IP binds first.
+const SEND_PER_PREFIX_HOUR = 40;
 // Two global buckets: sends to addresses that have held a proven token, and
 // sends to addresses that never have. Junk addresses (anyone can register one)
 // only ever spend the second, smaller bucket, so they cannot use up the budget
@@ -208,7 +219,7 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
   // address that has never held a proven token also gets 1 / 15 min and 2 / day
   // per caller IP, and 6 / day from all IPs together (enforced only on a caller
   // whose own IP already sent to the address today). Every per-IP key uses the
-  // caller's /64 for IPv6.
+  // caller's /64 for IPv6, and one more key caps an IPv6 caller's /48 at 40 / hour.
   //
   // Two passes. The first only reads, so an ordinary refused retry writes
   // nothing. The second is what makes the limits hold under a parallel burst
@@ -224,17 +235,23 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
   try {
     // An IPv6 caller is keyed on its /64: one host can use any address in it.
     const realIp = rateLimitKeyIp(ip || "unknown");
+    // ...and its /48 as well: one connection can hold many /64s.
+    const pfx = rateLimitPrefixKey(ip || "unknown");
+    // The address is hashed into every key, so no address can name another
+    // reader's per-IP key (see the header).
+    const ek = sha256(email);
     const proven = await hasProvenHistory(db, email);
     // The never-proven address-wide backstop only binds a caller whose own IP has
     // already sent to this address today (read before this attempt writes).
-    const ownNewToday = proven ? 0 : await countRows(db, `dwproof-send-new:${email}:${realIp}`, DAY);
+    const ownNewToday = proven ? 0 : await countRows(db, `dwproof-send-new:${ek}:${realIp}`, DAY);
     const stages = [
-      { key: `dwproof-send:${email}:${realIp}`, limits: [[15 * MIN, SEND_PER_EMAIL_15M], [DAY, SEND_PER_EMAIL_DAY]], error: "too_many" },
-      ...(proven ? [] : [{ key: `dwproof-send-new:${email}:${realIp}`, limits: [[15 * MIN, SEND_NEW_15M], [DAY, SEND_NEW_DAY]], error: "too_many" }]),
+      { key: `dwproof-send:${ek}:${realIp}`, limits: [[15 * MIN, SEND_PER_EMAIL_15M], [DAY, SEND_PER_EMAIL_DAY]], error: "too_many" },
+      ...(proven ? [] : [{ key: `dwproof-send-new:${ek}:${realIp}`, limits: [[15 * MIN, SEND_NEW_15M], [DAY, SEND_NEW_DAY]], error: "too_many" }]),
       { key: `dwproof-send-ip:${realIp}`, limits: [[HOUR, SEND_PER_IP_HOUR]], error: "too_many" },
+      { key: `dwproof-send-pfx:${pfx}`, limits: [[HOUR, SEND_PER_PREFIX_HOUR]], error: "too_many" },
       // Recorded for every send; refuses only a caller that already sent here today.
-      ...(proven ? [] : [{ key: `dwproof-send-new:${email}`, limits: ownNewToday > 0 ? [[DAY, SEND_NEW_ALL_IPS_DAY]] : [], error: "too_many" }]),
-      { key: `dwproof-send:${email}`, limits: [[DAY, SEND_PER_EMAIL_ALL_IPS_DAY]], error: "too_many" },
+      ...(proven ? [] : [{ key: `dwproof-send-new:${ek}`, limits: ownNewToday > 0 ? [[DAY, SEND_NEW_ALL_IPS_DAY]] : [], error: "too_many" }]),
+      { key: `dwproof-send:${ek}`, limits: [[DAY, SEND_PER_EMAIL_ALL_IPS_DAY]], error: "too_many" },
       proven
         ? { key: "dwproof-send-all", limits: [[HOUR, SEND_GLOBAL_HOUR]], error: "busy" }
         : { key: "dwproof-send-all-new", limits: [[HOUR, SEND_GLOBAL_NEW_HOUR]], error: "busy" },

@@ -62,9 +62,31 @@ function rateLimitKeyIp(ip) {
   return `${g.slice(0, 4).map((n) => n.toString(16)).join(":")}::/64`;
 }
 
+/**
+ * A coarser key than rateLimitKeyIp, for limits that must hold against one
+ * connection, not one host. An IPv6 address becomes its /48
+ * ("2001:db8:aa::/48"): a home or business connection is often delegated a /56
+ * or a /48, which is 256 or 65,536 /64s, so a limit keyed on the /64 alone lets
+ * one connection look like that many callers. IPv4 stays as it is, and an
+ * IPv4-mapped address is keyed as the IPv4 address. Accepts a /64 key that
+ * rateLimitKeyIp already made ("2001:db8:aa:12::/64") as well as a raw address.
+ * Anything that does not parse is returned unchanged.
+ */
+function rateLimitPrefixKey(ip) {
+  let s = String(ip == null ? "unknown" : ip).trim() || "unknown";
+  if (!s.includes(":")) return s;
+  s = s.replace(/\/\d{1,3}$/, "");
+  const g = ipv6Groups(s);
+  if (!g) return String(ip).trim();
+  if (g.slice(0, 5).every((n) => n === 0) && g[5] === 0xffff) {
+    return [g[6] >> 8, g[6] & 255, g[7] >> 8, g[7] & 255].join(".");
+  }
+  return `${g.slice(0, 3).map((n) => n.toString(16)).join(":")}::/48`;
+}
+
 /** The caller's address as a per-IP rate-limit key: clientIp, with IPv6 reduced to its /64. */
 function rateLimitIp(event) {
   return rateLimitKeyIp(clientIp(event));
 }
 
-module.exports = { clientIp, rateLimitIp, rateLimitKeyIp };
+module.exports = { clientIp, rateLimitIp, rateLimitKeyIp, rateLimitPrefixKey };

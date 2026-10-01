@@ -30,17 +30,26 @@
  */
 
 const crypto = require("crypto");
-const { rateLimitIp, rateLimitKeyIp } = require("./client-ip");
+const { rateLimitIp, rateLimitKeyIp, rateLimitPrefixKey } = require("./client-ip");
 
 // Migration rate limiter — prevent brute-force token issuance via email enumeration.
-// Callers pass the rate-limit key (lib/client-ip.js rateLimitIp): an IPv6 caller's /64.
+// Callers pass the rate-limit key (lib/client-ip.js rateLimitIp): an IPv6 caller's
+// /64. An IPv6 caller is also counted on its /48 (rateLimitPrefixKey), with a
+// looser limit, so a connection holding a /56 or /48 cannot mint 5 a minute from
+// each of its /64s. Both counts are checked before either is written.
+const MIGRATION_PER_PREFIX_MIN = 15;
 const migrationHits = {};
 function checkMigrationRate(ip, maxPerMin = 5) {
   const now = Date.now();
-  if (!migrationHits[ip]) migrationHits[ip] = [];
-  migrationHits[ip] = migrationHits[ip].filter(t => now - t < 60000);
-  if (migrationHits[ip].length >= maxPerMin) return true;
-  migrationHits[ip].push(now);
+  const key = rateLimitKeyIp(ip);
+  const pfx = rateLimitPrefixKey(ip);
+  const buckets = [[key, maxPerMin]];
+  if (pfx !== key) buckets.push([`pfx:${pfx}`, Math.max(maxPerMin, MIGRATION_PER_PREFIX_MIN)]);
+  for (const [k, max] of buckets) {
+    migrationHits[k] = (migrationHits[k] || []).filter(t => now - t < 60000);
+    if (migrationHits[k].length >= max) return true;
+  }
+  for (const [k] of buckets) migrationHits[k].push(now);
   // Cleanup old entries
   if (Object.keys(migrationHits).length > 200) {
     for (const k of Object.keys(migrationHits)) {
@@ -86,9 +95,11 @@ const proofCodePrefix = (hash) => `dwproof-code:${hash}:`;
 // A freshly minted unproven token is left alone this long (within
 // MAX_UNPROVEN_HARD), so a reader who has not asked for a code yet is not pushed
 // out by three stranger tokens before they do. The grace is PER MINTING IP: only
-// the newest mint from each IP (an IPv6 caller's /64) is protected, so one
-// stranger polling from one connection holds at most one protected slot and can
-// never fill the class with fresh tokens. Recorded as dwproof-mint:<hash>:<ip>.
+// the newest mint from each IP (an IPv6 caller's /48, lib/client-ip.js
+// rateLimitPrefixKey: a connection is often delegated a /56 or /48, so its /64s
+// are one caller here) is protected, so one stranger polling from one connection
+// holds at most one protected slot and can never fill the class with fresh
+// tokens. Recorded as dwproof-mint:<hash>:<ip>.
 const MINT_GRACE_MS = 10 * 60 * 1000;
 const mintKey = (hash, ip) => `dwproof-mint:${hash}:${ip}`;
 const mintPrefix = (hash) => `dwproof-mint:${hash}`;
@@ -155,12 +166,15 @@ async function recentMint(db, hash) {
  * the reader gets 409 token_gone. Only the newest mint per IP is protected (the
  * entry just added is the newest from `addedIp`), so a stranger's older mints
  * from the same connection drop to unprotected and go first: one stranger IP
- * holds at most one recency-protected slot. A protected token is never dropped
- * to make room: when the class would still be above the ceiling
- * MAX_UNPROVEN_HARD once every unprotected entry above MAX_UNPROVEN is gone (so
- * every remaining one has a live code or is the newest mint of a distinct IP),
- * the new mint is REFUSED instead (returns null, issueToken throws and its
- * callers hand out no token). A flood still cannot grow the array.
+ * holds at most one recency-protected slot (an IPv6 caller's IP here is its
+ * /48). Unprotected entries go first, down to MAX_UNPROVEN. When the class is
+ * still above the ceiling MAX_UNPROVEN_HARD, the OLDEST recency-only entries go
+ * next, down to the ceiling: recency alone never refuses a mint, so strangers on
+ * several connections re-minting every few minutes cannot stop a reader's new
+ * device getting a token. A token with a live emailed code is never dropped:
+ * only when every remaining entry has one is the new mint REFUSED (returns null,
+ * issueToken throws and its callers hand out no token). A flood still cannot
+ * grow the array.
  *
  * @returns {Promise<string[]|null>} the trimmed array, or null to refuse the mint.
  */
@@ -201,6 +215,8 @@ async function capUnproven(db, hashes, justAdded, addedIp) {
     }
   };
   dropTier(0, MAX_UNPROVEN);
+  // Oldest first (the array is in mint order): recency alone never refuses.
+  dropTier(1, MAX_UNPROVEN_HARD);
   if (remaining > MAX_UNPROVEN_HARD) return null;
   return hashes.filter((_, i) => !drop.has(i));
 }
@@ -270,9 +286,10 @@ async function authenticateRequest(event, db) {
  * request that created the profile) is stored as "r:<hash>", capped at 3; an
  * unproven token is stored as "u:<hash>" and the "u:" entries are capped at 3
  * (a token with a live emailed code, or the newest one minted from its IP in
- * the last 10 minutes, is not evicted; when every slot up to 5 is held by such
- * a token the new unproven mint throws, see capUnproven). `ip` is the minting
- * caller's address (reduced to its rate-limit key, so an IPv6 /64), recorded
+ * the last 10 minutes, is not evicted below 5; past 5 the oldest recency-only
+ * ones go, and only when every slot up to 5 is held by a token with a live code
+ * does the new unproven mint throw, see capUnproven). `ip` is the minting
+ * caller's address (reduced to rateLimitPrefixKey, so an IPv6 /48), recorded
  * with an unproven mint; callers that serve a request pass it. The
  * classes never evict each other. Defaults to UNPROVEN: a caller has to say so
  * to hand out a trusted token.
@@ -281,7 +298,8 @@ async function authenticateRequest(event, db) {
  */
 async function issueToken(db, email, { proven = false, first = false, ip = "unknown" } = {}) {
   const { raw, hash } = generateToken();
-  const mintIp = rateLimitKeyIp(ip);
+  // The mint grace is per connection: an IPv6 caller's /48, not its /64.
+  const mintIp = rateLimitPrefixKey(ip);
 
   // Compare-and-swap append. Parallel startup calls (user-sync pull,
   // user-profile get, track-activity) each trigger migration concurrently;
@@ -319,8 +337,8 @@ async function issueToken(db, email, { proven = false, first = false, ip = "unkn
     else if (proven) hashes = capClass(hashes, isPlain, MAX_PROVEN);
     else {
       hashes = await capUnproven(db, hashes, entry, mintIp);
-      // Every unproven slot is held by a token with a live code or the newest
-      // recent mint of another IP: no token, rather than pushing out a reader's own.
+      // Every unproven slot is held by a token with a live code: no token, rather
+      // than pushing out a reader's code before they type it.
       if (!hashes) throw new Error("Cannot issue token: unproven tokens at their ceiling");
     }
 
@@ -519,7 +537,8 @@ async function migrateRequest(event, db, bodyEmail) {
 
   if (!bodyEmail || typeof bodyEmail !== "string") return null;
   const email = bodyEmail.toLowerCase().trim();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  // No ':' in an address: limiter keys are built from it (see lib/email-proof.js).
+  if (!email || !/^[^\s@:]+@[^\s@:]+\.[^\s@:]+$/.test(email)) return null;
 
   // Verify the email exists in profiles
   const { data: existing, error } = await db

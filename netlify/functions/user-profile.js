@@ -120,7 +120,8 @@ exports.handler = async (event) => {
       if (!email) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Email is required" }) };
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      // No ':' in an address: limiter keys are built from it (lib/email-proof.js).
+      if (!/^[^\s@:]+@[^\s@:]+\.[^\s@:]+$/.test(email)) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid email address" }) };
       }
 
