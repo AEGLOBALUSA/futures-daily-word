@@ -1,7 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { authenticateSession, issueToken, migrateRequest, checkMigrationRate } = require("./lib/auth");
 const { sendProofCode, verifyProofCode } = require("./lib/email-proof");
-const { clientIp } = require("./lib/client-ip");
+const { clientIp, rateLimitIp } = require("./lib/client-ip");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
@@ -92,6 +92,10 @@ exports.handler = async (event) => {
   // (lib/client-ip.js): this IP also feeds the register migration limit and the
   // proof-send per-IP cap.
   const clientIP = clientIp(event);
+  // The same address as a per-IP rate-limit key: an IPv6 caller's whole /64, so
+  // one host cannot rotate through its addresses (register migration limit,
+  // mint grace, proof-send per-IP caps).
+  const rlIP = rateLimitIp(event);
   if (checkRateLimit(clientIP)) {
     return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
   }
@@ -207,13 +211,13 @@ exports.handler = async (event) => {
       let sessionToken = null;
       if (!existing) {
         try {
-          sessionToken = await issueToken(db, data.email, { first: true });
+          sessionToken = await issueToken(db, data.email, { first: true, ip: rlIP });
         } catch (tokenErr) {
           console.error("Register token issuance failed:", tokenErr);
         }
-      } else if (!checkMigrationRate(clientIP)) {
+      } else if (!checkMigrationRate(rlIP)) {
         try {
-          sessionToken = await issueToken(db, data.email, { proven: false });
+          sessionToken = await issueToken(db, data.email, { proven: false, ip: rlIP });
         } catch (tokenErr) {
           console.error("Register token issuance failed:", tokenErr);
         }
@@ -355,7 +359,7 @@ exports.handler = async (event) => {
 
       if (action === "proof-send") {
         const { data: prof } = await db.from("profiles").select("lang").eq("email", session.email).maybeSingle();
-        const sent = await sendProofCode(db, session.email, session.hash, prof && prof.lang, clientIP.slice(0, 64));
+        const sent = await sendProofCode(db, session.email, session.hash, prof && prof.lang, rlIP);
         if (!sent.ok) {
           return { statusCode: sent.status, headers, body: JSON.stringify({ success: false, error: sent.error }) };
         }

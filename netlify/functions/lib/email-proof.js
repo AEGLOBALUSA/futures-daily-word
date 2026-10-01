@@ -12,10 +12,13 @@
  * Storage: the shared `rate_limit_hits` table (key text, created_at), the same
  * table lib/rate-limit.js uses, so no migration is needed. Keys:
  *   dwproof-code:<tokenHash>:<sha256(email|tokenHash|code)>   a live code
+ * <ip> is the caller's rate-limit key (lib/client-ip.js rateLimitKeyIp): an IPv4
+ * address as it is, an IPv6 address reduced to its /64.
  *   dwproof-send:<email>:<ip>                                  a send, per address AND caller IP
  *   dwproof-send:<email>                                       a send, per address (loose backstop)
  *   dwproof-send-new:<email>:<ip>                              a send to an address that has never held a proven token, per caller IP
- *   dwproof-send-new:<email>                                   the same, per address (loose backstop)
+ *   dwproof-send-new:<email>                                   the same, per address (loose backstop, enforced only
+ *                                                              on a caller whose own IP already sent to it that day)
  *   dwproof-send-ip:<ip>                                       a send, per caller IP
  *   dwproof-send-all                                           a send to an address with a proven history, global
  *   dwproof-send-all-new                                       a send to an address with no proven history, global
@@ -32,6 +35,7 @@
 
 const crypto = require("crypto");
 const { promoteToken, proofCodePrefix, CODE_TTL_MS, isPlain } = require("./auth");
+const { rateLimitKeyIp } = require("./client-ip");
 
 const RESEND_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Futures Daily Word <notes@futuresdailyword.com>";
@@ -59,8 +63,12 @@ const SEND_GLOBAL_NEW_HOUR = 150;
 // typo a second. It is per IP so that a stranger's two sends cannot block the
 // reader's second device for the day (every reader who joined since the proof
 // change has no proven history: their first device holds an "r:" token). The
-// address-wide backstop of six a day, the per-IP 20 / hour, the address 30 / day
-// and the global 150 / hour for never-proven addresses bound the fan-out.
+// address-wide backstop of six a day refuses only a caller whose own IP (/64)
+// has already sent to this address that day, so a stranger's sends from other
+// connections (or other addresses in their /64) never take the reader's second
+// device's first send; a fresh connection's one send is bounded by the per-IP
+// 20 / hour, the address 30 / day and the global 150 / hour for never-proven
+// addresses.
 const SEND_NEW_15M = 1;
 const SEND_NEW_DAY = 2;
 const SEND_NEW_ALL_IPS_DAY = 6;
@@ -198,7 +206,9 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
   // IP, 30 / day per address from any IP, 20 / hour per caller IP, and a global
   // hourly cap (300 for addresses with a proven history, 150 for the rest). An
   // address that has never held a proven token also gets 1 / 15 min and 2 / day
-  // per caller IP, and 6 / day from all IPs together.
+  // per caller IP, and 6 / day from all IPs together (enforced only on a caller
+  // whose own IP already sent to the address today). Every per-IP key uses the
+  // caller's /64 for IPv6.
   //
   // Two passes. The first only reads, so an ordinary refused retry writes
   // nothing. The second is what makes the limits hold under a parallel burst
@@ -212,13 +222,18 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
   // narrow key never writes a row to a wider one. Rows of a refused attempt stay
   // as recorded attempts, which only ever errs towards refusing.
   try {
-    const realIp = ip || "unknown";
+    // An IPv6 caller is keyed on its /64: one host can use any address in it.
+    const realIp = rateLimitKeyIp(ip || "unknown");
     const proven = await hasProvenHistory(db, email);
+    // The never-proven address-wide backstop only binds a caller whose own IP has
+    // already sent to this address today (read before this attempt writes).
+    const ownNewToday = proven ? 0 : await countRows(db, `dwproof-send-new:${email}:${realIp}`, DAY);
     const stages = [
       { key: `dwproof-send:${email}:${realIp}`, limits: [[15 * MIN, SEND_PER_EMAIL_15M], [DAY, SEND_PER_EMAIL_DAY]], error: "too_many" },
       ...(proven ? [] : [{ key: `dwproof-send-new:${email}:${realIp}`, limits: [[15 * MIN, SEND_NEW_15M], [DAY, SEND_NEW_DAY]], error: "too_many" }]),
       { key: `dwproof-send-ip:${realIp}`, limits: [[HOUR, SEND_PER_IP_HOUR]], error: "too_many" },
-      ...(proven ? [] : [{ key: `dwproof-send-new:${email}`, limits: [[DAY, SEND_NEW_ALL_IPS_DAY]], error: "too_many" }]),
+      // Recorded for every send; refuses only a caller that already sent here today.
+      ...(proven ? [] : [{ key: `dwproof-send-new:${email}`, limits: ownNewToday > 0 ? [[DAY, SEND_NEW_ALL_IPS_DAY]] : [], error: "too_many" }]),
       { key: `dwproof-send:${email}`, limits: [[DAY, SEND_PER_EMAIL_ALL_IPS_DAY]], error: "too_many" },
       proven
         ? { key: "dwproof-send-all", limits: [[HOUR, SEND_GLOBAL_HOUR]], error: "busy" }
