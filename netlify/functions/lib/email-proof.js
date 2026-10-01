@@ -121,6 +121,35 @@ const COPY = {
   },
 };
 
+// The staff setup code (intake.js email_setup_code). Same look as the reader
+// proof email above, and likewise NO links: the person types the code.
+const STAFF_COPY = {
+  en: {
+    subject: "Your Daily Word staff code",
+    line1: (c) => `Your code is ${c}.`,
+    line2: "Type it in Daily Word or Sermon Prep to choose your password. It works once and expires in 30 minutes.",
+    line3: "If you didn't ask for this, ignore this email. Nothing on your account has changed.",
+  },
+  es: {
+    subject: "Tu código de equipo de Daily Word",
+    line1: (c) => `Tu código es ${c}.`,
+    line2: "Escríbelo en Daily Word o Sermon Prep para elegir tu contraseña. Funciona una sola vez y caduca en 30 minutos.",
+    line3: "Si no lo pediste, ignora este correo. No ha cambiado nada en tu cuenta.",
+  },
+  pt: {
+    subject: "Seu código de equipe do Daily Word",
+    line1: (c) => `Seu código é ${c}.`,
+    line2: "Digite-o no Daily Word ou no Sermon Prep para escolher sua senha. Ele funciona uma vez e expira em 30 minutos.",
+    line3: "Se você não pediu isto, ignore este e-mail. Nada mudou na sua conta.",
+  },
+  id: {
+    subject: "Kode staf Daily Word Anda",
+    line1: (c) => `Kode Anda adalah ${c}.`,
+    line2: "Ketik kode ini di Daily Word atau Sermon Prep untuk memilih kata sandi Anda. Kode ini hanya berlaku sekali dan kedaluwarsa dalam 30 menit.",
+    line3: "Jika Anda tidak memintanya, abaikan email ini. Tidak ada yang berubah pada akun Anda.",
+  },
+};
+
 function pickLang(lang) {
   const l = String(lang || "en").slice(0, 2).toLowerCase();
   return COPY[l] ? l : "en";
@@ -134,14 +163,22 @@ function codeKey(email, tokenHash, code) {
   return `${proofCodePrefix(tokenHash)}${sha256(`${email}|${tokenHash}|${code}`)}`;
 }
 
-function buildMessage(code, lang) {
-  const c = COPY[pickLang(lang)];
+function renderMessage(c, code) {
   const text = `${c.line1(code)}\n\n${c.line2}\n\n${c.line3}\n`;
   const html =
     `<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#1c140c">` +
     `<p>${c.line1(`<strong style="font-size:24px;letter-spacing:4px">${code}</strong>`)}</p>` +
     `<p>${c.line2}</p><p style="color:#6b6258">${c.line3}</p></div>`;
   return { subject: c.subject, text, html };
+}
+
+function buildMessage(code, lang) {
+  return renderMessage(COPY[pickLang(lang)], code);
+}
+
+/** The staff setup-code email (subject, plain text and HTML), in en/es/pt/id. */
+function buildStaffCodeMessage(code, lang) {
+  return renderMessage(STAFF_COPY[pickLang(lang)], code);
 }
 
 /** Rows for `key` (exact, or LIKE pattern when `like`) newer than `windowMs`. Throws on any error. */
@@ -172,7 +209,7 @@ async function insertRow(db, key) {
   if (error) throw new Error("proof insert failed");
 }
 
-async function sendWithResend({ to, subject, html, text }) {
+async function sendWithResend({ to, subject, html, text, kind = "proof-code" }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, status: 503, error: "not_configured" };
   const from = process.env.PROOF_CODE_FROM || DEFAULT_FROM;
@@ -188,7 +225,7 @@ async function sendWithResend({ to, subject, html, text }) {
         subject,
         html,
         text,
-        tags: [{ name: "app", value: "daily-word" }, { name: "kind", value: "proof-code" }],
+        tags: [{ name: "app", value: "daily-word" }, { name: "kind", value: kind }],
       }),
       signal: controller.signal,
     });
@@ -337,4 +374,4 @@ async function verifyProofCode(db, email, tokenHash, code) {
   return { ok: true, status: 200 };
 }
 
-module.exports = { sendProofCode, verifyProofCode, buildMessage, pickLang };
+module.exports = { sendProofCode, verifyProofCode, buildMessage, buildStaffCodeMessage, sendWithResend, pickLang };

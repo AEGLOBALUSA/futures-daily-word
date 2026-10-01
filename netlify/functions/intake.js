@@ -30,6 +30,7 @@ const {
   hashPassword,
   verifyPassword,
   SETUP_CODE_TTL_MS,
+  EMAIL_SETUP_CODE_TTL_MS,
   SETUP_CODE_MAX_ATTEMPTS,
   generateSetupCode,
   hashSetupCode,
@@ -43,6 +44,7 @@ const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractK
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
+const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
 
 let supabase;
 function db() {
@@ -81,13 +83,16 @@ async function resolveStaff(email) {
 }
 
 /**
- * Issue a one-time setup code for a roster row that has no password. The plain
- * code is returned ONCE (to Ashley, to hand over); only a hash is stored. A new
- * code replaces any earlier one and resets the wrong-guess count.
+ * Issue a one-time setup code for a roster row. The plain code is returned ONCE
+ * (to Ashley, to hand over, or to email_setup_code, to mail to the row's own
+ * address); only a hash is stored. A new code replaces any earlier one.
+ * Ashley's codes live 72 hours and reset the wrong-guess count. An emailed code
+ * (`ttlMs` EMAIL_SETUP_CODE_TTL_MS, `clearMisses` false) leaves the miss rows
+ * alone: anyone can ask for one, so asking must not wipe a guesser's lock.
+ * `code` is supplied when the caller has already mailed it.
  */
-async function issueSetupCode(email) {
-  const code = generateSetupCode();
-  const expiresAt = new Date(Date.now() + SETUP_CODE_TTL_MS).toISOString();
+async function issueSetupCode(email, { ttlMs = SETUP_CODE_TTL_MS, clearMisses = true, code = generateSetupCode() } = {}) {
+  const expiresAt = new Date(Date.now() + ttlMs).toISOString();
   const { error } = await db().from("staff_roster").update({
     setup_code_hash: hashSetupCode(code),
     setup_code_expires_at: expiresAt,
@@ -95,8 +100,8 @@ async function issueSetupCode(email) {
     updated_at: new Date().toISOString()
   }).eq("email", email);
   if (error) throw error;
-  // A fresh code starts with a clean slate of guesses.
-  await clearSetupMisses(email);
+  // A fresh code from Ashley starts with a clean slate of guesses.
+  if (clearMisses) await clearSetupMisses(email);
   return { code, expiresAt };
 }
 
@@ -174,7 +179,90 @@ async function setupMissLock(email, ip) {
   }
 }
 
-const SETUP_REFUSED = "That setup code did not work. Check it, or ask Ashley Evans for a new one. If you have already set a password, sign in instead.";
+// ── Emailed setup codes ─────────────────────────────────────────────────────
+// email_setup_code limits, all checked BEFORE the roster is read so they apply
+// to every address alike (the answer never says who is on the roster). Per-IP
+// keys use the caller's rate-limit key (an IPv6 caller's whole /64).
+//   intake-email-code:<email>:<ip>   2 / 15 min and 5 / day
+//   intake-email-code-ip:<ip>        5 / 15 min and 20 / day
+//   intake-email-code:<email>        12 / day from all IPs, written and enforced
+//                                    only for a caller whose own IP already asked
+//                                    for this address today. A caller's first
+//                                    request per IP never uses it, so a stranger
+//                                    IP adds at most 4 rows a day (5 per address
+//                                    and IP, the first one free): two strangers
+//                                    at their full allowance write 8, and the
+//                                    pastor still gets all 5 of their own
+//   intake-email-code-all            100 / hour, everyone together
+const EMAIL_CODE_PER_EMAIL_IP_15M = 2;
+const EMAIL_CODE_PER_EMAIL_IP_DAY = 5;
+const EMAIL_CODE_PER_IP_15M = 5;
+const EMAIL_CODE_PER_IP_DAY = 20;
+const EMAIL_CODE_PER_EMAIL_DAY = 12;
+const EMAIL_CODE_GLOBAL_HOUR = 100;
+const MIN_MS = 60 * 1000;
+const HOUR_MS = 60 * MIN_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+async function countRowsSince(key, windowMs) {
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await db().from("rate_limit_hits")
+    .select("*", { count: "exact", head: true })
+    .eq("key", key)
+    .gte("created_at", since);
+  if (error || count == null) throw error || new Error("no count");
+  return count;
+}
+
+/**
+ * Record one email_setup_code request and say whether it may go ahead. The same
+ * two passes as setupMissLock and sendProofCode (lib/email-proof.js): pass 1
+ * only reads, so a caller already at a cap writes nothing; pass 2 inserts this
+ * attempt's row and then counts (its own row included), narrowest key first,
+ * so N parallel requests make N rows and at most `cap` of them pass. Reads and
+ * writes rate_limit_hits directly and FAILS CLOSED.
+ * @returns {Promise<"ok"|"limited"|"error">}
+ */
+async function emailCodeLimit(email, ip) {
+  try {
+    const ipKey = ip || "unknown";
+    const ownKey = `intake-email-code:${email}:${ipKey}`;
+    // The address-wide backstop applies only to a caller that already asked today
+    // (read before this attempt writes): only a repeat caller writes its row or
+    // is held by it, so a caller's first request per IP never uses the budget.
+    const ownToday = await countRowsSince(ownKey, DAY_MS);
+    const stages = [
+      { key: ownKey, limits: [[15 * MIN_MS, EMAIL_CODE_PER_EMAIL_IP_15M], [DAY_MS, EMAIL_CODE_PER_EMAIL_IP_DAY]] },
+      { key: `intake-email-code-ip:${ipKey}`, limits: [[15 * MIN_MS, EMAIL_CODE_PER_IP_15M], [DAY_MS, EMAIL_CODE_PER_IP_DAY]] },
+      ...(ownToday > 0 ? [{ key: `intake-email-code:${email}`, limits: [[DAY_MS, EMAIL_CODE_PER_EMAIL_DAY]] }] : []),
+      { key: "intake-email-code-all", limits: [[HOUR_MS, EMAIL_CODE_GLOBAL_HOUR]] },
+    ];
+    for (const st of stages) {
+      for (const [windowMs, cap] of st.limits) {
+        if ((await countRowsSince(st.key, windowMs)) >= cap) return "limited";
+      }
+    }
+    for (const st of stages) {
+      const { error: insErr } = await db().from("rate_limit_hits").insert({ key: st.key });
+      if (insErr) throw insErr;
+      for (const [windowMs, cap] of st.limits) {
+        if ((await countRowsSince(st.key, windowMs)) > cap) return "limited";
+      }
+    }
+  } catch (err) {
+    console.error("[intake] email-code limiter unavailable:", err && err.message);
+    return "error";
+  }
+  // Tidy up: rows older than two days are of no use to any of these limits.
+  if (Math.random() < 0.05) {
+    try {
+      await db().from("rate_limit_hits").delete().like("key", "intake-email-code%").lt("created_at", new Date(Date.now() - 2 * DAY_MS).toISOString());
+    } catch { /* housekeeping only */ }
+  }
+  return "ok";
+}
+
+const SETUP_REFUSED = "That code did not work. Check it, or email yourself a new one.";
 
 async function sessionStaff(event) {
   const auth = event.headers.authorization || event.headers.Authorization || "";
@@ -188,6 +276,27 @@ async function sessionStaff(event) {
     .maybeSingle();
   if (!data || new Date(data.expires_at).getTime() < Date.now()) return null;
   return resolveStaff(data.email);
+}
+
+/** The raw bearer token this request carries ("" when none). */
+function bearerToken(event) {
+  const auth = event.headers.authorization || event.headers.Authorization || "";
+  return auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+}
+
+/**
+ * Is this request's own staff session still there? Read AFTER a write that the
+ * session authorised: a forgot-password reset ends every session for the
+ * address, so a session that has gone mid-request means a reset (or a sign-out)
+ * landed in between and the write must be undone. true / false, or null when
+ * the read itself failed (callers treat that as gone: fail closed).
+ */
+async function ownSessionAlive(event) {
+  const raw = bearerToken(event);
+  if (!raw) return false;
+  const { data, error } = await db().from("staff_sessions").select("token_hash").eq("token_hash", hashToken(raw)).maybeSingle();
+  if (error) return null;
+  return !!data;
 }
 
 async function issueSession(email) {
@@ -426,6 +535,9 @@ function normalizeQuestion(input) {
   };
 }
 
+// The fixed time every email_setup_code answer takes. Tests set it to 0.
+const EMAIL_CODE_ANSWER_FLOOR_MS = Number(process.env.EMAIL_CODE_ANSWER_FLOOR_MS ?? 1500);
+
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: headersFor(event), body: "" };
   if (event.httpMethod !== "POST") return json(event, 405, { error: "Method not allowed" });
@@ -452,17 +564,74 @@ exports.handler = async (event) => {
       const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by, password_hash, setup_code_hash, setup_code_expires_at").eq("email", email).maybeSingle();
       if (!staffFromRoster(email, data)) return json(event, 200, { setup: false });
       // setup:true only means "show the setup-code box": the person Ashley added
-      // has no password yet AND holds a live code. Anyone else sees the plain
-      // sign-in, so this answer is not a list of unclaimed accounts.
-      const live = !!(data.setup_code_hash && data.setup_code_expires_at && new Date(data.setup_code_expires_at).getTime() > Date.now());
-      return json(event, 200, { setup: !data.password_hash && live });
+      // has no password yet AND holds a live code that ASHLEY issued. Anyone else
+      // sees the plain sign-in, so this answer is not a list of unclaimed
+      // accounts. An emailed code never counts: anyone can mail one to any
+      // address, so if it did, "email a code, then ask auth_status" would say
+      // which addresses are unclaimed roster rows. An emailed code lives at most
+      // EMAIL_SETUP_CODE_TTL_MS, so a code with more time left than that is one
+      // of Ashley's (the "I have a code" path still takes either kind).
+      const left = data.setup_code_expires_at ? new Date(data.setup_code_expires_at).getTime() - Date.now() : 0;
+      const ashleysLiveCode = !!data.setup_code_hash && left > EMAIL_SETUP_CODE_TTL_MS;
+      return json(event, 200, { setup: !data.password_hash && ashleysLiveCode });
     }
 
-    // ── set_password ── First time only, and only with the one-time setup code
-    // Ashley issued when he added the person. No code, a wrong, used or expired
-    // code, an unknown address, or a row that already has a password: the same
-    // refusal, and nothing is changed. The code is spent in the same statement
-    // that stores the password, so two racing claims cannot both win.
+    // ── email_setup_code ── "Email me a code": a person on the roster, with or
+    // without a password (first time and forgot password are the same flow),
+    // gets a fresh one-time code mailed to the roster row's own address. Typing
+    // it proves they read that inbox. NO links in the email. Past the limits the
+    // answer is always 200 { sent: true }: eligible, not on the roster, or the
+    // provider failing alike, so it never says who is staff.
+    if (action === "email_setup_code") {
+      const email = normalizeEmail(body.email);
+      if (!email || email.length > 254 || !/^[^\s@:]+@[^\s@:]+\.[^\s@:]+$/.test(email)) {
+        return json(event, 400, { error: "Enter a valid email." });
+      }
+      const limit = await emailCodeLimit(email, rlIp);
+      if (limit === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      if (limit === "limited") return json(event, 429, { error: "Too many attempts. Try again later." });
+      // Every { sent: true } waits to the same floor, so a roster address (which
+      // also waits for the email and the code write) answers no slower than a stranger.
+      const started = Date.now();
+      const sent = async () => {
+        const wait = EMAIL_CODE_ANSWER_FLOOR_MS - (Date.now() - started);
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+        return json(event, 200, { sent: true });
+      };
+      const { data: row, error: rowErr } = await db().from("staff_roster")
+        .select("email, role, campus_id, display_name, campus_set_by, password_hash")
+        .eq("email", email).maybeSingle();
+      if (rowErr) return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      const staff = row && staffFromRoster(email, row);
+      const code = generateSetupCode();
+      if (!staff) {
+        hashSetupCode(code); // the same bcrypt cost as issuing a real code
+        return sent();
+      }
+      // Mail first, then store: a provider failure leaves any earlier code
+      // (Ashley's included) as it was. Only the roster row's own address is used.
+      const msg = buildStaffCodeMessage(code, body.lang);
+      const mailed = await sendWithResend({ to: row.email, ...msg, kind: "staff-setup-code" });
+      if (!mailed.ok) {
+        hashSetupCode(code);
+        console.error("[intake] email_setup_code: the code email was not sent:", mailed.error);
+        return sent();
+      }
+      try {
+        await issueSetupCode(row.email, { ttlMs: EMAIL_SETUP_CODE_TTL_MS, clearMisses: false, code });
+      } catch (err) {
+        console.error("[intake] email_setup_code: could not store the code:", err && err.message);
+      }
+      return sent();
+    }
+
+    // ── set_password ── Only with a live one-time setup code: the one Ashley
+    // issued when he added the person, or one they emailed themselves. A row
+    // with no password sets its first one. A row WITH a password is a forgotten
+    // password: the code resets it, and every old session ends. No code, a
+    // wrong, used or expired code, or an unknown address: the same refusal, and
+    // nothing is changed. The code is spent in the same statement that stores
+    // the password, so two racing claims cannot both win.
     if (action === "set_password") {
       if (await isSharedRateLimited("intake-set-password", rlIp, 10, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
@@ -472,41 +641,60 @@ exports.handler = async (event) => {
       const issue = passwordIssue(password, email);
       if (issue) return json(event, 400, { error: issue });
       const refuse = () => json(event, 403, { error: SETUP_REFUSED });
-      if (!normalizeSetupCode(body.setupCode)) return refuse();
+      if (!normalizeSetupCode(body.setupCode) || !email || email.length > 254) return refuse();
       const { data: row } = await db().from("staff_roster")
         .select("email, role, campus_id, display_name, campus_set_by, password_hash, setup_code_hash, setup_code_expires_at, setup_code_attempts")
         .eq("email", email).maybeSingle();
       const staff = row && staffFromRoster(email, row);
-      const live = !!(staff && !row.password_hash && row.setup_code_hash && row.setup_code_expires_at
+      const live = !!(staff && row.setup_code_hash && row.setup_code_expires_at
         && new Date(row.setup_code_expires_at).getTime() > Date.now());
+      // Wrong guesses lock this caller IP out of this address for a while (and
+      // the address as a whole only under a spread-out flood); they never burn
+      // the code (a stranger could otherwise destroy a pastor's code with five
+      // guesses), and a stranger's lock never refuses the pastor on their own
+      // connection. Each attempt writes its OWN row before the code is checked,
+      // then counts the rows, so parallel guesses are all counted (a
+      // read-then-write counter let them share one count). Fails closed: if the
+      // row cannot be written or counted, the attempt is refused. The lock is
+      // taken for EVERY address, live code or not: anyone can now email a code
+      // to a roster address, so a lock that only ever appeared for addresses
+      // holding a code would say which addresses are on the roster.
+      const lock = await setupMissLock(email, rlIp);
+      if (lock === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      if (lock === "locked") return json(event, 429, { error: "Too many attempts. Try again later." });
       if (!live) {
         verifySetupCode(String(body.setupCode), DUMMY_HASH); // same cost as a real check
         return refuse();
       }
-      // Wrong guesses lock this caller IP out of this address for a while (and
-      // the address as a whole only under a spread-out flood); they never burn
-      // the code (a stranger steered here by auth_status could otherwise destroy
-      // a new pastor's code with five guesses, and only Ashley can issue
-      // another), and a stranger's lock never refuses the pastor on their own
-      // connection. Each attempt writes its OWN row before the code is checked,
-      // then counts the rows, so parallel guesses are all counted (a
-      // read-then-write counter let them share one count). Fails closed: if the
-      // row cannot be written or counted, the attempt is refused.
-      const lock = await setupMissLock(email, rlIp);
-      if (lock === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
-      if (lock === "locked") return json(event, 429, { error: "Too many attempts. Try again later." });
       if (!verifySetupCode(String(body.setupCode), row.setup_code_hash)) {
         return refuse();
       }
-      const { data: claimed, error } = await db().from("staff_roster").update({
+      const resetting = !!row.password_hash;
+      const endSessions = async () => {
+        const { error: endErr } = await db().from("staff_sessions").delete().eq("email", email);
+        return !endErr;
+      };
+      // A forgotten password: end every session BEFORE the change, failing
+      // closed (nothing has changed yet if this cannot be done).
+      if (resetting && !(await endSessions())) {
+        return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      }
+      let claim = db().from("staff_roster").update({
         password_hash: hashPassword(password),
         setup_code_hash: null,
         setup_code_expires_at: null,
         setup_code_attempts: 0,
         updated_at: new Date().toISOString()
-      }).eq("email", email).is("password_hash", null).eq("setup_code_hash", row.setup_code_hash).select("email");
+      }).eq("email", email);
+      // First password: CAS on "no password yet" and the code. Reset: CAS on the code.
+      claim = resetting ? claim.eq("setup_code_hash", row.setup_code_hash) : claim.is("password_hash", null).eq("setup_code_hash", row.setup_code_hash);
+      const { data: claimed, error } = await claim.select("email");
       if (error) throw error;
       if (!claimed || claimed.length !== 1) return refuse(); // someone else spent it first
+      // And again after it, for a sign-in with the old password that landed in between.
+      if (resetting && !(await endSessions())) {
+        console.error("[intake] set_password: could not end sessions after a reset");
+      }
       // The code is spent; its attempt rows are of no further use.
       await clearSetupMisses(email);
       const token = await issueSession(staff.email);
@@ -532,6 +720,18 @@ exports.handler = async (event) => {
       }
       if (!verifyPassword(password, row.password_hash)) return refuse();
       const token = await issueSession(staff.email);
+      // A forgot-password reset may have landed while this sign-in was checking
+      // the old password. Read the hash again AFTER the session exists: if it
+      // changed (or cannot be read), take the session back. Under read-committed
+      // this closes the race: a re-read after the reset's UPDATE sees the new
+      // hash; a re-read before it means this session was inserted before the
+      // UPDATE, so the reset's second endSessions removes it.
+      const { data: again, error: againErr } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      if (againErr || !again || again.password_hash !== row.password_hash) {
+        const { error: dropErr } = await db().from("staff_sessions").delete().eq("token_hash", hashToken(token));
+        if (dropErr) console.error("[intake] login: could not withdraw a session that raced a password reset");
+        return refuse();
+      }
       return json(event, 200, { token, staff: publicStaff(staff) });
     }
 
@@ -588,8 +788,21 @@ exports.handler = async (event) => {
       try {
         const current = typeof body.currentToken === "string" ? body.currentToken.trim() : "";
         const claimed = /^[0-9a-f]{64}$/.test(current) ? await claimProvenToken(db(), staff.email, current) : null;
-        if (claimed) return json(event, 200, { token: claimed });
-        return json(event, 200, { token: await issueToken(db(), staff.email, { proven: true }) });
+        const token = claimed || await issueToken(db(), staff.email, { proven: true });
+        // The staff session was checked at the top of the request. A forgot-
+        // password reset may have ended it since (the owner taking the account
+        // back from a stolen session): read it again AFTER minting, and if it is
+        // gone, take back the proven token just minted. A token the device
+        // already held unchanged (claimed === current) was not minted here.
+        if ((await ownSessionAlive(event)) !== true) {
+          if (token !== current) {
+            try { await revokeToken(db(), staff.email, token); } catch (err) {
+              console.error("[intake] sync_token: could not withdraw a token minted from an ended session:", err && err.message);
+            }
+          }
+          return json(event, 200, { token: null });
+        }
+        return json(event, 200, { token });
       } catch {
         return json(event, 200, { token: null });
       }
@@ -615,19 +828,42 @@ exports.handler = async (event) => {
       if (newPassword === currentPassword) {
         return json(event, 400, { error: "Choose a different password from the current one." });
       }
-      const { error } = await db().from("staff_roster").update({
-        password_hash: hashPassword(newPassword),
+      const refuse = () => json(event, 403, { error: "Current password is incorrect." });
+      // CAS on the hash just checked: a forgot-password reset that landed after
+      // the read (the owner taking the account back from a stolen session) has
+      // changed it, so this write matches nothing and nothing is revoked.
+      const newHash = hashPassword(newPassword);
+      const { data: changed, error } = await db().from("staff_roster").update({
+        password_hash: newHash,
         updated_at: new Date().toISOString()
-      }).eq("email", staff.email);
+      }).eq("email", staff.email).eq("password_hash", row.password_hash).select("email");
       if (error) throw error;
-      // Same token extraction as logout: keep this request's session, drop the rest.
-      const auth = event.headers.authorization || event.headers.Authorization || "";
-      const raw = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-      let revoke = db().from("staff_sessions").delete().eq("email", staff.email);
-      if (raw) revoke = revoke.neq("token_hash", hashToken(raw));
-      const { error: revokeErr } = await revoke;
-      // The password is already changed at this point — report, don't fail the call.
-      if (revokeErr) console.error("intake change_password: revoking other sessions failed", revokeErr);
+      if (!changed || changed.length !== 1) return refuse();
+      // The reset may instead have ended this session just before the write.
+      // Read this address's sessions AFTER the write: if this request's own is
+      // gone, put the old hash back (CAS on the new one, so a reset's hash that
+      // has landed since is never overwritten) and refuse. The same read is the
+      // list of sessions to revoke, so a session issued after it (the owner's
+      // own reset session) is never swept away by this change.
+      const raw = bearerToken(event);
+      const own = raw ? hashToken(raw) : "";
+      const { data: sessions, error: sessErr } = await db().from("staff_sessions").select("token_hash").eq("email", staff.email);
+      if (sessErr || !own || !(sessions || []).some((x) => x.token_hash === own)) {
+        const { error: undoErr } = await db().from("staff_roster").update({
+          password_hash: row.password_hash,
+          updated_at: new Date().toISOString()
+        }).eq("email", staff.email).eq("password_hash", newHash);
+        if (undoErr) console.error("intake change_password: could not undo a change from an ended session", undoErr);
+        if (sessErr) return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+        return refuse();
+      }
+      // Keep this request's session, drop every other one that existed at the change.
+      const others = sessions.map((x) => x.token_hash).filter((h) => h !== own);
+      if (others.length) {
+        const { error: revokeErr } = await db().from("staff_sessions").delete().eq("email", staff.email).in("token_hash", others);
+        // The password is already changed at this point — report, don't fail the call.
+        if (revokeErr) console.error("intake change_password: revoking other sessions failed", revokeErr);
+      }
       return json(event, 200, { ok: true });
     }
 

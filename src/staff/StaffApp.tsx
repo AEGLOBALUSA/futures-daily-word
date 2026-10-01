@@ -9,6 +9,7 @@ import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { CAMPUSES } from '../data/tokens';
 import { getStaffToken, intake, setStaffToken } from './api';
 import { localApiBase } from '../utils/api-base';
+import { getLang } from '../utils/i18n';
 import { youtubeLinkProblem } from './youtubeLink';
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
@@ -243,21 +244,64 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [code, setCode] = useState('');
-  // First time: choose a password with the one-time setup code Ashley handed over.
+  // Choose or reset a password with a setup code.
   const [setup, setSetup] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [sendError, setSendError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sentTo, setSentTo] = useState('');
+  const codeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (setup && sentTo) codeRef.current?.focus();
+  }, [setup, sentTo]);
+
+  const changeScreen = (nextSetup: boolean) => {
+    setSetup(nextSetup);
+    setCode(''); setPassword(''); setConfirm('');
+    setSentTo(''); setError(''); setSendError('');
+  };
+
+  // Leaving a screen (Back, "I have a code") retires any code request still in
+  // flight, so a late answer cannot pull the person back.
+  const codeRequest = useRef(0);
+  useEffect(() => () => { codeRequest.current += 1; setSending(false); }, [setup]);
+
+  const sendCode = async () => {
+    if (sending) return;
+    setSendError('');
+    const address = email.trim().toLowerCase();
+    if (!address.includes('@')) { setSendError('Type your work email first.'); return; }
+    setSending(true);
+    const request = ++codeRequest.current;
+    try {
+      await intake('email_setup_code', { email: address, lang: getLang() });
+      if (request !== codeRequest.current) return;
+      changeScreen(true);
+      setSentTo(address);
+      codeRef.current?.focus();
+    } catch (err) {
+      if (request !== codeRequest.current) return;
+      setSendError((err as { status?: number } | null)?.status === 429
+        ? 'Too many codes asked for. Try again in a few minutes.'
+        : err instanceof Error ? err.message : 'Could not reach the server. Check your connection and try again.');
+    }
+    setSending(false);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setBusy(true); setError('');
+    if (busy) return;
+    setError('');
+    if (setup) {
+      if (!code.trim()) { setError('Type the code from your email.'); return; }
+      if (password.length < 10) { setError('Choose a password of at least 10 characters.'); return; }
+      if (password !== confirm) { setError('Passwords do not match.'); return; }
+    } else if (!password) { setError('Type your password.'); return; }
+    setBusy(true);
     try {
       if (setup) {
-        if (password !== confirm) {
-          setError('Passwords do not match.');
-          setBusy(false);
-          return;
-        }
         const data = await intake<{ token: string; staff: Staff }>('set_password', { email, password, setupCode: code });
         onSignedIn(data.token, data.staff);
       } else {
@@ -272,14 +316,16 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <form onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
+      <form noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
         <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
           Futures Daily Word
         </p>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>{setup ? 'Set up your sign-in' : 'Staff sign-in'}</h1>
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>{setup ? 'Choose your password' : 'Staff sign-in'}</h1>
+        <p data-testid={setup && sentTo ? 'staff-code-sent' : undefined} style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
           {setup
-            ? 'Type the setup code Ashley Evans gave you, then choose your own password.'
+            ? sentTo
+              ? `We’ve emailed a code to ${sentTo} if it’s on the staff list. It lasts 30 minutes.`
+              : 'Type the code from your email, or the one Ashley gave you.'
             : 'Sign in to put Sunday’s sermon notes on the page people write in.'}
         </p>
         <label style={labelStyle} htmlFor="staff-email">Work email</label>
@@ -295,7 +341,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
             try {
               // Only a person holding a live setup code is switched to the code box.
               const status = await intake<{ setup: boolean }>('auth_status', { email });
-              if (status.setup) setSetup(true);
+              if (status.setup) { setSetup(true); setError(''); setSendError(''); }
             } catch { /* keep password sign-in */ }
           }}
           placeholder="ae@futures.global"
@@ -306,6 +352,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
             <label style={labelStyle} htmlFor="staff-code">Setup code</label>
             <input
               id="staff-code"
+              ref={codeRef}
               type="text"
               autoComplete="one-time-code"
               autoCapitalize="characters"
@@ -347,22 +394,36 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         )}
         {error && <p role="alert" style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)' }}>{error}</p>}
         <button type="submit" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
-          {busy ? 'Please wait…' : setup ? 'Save password and sign in' : 'Sign in'}
+          {busy ? 'Please wait…' : setup ? 'Set my password' : 'Sign in'}
         </button>
-        <p style={{ margin: '16px 0 0', textAlign: 'center', fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-muted)', lineHeight: 1.5 }}>
-          {setup ? (
-            <button type="button" data-testid="staff-back-to-signin" onClick={() => { setSetup(false); setError(''); setCode(''); setConfirm(''); }} style={{ ...btnGhost, minHeight: 36, padding: '6px 12px' }}>
-              I already have a password
+        {setup ? (
+          <>
+            <p style={{ ...helpStyle, marginTop: 16 }}>
+              <button type="button" data-testid="staff-send-another" onClick={sendCode} disabled={sending} style={btnGhost}>
+                {sending ? 'Please wait…' : 'Send another code'}
+              </button>
+            </p>
+            {sendError && <p role="alert" style={{ ...helpStyle, color: '#B42318' }}>{sendError}</p>}
+            <p style={helpStyle}>
+              <button type="button" data-testid="staff-back-to-signin" onClick={() => changeScreen(false)} style={btnGhost}>
+                Back to sign in
+              </button>
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{ ...helpStyle, marginTop: 16 }}>First time, or forgot your password?</p>
+            <button type="button" data-testid="staff-email-code" onClick={sendCode} disabled={sending} style={btnGhost}>
+              {sending ? 'Please wait…' : 'Email me a code'}
             </button>
-          ) : (
-            <>
-              First time? Ask Ashley Evans for your setup code.{' '}
-              <button type="button" data-testid="staff-have-code" onClick={() => { setSetup(true); setError(''); }} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--dw-accent)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+            {sendError && <p role="alert" style={{ ...helpStyle, color: '#B42318' }}>{sendError}</p>}
+            <p style={helpStyle}>
+              <button type="button" data-testid="staff-have-code" onClick={() => changeScreen(true)} style={{ ...btnGhost, border: 'none', padding: 0, color: 'var(--dw-accent)' }}>
                 I have a code
               </button>
-            </>
-          )}
-        </p>
+            </p>
+          </>
+        )}
         <p style={{ marginTop: 20, textAlign: 'center' }}>
           <a href="/" style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>← Daily Word</a>
         </p>

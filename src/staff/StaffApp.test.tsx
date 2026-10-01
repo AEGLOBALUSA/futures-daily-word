@@ -277,9 +277,11 @@ describe('StaffApp sign-in needs a setup code for a first password', () => {
     return { ...mounted, calls };
   }
 
-  it('shows a plain sign-in with a neutral first-time line, and no code box', async () => {
+  it('shows a plain sign-in with the email-me-a-code line, and no code box', async () => {
     const { el, root } = await openSignIn();
-    expect(el.textContent).toContain('First time? Ask Ashley Evans for your setup code.');
+    expect(el.textContent).toContain('First time, or forgot your password?');
+    expect(el.querySelector('[data-testid="staff-email-code"]')?.textContent).toBe('Email me a code');
+    expect(el.textContent).not.toContain('Ask Ashley Evans');
     expect(byId(el, 'staff-code')).toBeNull();
     expect(byId(el, 'staff-confirm')).toBeNull();
     act(() => root.unmount());
@@ -318,6 +320,159 @@ describe('StaffApp sign-in needs a setup code for a first password', () => {
     await act(async () => { el.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
     await flush();
     expect(calls.find(c => c.action === 'login')?.payload).toEqual({ email: 'set.pastor@futures.church', password: 'a-long-test-passphrase-9' });
+    act(() => root.unmount());
+  });
+});
+
+describe('StaffApp sign-in: Email me a code', () => {
+  async function setInput(el: HTMLInputElement, value: string) {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  const byId = (el: HTMLElement, id: string) => el.querySelector(`#${id}`) as HTMLInputElement | null;
+  const byTestId = (el: HTMLElement, id: string) => el.querySelector(`[data-testid="${id}"]`) as HTMLButtonElement | null;
+  const tooMany = () => Object.assign(new Error('Too many attempts. Try again later.'), { status: 429 });
+
+  async function openSignIn(emailCode: () => Promise<unknown> = async () => ({ sent: true })) {
+    const calls: { action: string; payload: Record<string, unknown> }[] = [];
+    vi.mocked(intake).mockImplementation(async (action: string, payload: Record<string, unknown> = {}) => {
+      calls.push({ action, payload });
+      if (action === 'me') throw new Error('Sign in required');
+      if (action === 'auth_status') return { setup: false };
+      if (action === 'email_setup_code') return emailCode();
+      if (action === 'set_password') return { token: 't'.repeat(64), staff: { email: 'set.pastor@futures.church', role: 'campus', campusId: null, name: 'Set Pastor', isAdmin: false } };
+      return {};
+    });
+    const mounted = mount(<StaffApp />);
+    await flush();
+    return { ...mounted, calls };
+  }
+
+  it('sends the code, shows the code screen, then sets the password and signs in', async () => {
+    const { el, root, calls } = await openSignIn();
+    await setInput(byId(el, 'staff-email')!, '  Set.Pastor@Futures.church ');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    expect(calls.find(c => c.action === 'email_setup_code')?.payload).toEqual({ email: 'set.pastor@futures.church', lang: 'en' });
+    expect(el.querySelector('h1')?.textContent).toBe('Choose your password');
+    expect(byTestId(el, 'staff-code-sent')?.textContent).toBe('We’ve emailed a code to set.pastor@futures.church if it’s on the staff list. It lasts 30 minutes.');
+    expect(byId(el, 'staff-code')).not.toBeNull();
+    expect(byId(el, 'staff-password')).not.toBeNull();
+    expect(byTestId(el, 'staff-send-another')?.textContent).toBe('Send another code');
+    expect(byTestId(el, 'staff-back-to-signin')?.textContent?.trim()).toBe('Back to sign in');
+    const main = [...el.querySelectorAll('button[type="submit"]')];
+    expect(main.map(b => b.textContent)).toEqual(['Set my password']);
+
+    await setInput(byId(el, 'staff-code')!, 'K7M2Q-9XWRT');
+    await setInput(byId(el, 'staff-password')!, 'a-long-test-passphrase-9');
+    await setInput(byId(el, 'staff-confirm')!, 'a-long-test-passphrase-9');
+    await act(async () => { el.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    await flush();
+    expect(calls.find(c => c.action === 'set_password')?.payload).toMatchObject({ password: 'a-long-test-passphrase-9', setupCode: 'K7M2Q-9XWRT' });
+    expect(calls.some(c => c.action === 'login')).toBe(false);
+    // Signed in: the sign-in form is gone.
+    expect(byId(el, 'staff-code')).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('asks for the email before sending, beside the button, without calling the server', async () => {
+    const { el, root, calls } = await openSignIn();
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    expect(calls.some(c => c.action === 'email_setup_code')).toBe(false);
+    const alert = byTestId(el, 'staff-email-code')!.nextElementSibling;
+    expect(alert?.getAttribute('role')).toBe('alert');
+    expect(alert?.textContent).toBe('Type your work email first.');
+    act(() => root.unmount());
+  });
+
+  it('shows the 429 words beside Email me a code and stays on the sign-in screen', async () => {
+    const { el, root } = await openSignIn(async () => { throw tooMany(); });
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    const alert = byTestId(el, 'staff-email-code')!.nextElementSibling;
+    expect(alert?.textContent).toBe('Too many codes asked for. Try again in a few minutes.');
+    expect(byId(el, 'staff-code')).toBeNull();
+    expect(el.querySelector('h1')?.textContent).toBe('Staff sign-in');
+    act(() => root.unmount());
+  });
+
+  it('Send another code asks again, and a 429 shows beside that button', async () => {
+    let n = 0;
+    const { el, root, calls } = await openSignIn(async () => { n += 1; if (n > 1) throw tooMany(); return { sent: true }; });
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    await act(async () => { byTestId(el, 'staff-send-another')!.click(); });
+    await flush();
+    expect(calls.filter(c => c.action === 'email_setup_code')).toHaveLength(2);
+    const alert = byTestId(el, 'staff-send-another')!.closest('p')!.nextElementSibling;
+    expect(alert?.getAttribute('role')).toBe('alert');
+    expect(alert?.textContent).toBe('Too many codes asked for. Try again in a few minutes.');
+    expect(byId(el, 'staff-code')).not.toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('checks the code screen beside the main button before calling the server', async () => {
+    const { el, root, calls } = await openSignIn();
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    const submit = async () => {
+      await act(async () => { el.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+      await flush();
+      return el.querySelector('[role="alert"]')?.textContent;
+    };
+    expect(await submit()).toBe('Type the code from your email.');
+    await setInput(byId(el, 'staff-code')!, 'K7M2Q-9XWRT');
+    await setInput(byId(el, 'staff-password')!, 'short');
+    expect(await submit()).toBe('Choose a password of at least 10 characters.');
+    await setInput(byId(el, 'staff-password')!, 'a-long-test-passphrase-9');
+    await setInput(byId(el, 'staff-confirm')!, 'a-long-test-passphrase-X');
+    expect(await submit()).toBe('Passwords do not match.');
+    expect(calls.some(c => c.action === 'set_password')).toBe(false);
+    act(() => root.unmount());
+  });
+
+  it('a late answer to Send another code does not undo Back to sign in', async () => {
+    let n = 0;
+    let release: (v: unknown) => void = () => {};
+    const { el, root } = await openSignIn(() => { n += 1; return n === 1 ? Promise.resolve({ sent: true }) : new Promise(r => { release = r; }); });
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    await act(async () => { byTestId(el, 'staff-send-another')!.click(); });
+    await act(async () => { byTestId(el, 'staff-back-to-signin')!.click(); });
+    await flush();
+    expect(el.querySelector('h1')?.textContent).toBe('Staff sign-in');
+    await act(async () => { release({ sent: true }); });
+    await flush();
+    expect(el.querySelector('h1')?.textContent).toBe('Staff sign-in');
+    expect(byId(el, 'staff-code')).toBeNull();
+    expect((byTestId(el, 'staff-email-code') as HTMLButtonElement).disabled).toBe(false);
+    act(() => root.unmount());
+  });
+
+  it('Back to sign in returns to the password screen and clears the code screen', async () => {
+    const { el, root } = await openSignIn();
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    await setInput(byId(el, 'staff-code')!, 'K7M2Q-9XWRT');
+    await act(async () => { byTestId(el, 'staff-back-to-signin')!.click(); });
+    await flush();
+    expect(el.querySelector('h1')?.textContent).toBe('Staff sign-in');
+    expect(byId(el, 'staff-code')).toBeNull();
+    expect(byTestId(el, 'staff-code-sent')).toBeNull();
+    expect(byTestId(el, 'staff-email-code')).not.toBeNull();
+    // "I have a code" opens the same screen without sending, with the neutral line.
+    await act(async () => { byTestId(el, 'staff-have-code')!.click(); });
+    expect(byId(el, 'staff-code')?.value).toBe('');
+    expect(byTestId(el, 'staff-code-sent')).toBeNull();
+    expect(el.textContent).toContain('Type the code from your email, or the one Ashley gave you.');
     act(() => root.unmount());
   });
 });

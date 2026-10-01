@@ -1,4 +1,7 @@
 // Test setup — mock localStorage for happy-dom
+
+// intake.js pads email_setup_code answers to a fixed time; no wait in tests.
+process.env.EMAIL_CODE_ANSWER_FLOOR_MS = '0';
 const store: Record<string, string> = {};
 
 const localStorageMock: Storage = {
