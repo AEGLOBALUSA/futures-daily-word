@@ -361,18 +361,64 @@ describe('a first password needs the setup code Ashley issued', () => {
     }
   });
 
-  it('parallel guesses from many IPs cannot pass the address-wide ceiling of 50 in 15 minutes', async () => {
+  it('parallel guesses from IPs that have already missed cannot pass the address-wide ceiling of 50 in 15 minutes', async () => {
     addWithCode({ email: 'new.pastor@futures.church' });
     const at = new Date().toISOString();
-    for (let i = 0; i < 48; i++) tables.rate_limit_hits = [...(tables.rate_limit_hits || []), { key: 'intake-setup-miss:new.pastor@futures.church', created_at: at }];
+    const push = (key) => { tables.rate_limit_hits = [...(tables.rate_limit_hits || []), { key, created_at: at }]; };
+    for (let i = 0; i < 48; i++) push('intake-setup-miss:new.pastor@futures.church');
+    // each of these six IPs has one miss of its own already, so the ceiling binds them
+    for (let i = 0; i < 6; i++) push(`intake-setup-miss:new.pastor@futures.church:198.51.100.${30 + i}`);
     const guesses = await Promise.all(
       Array.from({ length: 6 }, (_, i) => call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: `HHHHH-HHHH${i}` }, null, fromIp(`198.51.100.${30 + i}`))),
     );
     expect(guesses.filter((g) => g.status === 403).length).toBeLessThanOrEqual(2);
     expect(guesses.filter((g) => g.status === 429).length).toBeGreaterThanOrEqual(4);
-    // once at the ceiling, even the right code from a fresh IP waits
-    expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp('198.51.100.99'))).status).toBe(429);
+    // once at the ceiling, a caller that has missed waits, even with the right code
+    expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp('198.51.100.30'))).status).toBe(429);
+    expect(tables.staff_roster[0].password_hash).toBeNull();
   });
+
+  // Round 5: the per-IP key is an IPv6 caller's /64, and the address-wide ceiling
+  // only binds a caller that has itself missed, so a flood from elsewhere never
+  // keeps the owner's right code at 429 for the code's whole 72 hours.
+  it('50 misses from 10 addresses in one IPv6 /64: the /64 is locked after five, and the owner on IPv4 still gets in', async () => {
+    addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+    const statuses = [];
+    for (let host = 1; host <= 10; host++) {
+      for (let g = 0; g < 5; g++) {
+        const r = await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: `JJJJJ-JJJ${host}${g}` }, null, { 'x-nf-client-connection-ip': `2001:db8:abcd:12::${host.toString(16)}` });
+        statuses.push(r.status);
+      }
+    }
+    // the /64 gets five checked guesses; the sixth and every one after is refused
+    expect(statuses.slice(0, 5)).toEqual([403, 403, 403, 403, 403]);
+    expect(statuses[5]).toBe(429);
+    expect(statuses.slice(5).every((s) => s === 429)).toBe(true);
+    // the refused guesses wrote nothing: one per-IP key for the whole /64
+    const ipKeys = new Set((tables.rate_limit_hits || []).map((r) => r.key).filter((k) => k.startsWith('intake-setup-miss:new.pastor@futures.church:')));
+    expect([...ipKeys]).toEqual(['intake-setup-miss:new.pastor@futures.church:2001:db8:abcd:12::/64']);
+    // the owner, on their own IPv4 connection, with the right code
+    const owner = await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, { 'x-nf-client-connection-ip': '198.51.100.77' });
+    expect(owner.status).toBe(200);
+    expect(tables.staff_roster[0].password_hash).toBeTruthy();
+  });
+
+  it('50 misses from 10 IPv4 addresses do not refuse the owner\'s right code from a fresh connection', async () => {
+    addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+    for (let host = 0; host < 10; host++) {
+      for (let g = 0; g < 5; g++) {
+        const r = await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: `KKKKK-KKK${host}${g}` }, null, fromIp(`203.0.113.${100 + host}`));
+        expect(r.status).toBe(403);
+      }
+    }
+    expect(missRows()).toHaveLength(50);
+    // a stranger IP that has missed is now held by the address-wide ceiling ...
+    expect((await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp('203.0.113.100'))).status).toBe(429);
+    // ... but the owner, with no misses of their own, gets the right code checked
+    const owner = await call({ action: 'set_password', email: 'new.pastor@futures.church', password: PASSWORD, setupCode: CODE }, null, fromIp('198.51.100.78'));
+    expect(owner.status).toBe(200);
+    expect(tables.staff_roster[0].password_hash).toBeTruthy();
+  }, 60_000);
 
   it('a reissued code clears the address\'s miss rows and no other address\'s ("_" is not a wildcard)', async () => {
     const admin = await adminToken();
