@@ -26,6 +26,13 @@ const {
   passwordIssue,
   hashPassword,
   verifyPassword,
+  SETUP_CODE_TTL_MS,
+  SETUP_CODE_MAX_ATTEMPTS,
+  generateSetupCode,
+  hashSetupCode,
+  normalizeSetupCode,
+  verifySetupCode,
+  DUMMY_HASH,
   youtubeWatchUrl,
   hasNotesContent
 } = require("./lib/intake-core");
@@ -59,8 +66,14 @@ function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
+// The caller's address for the sign-in rate limits. Netlify sets
+// x-nf-client-connection-ip itself at the edge, so a client cannot choose it;
+// the first x-forwarded-for entry is whatever the client chose to send, so it is
+// only the last resort (local runs and tests, where neither Netlify header exists).
 function clientIp(event) {
-  return (event.headers["x-forwarded-for"] || event.headers["client-ip"] || "unknown").split(",")[0].trim();
+  const h = event.headers || {};
+  const raw = h["x-nf-client-connection-ip"] || h["client-ip"] || h["x-forwarded-for"] || "unknown";
+  return String(raw).split(",")[0].trim() || "unknown";
 }
 
 async function resolveStaff(email) {
@@ -72,15 +85,25 @@ async function resolveStaff(email) {
   return staffFromRoster(e, data);
 }
 
-async function ensureRoster(staff) {
-  await db().from("staff_roster").upsert({
-    email: staff.email,
-    role: staff.role,
-    campus_id: staff.campusId || null,
-    display_name: staff.name || "",
+/**
+ * Issue a one-time setup code for a roster row that has no password. The plain
+ * code is returned ONCE (to Ashley, to hand over); only a hash is stored. A new
+ * code replaces any earlier one and resets the wrong-guess count.
+ */
+async function issueSetupCode(email) {
+  const code = generateSetupCode();
+  const expiresAt = new Date(Date.now() + SETUP_CODE_TTL_MS).toISOString();
+  const { error } = await db().from("staff_roster").update({
+    setup_code_hash: hashSetupCode(code),
+    setup_code_expires_at: expiresAt,
+    setup_code_attempts: 0,
     updated_at: new Date().toISOString()
-  }, { onConflict: "email" });
+  }).eq("email", email);
+  if (error) throw error;
+  return { code, expiresAt };
 }
+
+const SETUP_REFUSED = "That setup code did not work. Check it, or ask Ashley Evans for a new one. If you have already set a password, sign in instead.";
 
 async function sessionStaff(event) {
   const auth = event.headers.authorization || event.headers.Authorization || "";
@@ -353,33 +376,59 @@ exports.handler = async (event) => {
       if (!isAllowlistedEmail(email)) {
         return json(event, 200, { setup: false });
       }
-      const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by, password_hash").eq("email", email).maybeSingle();
-      // Not on the roster: same answer as any unknown address.
+      const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by, password_hash, setup_code_hash, setup_code_expires_at").eq("email", email).maybeSingle();
       if (!staffFromRoster(email, data)) return json(event, 200, { setup: false });
-      return json(event, 200, { setup: !data || !data.password_hash });
+      // setup:true only means "show the setup-code box": the person Ashley added
+      // has no password yet AND holds a live code. Anyone else sees the plain
+      // sign-in, so this answer is not a list of unclaimed accounts.
+      const live = !!(data.setup_code_hash && data.setup_code_expires_at && new Date(data.setup_code_expires_at).getTime() > Date.now());
+      return json(event, 200, { setup: !data.password_hash && live });
     }
 
-    // ── set_password ── First-time only. Each person chooses their own.
+    // ── set_password ── First time only, and only with the one-time setup code
+    // Ashley issued when he added the person. No code, a wrong, used or expired
+    // code, an unknown address, or a row that already has a password: the same
+    // refusal, and nothing is changed. The code is spent in the same statement
+    // that stores the password, so two racing claims cannot both win.
     if (action === "set_password") {
       if (await isSharedRateLimited("intake-set-password", ip, 10, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
       }
       const email = normalizeEmail(body.email);
       const password = String(body.password || "");
-      const staff = await resolveStaff(email);
-      if (!staff) return json(event, 403, { error: "Invalid email or password" });
       const issue = passwordIssue(password, email);
       if (issue) return json(event, 400, { error: issue });
-      const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
-      if (row && row.password_hash) {
-        return json(event, 403, { error: "Password already set. Sign in with email and password." });
+      const refuse = () => json(event, 403, { error: SETUP_REFUSED });
+      if (!normalizeSetupCode(body.setupCode)) return refuse();
+      const { data: row } = await db().from("staff_roster")
+        .select("email, role, campus_id, display_name, campus_set_by, password_hash, setup_code_hash, setup_code_expires_at, setup_code_attempts")
+        .eq("email", email).maybeSingle();
+      const staff = row && staffFromRoster(email, row);
+      const live = !!(staff && !row.password_hash && row.setup_code_hash && row.setup_code_expires_at
+        && new Date(row.setup_code_expires_at).getTime() > Date.now());
+      if (!live) {
+        verifySetupCode(String(body.setupCode), DUMMY_HASH); // same cost as a real check
+        return refuse();
       }
-      await ensureRoster(staff);
-      const { error } = await db().from("staff_roster").update({
+      if (!verifySetupCode(String(body.setupCode), row.setup_code_hash)) {
+        const attempts = (row.setup_code_attempts || 0) + 1;
+        // Too many wrong guesses burns the code; Ashley issues a fresh one.
+        const burn = attempts >= SETUP_CODE_MAX_ATTEMPTS;
+        await db().from("staff_roster").update(burn
+          ? { setup_code_hash: null, setup_code_expires_at: null, setup_code_attempts: 0 }
+          : { setup_code_attempts: attempts }
+        ).eq("email", email).eq("setup_code_hash", row.setup_code_hash);
+        return refuse();
+      }
+      const { data: claimed, error } = await db().from("staff_roster").update({
         password_hash: hashPassword(password),
+        setup_code_hash: null,
+        setup_code_expires_at: null,
+        setup_code_attempts: 0,
         updated_at: new Date().toISOString()
-      }).eq("email", email);
+      }).eq("email", email).is("password_hash", null).eq("setup_code_hash", row.setup_code_hash).select("email");
       if (error) throw error;
+      if (!claimed || claimed.length !== 1) return refuse(); // someone else spent it first
       const token = await issueSession(staff.email);
       return json(event, 200, { token, staff: publicStaff(staff) });
     }
@@ -392,14 +441,16 @@ exports.handler = async (event) => {
       const email = normalizeEmail(body.email);
       const password = String(body.password || "");
       const staff = await resolveStaff(email);
-      if (!staff || !password) return json(event, 403, { error: "Invalid email or password" });
+      const refuse = () => json(event, 403, { error: "Invalid email or password" });
+      if (!staff || !password) return refuse();
       const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      // Same answer, with no "set up" hint, for a person who has no password yet:
+      // sign-in must not say which addresses are waiting to be set up.
       if (!row || !row.password_hash) {
-        return json(event, 403, { error: "Set your own password first.", setup: true });
+        verifyPassword(password, DUMMY_HASH);
+        return refuse();
       }
-      if (!verifyPassword(password, row.password_hash)) {
-        return json(event, 403, { error: "Invalid email or password" });
-      }
+      if (!verifyPassword(password, row.password_hash)) return refuse();
       const token = await issueSession(staff.email);
       return json(event, 200, { token, staff: publicStaff(staff) });
     }
@@ -792,7 +843,7 @@ exports.handler = async (event) => {
     if (action === "roster_list") {
       const { data, error } = await db()
         .from("staff_roster")
-        .select("email, role, campus_id, display_name, password_hash")
+        .select("email, role, campus_id, display_name, password_hash, setup_code_hash, setup_code_expires_at")
         .order("email");
       if (error) throw error;
       const roster = (data || []).map((row) => ({
@@ -800,7 +851,11 @@ exports.handler = async (event) => {
         role: row.role,
         campus_id: row.campus_id,
         display_name: row.display_name,
-        has_password: !!row.password_hash
+        has_password: !!row.password_hash,
+        // Never the code itself (only a hash is stored): just whether one is waiting.
+        code_live: !row.password_hash && !!row.setup_code_hash
+          && !!row.setup_code_expires_at && new Date(row.setup_code_expires_at).getTime() > Date.now(),
+        code_expires_at: row.password_hash ? null : row.setup_code_expires_at || null
       }));
       return json(event, 200, { roster });
     }
@@ -828,21 +883,41 @@ exports.handler = async (event) => {
         campus_set_by: campus_id ? "admin" : null,
         display_name: sanitize(body.name || (named && named.name) || "", 80),
         updated_at: new Date().toISOString()
-      }, { onConflict: "email" }).select("email, role, campus_id, display_name").single();
+      }, { onConflict: "email" }).select("email, role, campus_id, display_name, password_hash").single();
       if (error) throw error;
-      return json(event, 200, { person: data });
+      const { password_hash: hasHash, ...person } = data;
+      // Adding someone is what lets them in: a person with no password yet gets a
+      // one-time code to hand over. Saving someone who already has a password
+      // changes nothing about how they sign in.
+      const setup = hasHash ? {} : await issueSetupCode(email);
+      return json(event, 200, hasHash
+        ? { person }
+        : { person, setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
+    }
+
+    if (action === "roster_issue_code") {
+      const email = normalizeEmail(body.email);
+      const { data: row } = await db().from("staff_roster").select("email, password_hash").eq("email", email).maybeSingle();
+      if (!row) return json(event, 404, { error: "Add them to People first." });
+      if (row.password_hash) return json(event, 400, { error: "They already have a password. Use “Let them set a new password” to start over." });
+      const setup = await issueSetupCode(email);
+      return json(event, 200, { setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
     }
 
     if (action === "roster_clear_password") {
       const email = normalizeEmail(body.email);
       if (!email) return json(event, 400, { error: "Email required" });
-      const { error } = await db().from("staff_roster").update({
+      const { data: gone, error } = await db().from("staff_roster").update({
         password_hash: null,
         updated_at: new Date().toISOString()
-      }).eq("email", email);
+      }).eq("email", email).select("email");
       if (error) throw error;
       await db().from("staff_sessions").delete().eq("email", email);
-      return json(event, 200, { ok: true });
+      if (!gone || !gone.length) return json(event, 404, { error: "They are not on the roster." });
+      // A reset is not an open door: the row waits for a fresh one-time code, so
+      // nobody but the person Ashley hands it to can take the account.
+      const setup = await issueSetupCode(email);
+      return json(event, 200, { ok: true, setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
     }
 
     if (action === "roster_delete") {

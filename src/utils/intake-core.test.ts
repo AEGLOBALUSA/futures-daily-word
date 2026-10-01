@@ -46,9 +46,14 @@ describe('staffFromRoster: the roster decides, not the address shape', () => {
     });
   });
 
-  it('keeps named staff signed in with no roster row yet', () => {
-    expect(core.staffFromRoster('josh@futures.church', null).role).toBe('hub');
-    expect(core.staffFromRoster('alexi.patsianis@futures.church', null).name).toBe('Alexi Patsianis');
+  it('does not treat a named person with no roster row as staff either', () => {
+    expect(core.staffFromRoster('josh@futures.church', null)).toBeNull();
+    expect(core.staffFromRoster('alexi.patsianis@futures.church', null)).toBeNull();
+    expect(core.staffFromRoster('ae@futures.global', null)).toBeNull();
+  });
+
+  it('gives a named person their default name when their row has none', () => {
+    expect(core.staffFromRoster('alexi.patsianis@futures.church', { role: 'media', display_name: '' }).name).toBe('Alexi Patsianis');
   });
 
   it('does not treat a made-up futures.church address as staff', () => {
@@ -63,8 +68,8 @@ describe('staffFromRoster: the roster decides, not the address shape', () => {
     expect(core.staffFromRoster('someone@gmail.com', { role: 'campus' })).toBeNull();
   });
 
-  it('always makes ae@futures.global the admin', () => {
-    expect(core.staffFromRoster('ae@futures.global', null).role).toBe('admin');
+  it('always makes ae@futures.global the admin once his row exists', () => {
+    expect(core.staffFromRoster('ae@futures.global', { role: 'admin' }).role).toBe('admin');
     expect(core.staffFromRoster('ae@futures.global', { role: 'campus' }).role).toBe('admin');
   });
 
@@ -324,5 +329,24 @@ describe('deterministic sermon formatter', () => {
     }, { keyVerse: 'Romans 8:28', keyVerseText: 'old' });
     expect(none.keyVerse).toBe('');
     expect(none.keyVerseText).toBe('');
+  });
+});
+
+describe('setup codes', () => {
+  it('are 10 unambiguous characters in two groups, and differ each time', () => {
+    const a = core.generateSetupCode();
+    expect(a).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{5}-[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{5}$/);
+    expect(core.generateSetupCode()).not.toBe(a);
+  });
+
+  it('verify however the person types them, and not otherwise', () => {
+    const code = core.generateSetupCode();
+    const stored = core.hashSetupCode(code);
+    expect(stored).not.toContain(core.normalizeSetupCode(code));
+    expect(core.verifySetupCode(code, stored)).toBe(true);
+    expect(core.verifySetupCode(code.toLowerCase().replace('-', ' '), stored)).toBe(true);
+    expect(core.verifySetupCode('AAAAA-AAAAA', stored)).toBe(false);
+    expect(core.verifySetupCode('', stored)).toBe(false);
+    expect(core.verifySetupCode(code, null)).toBe(false);
   });
 });

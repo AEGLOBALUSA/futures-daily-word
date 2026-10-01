@@ -38,6 +38,7 @@ function getSupabase() {
 
 /**
  * The session's token HASH when `rawToken` is a live staff session, else null.
+ * A session whose person is no longer on `staff_roster` is refused too.
  * The hash doubles as a per-pastor rate-limit key; the raw token never leaves
  * this function. Fails CLOSED: a malformed token, an expired row, a missing row
  * or any error answers null, so a database outage cannot become free completions.
@@ -49,11 +50,22 @@ async function liveStaffSessionKey(rawToken) {
     const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
     const { data, error } = await getSupabase()
       .from('staff_sessions')
-      .select('expires_at')
+      .select('email, expires_at')
       .eq('token_hash', tokenHash)
       .maybeSingle();
     if (error || !data) return null;
     if (new Date(data.expires_at).getTime() <= Date.now()) return null;
+    // A live session is not enough: the person must still be on the roster.
+    // Removing someone (or finding a squatter) ends their access here at once,
+    // the same rule intake.js applies to every other staff action.
+    const email = String(data.email || '').trim().toLowerCase();
+    if (!email) return null;
+    const { data: onRoster, error: rosterErr } = await getSupabase()
+      .from('staff_roster')
+      .select('email')
+      .eq('email', email)
+      .maybeSingle();
+    if (rosterErr || !onRoster) return null;
     return `staff:${tokenHash.slice(0, 32)}`;
   } catch {
     return null;
