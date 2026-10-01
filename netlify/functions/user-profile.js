@@ -165,8 +165,13 @@ exports.handler = async (event) => {
 
       // Token issuance.
       //  - NEW email: this request created the profile, so this device is the one
-      //    that first registered it. It gets a PROVEN token, with no limiter, so a
-      //    room of new readers on one church wifi never loses a token.
+      //    that first registered it. It gets a FIRST-device token ("r:", see
+      //    lib/auth.js), with no limiter, so a room of new readers on one church
+      //    wifi never loses a token. It syncs straight away, but it is only
+      //    provisional: nobody has shown they own the inbox, so the first time
+      //    ANYONE types a code for this address every "r:" token is revoked. That
+      //    is what stops someone registering a stranger's address before the
+      //    stranger signs up and then reading their journal for ever.
       //  - EXISTING email: whoever is asking only knows the address. They get an
       //    UNPROVEN token under the migration limiter (5/min per IP) and prove
       //    the address by typing the emailed code before their journal opens.
@@ -174,7 +179,7 @@ exports.handler = async (event) => {
       let sessionToken = null;
       if (!existing) {
         try {
-          sessionToken = await issueToken(db, data.email, { proven: true });
+          sessionToken = await issueToken(db, data.email, { first: true });
         } catch (tokenErr) {
           console.error("Register token issuance failed:", tokenErr);
         }
@@ -186,13 +191,19 @@ exports.handler = async (event) => {
         }
       }
 
+      // For an EXISTING email the stored name is never returned (that would be an
+      // unlimited name lookup for anyone who knows an address): echo back only
+      // what this request itself sent.
+      const echoed = existing
+        ? { firstName: record.first_name, lastName: record.last_name, email }
+        : { firstName: data.first_name, lastName: data.last_name, email: data.email };
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: true,
           message: "Profile saved",
-          profile: { firstName: data.first_name, lastName: data.last_name, email: data.email },
+          profile: echoed,
           ...(sessionToken ? { sessionToken } : {})
         })
       };
@@ -316,7 +327,7 @@ exports.handler = async (event) => {
 
       if (action === "proof-send") {
         const { data: prof } = await db.from("profiles").select("lang").eq("email", session.email).maybeSingle();
-        const sent = await sendProofCode(db, session.email, session.hash, prof && prof.lang);
+        const sent = await sendProofCode(db, session.email, session.hash, prof && prof.lang, clientIP.slice(0, 64));
         if (!sent.ok) {
           return { statusCode: sent.status, headers, body: JSON.stringify({ success: false, error: sent.error }) };
         }

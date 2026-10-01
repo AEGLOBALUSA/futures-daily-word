@@ -313,11 +313,25 @@ export async function registerCloudIdentity(profile: UserProfile, persona: strin
       }),
     });
     const data = await res.json().catch(() => ({})) as { sessionToken?: string };
+    let got = false;
     if (data && data.sessionToken) {
       setSessionToken(data.sessionToken);
-      return true;
+      got = true;
     }
-    return false;
+    // A staff password sign-in already proves the person, so swap that token for
+    // a PROVEN one: the server hands a token that only knows an existing address
+    // an unproven one (an emailed code before anything syncs). Best effort: if
+    // this fails the register token stays and the code sheet covers the gap.
+    if (getStaffToken()) {
+      try {
+        const proven = await intake<{ token?: string | null }>('sync_token');
+        if (proven && typeof proven.token === 'string' && proven.token) {
+          setSessionToken(proven.token);
+          got = true;
+        }
+      } catch { /* keep whatever register gave */ }
+    }
+    return got;
   } catch {
     return false;
   }

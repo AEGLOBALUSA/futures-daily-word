@@ -20,7 +20,7 @@
 const { createClient } = require("@supabase/supabase-js");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
-const { authenticateRequest } = require('./lib/auth');
+const { authenticateSession } = require('./lib/auth');
 const { isSharedRateLimited } = require('./lib/rate-limit');
 
 const PCO_BASE = "https://api.planningcenteronline.com/people/v2";
@@ -193,11 +193,13 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
     }
 
-    // Anti-enumeration: session-token holders pass freely; anonymous callers
-    // (the email gate fires exactly one call per submission) are capped at the
-    // same 5/min-per-IP budget the migration path uses.
-    const authedEmail = await authenticateRequest(event, getSupabase());
-    if (!authedEmail) {
+    // Anti-enumeration: holders of a PROVEN session token pass freely; anonymous
+    // callers (the email gate fires exactly one call per submission) and holders
+    // of an unproven token are capped at the same 5/min-per-IP budget the
+    // migration path uses. An unproven token is free to mint for any address that
+    // has a profile, so it must not lift the cap on name + campus lookups.
+    const session = await authenticateSession(event, getSupabase());
+    if (!session || !session.proven || session.provisional) {
       const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
       if (await isSharedRateLimited("pco-sync", clientIP, 5)) {
         return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };

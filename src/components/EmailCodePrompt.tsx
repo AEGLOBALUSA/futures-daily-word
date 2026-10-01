@@ -12,10 +12,11 @@
  * Mounted once at App level.
  */
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { API_BASE } from '../utils/api-base';
 import { t, getLang } from '../utils/i18n';
-import { authHeaders } from '../utils/sessionToken';
+import { authHeaders, clearSessionToken } from '../utils/sessionToken';
 import { isProofRequired, retrySyncAfterProof } from '../utils/cloudSync';
 import { useSubView } from '../utils/useSubView';
 
@@ -26,6 +27,48 @@ export function maskEmail(email: string): string {
   const [user, domain] = String(email).split('@');
   if (!user || !domain) return email;
   return `${user.slice(0, 1)}•••@${domain}`;
+}
+
+/** Open the code sheet again (after "Not now"). Used by the Settings entry point. */
+function reopenEmailCodePrompt(): void {
+  let email = '';
+  try { email = (JSON.parse(localStorage.getItem('dw_profile') || '{}') || {}).email || ''; } catch { /* ignore */ }
+  try { window.dispatchEvent(new CustomEvent('dw-proof-required', { detail: { email } })); } catch { /* ignore */ }
+}
+
+/**
+ * A Settings row that brings the code sheet back. It shows only while cloud sync
+ * is parked waiting for the code, so it is the way back in after "Not now".
+ * The caller supplies the look so it fits the screen it sits in.
+ */
+export function EmailCodeReopen({ style, icon, dividerStyle, wrapStyle }: {
+  style?: CSSProperties; icon?: ReactNode; dividerStyle?: CSSProperties; wrapStyle?: CSSProperties;
+}) {
+  const lang = getLang();
+  const [pending, setPending] = useState(() => isProofRequired());
+  useEffect(() => {
+    const refresh = () => setPending(isProofRequired());
+    window.addEventListener('dw-proof-required', refresh);
+    window.addEventListener('dw-proof-done', refresh);
+    refresh();
+    return () => {
+      window.removeEventListener('dw-proof-required', refresh);
+      window.removeEventListener('dw-proof-done', refresh);
+    };
+  }, []);
+  if (!pending) return null;
+  const button = (
+    <button type="button" onClick={reopenEmailCodePrompt} style={style} data-testid="proof-reopen">
+      {icon}
+      <span style={{ flex: 1, textAlign: 'left' }}>{t('proof_title', lang)}</span>
+    </button>
+  );
+  return (
+    <>
+      {dividerStyle && <div style={dividerStyle} />}
+      {wrapStyle ? <div style={wrapStyle}>{button}</div> : button}
+    </>
+  );
 }
 
 function readProfileEmail(): string {
@@ -52,6 +95,8 @@ export function EmailCodePrompt() {
   const [code, setCode] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A line to show once, the next time the sheet opens (set when we start over).
+  const noticeRef = useRef('');
 
   const close = () => setOpen(false);
   useSubView(open, close);
@@ -61,7 +106,8 @@ export function EmailCodePrompt() {
       const fromEvent = (e as CustomEvent<{ email?: string }> | undefined)?.detail?.email;
       setEmail(fromEvent || readProfileEmail());
       setStep('ask');
-      setError('');
+      setError(noticeRef.current);
+      noticeRef.current = '';
       setCode('');
       setOpen(true);
     };
@@ -80,6 +126,19 @@ export function EmailCodePrompt() {
 
   if (!open) return null;
 
+  /** The server no longer knows this device's pending token (401, or 409 token_gone:
+   *  it was pushed out, or the address was proven from another device). Forget it
+   *  and ask the server for a fresh one; the sheet comes back at the first step. */
+  async function startOver() {
+    clearSessionToken();
+    setStep('ask');
+    setCode('');
+    setError(t('proof_err_gone', lang));
+    noticeRef.current = t('proof_err_gone', lang);
+    try { await retrySyncAfterProof(); } catch { /* the sheet is already showing the first step */ }
+    noticeRef.current = '';
+  }
+
   async function sendCode() {
     setBusy(true);
     setError('');
@@ -87,6 +146,7 @@ export function EmailCodePrompt() {
       const { status, data } = await callProfile('proof-send');
       if (status === 200 && data.alreadyProven) { await finish(); return; }
       if (status === 200 && data.success) { setStep('enter'); setCode(''); return; }
+      if (status === 401 || status === 409) { await startOver(); return; }
       setError(t(status === 429 ? 'proof_err_many' : 'proof_err_send', lang));
     } catch {
       setError(t('proof_err_send', lang));
@@ -97,7 +157,8 @@ export function EmailCodePrompt() {
 
   async function finish() {
     setStep('done');
-    void retrySyncAfterProof();
+    void retrySyncAfterProof(); // clears the parked flag first...
+    try { window.dispatchEvent(new Event('dw-proof-done')); } catch { /* ignore */ } // ...so the Settings row hides
     closeTimer.current = setTimeout(() => setOpen(false), 1600);
   }
 
@@ -108,6 +169,7 @@ export function EmailCodePrompt() {
     try {
       const { status, data } = await callProfile('proof-verify', { code });
       if (status === 200 && data.success) { await finish(); return; }
+      if (status === 401 || status === 409) { await startOver(); return; }
       if (status === 429) setError(t('proof_err_many', lang));
       else if (status === 400) setError(t('proof_err_wrong', lang));
       else setError(t('proof_err_send', lang));

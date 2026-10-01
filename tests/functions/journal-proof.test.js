@@ -9,7 +9,10 @@
  * Now those tokens are UNPROVEN ("u:<hash>" in profiles.session_token_hashes):
  * they identify the caller but unlock nothing until the person types a 6-digit
  * code we email to the address. Tokens that existed before the change are plain
- * hashes and stay PROVEN, and a brand-new email's first device is proven too.
+ * hashes and stay PROVEN. A brand-new email's first device gets a provisional
+ * "r:<hash>" token: it syncs straight away, and it is revoked the moment anyone
+ * types a code for that address (so registering a stranger's address first buys
+ * nothing).
  *
  * The functions are CommonJS and pull dependencies with `require`, which
  * `vi.mock` cannot intercept, so the module loader is overridden directly (the
@@ -36,6 +39,7 @@ let userSync;
 let userProfile;
 let trackActivity;
 let pcoSync;
+let intake;
 let auth;
 const realLoad = Module._load;
 let ipCounter = 0;
@@ -55,6 +59,7 @@ beforeAll(() => {
   userProfile = req('../../netlify/functions/user-profile.js').handler;
   trackActivity = req('../../netlify/functions/track-activity.js').handler;
   pcoSync = req('../../netlify/functions/pco-sync.js').handler;
+  intake = req('../../netlify/functions/intake.js').handler;
   auth = req('../../netlify/functions/lib/auth.js');
 });
 
@@ -390,11 +395,11 @@ describe('readers who are not affected', () => {
     expect(hashes().filter((h) => !h.startsWith('u:'))).toHaveLength(5);
   });
 
-  it('a brand-new reader gets a proven token and can sync straight away', async () => {
+  it('a brand-new reader gets a first-device token and can sync straight away', async () => {
     const reg = await call(userProfile, { action: 'register', email: 'fresh@example.com', firstName: 'Fresh' });
     expect(reg.status).toBe(200);
     const token = reg.json.sessionToken;
-    expect(hashes('fresh@example.com')).toContain(sha(token));
+    expect(hashes('fresh@example.com')).toEqual(['r:' + sha(token)]);
 
     expect((await call(userSync, { action: 'pull' }, { token })).status).toBe(404); // no cloud row yet: a normal first run
     const push = await call(userSync, {
@@ -411,7 +416,7 @@ describe('readers who are not affected', () => {
     for (let i = 0; i < 6; i++) auth.checkMigrationRate(ip);
     const reg = await call(userProfile, { action: 'register', email: 'church-wifi@example.com', firstName: 'Wifi' }, { ip });
     expect(reg.json.sessionToken).toMatch(/^[0-9a-f]{64}$/);
-    expect(hashes('church-wifi@example.com')).toContain(sha(reg.json.sessionToken));
+    expect(hashes('church-wifi@example.com')).toContain('r:' + sha(reg.json.sessionToken));
 
     // ...but an existing address on that same spent wifi gets nothing
     const existing = await call(userProfile, { action: 'register', email: VICTIM, firstName: 'x' }, { ip });
@@ -426,11 +431,232 @@ describe('readers who are not affected', () => {
     expect(track.status).toBe(200);
     expect(db.tables.activity_events).toHaveLength(1);
 
-    // pco-sync caps anonymous callers at 5/min per IP; a token holder is never capped
+    // pco-sync caps anonymous and unproven callers at 5/min per IP; only a proven
+    // device token lifts the cap
     const ip = '203.0.113.88';
     for (let i = 0; i < 8; i++) {
-      const r = await call(pcoSync, { action: 'lookup', email: VICTIM }, { token, ip });
+      const r = await call(pcoSync, { action: 'lookup', email: VICTIM }, { token: DEVICE_RAW, ip });
       expect(r.status).toBe(200);
     }
+  });
+
+  it('pco-sync keeps its 5 a minute limit for an unproven token (free to mint for any known address)', async () => {
+    const token = await strangerToken();
+    const ip = '203.0.113.89';
+    const statuses = [];
+    for (let i = 0; i < 8; i++) statuses.push((await call(pcoSync, { action: 'lookup', email: VICTIM }, { token, ip })).status);
+    expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
+    expect(statuses.slice(5)).toEqual([429, 429, 429]);
+  });
+
+  it('pco-sync does not lift the limit for a first-device token either (new addresses are free to register)', async () => {
+    const reg = await call(userProfile, { action: 'register', email: 'squatter@example.com', firstName: 'S' });
+    const ip = '203.0.113.90';
+    const statuses = [];
+    for (let i = 0; i < 7; i++) statuses.push((await call(pcoSync, { action: 'lookup', email: VICTIM }, { token: reg.json.sessionToken, ip })).status);
+    expect(statuses.slice(5)).toEqual([429, 429]);
+  });
+});
+
+describe('registering an address before its owner does (the squat)', () => {
+  const NEWBIE = 'newbie@example.com';
+
+  async function attackerRegistersFirst() {
+    const reg = await call(userProfile, { action: 'register', email: NEWBIE, firstName: 'Mallory' });
+    expect(reg.status).toBe(200);
+    return reg.json.sessionToken;
+  }
+
+  /** The real owner turns up later: register (existing email) gives an unproven token, then the typed code. */
+  async function ownerProves() {
+    const reg = await call(userProfile, { action: 'register', email: NEWBIE, firstName: 'Nora' });
+    const token = reg.json.sessionToken;
+    expect(token).toMatch(/^[0-9a-f]{64}$/);
+    expect((await call(userProfile, { action: 'proof-send' }, { token })).status).toBe(200);
+    const code = sentCode(resend.mock.calls.length - 1);
+    const ok = await call(userProfile, { action: 'proof-verify', code }, { token });
+    expect(ok.status).toBe(200);
+    return token;
+  }
+
+  it('the squatter syncs until the owner proves the inbox, then the squatter is locked out', async () => {
+    const attacker = await attackerRegistersFirst();
+    // before any proof the squatter's token works (it is the first device) ...
+    const push = await call(userSync, { action: 'push', data: { journal: [{ id: 'm1', date: '2026-10-02', text: 'planted', updatedAt: '2026-10-02T00:00:00Z' }] } }, { token: attacker });
+    expect(push.status).toBe(200);
+
+    // ... the owner registers later and gets only an unproven token
+    const owner = await ownerProves();
+
+    // the squatter's token is gone: pull and push both refuse, and the stored copy is not theirs to read
+    const pull = await call(userSync, { action: 'pull', email: NEWBIE }, { token: attacker });
+    expect(pull.status).toBe(403);
+    expect(pull.json.error).toBe('proof_required');
+    const push2 = await call(userSync, { action: 'push', email: NEWBIE, data: { journal: [{ id: 'm2', text: 'again' }] } }, { token: attacker });
+    expect(push2.status).toBe(403);
+    expect(hashes(NEWBIE).some((h) => h.startsWith('r:'))).toBe(false);
+
+    // the owner is in
+    expect((await call(userSync, { action: 'pull' }, { token: owner })).status).toBe(200);
+  });
+
+  it('revokes every first-device token for the address, and leaves proven device tokens alone', async () => {
+    await attackerRegistersFirst();
+    await auth.issueToken(db, NEWBIE, { first: true });
+    const plain = await auth.issueToken(db, NEWBIE, { proven: true });
+    expect(hashes(NEWBIE).filter((h) => h.startsWith('r:'))).toHaveLength(2);
+
+    await ownerProves();
+    expect(hashes(NEWBIE).filter((h) => h.startsWith('r:'))).toHaveLength(0);
+    expect(hashes(NEWBIE)).toContain(sha(plain));
+  });
+
+  it('the real first device only pays one code: its revoked token falls back to the code sheet', async () => {
+    const first = await attackerRegistersFirst(); // here "attacker" is the genuine first device
+    expect((await call(userSync, { action: 'push', data: { journal: [] } }, { token: first })).status).toBe(200);
+    await ownerProves(); // their second device
+    const back = await call(userSync, { action: 'pull', email: NEWBIE }, { token: first });
+    expect(back.status).toBe(403);
+  });
+
+  it('a proof on another address never touches this address\'s first-device token', async () => {
+    const mine = await attackerRegistersFirst();
+    const token = await strangerToken(); // proves VICTIM, not NEWBIE
+    await call(userProfile, { action: 'proof-send' }, { token });
+    await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token });
+    expect(hashes(NEWBIE)).toContain('r:' + sha(mine));
+  });
+
+  it('caps first-device tokens at three and does not touch other classes', async () => {
+    for (let i = 0; i < 5; i++) await auth.issueToken(db, VICTIM, { first: true });
+    expect(hashes().filter((h) => h.startsWith('r:'))).toHaveLength(3);
+    expect(hashes()).toContain(DEVICE_HASH);
+  });
+
+  it('a first-device token reads as proven but provisional', async () => {
+    const token = await attackerRegistersFirst();
+    const session = await auth.authenticateSession({ headers: { authorization: `Bearer ${token}` } }, db);
+    expect(session).toMatchObject({ email: NEWBIE, proven: true, provisional: true });
+    const plain = await auth.authenticateSession({ headers: { authorization: `Bearer ${DEVICE_RAW}` } }, db);
+    expect(plain).toMatchObject({ proven: true, provisional: false });
+  });
+});
+
+describe('register does not reveal a stored name', () => {
+  it('for an existing address echoes only what the request sent', async () => {
+    const reg = await call(userProfile, { action: 'register', email: VICTIM });
+    expect(reg.status).toBe(200);
+    expect(reg.raw).not.toContain('Vic');
+    expect(reg.raw).not.toContain('Tim');
+    expect(reg.json.profile).toEqual({ firstName: '', lastName: '', email: VICTIM });
+
+    const named = await call(userProfile, { action: 'register', email: VICTIM, firstName: 'Mallory', lastName: 'X' });
+    expect(named.json.profile).toEqual({ firstName: 'Mallory', lastName: 'X', email: VICTIM });
+    expect(profileRow().first_name).toBe('Vic'); // and still fill-only
+  });
+});
+
+describe('a stranger cannot stop the real reader from proving', () => {
+  it('a token with a live emailed code is not pushed out by stranger migrations', async () => {
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    const code = sentCode();
+    for (let i = 0; i < 6; i++) await strangerToken();
+    expect(hashes()).toContain('u:' + sha(reader));
+    expect(hashes().filter((h) => h.startsWith('u:')).length).toBeLessThanOrEqual(5);
+    const ok = await call(userProfile, { action: 'proof-verify', code }, { token: reader });
+    expect(ok.status).toBe(200);
+  });
+
+  it('a token with no live code is still evicted first', async () => {
+    const idle = await strangerToken();
+    for (let i = 0; i < 4; i++) await strangerToken();
+    expect(hashes()).not.toContain('u:' + sha(idle));
+    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(3);
+  });
+
+  it('an expired code no longer protects its token', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    vi.setSystemTime(new Date('2026-10-02T09:11:00Z'));
+    for (let i = 0; i < 4; i++) await strangerToken();
+    expect(hashes()).not.toContain('u:' + sha(reader));
+  });
+
+  it('wrong tries on a stranger\'s token do not use up the reader\'s tries', async () => {
+    const stranger = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: stranger });
+    const wrong = String((Number(sentCode()) + 1) % 1000000).padStart(6, '0');
+    for (let i = 0; i < 5; i++) await call(userProfile, { action: 'proof-verify', code: wrong }, { token: stranger });
+    // the stranger is stopped on their own token...
+    expect((await call(userProfile, { action: 'proof-verify', code: wrong }, { token: stranger })).status).toBe(429);
+    // ...but the reader, on another token for the same address, can still prove
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    const ok = await call(userProfile, { action: 'proof-verify', code: sentCode(1) }, { token: reader });
+    expect(ok.status).toBe(200);
+  });
+
+  it('one IP cannot ask for more than 20 code emails an hour, across addresses', async () => {
+    const ip = '203.0.113.150';
+    let refused = 0;
+    for (let i = 0; i < 24; i++) {
+      const email = `reader${i}@example.com`;
+      db.tables.profiles.push({ email, session_token_hashes: [], lang: 'en' });
+      const token = await auth.issueToken(db, email, { proven: false });
+      const r = await call(userProfile, { action: 'proof-send' }, { token, ip });
+      if (r.status === 429) refused++;
+    }
+    expect(refused).toBe(4);
+    expect(resend).toHaveBeenCalledTimes(20);
+
+    // another IP is unaffected
+    db.tables.profiles.push({ email: 'other@example.com', session_token_hashes: [], lang: 'en' });
+    const t2 = await auth.issueToken(db, 'other@example.com', { proven: false });
+    expect((await call(userProfile, { action: 'proof-send' }, { token: t2, ip: '203.0.113.151' })).status).toBe(200);
+  });
+});
+
+describe('a pastor who signs in with a staff password keeps the one-step sync', () => {
+  const STAFF = 'pastor@futures.church';
+  const STAFF_RAW = 'b'.repeat(64);
+
+  function seedStaff({ withProfile = true } = {}) {
+    db.tables.staff_roster = [{ email: STAFF, role: 'campus', campus_id: 'alpharetta', display_name: 'Pat Pastor' }];
+    db.tables.staff_sessions = [{ token_hash: sha(STAFF_RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+    if (withProfile) db.tables.profiles.push({ email: STAFF, first_name: 'Pat', session_token_hashes: [] });
+    db.tables.user_data.push({ email: STAFF, journal: JOURNAL, sync_version: 1 });
+  }
+
+  it('hands a proven Daily Word token for the staff address, so sync needs no code', async () => {
+    seedStaff();
+    const r = await call(intake, { action: 'sync_token' }, { token: STAFF_RAW });
+    expect(r.status).toBe(200);
+    expect(r.json.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+    expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
+  });
+
+  it('takes the address from the staff session, never from the request', async () => {
+    seedStaff();
+    const r = await call(intake, { action: 'sync_token', email: VICTIM }, { token: STAFF_RAW });
+    expect(hashes(VICTIM)).toEqual([DEVICE_HASH]);
+    expect(hashes(STAFF)).toContain(sha(r.json.token));
+  });
+
+  it('is refused without a staff session', async () => {
+    seedStaff();
+    expect((await call(intake, { action: 'sync_token' })).status).toBe(401);
+    expect((await call(intake, { action: 'sync_token' }, { token: 'c'.repeat(64) })).status).toBe(401);
+    expect(hashes(STAFF)).toEqual([]);
+  });
+
+  it('gives nothing when there is no profile yet (register creates it and its first-device token)', async () => {
+    seedStaff({ withProfile: false });
+    const r = await call(intake, { action: 'sync_token' }, { token: STAFF_RAW });
+    expect(r.status).toBe(200);
+    expect(r.json.token).toBeNull();
+    expect(db.tables.profiles.find((p) => p.email === STAFF)).toBeUndefined();
   });
 });

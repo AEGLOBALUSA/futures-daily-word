@@ -13,9 +13,10 @@
  * table lib/rate-limit.js uses, so no migration is needed. Keys:
  *   dwproof-code:<tokenHash>:<sha256(email|tokenHash|code)>   a live code
  *   dwproof-send:<email>                                       a send, per address
+ *   dwproof-send-ip:<ip>                                       a send, per caller IP
  *   dwproof-send-all                                           a send, global
- *   dwproof-try:<email>                                        a try, per address
- *   dwproof-tryt:<tokenHash>                                   a try, per token
+ *   dwproof-try:<email>                                        a try, per address (backstop)
+ *   dwproof-tryt:<tokenHash>                                   a try, per token (the real guard)
  *
  * Everything here FAILS CLOSED. lib/rate-limit.js degrades to "allow" when the
  * table is unreachable; for a security gate that is the wrong way round, so
@@ -26,17 +27,23 @@
  */
 
 const crypto = require("crypto");
-const { promoteToken } = require("./auth");
+const { promoteToken, proofCodePrefix, CODE_TTL_MS } = require("./auth");
 
 const RESEND_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Futures Daily Word <notes@futuresdailyword.com>";
 
-const CODE_TTL_MS = 10 * 60 * 1000;
 const SEND_PER_EMAIL_15M = 3;
 const SEND_PER_EMAIL_DAY = 8;
+// One caller IP can ask for at most this many code emails an hour, so a single
+// attacker cannot spend the global cap (or many readers' per-address budgets).
+const SEND_PER_IP_HOUR = 20;
 const SEND_GLOBAL_HOUR = 300;
+// A code belongs to one token, so the per-TOKEN limit is what stops guessing: 5
+// tries on a 1-in-a-million code, and a token only has a code after a send,
+// which the per-address send limits cap. The per-ADDRESS limit is only a loose
+// backstop: a tight one lets a stranger use up a reader's tries for them.
 const TRIES_PER_TOKEN_10M = 5;
-const TRIES_PER_EMAIL_HOUR = 10;
+const TRIES_PER_EMAIL_HOUR = 60;
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -79,7 +86,7 @@ function sha256(s) {
 }
 
 function codeKey(email, tokenHash, code) {
-  return `dwproof-code:${tokenHash}:${sha256(`${email}|${tokenHash}|${code}`)}`;
+  return `${proofCodePrefix(tokenHash)}${sha256(`${email}|${tokenHash}|${code}`)}`;
 }
 
 function buildMessage(code, lang) {
@@ -145,16 +152,20 @@ async function sendWithResend({ to, subject, html, text }) {
  * Email a fresh code to `email`, bound to the token that asked for it.
  * @returns {Promise<{ok: boolean, status: number, error?: string}>}
  */
-async function sendProofCode(db, email, tokenHash, lang) {
+async function sendProofCode(db, email, tokenHash, lang, ip) {
   if (!process.env.RESEND_API_KEY) return { ok: false, status: 503, error: "not_configured" };
 
-  // Send limits (fail closed): 3 / 15 min and 8 / day per address, 300 / hour overall.
+  // Send limits (fail closed): 3 / 15 min and 8 / day per address, 20 / hour per
+  // caller IP, 300 / hour overall.
   try {
     const sendKey = `dwproof-send:${email}`;
+    const ipKey = `dwproof-send-ip:${ip || "unknown"}`;
     if ((await countRows(db, sendKey, 15 * MIN)) >= SEND_PER_EMAIL_15M) return { ok: false, status: 429, error: "too_many" };
     if ((await countRows(db, sendKey, DAY)) >= SEND_PER_EMAIL_DAY) return { ok: false, status: 429, error: "too_many" };
+    if ((await countRows(db, ipKey, HOUR)) >= SEND_PER_IP_HOUR) return { ok: false, status: 429, error: "too_many" };
     if ((await countRows(db, "dwproof-send-all", HOUR)) >= SEND_GLOBAL_HOUR) return { ok: false, status: 429, error: "busy" };
     await insertRow(db, sendKey);
+    await insertRow(db, ipKey);
     await insertRow(db, "dwproof-send-all");
   } catch (err) {
     console.error("[email-proof] send limiter unavailable:", err && err.message);
@@ -176,7 +187,7 @@ async function sendProofCode(db, email, tokenHash, lang) {
   // Store the code only once the email is really on its way; it replaces any
   // earlier code this token asked for (only the newest one is valid).
   try {
-    const { error: delErr } = await db.from("rate_limit_hits").delete().like("key", `dwproof-code:${tokenHash}:%`);
+    const { error: delErr } = await db.from("rate_limit_hits").delete().like("key", `${proofCodePrefix(tokenHash)}%`);
     if (delErr) throw new Error("proof delete failed");
     await insertRow(db, codeKey(email, tokenHash, code));
   } catch (err) {
@@ -205,7 +216,7 @@ async function verifyProofCode(db, email, tokenHash, code) {
     if (matches < 1) return { ok: false, status: 400, error: "invalid_code" };
 
     // Single use: the code row goes first, so a replay (or a second tab) finds nothing.
-    const { error: delErr } = await db.from("rate_limit_hits").delete().like("key", `dwproof-code:${tokenHash}:%`);
+    const { error: delErr } = await db.from("rate_limit_hits").delete().like("key", `${proofCodePrefix(tokenHash)}%`);
     if (delErr) throw new Error("proof delete failed");
   } catch (err) {
     console.error("[email-proof] verify refused:", err && err.message);

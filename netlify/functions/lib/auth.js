@@ -5,12 +5,19 @@
  * email-gate auth model. Tokens are stored as SHA-256 hashes
  * in the profiles.session_token_hashes jsonb array.
  *
- * Two classes of token share that one array:
- *   - PROVEN   "<hash>"    issued to the device that first registered a NEW
- *                          email, or promoted after the person typed the code
- *                          we emailed to that address. Every hash that existed
- *                          before the proof change is plain, so every device in
- *                          use today stays proven. Capped at 5 per profile.
+ * Three classes of token share that one array:
+ *   - PROVEN   "<hash>"    promoted after the person typed the code we emailed
+ *                          to that address. Every hash that existed before the
+ *                          proof change is plain, so every device in use today
+ *                          stays proven. Capped at 5 per profile.
+ *   - FIRST    "r:<hash>"  issued to the device that first registered a NEW
+ *                          email. It syncs straight away (it counts as proven),
+ *                          but nobody has shown they own the inbox, so it is
+ *                          provisional: the moment ANY device types a code for
+ *                          that address, every "r:" entry for it is removed.
+ *                          That closes the squat where an attacker registers
+ *                          someone's address before they ever sign up. Capped
+ *                          at 3 per profile.
  *   - UNPROVEN "u:<hash>"  issued for an email that already had a profile
  *                          (migrate, or register of an existing email): the
  *                          caller only knew the address. It may identify the
@@ -60,17 +67,69 @@ function generateToken() {
 }
 
 const UNPROVEN_PREFIX = "u:";
+const FIRST_PREFIX = "r:";
 const MAX_PROVEN = 5;
+const MAX_FIRST = 3;
 const MAX_UNPROVEN = 3;
+// Hard ceiling on unproven entries when every one of them has a live code and so
+// may not be evicted (see issueToken).
+const MAX_UNPROVEN_HARD = 5;
 
-/** Keep only the newest `max` entries of one class, leaving the other class untouched. */
-function capClass(hashes, unproven, max) {
+// An emailed code lives this long (email-proof.js CODE_TTL_MS). Kept here so
+// issueToken can leave a token alone while its code is still live.
+const CODE_TTL_MS = 10 * 60 * 1000;
+/** rate_limit_hits key prefix under which the live codes of one token are stored. */
+const proofCodePrefix = (hash) => `dwproof-code:${hash}:`;
+
+const isUnproven = (h) => typeof h === "string" && h.startsWith(UNPROVEN_PREFIX);
+const isFirst = (h) => typeof h === "string" && h.startsWith(FIRST_PREFIX);
+const isPlain = (h) => !isUnproven(h) && !isFirst(h);
+
+/** Keep only the newest `max` entries that satisfy `inClass`, leaving every other entry untouched. */
+function capClass(hashes, inClass, max) {
   const idx = [];
-  hashes.forEach((h, i) => {
-    if ((typeof h === "string" && h.startsWith(UNPROVEN_PREFIX)) === unproven) idx.push(i);
-  });
+  hashes.forEach((h, i) => { if (inClass(h)) idx.push(i); });
   if (idx.length <= max) return hashes;
   const drop = new Set(idx.slice(0, idx.length - max));
+  return hashes.filter((_, i) => !drop.has(i));
+}
+
+/** True when this unproven token has an emailed code that is still live. Any error counts as "no". */
+async function hasLiveCode(db, hash) {
+  try {
+    const since = new Date(Date.now() - CODE_TTL_MS).toISOString();
+    const { count, error } = await db
+      .from("rate_limit_hits")
+      .select("*", { count: "exact", head: true })
+      .like("key", proofCodePrefix(hash) + "%")
+      .gte("created_at", since);
+    return !error && count > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Trim the unproven class to MAX_UNPROVEN, oldest first, but never drop the
+ * entry just added, and skip a token that has a live emailed code: otherwise a
+ * stranger minting tokens for a reader's address (5/min/IP) pushes the reader's
+ * pending token out between "email me the code" and typing it, and the reader
+ * gets 409 token_gone. The ceiling is MAX_UNPROVEN_HARD, so a flood still cannot
+ * grow the array without limit.
+ */
+async function capUnproven(db, hashes, justAdded) {
+  const idx = [];
+  hashes.forEach((h, i) => { if (isUnproven(h)) idx.push(i); });
+  if (idx.length <= MAX_UNPROVEN) return hashes;
+  const drop = new Set();
+  let remaining = idx.length;
+  for (const i of idx) {
+    if (remaining <= MAX_UNPROVEN) break;
+    if (hashes[i] === justAdded) continue;
+    if (remaining <= MAX_UNPROVEN_HARD && await hasLiveCode(db, hashes[i].slice(UNPROVEN_PREFIX.length))) continue;
+    drop.add(i);
+    remaining--;
+  }
   return hashes.filter((_, i) => !drop.has(i));
 }
 
@@ -102,17 +161,20 @@ async function findByEntry(db, entry) {
 
 /**
  * Authenticate a request by its Bearer token and say whether that token is
- * PROVEN (see the header). Looks for the plain hash first, then "u:<hash>".
+ * PROVEN (see the header). Looks for the plain hash, then "r:<hash>" (the first
+ * device of a new email: proven, but provisional), then "u:<hash>".
  *
- * @returns {{email: string, proven: boolean, hash: string}|null}
+ * @returns {{email: string, proven: boolean, provisional: boolean, hash: string}|null}
  */
 async function authenticateSession(event, db) {
   const hash = bearerHash(event);
   if (!hash) return null;
   const provenEmail = await findByEntry(db, hash);
-  if (provenEmail) return { email: provenEmail, proven: true, hash };
+  if (provenEmail) return { email: provenEmail, proven: true, provisional: false, hash };
+  const firstEmail = await findByEntry(db, FIRST_PREFIX + hash);
+  if (firstEmail) return { email: firstEmail, proven: true, provisional: true, hash };
   const unprovenEmail = await findByEntry(db, UNPROVEN_PREFIX + hash);
-  if (unprovenEmail) return { email: unprovenEmail, proven: false, hash };
+  if (unprovenEmail) return { email: unprovenEmail, proven: false, provisional: false, hash };
   return null;
 }
 
@@ -132,15 +194,18 @@ async function authenticateRequest(event, db) {
 /**
  * Issue a new session token for an email. Appends the hash to
  * the session_token_hashes array. A proven token is stored plain and the plain
- * entries are capped at 5; an unproven token is stored as "u:<hash>" and the
- * "u:" entries are capped at 3. The classes never evict each other.
- * Defaults to UNPROVEN: a caller has to say so to hand out a trusted token.
+ * entries are capped at 5; a first-device token (`first: true`, only for the
+ * request that created the profile) is stored as "r:<hash>", capped at 3; an
+ * unproven token is stored as "u:<hash>" and the "u:" entries are capped at 3
+ * (a token with a live emailed code is not evicted, see capUnproven). The
+ * classes never evict each other. Defaults to UNPROVEN: a caller has to say so
+ * to hand out a trusted token.
  *
  * @returns {string} The raw token (to send to the frontend).
  */
-async function issueToken(db, email, { proven = false } = {}) {
+async function issueToken(db, email, { proven = false, first = false } = {}) {
   const { raw, hash } = generateToken();
-  const entry = proven ? hash : UNPROVEN_PREFIX + hash;
+  const entry = first ? FIRST_PREFIX + hash : proven ? hash : UNPROVEN_PREFIX + hash;
 
   // Compare-and-swap append. Parallel startup calls (user-sync pull,
   // user-profile get, track-activity) each trigger migration concurrently;
@@ -163,7 +228,9 @@ async function issueToken(db, email, { proven = false } = {}) {
     const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : null;
     let hashes = prev ? [...prev] : [];
     hashes.push(entry);
-    hashes = capClass(hashes, !proven, proven ? MAX_PROVEN : MAX_UNPROVEN);
+    if (first) hashes = capClass(hashes, isFirst, MAX_FIRST);
+    else if (proven) hashes = capClass(hashes, isPlain, MAX_PROVEN);
+    else hashes = await capUnproven(db, hashes, entry);
 
     let update = db
       .from("profiles")
@@ -201,7 +268,11 @@ async function issueToken(db, email, { proven = false } = {}) {
 /**
  * Promote an unproven token to proven once the person has typed the emailed
  * code: a compare-and-swap that removes "u:<hash>" and appends the plain hash
- * (so it counts as the newest proven token and the proven cap applies).
+ * (so it counts as the newest proven token and the proven cap applies). It also
+ * removes EVERY "r:" entry for the address: those were handed out with no proof,
+ * and the person who just proved the inbox may not be the device that got one
+ * (someone could have registered the address first). The real first device, if
+ * it was theirs, costs one code on its next sync.
  *
  * @returns {Promise<boolean>} true when the token is proven afterwards.
  */
@@ -218,9 +289,9 @@ async function promoteToken(db, email, hash) {
     if (prev.includes(hash)) return true; // already proven
     if (!prev.includes(UNPROVEN_PREFIX + hash)) return false; // token was evicted
 
-    let hashes = prev.filter((h) => h !== UNPROVEN_PREFIX + hash);
+    let hashes = prev.filter((h) => h !== UNPROVEN_PREFIX + hash && !isFirst(h));
     hashes.push(hash);
-    hashes = capClass(hashes, false, MAX_PROVEN);
+    hashes = capClass(hashes, isPlain, MAX_PROVEN);
 
     const { data: updated, error: updateErr } = await db
       .from("profiles")
@@ -271,5 +342,6 @@ async function migrateRequest(event, db, bodyEmail) {
 
 module.exports = {
   hashToken, generateToken, authenticateRequest, authenticateSession, issueToken,
-  promoteToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX,
+  promoteToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX, FIRST_PREFIX,
+  proofCodePrefix, CODE_TTL_MS,
 };
