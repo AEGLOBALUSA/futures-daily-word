@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { clearSessionToken } from './sessionToken';
-import { resetSyncSession } from './cloudSync';
+import { isProofRequired, resetSyncSession, retrySyncAfterProof } from './cloudSync';
 import {
   PASTOR_PERSONA, PASTOR_SETUP, SIGNED_OUT_SETUP, STAFF_SESSION_EVENT,
   isAppStaffSignedIn, profileFromStaff, provisionPastorCode, registerCloudIdentity, sameProfile, signOutStaff,
@@ -72,7 +72,10 @@ export function useStaffIdentity() {
     } else if (!boot) {
       // Same address already on this device: still trade for a proven token, so a
       // squatter's first-device token for this address ends at the sign-in.
-      await swapForProvenSyncToken();
+      // If this device was parked on "enter the emailed code" (a 403 proof_required
+      // pull), nothing else clears that state when the proven token lands, so the
+      // pull never runs and pushes stay queued until a reload. Run the sync again.
+      if ((await swapForProvenSyncToken()) && isProofRequired()) void retrySyncAfterProof().catch(() => {});
     }
 
     // Re-read after the await — a server profile merge may have landed.
