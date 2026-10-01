@@ -188,6 +188,25 @@ describe('PublishSermon', () => {
     expect(onPublished).toHaveBeenCalledWith({ id: 'sub_2', title: 'Living Water', kind: 'campus' });
   });
 
+  it('tells a campus pastor the post is held, not published, when the server says pending', async () => {
+    api.intake.mockImplementation(async (action: string) => {
+      if (action === 'form') return { questions: CAMPUS_QUESTIONS };
+      if (action === 'submit') return { submission: { id: 'sub_3' }, pending: true, published: false, reason: 'campus_not_confirmed' };
+      return {};
+    });
+    const onPublished = vi.fn();
+    const el = mount(<PublishSermon outline={OUTLINE} staff={CAMPUS_STAFF} lang="en" onPublished={onPublished} />);
+    await flush();
+    await click(byTestId(el, 'preach-publish-preview-btn')!);
+    const submitBtn = byTestId(el, 'preach-publish-submit-btn')!;
+    await click(submitBtn);
+    await click(submitBtn);
+    const note = byTestId(el, 'preach-publish-success')!;
+    expect(note.textContent).toContain('once your campus is confirmed');
+    expect(note.textContent).not.toContain('Posted to the campus corner');
+    expect(onPublished).toHaveBeenCalledWith({ id: 'sub_3', title: 'Living Water', kind: 'campus', pending: true });
+  });
+
   it('surfaces a server error inline without throwing', async () => {
     api.intake.mockImplementation(async (action: string) => {
       if (action === 'form') return { questions: HUB_QUESTIONS };

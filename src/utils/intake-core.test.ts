@@ -35,6 +35,73 @@ describe('staff allowlist', () => {
   });
 });
 
+describe('staffFromRoster: the roster decides, not the address shape', () => {
+  it('turns a roster row into a staff record with role, campus and who set it', () => {
+    const s = core.staffFromRoster('Gwinnett@futures.church', {
+      role: 'campus', campus_id: 'us-gwinnett', campus_set_by: 'admin', display_name: 'Gwinnett Pastor',
+    });
+    expect(s).toEqual({
+      email: 'gwinnett@futures.church', role: 'campus', campusId: 'us-gwinnett',
+      campusSetBy: 'admin', name: 'Gwinnett Pastor',
+    });
+  });
+
+  it('does not treat a named person with no roster row as staff either', () => {
+    expect(core.staffFromRoster('josh@futures.church', null)).toBeNull();
+    expect(core.staffFromRoster('alexi.patsianis@futures.church', null)).toBeNull();
+    expect(core.staffFromRoster('ae@futures.global', null)).toBeNull();
+  });
+
+  it('gives a named person their default name when their row has none', () => {
+    expect(core.staffFromRoster('alexi.patsianis@futures.church', { role: 'media', display_name: '' }).name).toBe('Alexi Patsianis');
+  });
+
+  it('does not treat a made-up futures.church address as staff', () => {
+    expect(core.staffFromRoster('nobody123@futures.church', null)).toBeNull();
+    // the old shape-only fallback is unchanged, and no longer used to sign anyone in
+    expect(core.fallbackStaff('nobody123@futures.church').role).toBe('campus');
+  });
+
+  it('refuses generic inboxes and other domains even with a row', () => {
+    expect(core.staffFromRoster('hello@futures.church', { role: 'campus' })).toBeNull();
+    expect(core.staffFromRoster('care@futures.church', { role: 'campus' })).toBeNull();
+    expect(core.staffFromRoster('someone@gmail.com', { role: 'campus' })).toBeNull();
+  });
+
+  it('always makes ae@futures.global the admin once his row exists', () => {
+    expect(core.staffFromRoster('ae@futures.global', { role: 'admin' }).role).toBe('admin');
+    expect(core.staffFromRoster('ae@futures.global', { role: 'campus' }).role).toBe('admin');
+  });
+
+  it('downgrades an admin row for anyone but Ashley', () => {
+    expect(core.staffFromRoster('gwinnett@futures.church', { role: 'admin' }).role).toBe('campus');
+    expect(core.staffFromRoster('josh@futures.church', { role: 'admin' }).role).toBe('hub');
+  });
+});
+
+describe('campusConfirmed', () => {
+  it('needs no campus for hub, media and admin', () => {
+    expect(core.campusConfirmed({ role: 'hub' })).toBe(true);
+    expect(core.campusConfirmed({ role: 'media' })).toBe(true);
+    expect(core.campusConfirmed({ role: 'admin' })).toBe(true);
+  });
+
+  it('counts a campus Ashley set, and a legacy campus with no marker', () => {
+    expect(core.campusConfirmed({ role: 'campus', campusId: 'us-gwinnett', campusSetBy: 'admin' })).toBe(true);
+    expect(core.campusConfirmed({ role: 'campus', campusId: 'us-gwinnett', campusSetBy: null })).toBe(true);
+  });
+
+  it('does not count a campus the pastor picked, or no campus at all', () => {
+    expect(core.campusConfirmed({ role: 'campus', campusId: 'us-gwinnett', campusSetBy: 'self' })).toBe(false);
+    expect(core.campusConfirmed({ role: 'campus', campusId: null, campusSetBy: null })).toBe(false);
+  });
+
+  it('is shown to the app as campusPending', () => {
+    expect(core.publicStaff({ email: 'a@futures.church', role: 'campus', campusId: 'us-gwinnett', campusSetBy: 'self' }).campusPending).toBe(true);
+    expect(core.publicStaff({ email: 'josh@futures.church', role: 'hub' }).campusPending).toBe(false);
+  });
+});
+
 describe('campus lock', () => {
   it('pins a campus pastor to their assigned campus', () => {
     const staff = { email: 'p@futures.church', role: 'campus', campusId: 'us-gwinnett', name: '' };
@@ -262,5 +329,24 @@ describe('deterministic sermon formatter', () => {
     }, { keyVerse: 'Romans 8:28', keyVerseText: 'old' });
     expect(none.keyVerse).toBe('');
     expect(none.keyVerseText).toBe('');
+  });
+});
+
+describe('setup codes', () => {
+  it('are 10 unambiguous characters in two groups, and differ each time', () => {
+    const a = core.generateSetupCode();
+    expect(a).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{5}-[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{5}$/);
+    expect(core.generateSetupCode()).not.toBe(a);
+  });
+
+  it('verify however the person types them, and not otherwise', () => {
+    const code = core.generateSetupCode();
+    const stored = core.hashSetupCode(code);
+    expect(stored).not.toContain(core.normalizeSetupCode(code));
+    expect(core.verifySetupCode(code, stored)).toBe(true);
+    expect(core.verifySetupCode(code.toLowerCase().replace('-', ' '), stored)).toBe(true);
+    expect(core.verifySetupCode('AAAAA-AAAAA', stored)).toBe(false);
+    expect(core.verifySetupCode('', stored)).toBe(false);
+    expect(core.verifySetupCode(code, null)).toBe(false);
   });
 });

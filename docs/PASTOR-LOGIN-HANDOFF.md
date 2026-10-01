@@ -11,6 +11,17 @@ localStorage.
 
 ---
 
+> **Updated 1 Oct 2026: a first password needs a setup code.** `set_password`
+> takes `{ email, password, setupCode }`. Ashley adding a person (People, or
+> `roster_save`) or resetting a password (`roster_clear_password`) returns a
+> one-time code once; only a hash is stored. It expires after 72 hours, works
+> once and is burned after five wrong guesses. `auth_status` answers
+> `setup: true` only for a person holding a live code, and `login` gives a
+> plain refusal to anyone without a password. Migration
+> `20261001_staff_setup_codes.sql` must be applied before this code deploys.
+
+---
+
 ## Copy this prompt into a new Claude Code session
 
 ```

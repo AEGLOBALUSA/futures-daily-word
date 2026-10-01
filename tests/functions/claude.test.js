@@ -24,11 +24,18 @@ const LIVE_TOKEN = 'a'.repeat(64);
 let sessionRow;    // what staff_sessions returns for the looked-up hash
 let sessionError;  // or an error, to prove the gate fails closed
 let lookedUpHash;  // the hash the function actually queried
+let rosterRow;     // what staff_roster returns for the session's email
+let rosterError;   // or an error, to prove the roster check fails closed
+let rosterLookups; // emails the function asked the roster about
 
 const fakeSupabase = {
-  from: () => ({
+  from: (table) => ({
     select: () => ({
       eq: (_col, value) => {
+        if (table === 'staff_roster') {
+          rosterLookups.push(value);
+          return { maybeSingle: async () => ({ data: rosterRow, error: rosterError }) };
+        }
         lookedUpHash = value;
         return { maybeSingle: async () => ({ data: sessionRow, error: sessionError }) };
       },
@@ -62,12 +69,16 @@ function event({ origin, referer, body }) {
   return { httpMethod: 'POST', headers, body: JSON.stringify(body) };
 }
 
+const liveSession = (email = 'Pastor@Futures.church ') => ({ email, expires_at: new Date(Date.now() + 3600_000).toISOString() });
 const validBody = (extra = {}) => ({ messages: [{ role: 'user', content: 'hi' }], ...extra });
 
 beforeEach(() => {
   sessionRow = null;
   sessionError = null;
   lookedUpHash = null;
+  rosterRow = { email: 'pastor@futures.church' };
+  rosterError = null;
+  rosterLookups = [];
   anthropic.mockReset();
   anthropic.mockResolvedValue({
     ok: true,
@@ -94,7 +105,7 @@ describe('claude proxy — the pastor-only origin must prove a session', () => {
   });
 
   it('looks the token up by its SHA-256 hash, never by the token itself', async () => {
-    sessionRow = { expires_at: new Date(Date.now() + 3600_000).toISOString() };
+    sessionRow = liveSession();
     await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
     expect(lookedUpHash).toMatch(/^[0-9a-f]{64}$/);
     expect(lookedUpHash).not.toBe(LIVE_TOKEN);
@@ -122,7 +133,7 @@ describe('claude proxy — the pastor-only origin must prove a session', () => {
   });
 
   it('allows a live session, and never forwards the token to Anthropic', async () => {
-    sessionRow = { expires_at: new Date(Date.now() + 3600_000).toISOString() };
+    sessionRow = liveSession();
     const res = await handler(event({
       origin: SERMON_PREP,
       body: validBody({ staffToken: LIVE_TOKEN, system: 'be helpful', max_tokens: 300 }),
@@ -135,6 +146,41 @@ describe('claude proxy — the pastor-only origin must prove a session', () => {
     expect(JSON.stringify(sent)).not.toContain(LIVE_TOKEN);
     expect(sent.system).toBe('be helpful');
     expect(sent.max_tokens).toBe(300);
+  });
+});
+
+describe('claude proxy — a live session is not enough, the person must still be on the roster', () => {
+  it('refuses a live session whose person has been removed from the roster', async () => {
+    sessionRow = liveSession();
+    rosterRow = null;
+    const res = await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
+    expect(res.statusCode).toBe(401);
+    expect(anthropic).not.toHaveBeenCalled();
+  });
+
+  it('asks the roster about the session\'s email, lower-cased and trimmed', async () => {
+    sessionRow = liveSession();
+    await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
+    expect(rosterLookups).toEqual(['pastor@futures.church']);
+  });
+
+  it('fails CLOSED when the roster lookup errors', async () => {
+    sessionRow = liveSession();
+    rosterError = { message: 'database unavailable' };
+    const res = await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
+    expect(res.statusCode).toBe(401);
+    expect(anthropic).not.toHaveBeenCalled();
+  });
+
+  it('refuses a session row with no email', async () => {
+    sessionRow = { expires_at: new Date(Date.now() + 3600_000).toISOString() };
+    const res = await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('does not consult the roster for a congregation origin', async () => {
+    await handler(event({ origin: DAILY_WORD, body: validBody() }));
+    expect(rosterLookups).toEqual([]);
   });
 });
 
@@ -161,7 +207,7 @@ describe('claude proxy — the Referer path cannot step around the gate', () => 
   });
 
   it('allows that same Referer path WITH a live session', async () => {
-    sessionRow = { expires_at: new Date(Date.now() + 3600_000).toISOString() };
+    sessionRow = liveSession();
     const res = await handler(event({
       referer: 'https://pastors-sermon-prep.netlify.app/',
       body: validBody({ staffToken: LIVE_TOKEN }),

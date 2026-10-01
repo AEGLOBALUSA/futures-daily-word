@@ -191,10 +191,32 @@ describe('PastorSignIn', () => {
     expect(api.intake).not.toHaveBeenCalledWith('set_password', expect.anything());
 
     type(confirm, 'twelve characters');
+    // No code typed yet: the button is held, and nothing is sent.
+    expect((buttonNamed(el, /Save password/) as HTMLButtonElement).disabled).toBe(true);
+    type(el.querySelector('#dw-pastor-setup-code') as HTMLInputElement, 'K7M2Q-9XWRT');
     await submit(el.querySelector('form')!);
-    expect(api.intake).toHaveBeenCalledWith('set_password', { email: 'josh@futures.church', password: 'twelve characters' });
+    expect(api.intake).toHaveBeenCalledWith('set_password', { email: 'josh@futures.church', password: 'twelve characters', setupCode: 'K7M2Q-9XWRT' });
     expect(el.textContent).toContain('Signed in as Josh Greenwood');
     expect(el.textContent).toContain('· Hub');
+  });
+
+  it('a plain password step offers the neutral first-time line, and "I have a code" opens the code step', async () => {
+    api.intake.mockImplementation(async (action: string) => {
+      if (action === 'auth_status') return { setup: false };
+      return {};
+    });
+    const el = mount(<PastorSignIn lang="en" />);
+    await flush();
+    await click(buttonNamed(el, /Sign in as pastor/));
+    type(el.querySelector('#dw-pastor-email') as HTMLInputElement, 'new.pastor@futures.church');
+    await submit(el.querySelector('form')!);
+    expect(el.textContent).toContain('First time? Ask Ashley Evans for your setup code.');
+    expect(el.querySelector('#dw-pastor-setup-code')).toBeNull();
+    await click(buttonNamed(el, /I have a code/));
+    expect(el.querySelector('#dw-pastor-setup-code')).toBeTruthy();
+    expect(el.querySelector('#dw-pastor-confirm')).toBeTruthy();
+    await click(buttonNamed(el, /I already have a password/));
+    expect(el.querySelector('#dw-pastor-setup-code')).toBeNull();
   });
 
   it('switching the device to a different email drops the old cloud token and registers the new one', async () => {

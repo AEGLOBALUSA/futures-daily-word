@@ -242,6 +242,8 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [code, setCode] = useState('');
+  // First time: choose a password with the one-time setup code Ashley handed over.
   const [setup, setSetup] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -250,30 +252,20 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
     e.preventDefault();
     setBusy(true); setError('');
     try {
-      const status = await intake<{ setup: boolean }>('auth_status', { email });
-      if (status.setup) {
-        if (!setup) {
-          setSetup(true);
-          setBusy(false);
-          return;
-        }
+      if (setup) {
         if (password !== confirm) {
           setError('Passwords do not match.');
           setBusy(false);
           return;
         }
-        const data = await intake<{ token: string; staff: Staff }>('set_password', { email, password });
+        const data = await intake<{ token: string; staff: Staff }>('set_password', { email, password, setupCode: code });
         onSignedIn(data.token, data.staff);
       } else {
         const data = await intake<{ token: string; staff: Staff }>('login', { email, password });
         onSignedIn(data.token, data.staff);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Invalid email or password';
-      const needsSetup = (err as { data?: { setup?: boolean } })?.data?.setup;
-      if (needsSetup) setSetup(true);
-      if (/already set/i.test(msg)) setSetup(false);
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'Invalid email or password');
     }
     setBusy(false);
   };
@@ -284,9 +276,11 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
           Futures Daily Word
         </p>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>Staff sign-in</h1>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>{setup ? 'Set up your sign-in' : 'Staff sign-in'}</h1>
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
-          Sign in to put Sunday’s sermon notes on the page people write in.
+          {setup
+            ? 'Type the setup code Ashley Evans gave you, then choose your own password.'
+            : 'Sign in to put Sunday’s sermon notes on the page people write in.'}
         </p>
         <label style={labelStyle} htmlFor="staff-email">Work email</label>
         <input
@@ -295,17 +289,35 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
           autoComplete="username"
           required
           value={email}
-          onChange={e => { setEmail(e.target.value); setSetup(false); }}
+          onChange={e => setEmail(e.target.value)}
           onBlur={async () => {
-            if (!email.includes('@')) return;
+            if (!email.includes('@') || setup) return;
             try {
+              // Only a person holding a live setup code is switched to the code box.
               const status = await intake<{ setup: boolean }>('auth_status', { email });
-              setSetup(!!status.setup);
+              if (status.setup) setSetup(true);
             } catch { /* keep password sign-in */ }
           }}
           placeholder="ae@futures.global"
           style={{ ...inputStyle, marginBottom: 14 }}
         />
+        {setup && (
+          <>
+            <label style={labelStyle} htmlFor="staff-code">Setup code</label>
+            <input
+              id="staff-code"
+              type="text"
+              autoComplete="one-time-code"
+              autoCapitalize="characters"
+              spellCheck={false}
+              required
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              placeholder="XXXXX-XXXXX"
+              style={{ ...inputStyle, marginBottom: 14, letterSpacing: '0.1em' }}
+            />
+          </>
+        )}
         <label style={labelStyle} htmlFor="staff-password">{setup ? 'New password' : 'Password'}</label>
         <input
           id="staff-password"
@@ -319,7 +331,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         />
         {setup && (
           <>
-            <p style={helpStyle}>First visit — set your own password (at least 10 characters). You will use it to sign in next time.</p>
+            <p style={helpStyle}>At least 10 characters. You will use it to sign in from now on.</p>
             <label style={labelStyle} htmlFor="staff-confirm">Confirm password</label>
             <input
               id="staff-confirm"
@@ -333,10 +345,24 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
             />
           </>
         )}
-        {error && <p style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)' }}>{error}</p>}
+        {error && <p role="alert" style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)' }}>{error}</p>}
         <button type="submit" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
           {busy ? 'Please wait…' : setup ? 'Save password and sign in' : 'Sign in'}
         </button>
+        <p style={{ margin: '16px 0 0', textAlign: 'center', fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-muted)', lineHeight: 1.5 }}>
+          {setup ? (
+            <button type="button" data-testid="staff-back-to-signin" onClick={() => { setSetup(false); setError(''); setCode(''); setConfirm(''); }} style={{ ...btnGhost, minHeight: 36, padding: '6px 12px' }}>
+              I already have a password
+            </button>
+          ) : (
+            <>
+              First time? Ask Ashley Evans for your setup code.{' '}
+              <button type="button" data-testid="staff-have-code" onClick={() => { setSetup(true); setError(''); }} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--dw-accent)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                I have a code
+              </button>
+            </>
+          )}
+        </p>
         <p style={{ marginTop: 20, textAlign: 'center' }}>
           <a href="/" style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>← Daily Word</a>
         </p>
@@ -425,6 +451,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const [mine, setMine] = useState<{ id: string; status: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [held, setHeld] = useState(false);
   const [preview, setPreview] = useState<FormattedSermon | null>(null);
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
   // The shell shows errors at the top of the page; the save button sits at the
@@ -442,7 +469,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
     if (!isCongregationId(v)) return;
     setCongregationChoice(v);
     try { localStorage.setItem('dw_staff_congregation', v); } catch { /* */ }
-    setPreview(null); setDone(false); setLive(null); setFormError('');
+    setPreview(null); setDone(false); setHeld(false); setLive(null); setFormError('');
   };
   const errorRef = useRef<HTMLParagraphElement | null>(null);
   const fail = (msg: string) => {
@@ -550,11 +577,12 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       fail(`Fill in “${missing.label}” first — it is empty.`);
       return;
     }
-    setBusy(true); onError(''); setFormError(''); setDone(false); setLive(null);
+    setBusy(true); onError(''); setFormError(''); setDone(false); setHeld(false); setLive(null);
     try {
       const data = await intake<{
         preview?: FormattedSermon | null;
         published?: boolean;
+        pending?: boolean;
         publish_result?: { sermon?: { id?: string; title?: string } | null; cornerAdded?: number };
       }>('submit', {
         answers,
@@ -565,8 +593,10 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       });
       if (data.preview) setPreview(data.preview);
       setDone(true);
+      // Saved but waiting: the campus has not been confirmed yet, so nothing is live.
+      if (data.pending) setHeld(true);
       const published = data.publish_result?.sermon;
-      if (sermonForm) {
+      if (sermonForm && !data.pending) {
         if (!published?.id) {
           fail('Saved, but nothing reached the congregation page — there were no notes or title to publish.');
         } else {
@@ -692,7 +722,9 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       {done && !formError && (
         <div style={{ marginTop: 12, fontFamily: 'var(--font-sans)' }}>
           <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 14, fontWeight: 600 }}>
-            {job === 'campus'
+            {held
+              ? 'Saved. It goes on the campus corner once your campus is confirmed.'
+              : job === 'campus'
               ? 'It’s on the campus corner.'
               : live?.verified
                 ? `It’s on the ${congregationName(congregation)} page: ${live.title}`
@@ -700,7 +732,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
                   ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}
           </p>
-          {job !== 'campus' && (
+          {job !== 'campus' && !held && (
             <a href={congregationPageUrl(congregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 14, color: 'var(--dw-accent)', fontWeight: 600 }}>
               Open the {congregationName(congregation)} page →
             </a>
@@ -1066,48 +1098,99 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
   );
 }
 
+type RosterRow = {
+  email: string; role: Role; campus_id: string | null; display_name: string;
+  has_password?: boolean; code_live?: boolean; code_expires_at?: string | null;
+};
+type IssuedCode = { email: string; code: string; expiresAt: string };
+
+function formatExpiry(iso: string) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
 function Roster({ onError }: { onError: (s: string) => void }) {
-  const [rows, setRows] = useState<{ email: string; role: Role; campus_id: string | null; display_name: string; has_password?: boolean }[]>([]);
+  const [rows, setRows] = useState<RosterRow[]>([]);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('campus');
   const [campusId, setCampusId] = useState('');
   const [name, setName] = useState('');
+  // The plain code exists only in this response; the server keeps a hash. Shown until dismissed.
+  const [issued, setIssued] = useState<IssuedCode | null>(null);
 
   const load = useCallback(async () => {
-    const data = await intake<{ roster: typeof rows }>('roster_list');
+    const data = await intake<{ roster: RosterRow[] }>('roster_list');
     setRows(data.roster || []);
   }, []);
   useEffect(() => { load().catch(err => onError(err.message)); }, [load, onError]);
+
+  const showCode = (forEmail: string, data: { setupCode?: string; setupCodeExpiresAt?: string }) => {
+    if (data.setupCode) setIssued({ email: forEmail, code: data.setupCode, expiresAt: data.setupCodeExpiresAt || '' });
+  };
 
   return (
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>People</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>
-        Who can sign in. If someone has not set a password yet, they set one on first visit.
+        Who can sign in. Adding someone gives you a one-time setup code to hand them; they use it to choose their own password.
       </p>
+      {issued && (
+        <div role="status" data-testid="staff-setup-code" style={{ border: '2px solid var(--dw-accent)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)' }}>
+            Setup code for {issued.email}
+          </p>
+          <p style={{ margin: '6px 0', fontFamily: 'var(--font-mono, monospace)', fontSize: 28, fontWeight: 700, letterSpacing: '0.12em' }}>{issued.code}</p>
+          <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
+            Give it to them yourself. It works once{issued.expiresAt ? ` and stops working on ${formatExpiry(issued.expiresAt)}` : ''}. This is the only time you will see it; if it is lost, get a new one.
+          </p>
+          <button type="button" style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }} onClick={() => setIssued(null)}>Done</button>
+        </div>
+      )}
       {rows.map(r => (
         <div key={r.email} style={{ border: '1px solid var(--dw-border)', borderRadius: 14, padding: 14, marginBottom: 8 }}>
           <p style={{ margin: 0, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{r.display_name || r.email}</p>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
             {r.email} · {r.role}{r.campus_id ? ` · ${campusName(r.campus_id)}` : ''}
-            {r.has_password ? ' · password set' : ' · has not set a password yet'}
+            {r.has_password
+              ? ' · password set'
+              : r.code_live
+                ? ` · waiting for them to use their setup code${r.code_expires_at ? ` (until ${formatExpiry(r.code_expires_at)})` : ''}`
+                : ' · no setup code waiting'}
           </p>
-          {r.has_password && (
+          {r.has_password ? (
             <button
               type="button"
               style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }}
               onClick={async () => {
-                if (!confirm(`Clear ${r.email}'s password so they can set a new one?`)) return;
+                if (!confirm(`Reset ${r.email}'s password? They are signed out everywhere and need a new setup code.`)) return;
                 onError('');
                 try {
-                  await intake('roster_clear_password', { email: r.email });
+                  const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_clear_password', { email: r.email });
+                  showCode(r.email, data);
                   await load();
                 } catch (err) {
-                  onError(err instanceof Error ? err.message : 'Could not clear password');
+                  onError(err instanceof Error ? err.message : 'Could not reset the password');
                 }
               }}
             >
               Let them set a new password
+            </button>
+          ) : (
+            <button
+              type="button"
+              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }}
+              onClick={async () => {
+                onError('');
+                try {
+                  const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_issue_code', { email: r.email });
+                  showCode(r.email, data);
+                  await load();
+                } catch (err) {
+                  onError(err instanceof Error ? err.message : 'Could not make a setup code');
+                }
+              }}
+            >
+              Get a new setup code
             </button>
           )}
         </div>
@@ -1141,7 +1224,8 @@ function Roster({ onError }: { onError: (s: string) => void }) {
         onClick={async () => {
           onError('');
           try {
-            await intake('roster_save', { email, role, campusId, name });
+            const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_save', { email, role, campusId, name });
+            showCode(email.trim().toLowerCase(), data);
             setEmail(''); setName(''); setCampusId('');
             await load();
           } catch (err) {

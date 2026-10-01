@@ -248,7 +248,9 @@ function PreachWorkspace({ onBack, lang }: { onBack: () => void; lang: string })
     try { localStorage.setItem(PASSAGE_KEY, next); } catch { /* ignore */ }
   }, []);
 
-  const handlePublished = useCallback(() => {
+  const handlePublished = useCallback((result?: { pending?: boolean }) => {
+    // Held for a campus nobody has confirmed yet: stay here so the held line shows.
+    if (result?.pending) return;
     invalidateSermonArchive(); // the archive must show what was just published
     setPublishedNote(true);
     setTab('archive');

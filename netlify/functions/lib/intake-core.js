@@ -66,6 +66,48 @@ function fallbackStaff(email) {
   return { email: e, role: "campus", campusId: null, name: "" };
 }
 
+/**
+ * Who counts as staff: a ROSTER ROW, never the shape of the address.
+ * `row` is the staff_roster row (or null). With no row the answer is null for
+ * everyone, named people included: a name in NAMED_STAFF only supplies a default
+ * role and display name once Ashley has added the person (roster_save), which
+ * is also what issues their setup code. Ashley's own address always resolves to
+ * admin once his row exists.
+ */
+function staffFromRoster(email, row) {
+  const e = normalizeEmail(email);
+  if (!isAllowlistedEmail(e)) return null;
+  if (!row) return null;
+  const named = NAMED_STAFF[e] || null;
+  if (e === "ae@futures.global") {
+    return {
+      email: e,
+      role: "admin",
+      campusId: row.campus_id || null,
+      campusSetBy: row.campus_set_by || null,
+      name: row.display_name || "Ashley Evans"
+    };
+  }
+  return {
+    email: e,
+    role: row.role === "admin" ? (named && named.role) || "campus" : row.role,
+    campusId: row.campus_id || null,
+    campusSetBy: row.campus_set_by == null ? null : row.campus_set_by,
+    name: row.display_name || (named && named.name) || ""
+  };
+}
+
+/**
+ * Has Ashley confirmed this person's campus? Only campus pastors need it.
+ * campus_set_by null with a campus id is the legacy case and counts as
+ * confirmed, the same convention as pastor-admin.js.
+ */
+function campusConfirmed(staff) {
+  if (!staff) return false;
+  if (staff.role !== "campus") return true;
+  return !!staff.campusId && staff.campusSetBy !== "self";
+}
+
 function questionVisible(question, role) {
   return questionVisibleForJob(question, role, null);
 }
@@ -369,9 +411,50 @@ function publicStaff(staff) {
     role: staff.role,
     campusId: staff.campusId || null,
     name: staff.name || "",
-    isAdmin: staff.role === "admin"
+    isAdmin: staff.role === "admin",
+    // True when this person's saves to the campus corner wait for Ashley to confirm the campus.
+    campusPending: staff.role === "campus" && !campusConfirmed(staff)
   };
 }
+
+// ── Setup codes ─────────────────────────────────────────────────────────────
+// Ashley adds a person (roster_save) and the server issues a one-time code he
+// hands over. Choosing a first password needs that code. Stored hashed (bcrypt),
+// expires, works once, and is burned after a few wrong guesses. A person who
+// has not been given a code cannot claim anything, whatever address they type.
+const SETUP_CODE_TTL_MS = 72 * 3600 * 1000;
+const SETUP_CODE_MAX_ATTEMPTS = 5;
+// No 0/O/1/I/L: the code is read aloud or typed from a message.
+const SETUP_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const SETUP_CODE_LENGTH = 10;
+
+/** XXXXX-XXXXX, about 49 bits, from the OS random source. */
+function generateSetupCode() {
+  let out = "";
+  for (let i = 0; i < SETUP_CODE_LENGTH; i++) {
+    out += SETUP_CODE_ALPHABET[crypto.randomInt(SETUP_CODE_ALPHABET.length)];
+    if (i === SETUP_CODE_LENGTH / 2 - 1) out += "-";
+  }
+  return out;
+}
+
+/** Upper-case, letters and digits only, so "abcde 23456" and "ABCDE-23456" match. */
+function normalizeSetupCode(code) {
+  return String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function hashSetupCode(code) {
+  return bcrypt.hashSync(normalizeSetupCode(code), 10);
+}
+
+function verifySetupCode(code, stored) {
+  const c = normalizeSetupCode(code);
+  if (!c || c.length > 40 || !stored || typeof stored !== "string") return false;
+  try { return bcrypt.compareSync(c, stored); } catch { return false; }
+}
+
+/** Spent on a refusal that never reached a real hash, so timing tells nothing. */
+const DUMMY_HASH = bcrypt.hashSync("no-such-credential", 10);
 
 function passwordIssue(password, email) {
   const p = String(password || "");
@@ -412,6 +495,8 @@ module.exports = {
   normalizeEmail,
   isAllowlistedEmail,
   fallbackStaff,
+  staffFromRoster,
+  campusConfirmed,
   questionVisible,
   questionVisibleForJob,
   isKeyVerseField,
@@ -426,6 +511,13 @@ module.exports = {
   splitCampusCorner,
   publicStaff,
   passwordIssue,
+  SETUP_CODE_TTL_MS,
+  SETUP_CODE_MAX_ATTEMPTS,
+  generateSetupCode,
+  normalizeSetupCode,
+  hashSetupCode,
+  verifySetupCode,
+  DUMMY_HASH,
   hashPassword,
   verifyPassword,
   isYoutubeId,

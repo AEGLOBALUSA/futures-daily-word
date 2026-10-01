@@ -236,4 +236,114 @@ describe('StaffApp hub save never fails silently', () => {
     vi.unstubAllGlobals();
     act(() => root.unmount());
   });
+
+  it('says a held campus save is waiting, not on the campus corner', async () => {
+    const { el, root } = await openHubForm(async () => ({
+      ok: true, published: false, pending: true, reason: 'campus_not_confirmed',
+    }));
+    const inputs = [...el.querySelectorAll('input[type="text"], input:not([type])')] as HTMLInputElement[];
+    await setInput(inputs[0], 'Grace Wins');
+    const save = [...el.querySelectorAll('button')].find(b => /Put this on the congregation page/.test(b.textContent || ''))!;
+    await act(async () => { save.click(); });
+    await flush();
+    await flush();
+    expect(el.textContent).toContain('Saved. It goes on the campus corner once your campus is confirmed.');
+    expect(el.textContent).not.toContain('It’s on the campus corner');
+    expect(el.textContent).not.toContain('It’s on the Futures USA page');
+    act(() => root.unmount());
+  });
+});
+
+describe('StaffApp sign-in needs a setup code for a first password', () => {
+  async function setInput(el: HTMLInputElement, value: string) {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  const byId = (el: HTMLElement, id: string) => el.querySelector(`#${id}`) as HTMLInputElement | null;
+
+  async function openSignIn(statusSetup = false) {
+    const calls: { action: string; payload: Record<string, unknown> }[] = [];
+    vi.mocked(intake).mockImplementation(async (action: string, payload: Record<string, unknown> = {}) => {
+      calls.push({ action, payload });
+      if (action === 'me') throw new Error('Sign in required');
+      if (action === 'auth_status') return { setup: statusSetup };
+      if (action === 'set_password' || action === 'login') return { token: 't'.repeat(64), staff: { email: 'x@futures.church', role: 'campus', campusId: null, name: '', isAdmin: false } };
+      return {};
+    });
+    const mounted = mount(<StaffApp />);
+    await flush();
+    return { ...mounted, calls };
+  }
+
+  it('shows a plain sign-in with a neutral first-time line, and no code box', async () => {
+    const { el, root } = await openSignIn();
+    expect(el.textContent).toContain('First time? Ask Ashley Evans for your setup code.');
+    expect(byId(el, 'staff-code')).toBeNull();
+    expect(byId(el, 'staff-confirm')).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('asks for the code when a person who has one opens the box, and sends it with the new password', async () => {
+    const { el, root, calls } = await openSignIn();
+    await act(async () => { (el.querySelector('[data-testid="staff-have-code"]') as HTMLButtonElement).click(); });
+    expect(byId(el, 'staff-code')).not.toBeNull();
+    await setInput(byId(el, 'staff-email')!, 'new.pastor@futures.church');
+    await setInput(byId(el, 'staff-code')!, 'K7M2Q-9XWRT');
+    await setInput(byId(el, 'staff-password')!, 'a-long-test-passphrase-9');
+    await setInput(byId(el, 'staff-confirm')!, 'a-long-test-passphrase-9');
+    await act(async () => { el.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    await flush();
+    const set = calls.find(c => c.action === 'set_password');
+    expect(set?.payload).toEqual({ email: 'new.pastor@futures.church', password: 'a-long-test-passphrase-9', setupCode: 'K7M2Q-9XWRT' });
+    expect(calls.some(c => c.action === 'login')).toBe(false);
+    act(() => root.unmount());
+  });
+
+  it('switches to the code box on its own when the address has a live code', async () => {
+    const { el, root } = await openSignIn(true);
+    const email = byId(el, 'staff-email')!;
+    await setInput(email, 'new.pastor@futures.church');
+    await act(async () => { email.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    await flush();
+    expect(byId(el, 'staff-code')).not.toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('a plain sign-in never sends a setup code', async () => {
+    const { el, root, calls } = await openSignIn();
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await setInput(byId(el, 'staff-password')!, 'a-long-test-passphrase-9');
+    await act(async () => { el.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    await flush();
+    expect(calls.find(c => c.action === 'login')?.payload).toEqual({ email: 'set.pastor@futures.church', password: 'a-long-test-passphrase-9' });
+    act(() => root.unmount());
+  });
+});
+
+describe('StaffApp People shows the one-time code to Ashley', () => {
+  it('shows the code returned by a password reset, and not again once dismissed', async () => {
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true } };
+      if (action === 'roster_list') return { roster: [{ email: 'set.pastor@futures.church', role: 'campus', campus_id: null, display_name: 'Set Pastor', has_password: true, code_live: false, code_expires_at: null }] };
+      if (action === 'roster_clear_password') return { ok: true, setupCode: 'K7M2Q-9XWRT', setupCodeExpiresAt: new Date(Date.now() + 72 * 3600_000).toISOString() };
+      return {};
+    });
+    vi.stubGlobal('confirm', () => true);
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    await act(async () => { [...el.querySelectorAll('button')].find(b => (b.textContent || '').trim() === 'People')!.click(); });
+    await flush();
+    expect(el.querySelector('[data-testid="staff-setup-code"]')).toBeNull();
+    await act(async () => { [...el.querySelectorAll('button')].find(b => /Let them set a new password/.test(b.textContent || ''))!.click(); });
+    await flush();
+    const card = el.querySelector('[data-testid="staff-setup-code"]');
+    expect(card?.textContent).toContain('K7M2Q-9XWRT');
+    expect(card?.textContent).toContain('set.pastor@futures.church');
+    await act(async () => { [...card!.querySelectorAll('button')].find(b => b.textContent === 'Done')!.click(); });
+    expect(el.querySelector('[data-testid="staff-setup-code"]')).toBeNull();
+    vi.unstubAllGlobals();
+    act(() => root.unmount());
+  });
 });

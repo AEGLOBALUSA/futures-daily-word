@@ -26,10 +26,11 @@ describe('staff save is live', () => {
     expect(src).toMatch(/Put this on the congregation page/);
   });
 
-  it('always publishes on submit instead of leaving pending for review', () => {
+  it('publishes on submit except a campus nobody has confirmed', () => {
     expect(api).toMatch(/publishApproved/);
     expect(api).not.toMatch(/publishNow/);
     expect(api).toMatch(/published: true/);
+    expect(api).toMatch(/campus_not_confirmed/);
     expect(api).not.toMatch(/staff\.role === ["']admin["'] && body\.publishNow/);
   });
 });

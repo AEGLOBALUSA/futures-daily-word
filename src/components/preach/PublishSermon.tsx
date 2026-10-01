@@ -29,11 +29,11 @@ export interface PublishSermonProps {
   outline: PreachOutline;
   staff: StaffLike | null;
   lang: string;
-  onPublished: (result: { id?: string; title?: string; kind: 'sermon' | 'campus' }) => void;
+  onPublished: (result: { id?: string; title?: string; kind: 'sermon' | 'campus'; pending?: boolean }) => void;
 }
 
 type CampusPreview = { title: string; body: string };
-type PublishResult = { id?: string; title?: string; kind: 'sermon' | 'campus' };
+type PublishResult = { id?: string; title?: string; kind: 'sermon' | 'campus'; pending?: boolean };
 
 const cardStyle: CSSProperties = {
   background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
@@ -175,7 +175,7 @@ export function PublishSermon({ outline, staff, lang, onPublished }: PublishSerm
     setBusy(true); setError('');
     try {
       const built = buildAnswers(questions, outline, staff, { useAI, youtubeUrl });
-      const data = await intake<{ submission?: { id?: string }; preview?: SermonNotesData | null }>('submit', {
+      const data = await intake<{ submission?: { id?: string }; preview?: SermonNotesData | null; pending?: boolean }>('submit', {
         job,
         answers: built.answers,
         congregation: job === 'hub' ? congregation : undefined,
@@ -184,7 +184,7 @@ export function PublishSermon({ outline, staff, lang, onPublished }: PublishSerm
       });
       const kind: 'sermon' | 'campus' = job === 'hub' ? 'sermon' : 'campus';
       const title = job === 'hub' ? (data.preview?.title || preview?.title || outline.title) : campusPreview?.title || outline.title;
-      const published: PublishResult = { id: data.submission?.id, title, kind };
+      const published: PublishResult = { id: data.submission?.id, title, kind, ...(data.pending ? { pending: true } : {}) };
       setResult(published);
       setConfirming(false);
       onPublished(published);
@@ -295,7 +295,9 @@ export function PublishSermon({ outline, staff, lang, onPublished }: PublishSerm
 
       {result && (
         <p style={{ fontSize: 13, color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '14px 0 0' }} data-testid="preach-publish-success">
-          {job === 'hub' ? t('preach_publish_success_sermon', lang) : t('preach_publish_success_campus', lang)}
+          {result.pending
+            ? t('preach_publish_held', lang)
+            : job === 'hub' ? t('preach_publish_success_sermon', lang) : t('preach_publish_success_campus', lang)}
         </p>
       )}
     </div>
