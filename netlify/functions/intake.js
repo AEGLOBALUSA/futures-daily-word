@@ -85,18 +85,21 @@ async function resolveStaff(email) {
 /**
  * Issue a one-time setup code for a roster row. The plain code is returned ONCE
  * (to Ashley, to hand over, or to email_setup_code, to mail to the row's own
- * address); only a hash is stored. A new code replaces any earlier one.
+ * address); only a hash is stored. Ashley's codes and emailed codes live in
+ * separate slots, so asking for an emailed code never voids the code Ashley
+ * handed over; a new code replaces only the earlier one in its own slot.
  * Ashley's codes live 72 hours and reset the wrong-guess count. An emailed code
- * (`ttlMs` EMAIL_SETUP_CODE_TTL_MS, `clearMisses` false) leaves the miss rows
- * alone: anyone can ask for one, so asking must not wipe a guesser's lock.
- * `code` is supplied when the caller has already mailed it.
+ * (`slot` "email", `ttlMs` EMAIL_SETUP_CODE_TTL_MS, `clearMisses` false) leaves
+ * the miss rows alone: anyone can ask for one, so asking must not wipe a
+ * guesser's lock. `code` is supplied when the caller has already mailed it.
  */
-async function issueSetupCode(email, { ttlMs = SETUP_CODE_TTL_MS, clearMisses = true, code = generateSetupCode() } = {}) {
+async function issueSetupCode(email, { slot = "ashley", ttlMs = SETUP_CODE_TTL_MS, clearMisses = true, code = generateSetupCode() } = {}) {
   const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+  const fields = slot === "email"
+    ? { email_code_hash: hashSetupCode(code), email_code_expires_at: expiresAt }
+    : { setup_code_hash: hashSetupCode(code), setup_code_expires_at: expiresAt, setup_code_attempts: 0 };
   const { error } = await db().from("staff_roster").update({
-    setup_code_hash: hashSetupCode(code),
-    setup_code_expires_at: expiresAt,
-    setup_code_attempts: 0,
+    ...fields,
     updated_at: new Date().toISOString()
   }).eq("email", email);
   if (error) throw error;
@@ -568,11 +571,11 @@ exports.handler = async (event) => {
       // sees the plain sign-in, so this answer is not a list of unclaimed
       // accounts. An emailed code never counts: anyone can mail one to any
       // address, so if it did, "email a code, then ask auth_status" would say
-      // which addresses are unclaimed roster rows. An emailed code lives at most
-      // EMAIL_SETUP_CODE_TTL_MS, so a code with more time left than that is one
-      // of Ashley's (the "I have a code" path still takes either kind).
+      // which addresses are unclaimed roster rows. Emailed codes live in their
+      // own columns (email_code_*), which this never reads; setup_code_* holds
+      // only Ashley's (the "I have a code" path still takes either kind).
       const left = data.setup_code_expires_at ? new Date(data.setup_code_expires_at).getTime() - Date.now() : 0;
-      const ashleysLiveCode = !!data.setup_code_hash && left > EMAIL_SETUP_CODE_TTL_MS;
+      const ashleysLiveCode = !!data.setup_code_hash && left > 0;
       return json(event, 200, { setup: !data.password_hash && ashleysLiveCode });
     }
 
@@ -608,8 +611,9 @@ exports.handler = async (event) => {
         hashSetupCode(code); // the same bcrypt cost as issuing a real code
         return sent();
       }
-      // Mail first, then store: a provider failure leaves any earlier code
-      // (Ashley's included) as it was. Only the roster row's own address is used.
+      // Mail first, then store: a provider failure leaves any earlier emailed code
+      // as it was. The code goes in the emailed slot, so Ashley's code is never
+      // touched. Only the roster row's own address is used.
       const msg = buildStaffCodeMessage(code, body.lang);
       const mailed = await sendWithResend({ to: row.email, ...msg, kind: "staff-setup-code" });
       if (!mailed.ok) {
@@ -618,7 +622,7 @@ exports.handler = async (event) => {
         return sent();
       }
       try {
-        await issueSetupCode(row.email, { ttlMs: EMAIL_SETUP_CODE_TTL_MS, clearMisses: false, code });
+        await issueSetupCode(row.email, { slot: "email", ttlMs: EMAIL_SETUP_CODE_TTL_MS, clearMisses: false, code });
       } catch (err) {
         console.error("[intake] email_setup_code: could not store the code:", err && err.message);
       }
@@ -643,11 +647,15 @@ exports.handler = async (event) => {
       const refuse = () => json(event, 403, { error: SETUP_REFUSED });
       if (!normalizeSetupCode(body.setupCode) || !email || email.length > 254) return refuse();
       const { data: row } = await db().from("staff_roster")
-        .select("email, role, campus_id, display_name, campus_set_by, password_hash, setup_code_hash, setup_code_expires_at, setup_code_attempts")
+        .select("email, role, campus_id, display_name, campus_set_by, password_hash, setup_code_hash, setup_code_expires_at, setup_code_attempts, email_code_hash, email_code_expires_at")
         .eq("email", email).maybeSingle();
       const staff = row && staffFromRoster(email, row);
-      const live = !!(staff && row.setup_code_hash && row.setup_code_expires_at
-        && new Date(row.setup_code_expires_at).getTime() > Date.now());
+      // Two slots: Ashley's code and an emailed code. Either one works.
+      const liveHash = (hash, expires) => (staff && hash && expires && new Date(expires).getTime() > Date.now() ? hash : null);
+      const slots = [
+        { column: "setup_code_hash", hash: liveHash(row && row.setup_code_hash, row && row.setup_code_expires_at) },
+        { column: "email_code_hash", hash: liveHash(row && row.email_code_hash, row && row.email_code_expires_at) },
+      ];
       // Wrong guesses lock this caller IP out of this address for a while (and
       // the address as a whole only under a spread-out flood); they never burn
       // the code (a stranger could otherwise destroy a pastor's code with five
@@ -662,13 +670,14 @@ exports.handler = async (event) => {
       const lock = await setupMissLock(email, rlIp);
       if (lock === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
       if (lock === "locked") return json(event, 429, { error: "Too many attempts. Try again later." });
-      if (!live) {
-        verifySetupCode(String(body.setupCode), DUMMY_HASH); // same cost as a real check
-        return refuse();
+      // Always two checks (a dead slot against a dummy hash), so the time taken
+      // does not say how many live codes an address holds.
+      let matched = null;
+      for (const slot of slots) {
+        const ok = verifySetupCode(String(body.setupCode), slot.hash || DUMMY_HASH);
+        if (ok && slot.hash && !matched) matched = slot;
       }
-      if (!verifySetupCode(String(body.setupCode), row.setup_code_hash)) {
-        return refuse();
-      }
+      if (!matched) return refuse();
       const resetting = !!row.password_hash;
       const endSessions = async () => {
         const { error: endErr } = await db().from("staff_sessions").delete().eq("email", email);
@@ -684,10 +693,13 @@ exports.handler = async (event) => {
         setup_code_hash: null,
         setup_code_expires_at: null,
         setup_code_attempts: 0,
+        email_code_hash: null,
+        email_code_expires_at: null,
         updated_at: new Date().toISOString()
       }).eq("email", email);
-      // First password: CAS on "no password yet" and the code. Reset: CAS on the code.
-      claim = resetting ? claim.eq("setup_code_hash", row.setup_code_hash) : claim.is("password_hash", null).eq("setup_code_hash", row.setup_code_hash);
+      // Using either code spends both. First password: CAS on "no password yet"
+      // and the code used. Reset: CAS on the code used.
+      claim = resetting ? claim.eq(matched.column, matched.hash) : claim.is("password_hash", null).eq(matched.column, matched.hash);
       const { data: claimed, error } = await claim.select("email");
       if (error) throw error;
       if (!claimed || claimed.length !== 1) return refuse(); // someone else spent it first
@@ -1265,6 +1277,8 @@ exports.handler = async (event) => {
       if (!email) return json(event, 400, { error: "Email required" });
       const { data: gone, error } = await db().from("staff_roster").update({
         password_hash: null,
+        email_code_hash: null, // starting over voids any code they emailed themselves
+        email_code_expires_at: null,
         updated_at: new Date().toISOString()
       }).eq("email", email).select("email");
       if (error) throw error;
