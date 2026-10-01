@@ -41,7 +41,7 @@ const {
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
-const { issueToken } = require("./lib/auth");
+const { issueToken, claimProvenToken } = require("./lib/auth");
 
 let supabase;
 function db() {
@@ -514,6 +514,10 @@ exports.handler = async (event) => {
     // this is what keeps the one-step staff sign-in.) The address comes from the
     // staff session, never from the request. No profile yet means nothing to
     // open: the client's register call creates it and gets a first-device token.
+    // The device sends the cloud token it already holds (`currentToken`); if that
+    // token belongs to this staff address it is made proven in place (every "r:"
+    // still removed) and handed back, so signing in again on the same device
+    // never mints a sixth proven token that pushes out another device.
     if (action === "sync_token") {
       if (await isSharedRateLimited("intake-sync-token", ip, 10, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
@@ -521,6 +525,10 @@ exports.handler = async (event) => {
       const { data: profile } = await db().from("profiles").select("email").eq("email", staff.email).maybeSingle();
       if (!profile) return json(event, 200, { token: null });
       try {
+        const current = typeof body.currentToken === "string" ? body.currentToken.trim() : "";
+        if (/^[0-9a-f]{64}$/.test(current) && await claimProvenToken(db(), staff.email, hashToken(current))) {
+          return json(event, 200, { token: current });
+        }
         return json(event, 200, { token: await issueToken(db(), staff.email, { proven: true }) });
       } catch {
         return json(event, 200, { token: null });

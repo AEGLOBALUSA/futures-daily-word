@@ -81,6 +81,11 @@ const MAX_UNPROVEN_HARD = 5;
 const CODE_TTL_MS = 10 * 60 * 1000;
 /** rate_limit_hits key prefix under which the live codes of one token are stored. */
 const proofCodePrefix = (hash) => `dwproof-code:${hash}:`;
+// A freshly minted unproven token is left alone this long (within
+// MAX_UNPROVEN_HARD), so a reader who has not asked for a code yet is not pushed
+// out by three stranger tokens before they do. Recorded as dwproof-mint:<hash>.
+const MINT_GRACE_MS = 10 * 60 * 1000;
+const mintKey = (hash) => `dwproof-mint:${hash}`;
 
 const isUnproven = (h) => typeof h === "string" && h.startsWith(UNPROVEN_PREFIX);
 const isFirst = (h) => typeof h === "string" && h.startsWith(FIRST_PREFIX);
@@ -95,14 +100,14 @@ function capClass(hashes, inClass, max) {
   return hashes.filter((_, i) => !drop.has(i));
 }
 
-/** True when this unproven token has an emailed code that is still live. Any error counts as "no". */
-async function hasLiveCode(db, hash) {
+/** True when rate_limit_hits has a row matching `pattern` (LIKE) newer than `windowMs`. Any error counts as "no". */
+async function hasRecentRow(db, pattern, windowMs) {
   try {
-    const since = new Date(Date.now() - CODE_TTL_MS).toISOString();
+    const since = new Date(Date.now() - windowMs).toISOString();
     const { count, error } = await db
       .from("rate_limit_hits")
       .select("*", { count: "exact", head: true })
-      .like("key", proofCodePrefix(hash) + "%")
+      .like("key", pattern)
       .gte("created_at", since);
     return !error && count > 0;
   } catch {
@@ -110,27 +115,43 @@ async function hasLiveCode(db, hash) {
   }
 }
 
+/** True when this unproven token has an emailed code that is still live. Any error counts as "no". */
+const hasLiveCode = (db, hash) => hasRecentRow(db, proofCodePrefix(hash) + "%", CODE_TTL_MS);
+/** True when this unproven token was minted within MINT_GRACE_MS. Any error counts as "no". */
+const mintedRecently = (db, hash) => hasRecentRow(db, mintKey(hash), MINT_GRACE_MS);
+
 /**
  * Trim the unproven class to MAX_UNPROVEN, oldest first, but never drop the
- * entry just added, and skip a token that has a live emailed code: otherwise a
- * stranger minting tokens for a reader's address (5/min/IP) pushes the reader's
- * pending token out between "email me the code" and typing it, and the reader
- * gets 409 token_gone. The ceiling is MAX_UNPROVEN_HARD, so a flood still cannot
- * grow the array without limit.
+ * entry just added, and leave alone a token that has a live emailed code or was
+ * minted in the last 10 minutes: otherwise a stranger minting tokens for a
+ * reader's address pushes the reader's pending token out before they ask for a
+ * code, or between "email me the code" and typing it, and the reader gets 409
+ * token_gone. Protected tokens are only dropped above the ceiling
+ * MAX_UNPROVEN_HARD (so a flood still cannot grow the array without limit), and
+ * then the merely-recent ones go first, oldest first, before any with a code.
  */
 async function capUnproven(db, hashes, justAdded) {
   const idx = [];
   hashes.forEach((h, i) => { if (isUnproven(h)) idx.push(i); });
   if (idx.length <= MAX_UNPROVEN) return hashes;
+  // 0 = unprotected, 1 = minted recently, 2 = live code. The entry just added has no tier and is never dropped.
+  const tier = new Map();
+  for (const i of idx) {
+    if (hashes[i] === justAdded) continue;
+    const h = hashes[i].slice(UNPROVEN_PREFIX.length);
+    tier.set(i, (await hasLiveCode(db, h)) ? 2 : (await mintedRecently(db, h)) ? 1 : 0);
+  }
   const drop = new Set();
   let remaining = idx.length;
-  for (const i of idx) {
-    if (remaining <= MAX_UNPROVEN) break;
-    if (hashes[i] === justAdded) continue;
-    if (remaining <= MAX_UNPROVEN_HARD && await hasLiveCode(db, hashes[i].slice(UNPROVEN_PREFIX.length))) continue;
-    drop.add(i);
-    remaining--;
-  }
+  const dropTier = (t, floor) => {
+    for (const i of idx) {
+      if (remaining <= floor) return;
+      if (tier.get(i) === t && !drop.has(i)) { drop.add(i); remaining--; }
+    }
+  };
+  dropTier(0, MAX_UNPROVEN);
+  dropTier(1, MAX_UNPROVEN_HARD);
+  dropTier(2, MAX_UNPROVEN_HARD);
   return hashes.filter((_, i) => !drop.has(i));
 }
 
@@ -266,12 +287,69 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
       throw new Error("Failed to store token");
     }
     if (updated && updated.length > 0) {
+      if (isUnproven(entry)) {
+        // Best effort: the mint record only buys this token a few minutes'
+        // grace in capUnproven. A failure here just means no grace.
+        try { await db.from("rate_limit_hits").insert({ key: mintKey(hash) }); } catch { /* grace only */ }
+      }
       return raw;
     }
     // Zero rows matched — a concurrent issue landed between our read and
     // write. Loop to re-read the fresh array and append onto it.
   }
 
+  throw new Error("Failed to store token: concurrent update conflict");
+}
+
+/**
+ * Staff sign-in on a device that already holds a cloud token for the staff
+ * address: make THAT token proven instead of minting another, so repeated
+ * sign-ins on one device do not fill the proven cap (5) and push out the
+ * person's other devices.
+ *   - the plain hash is already there: nothing to promote (every "r:" is still removed);
+ *   - "u:<hash>" or "r:<hash>": swapped for the plain hash (appended as the
+ *     newest proven entry, as promoteToken does), removing every "r:";
+ *   - not in this profile at all: returns false and the caller issues a new token.
+ * A compare-and-swap on the array, like promoteToken. Fails closed: a database
+ * error throws "Failed to store token" (sync_token answers { token: null }).
+ *
+ * @returns {Promise<boolean>} true when the token is a proven entry afterwards.
+ */
+async function claimProvenToken(db, email, hash) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, error } = await db
+      .from("profiles")
+      .select("session_token_hashes")
+      .eq("email", email)
+      .single();
+    if (error || !data) throw new Error("Failed to store token");
+    const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : [];
+
+    let hashes;
+    if (prev.includes(hash)) {
+      if (!prev.some(isFirst)) return true;
+      hashes = prev.filter((h) => !isFirst(h));
+    } else if (prev.includes(UNPROVEN_PREFIX + hash) || prev.includes(FIRST_PREFIX + hash)) {
+      hashes = prev.filter((h) => h !== UNPROVEN_PREFIX + hash && !isFirst(h));
+      hashes.push(hash);
+      hashes = capClass(hashes, isPlain, MAX_PROVEN);
+    } else {
+      return false;
+    }
+
+    const { data: updated, error: updateErr } = await db
+      .from("profiles")
+      .update({ session_token_hashes: hashes })
+      .eq("email", email)
+      .eq("session_token_hashes", JSON.stringify(prev))
+      .select("email");
+    if (updateErr) {
+      console.error("claimProvenToken update error:", updateErr.message);
+      throw new Error("Failed to store token");
+    }
+    if (updated && updated.length > 0) return true;
+    // CAS miss — a concurrent token change landed; re-read and retry.
+  }
   throw new Error("Failed to store token: concurrent update conflict");
 }
 
@@ -352,6 +430,6 @@ async function migrateRequest(event, db, bodyEmail) {
 
 module.exports = {
   hashToken, generateToken, authenticateRequest, authenticateSession, issueToken,
-  promoteToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX, FIRST_PREFIX,
+  promoteToken, claimProvenToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX, FIRST_PREFIX,
   proofCodePrefix, CODE_TTL_MS, isPlain,
 };

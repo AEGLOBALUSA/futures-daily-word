@@ -299,12 +299,13 @@ describe('limits on the code', () => {
     expect(mine.status).toBe(200);
   });
 
-  it('refuses the 4th code email in 15 minutes', async () => {
+  it('refuses the 4th code email in 15 minutes from one connection', async () => {
     const token = await strangerToken();
+    const ip = '203.0.113.40';
     for (let i = 0; i < 3; i++) {
-      expect((await call(userProfile, { action: 'proof-send' }, { token })).status).toBe(200);
+      expect((await call(userProfile, { action: 'proof-send' }, { token, ip })).status).toBe(200);
     }
-    const fourth = await call(userProfile, { action: 'proof-send' }, { token });
+    const fourth = await call(userProfile, { action: 'proof-send' }, { token, ip });
     expect(fourth.status).toBe(429);
     expect(resend).toHaveBeenCalledTimes(3);
   });
@@ -384,7 +385,8 @@ describe('readers who are not affected', () => {
   it('ten stranger migrations never push out the reader\'s real device token', async () => {
     for (let i = 0; i < 10; i++) await strangerToken();
     expect(hashes()).toContain(DEVICE_HASH);
-    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(3);
+    // fresh unproven tokens get 10 minutes' grace, but never past the hard ceiling of five
+    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(5);
     expect((await call(userSync, { action: 'pull' }, { token: DEVICE_RAW })).status).toBe(200);
   });
 
@@ -581,9 +583,11 @@ describe('a stranger cannot stop the real reader from proving', () => {
     expect(ok.status).toBe(200);
   });
 
-  it('a token with no live code is still evicted first', async () => {
+  it('a token with no live code, minted over 10 minutes ago, is still evicted first', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
     const idle = await strangerToken();
-    for (let i = 0; i < 4; i++) await strangerToken();
+    vi.setSystemTime(new Date('2026-10-02T09:11:00Z'));
+    for (let i = 0; i < 3; i++) await strangerToken();
     expect(hashes()).not.toContain('u:' + sha(idle));
     expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(3);
   });
@@ -940,5 +944,182 @@ describe('F6: pco-sync only copies a PCO person who holds this exact address, an
     const r = await call(pcoSync, { action: 'sync', email: VICTIM }, { token: DEVICE_RAW });
     expect(r.json.synced).toBe(true);
     expect(profileRow()).toMatchObject({ first_name: 'Victoria', last_name: 'Timms', campus: 'us-gwinnett' });
+  });
+});
+
+// ── Hardening, 1 Oct 2026 (adversarial check F8-F10, server) ─────────────────
+
+describe('F8: a staff sign-in promotes the device\'s own token instead of minting a new one', () => {
+  const STAFF = 'pastor-f8@futures.church';
+  const STAFF_RAW = '7'.repeat(64);
+
+  function seedStaff(sessionHashes = []) {
+    db.tables.staff_roster = [{ email: STAFF, role: 'campus', campus_id: 'alpharetta', display_name: 'Pat' }];
+    db.tables.staff_sessions = [{ token_hash: sha(STAFF_RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+    db.tables.profiles.push({ email: STAFF, first_name: 'Pat', session_token_hashes: sessionHashes });
+    db.tables.user_data.push({ email: STAFF, journal: JOURNAL, sync_version: 1 });
+  }
+  const signIn = (currentToken) => call(intake, { action: 'sync_token', currentToken }, { token: STAFF_RAW });
+
+  it('an unproven "u:" device token is made proven in place and handed back', async () => {
+    seedStaff([sha('1'.repeat(64))]);
+    const device = (await call(userSync, { action: 'pull', email: STAFF })).json.sessionToken;
+    expect(hashes(STAFF)).toContain('u:' + sha(device));
+    const r = await signIn(device);
+    expect(r.status).toBe(200);
+    expect(r.json.token).toBe(device);
+    expect(hashes(STAFF)).toEqual([sha('1'.repeat(64)), sha(device)]);
+    expect((await call(userSync, { action: 'pull' }, { token: device })).status).toBe(200);
+  });
+
+  it('a first-device "r:" token is made proven in place, and every other "r:" is removed', async () => {
+    const SQUAT = 's'.repeat(64);
+    const device = '6'.repeat(64);
+    seedStaff(['r:' + sha(SQUAT), 'r:' + sha(device)]);
+    const r = await signIn(device);
+    expect(r.json.token).toBe(device);
+    expect(hashes(STAFF)).toEqual([sha(device)]);
+  });
+
+  it('an already proven device token is handed back unchanged, and any "r:" is still removed', async () => {
+    const device = '5'.repeat(64);
+    seedStaff([sha(device), 'r:' + 'f'.repeat(64)]);
+    const r = await signIn(device);
+    expect(r.json.token).toBe(device);
+    expect(hashes(STAFF)).toEqual([sha(device)]);
+  });
+
+  it('six sign-ins on one device never push out the oldest other device', async () => {
+    const others = ['1', '2', '3', '4'].map((c) => sha(c.repeat(64)));
+    const device = '5'.repeat(64);
+    seedStaff([...others, sha(device)]);
+    for (let i = 0; i < 6; i++) expect((await signIn(device)).json.token).toBe(device);
+    expect(hashes(STAFF)).toEqual([...others, sha(device)]);
+  });
+
+  it('a token that is not this staff address\'s (another reader\'s, or junk) gets a fresh token and touches nothing else', async () => {
+    seedStaff([]);
+    const r = await signIn(DEVICE_RAW); // the victim reader's own device token
+    expect(r.json.token).not.toBe(DEVICE_RAW);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+    expect(hashes(VICTIM)).toEqual([DEVICE_HASH]);
+    const junk = await signIn('not-a-token');
+    expect(junk.json.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashes(STAFF)).toHaveLength(2);
+  });
+
+  it('fails closed: a failed write answers { token: null } and stores nothing', async () => {
+    const device = '6'.repeat(64);
+    seedStaff(['u:' + sha(device), 'r:' + 'f'.repeat(64)]);
+    db.failOnce('profiles', 'update');
+    const r = await signIn(device);
+    expect(r.json.token).toBeNull();
+    expect(hashes(STAFF)).toEqual(['u:' + sha(device), 'r:' + 'f'.repeat(64)]);
+  });
+});
+
+describe('F9: junk addresses cannot spend the send budget of readers who have proved before', () => {
+  const fill = (key, n) => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < n; i++) db.tables.rate_limit_hits.push({ key, created_at: at });
+  };
+
+  it('addresses with no proven history share a bucket of 150 an hour, apart from the 300 for proven addresses', async () => {
+    fill('dwproof-send-all-new', 150);
+    const NEW = 'brand-new-f9@example.com';
+    expect((await call(userProfile, { action: 'register', email: NEW })).status).toBe(200);
+    const unproven = (await call(userProfile, { action: 'register', email: NEW })).json.sessionToken;
+    const refused = await call(userProfile, { action: 'proof-send' }, { token: unproven });
+    expect(refused.status).toBe(429);
+    expect(refused.json.error).toBe('busy');
+
+    // the reader with a proven device still gets a code
+    const reader = await strangerToken();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: reader })).status).toBe(200);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === 'dwproof-send-all')).toHaveLength(1);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === 'dwproof-send-all-new')).toHaveLength(150);
+  });
+
+  it('a full proven bucket still refuses proven addresses', async () => {
+    fill('dwproof-send-all', 300);
+    const reader = await strangerToken();
+    const r = await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect(r.status).toBe(429);
+    expect(r.json.error).toBe('busy');
+  });
+});
+
+describe('F10: lockouts a stranger can cause', () => {
+  it('(a) a stranger on another connection cannot use up the reader\'s eight sends a day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    const evil = '203.0.113.60';
+    const statuses = [];
+    for (let i = 0; i < 9; i++) {
+      vi.setSystemTime(new Date(Date.parse('2026-10-02T09:00:00Z') + i * 16 * 60e3));
+      const t = await strangerToken();
+      statuses.push((await call(userProfile, { action: 'proof-send' }, { token: t, ip: evil })).status);
+    }
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 200, 200, 200, 429]);
+    // the reader, from their own connection, still gets a code and can prove
+    const reader = await strangerToken();
+    resend.mockClear();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: reader, ip: '203.0.113.61' })).status).toBe(200);
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: reader })).status).toBe(200);
+  });
+
+  it('(a) a loose address-wide backstop of 30 a day still holds across connections', async () => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < 30; i++) db.tables.rate_limit_hits.push({ key: `dwproof-send:${VICTIM}`, created_at: at });
+    const t = await strangerToken();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: t, ip: '203.0.113.62' })).status).toBe(429);
+    expect(resend).not.toHaveBeenCalled();
+  });
+
+  it('(b) tries on a token with no code, or over its own limit, cost the address nothing', async () => {
+    // a stranger token that never asked for a code: 70 tries
+    const stranger = await strangerToken();
+    for (let i = 0; i < 70; i++) {
+      const r = await call(userProfile, { action: 'proof-verify', code: '000000' }, { token: stranger });
+      expect([400, 429]).toContain(r.status);
+    }
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === `dwproof-try:${VICTIM}`)).toHaveLength(0);
+
+    // a stranger token WITH a code, past its 5 tries, writes nothing more against the address
+    const withCode = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: withCode });
+    const wrong = String((Number(sentCode(0)) + 1) % 1000000).padStart(6, '0');
+    for (let i = 0; i < 20; i++) await call(userProfile, { action: 'proof-verify', code: wrong }, { token: withCode });
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === `dwproof-try:${VICTIM}`)).toHaveLength(5);
+
+    // the reader's right code still works
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode(1) }, { token: reader })).status).toBe(200);
+  });
+
+  it('(b) the per-address backstop of 60 tries an hour still applies to tokens with a code', async () => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < 60; i++) db.tables.rate_limit_hits.push({ key: `dwproof-try:${VICTIM}`, created_at: at });
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: reader })).status).toBe(429);
+  });
+
+  it('(c) a pending token that has not asked for a code yet survives three stranger tokens', async () => {
+    const reader = await strangerToken();
+    expect(db.tables.rate_limit_hits.some((r) => r.key === `dwproof-mint:${sha(reader)}`)).toBe(true);
+    for (let i = 0; i < 3; i++) await strangerToken();
+    expect(hashes()).toContain('u:' + sha(reader));
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: reader })).status).toBe(200);
+  });
+
+  it('(c) under a flood the hard ceiling of five holds, and a token with a live code outlasts merely fresh ones', async () => {
+    const reader = await strangerToken();
+    await call(userProfile, { action: 'proof-send' }, { token: reader });
+    for (let i = 0; i < 8; i++) await strangerToken();
+    expect(hashes().filter((h) => h.startsWith('u:'))).toHaveLength(5);
+    expect(hashes()).toContain('u:' + sha(reader));
+    expect(hashes()).toContain(DEVICE_HASH);
   });
 });
