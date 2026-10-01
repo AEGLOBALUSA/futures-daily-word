@@ -7,8 +7,9 @@ const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 const { getAllowedOrigin } = require("./lib/cors");
 const { isSharedRateLimited } = require("./lib/rate-limit");
-// The sign-in rate limits key on an address the client cannot choose (see lib/client-ip.js).
-const { clientIp } = require("./lib/client-ip");
+// The sign-in rate limits key on an address the client cannot choose (see
+// lib/client-ip.js); the setup-code limits key on its /64 for IPv6.
+const { clientIp, rateLimitIp } = require("./lib/client-ip");
 const {
   normalizeEmail,
   isAllowlistedEmail,
@@ -100,12 +101,16 @@ async function issueSetupCode(email) {
 }
 
 // Setup-code guesses, per 15 minutes: at most SETUP_CODE_MAX_ATTEMPTS from one
-// caller IP for an address, and SETUP_MISS_ADDRESS_CAP for the address from all
-// IPs together. The per-IP lock is the real one: a stranger on one connection
-// cannot keep a new pastor's code locked for its whole 72-hour life, because the
-// pastor on their own connection has their own five. The address-wide ceiling
-// only stops a spread-out flood; the code is bcrypt-hashed with about 49 bits,
-// so 50 guesses per 15 minutes keeps brute force far out of reach.
+// caller IP (an IPv6 caller's whole /64, see lib/client-ip.js) for an address,
+// and SETUP_MISS_ADDRESS_CAP for the address from all IPs together. The per-IP
+// lock is the real one: a stranger on one connection cannot keep a new pastor's
+// code locked for its whole 72-hour life, because the pastor on their own
+// connection has their own five. The address-wide ceiling only stops a
+// spread-out flood, and it only applies to a caller that has itself already
+// missed in the window: a caller with no misses of its own always gets its
+// attempt checked, so a flood from other connections never refuses the pastor's
+// right code. The code is bcrypt-hashed with about 49 bits, so five guesses per
+// /64 per 15 minutes keeps brute force far out of reach.
 const SETUP_MISS_WINDOW_MS = 15 * 60 * 1000;
 const SETUP_MISS_ADDRESS_CAP = 50;
 const setupMissKey = (email) => `intake-setup-miss:${email}`;
@@ -129,8 +134,12 @@ async function countSetupMisses(key) {
 }
 
 /**
- * Record one setup-code attempt for `email` from `ip` and say whether it may be
- * checked. Two passes, as in sendProofCode (lib/email-proof.js):
+ * Record one setup-code attempt for `email` from `ip` (already reduced to its
+ * rate-limit key, rateLimitIp) and say whether it may be checked. The
+ * address-wide ceiling is enforced only when this caller's own per-IP key
+ * already holds a miss in the window (read in pass 1); the address-wide row is
+ * written either way, so the ceiling still counts every attempt. Two passes, as
+ * in sendProofCode (lib/email-proof.js):
  *   1. read only: a caller already at a cap is refused and NOTHING is written,
  *      so a locked caller cannot keep the window open by retrying;
  *   2. insert this attempt's row, then count (its own row included), narrowest
@@ -144,17 +153,19 @@ async function countSetupMisses(key) {
  */
 async function setupMissLock(email, ip) {
   try {
+    const ipKey = setupMissIpKey(email, ip);
+    const ownMisses = await countSetupMisses(ipKey);
+    if (ownMisses >= SETUP_CODE_MAX_ATTEMPTS) return "locked";
     const stages = [
-      { key: setupMissIpKey(email, ip), cap: SETUP_CODE_MAX_ATTEMPTS },
-      { key: setupMissKey(email), cap: SETUP_MISS_ADDRESS_CAP },
+      { key: ipKey, cap: SETUP_CODE_MAX_ATTEMPTS, enforce: true },
+      // A caller with no misses of its own is never refused by the address-wide ceiling.
+      { key: setupMissKey(email), cap: SETUP_MISS_ADDRESS_CAP, enforce: ownMisses > 0 },
     ];
-    for (const st of stages) {
-      if ((await countSetupMisses(st.key)) >= st.cap) return "locked";
-    }
+    if (stages[1].enforce && (await countSetupMisses(stages[1].key)) >= stages[1].cap) return "locked";
     for (const st of stages) {
       const { error: insErr } = await db().from("rate_limit_hits").insert({ key: st.key });
       if (insErr) throw insErr;
-      if ((await countSetupMisses(st.key)) > st.cap) return "locked";
+      if (st.enforce && (await countSetupMisses(st.key)) > st.cap) return "locked";
     }
     return "ok";
   } catch (err) {
@@ -425,6 +436,8 @@ exports.handler = async (event) => {
   }
   const action = body.action;
   const ip = clientIp(event);
+  // Per-IP key for the setup-code limits: an IPv6 caller's whole /64.
+  const rlIp = rateLimitIp(event);
 
   try {
     // ── auth_status ── First visit: set your own password. After that: sign in.
@@ -451,7 +464,7 @@ exports.handler = async (event) => {
     // refusal, and nothing is changed. The code is spent in the same statement
     // that stores the password, so two racing claims cannot both win.
     if (action === "set_password") {
-      if (await isSharedRateLimited("intake-set-password", ip, 10, 15 * 60 * 1000)) {
+      if (await isSharedRateLimited("intake-set-password", rlIp, 10, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
       }
       const email = normalizeEmail(body.email);
@@ -479,7 +492,7 @@ exports.handler = async (event) => {
       // then counts the rows, so parallel guesses are all counted (a
       // read-then-write counter let them share one count). Fails closed: if the
       // row cannot be written or counted, the attempt is refused.
-      const lock = await setupMissLock(email, ip);
+      const lock = await setupMissLock(email, rlIp);
       if (lock === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
       if (lock === "locked") return json(event, 429, { error: "Too many attempts. Try again later." });
       if (!verifySetupCode(String(body.setupCode), row.setup_code_hash)) {
