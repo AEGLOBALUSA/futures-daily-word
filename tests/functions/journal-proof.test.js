@@ -530,8 +530,19 @@ describe('registering an address before its owner does (the squat)', () => {
   });
 
   it('caps first-device tokens at three and does not touch other classes', async () => {
-    for (let i = 0; i < 5; i++) await auth.issueToken(db, VICTIM, { first: true });
-    expect(hashes().filter((h) => h.startsWith('r:'))).toHaveLength(3);
+    // an address nobody has proved yet (a proven device would make it no longer "first")
+    const FRESH = 'cap@example.com';
+    const waiting = 'u:' + 'e'.repeat(64);
+    db.tables.profiles.push({ email: FRESH, first_name: 'Cap', session_token_hashes: [waiting] });
+    for (let i = 0; i < 5; i++) await auth.issueToken(db, FRESH, { first: true });
+    expect(hashes(FRESH).filter((h) => h.startsWith('r:'))).toHaveLength(3);
+    expect(hashes(FRESH)).toContain(waiting);
+  });
+
+  it('an address that already has a proven device never gets a first-device token', async () => {
+    const t = await auth.issueToken(db, VICTIM, { first: true });
+    expect(hashes()).toContain('u:' + sha(t));
+    expect(hashes().some((h) => h.startsWith('r:'))).toBe(false);
     expect(hashes()).toContain(DEVICE_HASH);
   });
 
@@ -655,6 +666,18 @@ describe('a pastor who signs in with a staff password keeps the one-step sync', 
     expect((await call(userSync, { action: 'pull' }, { token: squat })).status).not.toBe(200);
     expect((await call(userSync, { action: 'push', data: { journal: [{ id: 'x', text: 'planted' }] } }, { token: squat })).status).not.toBe(200);
     expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
+  });
+
+  it('a register that retries after the owner proved gets an unproven token, never a first-device one', async () => {
+    seedStaff();
+    // the pastor has already signed in with the staff password and holds a proven token
+    const proven = await call(intake, { action: 'sync_token' }, { token: STAFF_RAW });
+    expect(hashes(STAFF)).toEqual([sha(proven.json.token)]);
+    // a squatter's register that was mid-flight re-reads and appends: it must not be "r:"
+    const late = await auth.issueToken(db, STAFF, { first: true });
+    expect(hashes(STAFF)).toContain('u:' + sha(late));
+    expect(hashes(STAFF).some((h) => h.startsWith('r:'))).toBe(false);
+    expect((await call(userSync, { action: 'pull' }, { token: late })).status).toBe(403);
   });
 
   it('takes the address from the staff session, never from the request', async () => {

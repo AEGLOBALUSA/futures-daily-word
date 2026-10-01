@@ -17,7 +17,7 @@ import {
   restoreStaffSession, resetStaffSessionCache, signOutStaff, registerCloudIdentity,
   setAppStaffSignIn, hasAppStaffSignIn,
   provisionPastorCode, clearProvisionedPastorCode, getPastorCode, fetchMyCampusCode, PASTOR_CODE_EVENT,
-  setHandTypedPastorCode, isAppStaffSignedIn, STAFF_SESSION_EVENT,
+  setHandTypedPastorCode, isAppStaffSignedIn, STAFF_SESSION_EVENT, swapForProvenSyncToken,
 } from './staffIdentity';
 
 const ASHLEY = { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true };
@@ -239,6 +239,25 @@ describe('registerCloudIdentity', () => {
     expect(await registerCloudIdentity(profile, 'pastor_leader')).toBe(true);
     expect(localStorage.getItem('dw_session_token')).toBe('first-device-token');
     vi.unstubAllGlobals();
+  });
+});
+
+describe('swapForProvenSyncToken (every staff sign-in, even when the device already holds the address)', () => {
+  it('with a staff session, stores the proven token the server hands back', async () => {
+    api.token = 'staff-session';
+    localStorage.setItem('dw_session_token', 'unproven-token');
+    api.intake.mockResolvedValue({ token: 'proven-token' });
+    expect(await swapForProvenSyncToken()).toBe(true);
+    expect(api.intake).toHaveBeenCalledWith('sync_token');
+    expect(localStorage.getItem('dw_session_token')).toBe('proven-token');
+  });
+
+  it('without a staff session asks nothing and keeps the token', async () => {
+    api.token = '';
+    localStorage.setItem('dw_session_token', 'device-token');
+    expect(await swapForProvenSyncToken()).toBe(false);
+    expect(api.intake).not.toHaveBeenCalled();
+    expect(localStorage.getItem('dw_session_token')).toBe('device-token');
   });
 });
 

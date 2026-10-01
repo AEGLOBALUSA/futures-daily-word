@@ -205,7 +205,6 @@ async function authenticateRequest(event, db) {
  */
 async function issueToken(db, email, { proven = false, first = false } = {}) {
   const { raw, hash } = generateToken();
-  const entry = first ? FIRST_PREFIX + hash : proven ? hash : UNPROVEN_PREFIX + hash;
 
   // Compare-and-swap append. Parallel startup calls (user-sync pull,
   // user-profile get, track-activity) each trigger migration concurrently;
@@ -226,6 +225,12 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
     }
 
     const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : null;
+    // Decided on every (re-)read: a first-device token only exists while nobody
+    // has proved the address. If a proven token landed meanwhile (the owner
+    // signed in, or typed a code, between our read and write), this request is
+    // no longer the first device and gets an UNPROVEN token instead.
+    const isFirstDevice = first && !(prev || []).some(isPlain);
+    const entry = isFirstDevice ? FIRST_PREFIX + hash : proven ? hash : UNPROVEN_PREFIX + hash;
     let hashes = prev ? [...prev] : [];
     // A proven token means the person has been proved (today: a staff password
     // sign-in through intake sync_token). Like promoteToken, that ends every
@@ -233,7 +238,7 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
     // may belong to someone who registered the address before its owner did.
     if (proven && !first) hashes = hashes.filter((h) => !isFirst(h));
     hashes.push(entry);
-    if (first) hashes = capClass(hashes, isFirst, MAX_FIRST);
+    if (isFirstDevice) hashes = capClass(hashes, isFirst, MAX_FIRST);
     else if (proven) hashes = capClass(hashes, isPlain, MAX_PROVEN);
     else hashes = await capUnproven(db, hashes, entry);
 

@@ -322,17 +322,28 @@ export async function registerCloudIdentity(profile: UserProfile, persona: strin
     // a PROVEN one: the server hands a token that only knows an existing address
     // an unproven one (an emailed code before anything syncs). Best effort: if
     // this fails the register token stays and the code sheet covers the gap.
-    if (getStaffToken()) {
-      try {
-        const proven = await intake<{ token?: string | null }>('sync_token');
-        if (proven && typeof proven.token === 'string' && proven.token) {
-          setSessionToken(proven.token);
-          got = true;
-        }
-      } catch { /* keep whatever register gave */ }
-    }
+    if (await swapForProvenSyncToken()) got = true;
     return got;
   } catch {
     return false;
   }
+}
+
+/**
+ * With a staff session, trade the device's cloud-sync token for a PROVEN one for
+ * the staff address. The server also ends every first-device ("r:") token for
+ * that address, so someone who registered the pastor's address before the
+ * pastor did loses access the moment the pastor signs in. Runs on every staff
+ * sign-in, including when this device already holds the pastor's email.
+ */
+export async function swapForProvenSyncToken(): Promise<boolean> {
+  if (!getStaffToken()) return false;
+  try {
+    const proven = await intake<{ token?: string | null }>('sync_token');
+    if (proven && typeof proven.token === 'string' && proven.token) {
+      setSessionToken(proven.token);
+      return true;
+    }
+  } catch { /* keep the token the device has */ }
+  return false;
 }
