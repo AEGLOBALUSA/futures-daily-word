@@ -503,7 +503,9 @@ describe('registering an address before its owner does (the squat)', () => {
   it('revokes every first-device token for the address, and leaves proven device tokens alone', async () => {
     await attackerRegistersFirst();
     await auth.issueToken(db, NEWBIE, { first: true });
-    const plain = await auth.issueToken(db, NEWBIE, { proven: true });
+    // a device token proven before this change (issuing a proven token now ends every "r:" token, so seed it)
+    const plain = 'p'.repeat(64);
+    db.tables.profiles.find((p) => p.email === NEWBIE).session_token_hashes.push(sha(plain));
     expect(hashes(NEWBIE).filter((h) => h.startsWith('r:'))).toHaveLength(2);
 
     await ownerProves();
@@ -635,6 +637,23 @@ describe('a pastor who signs in with a staff password keeps the one-step sync', 
     expect(r.status).toBe(200);
     expect(r.json.token).toMatch(/^[0-9a-f]{64}$/);
     expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+    expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
+  });
+
+  it('ends a squatter who registered the staff address first', async () => {
+    seedStaff({ withProfile: false });
+    // Mallory registers the pastor's address before the pastor has a profile and gets a first-device token
+    const reg = await call(userProfile, { action: 'register', email: STAFF, firstName: 'Mallory' });
+    expect(reg.status).toBe(200);
+    const squat = reg.json.sessionToken;
+    expect(hashes(STAFF)).toEqual(['r:' + sha(squat)]);
+    // the pastor signs in with the staff password and swaps for a proven token
+    const r = await call(intake, { action: 'sync_token' }, { token: STAFF_RAW });
+    expect(r.status).toBe(200);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+    // Mallory is out: no pull, no push; the pastor is in
+    expect((await call(userSync, { action: 'pull' }, { token: squat })).status).not.toBe(200);
+    expect((await call(userSync, { action: 'push', data: { journal: [{ id: 'x', text: 'planted' }] } }, { token: squat })).status).not.toBe(200);
     expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
   });
 

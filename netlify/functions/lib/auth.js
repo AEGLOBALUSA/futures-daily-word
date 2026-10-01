@@ -227,6 +227,11 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
 
     const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : null;
     let hashes = prev ? [...prev] : [];
+    // A proven token means the person has been proved (today: a staff password
+    // sign-in through intake sync_token). Like promoteToken, that ends every
+    // "r:" token for the address: they were handed out with no proof, and one
+    // may belong to someone who registered the address before its owner did.
+    if (proven && !first) hashes = hashes.filter((h) => !isFirst(h));
     hashes.push(entry);
     if (first) hashes = capClass(hashes, isFirst, MAX_FIRST);
     else if (proven) hashes = capClass(hashes, isPlain, MAX_PROVEN);
