@@ -437,6 +437,25 @@ describe('StaffApp sign-in: Email me a code', () => {
     act(() => root.unmount());
   });
 
+  it('a late answer to Send another code does not undo Back to sign in', async () => {
+    let n = 0;
+    let release: (v: unknown) => void = () => {};
+    const { el, root } = await openSignIn(() => { n += 1; return n === 1 ? Promise.resolve({ sent: true }) : new Promise(r => { release = r; }); });
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    await act(async () => { byTestId(el, 'staff-send-another')!.click(); });
+    await act(async () => { byTestId(el, 'staff-back-to-signin')!.click(); });
+    await flush();
+    expect(el.querySelector('h1')?.textContent).toBe('Staff sign-in');
+    await act(async () => { release({ sent: true }); });
+    await flush();
+    expect(el.querySelector('h1')?.textContent).toBe('Staff sign-in');
+    expect(byId(el, 'staff-code')).toBeNull();
+    expect((byTestId(el, 'staff-email-code') as HTMLButtonElement).disabled).toBe(false);
+    act(() => root.unmount());
+  });
+
   it('Back to sign in returns to the password screen and clears the code screen', async () => {
     const { el, root } = await openSignIn();
     await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');

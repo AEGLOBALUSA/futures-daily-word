@@ -294,6 +294,21 @@ describe('PastorSignIn', () => {
       expect(el.querySelector('#dw-pastor-setup-code')).toBeTruthy();
     });
 
+    it('a late answer to Send another code does not undo Back to sign in', async () => {
+      let n = 0;
+      let release: (v: unknown) => void = () => {};
+      const el = await toPasswordStep(() => { n += 1; return n === 1 ? Promise.resolve({ sent: true }) : new Promise(r => { release = r; }); });
+      await click(el.querySelector('#dw-pastor-email-code') as HTMLButtonElement);
+      await click(el.querySelector('#dw-pastor-send-another') as HTMLButtonElement);
+      await click(el.querySelector('#dw-pastor-back-to-sign-in') as HTMLButtonElement);
+      expect(el.querySelector('#dw-pastor-setup-code')).toBeNull();
+      await act(async () => { release({ sent: true }); });
+      await flush();
+      expect(el.querySelector('#dw-pastor-setup-code')).toBeNull();
+      expect(el.querySelector('#dw-pastor-password')).toBeTruthy();
+      expect((el.querySelector('#dw-pastor-email-code') as HTMLButtonElement).disabled).toBe(false);
+    });
+
     it('checks the code screen beside the main button before calling the server', async () => {
       const el = await toPasswordStep();
       await click(el.querySelector('#dw-pastor-email-code') as HTMLButtonElement);
