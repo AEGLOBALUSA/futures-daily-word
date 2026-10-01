@@ -64,9 +64,13 @@ function matches(row, filters) {
 
 // `failOn.add('rate_limit_hits:insert')` makes that op on that table return { error }.
 const failOn = new Set();
+// `selectHook` (when set) runs after a maybeSingle() read has taken its rows and
+// before they are returned, so a test can hold a read (its snapshot already
+// taken, as under read-committed) while another request runs.
+let selectHook = null;
 
 function builder(table) {
-  const state = { op: 'select', filters: [], payload: null, opts: null, wantRows: false, count: false };
+  const state = { op: 'select', cols: null, filters: [], payload: null, opts: null, wantRows: false, count: false };
   const rows = () => tables[table] || (tables[table] = []);
   const run = () => {
     const t = rows();
@@ -89,7 +93,7 @@ function builder(table) {
     return hits;
   };
   const b = {
-    select(_cols, o) { if (state.op !== 'select') state.wantRows = true; else if (o && o.count) state.count = true; return b; },
+    select(cols, o) { if (state.op !== 'select') state.wantRows = true; else { state.cols = cols; if (o && o.count) state.count = true; } return b; },
     insert(p) { state.op = 'insert'; state.payload = p; return b; },
     update(p) { state.op = 'update'; state.payload = p; return b; },
     upsert(p, o) { state.op = 'upsert'; state.payload = p; state.opts = o; return b; },
@@ -102,7 +106,12 @@ function builder(table) {
     like(col, val) { state.filters.push({ op: 'like', col, val }); return b; },
     order() { return b; },
     limit() { return b; },
-    maybeSingle: async () => ({ data: run()[0] || null, error: null }),
+    maybeSingle: async () => {
+      const r = run()[0];
+      const data = r ? { ...r } : null;
+      if (selectHook) await selectHook({ table, cols: state.cols });
+      return { data, error: null };
+    },
     single: async () => { const r = run()[0]; return r ? { data: r, error: null } : { data: null, error: { message: 'no row' } }; },
     then(resolve, reject) {
       if (failOn.has(`${table}:${state.op}`)) return Promise.resolve({ data: null, error: { message: 'injected failure' } }).then(resolve, reject);
@@ -133,7 +142,7 @@ beforeAll(() => {
 
 afterAll(() => { Module._load = realLoad; });
 
-beforeEach(() => { resetTables(); limiterIps = []; failOn.clear(); });
+beforeEach(() => { resetTables(); limiterIps = []; failOn.clear(); selectHook = null; });
 
 const { hashPassword, hashSetupCode } = require_('../../netlify/functions/lib/intake-core.js');
 const PASSWORD = 'a-long-test-passphrase-9';
@@ -511,11 +520,13 @@ describe('auth_status and login do not list the accounts waiting to be claimed',
   it('auth_status says setup:true only for a person holding a live code', async () => {
     addWithCode({ email: 'live.code@futures.church' });
     addWithCode({ email: 'stale.code@futures.church' }, { expiresInMs: -1000 });
+    addWithCode({ email: 'short.code@futures.church' }, { expiresInMs: 20 * 60_000 });
     addRoster({ email: 'no.code@futures.church' });
     addWithCode({ email: 'done@futures.church', password_hash: hashPassword(PASSWORD) });
     const status = async (email) => (await call({ action: 'auth_status', email })).body;
     expect(await status('live.code@futures.church')).toEqual({ setup: true });
     expect(await status('stale.code@futures.church')).toEqual({ setup: false });
+    expect(await status('short.code@futures.church')).toEqual({ setup: false });
     expect(await status('no.code@futures.church')).toEqual({ setup: false });
     expect(await status('done@futures.church')).toEqual({ setup: false });
     expect(await status('josh@futures.church')).toEqual({ setup: false });
@@ -793,6 +804,20 @@ describe('email_setup_code: a person on the roster emails themselves a code', ()
     expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(200);
   });
 
+  it('auth_status is not a roster oracle: after a code is emailed, an unclaimed roster row and a stranger both answer setup:false', async () => {
+    addRoster({ email: STAFF });
+    const STRANGER = 'nobody123@futures.church';
+    expect((await ask(STAFF)).body).toEqual(SENT);
+    expect((await ask(STRANGER, '198.51.100.77')).body).toEqual(SENT);
+    expect(resend).toHaveBeenCalledTimes(1);
+    expect(row().setup_code_hash).toBeTruthy(); // the roster row now holds an emailed code
+    const status = async (email) => (await call({ action: 'auth_status', email })).body;
+    expect(await status(STAFF)).toEqual({ setup: false });
+    expect(await status(STRANGER)).toEqual({ setup: false });
+    // the emailed code still works through the "I have a code" path
+    expect((await setWith(STAFF, mailedCode(0))).status).toBe(200);
+  });
+
   it('only the roster row\'s address is ever mailed, whatever else the request carries', async () => {
     addRoster({ email: STAFF });
     const r = await call({ action: 'email_setup_code', email: STAFF, to: 'attacker@example.com', recipient: 'attacker@example.com', lang: 'en' });
@@ -1030,19 +1055,55 @@ describe('email_setup_code: a person on the roster emails themselves a code', ()
     expect(resend).not.toHaveBeenCalled();
     move('2026-10-03T10:05:00Z');
     expect((await ask(STAFF)).status).toBe(200);
-  });
+  }, 30_000);
 
-  it('address-wide: 10 a day, held only against a caller whose own IP already asked for it', async () => {
+  const addressRows = (email = STAFF) => (tables.rate_limit_hits || []).filter((r) => r.key === `intake-email-code:${email}`).length;
+  // Five codes from one IP in a day: 2 at hh:00, 2 at hh:16, 1 at hh:32 (inside the 2 / 15 min cap).
+  const fiveFrom = async (ip, hh = '09') => {
+    const out = [];
+    for (const [mm, n] of [['00', 2], ['16', 2], ['32', 1]]) {
+      move(`2026-10-02T${hh}:${mm}:00Z`);
+      for (let k = 0; k < n; k++) out.push((await ask(STAFF, ip)).status);
+    }
+    return out;
+  };
+
+  it('address-wide: 12 a day, written and held only for a caller whose own IP already asked for it', async () => {
+    at('2026-10-02T09:00:00Z');
     addRoster({ email: STAFF });
-    for (let i = 0; i < 10; i++) expect((await ask(STAFF, `198.51.100.${100 + i}`)).status).toBe(200);
-    // a stranger who already asked is now held ...
-    expect((await ask(STAFF, '198.51.100.100')).status).toBe(429);
+    // a caller's first request per IP never uses the address-wide budget
+    expect((await ask(STAFF, '198.51.100.99')).status).toBe(200);
+    expect(addressRows()).toBe(0);
+    tables.rate_limit_hits = [];
+    resend.mockClear();
+    // three strangers at their full allowance: 4 rows each, 12 in all
+    for (const ip of ['198.51.100.100', '198.51.100.101', '198.51.100.102']) {
+      expect(await fiveFrom(ip)).toEqual([200, 200, 200, 200, 200]);
+    }
+    expect(addressRows()).toBe(12);
+    // a fourth stranger's first code goes; their second is held by the backstop
+    move('2026-10-02T09:40:00Z');
+    expect((await ask(STAFF, '198.51.100.103')).status).toBe(200);
+    expect((await ask(STAFF, '198.51.100.103')).status).toBe(429);
     // ... but the pastor on a fresh connection still gets their code
     const owner = await ask(STAFF, '192.0.2.44');
     expect(owner.status).toBe(200);
-    expect(resend).toHaveBeenCalledTimes(11);
-    expect((await setWith(STAFF, mailedCode(10), PASSWORD, '192.0.2.44')).status).toBe(200);
-  });
+    expect(resend).toHaveBeenCalledTimes(17);
+    expect((await setWith(STAFF, mailedCode(16), PASSWORD, '192.0.2.44')).status).toBe(200);
+  }, 30_000);
+
+  it('two stranger IPs each sending 5 a day leave the pastor all 5 of their own codes', async () => {
+    at('2026-10-02T09:00:00Z');
+    addRoster({ email: STAFF });
+    expect(await fiveFrom('198.51.100.110', '09')).toEqual([200, 200, 200, 200, 200]);
+    expect(await fiveFrom('198.51.100.111', '10')).toEqual([200, 200, 200, 200, 200]);
+    expect(addressRows()).toBe(8);
+    // the pastor, later the same day, on their own connection: all five go
+    expect(await fiveFrom('192.0.2.44', '11')).toEqual([200, 200, 200, 200, 200]);
+    expect(resend).toHaveBeenCalledTimes(15);
+    // and the last one works
+    expect((await setWith(STAFF, mailedCode(14), PASSWORD, '192.0.2.44')).status).toBe(200);
+  }, 30_000);
 
   it('global: 100 an hour, everyone together', async () => {
     at('2026-10-02T09:00:00Z');
@@ -1103,5 +1164,56 @@ describe('email_setup_code: a person on the roster emails themselves a code', ()
     expect((await ask(STAFF)).status).toBe(503);
     expect(resend).not.toHaveBeenCalled();
     expect(row().setup_code_hash ?? null).toBeNull();
+  });
+});
+
+describe('a sign-in with the old password racing a forgot-password reset', () => {
+  const STAFF = 'racing.pastor@futures.church';
+  const NEW = 'brand-new-passphrase-42';
+  const reset = () => call({ action: 'set_password', email: STAFF, password: NEW, setupCode: CODE });
+  const sessionsFor = () => tables.staff_sessions.filter((x) => x.email === STAFF);
+
+  /** Hold the nth `select("password_hash")` read on staff_roster; resolves once it is held. */
+  function holdPasswordRead(nth) {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    let reached;
+    const held = new Promise((r) => { reached = r; });
+    let n = 0;
+    selectHook = async ({ table, cols }) => {
+      if (table === 'staff_roster' && cols === 'password_hash' && ++n === nth) { reached(); await gate; }
+    };
+    return { held, release: () => release() };
+  }
+
+  it('P2: login read the old hash, the reset finished, then login issued its session: the session is taken back', async () => {
+    addWithCode({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    const hold = holdPasswordRead(1); // login's first read of the hash
+    const login = call({ action: 'login', email: STAFF, password: PASSWORD });
+    await hold.held;
+    const r = await reset();
+    expect(r.status).toBe(200);
+    hold.release();
+    const l = await login;
+    expect(l.status).toBe(403);
+    expect(l.body).toEqual({ error: 'Invalid email or password' });
+    // only the reset's own session is left
+    expect(sessionsFor()).toHaveLength(1);
+    expect((await call({ action: 'me' }, r.body.token)).status).toBe(200);
+  });
+
+  it('P2b: login\'s re-read came before the reset\'s update: the reset\'s second sweep ends the session', async () => {
+    addWithCode({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    const hold = holdPasswordRead(2); // login's re-read, after its session is inserted
+    const login = call({ action: 'login', email: STAFF, password: PASSWORD });
+    await hold.held;
+    const r = await reset();
+    expect(r.status).toBe(200);
+    hold.release();
+    const l = await login;
+    // whatever login answered, its token does not work
+    if (l.body.token) expect((await call({ action: 'me' }, l.body.token)).status).toBe(401);
+    expect(sessionsFor()).toHaveLength(1);
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(403);
   });
 });

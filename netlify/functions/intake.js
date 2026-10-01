@@ -185,16 +185,20 @@ async function setupMissLock(email, ip) {
 // keys use the caller's rate-limit key (an IPv6 caller's whole /64).
 //   intake-email-code:<email>:<ip>   2 / 15 min and 5 / day
 //   intake-email-code-ip:<ip>        5 / 15 min and 20 / day
-//   intake-email-code:<email>        10 / day from all IPs, enforced only on a
-//                                    caller whose own IP already asked for this
-//                                    address today, so a stranger cannot use up
-//                                    a pastor's budget
+//   intake-email-code:<email>        12 / day from all IPs, written and enforced
+//                                    only for a caller whose own IP already asked
+//                                    for this address today. A caller's first
+//                                    request per IP never uses it, so a stranger
+//                                    IP adds at most 4 rows a day (5 per address
+//                                    and IP, the first one free): two strangers
+//                                    at their full allowance write 8, and the
+//                                    pastor still gets all 5 of their own
 //   intake-email-code-all            100 / hour, everyone together
 const EMAIL_CODE_PER_EMAIL_IP_15M = 2;
 const EMAIL_CODE_PER_EMAIL_IP_DAY = 5;
 const EMAIL_CODE_PER_IP_15M = 5;
 const EMAIL_CODE_PER_IP_DAY = 20;
-const EMAIL_CODE_PER_EMAIL_DAY = 10;
+const EMAIL_CODE_PER_EMAIL_DAY = 12;
 const EMAIL_CODE_GLOBAL_HOUR = 100;
 const MIN_MS = 60 * 1000;
 const HOUR_MS = 60 * MIN_MS;
@@ -223,13 +227,14 @@ async function emailCodeLimit(email, ip) {
   try {
     const ipKey = ip || "unknown";
     const ownKey = `intake-email-code:${email}:${ipKey}`;
-    // The address-wide backstop binds only a caller that already asked today (read before this attempt writes).
+    // The address-wide backstop applies only to a caller that already asked today
+    // (read before this attempt writes): only a repeat caller writes its row or
+    // is held by it, so a caller's first request per IP never uses the budget.
     const ownToday = await countRowsSince(ownKey, DAY_MS);
     const stages = [
       { key: ownKey, limits: [[15 * MIN_MS, EMAIL_CODE_PER_EMAIL_IP_15M], [DAY_MS, EMAIL_CODE_PER_EMAIL_IP_DAY]] },
       { key: `intake-email-code-ip:${ipKey}`, limits: [[15 * MIN_MS, EMAIL_CODE_PER_IP_15M], [DAY_MS, EMAIL_CODE_PER_IP_DAY]] },
-      // Recorded for every request; refuses only a caller that already asked for this address today.
-      { key: `intake-email-code:${email}`, limits: ownToday > 0 ? [[DAY_MS, EMAIL_CODE_PER_EMAIL_DAY]] : [] },
+      ...(ownToday > 0 ? [{ key: `intake-email-code:${email}`, limits: [[DAY_MS, EMAIL_CODE_PER_EMAIL_DAY]] }] : []),
       { key: "intake-email-code-all", limits: [[HOUR_MS, EMAIL_CODE_GLOBAL_HOUR]] },
     ];
     for (const st of stages) {
@@ -535,10 +540,16 @@ exports.handler = async (event) => {
       const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by, password_hash, setup_code_hash, setup_code_expires_at").eq("email", email).maybeSingle();
       if (!staffFromRoster(email, data)) return json(event, 200, { setup: false });
       // setup:true only means "show the setup-code box": the person Ashley added
-      // has no password yet AND holds a live code. Anyone else sees the plain
-      // sign-in, so this answer is not a list of unclaimed accounts.
-      const live = !!(data.setup_code_hash && data.setup_code_expires_at && new Date(data.setup_code_expires_at).getTime() > Date.now());
-      return json(event, 200, { setup: !data.password_hash && live });
+      // has no password yet AND holds a live code that ASHLEY issued. Anyone else
+      // sees the plain sign-in, so this answer is not a list of unclaimed
+      // accounts. An emailed code never counts: anyone can mail one to any
+      // address, so if it did, "email a code, then ask auth_status" would say
+      // which addresses are unclaimed roster rows. An emailed code lives at most
+      // EMAIL_SETUP_CODE_TTL_MS, so a code with more time left than that is one
+      // of Ashley's (the "I have a code" path still takes either kind).
+      const left = data.setup_code_expires_at ? new Date(data.setup_code_expires_at).getTime() - Date.now() : 0;
+      const ashleysLiveCode = !!data.setup_code_hash && left > EMAIL_SETUP_CODE_TTL_MS;
+      return json(event, 200, { setup: !data.password_hash && ashleysLiveCode });
     }
 
     // ── email_setup_code ── "Email me a code": a person on the roster, with or
@@ -678,6 +689,18 @@ exports.handler = async (event) => {
       }
       if (!verifyPassword(password, row.password_hash)) return refuse();
       const token = await issueSession(staff.email);
+      // A forgot-password reset may have landed while this sign-in was checking
+      // the old password. Read the hash again AFTER the session exists: if it
+      // changed (or cannot be read), take the session back. Under read-committed
+      // this closes the race: a re-read after the reset's UPDATE sees the new
+      // hash; a re-read before it means this session was inserted before the
+      // UPDATE, so the reset's second endSessions removes it.
+      const { data: again, error: againErr } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      if (againErr || !again || again.password_hash !== row.password_hash) {
+        const { error: dropErr } = await db().from("staff_sessions").delete().eq("token_hash", hashToken(token));
+        if (dropErr) console.error("[intake] login: could not withdraw a session that raced a password reset");
+        return refuse();
+      }
       return json(event, 200, { token, staff: publicStaff(staff) });
     }
 
