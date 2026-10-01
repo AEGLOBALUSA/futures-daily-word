@@ -60,6 +60,20 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
   const [setupCode, setSetupCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [sendError, setSendError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sentTo, setSentTo] = useState('');
+  const codeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setError('');
+    setSendError('');
+    if (view !== 'set_password') setSentTo('');
+  }, [view]);
+
+  useEffect(() => {
+    if (view === 'set_password' && sentTo) codeRef.current?.focus();
+  }, [view, sentTo]);
   // "Change password" disclosure in the signed-in card. `password` / `confirm`
   // above double as the new password and its confirmation.
   const [pwOpen, setPwOpen] = useState(false);
@@ -151,17 +165,37 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     setBusy(false);
   };
 
+  const sendCode = async () => {
+    if (sending) return;
+    setSendError('');
+    setSending(true);
+    try {
+      await intake('email_setup_code', { email: typedEmail, lang });
+      setSetupCode(''); setPassword(''); setConfirm('');
+      setError(''); setSendError('');
+      setSentTo(typedEmail);
+      setView('set_password');
+      codeRef.current?.focus();
+    } catch (err) {
+      setSendError((err as { status?: number } | null)?.status === 429
+        ? t('pastor_too_many_codes', lang)
+        : messageFor(err, lang));
+    }
+    setSending(false);
+  };
+
   const submitPassword = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setError('');
-    if (view === 'set_password' && password !== confirm) {
-      setError(t('pastor_passwords_mismatch', lang));
-      return;
-    }
+    if (view === 'set_password') {
+      if (!setupCode.trim()) { setError(t('pastor_type_code', lang)); return; }
+      if (password.length < 10) { setError(t('pastor_password_too_short', lang)); return; }
+      if (password !== confirm) { setError(t('pastor_passwords_mismatch', lang)); return; }
+    } else if (!password) { setError(t('pastor_type_password', lang)); return; }
     setBusy(true);
     try {
-      // First password needs the one-time setup code Ashley handed over.
+      // A live setup code chooses or resets the password.
       const data = view === 'set_password'
         ? await intake<{ token: string; staff: StaffRecord }>('set_password', { email: typedEmail, password, setupCode })
         : await intake<{ token: string; staff: StaffRecord }>('login', { email: typedEmail, password });
@@ -274,7 +308,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
               style={inputStyle}
             />
             <p style={{ ...hintStyle, marginTop: 8 }}>{t('pastor_sign_in_hint', lang)}</p>
-            {error && <p style={errorStyle}>{error}</p>}
+            {error && <p role="alert" style={errorStyle}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button type="button" onClick={cancel} style={btnGhost}>{t('pastor_cancel', lang)}</button>
               <button type="submit" disabled={busy || !typedEmail} style={{ ...btnPrimary, flex: 1, opacity: busy || !typedEmail ? 0.6 : 1 }}>
@@ -285,7 +319,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
         )}
 
         {(view === 'password' || view === 'set_password') && (
-          <form onSubmit={submitPassword} style={{ padding: '14px 16px 16px' }}>
+          <form noValidate onSubmit={submitPassword} style={{ padding: '14px 16px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
               <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', overflowWrap: 'anywhere' }}>
                 {typedEmail}
@@ -296,10 +330,13 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
             </div>
             {view === 'set_password' && (
               <>
-                <p style={{ ...hintStyle, marginBottom: 10 }}>{t('pastor_first_visit', lang)}</p>
+                <p id={sentTo ? 'dw-pastor-code-sent' : undefined} style={{ ...hintStyle, marginBottom: 10 }}>
+                  {sentTo ? t('pastor_code_sent', lang).replace('{email}', sentTo) : t('pastor_first_visit', lang)}
+                </p>
                 <label htmlFor="dw-pastor-setup-code" style={labelStyle}>{t('pastor_setup_code', lang)}</label>
                 <input
                   id="dw-pastor-setup-code"
+                  ref={codeRef}
                   type="text"
                   autoComplete="one-time-code"
                   autoCapitalize="characters"
@@ -329,6 +366,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
             />
             {view === 'set_password' && (
               <>
+                <p style={{ ...hintStyle, marginTop: 10 }}>{t('pastor_password_hint', lang)}</p>
                 <label htmlFor="dw-pastor-confirm" style={{ ...labelStyle, marginTop: 10 }}>{t('pastor_confirm_password', lang)}</label>
                 <input
                   id="dw-pastor-confirm"
@@ -347,28 +385,40 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
                 {t('pastor_switch_notice', lang).replace('{email}', currentEmail)}
               </p>
             )}
-            {error && <p style={errorStyle}>{error}</p>}
+            {error && <p role="alert" style={errorStyle}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button type="button" onClick={cancel} style={btnGhost}>{t('pastor_cancel', lang)}</button>
-              <button type="submit" disabled={busy || !password || (view === 'set_password' && !setupCode.trim())} style={{ ...btnPrimary, flex: 1, opacity: busy || !password || (view === 'set_password' && !setupCode.trim()) ? 0.6 : 1 }}>
+              <button type="submit" disabled={busy} style={{ ...btnPrimary, flex: 1 }}>
                 {busy
                   ? t('pastor_please_wait', lang)
                   : view === 'set_password' ? t('pastor_save_password', lang) : t('pastor_sign_in_btn', lang)}
               </button>
             </div>
             {view === 'password' ? (
-              <p style={{ ...hintStyle, marginTop: 12 }}>
-                {t('pastor_first_time_ask', lang)}{' '}
-                <button type="button" onClick={() => { setView('set_password'); setError(''); setPassword(''); setConfirm(''); }} style={linkBtnStyle}>
-                  {t('pastor_have_code', lang)}
+              <>
+                <p style={{ ...hintStyle, marginTop: 12 }}>{t('pastor_first_time_ask', lang)}</p>
+                <button id="dw-pastor-email-code" type="button" onClick={sendCode} disabled={sending} style={{ ...btnGhost, marginTop: 8 }}>
+                  {sending ? t('pastor_please_wait', lang) : t('pastor_email_me_code', lang)}
                 </button>
-              </p>
+                {sendError && <p role="alert" style={errorStyle}>{sendError}</p>}
+                <p style={{ ...hintStyle, marginTop: 12 }}>
+                  <button type="button" onClick={() => { setView('set_password'); setError(''); setSendError(''); setSentTo(''); setSetupCode(''); setPassword(''); setConfirm(''); }} style={{ ...linkBtnStyle, minHeight: 44 }}>
+                    {t('pastor_have_code', lang)}
+                  </button>
+                </p>
+              </>
             ) : (
-              <p style={{ ...hintStyle, marginTop: 12 }}>
-                <button type="button" onClick={() => { setView('password'); setError(''); setPassword(''); setConfirm(''); setSetupCode(''); }} style={linkBtnStyle}>
-                  {t('pastor_have_password', lang)}
+              <>
+                <button id="dw-pastor-send-another" type="button" onClick={sendCode} disabled={sending} style={{ ...btnGhost, marginTop: 12 }}>
+                  {sending ? t('pastor_please_wait', lang) : t('pastor_send_another', lang)}
                 </button>
-              </p>
+                {sendError && <p role="alert" style={errorStyle}>{sendError}</p>}
+                <p style={{ ...hintStyle, marginTop: 12 }}>
+                  <button id="dw-pastor-back-to-sign-in" type="button" onClick={() => { setView('password'); setError(''); setSendError(''); setSentTo(''); setPassword(''); setConfirm(''); setSetupCode(''); }} style={{ ...linkBtnStyle, minHeight: 44 }}>
+                    {t('pastor_back_to_sign_in', lang)}
+                  </button>
+                </p>
+              </>
             )}
           </form>
         )}
@@ -448,7 +498,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
                   onChange={e => setConfirm(e.target.value)}
                   style={inputStyle}
                 />
-                {error && <p style={errorStyle}>{error}</p>}
+                {error && <p role="alert" style={errorStyle}>{error}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                   <button type="button" onClick={closeChangePassword} disabled={busy} style={btnGhost}>{t('pastor_cancel', lang)}</button>
                   <button

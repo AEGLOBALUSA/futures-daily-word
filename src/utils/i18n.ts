@@ -16,7 +16,7 @@ export function dateLocale(lang?: string): string {
 
 /** Write language preference and dispatch event so listeners can react */
 export function setLangPref(lang: string): void {
-  try { localStorage.setItem('dw_lang', lang); } catch {}
+  try { localStorage.setItem('dw_lang', lang); } catch { /* storage unavailable: the in-memory switch still applies */ }
   // Keep <html lang> in step with the in-place switch (main.tsx only sets it
   // on boot) so screen readers change voice without a full reload.
   try { document.documentElement.lang = lang; } catch { /* ignore */ }
@@ -464,14 +464,22 @@ const UI: Translations = {
   pastor_password: { en: 'Password', es: 'Contrase\u00f1a', pt: 'Senha', id: 'Kata sandi' },
   pastor_new_password: { en: 'New password', es: 'Nueva contrase\u00f1a', pt: 'Nova senha', id: 'Kata sandi baru' },
   pastor_confirm_password: { en: 'Confirm password', es: 'Confirmar contrase\u00f1a', pt: 'Confirmar senha', id: 'Konfirmasi kata sandi' },
-  pastor_first_visit: { en: 'First time here \u2014 type the setup code Ashley Evans gave you, then choose a password of at least 10 characters. It also works at the staff portal.', es: 'Primera vez \u2014 escribe el c\u00f3digo de configuraci\u00f3n que te dio Ashley Evans y luego elige una contrase\u00f1a de al menos 10 caracteres. Tambi\u00e9n sirve en el portal del equipo.', pt: 'Primeira vez \u2014 digite o c\u00f3digo de configura\u00e7\u00e3o que Ashley Evans lhe deu e escolha uma senha com pelo menos 10 caracteres. Ela tamb\u00e9m funciona no portal da equipe.', id: 'Pertama kali di sini \u2014 ketik kode penyiapan dari Ashley Evans, lalu pilih kata sandi minimal 10 karakter. Berlaku juga di portal staf.' },
+  pastor_first_visit: { en: 'Type the code from your email, or the one Ashley gave you.', es: 'Escribe el c\u00f3digo de tu correo, o el que te dio Ashley.', pt: 'Digite o c\u00f3digo do seu e-mail, ou o que Ashley lhe deu.', id: 'Ketik kode dari email Anda, atau kode yang diberikan Ashley.' },
   pastor_setup_code: { en: 'Setup code', es: 'C\u00f3digo de configuraci\u00f3n', pt: 'C\u00f3digo de configura\u00e7\u00e3o', id: 'Kode penyiapan' },
-  pastor_first_time_ask: { en: 'First time? Ask Ashley Evans for your setup code.', es: '\u00bfPrimera vez? Pide a Ashley Evans tu c\u00f3digo de configuraci\u00f3n.', pt: 'Primeira vez? Pe\u00e7a a Ashley Evans o seu c\u00f3digo de configura\u00e7\u00e3o.', id: 'Pertama kali? Minta kode penyiapan kepada Ashley Evans.' },
+  pastor_first_time_ask: { en: 'First time, or forgot your password?', es: '\u00bfPrimera vez, u olvidaste tu contrase\u00f1a?', pt: 'Primeira vez, ou esqueceu sua senha?', id: 'Pertama kali, atau lupa kata sandi?' },
+  pastor_email_me_code: { en: 'Email me a code', es: 'Env\u00edame un c\u00f3digo por correo', pt: 'Envie-me um c\u00f3digo por e-mail', id: 'Kirimi saya kode lewat email' },
+  pastor_code_sent: { en: 'We\u2019ve emailed a code to {email} if it\u2019s on the staff list. It lasts 30 minutes.', es: 'Hemos enviado un c\u00f3digo a {email} si est\u00e1 en la lista del equipo. Dura 30 minutos.', pt: 'Enviamos um c\u00f3digo para {email} se ele estiver na lista da equipe. Ele vale por 30 minutos.', id: 'Kami telah mengirim kode ke {email} jika alamat itu ada di daftar staf. Kode berlaku 30 menit.' },
+  pastor_password_hint: { en: 'At least 10 characters. You will use it here and at the staff portal.', es: 'Al menos 10 caracteres. La usar\u00e1s aqu\u00ed y en el portal del equipo.', pt: 'Pelo menos 10 caracteres. Voc\u00ea vai us\u00e1-la aqui e no portal da equipe.', id: 'Minimal 10 karakter. Anda akan memakainya di sini dan di portal staf.' },
+  pastor_send_another: { en: 'Send another code', es: 'Enviar otro c\u00f3digo', pt: 'Enviar outro c\u00f3digo', id: 'Kirim kode lain' },
+  pastor_back_to_sign_in: { en: 'Back to sign in', es: 'Volver a iniciar sesi\u00f3n', pt: 'Voltar para entrar', id: 'Kembali ke halaman masuk' },
+  pastor_too_many_codes: { en: 'Too many codes asked for. Try again in a few minutes.', es: 'Se pidieron demasiados c\u00f3digos. Int\u00e9ntalo de nuevo en unos minutos.', pt: 'Foram pedidos c\u00f3digos demais. Tente novamente em alguns minutos.', id: 'Terlalu banyak permintaan kode. Coba lagi dalam beberapa menit.' },
+  pastor_type_code: { en: 'Type the code from your email.', es: 'Escribe el c\u00f3digo de tu correo.', pt: 'Digite o c\u00f3digo do seu e-mail.', id: 'Ketik kode dari email Anda.' },
+  pastor_password_too_short: { en: 'Choose a password of at least 10 characters.', es: 'Elige una contrase\u00f1a de al menos 10 caracteres.', pt: 'Escolha uma senha com pelo menos 10 caracteres.', id: 'Pilih kata sandi minimal 10 karakter.' },
+  pastor_type_password: { en: 'Type your password.', es: 'Escribe tu contrase\u00f1a.', pt: 'Digite sua senha.', id: 'Ketik kata sandi Anda.' },
   pastor_have_code: { en: 'I have a code', es: 'Tengo un c\u00f3digo', pt: 'Tenho um c\u00f3digo', id: 'Saya punya kode' },
-  pastor_have_password: { en: 'I already have a password', es: 'Ya tengo una contrase\u00f1a', pt: 'J\u00e1 tenho uma senha', id: 'Saya sudah punya kata sandi' },
   pastor_continue: { en: 'Continue', es: 'Continuar', pt: 'Continuar', id: 'Lanjutkan' },
   pastor_sign_in_btn: { en: 'Sign in', es: 'Iniciar sesi\u00f3n', pt: 'Entrar', id: 'Masuk' },
-  pastor_save_password: { en: 'Save password and sign in', es: 'Guardar contrase\u00f1a e iniciar sesi\u00f3n', pt: 'Salvar senha e entrar', id: 'Simpan kata sandi dan masuk' },
+  pastor_save_password: { en: 'Set my password', es: 'Guardar mi contrase\u00f1a', pt: 'Salvar minha senha', id: 'Simpan kata sandi saya' },
   pastor_please_wait: { en: 'Please wait\u2026', es: 'Un momento\u2026', pt: 'Aguarde\u2026', id: 'Mohon tunggu\u2026' },
   pastor_signed_in_as: { en: 'Signed in as', es: 'Sesi\u00f3n iniciada como', pt: 'Conectado como', id: 'Masuk sebagai' },
   pastor_sign_out: { en: 'Sign out', es: 'Cerrar sesi\u00f3n', pt: 'Sair', id: 'Keluar' },
@@ -1050,8 +1058,9 @@ export function useTranslation() {
  * Return a translated field from a data object (plan, devotion, etc.).
  * E.g. tField(plan, 'title', 'es') looks for plan.titleEs, falls back to plan.title.
  */
-export function tField(obj: any, field: string, lang: string): string {
-  if (lang === 'en') return obj[field] || '';
+export function tField(obj: object, field: string, lang: string): string {
+  const o = obj as Record<string, unknown>;
+  if (lang === 'en') return (o[field] || '') as string;
   const langField = field + lang.charAt(0).toUpperCase() + lang.slice(1);
-  return obj[langField] || obj[field] || '';
+  return (o[langField] || o[field] || '') as string;
 }
