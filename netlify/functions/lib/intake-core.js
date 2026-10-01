@@ -423,7 +423,13 @@ function publicStaff(staff) {
 // expires, and works once; a few wrong guesses lock the address out for 15
 // minutes (intake.js setupMissLock) without burning the code. A person who
 // has not been given a code cannot claim anything, whatever address they type.
+// A person on the roster can also email a code to themselves (intake.js
+// email_setup_code): it goes only to the roster row's own address, so typing it
+// proves they read that inbox. That is also how a forgotten password is reset.
 const SETUP_CODE_TTL_MS = 72 * 3600 * 1000;
+// A code the person emails to themselves (intake.js email_setup_code) lives for
+// 30 minutes: it is in their inbox at once, so it need not wait days.
+const EMAIL_SETUP_CODE_TTL_MS = 30 * 60 * 1000;
 const SETUP_CODE_MAX_ATTEMPTS = 5;
 // No 0/O/1/I/L: the code is read aloud or typed from a message.
 const SETUP_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -513,6 +519,7 @@ module.exports = {
   publicStaff,
   passwordIssue,
   SETUP_CODE_TTL_MS,
+  EMAIL_SETUP_CODE_TTL_MS,
   SETUP_CODE_MAX_ATTEMPTS,
   generateSetupCode,
   normalizeSetupCode,

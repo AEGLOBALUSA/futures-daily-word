@@ -11,7 +11,7 @@
  *
  * NOTE: this file lives in tests/, never in netlify/functions/.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import Module from 'node:module';
 import { createRequire } from 'node:module';
 
@@ -226,13 +226,19 @@ describe('a first password needs the setup code Ashley issued', () => {
     expect(tables.staff_sessions).toHaveLength(0);
   });
 
-  it('refuses a roster row with a password already set, whatever code is typed', async () => {
-    addWithCode({ email: 'old.pastor@futures.church', password_hash: hashPassword(PASSWORD) });
+  // Changed on purpose (email-a-code, 1 Oct): a row WITH a password may now be
+  // reset by a live code (forgot password). Without a live code it is refused.
+  it('refuses a roster row with a password already set and no live code, whatever code is typed', async () => {
+    addRoster({ email: 'old.pastor@futures.church', password_hash: hashPassword(PASSWORD) });
+    addWithCode({ email: 'stale.pastor@futures.church', password_hash: hashPassword(PASSWORD) }, { expiresInMs: -1000 });
     const before = snapshot();
-    const r = await setUp('old.pastor@futures.church');
-    expect(r.status).toBe(403);
+    for (const email of ['old.pastor@futures.church', 'stale.pastor@futures.church']) {
+      const r = await setUp(email);
+      expect(r.status).toBe(403);
+    }
     expect(snapshot()).toEqual(before);
     expect(tables.staff_sessions).toHaveLength(0);
+    expect((await call({ action: 'login', email: 'old.pastor@futures.church', password: PASSWORD })).status).toBe(200);
   });
 
   it('refuses the named staff who have no roster row (Josh, hub), and creates no row', async () => {
@@ -723,5 +729,379 @@ describe('a campus nobody has confirmed is held, not published', () => {
     expect(tables.campus_content).toHaveLength(1);
     expect(tables.campus_content[0]).toMatchObject({ campus: 'us-gwinnett', author: 'Sam Pastor' });
     expect(tables.intake_submissions[0]).toMatchObject({ status: 'approved', reviewed_by: 'ae@futures.global' });
+  });
+});
+
+// ── "Email me a code" (Ashley, 1 Oct 2026) ─────────────────────────────────
+// A person on the roster emails a one-time code to their own roster address,
+// then types it to choose a password: first time and forgot password alike.
+// Resend is a stubbed fetch: nothing is ever sent.
+describe('email_setup_code: a person on the roster emails themselves a code', () => {
+  const resend = vi.fn();
+  const SENT = { sent: true };
+  const STAFF = 'new.pastor@futures.church';
+
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = 're_test';
+    resend.mockReset();
+    resend.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'em_1' }) });
+    vi.stubGlobal('fetch', resend);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    delete process.env.RESEND_API_KEY;
+  });
+
+  const ask = (email, ip = '203.0.113.9', extra = {}) =>
+    call({ action: 'email_setup_code', email, lang: 'en', ...extra }, null, { 'x-forwarded-for': ip });
+  const askV6 = (email, ip, extra = {}) =>
+    call({ action: 'email_setup_code', email, lang: 'en', ...extra }, null, { 'x-nf-client-connection-ip': ip });
+  const mail = (i = resend.mock.calls.length - 1) => JSON.parse(resend.mock.calls[i][1].body);
+  const mailedCode = (i) => mail(i).text.match(/[A-Z0-9]{5}-[A-Z0-9]{5}/)[0];
+  const setWith = (email, setupCode, password = PASSWORD, ip = '203.0.113.9') =>
+    call({ action: 'set_password', email, password, setupCode }, null, { 'x-forwarded-for': ip });
+  const row = (email = STAFF) => tables.staff_roster.find((r) => r.email === email);
+  const at = (iso) => vi.useFakeTimers({ toFake: ['Date'], now: new Date(iso) });
+  const move = (iso) => vi.setSystemTime(new Date(iso));
+
+  it('an eligible address gets exactly one email, to the roster address, whose code works once', async () => {
+    addRoster({ email: STAFF, campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+    const r = await ask('  New.Pastor@Futures.Church ');
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual(SENT);
+    expect(resend).toHaveBeenCalledTimes(1);
+    expect(resend.mock.calls[0][0]).toBe('https://api.resend.com/emails');
+    const m = mail(0);
+    expect(m.to).toEqual([STAFF]);
+    expect(m.from).toMatch(/notes@futuresdailyword\.com/);
+    expect(m.subject).toBe('Your Daily Word staff code');
+    const code = mailedCode(0);
+    // only a hash is stored, and it lives 30 minutes
+    expect(row().setup_code_hash).toBeTruthy();
+    expect(row().setup_code_hash).not.toContain(code);
+    const ttl = Date.parse(row().setup_code_expires_at) - Date.now();
+    expect(ttl).toBeGreaterThan(29 * 60_000);
+    expect(ttl).toBeLessThanOrEqual(30 * 60_000);
+    // the code sets the first password, once
+    const first = await setWith(STAFF, code);
+    expect(first.status).toBe(200);
+    expect(typeof first.body.token).toBe('string');
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(200);
+    const again = await setWith(STAFF, code, 'another-passphrase-123');
+    expect(again.status).toBe(403);
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(200);
+  });
+
+  it('only the roster row\'s address is ever mailed, whatever else the request carries', async () => {
+    addRoster({ email: STAFF });
+    const r = await call({ action: 'email_setup_code', email: STAFF, to: 'attacker@example.com', recipient: 'attacker@example.com', lang: 'en' });
+    expect(r.body).toEqual(SENT);
+    expect(resend).toHaveBeenCalledTimes(1);
+    expect(mail(0).to).toEqual([STAFF]);
+  });
+
+  it('an address not on the roster gets the same 200 body and no email, and nothing changes', async () => {
+    addRoster({ email: STAFF });
+    const eligible = await ask(STAFF);
+    expect(eligible.status).toBe(200);
+    expect(eligible.body).toEqual(SENT);
+    expect(resend).toHaveBeenCalledTimes(1);
+    resend.mockClear();
+    const before = snapshot();
+    for (const email of ['nobody123@futures.church', 'josh@futures.church', 'someone@gmail.com', 'ae@futures.global', 'hello@futures.church']) {
+      const r = await ask(email, `198.51.100.${email.length}`);
+      expect(r.status).toBe(eligible.status);
+      expect(r.body).toEqual(eligible.body);
+    }
+    expect(resend).not.toHaveBeenCalled();
+    expect(snapshot()).toEqual(before);
+  });
+
+  it('a provider failure answers the same 200 body and leaves the earlier code as it was', async () => {
+    addWithCode({ email: STAFF }); // Ashley's code, 72 h
+    const before = snapshot();
+    resend.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    const failed = await ask(STAFF);
+    expect(failed.status).toBe(200);
+    expect(failed.body).toEqual(SENT);
+    delete process.env.RESEND_API_KEY;
+    const unconfigured = await ask(STAFF, '198.51.100.20');
+    expect(unconfigured.body).toEqual(SENT);
+    expect(snapshot()).toEqual(before);
+    expect((await setWith(STAFF, CODE)).status).toBe(200);
+  });
+
+  it('a row that already has a password gets a code too (forgot password)', async () => {
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    const r = await ask(STAFF);
+    expect(r.body).toEqual(SENT);
+    expect(resend).toHaveBeenCalledTimes(1);
+    expect(row().setup_code_hash).toBeTruthy();
+    // the password still works until the code is used
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(200);
+  });
+
+  it('forgot password: the code resets it, the old password and every old session stop working, the new one works', async () => {
+    addRoster({ email: STAFF, campus_id: 'us-gwinnett', campus_set_by: 'admin', password_hash: hashPassword(PASSWORD) });
+    const phone = await signIn(STAFF);
+    const laptop = await signIn(STAFF);
+    addRoster({ email: 'other.pastor@futures.church', password_hash: hashPassword(PASSWORD) });
+    const other = await signIn('other.pastor@futures.church');
+    expect((await call({ action: 'me' }, phone)).status).toBe(200);
+
+    await ask(STAFF);
+    const NEW = 'brand-new-passphrase-42';
+    const r = await setWith(STAFF, mailedCode(0), NEW);
+    expect(r.status).toBe(200);
+    expect(r.body.staff).toMatchObject({ email: STAFF });
+    expect(row().setup_code_hash).toBeNull();
+    // the old password and both old sessions are gone
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(403);
+    expect((await call({ action: 'me' }, phone)).status).toBe(401);
+    expect((await call({ action: 'me' }, laptop)).status).toBe(401);
+    // the new session and the new password work
+    expect((await call({ action: 'me' }, r.body.token)).status).toBe(200);
+    expect((await call({ action: 'login', email: STAFF, password: NEW })).status).toBe(200);
+    // nobody else's session was touched
+    expect((await call({ action: 'me' }, other)).status).toBe(200);
+  });
+
+  it('forgot password fails closed: if the old sessions cannot be ended, nothing changes', async () => {
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    const phone = await signIn(STAFF);
+    await ask(STAFF);
+    const before = snapshot();
+    failOn.add('staff_sessions:delete');
+    const r = await setWith(STAFF, mailedCode(0), 'brand-new-passphrase-42');
+    expect(r.status).toBe(503);
+    expect(snapshot()).toEqual(before);
+    failOn.clear();
+    expect((await call({ action: 'me' }, phone)).status).toBe(200);
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(200);
+  });
+
+  it('two racing resets with the same code: exactly one wins', async () => {
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    await ask(STAFF);
+    const code = mailedCode(0);
+    const results = await Promise.all([
+      setWith(STAFF, code, 'first-racer-passphrase-1'),
+      setWith(STAFF, code, 'second-racer-passphrase-2'),
+    ]);
+    expect(results.map((x) => x.status).sort()).toEqual([200, 403]);
+  });
+
+  it('refuses wrong, expired and used codes with the same refusal, and the new wording', async () => {
+    at('2026-10-02T09:00:00Z');
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    await ask(STAFF);
+    const code = mailedCode(0);
+    const wrong = await setWith(STAFF, 'AAAAA-AAAAA');
+    expect(wrong.status).toBe(403);
+    expect(wrong.body.error).toBe('That code did not work. Check it, or email yourself a new one.');
+    // 31 minutes later the right code has expired
+    move('2026-10-02T09:31:00Z');
+    const expired = await setWith(STAFF, code, 'brand-new-passphrase-42', '198.51.100.60');
+    expect(expired.status).toBe(403);
+    expect(expired.body).toEqual(wrong.body);
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(200);
+    // a fresh code works once, then it is used
+    await ask(STAFF, '198.51.100.61');
+    const fresh = mailedCode(1);
+    expect((await setWith(STAFF, fresh, 'brand-new-passphrase-42', '198.51.100.61')).status).toBe(200);
+    const used = await setWith(STAFF, fresh, 'third-passphrase-4242', '198.51.100.61');
+    expect(used.status).toBe(403);
+    expect(used.body).toEqual(wrong.body);
+    expect((await call({ action: 'login', email: STAFF, password: 'brand-new-passphrase-42' })).status).toBe(200);
+  });
+
+  it('a new code replaces the earlier one', async () => {
+    addRoster({ email: STAFF });
+    await ask(STAFF);
+    await ask(STAFF);
+    expect(resend).toHaveBeenCalledTimes(2);
+    expect((await setWith(STAFF, mailedCode(0))).status).toBe(403);
+    expect((await setWith(STAFF, mailedCode(1))).status).toBe(200);
+  });
+
+  it('asking for a code does not wipe a guesser\'s lock', async () => {
+    addRoster({ email: STAFF });
+    await ask(STAFF, '198.51.100.70');
+    for (let i = 0; i < 5; i++) expect((await setWith(STAFF, `MMMMM-MMMM${i}`, PASSWORD, '198.51.100.70')).status).toBe(403);
+    await ask(STAFF, '198.51.100.70');
+    expect((await setWith(STAFF, mailedCode(1), PASSWORD, '198.51.100.70')).status).toBe(429);
+    // the owner on their own connection is not held
+    expect((await setWith(STAFF, mailedCode(1), PASSWORD, '198.51.100.71')).status).toBe(200);
+  });
+
+  it('the guess lock looks the same for an address that is not on the roster', async () => {
+    const statuses = async (email, ip) => {
+      const out = [];
+      for (let i = 0; i < 6; i++) out.push((await setWith(email, `NNNNN-NNNN${i}`, PASSWORD, ip)).status);
+      return out;
+    };
+    addRoster({ email: STAFF });
+    await ask(STAFF);
+    const staff = await statuses(STAFF, '198.51.100.80');
+    const stranger = await statuses('nobody123@futures.church', '198.51.100.81');
+    expect(staff).toEqual([403, 403, 403, 403, 403, 429]);
+    expect(stranger).toEqual(staff);
+  });
+
+  it('the email has no link of any kind, in any language', async () => {
+    addRoster({ email: STAFF });
+    const want = {
+      en: 'Your Daily Word staff code',
+      es: 'Tu código de equipo de Daily Word',
+      pt: 'Seu código de equipe do Daily Word',
+      id: 'Kode staf Daily Word Anda',
+    };
+    const langs = Object.keys(want);
+    for (const [i, lang] of langs.entries()) {
+      await ask(STAFF, `198.51.100.${90 + i}`, { lang });
+      const m = mail(i);
+      expect(m.subject).toBe(want[lang]);
+      for (const part of [m.text, m.html]) {
+        expect(part).not.toMatch(/https?:|www\.|:\/\/|href|<a[\s>]|\.com|\.church|\.global/i);
+        expect(part).toContain(mailedCode(i));
+        expect(part).toMatch(/30/);
+      }
+    }
+    expect(mail(0).text).toContain('Type it in Daily Word or Sermon Prep to choose your password. It works once and expires in 30 minutes.');
+    expect(mail(0).text).toContain("If you didn't ask for this, ignore this email. Nothing on your account has changed.");
+  });
+
+  it('Ashley\'s manual code still lasts 72 hours and works', async () => {
+    at('2026-10-02T09:00:00Z');
+    const admin = await adminToken();
+    const r = await call({ action: 'roster_save', email: STAFF, role: 'campus', campusId: 'us-gwinnett' }, admin);
+    expect(r.status).toBe(200);
+    expect(Date.parse(r.body.setupCodeExpiresAt) - Date.now()).toBe(72 * HOUR);
+    move('2026-10-04T09:00:00Z'); // two days later
+    expect((await setWith(STAFF, r.body.setupCode)).status).toBe(200);
+  });
+
+  // ── limits ──
+  it('rejects a malformed address before any limit or lookup', async () => {
+    for (const email of ['', 'not-an-email', `${'a'.repeat(250)}@futures.church`]) {
+      expect((await ask(email)).status).toBe(400);
+    }
+    expect(tables.rate_limit_hits || []).toHaveLength(0);
+    expect(resend).not.toHaveBeenCalled();
+  });
+
+  it('per address and caller IP: 2 per 15 minutes, 5 per day', async () => {
+    at('2026-10-02T09:00:00Z');
+    addRoster({ email: STAFF });
+    const s = async () => (await ask(STAFF)).status;
+    expect([await s(), await s(), await s()]).toEqual([200, 200, 429]);
+    move('2026-10-02T09:16:00Z');
+    expect([await s(), await s(), await s()]).toEqual([200, 200, 429]);
+    move('2026-10-02T09:32:00Z');
+    expect([await s(), await s()]).toEqual([200, 429]);
+    move('2026-10-02T09:48:00Z');
+    expect(await s()).toBe(429);
+    expect(resend).toHaveBeenCalledTimes(5);
+    // another connection is not held by this one
+    expect((await ask(STAFF, '198.51.100.5')).status).toBe(200);
+    move('2026-10-03T09:01:00Z');
+    expect(await s()).toBe(200);
+  });
+
+  it('per caller IP: 5 per 15 minutes and 20 per day, whatever the addresses', async () => {
+    at('2026-10-02T09:00:00Z');
+    let n = 0;
+    const burst = async (k) => {
+      const out = [];
+      for (let i = 0; i < k; i++) out.push((await ask(`person${n++}@futures.church`)).status);
+      return out;
+    };
+    expect(await burst(6)).toEqual([200, 200, 200, 200, 200, 429]);
+    for (const t of ['09:16', '09:32', '09:48']) {
+      move(`2026-10-02T${t}:00Z`);
+      expect(await burst(5)).toEqual([200, 200, 200, 200, 200]);
+    }
+    move('2026-10-02T10:04:00Z');
+    expect(await burst(1)).toEqual([429]);
+    // the same limit binds an address that is on the roster
+    addRoster({ email: STAFF });
+    expect((await ask(STAFF)).status).toBe(429);
+    expect(resend).not.toHaveBeenCalled();
+    move('2026-10-03T10:05:00Z');
+    expect((await ask(STAFF)).status).toBe(200);
+  });
+
+  it('address-wide: 10 a day, held only against a caller whose own IP already asked for it', async () => {
+    addRoster({ email: STAFF });
+    for (let i = 0; i < 10; i++) expect((await ask(STAFF, `198.51.100.${100 + i}`)).status).toBe(200);
+    // a stranger who already asked is now held ...
+    expect((await ask(STAFF, '198.51.100.100')).status).toBe(429);
+    // ... but the pastor on a fresh connection still gets their code
+    const owner = await ask(STAFF, '192.0.2.44');
+    expect(owner.status).toBe(200);
+    expect(resend).toHaveBeenCalledTimes(11);
+    expect((await setWith(STAFF, mailedCode(10), PASSWORD, '192.0.2.44')).status).toBe(200);
+  });
+
+  it('global: 100 an hour, everyone together', async () => {
+    at('2026-10-02T09:00:00Z');
+    addRoster({ email: STAFF });
+    const created_at = new Date().toISOString();
+    tables.rate_limit_hits = Array.from({ length: 99 }, () => ({ key: 'intake-email-code-all', created_at }));
+    expect((await ask(STAFF, '198.51.100.120')).status).toBe(200);
+    expect((await ask(STAFF, '198.51.100.121')).status).toBe(429);
+    expect((await ask('nobody123@futures.church', '198.51.100.122')).status).toBe(429);
+    expect(resend).toHaveBeenCalledTimes(1);
+    move('2026-10-02T10:01:00Z');
+    expect((await ask(STAFF, '198.51.100.123')).status).toBe(200);
+  });
+
+  it('a parallel burst from one caller cannot pass the limits', async () => {
+    addRoster({ email: STAFF });
+    const same = await Promise.all(Array.from({ length: 10 }, () => ask(STAFF)));
+    const ok = same.filter((x) => x.status === 200).length;
+    expect(ok).toBeLessThanOrEqual(2);
+    expect(same.filter((x) => x.status === 429).length).toBeGreaterThanOrEqual(8);
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(2);
+    const spread = await Promise.all(Array.from({ length: 12 }, (_, i) => ask(`burst${i}@futures.church`, '198.51.100.130')));
+    expect(spread.filter((x) => x.status === 200).length).toBeLessThanOrEqual(5);
+    expect(spread.filter((x) => x.status === 429).length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('a parallel burst from many connections cannot pass the global cap', async () => {
+    const created_at = new Date().toISOString();
+    tables.rate_limit_hits = Array.from({ length: 95 }, () => ({ key: 'intake-email-code-all', created_at }));
+    const burst = await Promise.all(Array.from({ length: 12 }, (_, i) => ask(`wide${i}@futures.church`, `192.0.2.${10 + i}`)));
+    expect(burst.filter((x) => x.status === 200).length).toBeLessThanOrEqual(5);
+    expect(burst.filter((x) => x.status === 429).length).toBeGreaterThanOrEqual(7);
+    expect(burst.every((x) => x.status === 200 || x.status === 429)).toBe(true);
+  });
+
+  it('IPv6 addresses in one /64 share one limit', async () => {
+    addRoster({ email: STAFF });
+    // per address and caller: two hosts in the /64 use up the pair
+    expect((await askV6(STAFF, '2001:db8:abcd:12::1')).status).toBe(200);
+    expect((await askV6(STAFF, '2001:db8:abcd:12::2')).status).toBe(200);
+    expect((await askV6(STAFF, '2001:db8:abcd:12:ffff::3')).status).toBe(429);
+    // per caller: five hosts in the /64 use up its 15 minutes
+    for (let h = 4; h <= 6; h++) expect((await askV6(`v6person${h}@futures.church`, `2001:db8:abcd:12::${h}`)).status).toBe(200);
+    expect((await askV6('v6person7@futures.church', '2001:db8:abcd:12::7')).status).toBe(429);
+    // another /64 is another caller
+    expect((await askV6('v6person8@futures.church', '2001:db8:abcd:13::1')).status).toBe(200);
+    const keys = new Set((tables.rate_limit_hits || []).map((r) => r.key));
+    expect(keys.has('intake-email-code-ip:2001:db8:abcd:12::/64')).toBe(true);
+    expect([...keys].some((k) => k.includes('2001:db8:abcd:12::1'))).toBe(false);
+  });
+
+  it('fails closed: a limiter that cannot write or count refuses with 503 and sends nothing', async () => {
+    addRoster({ email: STAFF });
+    failOn.add('rate_limit_hits:insert');
+    expect((await ask(STAFF)).status).toBe(503);
+    failOn.clear();
+    failOn.add('rate_limit_hits:select');
+    expect((await ask(STAFF)).status).toBe(503);
+    expect(resend).not.toHaveBeenCalled();
+    expect(row().setup_code_hash ?? null).toBeNull();
   });
 });
