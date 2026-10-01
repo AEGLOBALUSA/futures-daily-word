@@ -17,7 +17,7 @@ import {
   restoreStaffSession, resetStaffSessionCache, signOutStaff, registerCloudIdentity,
   setAppStaffSignIn, hasAppStaffSignIn,
   provisionPastorCode, clearProvisionedPastorCode, getPastorCode, fetchMyCampusCode, PASTOR_CODE_EVENT,
-  setHandTypedPastorCode, isAppStaffSignedIn, STAFF_SESSION_EVENT,
+  setHandTypedPastorCode, isAppStaffSignedIn, STAFF_SESSION_EVENT, swapForProvenSyncToken,
 } from './staffIdentity';
 
 const ASHLEY = { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true };
@@ -202,6 +202,62 @@ describe('registerCloudIdentity', () => {
     expect(await registerCloudIdentity(profile, 'pastor_leader')).toBe(false);
     expect(localStorage.getItem('dw_session_token')).toBeNull();
     vi.unstubAllGlobals();
+  });
+
+  it('with no staff sign-in it asks intake for nothing and keeps the register token', async () => {
+    api.token = '';
+    vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ success: true, sessionToken: 'cloud-token' }) })));
+    expect(await registerCloudIdentity(profile, 'pastor_leader')).toBe(true);
+    expect(api.intake).not.toHaveBeenCalled();
+    expect(localStorage.getItem('dw_session_token')).toBe('cloud-token');
+    vi.unstubAllGlobals();
+  });
+
+  it('after a staff password sign-in the register token is swapped for a proven one (no emailed code)', async () => {
+    api.token = 'staff-session';
+    api.intake.mockResolvedValue({ token: 'proven-token' });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ success: true, sessionToken: 'unproven-token' }) })));
+    expect(await registerCloudIdentity(profile, 'pastor_leader')).toBe(true);
+    expect(api.intake).toHaveBeenCalledWith('sync_token');
+    expect(localStorage.getItem('dw_session_token')).toBe('proven-token');
+    vi.unstubAllGlobals();
+  });
+
+  it('if the proven-token call fails, the register token stays and nothing throws', async () => {
+    api.token = 'staff-session';
+    api.intake.mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ success: true, sessionToken: 'unproven-token' }) })));
+    expect(await registerCloudIdentity(profile, 'pastor_leader')).toBe(true);
+    expect(localStorage.getItem('dw_session_token')).toBe('unproven-token');
+    vi.unstubAllGlobals();
+  });
+
+  it('a server that has no proven token to give (token: null) leaves the register token alone', async () => {
+    api.token = 'staff-session';
+    api.intake.mockResolvedValue({ token: null });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ success: true, sessionToken: 'first-device-token' }) })));
+    expect(await registerCloudIdentity(profile, 'pastor_leader')).toBe(true);
+    expect(localStorage.getItem('dw_session_token')).toBe('first-device-token');
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('swapForProvenSyncToken (every staff sign-in, even when the device already holds the address)', () => {
+  it('with a staff session, stores the proven token the server hands back', async () => {
+    api.token = 'staff-session';
+    localStorage.setItem('dw_session_token', 'unproven-token');
+    api.intake.mockResolvedValue({ token: 'proven-token' });
+    expect(await swapForProvenSyncToken()).toBe(true);
+    expect(api.intake).toHaveBeenCalledWith('sync_token');
+    expect(localStorage.getItem('dw_session_token')).toBe('proven-token');
+  });
+
+  it('without a staff session asks nothing and keeps the token', async () => {
+    api.token = '';
+    localStorage.setItem('dw_session_token', 'device-token');
+    expect(await swapForProvenSyncToken()).toBe(false);
+    expect(api.intake).not.toHaveBeenCalled();
+    expect(localStorage.getItem('dw_session_token')).toBe('device-token');
   });
 });
 

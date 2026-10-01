@@ -39,6 +39,7 @@ const {
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
+const { issueToken } = require("./lib/auth");
 
 let supabase;
 function db() {
@@ -473,6 +474,26 @@ exports.handler = async (event) => {
         pendingCount = count || 0;
       }
       return json(event, 200, { staff: publicStaff(staff), pendingCount });
+    }
+
+    // ── sync_token ── A staff password sign-in is already proof of the person, so a
+    // pastor who signs in with it gets a PROVEN Daily Word cloud-sync token for
+    // their own staff address, with no emailed code. (Daily Word hands a token
+    // that only knows an existing address an unproven one and asks for a code;
+    // this is what keeps the one-step staff sign-in.) The address comes from the
+    // staff session, never from the request. No profile yet means nothing to
+    // open: the client's register call creates it and gets a first-device token.
+    if (action === "sync_token") {
+      if (await isSharedRateLimited("intake-sync-token", ip, 10, 15 * 60 * 1000)) {
+        return json(event, 429, { error: "Too many attempts. Try again later." });
+      }
+      const { data: profile } = await db().from("profiles").select("email").eq("email", staff.email).maybeSingle();
+      if (!profile) return json(event, 200, { token: null });
+      try {
+        return json(event, 200, { token: await issueToken(db(), staff.email, { proven: true }) });
+      } catch {
+        return json(event, 200, { token: null });
+      }
     }
 
     // ── change_password ── Self-service: prove the current password, choose a new

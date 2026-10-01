@@ -1,5 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
-const { authenticateRequest, issueToken, migrateRequest, checkMigrationRate } = require("./lib/auth");
+const { authenticateSession, issueToken, migrateRequest, checkMigrationRate } = require("./lib/auth");
+const { sendProofCode, verifyProofCode } = require("./lib/email-proof");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
@@ -50,6 +51,21 @@ function getSupabase() {
   }
   return supabase;
 }
+
+/**
+ * Who is asking, and has that token been proven? A Bearer token wins; without
+ * one the body email is migrated to a fresh UNPROVEN token (rate-limited).
+ * Returns null when the caller cannot be identified at all.
+ */
+async function resolveCaller(event, db, body) {
+  const session = await authenticateSession(event, db);
+  if (session) return { email: session.email, proven: session.proven, migrationToken: null };
+  const migration = await migrateRequest(event, db, sanitize(body.email, 254));
+  if (!migration) return null;
+  return { email: migration.email, proven: false, migrationToken: migration.token };
+}
+
+const tokenField = (caller) => (caller.migrationToken ? { sessionToken: caller.migrationToken } : {});
 
 exports.handler = async (event) => {
   const origin = event.headers.origin || event.headers.referer || "";
@@ -147,26 +163,47 @@ exports.handler = async (event) => {
         data = inserted;
       }
 
-      // Token issuance shares the migration limiter (5/min per IP) so register
-      // is not a weaker token path than the deliberately-hardened migrate.
-      // When limited, the profile still saves — the client just gets no token
-      // (it recovers via the rate-limited migration path on its next call).
+      // Token issuance.
+      //  - NEW email: this request created the profile, so this device is the one
+      //    that first registered it. It gets a FIRST-device token ("r:", see
+      //    lib/auth.js), with no limiter, so a room of new readers on one church
+      //    wifi never loses a token. It syncs straight away, but it is only
+      //    provisional: nobody has shown they own the inbox, so the first time
+      //    ANYONE types a code for this address every "r:" token is revoked. That
+      //    is what stops someone registering a stranger's address before the
+      //    stranger signs up and then reading their journal for ever.
+      //  - EXISTING email: whoever is asking only knows the address. They get an
+      //    UNPROVEN token under the migration limiter (5/min per IP) and prove
+      //    the address by typing the emailed code before their journal opens.
+      //    When limited, the profile still saves; the client just gets no token.
       let sessionToken = null;
-      if (!checkMigrationRate(clientIP)) {
+      if (!existing) {
         try {
-          sessionToken = await issueToken(db, data.email);
+          sessionToken = await issueToken(db, data.email, { first: true });
+        } catch (tokenErr) {
+          console.error("Register token issuance failed:", tokenErr);
+        }
+      } else if (!checkMigrationRate(clientIP)) {
+        try {
+          sessionToken = await issueToken(db, data.email, { proven: false });
         } catch (tokenErr) {
           console.error("Register token issuance failed:", tokenErr);
         }
       }
 
+      // For an EXISTING email the stored name is never returned (that would be an
+      // unlimited name lookup for anyone who knows an address): echo back only
+      // what this request itself sent.
+      const echoed = existing
+        ? { firstName: record.first_name, lastName: record.last_name, email }
+        : { firstName: data.first_name, lastName: data.last_name, email: data.email };
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           success: true,
           message: "Profile saved",
-          profile: { firstName: data.first_name, lastName: data.last_name, email: data.email },
+          profile: echoed,
           ...(sessionToken ? { sessionToken } : {})
         })
       };
@@ -174,15 +211,13 @@ exports.handler = async (event) => {
 
     // ── Update ──
     if (action === "update") {
-      let email = await authenticateRequest(event, db);
-      let migrationToken = null;
-
-      if (!email) {
-        const migration = await migrateRequest(event, db, sanitize(body.email, 254));
-        if (!migration) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-        email = migration.email;
-        migrationToken = migration.token;
+      const caller = await resolveCaller(event, db, body);
+      if (!caller) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      // An unproven token may not rewrite name, phone or campus.
+      if (!caller.proven) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: "proof_required", ...tokenField(caller) }) };
       }
+      const email = caller.email;
 
       const updates = { last_active_at: new Date().toISOString() };
       const fieldMap = {
@@ -214,25 +249,24 @@ exports.handler = async (event) => {
         return { statusCode: 404, headers, body: JSON.stringify({ error: "Profile not found" }) };
       }
 
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Profile updated", ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Profile updated" }) };
     }
 
     // ── Heartbeat ──
     if (action === "heartbeat") {
-      let email = await authenticateRequest(event, db);
-      let migrationToken = null;
-
-      if (!email) {
-        const migration = await migrateRequest(event, db, sanitize(body.email, 254));
-        if (!migration) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
-        email = migration.email;
-        migrationToken = migration.token;
-      }
+      const caller = await resolveCaller(event, db, body);
+      if (!caller) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      const email = caller.email;
+      const migrationToken = caller.migrationToken;
 
       const updates = { last_active_at: new Date().toISOString() };
-      if (body.persona) updates.persona = coercePersona(body.persona);
-      if (body.lang) updates.lang = sanitize(body.lang, 5);
-      if (body.campus) updates.campus = sanitize(body.campus, 100);
+      // Persona, language and campus writes wait for proof; an unproven token
+      // only says "this reader was active".
+      if (caller.proven) {
+        if (body.persona) updates.persona = coercePersona(body.persona);
+        if (body.lang) updates.lang = sanitize(body.lang, 5);
+        if (body.campus) updates.campus = sanitize(body.campus, 100);
+      }
 
       const { error: hbError } = await db.from("profiles").update(updates).eq("email", email);
       if (hbError) {
@@ -244,18 +278,16 @@ exports.handler = async (event) => {
 
     // ── Get ──
     if (action === "get") {
-      let email = await authenticateRequest(event, db);
-      let migrationToken = null;
+      const caller = await resolveCaller(event, db, body);
+      if (!caller) {
+        // Could be rate-limited or email doesn't exist — return 404 to avoid enumeration
+        return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
+      }
+      const email = caller.email;
 
-      if (!email) {
-        // Migration / pre-registration lookup (rate-limited)
-        const migration = await migrateRequest(event, db, sanitize(body.email, 254));
-        if (!migration) {
-          // Could be rate-limited or email doesn't exist — return 404 to avoid enumeration
-          return { statusCode: 404, headers, body: JSON.stringify({ error: "Not found" }) };
-        }
-        email = migration.email;
-        migrationToken = migration.token;
+      // An unproven token gets no profile fields (phone, church, city, campus).
+      if (!caller.proven) {
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true, proofRequired: true, ...tokenField(caller) }) };
       }
 
       const { data, error } = await db.from("profiles")
@@ -280,7 +312,33 @@ exports.handler = async (event) => {
         lastActiveAt: data.last_active_at
       };
 
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, profile, ...(migrationToken ? { sessionToken: migrationToken } : {}) }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, profile }) };
+    }
+
+    // ── Proof of email: send / verify a one-time code ──
+    // Both need a Bearer token and take the address FROM THE TOKEN, never the
+    // body, so a code can only ever go to the address the token belongs to.
+    if (action === "proof-send" || action === "proof-verify") {
+      const session = await authenticateSession(event, db);
+      if (!session) return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
+      if (session.proven) {
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true, alreadyProven: true }) };
+      }
+
+      if (action === "proof-send") {
+        const { data: prof } = await db.from("profiles").select("lang").eq("email", session.email).maybeSingle();
+        const sent = await sendProofCode(db, session.email, session.hash, prof && prof.lang, clientIP.slice(0, 64));
+        if (!sent.ok) {
+          return { statusCode: sent.status, headers, body: JSON.stringify({ success: false, error: sent.error }) };
+        }
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true, sent: true }) };
+      }
+
+      const result = await verifyProofCode(db, session.email, session.hash, typeof body.code === "string" ? body.code.trim() : "");
+      if (!result.ok) {
+        return { statusCode: result.status, headers, body: JSON.stringify({ success: false, error: result.error }) };
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
     }
 
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid action" }) };

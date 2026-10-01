@@ -10,6 +10,7 @@ import { resetSyncSession } from './cloudSync';
 import {
   PASTOR_PERSONA, PASTOR_SETUP, SIGNED_OUT_SETUP, STAFF_SESSION_EVENT,
   isAppStaffSignedIn, profileFromStaff, provisionPastorCode, registerCloudIdentity, sameProfile, signOutStaff,
+  swapForProvenSyncToken,
   type StaffRecord,
 } from './staffIdentity';
 
@@ -68,6 +69,10 @@ export function useStaffIdentity() {
       clearSessionToken();
       resetSyncSession();
       await registerCloudIdentity(profileFromStaff(staff, latest.current.userProfile, { campus: campusMode }), PASTOR_PERSONA);
+    } else if (!boot) {
+      // Same address already on this device: still trade for a proven token, so a
+      // squatter's first-device token for this address ends at the sign-in.
+      await swapForProvenSyncToken();
     }
 
     // Re-read after the await — a server profile merge may have landed.

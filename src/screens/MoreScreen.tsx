@@ -23,8 +23,9 @@ import { getPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
 import {
   User, Globe, Bell, Type, Info, Shield, Mail,
   Download, Languages, MapPin, Heart,
-  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send, ClipboardList
+  BookOpen, Link, Music, BarChart3, MessageSquareWarning, Send, ClipboardList, KeyRound
 } from 'lucide-react';
+import { EmailCodeReopen } from '../components/EmailCodePrompt';
 import { PollDashboard } from '../components/PollDashboard';
 import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { isNewChristianPersona } from '../utils/persona-config';
@@ -345,6 +346,12 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
               <span style={{ flex: 1 }}>{t("email_label", lang)}</span>
               <span style={valStyle}>{userProfile?.email || t("not_set", lang)}</span>
             </button>
+            {/* After "Not now" on the email-code sheet: the way back to it. Shows only while sync waits for the code. */}
+            <EmailCodeReopen
+              style={rowStyle}
+              icon={<KeyRound size={18} style={iconStyle} />}
+              dividerStyle={dividerStyle}
+            />
           </Card>
         </div>
 
