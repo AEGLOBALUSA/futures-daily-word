@@ -961,24 +961,60 @@ describe('F8: a staff sign-in promotes the device\'s own token instead of mintin
   }
   const signIn = (currentToken) => call(intake, { action: 'sync_token', currentToken }, { token: STAFF_RAW });
 
-  it('an unproven "u:" device token is made proven in place and handed back', async () => {
+  it('an unproven "u:" device token is swapped for a fresh proven one in its slot', async () => {
     seedStaff([sha('1'.repeat(64))]);
     const device = (await call(userSync, { action: 'pull', email: STAFF })).json.sessionToken;
     expect(hashes(STAFF)).toContain('u:' + sha(device));
     const r = await signIn(device);
     expect(r.status).toBe(200);
-    expect(r.json.token).toBe(device);
-    expect(hashes(STAFF)).toEqual([sha('1'.repeat(64)), sha(device)]);
-    expect((await call(userSync, { action: 'pull' }, { token: device })).status).toBe(200);
+    expect(r.json.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(r.json.token).not.toBe(device);
+    expect(hashes(STAFF)).toEqual([sha('1'.repeat(64)), sha(r.json.token)]);
+    expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token: device })).status).not.toBe(200);
   });
 
-  it('a first-device "r:" token is made proven in place, and every other "r:" is removed', async () => {
+  it('a first-device "r:" token is swapped for a fresh proven one, and every other "r:" is removed', async () => {
     const SQUAT = 's'.repeat(64);
     const device = '6'.repeat(64);
     seedStaff(['r:' + sha(SQUAT), 'r:' + sha(device)]);
     const r = await signIn(device);
-    expect(r.json.token).toBe(device);
-    expect(hashes(STAFF)).toEqual([sha(device)]);
+    expect(r.json.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(r.json.token).not.toBe(device);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+  });
+
+  it('PROBE-U: a "u:" token a stranger planted on a shared device dies when the pastor signs in there', async () => {
+    seedStaff([sha('1'.repeat(64))]);
+    // a stranger types the pastor's address on the shared device and keeps a copy of its token
+    const planted = (await call(userSync, { action: 'pull', email: STAFF })).json.sessionToken;
+    expect((await call(userSync, { action: 'pull' }, { token: planted })).status).toBe(403);
+    // the pastor later signs in with the staff password on that device
+    const r = await signIn(planted);
+    expect(r.json.token).not.toBe(planted);
+    expect(hashes(STAFF)).toHaveLength(2); // F8: no extra proven token
+    // the stranger's copy still opens nothing; the pastor's device does
+    // the planted entry is gone outright, so the copy is an unknown token (401), not even unproven
+    const pull = await call(userSync, { action: 'pull' }, { token: planted });
+    expect(pull.status).toBe(401);
+    expect(pull.raw).not.toContain('PRIVATE prayer');
+    expect((await call(userSync, { action: 'pull' }, { token: r.json.token })).status).toBe(200);
+  });
+
+  it('PROBE-R: a squatter\'s "r:" token on a shared device dies when the pastor signs in there', async () => {
+    seedStaff([]);
+    db.tables.profiles = db.tables.profiles.filter((p) => p.email !== STAFF);
+    // Mallory registers the pastor's address first on the shared device and keeps a copy of its token
+    const squat = (await call(userProfile, { action: 'register', email: STAFF, firstName: 'Mallory' })).json.sessionToken;
+    expect(hashes(STAFF)).toEqual(['r:' + sha(squat)]);
+    const r = await signIn(squat);
+    expect(r.json.token).not.toBe(squat);
+    expect(hashes(STAFF)).toEqual([sha(r.json.token)]);
+    // the pastor pushes the journal from this device; Mallory's copy reads nothing
+    await call(userSync, { action: 'push', data: { journal: JOURNAL } }, { token: r.json.token });
+    const pull = await call(userSync, { action: 'pull' }, { token: squat });
+    expect(pull.status).toBe(401);
+    expect(pull.raw).not.toContain('PRIVATE prayer');
   });
 
   it('an already proven device token is handed back unchanged, and any "r:" is still removed', async () => {
@@ -1015,6 +1051,54 @@ describe('F8: a staff sign-in promotes the device\'s own token instead of mintin
     const r = await signIn(device);
     expect(r.json.token).toBeNull();
     expect(hashes(STAFF)).toEqual(['u:' + sha(device), 'r:' + 'f'.repeat(64)]);
+  });
+});
+
+describe('a first-time reader who is in PCO (EmailGate: pco-sync sync, get, register)', () => {
+  const PIA = 'pia@example.com';
+
+  beforeEach(() => {
+    process.env.PCO_APP_ID = 'test-app'; process.env.PCO_SECRET = 'test-secret';
+    const data = {
+      data: [{ id: 'p1', type: 'Person', attributes: { first_name: 'Pia', last_name: 'Pco' },
+        relationships: { emails: { data: [{ id: 'e1' }] }, primary_campus: { data: null } } }],
+      included: [{ type: 'Email', id: 'e1', attributes: { address: PIA }, relationships: { person: { data: { id: 'p1' } } } }],
+    };
+    resend.mockImplementation(async (url) => (String(url).includes('planningcenteronline')
+      ? { ok: true, status: 200, json: async () => data, text: async () => '' }
+      : { ok: true, status: 200, json: async () => ({ id: 'em_1' }) }));
+  });
+  afterEach(() => { delete process.env.PCO_APP_ID; delete process.env.PCO_SECRET; });
+
+  async function emailGate(ip) {
+    const sync = await call(pcoSync, { action: 'sync', email: PIA }, { ip });
+    await call(userProfile, { action: 'get', email: PIA }, { ip });
+    const reg = await call(userProfile, {
+      action: 'register', email: PIA, firstName: 'Pia', lastName: 'Pco', persona: 'congregation', lang: 'es', campus: 'us-alpharetta',
+    }, { ip });
+    return { sync, reg };
+  }
+
+  it('R2: anonymous sync writes nothing, so register stores persona, language and campus and gives a first-device token', async () => {
+    const { sync, reg } = await emailGate();
+    expect(sync.json.synced).toBe(false);
+    expect(sync.json.profile).toMatchObject({ firstName: 'Pia', lastName: 'Pco' });
+    const token = reg.json.sessionToken;
+    expect(hashes(PIA)).toEqual(['r:' + sha(token)]);
+    expect(profileRow(PIA)).toMatchObject({ first_name: 'Pia', persona: 'congregation', lang: 'es', campus: 'us-alpharetta' });
+    const push = await call(userSync, { action: 'push', data: { journal: [{ id: 'p1', date: '2026-10-01', text: 'first', updatedAt: '2026-10-01T00:00:00Z' }] } }, { token });
+    expect(push.status).toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token })).status).toBe(200);
+  });
+
+  it('R2b: the first device syncs with no code, so the strangers\' code budget never applies', async () => {
+    const ip = '198.51.100.77';
+    const { reg } = await emailGate(ip);
+    const token = reg.json.sessionToken;
+    expect((await call(userSync, { action: 'push', data: { journal: [] } }, { token, ip })).status).toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token, ip })).status).toBe(200);
+    expect(resend.mock.calls.filter(([u]) => String(u).includes('resend'))).toHaveLength(0);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key.startsWith('dwproof-send'))).toHaveLength(0);
   });
 });
 

@@ -303,19 +303,27 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
 
 /**
  * Staff sign-in on a device that already holds a cloud token for the staff
- * address: make THAT token proven instead of minting another, so repeated
- * sign-ins on one device do not fill the proven cap (5) and push out the
- * person's other devices.
- *   - the plain hash is already there: nothing to promote (every "r:" is still removed);
- *   - "u:<hash>" or "r:<hash>": swapped for the plain hash (appended as the
- *     newest proven entry, as promoteToken does), removing every "r:";
- *   - not in this profile at all: returns false and the caller issues a new token.
+ * address: put a proven token in THAT token's slot instead of adding another,
+ * so repeated sign-ins on one device do not fill the proven cap (5) and push
+ * out the person's other devices.
+ *   - the plain hash is already there: nothing to rotate (every "r:" is still
+ *     removed) and the same raw token is handed back;
+ *   - "u:<hash>" or "r:<hash>": ROTATED, never promoted in place. Those tokens
+ *     were handed out with no proof, so someone else may hold a copy (a stranger
+ *     who typed the address on a shared device, a squatter who registered it
+ *     first). The old entry and every "r:" are removed and a freshly generated
+ *     token is appended as the newest proven entry, as promoteToken does, so the
+ *     planted copy dies and the token count stays the same;
+ *   - not in this profile at all: returns null and the caller issues a new token.
  * A compare-and-swap on the array, like promoteToken. Fails closed: a database
  * error throws "Failed to store token" (sync_token answers { token: null }).
  *
- * @returns {Promise<boolean>} true when the token is a proven entry afterwards.
+ * @param {string} raw the raw token the device holds.
+ * @returns {Promise<string|null>} the raw proven token the device must keep, or
+ *   null when `raw` is not a token of this profile.
  */
-async function claimProvenToken(db, email, hash) {
+async function claimProvenToken(db, email, raw) {
+  const hash = hashToken(raw);
   for (let attempt = 0; attempt < 4; attempt++) {
     const { data, error } = await db
       .from("profiles")
@@ -326,15 +334,19 @@ async function claimProvenToken(db, email, hash) {
     const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : [];
 
     let hashes;
+    let result;
     if (prev.includes(hash)) {
-      if (!prev.some(isFirst)) return true;
+      if (!prev.some(isFirst)) return raw;
       hashes = prev.filter((h) => !isFirst(h));
+      result = raw;
     } else if (prev.includes(UNPROVEN_PREFIX + hash) || prev.includes(FIRST_PREFIX + hash)) {
+      const fresh = generateToken();
       hashes = prev.filter((h) => h !== UNPROVEN_PREFIX + hash && !isFirst(h));
-      hashes.push(hash);
+      hashes.push(fresh.hash);
       hashes = capClass(hashes, isPlain, MAX_PROVEN);
+      result = fresh.raw;
     } else {
-      return false;
+      return null;
     }
 
     const { data: updated, error: updateErr } = await db
@@ -347,7 +359,7 @@ async function claimProvenToken(db, email, hash) {
       console.error("claimProvenToken update error:", updateErr.message);
       throw new Error("Failed to store token");
     }
-    if (updated && updated.length > 0) return true;
+    if (updated && updated.length > 0) return result;
     // CAS miss — a concurrent token change landed; re-read and retry.
   }
   throw new Error("Failed to store token: concurrent update conflict");

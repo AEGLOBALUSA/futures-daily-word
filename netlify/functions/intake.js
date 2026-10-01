@@ -515,9 +515,11 @@ exports.handler = async (event) => {
     // staff session, never from the request. No profile yet means nothing to
     // open: the client's register call creates it and gets a first-device token.
     // The device sends the cloud token it already holds (`currentToken`); if that
-    // token belongs to this staff address it is made proven in place (every "r:"
-    // still removed) and handed back, so signing in again on the same device
-    // never mints a sixth proven token that pushes out another device.
+    // token belongs to this staff address, a proven token takes its slot (every
+    // "r:" still removed) and is handed back, so signing in again on the same
+    // device never mints a sixth proven token that pushes out another device. An
+    // unproven ("u:") or first-device ("r:") token is ROTATED, not promoted: a
+    // copy someone planted on the device must not become a proven token.
     if (action === "sync_token") {
       if (await isSharedRateLimited("intake-sync-token", ip, 10, 15 * 60 * 1000)) {
         return json(event, 429, { error: "Too many attempts. Try again later." });
@@ -526,9 +528,8 @@ exports.handler = async (event) => {
       if (!profile) return json(event, 200, { token: null });
       try {
         const current = typeof body.currentToken === "string" ? body.currentToken.trim() : "";
-        if (/^[0-9a-f]{64}$/.test(current) && await claimProvenToken(db(), staff.email, hashToken(current))) {
-          return json(event, 200, { token: current });
-        }
+        const claimed = /^[0-9a-f]{64}$/.test(current) ? await claimProvenToken(db(), staff.email, current) : null;
+        if (claimed) return json(event, 200, { token: claimed });
         return json(event, 200, { token: await issueToken(db(), staff.email, { proven: true }) });
       } catch {
         return json(event, 200, { token: null });

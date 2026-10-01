@@ -254,43 +254,30 @@ exports.handler = async (event) => {
         campusName: pcoProfile.campusName
       };
 
-      // Upsert into Supabase profiles
-      const db = getSupabase();
-      const { data: existing } = await db.from("profiles").select("email").eq("email", email).single();
-
-      // An existing profile is rewritten only for its own proven owner: a
-      // PROVEN, non-provisional token for this same address. Anyone else (no
-      // token, an unproven or first-device token, or a token for another
-      // address) gets the lookup back and nothing is written.
-      if (existing && !(session && session.proven && !session.provisional && session.email === email)) {
+      // Only the address's own proven owner gets anything written: a PROVEN,
+      // non-provisional token for this same address. Anyone else (no token, an
+      // unproven or first-device token, or a token for another address) gets the
+      // lookup back and nothing is written, and that includes creating a NEW
+      // profile. A first-time reader's EmailGate calls this before register; if
+      // sync created the row, register would take the existing-address path and
+      // drop their persona, language and campus, hand them an unproven token
+      // (a code before the first sync) and put them on the strangers' code
+      // budget. Left alone, register creates the row with everything it was
+      // sent and gives the first device a first-device token.
+      if (!(session && session.proven && !session.provisional && session.email === email)) {
         return { statusCode: 200, headers, body: JSON.stringify({ synced: false, profile: lookedUp }) };
       }
 
-      const profileData = {
-        first_name: pcoProfile.firstName,
-        last_name: pcoProfile.lastName,
-        email: email,
-        campus: pcoProfile.campusId || undefined,
-        last_active_at: new Date().toISOString()
-      };
+      // Update — only overwrite fields that have PCO data. A proven token for
+      // this address means its profile row exists; nothing is inserted here.
+      const db = getSupabase();
+      const updates = {};
+      if (pcoProfile.firstName) updates.first_name = pcoProfile.firstName;
+      if (pcoProfile.lastName) updates.last_name = pcoProfile.lastName;
+      if (pcoProfile.campusId) updates.campus = pcoProfile.campusId;
+      updates.last_active_at = new Date().toISOString();
 
-      // Remove undefined values
-      Object.keys(profileData).forEach(k => profileData[k] === undefined && delete profileData[k]);
-
-      if (existing) {
-        // Update — only overwrite fields that have PCO data
-        const updates = {};
-        if (pcoProfile.firstName) updates.first_name = pcoProfile.firstName;
-        if (pcoProfile.lastName) updates.last_name = pcoProfile.lastName;
-        if (pcoProfile.campusId) updates.campus = pcoProfile.campusId;
-        updates.last_active_at = new Date().toISOString();
-
-        await db.from("profiles").update(updates).eq("email", email);
-      } else {
-        // Insert new
-        profileData.registered_at = new Date().toISOString();
-        await db.from("profiles").insert(profileData);
-      }
+      await db.from("profiles").update(updates).eq("email", email);
 
       return {
         statusCode: 200,
