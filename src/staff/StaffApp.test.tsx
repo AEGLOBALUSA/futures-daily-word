@@ -384,7 +384,7 @@ describe('StaffApp sign-in: Email me a code', () => {
     expect(calls.some(c => c.action === 'email_setup_code')).toBe(false);
     const alert = byTestId(el, 'staff-email-code')!.nextElementSibling;
     expect(alert?.getAttribute('role')).toBe('alert');
-    expect(alert?.textContent).toBe('Type your work email first.');
+    expect(alert?.textContent).toBe('Type your work email.');
     act(() => root.unmount());
   });
 
@@ -413,6 +413,34 @@ describe('StaffApp sign-in: Email me a code', () => {
     expect(alert?.getAttribute('role')).toBe('alert');
     expect(alert?.textContent).toBe('Too many codes asked for. Try again in a few minutes.');
     expect(byId(el, 'staff-code')).not.toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('translates staff sign-in and keeps password fields when another code is sent', async () => {
+    let sends = 0;
+    const { el, root } = await openSignIn(async () => { sends += 1; return { sent: true }; });
+    await setInput(byId(el, 'staff-email')!, 'set.pastor@futures.church');
+    await act(async () => { byTestId(el, 'staff-email-code')!.click(); });
+    await flush();
+    await setInput(byId(el, 'staff-code')!, 'old-code');
+    await setInput(byId(el, 'staff-password')!, 'a-long-test-passphrase-9');
+    await setInput(byId(el, 'staff-confirm')!, 'a-long-test-passphrase-9');
+    await act(async () => { byTestId(el, 'staff-send-another')!.click(); });
+    await flush();
+    expect(sends).toBe(2);
+    expect((byId(el, 'staff-code') as HTMLInputElement).value).toBe('');
+    expect((byId(el, 'staff-password') as HTMLInputElement).value).toBe('a-long-test-passphrase-9');
+    expect((byId(el, 'staff-confirm') as HTMLInputElement).value).toBe('a-long-test-passphrase-9');
+    expect(el.querySelector('[role="status"]')?.textContent).toContain('Another code is on its way');
+    act(() => root.unmount());
+  });
+
+  it('renders the staff sign-in copy in Spanish', async () => {
+    localStorage.setItem('dw_lang', 'es');
+    const { el, root } = await openSignIn();
+    expect(el.querySelector('h1')?.textContent).toBe('Inicio de sesión del equipo');
+    expect(el.textContent).toContain('Correo de trabajo');
+    localStorage.removeItem('dw_lang');
     act(() => root.unmount());
   });
 

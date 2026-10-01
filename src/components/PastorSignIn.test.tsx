@@ -130,6 +130,30 @@ describe('PastorSignIn', () => {
     expect(api.intake).not.toHaveBeenCalled();
   });
 
+  it('keeps Continue live for an empty email and names the fix beside it', async () => {
+    const el = mount(<PastorSignIn lang="en" />);
+    await flush();
+    await click(buttonNamed(el, /Sign in as pastor/));
+    const continueButton = buttonNamed(el, /^Continue$/);
+    expect(continueButton.disabled).toBe(false);
+    await submit(el.querySelector('form')!);
+    expect(el.querySelector('[role="alert"]')?.textContent).toBe('Type your work email.');
+    expect(el.querySelector('form')?.noValidate).toBe(true);
+  });
+
+  it('translates a 503 refusal in the card language', async () => {
+    api.intake.mockImplementation(async (action: string) => {
+      if (action === 'auth_status') throw Object.assign(new Error('anything'), { status: 503 });
+      return {};
+    });
+    const el = mount(<PastorSignIn lang="es" />);
+    await flush();
+    await click(buttonNamed(el, /Iniciar sesi\u00f3n como pastor/));
+    type(el.querySelector('#dw-pastor-email') as HTMLInputElement, 'josh@futures.church');
+    await submit(el.querySelector('form')!);
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('no est\u00e1 disponible');
+  });
+
   it('signs in: password step → login → token stored, persona + profile stamped, signed-in card', async () => {
     user.profile = { email: 'ae@futures.global', firstName: '', lastName: '', phone: '', church: '', city: '', campus: 'us-alpharetta' };
     api.intake.mockImplementation(async (action: string) => {
@@ -292,6 +316,19 @@ describe('PastorSignIn', () => {
       expect(again.nextElementSibling?.getAttribute('role')).toBe('alert');
       expect(again.nextElementSibling?.textContent).toBe('Too many codes asked for. Try again in a few minutes.');
       expect(el.querySelector('#dw-pastor-setup-code')).toBeTruthy();
+    });
+
+    it('resending keeps the new password fields and reports success', async () => {
+      const el = await toPasswordStep();
+      await click(el.querySelector('#dw-pastor-email-code') as HTMLButtonElement);
+      type(el.querySelector('#dw-pastor-setup-code') as HTMLInputElement, 'old-code');
+      type(el.querySelector('#dw-pastor-password') as HTMLInputElement, 'twelve characters');
+      type(el.querySelector('#dw-pastor-confirm') as HTMLInputElement, 'twelve characters');
+      await click(el.querySelector('#dw-pastor-send-another') as HTMLButtonElement);
+      expect((el.querySelector('#dw-pastor-setup-code') as HTMLInputElement).value).toBe('');
+      expect((el.querySelector('#dw-pastor-password') as HTMLInputElement).value).toBe('twelve characters');
+      expect((el.querySelector('#dw-pastor-confirm') as HTMLInputElement).value).toBe('twelve characters');
+      expect(el.querySelector('[role="status"]')?.textContent).toContain('Another code is on its way');
     });
 
     it('a late answer to Send another code does not undo Back to sign in', async () => {
