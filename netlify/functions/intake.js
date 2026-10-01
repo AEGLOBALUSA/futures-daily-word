@@ -278,6 +278,27 @@ async function sessionStaff(event) {
   return resolveStaff(data.email);
 }
 
+/** The raw bearer token this request carries ("" when none). */
+function bearerToken(event) {
+  const auth = event.headers.authorization || event.headers.Authorization || "";
+  return auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+}
+
+/**
+ * Is this request's own staff session still there? Read AFTER a write that the
+ * session authorised: a forgot-password reset ends every session for the
+ * address, so a session that has gone mid-request means a reset (or a sign-out)
+ * landed in between and the write must be undone. true / false, or null when
+ * the read itself failed (callers treat that as gone: fail closed).
+ */
+async function ownSessionAlive(event) {
+  const raw = bearerToken(event);
+  if (!raw) return false;
+  const { data, error } = await db().from("staff_sessions").select("token_hash").eq("token_hash", hashToken(raw)).maybeSingle();
+  if (error) return null;
+  return !!data;
+}
+
 async function issueSession(email) {
   const raw = crypto.randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
@@ -757,8 +778,21 @@ exports.handler = async (event) => {
       try {
         const current = typeof body.currentToken === "string" ? body.currentToken.trim() : "";
         const claimed = /^[0-9a-f]{64}$/.test(current) ? await claimProvenToken(db(), staff.email, current) : null;
-        if (claimed) return json(event, 200, { token: claimed });
-        return json(event, 200, { token: await issueToken(db(), staff.email, { proven: true }) });
+        const token = claimed || await issueToken(db(), staff.email, { proven: true });
+        // The staff session was checked at the top of the request. A forgot-
+        // password reset may have ended it since (the owner taking the account
+        // back from a stolen session): read it again AFTER minting, and if it is
+        // gone, take back the proven token just minted. A token the device
+        // already held unchanged (claimed === current) was not minted here.
+        if ((await ownSessionAlive(event)) !== true) {
+          if (token !== current) {
+            try { await revokeToken(db(), staff.email, token); } catch (err) {
+              console.error("[intake] sync_token: could not withdraw a token minted from an ended session:", err && err.message);
+            }
+          }
+          return json(event, 200, { token: null });
+        }
+        return json(event, 200, { token });
       } catch {
         return json(event, 200, { token: null });
       }
@@ -784,19 +818,42 @@ exports.handler = async (event) => {
       if (newPassword === currentPassword) {
         return json(event, 400, { error: "Choose a different password from the current one." });
       }
-      const { error } = await db().from("staff_roster").update({
-        password_hash: hashPassword(newPassword),
+      const refuse = () => json(event, 403, { error: "Current password is incorrect." });
+      // CAS on the hash just checked: a forgot-password reset that landed after
+      // the read (the owner taking the account back from a stolen session) has
+      // changed it, so this write matches nothing and nothing is revoked.
+      const newHash = hashPassword(newPassword);
+      const { data: changed, error } = await db().from("staff_roster").update({
+        password_hash: newHash,
         updated_at: new Date().toISOString()
-      }).eq("email", staff.email);
+      }).eq("email", staff.email).eq("password_hash", row.password_hash).select("email");
       if (error) throw error;
-      // Same token extraction as logout: keep this request's session, drop the rest.
-      const auth = event.headers.authorization || event.headers.Authorization || "";
-      const raw = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-      let revoke = db().from("staff_sessions").delete().eq("email", staff.email);
-      if (raw) revoke = revoke.neq("token_hash", hashToken(raw));
-      const { error: revokeErr } = await revoke;
-      // The password is already changed at this point — report, don't fail the call.
-      if (revokeErr) console.error("intake change_password: revoking other sessions failed", revokeErr);
+      if (!changed || changed.length !== 1) return refuse();
+      // The reset may instead have ended this session just before the write.
+      // Read this address's sessions AFTER the write: if this request's own is
+      // gone, put the old hash back (CAS on the new one, so a reset's hash that
+      // has landed since is never overwritten) and refuse. The same read is the
+      // list of sessions to revoke, so a session issued after it (the owner's
+      // own reset session) is never swept away by this change.
+      const raw = bearerToken(event);
+      const own = raw ? hashToken(raw) : "";
+      const { data: sessions, error: sessErr } = await db().from("staff_sessions").select("token_hash").eq("email", staff.email);
+      if (sessErr || !own || !(sessions || []).some((x) => x.token_hash === own)) {
+        const { error: undoErr } = await db().from("staff_roster").update({
+          password_hash: row.password_hash,
+          updated_at: new Date().toISOString()
+        }).eq("email", staff.email).eq("password_hash", newHash);
+        if (undoErr) console.error("intake change_password: could not undo a change from an ended session", undoErr);
+        if (sessErr) return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+        return refuse();
+      }
+      // Keep this request's session, drop every other one that existed at the change.
+      const others = sessions.map((x) => x.token_hash).filter((h) => h !== own);
+      if (others.length) {
+        const { error: revokeErr } = await db().from("staff_sessions").delete().eq("email", staff.email).in("token_hash", others);
+        // The password is already changed at this point — report, don't fail the call.
+        if (revokeErr) console.error("intake change_password: revoking other sessions failed", revokeErr);
+      }
       return json(event, 200, { ok: true });
     }
 

@@ -41,7 +41,9 @@ function resetTables() {
 
 function matches(row, filters) {
   return filters.every((f) => {
-    if (f.op === 'eq') return row[f.col] === f.val;
+    // jsonb filter values arrive as JSON strings (lib/auth.js's CAS on session_token_hashes).
+    if (f.op === 'eq') return typeof f.val === 'string' && row[f.col] !== null && typeof row[f.col] === 'object' ? JSON.stringify(row[f.col]) === f.val : row[f.col] === f.val;
+    if (f.op === 'in') return f.val.includes(row[f.col]);
     if (f.op === 'neq') return row[f.col] !== f.val;
     if (f.op === 'lt') return row[f.col] < f.val;
     if (f.op === 'is') return (row[f.col] ?? null) === f.val;
@@ -100,6 +102,7 @@ function builder(table) {
     delete() { state.op = 'delete'; return b; },
     eq(col, val) { state.filters.push({ op: 'eq', col, val }); return b; },
     neq(col, val) { state.filters.push({ op: 'neq', col, val }); return b; },
+    in(col, val) { state.filters.push({ op: 'in', col, val }); return b; },
     lt(col, val) { state.filters.push({ op: 'lt', col, val }); return b; },
     gte(col, val) { state.filters.push({ op: 'gte', col, val }); return b; },
     is(col, val) { state.filters.push({ op: 'is', col, val }); return b; },
@@ -1215,5 +1218,128 @@ describe('a sign-in with the old password racing a forgot-password reset', () =>
     if (l.body.token) expect((await call({ action: 'me' }, l.body.token)).status).toBe(401);
     expect(sessionsFor()).toHaveLength(1);
     expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(403);
+  });
+});
+
+describe('a change_password or sync_token from a stolen session racing a forgot-password reset', () => {
+  const STAFF = 'held.pastor@futures.church';
+  const OWNER_NEW = 'owners-own-new-passphrase-7';
+  const ATTACKER = 'attackers-chosen-passphrase-3';
+  const resend = vi.fn();
+  const sessionsFor = () => tables.staff_sessions.filter((x) => x.email === STAFF);
+  const rosterRow = () => tables.staff_roster.find((r) => r.email === STAFF);
+
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = 're_test';
+    resend.mockReset();
+    resend.mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'em_1' }) });
+    vi.stubGlobal('fetch', resend);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.RESEND_API_KEY;
+  });
+
+  /** Hold the first read of `cols` on `table` (a maybeSingle); resolves once it is held. */
+  function holdRead(table, cols) {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    let reached;
+    const held = new Promise((r) => { reached = r; });
+    let done = false;
+    selectHook = async (q) => {
+      if (!done && q.table === table && q.cols === cols) { done = true; reached(); await gate; }
+    };
+    return { held, release: () => release() };
+  }
+
+  /** The owner emails themselves a code and resets the password with it. */
+  async function ownerResets() {
+    const asked = await call({ action: 'email_setup_code', email: STAFF, lang: 'en' });
+    expect(asked.status).toBe(200);
+    const mailed = JSON.parse(resend.mock.calls[resend.mock.calls.length - 1][1].body);
+    const code = mailed.text.match(/[A-Z0-9]{5}-[A-Z0-9]{5}/)[0];
+    const r = await call({ action: 'set_password', email: STAFF, password: OWNER_NEW, setupCode: code });
+    expect(r.status).toBe(200);
+    return r.body.token;
+  }
+
+  it('change_password read the old hash, then the owner reset it: the change is refused and the owner keeps the account', async () => {
+    addRoster({ email: STAFF, campus_id: 'us-gwinnett', campus_set_by: 'admin', password_hash: hashPassword(PASSWORD) });
+    const stolen = await signIn(STAFF);
+    const hold = holdRead('staff_roster', 'password_hash'); // change_password's read of the hash
+    const change = call({ action: 'change_password', currentPassword: PASSWORD, newPassword: ATTACKER }, stolen);
+    await hold.held;
+    const owner = await ownerResets();
+    hold.release();
+    const c = await change;
+    expect(c.status).toBe(403);
+    selectHook = null;
+    // the owner's new password works, the attacker's does not, the old one does not
+    expect((await call({ action: 'login', email: STAFF, password: OWNER_NEW })).status).toBe(200);
+    expect((await call({ action: 'login', email: STAFF, password: ATTACKER })).status).toBe(403);
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(403);
+    // the owner's reset session is alive; the stolen one is not
+    expect((await call({ action: 'me' }, owner)).status).toBe(200);
+    expect((await call({ action: 'me' }, stolen)).status).toBe(401);
+  });
+
+  it('change_password wrote, but its own session had already been ended: the old hash is put back and the change refused', async () => {
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    const before = rosterRow().password_hash;
+    const stolen = await signIn(STAFF);
+    const other = await signIn(STAFF);
+    const hold = holdRead('staff_roster', 'password_hash');
+    const change = call({ action: 'change_password', currentPassword: PASSWORD, newPassword: ATTACKER }, stolen);
+    await hold.held;
+    // a reset's first sweep: every session for the address ends (its UPDATE has not landed yet)
+    tables.staff_sessions = tables.staff_sessions.filter((x) => x.email !== STAFF);
+    hold.release();
+    const c = await change;
+    expect(c.status).toBe(403);
+    selectHook = null;
+    expect(rosterRow().password_hash).toBe(before);
+    expect((await call({ action: 'login', email: STAFF, password: ATTACKER })).status).toBe(403);
+    expect((await call({ action: 'me' }, other)).status).toBe(401);
+  });
+
+  it('a change with no race still works: new password in, every other session out, this one kept', async () => {
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    const mine = await signIn(STAFF);
+    const lost = await signIn(STAFF);
+    const c = await call({ action: 'change_password', currentPassword: PASSWORD, newPassword: OWNER_NEW }, mine);
+    expect(c.status).toBe(200);
+    expect((await call({ action: 'me' }, mine)).status).toBe(200);
+    expect((await call({ action: 'me' }, lost)).status).toBe(401);
+    expect((await call({ action: 'login', email: STAFF, password: OWNER_NEW })).status).toBe(200);
+    expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(403);
+  });
+
+  it('sync_token minted from a session that a reset ended mid-request: the token is taken back and none is handed out', async () => {
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    tables.profiles = [{ email: STAFF, session_token_hashes: [] }];
+    const stolen = await signIn(STAFF);
+    const hold = holdRead('profiles', 'email'); // sync_token's profile check, after the session check
+    const sync = call({ action: 'sync_token' }, stolen);
+    await hold.held;
+    const owner = await ownerResets();
+    hold.release();
+    const s = await sync;
+    expect(s.status).toBe(200);
+    expect(s.body).toEqual({ token: null });
+    selectHook = null;
+    expect(tables.profiles[0].session_token_hashes).toEqual([]);
+    expect((await call({ action: 'me' }, owner)).status).toBe(200);
+    expect(sessionsFor()).toHaveLength(1);
+  });
+
+  it('sync_token with a live session still hands back a proven token', async () => {
+    addRoster({ email: STAFF, password_hash: hashPassword(PASSWORD) });
+    tables.profiles = [{ email: STAFF, session_token_hashes: [] }];
+    const mine = await signIn(STAFF);
+    const s = await call({ action: 'sync_token' }, mine);
+    expect(s.status).toBe(200);
+    expect(s.body.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(tables.profiles[0].session_token_hashes).toHaveLength(1);
   });
 });
