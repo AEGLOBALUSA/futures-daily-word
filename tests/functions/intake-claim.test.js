@@ -529,7 +529,8 @@ describe('auth_status and login do not list the accounts waiting to be claimed',
     const status = async (email) => (await call({ action: 'auth_status', email })).body;
     expect(await status('live.code@futures.church')).toEqual({ setup: true });
     expect(await status('stale.code@futures.church')).toEqual({ setup: false });
-    expect(await status('short.code@futures.church')).toEqual({ setup: false });
+    // Ashley's code opens the code box until its very last minute (emailed codes live elsewhere)
+    expect(await status('short.code@futures.church')).toEqual({ setup: true });
     expect(await status('no.code@futures.church')).toEqual({ setup: false });
     expect(await status('done@futures.church')).toEqual({ setup: false });
     expect(await status('josh@futures.church')).toEqual({ setup: false });
@@ -619,10 +620,13 @@ describe('Ashley issues the codes', () => {
 
   it('resetting a password does not leave the row open: it ends sessions and waits for a new code', async () => {
     const admin = await adminToken();
-    addRoster({ email: 'set.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin', password_hash: hashPassword(PASSWORD) });
+    addRoster({ email: 'set.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin', password_hash: hashPassword(PASSWORD),
+      email_code_hash: hashSetupCode('ZZZZZ-ZZZZZ'), email_code_expires_at: new Date(Date.now() + 20 * 60_000).toISOString() });
     const pastorToken = await signIn('set.pastor@futures.church');
     const reset = await call({ action: 'roster_clear_password', email: 'set.pastor@futures.church' }, admin);
     expect(reset.status).toBe(200);
+    // starting over also voids a code they (or anyone) emailed before
+    expect((await call({ action: 'set_password', email: 'set.pastor@futures.church', password: 'stranger-passphrase-99', setupCode: 'ZZZZZ-ZZZZZ' })).status).toBe(403);
     expect(reset.body.setupCode).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
     // old session is dead, old password is dead
     expect((await call({ action: 'me' }, pastorToken)).status).toBe(401);
@@ -791,10 +795,11 @@ describe('email_setup_code: a person on the roster emails themselves a code', ()
     expect(m.from).toMatch(/notes@futuresdailyword\.com/);
     expect(m.subject).toBe('Your Daily Word staff code');
     const code = mailedCode(0);
-    // only a hash is stored, and it lives 30 minutes
-    expect(row().setup_code_hash).toBeTruthy();
-    expect(row().setup_code_hash).not.toContain(code);
-    const ttl = Date.parse(row().setup_code_expires_at) - Date.now();
+    // only a hash is stored, in the emailed slot, and it lives 30 minutes
+    expect(row().email_code_hash).toBeTruthy();
+    expect(row().email_code_hash).not.toContain(code);
+    expect(row().setup_code_hash ?? null).toBeNull();
+    const ttl = Date.parse(row().email_code_expires_at) - Date.now();
     expect(ttl).toBeGreaterThan(29 * 60_000);
     expect(ttl).toBeLessThanOrEqual(30 * 60_000);
     // the code sets the first password, once
@@ -813,12 +818,41 @@ describe('email_setup_code: a person on the roster emails themselves a code', ()
     expect((await ask(STAFF)).body).toEqual(SENT);
     expect((await ask(STRANGER, '198.51.100.77')).body).toEqual(SENT);
     expect(resend).toHaveBeenCalledTimes(1);
-    expect(row().setup_code_hash).toBeTruthy(); // the roster row now holds an emailed code
+    expect(row().email_code_hash).toBeTruthy(); // the roster row now holds an emailed code
     const status = async (email) => (await call({ action: 'auth_status', email })).body;
     expect(await status(STAFF)).toEqual({ setup: false });
     expect(await status(STRANGER)).toEqual({ setup: false });
     // the emailed code still works through the "I have a code" path
     expect((await setWith(STAFF, mailedCode(0))).status).toBe(200);
+  });
+
+  it('an emailed code never voids the code Ashley handed over: either one works, and using one spends both', async () => {
+    addWithCode({ email: STAFF });
+    expect((await ask(STAFF, '198.51.100.77')).body).toEqual(SENT); // a stranger asks for a code
+    expect((await call({ action: 'auth_status', email: STAFF })).body).toEqual({ setup: true });
+    expect(row().email_code_hash).toBeTruthy();
+    // Ashley's code still works, and the emailed one is spent with it
+    expect((await setWith(STAFF, CODE)).status).toBe(200);
+    expect(row().setup_code_hash).toBeNull();
+    expect(row().email_code_hash).toBeNull();
+    expect((await setWith(STAFF, mailedCode(0), 'another-passphrase-123')).status).toBe(403);
+  });
+
+  it('the emailed code works beside Ashley\'s, and spends his too', async () => {
+    addWithCode({ email: STAFF });
+    expect((await ask(STAFF)).body).toEqual(SENT);
+    expect((await setWith(STAFF, mailedCode(0))).status).toBe(200);
+    expect(row().setup_code_hash).toBeNull();
+    expect(row().email_code_hash).toBeNull();
+    expect((await setWith(STAFF, CODE, 'another-passphrase-123')).status).toBe(403);
+  });
+
+  it('an expired emailed code is refused while Ashley\'s still works', async () => {
+    addWithCode({ email: STAFF });
+    expect((await ask(STAFF)).body).toEqual(SENT);
+    tables.staff_roster[0].email_code_expires_at = new Date(Date.now() - 1000).toISOString();
+    expect((await setWith(STAFF, mailedCode(0))).status).toBe(403);
+    expect((await setWith(STAFF, CODE)).status).toBe(200);
   });
 
   it('only the roster row\'s address is ever mailed, whatever else the request carries', async () => {
@@ -865,7 +899,7 @@ describe('email_setup_code: a person on the roster emails themselves a code', ()
     const r = await ask(STAFF);
     expect(r.body).toEqual(SENT);
     expect(resend).toHaveBeenCalledTimes(1);
-    expect(row().setup_code_hash).toBeTruthy();
+    expect(row().email_code_hash).toBeTruthy();
     // the password still works until the code is used
     expect((await call({ action: 'login', email: STAFF, password: PASSWORD })).status).toBe(200);
   });
