@@ -66,6 +66,51 @@ function fallbackStaff(email) {
   return { email: e, role: "campus", campusId: null, name: "" };
 }
 
+/**
+ * Who counts as staff: the ROSTER, not the shape of the address.
+ * `row` is the staff_roster row (or null). A made-up @futures.church address
+ * with no row and no entry in NAMED_STAFF is NOT staff (returns null), so it
+ * cannot set a password or sign in. Ashley is always admin.
+ */
+function staffFromRoster(email, row) {
+  const e = normalizeEmail(email);
+  if (!isAllowlistedEmail(e)) return null;
+  const named = NAMED_STAFF[e] || null;
+  if (e === "ae@futures.global") {
+    return {
+      email: e,
+      role: "admin",
+      campusId: (row && row.campus_id) || null,
+      campusSetBy: (row && row.campus_set_by) || null,
+      name: (row && row.display_name) || "Ashley Evans"
+    };
+  }
+  if (row) {
+    return {
+      email: e,
+      role: row.role === "admin" ? (named && named.role) || "campus" : row.role,
+      campusId: row.campus_id || null,
+      campusSetBy: row.campus_set_by == null ? null : row.campus_set_by,
+      name: row.display_name || (named && named.name) || ""
+    };
+  }
+  if (named) {
+    return { email: e, role: named.role, campusId: null, campusSetBy: null, name: named.name };
+  }
+  return null;
+}
+
+/**
+ * Has Ashley confirmed this person's campus? Only campus pastors need it.
+ * campus_set_by null with a campus id is the legacy case and counts as
+ * confirmed, the same convention as pastor-admin.js.
+ */
+function campusConfirmed(staff) {
+  if (!staff) return false;
+  if (staff.role !== "campus") return true;
+  return !!staff.campusId && staff.campusSetBy !== "self";
+}
+
 function questionVisible(question, role) {
   return questionVisibleForJob(question, role, null);
 }
@@ -369,7 +414,9 @@ function publicStaff(staff) {
     role: staff.role,
     campusId: staff.campusId || null,
     name: staff.name || "",
-    isAdmin: staff.role === "admin"
+    isAdmin: staff.role === "admin",
+    // True when this person's saves to the campus corner wait for Ashley to confirm the campus.
+    campusPending: staff.role === "campus" && !campusConfirmed(staff)
   };
 }
 
@@ -412,6 +459,8 @@ module.exports = {
   normalizeEmail,
   isAllowlistedEmail,
   fallbackStaff,
+  staffFromRoster,
+  campusConfirmed,
   questionVisible,
   questionVisibleForJob,
   isKeyVerseField,

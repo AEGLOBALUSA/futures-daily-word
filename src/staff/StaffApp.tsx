@@ -425,6 +425,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const [mine, setMine] = useState<{ id: string; status: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [held, setHeld] = useState(false);
   const [preview, setPreview] = useState<FormattedSermon | null>(null);
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
   // The shell shows errors at the top of the page; the save button sits at the
@@ -442,7 +443,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
     if (!isCongregationId(v)) return;
     setCongregationChoice(v);
     try { localStorage.setItem('dw_staff_congregation', v); } catch { /* */ }
-    setPreview(null); setDone(false); setLive(null); setFormError('');
+    setPreview(null); setDone(false); setHeld(false); setLive(null); setFormError('');
   };
   const errorRef = useRef<HTMLParagraphElement | null>(null);
   const fail = (msg: string) => {
@@ -550,11 +551,12 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       fail(`Fill in “${missing.label}” first — it is empty.`);
       return;
     }
-    setBusy(true); onError(''); setFormError(''); setDone(false); setLive(null);
+    setBusy(true); onError(''); setFormError(''); setDone(false); setHeld(false); setLive(null);
     try {
       const data = await intake<{
         preview?: FormattedSermon | null;
         published?: boolean;
+        pending?: boolean;
         publish_result?: { sermon?: { id?: string; title?: string } | null; cornerAdded?: number };
       }>('submit', {
         answers,
@@ -565,8 +567,10 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       });
       if (data.preview) setPreview(data.preview);
       setDone(true);
+      // Saved but waiting: the campus has not been confirmed yet, so nothing is live.
+      if (data.pending) setHeld(true);
       const published = data.publish_result?.sermon;
-      if (sermonForm) {
+      if (sermonForm && !data.pending) {
         if (!published?.id) {
           fail('Saved, but nothing reached the congregation page — there were no notes or title to publish.');
         } else {
@@ -692,7 +696,9 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       {done && !formError && (
         <div style={{ marginTop: 12, fontFamily: 'var(--font-sans)' }}>
           <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 14, fontWeight: 600 }}>
-            {job === 'campus'
+            {held
+              ? 'Saved. It goes on the campus corner once your campus is confirmed.'
+              : job === 'campus'
               ? 'It’s on the campus corner.'
               : live?.verified
                 ? `It’s on the ${congregationName(congregation)} page: ${live.title}`
@@ -700,7 +706,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
                   ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}
           </p>
-          {job !== 'campus' && (
+          {job !== 'campus' && !held && (
             <a href={congregationPageUrl(congregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 14, color: 'var(--dw-accent)', fontWeight: 600 }}>
               Open the {congregationName(congregation)} page →
             </a>

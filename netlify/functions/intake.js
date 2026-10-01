@@ -11,6 +11,8 @@ const {
   normalizeEmail,
   isAllowlistedEmail,
   fallbackStaff,
+  staffFromRoster,
+  campusConfirmed,
   questionVisibleForJob,
   isCampusId,
   lockCampus,
@@ -64,27 +66,10 @@ function clientIp(event) {
 async function resolveStaff(email) {
   const e = normalizeEmail(email);
   if (!isAllowlistedEmail(e)) return null;
-  const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name").eq("email", e).maybeSingle();
-  // Ashley is the only admin — lock it even if the roster row was edited.
-  if (e === "ae@futures.global") {
-    return {
-      email: e,
-      role: "admin",
-      campusId: (data && data.campus_id) || null,
-      name: (data && data.display_name) || "Ashley Evans"
-    };
-  }
-  if (data) {
-    const named = fallbackStaff(e);
-    const role = data.role === "admin" ? (named && named.role) || "campus" : data.role;
-    return {
-      email: e,
-      role,
-      campusId: data.campus_id || null,
-      name: data.display_name || (named && named.name) || ""
-    };
-  }
-  return fallbackStaff(e);
+  const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by").eq("email", e).maybeSingle();
+  // Staff means "on the roster" (or a named person, or Ashley). An address that
+  // only looks like a futures.church address is not staff.
+  return staffFromRoster(e, data);
 }
 
 async function ensureRoster(staff) {
@@ -368,7 +353,9 @@ exports.handler = async (event) => {
       if (!isAllowlistedEmail(email)) {
         return json(event, 200, { setup: false });
       }
-      const { data } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by, password_hash").eq("email", email).maybeSingle();
+      // Not on the roster: same answer as any unknown address.
+      if (!staffFromRoster(email, data)) return json(event, 200, { setup: false });
       return json(event, 200, { setup: !data || !data.password_hash });
     }
 
@@ -564,6 +551,7 @@ exports.handler = async (event) => {
             updated_at: new Date().toISOString()
           }).eq("email", staff.email);
           staff.campusId = campusId;
+          staff.campusSetBy = "self";
         }
       }
       const plan = applyAnswers(visible, answers, { name: staff.name || staff.email });
@@ -625,6 +613,15 @@ exports.handler = async (event) => {
         status: "pending"
       }).select("id, status, created_at, formatted_sermon").single();
       if (insErr) throw insErr;
+      if (!campusConfirmed(staff)) {
+        // A campus pastor whose campus Ashley has not confirmed: keep it pending
+        // in Review until he confirms the campus (People) or puts it live.
+        console.log("[intake] submit held", JSON.stringify({ email: staff.email, campusId, reason: "campus_not_confirmed" }));
+        return json(event, 200, {
+          ok: true, submission: row, preview: formatted_sermon, format_source,
+          published: false, pending: true, reason: "campus_not_confirmed"
+        });
+      }
       let publish_result;
       try {
         publish_result = await publishApproved({ ...row, answers, formatted_sermon, campus_id: campusId, congregation, email: staff.email, role: staff.role }, staff);
@@ -778,7 +775,9 @@ exports.handler = async (event) => {
 
       let publish_result = null;
       if (decision === "approved") {
-        publish_result = await publishApproved(sub, staff);
+        // Credit the person who wrote it, not the reviewer.
+        const author = await resolveStaff(sub.email);
+        publish_result = await publishApproved(sub, { ...staff, name: (author && author.name) || sub.email });
       }
       const { data: updated, error: upErr } = await db().from("intake_submissions").update({
         status: decision,

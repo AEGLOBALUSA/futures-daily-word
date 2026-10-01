@@ -35,6 +35,68 @@ describe('staff allowlist', () => {
   });
 });
 
+describe('staffFromRoster: the roster decides, not the address shape', () => {
+  it('turns a roster row into a staff record with role, campus and who set it', () => {
+    const s = core.staffFromRoster('Gwinnett@futures.church', {
+      role: 'campus', campus_id: 'us-gwinnett', campus_set_by: 'admin', display_name: 'Gwinnett Pastor',
+    });
+    expect(s).toEqual({
+      email: 'gwinnett@futures.church', role: 'campus', campusId: 'us-gwinnett',
+      campusSetBy: 'admin', name: 'Gwinnett Pastor',
+    });
+  });
+
+  it('keeps named staff signed in with no roster row yet', () => {
+    expect(core.staffFromRoster('josh@futures.church', null).role).toBe('hub');
+    expect(core.staffFromRoster('alexi.patsianis@futures.church', null).name).toBe('Alexi Patsianis');
+  });
+
+  it('does not treat a made-up futures.church address as staff', () => {
+    expect(core.staffFromRoster('nobody123@futures.church', null)).toBeNull();
+    // the old shape-only fallback is unchanged, and no longer used to sign anyone in
+    expect(core.fallbackStaff('nobody123@futures.church').role).toBe('campus');
+  });
+
+  it('refuses generic inboxes and other domains even with a row', () => {
+    expect(core.staffFromRoster('hello@futures.church', { role: 'campus' })).toBeNull();
+    expect(core.staffFromRoster('care@futures.church', { role: 'campus' })).toBeNull();
+    expect(core.staffFromRoster('someone@gmail.com', { role: 'campus' })).toBeNull();
+  });
+
+  it('always makes ae@futures.global the admin', () => {
+    expect(core.staffFromRoster('ae@futures.global', null).role).toBe('admin');
+    expect(core.staffFromRoster('ae@futures.global', { role: 'campus' }).role).toBe('admin');
+  });
+
+  it('downgrades an admin row for anyone but Ashley', () => {
+    expect(core.staffFromRoster('gwinnett@futures.church', { role: 'admin' }).role).toBe('campus');
+    expect(core.staffFromRoster('josh@futures.church', { role: 'admin' }).role).toBe('hub');
+  });
+});
+
+describe('campusConfirmed', () => {
+  it('needs no campus for hub, media and admin', () => {
+    expect(core.campusConfirmed({ role: 'hub' })).toBe(true);
+    expect(core.campusConfirmed({ role: 'media' })).toBe(true);
+    expect(core.campusConfirmed({ role: 'admin' })).toBe(true);
+  });
+
+  it('counts a campus Ashley set, and a legacy campus with no marker', () => {
+    expect(core.campusConfirmed({ role: 'campus', campusId: 'us-gwinnett', campusSetBy: 'admin' })).toBe(true);
+    expect(core.campusConfirmed({ role: 'campus', campusId: 'us-gwinnett', campusSetBy: null })).toBe(true);
+  });
+
+  it('does not count a campus the pastor picked, or no campus at all', () => {
+    expect(core.campusConfirmed({ role: 'campus', campusId: 'us-gwinnett', campusSetBy: 'self' })).toBe(false);
+    expect(core.campusConfirmed({ role: 'campus', campusId: null, campusSetBy: null })).toBe(false);
+  });
+
+  it('is shown to the app as campusPending', () => {
+    expect(core.publicStaff({ email: 'a@futures.church', role: 'campus', campusId: 'us-gwinnett', campusSetBy: 'self' }).campusPending).toBe(true);
+    expect(core.publicStaff({ email: 'josh@futures.church', role: 'hub' }).campusPending).toBe(false);
+  });
+});
+
 describe('campus lock', () => {
   it('pins a campus pastor to their assigned campus', () => {
     const staff = { email: 'p@futures.church', role: 'campus', campusId: 'us-gwinnett', name: '' };

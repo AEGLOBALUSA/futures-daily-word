@@ -236,4 +236,20 @@ describe('StaffApp hub save never fails silently', () => {
     vi.unstubAllGlobals();
     act(() => root.unmount());
   });
+
+  it('says a held campus save is waiting, not on the campus corner', async () => {
+    const { el, root } = await openHubForm(async () => ({
+      ok: true, published: false, pending: true, reason: 'campus_not_confirmed',
+    }));
+    const inputs = [...el.querySelectorAll('input[type="text"], input:not([type])')] as HTMLInputElement[];
+    await setInput(inputs[0], 'Grace Wins');
+    const save = [...el.querySelectorAll('button')].find(b => /Put this on the congregation page/.test(b.textContent || ''))!;
+    await act(async () => { save.click(); });
+    await flush();
+    await flush();
+    expect(el.textContent).toContain('Saved. It goes on the campus corner once your campus is confirmed.');
+    expect(el.textContent).not.toContain('It’s on the campus corner');
+    expect(el.textContent).not.toContain('It’s on the Futures USA page');
+    act(() => root.unmount());
+  });
 });
