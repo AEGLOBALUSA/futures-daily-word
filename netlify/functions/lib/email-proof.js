@@ -191,29 +191,43 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
   // IP, 30 / day per address from any IP, 20 / hour per caller IP, and a global
   // hourly cap (300 for addresses with a proven history, 150 for the rest). An
   // address that has never held a proven token also gets 1 / 15 min and 2 / day.
+  //
+  // Two passes. The first only reads, so an ordinary refused retry writes
+  // nothing. The second is what makes the limits hold under a parallel burst
+  // (Netlify spreads parallel calls across instances, so the in-memory limit in
+  // user-profile.js does not): each key gets this attempt's row FIRST and is
+  // only then counted, refusing when the count is above the cap (the row of this
+  // attempt is already in it). N parallel calls write N rows, so at most `cap` of
+  // them can see a count within the cap; the same shape as setupMissLock in
+  // intake.js. Keys go narrowest first (this caller on this address, then this
+  // caller, then the address, then the global bucket), so a burst refused at a
+  // narrow key never writes a row to a wider one. Rows of a refused attempt stay
+  // as recorded attempts, which only ever errs towards refusing.
   try {
     const realIp = ip || "unknown";
-    const sendKey = `dwproof-send:${email}:${realIp}`;
-    const addrKey = `dwproof-send:${email}`;
-    const ipKey = `dwproof-send-ip:${realIp}`;
     const proven = await hasProvenHistory(db, email);
-    const newKey = proven ? null : `dwproof-send-new:${email}`;
-    const globalKey = proven ? "dwproof-send-all" : "dwproof-send-all-new";
-    const globalCap = proven ? SEND_GLOBAL_HOUR : SEND_GLOBAL_NEW_HOUR;
-    if ((await countRows(db, sendKey, 15 * MIN)) >= SEND_PER_EMAIL_15M) return { ok: false, status: 429, error: "too_many" };
-    if ((await countRows(db, sendKey, DAY)) >= SEND_PER_EMAIL_DAY) return { ok: false, status: 429, error: "too_many" };
-    if ((await countRows(db, addrKey, DAY)) >= SEND_PER_EMAIL_ALL_IPS_DAY) return { ok: false, status: 429, error: "too_many" };
-    if (newKey) {
-      if ((await countRows(db, newKey, 15 * MIN)) >= SEND_NEW_15M) return { ok: false, status: 429, error: "too_many" };
-      if ((await countRows(db, newKey, DAY)) >= SEND_NEW_DAY) return { ok: false, status: 429, error: "too_many" };
+    const stages = [
+      { key: `dwproof-send:${email}:${realIp}`, limits: [[15 * MIN, SEND_PER_EMAIL_15M], [DAY, SEND_PER_EMAIL_DAY]], error: "too_many" },
+      { key: `dwproof-send-ip:${realIp}`, limits: [[HOUR, SEND_PER_IP_HOUR]], error: "too_many" },
+      ...(proven ? [] : [{ key: `dwproof-send-new:${email}`, limits: [[15 * MIN, SEND_NEW_15M], [DAY, SEND_NEW_DAY]], error: "too_many" }]),
+      { key: `dwproof-send:${email}`, limits: [[DAY, SEND_PER_EMAIL_ALL_IPS_DAY]], error: "too_many" },
+      proven
+        ? { key: "dwproof-send-all", limits: [[HOUR, SEND_GLOBAL_HOUR]], error: "busy" }
+        : { key: "dwproof-send-all-new", limits: [[HOUR, SEND_GLOBAL_NEW_HOUR]], error: "busy" },
+    ];
+    // Pass 1: read only. Already at a cap means refuse, and nothing is written.
+    for (const st of stages) {
+      for (const [windowMs, cap] of st.limits) {
+        if ((await countRows(db, st.key, windowMs)) >= cap) return { ok: false, status: 429, error: st.error };
+      }
     }
-    if ((await countRows(db, ipKey, HOUR)) >= SEND_PER_IP_HOUR) return { ok: false, status: 429, error: "too_many" };
-    if ((await countRows(db, globalKey, HOUR)) >= globalCap) return { ok: false, status: 429, error: "busy" };
-    await insertRow(db, sendKey);
-    await insertRow(db, addrKey);
-    if (newKey) await insertRow(db, newKey);
-    await insertRow(db, ipKey);
-    await insertRow(db, globalKey);
+    // Pass 2: insert, then count (this attempt's own row included).
+    for (const st of stages) {
+      await insertRow(db, st.key);
+      for (const [windowMs, cap] of st.limits) {
+        if ((await countRows(db, st.key, windowMs)) > cap) return { ok: false, status: 429, error: st.error };
+      }
+    }
   } catch (err) {
     console.error("[email-proof] send limiter unavailable:", err && err.message);
     return { ok: false, status: 503, error: "unavailable" };

@@ -1123,3 +1123,68 @@ describe('F10: lockouts a stranger can cause', () => {
     expect(hashes()).toContain(DEVICE_HASH);
   });
 });
+
+describe('F1 (send race): the send budgets hold under a parallel burst of proof-send calls', () => {
+  // Each budget used to be read before any row was written, so N calls fired
+  // together all saw the same count and all sent. Every call below is fired at
+  // once with Promise.all; the in-memory fake interleaves their reads and writes
+  // the way parallel function instances do.
+  const burst = (n, mk) => Promise.all(Array.from({ length: n }, (_, i) => mk(i)));
+  const unprovenFor = async (email) => auth.issueToken(db, email, { proven: false });
+  const fill = (key, n) => {
+    const at = new Date().toISOString();
+    for (let i = 0; i < n; i++) db.tables.rate_limit_hits.push({ key, created_at: at });
+  };
+
+  it('a never-signed-up address gets at most one code from a burst', async () => {
+    const STRANGER = 'race-never@example.com';
+    db.tables.profiles.push({ email: STRANGER, session_token_hashes: [], lang: 'en' });
+    const tokens = [];
+    for (let i = 0; i < 5; i++) tokens.push(await unprovenFor(STRANGER));
+    const res = await burst(5, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ip: `203.0.113.${170 + i}` }));
+    expect(res.filter((r) => r.status === 200).length).toBeLessThanOrEqual(1);
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(1);
+    expect(res.every((r) => [200, 429].includes(r.status))).toBe(true);
+  });
+
+  it('one connection gets at most three codes for one token from a burst', async () => {
+    const token = await strangerToken();
+    const res = await burst(6, () => call(userProfile, { action: 'proof-send' }, { token, ip: '203.0.113.180' }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(3);
+    expect(res.filter((r) => r.status === 429).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('one IP gets at most 20 code emails from a burst across addresses', async () => {
+    const tokens = [];
+    for (let i = 0; i < 28; i++) {
+      const email = `race-ip${i}@example.com`;
+      db.tables.profiles.push({ email, session_token_hashes: [], lang: 'en' });
+      tokens.push(await unprovenFor(email));
+    }
+    const res = await burst(28, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ...fromNetlify('198.18.2.1') }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(20);
+    expect(res.filter((r) => r.status === 429).length).toBeGreaterThanOrEqual(8);
+    // a burst refused per IP never reaches the global bucket past the per-IP cap
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === 'dwproof-send-all-new').length).toBeLessThanOrEqual(20);
+  });
+
+  it('the global bucket for never-proven addresses holds at 150 under a burst', async () => {
+    fill('dwproof-send-all-new', 149);
+    const tokens = [];
+    for (let i = 0; i < 5; i++) {
+      const email = `race-global${i}@example.com`;
+      db.tables.profiles.push({ email, session_token_hashes: [], lang: 'en' });
+      tokens.push(await unprovenFor(email));
+    }
+    await burst(5, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ip: `203.0.113.${190 + i}` }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(1);
+  });
+
+  it('the global bucket for proven addresses holds at 300 under a burst', async () => {
+    fill('dwproof-send-all', 299);
+    const tokens = [];
+    for (let i = 0; i < 5; i++) tokens.push(await strangerToken());
+    await burst(5, (i) => call(userProfile, { action: 'proof-send' }, { token: tokens[i], ip: `203.0.113.${200 + i}` }));
+    expect(resend.mock.calls.length).toBeLessThanOrEqual(1);
+  });
+});
