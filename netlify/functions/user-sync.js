@@ -12,7 +12,7 @@
  */
 
 const { createClient } = require("@supabase/supabase-js");
-const { authenticateRequest, migrateRequest } = require("./lib/auth");
+const { authenticateSession, migrateRequest } = require("./lib/auth");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
@@ -226,17 +226,40 @@ exports.handler = async (event) => {
     const { action } = body;
     const db = getSupabase();
 
-    // Authenticate via session token
-    let email = await authenticateRequest(event, db);
+    // Authenticate via session token. A token is PROVEN (the device that first
+    // registered this email, or one that has typed the emailed code) or
+    // UNPROVEN (someone who only knew the address; see lib/auth.js). Only a
+    // proven token may read or write the reader's private data: an unproven
+    // caller is stopped here, before pull, push or merge, so no user_data row is
+    // read or written for them. 403, not 401: the clients clear their token on a
+    // 401, which would send them round the migrate loop forever.
+    let email;
     let migrationToken = null;
+    let proven = false;
+    const session = await authenticateSession(event, db);
 
-    if (!email) {
+    if (session) {
+      email = session.email;
+      proven = session.proven;
+    } else {
       const migration = await migrateRequest(event, db, sanitize(body.email, 254));
       if (!migration) {
         return { statusCode: 401, headers, body: JSON.stringify({ error: "Unauthorized" }) };
       }
       email = migration.email;
       migrationToken = migration.token;
+      proven = false;
+    }
+
+    if (!proven) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error: "proof_required",
+          ...(migrationToken ? { sessionToken: migrationToken } : {})
+        })
+      };
     }
 
     // ── PULL: fetch all cloud data for user ──
@@ -271,7 +294,6 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({
           success: true,
-          ...(migrationToken ? { sessionToken: migrationToken } : {}),
           data: {
             journal: data.journal || [],
             highlights: data.highlights || {},  // Fix 2
@@ -387,8 +409,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           success: true,
           syncVersion: data?.sync_version || 1,
-          ...(miscWarnings.length ? { miscWarnings: miscWarnings.slice(0, 20) } : {}),
-          ...(migrationToken ? { sessionToken: migrationToken } : {})
+          ...(miscWarnings.length ? { miscWarnings: miscWarnings.slice(0, 20) } : {})
         })
       };
     }
@@ -450,8 +471,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           success: true,
           journal: merged,
-          syncVersion: data?.sync_version || 1,
-          ...(migrationToken ? { sessionToken: migrationToken } : {})
+          syncVersion: data?.sync_version || 1
         })
       };
     }

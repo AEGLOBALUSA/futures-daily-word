@@ -6,6 +6,7 @@ import { ScriptureSelectionProvider, useScriptureSelection } from './contexts/Sc
 import { TabBar } from './components/TabBar';
 import { SeamBar } from './components/Seam';
 import { EmailGate } from './components/EmailGate';
+import { EmailCodePrompt } from './components/EmailCodePrompt';
 import { PushOptIn } from './components/PushOptIn';
 import { isPushSubscribed } from './utils/push';
 import { ScreenSkeleton } from './components/Skeleton';
@@ -487,6 +488,7 @@ function AppContent() {
       <TabBar activeTab={activeTab} onTabChange={navigateTab} />
       <StopAllAudio onStop={() => { try { window.dispatchEvent(new Event('dw-stop-hero-audio')); } catch { /* ignore */ } }} />
       {!sundayGuest && !SERMON_DEEP_LINK && <EmailGate />}
+      <EmailCodePrompt />
       {/* Home and Notes mount their own BibleAI (they need to pass an initialContext
           from a highlight / Greek-Hebrew tap). Rendering this global one on top of
           those double-mounted the whole panel AND its floating button — two identical

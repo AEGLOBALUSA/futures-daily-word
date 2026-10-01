@@ -270,6 +270,11 @@ let pullSucceeded = false;
 // while a push is already in flight (edits made after that push's snapshot would
 // otherwise be silently dropped). The keepalive option is OR-ed across requests.
 let pendingPush: { keepalive: boolean } | null = null;
+// True while the server is waiting for the person to prove they own this email
+// (a 403 proof_required on pull). The cloud sync is parked: no backoff retry, no
+// push. The EmailCodePrompt listens for 'dw-proof-required' and, once the code is
+// accepted, calls retrySyncAfterProof().
+let proofRequired = false;
 // Startup-pull retry (backoff) — see syncOnStartup.
 let pullRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let pullRetryDelayMs = 30000;
@@ -288,6 +293,7 @@ export function resetSyncSession() {
   if (pullRetryTimer) { clearTimeout(pullRetryTimer); pullRetryTimer = null; }
   pullRetryDelayMs = 30000;
   pullSucceeded = false;
+  proofRequired = false;
   pendingPush = null;
   lastSyncVersion = 0;
   lastCloudPrayedFor = null;
@@ -628,6 +634,17 @@ async function apiCall(action: string, payload: Record<string, unknown>, opts?: 
   if (resp.status === 401) {
     throw new Error('AUTH_FAILED');
   }
+  if (resp.status === 403) {
+    // 403 proof_required: this token only knows the email, it has not proved it.
+    // Keep the token (it is what the code will be bound to) and keep local data.
+    // Deliberately not a 401: that would clear the token and loop through migrate.
+    const denied = await resp.json().catch(() => null) as { error?: string; sessionToken?: string } | null;
+    if (denied && denied.error === 'proof_required') {
+      if (denied.sessionToken) setSessionToken(denied.sessionToken);
+      throw new Error('PROOF_REQUIRED');
+    }
+    throw new Error('Sync API error: 403');
+  }
   if (!resp.ok && resp.status !== 404) {
     throw new Error(`Sync API error: ${resp.status}`);
   }
@@ -730,6 +747,14 @@ export async function syncOnStartup(email: string) {
   try {
     cloud = await pullFromCloud(email);
   } catch (err) {
+    // The server wants proof of the email before it opens this account's journal.
+    // Not a failure to retry: leave the pullSucceeded gate closed (every push
+    // stays queued, local data untouched) and ask the person for the emailed code.
+    if (err instanceof Error && err.message === 'PROOF_REQUIRED') {
+      proofRequired = true;
+      try { window.dispatchEvent(new CustomEvent('dw-proof-required', { detail: { email } })); } catch { /* ignore */ }
+      return;
+    }
     // Pull FAILED (network / 5xx / rate-limit) — NOT the same as "no cloud data".
     // Seeding a "first backup" here would overwrite the real backup with unmerged
     // (possibly fresh-install-empty) local state, so: leave the pullSucceeded gate
@@ -782,6 +807,20 @@ export async function syncOnStartup(email: string) {
   } catch (err) {
     console.warn('[CloudSync] Sync failed, using localStorage:', err);
   }
+}
+
+/** True while cloud sync is parked waiting for the person to enter the emailed code. */
+export function isProofRequired(): boolean {
+  return proofRequired;
+}
+
+/** Run the startup sync again once the emailed code has been accepted. */
+export function retrySyncAfterProof(): Promise<void> {
+  proofRequired = false;
+  let email = '';
+  try { email = (JSON.parse(localStorage.getItem('dw_profile') || '{}') || {}).email || ''; } catch { /* ignore */ }
+  if (!email) return Promise.resolve();
+  return syncOnStartup(email);
 }
 
 /** Force an immediate push (e.g., before user logs out / on background / close).

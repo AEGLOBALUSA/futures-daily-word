@@ -3,7 +3,21 @@
  *
  * Provides token generation, hashing, and validation for the
  * email-gate auth model. Tokens are stored as SHA-256 hashes
- * in the profiles.session_token_hashes jsonb array (up to 5 per user).
+ * in the profiles.session_token_hashes jsonb array.
+ *
+ * Two classes of token share that one array:
+ *   - PROVEN   "<hash>"    issued to the device that first registered a NEW
+ *                          email, or promoted after the person typed the code
+ *                          we emailed to that address. Every hash that existed
+ *                          before the proof change is plain, so every device in
+ *                          use today stays proven. Capped at 5 per profile.
+ *   - UNPROVEN "u:<hash>"  issued for an email that already had a profile
+ *                          (migrate, or register of an existing email): the
+ *                          caller only knew the address. It may identify the
+ *                          caller (so the proof prompt can run) but it never
+ *                          unlocks the journal, highlights, profile picture or
+ *                          profile fields. Capped at 3 per profile, in its own
+ *                          class, so a stranger can never evict a real device.
  *
  * No external dependencies — uses Node.js crypto only.
  */
@@ -45,23 +59,33 @@ function generateToken() {
   return { raw, hash: hashToken(raw) };
 }
 
-/**
- * Authenticate a request by extracting the Bearer token from the
- * Authorization header, hashing it, and looking up the matching
- * profile in Supabase.
- *
- * @returns {string|null} The authenticated email, or null if invalid/missing.
- */
-async function authenticateRequest(event, db) {
-  const authHeader = event.headers.authorization || event.headers.Authorization || "";
-  if (!authHeader.startsWith("Bearer ")) return null;
+const UNPROVEN_PREFIX = "u:";
+const MAX_PROVEN = 5;
+const MAX_UNPROVEN = 3;
 
+/** Keep only the newest `max` entries of one class, leaving the other class untouched. */
+function capClass(hashes, unproven, max) {
+  const idx = [];
+  hashes.forEach((h, i) => {
+    if ((typeof h === "string" && h.startsWith(UNPROVEN_PREFIX)) === unproven) idx.push(i);
+  });
+  if (idx.length <= max) return hashes;
+  const drop = new Set(idx.slice(0, idx.length - max));
+  return hashes.filter((_, i) => !drop.has(i));
+}
+
+/** The raw Bearer token's hash, or null when the header is missing or malformed. */
+function bearerHash(event) {
+  const headers = (event && event.headers) || {};
+  const authHeader = headers.authorization || headers.Authorization || "";
+  if (!authHeader.startsWith("Bearer ")) return null;
   const raw = authHeader.slice(7).trim();
   if (!raw || raw.length !== 64) return null;
+  return hashToken(raw);
+}
 
-  const hash = hashToken(raw);
-
-  // Query: find profile where session_token_hashes contains this hash.
+/** Look up the profile whose session_token_hashes contains `entry`. */
+async function findByEntry(db, entry) {
   // session_token_hashes is jsonb, so the containment value must be passed as a
   // JSON string. Passing a JS array makes supabase-js emit PostgREST's ARRAY
   // literal form (cs.{hash}), which Postgres then fails to cast to jsonb —
@@ -70,21 +94,53 @@ async function authenticateRequest(event, db) {
   const { data, error } = await db
     .from("profiles")
     .select("email")
-    .contains("session_token_hashes", JSON.stringify([hash]))
+    .contains("session_token_hashes", JSON.stringify([entry]))
     .single();
-
   if (error || !data) return null;
   return data.email;
 }
 
 /**
+ * Authenticate a request by its Bearer token and say whether that token is
+ * PROVEN (see the header). Looks for the plain hash first, then "u:<hash>".
+ *
+ * @returns {{email: string, proven: boolean, hash: string}|null}
+ */
+async function authenticateSession(event, db) {
+  const hash = bearerHash(event);
+  if (!hash) return null;
+  const provenEmail = await findByEntry(db, hash);
+  if (provenEmail) return { email: provenEmail, proven: true, hash };
+  const unprovenEmail = await findByEntry(db, UNPROVEN_PREFIX + hash);
+  if (unprovenEmail) return { email: unprovenEmail, proven: false, hash };
+  return null;
+}
+
+/**
+ * Authenticate by Bearer token for callers that only need to know WHO is
+ * asking (activity tracking, PCO sync). Accepts either class of token. Anything
+ * that unlocks a reader's private data must use authenticateSession and check
+ * `proven`.
+ *
+ * @returns {string|null} The authenticated email, or null if invalid/missing.
+ */
+async function authenticateRequest(event, db) {
+  const session = await authenticateSession(event, db);
+  return session ? session.email : null;
+}
+
+/**
  * Issue a new session token for an email. Appends the hash to
- * the session_token_hashes array, capped at 5 (removes oldest).
+ * the session_token_hashes array. A proven token is stored plain and the plain
+ * entries are capped at 5; an unproven token is stored as "u:<hash>" and the
+ * "u:" entries are capped at 3. The classes never evict each other.
+ * Defaults to UNPROVEN: a caller has to say so to hand out a trusted token.
  *
  * @returns {string} The raw token (to send to the frontend).
  */
-async function issueToken(db, email) {
+async function issueToken(db, email, { proven = false } = {}) {
   const { raw, hash } = generateToken();
+  const entry = proven ? hash : UNPROVEN_PREFIX + hash;
 
   // Compare-and-swap append. Parallel startup calls (user-sync pull,
   // user-profile get, track-activity) each trigger migration concurrently;
@@ -106,17 +162,15 @@ async function issueToken(db, email) {
 
     const prev = Array.isArray(data.session_token_hashes) ? data.session_token_hashes : null;
     let hashes = prev ? [...prev] : [];
-    hashes.push(hash);
-
-    // Cap at 5 tokens (oldest first — keep the 5 most recent)
-    if (hashes.length > 5) hashes = hashes.slice(-5);
+    hashes.push(entry);
+    hashes = capClass(hashes, !proven, proven ? MAX_PROVEN : MAX_UNPROVEN);
 
     let update = db
       .from("profiles")
       .update({ session_token_hashes: hashes })
       .eq("email", email);
     // CAS guard: only write if the array is unchanged since our read.
-    // jsonb filter values must be passed as JSON strings (see authenticateRequest).
+    // jsonb filter values must be passed as JSON strings (see findByEntry).
     update = prev === null
       ? update.is("session_token_hashes", null)
       : update.eq("session_token_hashes", JSON.stringify(prev));
@@ -145,7 +199,49 @@ async function issueToken(db, email) {
 }
 
 /**
- * Migration helper: validates email exists and issues token, with rate limiting.
+ * Promote an unproven token to proven once the person has typed the emailed
+ * code: a compare-and-swap that removes "u:<hash>" and appends the plain hash
+ * (so it counts as the newest proven token and the proven cap applies).
+ *
+ * @returns {Promise<boolean>} true when the token is proven afterwards.
+ */
+async function promoteToken(db, email, hash) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, error } = await db
+      .from("profiles")
+      .select("session_token_hashes")
+      .eq("email", email)
+      .single();
+    if (error || !data || !Array.isArray(data.session_token_hashes)) return false;
+
+    const prev = data.session_token_hashes;
+    if (prev.includes(hash)) return true; // already proven
+    if (!prev.includes(UNPROVEN_PREFIX + hash)) return false; // token was evicted
+
+    let hashes = prev.filter((h) => h !== UNPROVEN_PREFIX + hash);
+    hashes.push(hash);
+    hashes = capClass(hashes, false, MAX_PROVEN);
+
+    const { data: updated, error: updateErr } = await db
+      .from("profiles")
+      .update({ session_token_hashes: hashes })
+      .eq("email", email)
+      .eq("session_token_hashes", JSON.stringify(prev))
+      .select("email");
+    if (updateErr) {
+      console.error("promoteToken update error:", updateErr.message);
+      return false;
+    }
+    if (updated && updated.length > 0) return true;
+    // CAS miss — a concurrent token change landed; re-read and retry.
+  }
+  return false;
+}
+
+/**
+ * Migration helper: validates email exists and issues an UNPROVEN token, with
+ * rate limiting. Knowing an address is not proof of owning it, so this token
+ * identifies the caller but never unlocks private data (see the header).
  * Returns { email, token } or null if rate-limited/invalid.
  */
 async function migrateRequest(event, db, bodyEmail) {
@@ -166,11 +262,14 @@ async function migrateRequest(event, db, bodyEmail) {
   if (error || !existing) return null;
 
   try {
-    const token = await issueToken(db, email);
-    return { email, token };
+    const token = await issueToken(db, email, { proven: false });
+    return { email, token, proven: false };
   } catch {
     return null;
   }
 }
 
-module.exports = { hashToken, generateToken, authenticateRequest, issueToken, migrateRequest, safeCompare, checkMigrationRate };
+module.exports = {
+  hashToken, generateToken, authenticateRequest, authenticateSession, issueToken,
+  promoteToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX,
+};
