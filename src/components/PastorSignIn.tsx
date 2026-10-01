@@ -40,11 +40,26 @@ function campusName(id: string | null | undefined): string {
   return CAMPUSES.find(c => c.id === id)?.name || id;
 }
 
+/** The server's known refusals, shown in the card's language. */
+const SERVER_MESSAGE_KEYS: Record<string, string> = {
+  'Sign-in is unavailable right now. Try again shortly.': 'pastor_unavailable',
+  'Too many attempts. Try again later.': 'pastor_too_many_attempts',
+  'That code did not work. Check it, or email yourself a new one.': 'pastor_code_refused',
+  'Invalid email or password': 'pastor_wrong_password',
+  'Use at least 10 characters.': 'pastor_password_too_short',
+  'Do not use your email as the password.': 'pastor_password_is_email',
+  'Password is too long.': 'pastor_password_too_long',
+  'Enter a valid email.': 'pastor_valid_email',
+};
+
 /** Server error text where the server answered; a connectivity line where it didn't. */
-function messageFor(err: unknown, lang: string): string {
+export function messageFor(err: unknown, lang: string): string {
   const status = (err as { status?: number } | null)?.status;
   const msg = err instanceof Error ? err.message : '';
   if (!status) return t('pastor_offline_error', lang);
+  if (status === 503) return t('pastor_unavailable', lang);
+  const key = SERVER_MESSAGE_KEYS[msg];
+  if (key) return t(key, lang);
   return msg || t('pastor_offline_error', lang);
 }
 
@@ -61,6 +76,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [sendError, setSendError] = useState('');
+  const [sendStatus, setSendStatus] = useState('');
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const codeRef = useRef<HTMLInputElement>(null);
@@ -68,6 +84,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
   useEffect(() => {
     setError('');
     setSendError('');
+    setSendStatus('');
     if (view !== 'set_password') setSentTo('');
   }, [view]);
 
@@ -154,6 +171,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     e.preventDefault();
     if (busy) return;
     setError('');
+    if (!typedEmail) { setError(t('pastor_type_email', lang)); return; }
     if (!looksLikeStaffEmail(typedEmail)) { setError(t('pastor_not_staff', lang)); return; }
     setBusy(true);
     try {
@@ -173,13 +191,17 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
   const sendCode = async () => {
     if (sending) return;
     setSendError('');
+    setSendStatus('');
     setSending(true);
     const request = ++codeRequest.current;
+    const resending = view === 'set_password';
     try {
       await intake('email_setup_code', { email: typedEmail, lang });
       if (request !== codeRequest.current) return;
-      setSetupCode(''); setPassword(''); setConfirm('');
+      setSetupCode('');
+      if (!resending) { setPassword(''); setConfirm(''); }
       setError(''); setSendError('');
+      if (resending) setSendStatus(t('pastor_code_sent_again', lang));
       setSentTo(typedEmail);
       setView('set_password');
       codeRef.current?.focus();
@@ -300,7 +322,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
         )}
 
         {view === 'email' && (
-          <form onSubmit={submitEmail} style={{ padding: '14px 16px 16px' }}>
+          <form noValidate onSubmit={submitEmail} style={{ padding: '14px 16px 16px' }}>
             <label htmlFor="dw-pastor-email" style={labelStyle}>{t('pastor_work_email', lang)}</label>
             <input
               id="dw-pastor-email"
@@ -319,7 +341,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
             {error && <p role="alert" style={errorStyle}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button type="button" onClick={cancel} style={btnGhost}>{t('pastor_cancel', lang)}</button>
-              <button type="submit" disabled={busy || !typedEmail} style={{ ...btnPrimary, flex: 1, opacity: busy || !typedEmail ? 0.6 : 1 }}>
+              <button type="submit" disabled={busy} style={{ ...btnPrimary, flex: 1 }}>
                 {busy ? t('pastor_please_wait', lang) : t('pastor_continue', lang)}
               </button>
             </div>
@@ -420,6 +442,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
                 <button id="dw-pastor-send-another" type="button" onClick={sendCode} disabled={sending} style={{ ...btnGhost, marginTop: 12 }}>
                   {sending ? t('pastor_please_wait', lang) : t('pastor_send_another', lang)}
                 </button>
+                {sendStatus && <p role="status" style={{ ...hintStyle, marginTop: 8 }}>{sendStatus}</p>}
                 {sendError && <p role="alert" style={errorStyle}>{sendError}</p>}
                 <p style={{ ...hintStyle, marginTop: 12 }}>
                   <button id="dw-pastor-back-to-sign-in" type="button" onClick={() => { setView('password'); setError(''); setSendError(''); setSentTo(''); setPassword(''); setConfirm(''); setSetupCode(''); }} style={{ ...linkBtnStyle, minHeight: 44 }}>

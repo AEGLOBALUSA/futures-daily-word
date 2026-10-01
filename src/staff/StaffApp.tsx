@@ -9,7 +9,8 @@ import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { CAMPUSES } from '../data/tokens';
 import { getStaffToken, intake, setStaffToken } from './api';
 import { localApiBase } from '../utils/api-base';
-import { getLang } from '../utils/i18n';
+import { getLang, t } from '../utils/i18n';
+import { messageFor } from '../components/PastorSignIn';
 import { youtubeLinkProblem } from './youtubeLink';
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
@@ -249,6 +250,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [sendError, setSendError] = useState('');
+  const [sendStatus, setSendStatus] = useState('');
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const codeRef = useRef<HTMLInputElement>(null);
@@ -260,7 +262,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   const changeScreen = (nextSetup: boolean) => {
     setSetup(nextSetup);
     setCode(''); setPassword(''); setConfirm('');
-    setSentTo(''); setError(''); setSendError('');
+    setSentTo(''); setError(''); setSendError(''); setSendStatus('');
   };
 
   // Leaving a screen (Back, "I have a code") retires any code request still in
@@ -271,21 +273,25 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   const sendCode = async () => {
     if (sending) return;
     setSendError('');
+    setSendStatus('');
     const address = email.trim().toLowerCase();
-    if (!address.includes('@')) { setSendError('Type your work email first.'); return; }
+    if (!address.includes('@')) { setSendError(t('pastor_type_email', getLang())); return; }
     setSending(true);
     const request = ++codeRequest.current;
+    const resending = setup;
     try {
       await intake('email_setup_code', { email: address, lang: getLang() });
       if (request !== codeRequest.current) return;
-      changeScreen(true);
+      if (resending) setCode('');
+      else changeScreen(true);
+      if (resending) setSendStatus(t('pastor_code_sent_again', getLang()));
       setSentTo(address);
       codeRef.current?.focus();
     } catch (err) {
       if (request !== codeRequest.current) return;
       setSendError((err as { status?: number } | null)?.status === 429
-        ? 'Too many codes asked for. Try again in a few minutes.'
-        : err instanceof Error ? err.message : 'Could not reach the server. Check your connection and try again.');
+        ? t('pastor_too_many_codes', getLang())
+        : messageFor(err, getLang()));
     }
     setSending(false);
   };
@@ -295,10 +301,10 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
     if (busy) return;
     setError('');
     if (setup) {
-      if (!code.trim()) { setError('Type the code from your email.'); return; }
-      if (password.length < 10) { setError('Choose a password of at least 10 characters.'); return; }
-      if (password !== confirm) { setError('Passwords do not match.'); return; }
-    } else if (!password) { setError('Type your password.'); return; }
+      if (!code.trim()) { setError(t('pastor_type_code', getLang())); return; }
+      if (password.length < 10) { setError(t('pastor_password_too_short', getLang())); return; }
+      if (password !== confirm) { setError(t('pastor_passwords_mismatch', getLang())); return; }
+    } else if (!password) { setError(t('pastor_type_password', getLang())); return; }
     setBusy(true);
     try {
       if (setup) {
@@ -309,7 +315,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         onSignedIn(data.token, data.staff);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid email or password');
+      setError(messageFor(err, getLang()));
     }
     setBusy(false);
   };
@@ -320,15 +326,15 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
           Futures Daily Word
         </p>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>{setup ? 'Choose your password' : 'Staff sign-in'}</h1>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>{setup ? t('pastor_choose_password', getLang()) : t('pastor_staff_sign_in', getLang())}</h1>
         <p data-testid={setup && sentTo ? 'staff-code-sent' : undefined} style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
           {setup
             ? sentTo
-              ? `We’ve emailed a code to ${sentTo} if it’s on the staff list. It lasts 30 minutes.`
-              : 'Type the code from your email, or the one Ashley gave you.'
-            : 'Sign in to put Sunday’s sermon notes on the page people write in.'}
+              ? t('pastor_code_sent', getLang()).replace('{email}', sentTo)
+              : t('pastor_first_visit', getLang())
+            : t('pastor_staff_sign_in_hint', getLang())}
         </p>
-        <label style={labelStyle} htmlFor="staff-email">Work email</label>
+        <label style={labelStyle} htmlFor="staff-email">{t('pastor_work_email', getLang())}</label>
         <input
           id="staff-email"
           type="email"
@@ -349,7 +355,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         />
         {setup && (
           <>
-            <label style={labelStyle} htmlFor="staff-code">Setup code</label>
+            <label style={labelStyle} htmlFor="staff-code">{t('pastor_setup_code', getLang())}</label>
             <input
               id="staff-code"
               ref={codeRef}
@@ -365,7 +371,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
             />
           </>
         )}
-        <label style={labelStyle} htmlFor="staff-password">{setup ? 'New password' : 'Password'}</label>
+        <label style={labelStyle} htmlFor="staff-password">{setup ? t('pastor_new_password', getLang()) : t('pastor_password', getLang())}</label>
         <input
           id="staff-password"
           type="password"
@@ -378,8 +384,8 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         />
         {setup && (
           <>
-            <p style={helpStyle}>At least 10 characters. You will use it to sign in from now on.</p>
-            <label style={labelStyle} htmlFor="staff-confirm">Confirm password</label>
+            <p style={helpStyle}>{t('pastor_staff_password_hint', getLang())}</p>
+            <label style={labelStyle} htmlFor="staff-confirm">{t('pastor_confirm_password', getLang())}</label>
             <input
               id="staff-confirm"
               type="password"
@@ -394,32 +400,33 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
         )}
         {error && <p role="alert" style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)' }}>{error}</p>}
         <button type="submit" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
-          {busy ? 'Please wait…' : setup ? 'Set my password' : 'Sign in'}
+          {busy ? t('pastor_please_wait', getLang()) : setup ? t('pastor_save_password', getLang()) : t('pastor_sign_in_btn', getLang())}
         </button>
         {setup ? (
           <>
             <p style={{ ...helpStyle, marginTop: 16 }}>
               <button type="button" data-testid="staff-send-another" onClick={sendCode} disabled={sending} style={btnGhost}>
-                {sending ? 'Please wait…' : 'Send another code'}
+                {sending ? t('pastor_please_wait', getLang()) : t('pastor_send_another', getLang())}
               </button>
             </p>
+            {sendStatus && <p role="status" style={helpStyle}>{sendStatus}</p>}
             {sendError && <p role="alert" style={{ ...helpStyle, color: '#B42318' }}>{sendError}</p>}
             <p style={helpStyle}>
               <button type="button" data-testid="staff-back-to-signin" onClick={() => changeScreen(false)} style={btnGhost}>
-                Back to sign in
+                {t('pastor_back_to_sign_in', getLang())}
               </button>
             </p>
           </>
         ) : (
           <>
-            <p style={{ ...helpStyle, marginTop: 16 }}>First time, or forgot your password?</p>
+            <p style={{ ...helpStyle, marginTop: 16 }}>{t('pastor_first_time_ask', getLang())}</p>
             <button type="button" data-testid="staff-email-code" onClick={sendCode} disabled={sending} style={btnGhost}>
-              {sending ? 'Please wait…' : 'Email me a code'}
+              {sending ? t('pastor_please_wait', getLang()) : t('pastor_email_me_code', getLang())}
             </button>
             {sendError && <p role="alert" style={{ ...helpStyle, color: '#B42318' }}>{sendError}</p>}
             <p style={helpStyle}>
               <button type="button" data-testid="staff-have-code" onClick={() => changeScreen(true)} style={{ ...btnGhost, border: 'none', padding: 0, color: 'var(--dw-accent)' }}>
-                I have a code
+                {t('pastor_have_code', getLang())}
               </button>
             </p>
           </>
