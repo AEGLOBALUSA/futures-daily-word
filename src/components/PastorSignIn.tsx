@@ -165,18 +165,26 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     setBusy(false);
   };
 
+  // Leaving a screen (Back, Cancel, a new address) retires any code request
+  // still in flight, so a late answer cannot pull the person back.
+  const codeRequest = useRef(0);
+  useEffect(() => () => { codeRequest.current += 1; setSending(false); }, [view]);
+
   const sendCode = async () => {
     if (sending) return;
     setSendError('');
     setSending(true);
+    const request = ++codeRequest.current;
     try {
       await intake('email_setup_code', { email: typedEmail, lang });
+      if (request !== codeRequest.current) return;
       setSetupCode(''); setPassword(''); setConfirm('');
       setError(''); setSendError('');
       setSentTo(typedEmail);
       setView('set_password');
       codeRef.current?.focus();
     } catch (err) {
+      if (request !== codeRequest.current) return;
       setSendError((err as { status?: number } | null)?.status === 429
         ? t('pastor_too_many_codes', lang)
         : messageFor(err, lang));

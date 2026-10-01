@@ -535,6 +535,9 @@ function normalizeQuestion(input) {
   };
 }
 
+// The fixed time every email_setup_code answer takes. Tests set it to 0.
+const EMAIL_CODE_ANSWER_FLOOR_MS = Number(process.env.EMAIL_CODE_ANSWER_FLOOR_MS ?? 1500);
+
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: headersFor(event), body: "" };
   if (event.httpMethod !== "POST") return json(event, 405, { error: "Method not allowed" });
@@ -587,7 +590,14 @@ exports.handler = async (event) => {
       const limit = await emailCodeLimit(email, rlIp);
       if (limit === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
       if (limit === "limited") return json(event, 429, { error: "Too many attempts. Try again later." });
-      const sent = () => json(event, 200, { sent: true });
+      // Every { sent: true } waits to the same floor, so a roster address (which
+      // also waits for the email and the code write) answers no slower than a stranger.
+      const started = Date.now();
+      const sent = async () => {
+        const wait = EMAIL_CODE_ANSWER_FLOOR_MS - (Date.now() - started);
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+        return json(event, 200, { sent: true });
+      };
       const { data: row, error: rowErr } = await db().from("staff_roster")
         .select("email, role, campus_id, display_name, campus_set_by, password_hash")
         .eq("email", email).maybeSingle();

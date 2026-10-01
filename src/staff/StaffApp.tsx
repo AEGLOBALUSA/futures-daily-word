@@ -263,18 +263,26 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
     setSentTo(''); setError(''); setSendError('');
   };
 
+  // Leaving a screen (Back, "I have a code") retires any code request still in
+  // flight, so a late answer cannot pull the person back.
+  const codeRequest = useRef(0);
+  useEffect(() => () => { codeRequest.current += 1; setSending(false); }, [setup]);
+
   const sendCode = async () => {
     if (sending) return;
     setSendError('');
     const address = email.trim().toLowerCase();
     if (!address.includes('@')) { setSendError('Type your work email first.'); return; }
     setSending(true);
+    const request = ++codeRequest.current;
     try {
       await intake('email_setup_code', { email: address, lang: getLang() });
+      if (request !== codeRequest.current) return;
       changeScreen(true);
       setSentTo(address);
       codeRef.current?.focus();
     } catch (err) {
+      if (request !== codeRequest.current) return;
       setSendError((err as { status?: number } | null)?.status === 429
         ? 'Too many codes asked for. Try again in a few minutes.'
         : err instanceof Error ? err.message : 'Could not reach the server. Check your connection and try again.');
