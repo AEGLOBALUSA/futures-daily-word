@@ -92,8 +92,8 @@ beforeEach(() => {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-async function call(handler, body, { token, ip, origin = ORIGIN } = {}) {
-  const headers = { origin, 'x-forwarded-for': ip || nextIp() };
+async function call(handler, body, { token, ip, origin = ORIGIN, headers: extra = {} } = {}) {
+  const headers = { origin, 'x-forwarded-for': ip || nextIp(), ...extra };
   if (token) headers.authorization = `Bearer ${token}`;
   const res = await handler({ httpMethod: 'POST', headers, body: JSON.stringify(body) });
   let json = {};
@@ -700,5 +700,245 @@ describe('a pastor who signs in with a staff password keeps the one-step sync', 
     expect(r.status).toBe(200);
     expect(r.json.token).toBeNull();
     expect(db.tables.profiles.find((p) => p.email === STAFF)).toBeUndefined();
+  });
+});
+
+// ── Hardening, 1 Oct 2026 (adversarial check F1-F6) ──────────────────────────
+
+/** Netlify's own connection address (x-nf-client-connection-ip), with a different, client-chosen x-forwarded-for each call. */
+const fromNetlify = (nfIp) => ({ headers: { 'x-nf-client-connection-ip': nfIp } });
+
+describe('F1: per-IP limits key on an address the client cannot choose', () => {
+  it('proof-send: 20 an hour per connection, however x-forwarded-for is spoofed', async () => {
+    const nf = '198.18.1.1';
+    let refused = 0;
+    for (let i = 0; i < 24; i++) {
+      const email = `spoof${i}@example.com`;
+      db.tables.profiles.push({ email, session_token_hashes: [], lang: 'en' });
+      const token = await auth.issueToken(db, email, { proven: false });
+      const r = await call(userProfile, { action: 'proof-send' }, { token, ...fromNetlify(nf) });
+      if (r.status === 429) refused++;
+    }
+    expect(refused).toBe(4);
+    expect(resend).toHaveBeenCalledTimes(20);
+  });
+
+  it('migrate (user-sync): five unproven tokens a minute per connection, however x-forwarded-for is spoofed', async () => {
+    const nf = '198.18.1.2';
+    const tokens = [];
+    for (let i = 0; i < 6; i++) tokens.push((await call(userSync, { action: 'pull', email: VICTIM }, fromNetlify(nf))).json.sessionToken);
+    expect(tokens.slice(0, 5).every((t) => /^[0-9a-f]{64}$/.test(t))).toBe(true);
+    expect(tokens[5]).toBeUndefined();
+  });
+
+  it('register of an existing address: the migration limit holds per connection', async () => {
+    const nf = '198.18.1.3';
+    const tokens = [];
+    for (let i = 0; i < 6; i++) tokens.push((await call(userProfile, { action: 'register', email: VICTIM }, fromNetlify(nf))).json.sessionToken);
+    expect(tokens.filter(Boolean)).toHaveLength(5);
+    expect(tokens[5]).toBeUndefined();
+  });
+
+  it('pco-sync: the anonymous 5 a minute holds per connection', async () => {
+    const nf = '198.18.1.4';
+    const statuses = [];
+    for (let i = 0; i < 8; i++) statuses.push((await call(pcoSync, { action: 'lookup', email: VICTIM }, fromNetlify(nf))).status);
+    expect(statuses.slice(5)).toEqual([429, 429, 429]);
+  });
+
+  it('falls back to client-ip, then x-forwarded-for', () => {
+    const { clientIp } = createRequire(import.meta.url)('../../netlify/functions/lib/client-ip.js');
+    expect(clientIp({ headers: { 'x-nf-client-connection-ip': '1.1.1.1', 'client-ip': '2.2.2.2', 'x-forwarded-for': '3.3.3.3, 4.4.4.4' } })).toBe('1.1.1.1');
+    expect(clientIp({ headers: { 'client-ip': '2.2.2.2', 'x-forwarded-for': '3.3.3.3' } })).toBe('2.2.2.2');
+    expect(clientIp({ headers: { 'x-forwarded-for': '3.3.3.3, 4.4.4.4' } })).toBe('3.3.3.3');
+    expect(clientIp({ headers: {} })).toBe('unknown');
+  });
+
+  it('an address that has never held a proven token gets one code per 15 minutes and two a day', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    const STRANGER = 'never-signed-up@example.com';
+    // anyone can do this for any address: register it (new), register it again (existing) for an unproven token
+    expect((await call(userProfile, { action: 'register', email: STRANGER })).status).toBe(200);
+    const unproven = async () => (await call(userProfile, { action: 'register', email: STRANGER })).json.sessionToken;
+
+    const a = await unproven();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: a })).status).toBe(200);
+    const b = await unproven();
+    const second = await call(userProfile, { action: 'proof-send' }, { token: b });
+    expect(second.status).toBe(429);
+    expect(resend).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date('2026-10-02T09:16:00Z'));
+    expect((await call(userProfile, { action: 'proof-send' }, { token: b })).status).toBe(200);
+
+    vi.setSystemTime(new Date('2026-10-02T09:32:00Z'));
+    const c = await unproven();
+    expect((await call(userProfile, { action: 'proof-send' }, { token: c })).status).toBe(429);
+    expect(resend).toHaveBeenCalledTimes(2);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key === `dwproof-send-new:${STRANGER}`)).toHaveLength(2);
+  });
+
+  it('an address with a proven device keeps the ordinary budget (three in 15 minutes)', async () => {
+    const statuses = [];
+    for (let i = 0; i < 3; i++) {
+      const token = await strangerToken();
+      statuses.push((await call(userProfile, { action: 'proof-send' }, { token })).status);
+    }
+    expect(statuses).toEqual([200, 200, 200]);
+    expect(db.tables.rate_limit_hits.filter((r) => r.key.startsWith('dwproof-send-new:'))).toHaveLength(0);
+  });
+
+  it('fails closed when the proven-history read fails', async () => {
+    const { sendProofCode } = createRequire(import.meta.url)('../../netlify/functions/lib/email-proof.js');
+    db.failOn('profiles', 'select');
+    const r = await sendProofCode(db, VICTIM, 'e'.repeat(64), 'en', '198.18.1.9');
+    expect(r).toMatchObject({ ok: false, status: 503 });
+    expect(resend).not.toHaveBeenCalled();
+    expect(db.tables.rate_limit_hits).toHaveLength(0);
+  });
+});
+
+describe('F3: a failed guarded write in issueToken stores nothing', () => {
+  it('throws instead of writing a stale array blind, so a revoked squatter token never comes back', async () => {
+    const NEWBIE = 'squat-f3@example.com';
+    const squat = (await call(userProfile, { action: 'register', email: NEWBIE, firstName: 'Mallory' })).json.sessionToken;
+    const stale = [...hashes(NEWBIE)]; // ['r:<squatter>'], what a slow concurrent issue read
+    // the owner proves the inbox: the squatter's "r:" token is revoked
+    const owner = (await call(userProfile, { action: 'register', email: NEWBIE })).json.sessionToken;
+    await call(userProfile, { action: 'proof-send' }, { token: owner });
+    expect((await call(userProfile, { action: 'proof-verify', code: sentCode() }, { token: owner })).status).toBe(200);
+    const after = [...hashes(NEWBIE)];
+    expect(after).toEqual([sha(owner)]);
+
+    // a token issue that read the stale array, and whose guarded write errors
+    db.answerOnce('profiles', 'select', { data: { session_token_hashes: stale }, error: null });
+    db.failOnce('profiles', 'update');
+    await expect(auth.issueToken(db, NEWBIE, { proven: false })).rejects.toThrow('Failed to store token');
+
+    expect(hashes(NEWBIE)).toEqual(after);
+    expect((await call(userSync, { action: 'pull' }, { token: squat })).status).not.toBe(200);
+    expect((await call(userSync, { action: 'pull' }, { token: owner })).status).not.toBe(403);
+  });
+
+  it('sync_token answers { token: null } when the write fails', async () => {
+    const STAFF = 'pastor-f3@futures.church';
+    const RAW = 'd'.repeat(64);
+    db.tables.staff_roster = [{ email: STAFF, role: 'campus', campus_id: 'alpharetta', display_name: 'P' }];
+    db.tables.staff_sessions = [{ token_hash: sha(RAW), email: STAFF, expires_at: new Date(Date.now() + 3600e3).toISOString() }];
+    db.tables.profiles.push({ email: STAFF, session_token_hashes: ['r:' + 'f'.repeat(64)] });
+    db.failOnce('profiles', 'update');
+    const r = await call(intake, { action: 'sync_token' }, { token: RAW });
+    expect(r.status).toBe(200);
+    expect(r.json.token).toBeNull();
+    expect(hashes(STAFF)).toEqual(['r:' + 'f'.repeat(64)]);
+  });
+});
+
+describe('F4: register by a stranger only says "active" for an existing address', () => {
+  beforeEach(() => {
+    Object.assign(profileRow(), { phone: '', church: '', city: '', push_enabled: false });
+  });
+
+  it('with no token: no empty field is filled and push stays off', async () => {
+    const r = await call(userProfile, { action: 'register', email: VICTIM, phone: '999', church: 'Evil', city: 'Elsewhere', pushEnabled: true });
+    expect(r.status).toBe(200);
+    expect(profileRow()).toMatchObject({ phone: '', church: '', city: '', push_enabled: false, first_name: 'Vic' });
+    expect(profileRow().last_active_at).toBeTruthy();
+  });
+
+  it('with an unproven token for the address: still nothing', async () => {
+    const token = await strangerToken();
+    await call(userProfile, { action: 'register', email: VICTIM, phone: '999', pushEnabled: true }, { token });
+    expect(profileRow()).toMatchObject({ phone: '', push_enabled: false });
+  });
+
+  it('with a proven token for ANOTHER address: still nothing', async () => {
+    const OTHER_RAW = '9'.repeat(64);
+    db.tables.profiles.push({ email: 'other-f4@example.com', session_token_hashes: [sha(OTHER_RAW)] });
+    await call(userProfile, { action: 'register', email: VICTIM, phone: '999', pushEnabled: true }, { token: OTHER_RAW });
+    expect(profileRow()).toMatchObject({ phone: '', push_enabled: false });
+  });
+
+  it('the proven owner still fills empty fields and turns push on', async () => {
+    await call(userProfile, { action: 'register', email: VICTIM, phone: '999', city: 'Roswell', firstName: 'Mallory', pushEnabled: true }, { token: DEVICE_RAW });
+    expect(profileRow()).toMatchObject({ phone: '999', city: 'Roswell', push_enabled: true, first_name: 'Vic' });
+  });
+});
+
+describe('F5: register never overwrites an existing profile', () => {
+  it('a failed existence read is a 500, not a full overwrite', async () => {
+    const before = JSON.stringify(profileRow());
+    db.failOnce('profiles', 'select');
+    const r = await call(userProfile, { action: 'register', email: VICTIM, firstName: 'Mallory', phone: '999', campus: 'elsewhere', pushEnabled: true });
+    expect(r.status).toBe(500);
+    expect(r.json.sessionToken).toBeUndefined();
+    expect(JSON.stringify(profileRow())).toBe(before);
+  });
+
+  it('a register race (the read misses a row another request just wrote) falls back to the existing-address branch', async () => {
+    db.answerOnce('profiles', 'select', { data: null, error: null });
+    const r = await call(userProfile, { action: 'register', email: VICTIM, firstName: 'Mallory', phone: '999', campus: 'elsewhere' });
+    expect(r.status).toBe(200);
+    expect(profileRow()).toMatchObject({ first_name: 'Vic', phone: '555-0100', campus: 'alpharetta', push_enabled: false });
+    // and the loser gets an unproven token, never a first-device one
+    expect(hashes()).toContain('u:' + sha(r.json.sessionToken));
+    expect(hashes().some((h) => h.startsWith('r:'))).toBe(false);
+    expect(db.tables.profiles.filter((p) => p.email === VICTIM)).toHaveLength(1);
+  });
+});
+
+describe('F6: pco-sync only copies a PCO person who holds this exact address, and only for its proven owner', () => {
+  /** A PCO search answer: one person, holding `address`. */
+  function pcoAnswers(address, { first = 'Victoria', last = 'Timms', campus = 'Gwinnett' } = {}) {
+    const data = {
+      data: [{ id: 'p1', type: 'Person', attributes: { first_name: first, last_name: last },
+        relationships: { emails: { data: [{ id: 'e1' }] }, primary_campus: { data: { id: 'c1' } } } }],
+      included: [
+        { type: 'Email', id: 'e1', attributes: { address }, relationships: { person: { data: { id: 'p1' } } } },
+        { type: 'Campus', id: 'c1', attributes: { name: campus } },
+      ],
+    };
+    resend.mockImplementation(async () => ({ ok: true, status: 200, json: async () => data, text: async () => '' }));
+  }
+
+  beforeEach(() => { process.env.PCO_APP_ID = 'test-app'; process.env.PCO_SECRET = 'test-secret'; });
+  afterEach(() => { delete process.env.PCO_APP_ID; delete process.env.PCO_SECRET; });
+
+  it('a single search hit whose email is someone else\'s is not a match', async () => {
+    pcoAnswers('someone.else@example.com', { first: 'Mallory' });
+    const look = await call(pcoSync, { action: 'lookup', email: VICTIM });
+    expect(look.json.found).toBe(false);
+    expect(look.raw).not.toContain('Mallory');
+    const sync = await call(pcoSync, { action: 'sync', email: VICTIM }, { token: DEVICE_RAW });
+    expect(sync.json.synced).toBe(false);
+    expect(profileRow().first_name).toBe('Vic');
+  });
+
+  it('with no token, sync returns the lookup and writes nothing to an existing profile', async () => {
+    pcoAnswers(VICTIM);
+    const before = JSON.stringify(profileRow());
+    const r = await call(pcoSync, { action: 'sync', email: VICTIM });
+    expect(r.status).toBe(200);
+    expect(r.json.synced).toBe(false);
+    expect(r.json.profile).toMatchObject({ firstName: 'Victoria', campus: 'us-gwinnett' });
+    expect(JSON.stringify(profileRow())).toBe(before);
+  });
+
+  it('an unproven token, or a proven one for another address, writes nothing either', async () => {
+    pcoAnswers(VICTIM);
+    const before = JSON.stringify({ ...profileRow(), session_token_hashes: undefined });
+    const token = await strangerToken();
+    await call(pcoSync, { action: 'sync', email: VICTIM }, { token });
+    const OTHER_RAW = '8'.repeat(64);
+    db.tables.profiles.push({ email: 'other-f6@example.com', session_token_hashes: [sha(OTHER_RAW)] });
+    await call(pcoSync, { action: 'sync', email: VICTIM }, { token: OTHER_RAW });
+    expect(JSON.stringify({ ...profileRow(), session_token_hashes: undefined })).toBe(before);
+  });
+
+  it('the proven owner\'s own sync still updates name and campus', async () => {
+    pcoAnswers(VICTIM);
+    const r = await call(pcoSync, { action: 'sync', email: VICTIM }, { token: DEVICE_RAW });
+    expect(r.json.synced).toBe(true);
+    expect(profileRow()).toMatchObject({ first_name: 'Victoria', last_name: 'Timms', campus: 'us-gwinnett' });
   });
 });

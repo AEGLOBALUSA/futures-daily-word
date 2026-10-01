@@ -1,6 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { authenticateSession, issueToken, migrateRequest, checkMigrationRate } = require("./lib/auth");
 const { sendProofCode, verifyProofCode } = require("./lib/email-proof");
+const { clientIp } = require("./lib/client-ip");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
@@ -87,7 +88,10 @@ exports.handler = async (event) => {
   }
 
   // Rate limit
-  const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  // Netlify's own connection address, never a client-chosen x-forwarded-for
+  // (lib/client-ip.js): this IP also feeds the register migration limit and the
+  // proof-send per-IP cap.
+  const clientIP = clientIp(event);
   if (checkRateLimit(clientIP)) {
     return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
   }
@@ -131,20 +135,52 @@ exports.handler = async (event) => {
       };
 
       // Register is unauthenticated, so for an email that already has a
-      // profile it must be FILL-ONLY: a replayed register for a victim's
-      // email must not overwrite their existing fields (or flip push off).
-      const { data: existing } = await db.from("profiles")
-        .select("email, first_name, last_name, phone, church, city, campus, persona, lang")
-        .eq("email", email)
-        .maybeSingle();
+      // profile it must not overwrite anything. A failed existence read is an
+      // error (500), never "no profile": treating it as "new" used to send this
+      // request down the insert path and overwrite a proven reader's profile.
+      const readExisting = async () => {
+        const { data: row, error } = await db.from("profiles")
+          .select("email, first_name, last_name, phone, church, city, campus, persona, lang")
+          .eq("email", email)
+          .maybeSingle();
+        if (error) throw error;
+        return row;
+      };
+      let existing = await readExisting();
 
       let data;
-      if (existing) {
-        const updates = { last_active_at: record.last_active_at };
-        for (const f of ["first_name", "last_name", "phone", "church", "city", "campus", "persona", "lang"]) {
-          if (!existing[f] && record[f]) updates[f] = record[f];
+      if (!existing) {
+        // New email — a plain insert, never an upsert: if another register for
+        // the same address lands first (a race), the unique violation sends this
+        // one down the existing-email branch below, so it still overwrites nothing.
+        const { data: inserted, error } = await db.from("profiles")
+          .insert(record)
+          .select("first_name, last_name, email")
+          .single();
+        if (error && error.code === "23505") {
+          existing = await readExisting();
+          if (!existing) throw error;
+        } else if (error) {
+          throw error;
+        } else {
+          data = inserted;
         }
-        if (body.pushEnabled === true) updates.push_enabled = true;
+      }
+
+      if (existing) {
+        // Anyone can call register with any address, so an existing profile only
+        // gets "this reader was active" — unless the caller holds a PROVEN,
+        // non-provisional token for this same address. Only then may register
+        // fill empty fields and turn push on: the same writes `update` and
+        // `heartbeat` refuse to an unproven token.
+        const updates = { last_active_at: record.last_active_at };
+        const session = await authenticateSession(event, db);
+        if (session && session.proven && !session.provisional && session.email === email) {
+          for (const f of ["first_name", "last_name", "phone", "church", "city", "campus", "persona", "lang"]) {
+            if (!existing[f] && record[f]) updates[f] = record[f];
+          }
+          if (body.pushEnabled === true) updates.push_enabled = true;
+        }
 
         const { data: updated, error } = await db.from("profiles")
           .update(updates)
@@ -153,14 +189,6 @@ exports.handler = async (event) => {
           .single();
         if (error) throw error;
         data = updated;
-      } else {
-        // New email — full insert (upsert covers a concurrent first-register race)
-        const { data: inserted, error } = await db.from("profiles")
-          .upsert(record, { onConflict: "email" })
-          .select("first_name, last_name, email")
-          .single();
-        if (error) throw error;
-        data = inserted;
       }
 
       // Token issuance.

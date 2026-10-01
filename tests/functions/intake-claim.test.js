@@ -11,7 +11,7 @@
  *
  * NOTE: this file lives in tests/, never in netlify/functions/.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import Module from 'node:module';
 import { createRequire } from 'node:module';
 
@@ -45,12 +45,16 @@ function matches(row, filters) {
     if (f.op === 'neq') return row[f.col] !== f.val;
     if (f.op === 'lt') return row[f.col] < f.val;
     if (f.op === 'is') return (row[f.col] ?? null) === f.val;
+    if (f.op === 'gte') return row[f.col] != null && row[f.col] >= f.val;
     return true;
   });
 }
 
+// `failOn.add('rate_limit_hits:insert')` makes that op on that table return { error }.
+const failOn = new Set();
+
 function builder(table) {
-  const state = { op: 'select', filters: [], payload: null, opts: null, wantRows: false };
+  const state = { op: 'select', filters: [], payload: null, opts: null, wantRows: false, count: false };
   const rows = () => tables[table] || (tables[table] = []);
   const run = () => {
     const t = rows();
@@ -73,7 +77,7 @@ function builder(table) {
     return hits;
   };
   const b = {
-    select() { if (state.op !== 'select') state.wantRows = true; return b; },
+    select(_cols, o) { if (state.op !== 'select') state.wantRows = true; else if (o && o.count) state.count = true; return b; },
     insert(p) { state.op = 'insert'; state.payload = p; return b; },
     update(p) { state.op = 'update'; state.payload = p; return b; },
     upsert(p, o) { state.op = 'upsert'; state.payload = p; state.opts = o; return b; },
@@ -81,12 +85,17 @@ function builder(table) {
     eq(col, val) { state.filters.push({ op: 'eq', col, val }); return b; },
     neq(col, val) { state.filters.push({ op: 'neq', col, val }); return b; },
     lt(col, val) { state.filters.push({ op: 'lt', col, val }); return b; },
+    gte(col, val) { state.filters.push({ op: 'gte', col, val }); return b; },
     is(col, val) { state.filters.push({ op: 'is', col, val }); return b; },
     order() { return b; },
     limit() { return b; },
     maybeSingle: async () => ({ data: run()[0] || null, error: null }),
     single: async () => { const r = run()[0]; return r ? { data: r, error: null } : { data: null, error: { message: 'no row' } }; },
-    then(resolve, reject) { return Promise.resolve({ data: run(), error: null }).then(resolve, reject); },
+    then(resolve, reject) {
+      if (failOn.has(`${table}:${state.op}`)) return Promise.resolve({ data: null, error: { message: 'injected failure' } }).then(resolve, reject);
+      const out = run();
+      return Promise.resolve(state.count ? { data: null, count: out.length, error: null } : { data: out, error: null }).then(resolve, reject);
+    },
   };
   return b;
 }
@@ -111,7 +120,7 @@ beforeAll(() => {
 
 afterAll(() => { Module._load = realLoad; });
 
-beforeEach(() => { resetTables(); limiterIps = []; });
+beforeEach(() => { resetTables(); limiterIps = []; failOn.clear(); });
 
 const { hashPassword, hashSetupCode } = require_('../../netlify/functions/lib/intake-core.js');
 const PASSWORD = 'a-long-test-passphrase-9';
@@ -228,24 +237,75 @@ describe('a first password needs the setup code Ashley issued', () => {
     expect(tables.staff_roster).toHaveLength(0);
   });
 
+  // Changed on purpose (Daily Word hardening F2, 1 Oct): a miss is now a row in
+  // rate_limit_hits (intake-setup-miss:<email>), not a setup_code_attempts count,
+  // and five misses lock the address for 15 minutes instead of burning the code.
+  const missRows = (email = 'new.pastor@futures.church') =>
+    (tables.rate_limit_hits || []).filter((r) => r.key === `intake-setup-miss:${email}`);
+
   it('refuses a WRONG code, counts the miss, and does not touch the password', async () => {
     addWithCode({ email: 'new.pastor@futures.church' });
     const r = await setUp('new.pastor@futures.church', { setupCode: 'AAAAA-AAAAA' });
     expect(r.status).toBe(403);
     expect(tables.staff_roster[0].password_hash).toBeNull();
-    expect(tables.staff_roster[0].setup_code_attempts).toBe(1);
+    expect(missRows()).toHaveLength(1);
     expect(tables.staff_sessions).toHaveLength(0);
   });
 
-  it('burns the code after five wrong guesses: even the right code is then refused', async () => {
-    addWithCode({ email: 'new.pastor@futures.church' });
-    for (let i = 0; i < 5; i++) {
-      expect((await setUp('new.pastor@futures.church', { setupCode: `BBBBB-BBBB${i}` })).status).toBe(403);
+  it('locks the address after five wrong guesses, without burning the code: it works again once the lock passes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-02T09:00:00Z') });
+    try {
+      addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+      for (let i = 0; i < 5; i++) {
+        expect((await setUp('new.pastor@futures.church', { setupCode: `BBBBB-BBBB${i}` })).status).toBe(403);
+      }
+      // a stranger's five guesses do not destroy the pastor's code ...
+      expect(tables.staff_roster[0].setup_code_hash).toBeTruthy();
+      // ... but even the right code waits out the lock
+      const locked = await setUp('new.pastor@futures.church');
+      expect(locked.status).toBe(429);
+      expect(tables.staff_roster[0].password_hash).toBeNull();
+      expect(tables.staff_sessions).toHaveLength(0);
+
+      vi.setSystemTime(new Date('2026-10-02T09:16:00Z'));
+      const later = await setUp('new.pastor@futures.church');
+      expect(later.status).toBe(200);
+      expect(tables.staff_roster[0].password_hash).toBeTruthy();
+      expect(tables.staff_roster[0].setup_code_hash).toBeNull();
+    } finally {
+      vi.useRealTimers();
     }
-    expect(tables.staff_roster[0].setup_code_hash).toBeNull();
+  });
+
+  it('counts parallel wrong guesses one by one: five at once still lock the address', async () => {
+    addWithCode({ email: 'new.pastor@futures.church' });
+    const guesses = await Promise.all(
+      Array.from({ length: 5 }, (_, i) => setUp('new.pastor@futures.church', { setupCode: `CCCCC-CCCC${i}` })),
+    );
+    expect(guesses.map((g) => g.status)).toEqual([403, 403, 403, 403, 403]);
+    expect(missRows()).toHaveLength(5);
     const r = await setUp('new.pastor@futures.church');
-    expect(r.status).toBe(403);
+    expect(r.status).toBe(429);
     expect(tables.staff_roster[0].password_hash).toBeNull();
+  });
+
+  it('twelve parallel guesses: no more than five are ever checked against the code', async () => {
+    addWithCode({ email: 'new.pastor@futures.church' });
+    const guesses = await Promise.all(
+      Array.from({ length: 12 }, (_, i) => setUp('new.pastor@futures.church', { setupCode: `DDDDD-DDD${String(i).padStart(2, '2')}` })),
+    );
+    expect(guesses.filter((g) => g.status === 403).length).toBeLessThanOrEqual(5);
+    expect(guesses.filter((g) => g.status === 429).length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('fails closed: when the attempt cannot be recorded, even the right code is refused', async () => {
+    addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+    failOn.add('rate_limit_hits:insert');
+    const r = await setUp('new.pastor@futures.church');
+    expect(r.status).toBe(503);
+    expect(tables.staff_roster[0].password_hash).toBeNull();
+    expect(tables.staff_roster[0].setup_code_hash).toBeTruthy();
+    expect(tables.staff_sessions).toHaveLength(0);
   });
 
   it('refuses an EXPIRED code', async () => {
@@ -286,7 +346,7 @@ describe('a first password needs the setup code Ashley issued', () => {
     const r = await setUp('new.pastor@futures.church', { password: 'short' });
     expect(r.status).toBe(400);
     expect(tables.staff_roster[0].setup_code_hash).toBeTruthy();
-    expect(tables.staff_roster[0].setup_code_attempts).toBe(0);
+    expect((tables.rate_limit_hits || []).filter((r) => r.key.startsWith('intake-setup-miss:'))).toHaveLength(0);
   });
 
   it('two set_password calls racing on one row with the right code: exactly one wins', async () => {

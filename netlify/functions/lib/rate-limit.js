@@ -52,7 +52,7 @@ function checkMemRate(key, max, windowMs) {
 /**
  * Returns true when the caller has exceeded `max` hits in the window.
  * @param {string} name  Endpoint bucket name, e.g. "claude".
- * @param {string} ip    Client IP (first x-forwarded-for entry).
+ * @param {string} ip    Client IP, from lib/client-ip.js where the caller is untrusted.
  * @param {number} max   Max hits per window.
  * @param {number} windowMs  Window size (default 60s).
  */

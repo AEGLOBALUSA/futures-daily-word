@@ -7,6 +7,8 @@ const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 const { getAllowedOrigin } = require("./lib/cors");
 const { isSharedRateLimited } = require("./lib/rate-limit");
+// The sign-in rate limits key on an address the client cannot choose (see lib/client-ip.js).
+const { clientIp } = require("./lib/client-ip");
 const {
   normalizeEmail,
   isAllowlistedEmail,
@@ -67,15 +69,6 @@ function hashToken(raw) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
-// The caller's address for the sign-in rate limits. Netlify sets
-// x-nf-client-connection-ip itself at the edge, so a client cannot choose it;
-// the first x-forwarded-for entry is whatever the client chose to send, so it is
-// only the last resort (local runs and tests, where neither Netlify header exists).
-function clientIp(event) {
-  const h = event.headers || {};
-  const raw = h["x-nf-client-connection-ip"] || h["client-ip"] || h["x-forwarded-for"] || "unknown";
-  return String(raw).split(",")[0].trim() || "unknown";
-}
 
 async function resolveStaff(email) {
   const e = normalizeEmail(email);
@@ -101,7 +94,40 @@ async function issueSetupCode(email) {
     updated_at: new Date().toISOString()
   }).eq("email", email);
   if (error) throw error;
+  // A fresh code starts with a clean slate of guesses.
+  try { await db().from("rate_limit_hits").delete().eq("key", setupMissKey(email)); } catch { /* housekeeping only */ }
   return { code, expiresAt };
+}
+
+// Setup-code guesses: at most SETUP_CODE_MAX_ATTEMPTS per address in this window.
+const SETUP_MISS_WINDOW_MS = 15 * 60 * 1000;
+const setupMissKey = (email) => `intake-setup-miss:${email}`;
+
+/**
+ * Record one setup-code attempt for `email` and say whether the address is now
+ * over its limit. The row is written BEFORE the code is checked (counted as a
+ * miss unless it turns out right, when the rows are cleared), so N parallel
+ * guesses make N rows and only the first SETUP_CODE_MAX_ATTEMPTS can see a count
+ * within the limit. Reads and writes rate_limit_hits directly and FAILS CLOSED;
+ * lib/rate-limit.js fails open, which is the wrong way round for this gate.
+ * @returns {Promise<"ok"|"locked"|"error">}
+ */
+async function setupMissLock(email) {
+  try {
+    const key = setupMissKey(email);
+    const { error: insErr } = await db().from("rate_limit_hits").insert({ key });
+    if (insErr) throw insErr;
+    const since = new Date(Date.now() - SETUP_MISS_WINDOW_MS).toISOString();
+    const { count, error } = await db().from("rate_limit_hits")
+      .select("*", { count: "exact", head: true })
+      .eq("key", key)
+      .gte("created_at", since);
+    if (error || count == null) throw error || new Error("no count");
+    return count > SETUP_CODE_MAX_ATTEMPTS ? "locked" : "ok";
+  } catch (err) {
+    console.error("[intake] setup-code limiter unavailable:", err && err.message);
+    return "error";
+  }
 }
 
 const SETUP_REFUSED = "That setup code did not work. Check it, or ask Ashley Evans for a new one. If you have already set a password, sign in instead.";
@@ -411,14 +437,17 @@ exports.handler = async (event) => {
         verifySetupCode(String(body.setupCode), DUMMY_HASH); // same cost as a real check
         return refuse();
       }
+      // Wrong guesses lock the address out for a while; they never burn the
+      // code (a stranger steered here by auth_status could otherwise destroy a
+      // new pastor's code with five guesses, and only Ashley can issue another).
+      // Each attempt writes its OWN row before the code is checked, then counts
+      // the rows, so parallel guesses are all counted (a read-then-write counter
+      // let them share one count). Fails closed: if the row cannot be written or
+      // counted, the attempt is refused.
+      const lock = await setupMissLock(email);
+      if (lock === "error") return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      if (lock === "locked") return json(event, 429, { error: "Too many attempts. Try again later." });
       if (!verifySetupCode(String(body.setupCode), row.setup_code_hash)) {
-        const attempts = (row.setup_code_attempts || 0) + 1;
-        // Too many wrong guesses burns the code; Ashley issues a fresh one.
-        const burn = attempts >= SETUP_CODE_MAX_ATTEMPTS;
-        await db().from("staff_roster").update(burn
-          ? { setup_code_hash: null, setup_code_expires_at: null, setup_code_attempts: 0 }
-          : { setup_code_attempts: attempts }
-        ).eq("email", email).eq("setup_code_hash", row.setup_code_hash);
         return refuse();
       }
       const { data: claimed, error } = await db().from("staff_roster").update({
@@ -430,6 +459,8 @@ exports.handler = async (event) => {
       }).eq("email", email).is("password_hash", null).eq("setup_code_hash", row.setup_code_hash).select("email");
       if (error) throw error;
       if (!claimed || claimed.length !== 1) return refuse(); // someone else spent it first
+      // The code is spent; its attempt rows are of no further use.
+      try { await db().from("rate_limit_hits").delete().eq("key", setupMissKey(email)); } catch { /* housekeeping only */ }
       const token = await issueSession(staff.email);
       return json(event, 200, { token, staff: publicStaff(staff) });
     }

@@ -30,6 +30,7 @@
  */
 
 const crypto = require("crypto");
+const { clientIp } = require("./client-ip");
 
 // Migration rate limiter — prevent brute-force token issuance via email enumeration
 const migrationHits = {};
@@ -255,15 +256,14 @@ async function issueToken(db, email, { proven = false, first = false } = {}) {
     const { data: updated, error: updateErr } = await update.select("email");
 
     if (updateErr) {
-      // The guarded update itself failed (not a CAS miss). Fall back to the
-      // legacy unconditional write so token issuance never hard-breaks.
-      console.error("issueToken CAS update error, falling back:", updateErr.message);
-      const { error: plainErr } = await db
-        .from("profiles")
-        .update({ session_token_hashes: hashes })
-        .eq("email", email);
-      if (plainErr) throw new Error("Failed to store token: " + plainErr.message);
-      return raw;
+      // The guarded update itself failed (not a CAS miss). Fail closed, as
+      // promoteToken does: there is NO unguarded fallback write. `hashes` was
+      // built from a read that may now be stale, and writing it blind could
+      // bring back an "r:" token that a proof revoked in the meantime (a
+      // squatter's, which would then read the owner's journal) and drop the
+      // owner's freshly proven token. Every caller already catches this.
+      console.error("issueToken CAS update error:", updateErr.message);
+      throw new Error("Failed to store token");
     }
     if (updated && updated.length > 0) {
       return raw;
@@ -326,7 +326,7 @@ async function promoteToken(db, email, hash) {
  * Returns { email, token } or null if rate-limited/invalid.
  */
 async function migrateRequest(event, db, bodyEmail) {
-  const ip = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  const ip = clientIp(event);
   if (checkMigrationRate(ip)) return null; // Rate limited
 
   if (!bodyEmail || typeof bodyEmail !== "string") return null;
@@ -353,5 +353,5 @@ async function migrateRequest(event, db, bodyEmail) {
 module.exports = {
   hashToken, generateToken, authenticateRequest, authenticateSession, issueToken,
   promoteToken, migrateRequest, safeCompare, checkMigrationRate, bearerHash, UNPROVEN_PREFIX, FIRST_PREFIX,
-  proofCodePrefix, CODE_TTL_MS,
+  proofCodePrefix, CODE_TTL_MS, isPlain,
 };

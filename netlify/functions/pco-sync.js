@@ -22,6 +22,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 const { authenticateSession } = require('./lib/auth');
 const { isSharedRateLimited } = require('./lib/rate-limit');
+const { clientIp } = require('./lib/client-ip');
 
 const PCO_BASE = "https://api.planningcenteronline.com/people/v2";
 
@@ -126,16 +127,16 @@ async function lookupByEmail(email) {
       e => e.attributes?.address?.toLowerCase() === email.toLowerCase()
     );
 
-    if (hasMatch || searchData.data.length === 1) {
+    // Only a person who really holds this address. The search also matches
+    // names, so a single hit (or the first of several) may be someone else
+    // entirely; copying their name and campus would be wrong.
+    if (hasMatch) {
       matchedPerson = person;
       break;
     }
   }
 
-  if (!matchedPerson) {
-    // Fall back to first result if only one
-    matchedPerson = searchData.data[0];
-  }
+  if (!matchedPerson) return null;
 
   const attrs = matchedPerson.attributes || {};
 
@@ -200,7 +201,7 @@ exports.handler = async (event) => {
     // has a profile, so it must not lift the cap on name + campus lookups.
     const session = await authenticateSession(event, getSupabase());
     if (!session || !session.proven || session.provisional) {
-      const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+      const clientIP = clientIp(event);
       if (await isSharedRateLimited("pco-sync", clientIP, 5)) {
         return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
       }
@@ -245,9 +246,25 @@ exports.handler = async (event) => {
         return { statusCode: 200, headers, body: JSON.stringify({ synced: false }) };
       }
 
+      const lookedUp = {
+        firstName: pcoProfile.firstName,
+        lastName: pcoProfile.lastName,
+        email: email,
+        campus: pcoProfile.campusId,
+        campusName: pcoProfile.campusName
+      };
+
       // Upsert into Supabase profiles
       const db = getSupabase();
       const { data: existing } = await db.from("profiles").select("email").eq("email", email).single();
+
+      // An existing profile is rewritten only for its own proven owner: a
+      // PROVEN, non-provisional token for this same address. Anyone else (no
+      // token, an unproven or first-device token, or a token for another
+      // address) gets the lookup back and nothing is written.
+      if (existing && !(session && session.proven && !session.provisional && session.email === email)) {
+        return { statusCode: 200, headers, body: JSON.stringify({ synced: false, profile: lookedUp }) };
+      }
 
       const profileData = {
         first_name: pcoProfile.firstName,
@@ -278,16 +295,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({
-          synced: true,
-          profile: {
-            firstName: pcoProfile.firstName,
-            lastName: pcoProfile.lastName,
-            email: email,
-            campus: pcoProfile.campusId,
-            campusName: pcoProfile.campusName
-          }
-        })
+        body: JSON.stringify({ synced: true, profile: lookedUp })
       };
     }
 

@@ -13,6 +13,7 @@
 
 const { createClient } = require("@supabase/supabase-js");
 const { authenticateSession, migrateRequest } = require("./lib/auth");
+const { clientIp } = require("./lib/client-ip");
 
 const { ALLOWED_ORIGINS, isAllowedOrigin } = require('./lib/cors');
 
@@ -211,7 +212,7 @@ exports.handler = async (event) => {
   }
 
   // Rate limit
-  const clientIP = event.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() || "unknown";
+  const clientIP = clientIp(event);
   if (checkRateLimit(clientIP)) {
     return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
   }

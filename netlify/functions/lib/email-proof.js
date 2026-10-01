@@ -13,6 +13,7 @@
  * table lib/rate-limit.js uses, so no migration is needed. Keys:
  *   dwproof-code:<tokenHash>:<sha256(email|tokenHash|code)>   a live code
  *   dwproof-send:<email>                                       a send, per address
+ *   dwproof-send-new:<email>                                   a send to an address that has never held a proven token
  *   dwproof-send-ip:<ip>                                       a send, per caller IP
  *   dwproof-send-all                                           a send, global
  *   dwproof-try:<email>                                        a try, per address (backstop)
@@ -27,7 +28,7 @@
  */
 
 const crypto = require("crypto");
-const { promoteToken, proofCodePrefix, CODE_TTL_MS } = require("./auth");
+const { promoteToken, proofCodePrefix, CODE_TTL_MS, isPlain } = require("./auth");
 
 const RESEND_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Futures Daily Word <notes@futuresdailyword.com>";
@@ -38,6 +39,13 @@ const SEND_PER_EMAIL_DAY = 8;
 // attacker cannot spend the global cap (or many readers' per-address budgets).
 const SEND_PER_IP_HOUR = 20;
 const SEND_GLOBAL_HOUR = 300;
+// An address that has never held a proven token may be one nobody owns, or a
+// stranger's: anyone can register it (new email) and register it again (existing
+// email) to get an unproven token, then ask for a code to be mailed to it. So an
+// address with no proven history gets a much smaller budget of its own: one send
+// per 15 minutes and two a day. A real new reader needs one; a typo a second.
+const SEND_NEW_15M = 1;
+const SEND_NEW_DAY = 2;
 // A code belongs to one token, so the per-TOKEN limit is what stops guessing: 5
 // tries on a 1-in-a-million code, and a token only has a code after a send,
 // which the per-address send limits cap. The per-ADDRESS limit is only a loose
@@ -109,6 +117,19 @@ async function countRows(db, key, windowMs, like = false) {
   return count;
 }
 
+/**
+ * Has this address ever held a PROVEN token? Plain entries in
+ * session_token_hashes are only ever removed by the proven cap (5), so a profile
+ * that has had one still has one. "r:" (first-device) tokens do not count: nobody
+ * showed they own the inbox. Throws on any error (fail closed).
+ */
+async function hasProvenHistory(db, email) {
+  const { data, error } = await db.from("profiles").select("session_token_hashes").eq("email", email).maybeSingle();
+  if (error) throw new Error("proof history read failed");
+  const hashes = data && Array.isArray(data.session_token_hashes) ? data.session_token_hashes : [];
+  return hashes.some(isPlain);
+}
+
 async function insertRow(db, key) {
   const { error } = await db.from("rate_limit_hits").insert({ key });
   if (error) throw new Error("proof insert failed");
@@ -156,15 +177,22 @@ async function sendProofCode(db, email, tokenHash, lang, ip) {
   if (!process.env.RESEND_API_KEY) return { ok: false, status: 503, error: "not_configured" };
 
   // Send limits (fail closed): 3 / 15 min and 8 / day per address, 20 / hour per
-  // caller IP, 300 / hour overall.
+  // caller IP, 300 / hour overall, and for an address that has never held a
+  // proven token 1 / 15 min and 2 / day on top.
   try {
     const sendKey = `dwproof-send:${email}`;
     const ipKey = `dwproof-send-ip:${ip || "unknown"}`;
+    const newKey = (await hasProvenHistory(db, email)) ? null : `dwproof-send-new:${email}`;
     if ((await countRows(db, sendKey, 15 * MIN)) >= SEND_PER_EMAIL_15M) return { ok: false, status: 429, error: "too_many" };
     if ((await countRows(db, sendKey, DAY)) >= SEND_PER_EMAIL_DAY) return { ok: false, status: 429, error: "too_many" };
+    if (newKey) {
+      if ((await countRows(db, newKey, 15 * MIN)) >= SEND_NEW_15M) return { ok: false, status: 429, error: "too_many" };
+      if ((await countRows(db, newKey, DAY)) >= SEND_NEW_DAY) return { ok: false, status: 429, error: "too_many" };
+    }
     if ((await countRows(db, ipKey, HOUR)) >= SEND_PER_IP_HOUR) return { ok: false, status: 429, error: "too_many" };
     if ((await countRows(db, "dwproof-send-all", HOUR)) >= SEND_GLOBAL_HOUR) return { ok: false, status: 429, error: "busy" };
     await insertRow(db, sendKey);
+    if (newKey) await insertRow(db, newKey);
     await insertRow(db, ipKey);
     await insertRow(db, "dwproof-send-all");
   } catch (err) {
