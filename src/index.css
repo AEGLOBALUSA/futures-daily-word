@@ -2406,3 +2406,7 @@ body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
     box-shadow: 0 0 0 3px var(--dw-accent);
   }
 }
+.dw-campus-main {
+  background: var(--dw-accent);
+  color: var(--dw-canvas);
+}
