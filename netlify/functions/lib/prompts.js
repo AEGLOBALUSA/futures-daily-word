@@ -1,14 +1,19 @@
 /**
  * Daily Word prompt switches and send log (MOS-to-8 build B09-01).
  *
- * Every Daily Word notice (Sunday notes missing, the corner draft, the prayer
- * and reading lines, the I'm New hello, the v2 daily push) goes through these
- * helpers, in this order:
+ * Every Daily Word staff email (Sunday notes missing, the corner draft, the
+ * prayer and reading lines, the I'm New hello) goes through ONE helper:
  *
- *   const { mode, shadowRecipients } = await switchOf(db, kind);   // fail closed
- *   if (!deliverable(mode, recipient, shadowRecipients)) return;    // off / not on the list
- *   if (!(await claim(db, { kind, dedupeKey, recipient, mode, writtenBy, ... }))) return; // raised already
- *   await sendStaffEmail({ to: recipient, subject, text });
+ *   await raiseStaffEmail(db, { kind, dedupeKey, recipient, writtenBy,
+ *                               title, body, link, subject, text });
+ *
+ * It runs, in this order: switchOf (fail closed) -> deliverable (off / not on
+ * the shadow list) -> lint -> claim (raised already) -> sendStaffEmail ->
+ * markDelivered. Later builds (B09-10 to B09-18) call raiseStaffEmail and
+ * NEVER sendStaffEmail directly: sendStaffEmail checks no switch and would
+ * email a real person while the region is off. A notice that is not an email
+ * (the v2 daily push) uses switchOf + deliverable + claim + markDelivered in
+ * the same order.
  *
  * Modes (chapter 13 contract C4; tables in
  * supabase/migrations/20261002120000_dw_prompt_switches.sql):
@@ -175,9 +180,9 @@ function isEmail(value) {
 /**
  * One plain-text email to a staff member, through Resend, from the same sender
  * as the Sermon Notes email. Never throws; returns { ok, id } or
- * { ok: false, error }. It sends whatever it is given: the caller decides with
- * switchOf + deliverable + claim first. Subject and text are linted, and a
- * failure refuses the send.
+ * { ok: false, error }. It sends whatever it is given and checks no switch:
+ * call raiseStaffEmail instead, never this directly from a function. Subject
+ * and text are linted, and a failure refuses the send.
  */
 async function sendStaffEmail({ to, subject, text } = {}) {
   try {
@@ -219,7 +224,55 @@ async function sendStaffEmail({ to, subject, text } = {}) {
   }
 }
 
+/**
+ * Mark a claimed row as delivered once the provider accepted it, so the log
+ * tells a notice that arrived from one that failed (Ashley's shadow review
+ * reads delivered). Never throws; true when the row was updated.
+ */
+async function markDelivered(db, dedupeKey) {
+  const key = typeof dedupeKey === "string" ? dedupeKey.trim() : "";
+  if (!db || !key || key.length > MAX_DEDUPE) return false;
+  try {
+    const { error } = await db.from("dw_prompt_log").update({ delivered: true }).eq("dedupe_key", key);
+    if (error) {
+      console.error(`[prompts] markDelivered failed: ${error.code || ""} ${error.message || ""}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`[prompts] markDelivered threw: ${err && err.message}`);
+    return false;
+  }
+}
+
+/**
+ * The one way a Daily Word function emails a staff member about a prompt kind.
+ * Never throws. Returns { sent: true, id } or { sent: false, reason } where
+ * reason is one of: off (the switch, or not on the shadow list), lint (the
+ * words would reach a person broken; checked BEFORE the claim so the key is
+ * not spent), duplicate (raised already, or the log row could not be written),
+ * provider (the send failed; the row stays delivered = false).
+ */
+async function raiseStaffEmail(db, { kind, dedupeKey, recipient, writtenBy, title, body, link, subject, text } = {}) {
+  try {
+    const { mode, shadowRecipients } = await switchOf(db, kind);
+    if (!deliverable(mode, recipient, shadowRecipients)) return { sent: false, reason: "off" };
+    if (!lintStaffText(subject).ok || !lintStaffText(text).ok) return { sent: false, reason: "lint" };
+    const claimed = await claim(db, { kind, dedupeKey, recipient, writtenBy, title, body, link, mode });
+    if (!claimed) return { sent: false, reason: "duplicate" };
+    const out = await sendStaffEmail({ to: recipient, subject, text });
+    if (!out.ok) return { sent: false, reason: "provider" };
+    await markDelivered(db, dedupeKey);
+    return { sent: true, id: out.id };
+  } catch (err) {
+    console.error(`[prompts] raiseStaffEmail ${kind} threw: ${err && err.message}`);
+    return { sent: false, reason: "provider" };
+  }
+}
+
 module.exports = {
+  raiseStaffEmail,
+  markDelivered,
   switchOf,
   modeOf,
   deliverable,

@@ -14,7 +14,9 @@
 --
 -- dw_prompt_log holds one row per thing raised. dedupe_key is unique, so the
 -- same thing is never raised twice (netlify/functions/lib/prompts.js claim()
--- inserts the row BEFORE anything is delivered). Kinds about readers store
+-- inserts the row BEFORE anything is delivered; markDelivered() sets delivered
+-- once the provider accepted it, so a failed send stays visible as false).
+-- Kinds about readers store
 -- counts and links only in title/body, never a reader's name, email or prayer.
 --
 -- Service role only: RLS on, no policies, everything revoked from anon and

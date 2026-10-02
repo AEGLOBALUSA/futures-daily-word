@@ -13,7 +13,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const prompts = require('../../netlify/functions/lib/prompts.js');
-const { modeOf, switchOf, claim, deliverable, sendStaffEmail, lintStaffText } = prompts;
+const { modeOf, switchOf, claim, deliverable, sendStaffEmail, lintStaffText, markDelivered, raiseStaffEmail } = prompts;
 
 const OWNER = 'owner@example.com';
 const STAFF = 'staff@example.com';
@@ -45,8 +45,17 @@ function fakeDb({ kinds = {}, throwOn = null, errorOn = null } = {}) {
             if (log.some((r) => r.dedupe_key === row.dedupe_key)) {
               return { error: { code: '23505', message: 'duplicate key value violates unique constraint' } };
             }
-            log.push(row);
+            log.push({ delivered: false, ...row });
             return { error: null };
+          },
+          update(patch) {
+            return {
+              async eq(col, val) {
+                if (errorOn === table) return { error: { code: '42501', message: 'permission denied' } };
+                log.filter((r) => r[col] === val).forEach((r) => Object.assign(r, patch));
+                return { error: null };
+              },
+            };
           },
         };
       }
@@ -232,5 +241,76 @@ describe('sendStaffEmail', () => {
     expect(await sendStaffEmail({ to: STAFF, subject: 'Hi', text: 'Campus undefined' })).toEqual({ ok: false, error: 'lint' });
     expect(await sendStaffEmail()).toEqual({ ok: false, error: 'bad_recipient' });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('raiseStaffEmail (the one helper later builds call)', () => {
+  const realFetch = globalThis.fetch;
+  const realKey = process.env.RESEND_API_KEY;
+  let fetchMock;
+  const RAISE = { ...CLAIM, subject: 'A prayer post is waiting', text: 'Alpharetta: 1 post waiting.' };
+  delete RAISE.mode;
+
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = 'test-key';
+    fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ id: 'email_9' }) }));
+    globalThis.fetch = fetchMock;
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    if (realKey === undefined) delete process.env.RESEND_API_KEY; else process.env.RESEND_API_KEY = realKey;
+    vi.restoreAllMocks();
+  });
+
+  it('an off kind sends nothing and logs nothing', async () => {
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'off', shadow_recipients: [OWNER] } } });
+    expect(await raiseStaffEmail(db, RAISE)).toEqual({ sent: false, reason: 'off' });
+    expect(db.log).toHaveLength(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a shadow kind sends nothing to someone off the list', async () => {
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'shadow', shadow_recipients: [OWNER] } } });
+    expect(await raiseStaffEmail(db, { ...RAISE, recipient: STAFF })).toEqual({ sent: false, reason: 'off' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a database failure reads as off and sends nothing', async () => {
+    const db = fakeDb({ throwOn: 'dw_prompt_kind' });
+    expect(await raiseStaffEmail(db, RAISE)).toEqual({ sent: false, reason: 'off' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('shadow to the list: sends once, marks delivered, refuses the repeat', async () => {
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'shadow', shadow_recipients: [OWNER] } } });
+    expect(await raiseStaffEmail(db, RAISE)).toEqual({ sent: true, id: 'email_9' });
+    expect(db.log).toHaveLength(1);
+    expect(db.log[0].delivered).toBe(true);
+    expect(db.log[0].mode).toBe('shadow');
+    expect(await raiseStaffEmail(db, RAISE)).toEqual({ sent: false, reason: 'duplicate' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('unfilled words are refused before the key is spent', async () => {
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } } });
+    expect(await raiseStaffEmail(db, { ...RAISE, text: 'Campus {campus}' })).toEqual({ sent: false, reason: 'lint' });
+    expect(db.log).toHaveLength(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a failed send leaves the row delivered = false', async () => {
+    globalThis.fetch = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }));
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } } });
+    expect(await raiseStaffEmail(db, RAISE)).toEqual({ sent: false, reason: 'provider' });
+    expect(db.log).toHaveLength(1);
+    expect(db.log[0].delivered).toBe(false);
+  });
+
+  it('markDelivered never throws and refuses an empty key', async () => {
+    expect(await markDelivered(fakeDb({ throwOn: 'dw_prompt_log' }), 'k')).toBe(false);
+    expect(await markDelivered(fakeDb({ errorOn: 'dw_prompt_log' }), 'k')).toBe(false);
+    expect(await markDelivered(fakeDb(), '')).toBe(false);
   });
 });
