@@ -45,7 +45,7 @@ const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_C
 const { isCurrentAt } = require("./lib/sermon-window");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
-const { loadCampuses, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow } = require("./lib/campuses");
+const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow } = require("./lib/campuses");
 
 let supabase;
 function db() {
@@ -711,7 +711,7 @@ exports.handler = async (event) => {
       // The code is spent; its attempt rows are of no further use.
       await clearSetupMisses(email);
       const token = await issueSession(staff.email);
-      return json(event, 200, { token, staff: publicStaff(staff, await loadCampuses(db())) });
+      return json(event, 200, { token, staff: publicStaff(staff, await loadCampusesWithin(db())) });
     }
 
     // ── login ── Returning staff: email + the password they set.
@@ -745,7 +745,7 @@ exports.handler = async (event) => {
         if (dropErr) console.error("[intake] login: could not withdraw a session that raced a password reset");
         return refuse();
       }
-      return json(event, 200, { token, staff: publicStaff(staff, await loadCampuses(db())) });
+      return json(event, 200, { token, staff: publicStaff(staff, await loadCampusesWithin(db())) });
     }
 
     // Authenticated actions

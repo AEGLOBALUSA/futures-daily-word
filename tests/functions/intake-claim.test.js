@@ -146,6 +146,12 @@ beforeAll(() => {
 afterAll(() => { Module._load = realLoad; });
 
 beforeEach(() => { resetTables(); limiterIps = []; failOn.clear(); selectHook = null; });
+// Password hashing here is synchronous and the fake database answers in
+// microtasks, so without this the worker never turns its event loop for the
+// whole file. Past 60 seconds vitest then fails the run with
+// 'Timeout calling "onTaskUpdate"' although every test passed. One turn of the
+// loop after each test lets the runner's messages through.
+afterEach(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
 const { hashPassword, hashSetupCode } = require_('../../netlify/functions/lib/intake-core.js');
 const PASSWORD = 'a-long-test-passphrase-9';
@@ -1541,6 +1547,56 @@ describe('the staff answer names the campus from the one list (B08-06)', () => {
     expect(typeof me.body.staff.campusName).toBe('string');
     expect(me.body.staff.campusName).not.toBe('');
     expect(me.body.staff.congregation).toBe('futures-us');
+  });
+
+  it('login still signs the pastor in when the campus table cannot be read', async () => {
+    pastor('north.pastor@futures.church', 'us-gwinnett');
+    clearCampusCache();
+    failOn.add('dw_campuses:select');
+    const login = await call({ action: 'login', email: 'north.pastor@futures.church', password: PASSWORD });
+    expect(login.status).toBe(200);
+    expect(typeof login.body.token).toBe('string');
+    expect(login.body.staff.campusId).toBe('us-gwinnett');
+    expect(login.body.staff.campusName).not.toBe('');
+    expect(login.body.staff.congregation).toBe('futures-us');
+  });
+
+  it('set_password still spends the code and signs in when the campus table cannot be read', async () => {
+    addWithCode({ email: 'new.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin' });
+    clearCampusCache();
+    failOn.add('dw_campuses:select');
+    const r = await setUp('new.pastor@futures.church');
+    expect(r.status).toBe(200);
+    expect(typeof r.body.token).toBe('string');
+    expect(r.body.staff.campusId).toBe('us-gwinnett');
+    expect(r.body.staff.congregation).toBe('futures-us');
+  });
+
+  it('set_password and the form answer follow a renamed dw_campuses row', async () => {
+    addWithCode({ email: 'new.pastor@futures.church', campus_id: 'zz-test-north', campus_set_by: 'admin' });
+    tables.dw_campuses[0].name = 'Test North Renamed';
+    clearCampusCache();
+    const r = await setUp('new.pastor@futures.church');
+    expect(r.status).toBe(200);
+    expect(r.body.staff).toMatchObject({ campusId: 'zz-test-north', campusName: 'Test North Renamed', congregation: 'futures-au' });
+    tables.dw_campuses[0].name = 'Test North Again';
+    clearCampusCache();
+    const form = await call({ action: 'form' }, r.body.token);
+    expect(form.status).toBe(200);
+    expect(form.body.staff).toMatchObject({ campusId: 'zz-test-north', campusName: 'Test North Again', congregation: 'futures-au' });
+  });
+
+  it('a campus read that never answers does not hold up sign-in: the bundled list answers in time', async () => {
+    const { loadCampusesWithin, fallbackCampuses } = require_('../../netlify/functions/lib/campuses.js');
+    clearCampusCache();
+    const hung = { from: () => ({ select: () => ({ order: () => new Promise(() => {}) }) }) };
+    const started = Date.now();
+    const list = await loadCampusesWithin(hung, 20);
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(list.map((c) => c.id)).toEqual(fallbackCampuses().map((c) => c.id));
+    // And a read that answers in time is the table's list, not the bundled one.
+    const fresh = await loadCampusesWithin(fakeSupabase, 1000);
+    expect(fresh.map((c) => c.id)).toEqual(['zz-test-north', 'zz-test-south']);
   });
 
   it('me without a session is still refused', async () => {
