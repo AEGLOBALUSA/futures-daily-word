@@ -1377,3 +1377,105 @@ describe('a change_password or sync_token from a stolen session racing a forgot-
     expect(tables.profiles[0].session_token_hashes).toHaveLength(1);
   });
 });
+
+// ── The one campus list, kept by the owner in /staff (B09-02) ─────────────
+describe('campuses: only an admin session edits the list', () => {
+  const FALLBACK = require_('../../netlify/functions/lib/campuses.fallback.json');
+  const { clearCampusCache } = require_('../../netlify/functions/lib/campuses.js');
+  const MERIDA = { id: 've-futuros-merida', name: 'Futuros Mérida', city: 'Mérida, Venezuela', region: 'Venezuela', timeZone: 'America/Caracas', sundayUntil: '16:00', pcoNames: 'Futuros Merida', isNew: true };
+
+  beforeEach(() => {
+    clearCampusCache();
+    tables.dw_campuses = FALLBACK.map((c) => ({
+      id: c.id, name: c.name, city: c.city, region: c.region, congregation: c.congregation, time_zone: c.timeZone,
+      sunday_until: '16:00:00', video_url: c.videoUrl, pco_names: c.pcoNames, sort_order: c.sortOrder, active: true, updated_by: null,
+    }));
+  });
+
+  it('anon gets 401 on every campus action, and nothing changes', async () => {
+    const before = JSON.stringify(tables.dw_campuses);
+    for (const body of [{ action: 'campuses_list' }, { action: 'campus_save', campus: MERIDA }, { action: 'campus_move', id: 'br-rio', direction: 'up' }]) {
+      expect((await call(body)).status).toBe(401);
+    }
+    expect(JSON.stringify(tables.dw_campuses)).toBe(before);
+  });
+
+  it('campus, hub and media staff get 403, and nothing changes', async () => {
+    addRoster({ email: 'campus.tester@futures.church', role: 'campus', campus_id: 'us-gwinnett', campus_set_by: 'admin', password_hash: hashPassword(PASSWORD) });
+    addRoster({ email: 'hub.tester@futures.church', role: 'hub', password_hash: hashPassword(PASSWORD) });
+    addRoster({ email: 'media.tester@futures.church', role: 'media', password_hash: hashPassword(PASSWORD) });
+    const before = JSON.stringify(tables.dw_campuses);
+    for (const email of ['campus.tester@futures.church', 'hub.tester@futures.church', 'media.tester@futures.church']) {
+      const token = await signIn(email);
+      for (const body of [{ action: 'campuses_list' }, { action: 'campus_save', campus: MERIDA }, { action: 'campus_move', id: 'br-rio', direction: 'up' }]) {
+        expect((await call(body, token)).status).toBe(403);
+      }
+    }
+    expect(JSON.stringify(tables.dw_campuses)).toBe(before);
+  });
+
+  it('an admin save of a new campus appears in the public GET, stamped server-side', async () => {
+    const admin = await adminToken();
+    const r = await call({ action: 'campus_save', campus: MERIDA }, admin);
+    expect(r.status).toBe(200);
+    expect(r.body.isNew).toBe(true);
+    const saved = tables.dw_campuses.find((c) => c.id === 've-futuros-merida');
+    expect(saved).toMatchObject({ name: 'Futuros Mérida', time_zone: 'America/Caracas', pco_names: ['futuros merida'], active: true });
+    expect(saved.updated_by).toBe('ae@futures.global');
+
+    const { handler: campusesGet } = require_('../../netlify/functions/campuses.js');
+    const res = await campusesGet({ httpMethod: 'GET', headers: {} });
+    const listed = JSON.parse(res.body).campuses;
+    expect(listed.map((c) => c.id)).toContain('ve-futuros-merida');
+    expect(res.body).not.toContain('updated_by');
+
+    const list = await call({ action: 'campuses_list' }, admin);
+    expect(list.status).toBe(200);
+    expect(list.body.campuses).toHaveLength(23);
+  });
+
+  it('an id change is refused with a reason, and so is taking a saved id', async () => {
+    const admin = await adminToken();
+    const rename = await call({ action: 'campus_save', campus: { ...MERIDA, id: 'us-gwinnett-new', name: 'Futures Gwinnett', isNew: false } }, admin);
+    expect(rename.status).toBe(400);
+    expect(rename.body.error).toBe('The id never changes once saved. Add a new campus instead.');
+    const taken = await call({ action: 'campus_save', campus: { ...MERIDA, id: 'us-gwinnett' } }, admin);
+    expect(taken.status).toBe(400);
+    expect(taken.body.error).toMatch(/already taken/);
+    expect(tables.dw_campuses).toHaveLength(22);
+  });
+
+  it('the error for an empty name says the fix', async () => {
+    const admin = await adminToken();
+    const r = await call({ action: 'campus_save', campus: { ...MERIDA, name: '' } }, admin);
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe('Add the campus name first.');
+  });
+
+  it('hiding keeps the row (never deleted) and takes it out of the public GET', async () => {
+    const admin = await adminToken();
+    const r = await call({ action: 'campus_save', campus: { id: 'br-rio', name: 'Futures Rio', city: 'Rio de Janeiro, Brazil', region: 'Brazil', timeZone: 'America/Sao_Paulo', active: false } }, admin);
+    expect(r.status).toBe(200);
+    expect(tables.dw_campuses.find((c) => c.id === 'br-rio').active).toBe(false);
+    const { handler: campusesGet } = require_('../../netlify/functions/campuses.js');
+    const listed = JSON.parse((await campusesGet({ httpMethod: 'GET', headers: {} })).body).campuses;
+    expect(listed.map((c) => c.id)).not.toContain('br-rio');
+    expect(listed).toHaveLength(21);
+  });
+
+  it('Move up swaps a campus with the one above it', async () => {
+    const admin = await adminToken();
+    const r = await call({ action: 'campus_move', id: 'au-adelaide-city', direction: 'up' }, admin);
+    expect(r.status).toBe(200);
+    const order = [...tables.dw_campuses].sort((a, b) => a.sort_order - b.sort_order).map((c) => c.id);
+    expect(order.slice(0, 2)).toEqual(['au-adelaide-city', 'au-paradise']);
+  });
+
+  it('a campus the owner added is a campus for staff too (roster_save keeps it)', async () => {
+    const admin = await adminToken();
+    await call({ action: 'campus_save', campus: MERIDA }, admin);
+    const r = await call({ action: 'roster_save', email: 'merida.pastor@futures.church', role: 'campus', campusId: 've-futuros-merida' }, admin);
+    expect(r.status).toBe(200);
+    expect(tables.staff_roster.find((p) => p.email === 'merida.pastor@futures.church').campus_id).toBe('ve-futuros-merida');
+  });
+});

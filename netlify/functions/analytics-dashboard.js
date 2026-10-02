@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const { ALLOWED_ORIGINS, isAllowedOrigin, parseRequestOrigin } = require('./lib/cors');
 const { isSharedRateLimited } = require('./lib/rate-limit');
 const { campusForCode, campusSlug: campusSlugOf } = require('./lib/campus-code');
+const { loadCampuses } = require('./lib/campuses');
 
 let sb;
 function db() {
@@ -33,18 +34,6 @@ exports.handler = async (event) => {
     return { statusCode: 429, headers: h, body: '{"error":"Too many requests"}' };
   }
 
-  // Campus-code slug → the campus id stored on profiles.campus / prayers.campus
-  // (the prefixed ids from src/data/tokens.ts CAMPUSES / pco-sync PCO_CAMPUS_MAP)
-  const CAMPUS_IDS = {
-    "paradise": "au-paradise", "adelaide-city": "au-adelaide-city", "salisbury": "au-salisbury",
-    "south": "au-south", "clare-valley": "au-clare-valley", "mount-barker": "au-mount-barker",
-    "victor-harbor": "au-victor-harbor", "copper-coast": "au-copper-coast",
-    "gwinnett": "us-gwinnett", "kennesaw": "us-kennesaw", "alpharetta": "us-alpharetta",
-    "futuros-duluth": "us-futuros-duluth", "futuros-kennesaw": "us-futuros-kennesaw",
-    "futuros-grayson": "us-futuros-grayson", "franklin": "us-franklin",
-    "solo": "id-solo", "cemani": "id-cemani", "bali": "id-bali",
-    "samarinda": "id-samarinda", "langowan": "id-langowan", "rio": "br-rio"
-  };
   // Accept: campus pastor codes (SHA-256), master secret, or admin PIN
   // Use constant-time comparison to prevent timing attacks
   const ADMIN_PIN = process.env.ADMIN_PIN || "";
@@ -59,10 +48,13 @@ exports.handler = async (event) => {
   // pastor-admin mints and lists (lib/campus-code). This endpoint used to hash
   // the short slug instead, so a listed code never opened the overview; the
   // lib still accepts that legacy form for any code already handed out.
+  // The code names one campus id from the one campus list (lib/campuses.js,
+  // B09-02): that id is what profiles.campus / prayers.campus hold.
   let campusSlug = null;
+  let matchedCampusId = null;
   if (!isAdmin) {
-    const matched = campusForCode(code, secret);
-    if (matched) campusSlug = campusSlugOf(matched);
+    const matched = campusForCode(code, secret, await loadCampuses(db()));
+    if (matched) { matchedCampusId = matched; campusSlug = campusSlugOf(matched); }
   }
   if (!isAdmin && !campusSlug) {
     return { statusCode: 403, headers: h, body: '{"error":"Bad code"}' };
@@ -77,7 +69,7 @@ exports.handler = async (event) => {
 
     // ── Campus-scoped view: real counts for THIS campus only, no PII ──
     if (!isAdmin) {
-      const campusId = CAMPUS_IDS[campusSlug] || campusSlug;
+      const campusId = matchedCampusId;
       const [rt, awc, pc] = await Promise.all([
         d.from("profiles").select("*", { count: "exact", head: true })
           .eq("campus", campusId).gte("last_active_at", today + "T00:00:00Z"),

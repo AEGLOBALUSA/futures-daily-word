@@ -45,6 +45,7 @@ const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_C
 const { isCurrentAt } = require("./lib/sermon-window");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
+const { loadCampuses, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow } = require("./lib/campuses");
 
 let supabase;
 function db() {
@@ -750,6 +751,10 @@ exports.handler = async (event) => {
     // Authenticated actions
     const staff = await sessionStaff(event);
     if (!staff) return json(event, 401, { error: "Sign in required" });
+    // The one campus list (lib/campuses.js, B09-02): read once per request, and
+    // only by the actions that check a campus id.
+    let campusListP = null;
+    const campusList = () => (campusListP || (campusListP = loadCampuses(db())));
 
     // ── logout ── Ends this staff session. The device may also send the Daily
     // Word cloud token it holds (`currentToken`): that token's entry is removed
@@ -898,7 +903,7 @@ exports.handler = async (event) => {
           .order("created_at", { ascending: false })
           .limit(40);
         cornerItems = items || [];
-      } else if (staff.role === "admin" && isCampusId(body.campusId)) {
+      } else if (staff.role === "admin" && isCampusId(body.campusId, await campusList())) {
         const { data: items } = await db()
           .from("campus_content")
           .select("id, type, title, created_at")
@@ -948,8 +953,9 @@ exports.handler = async (event) => {
           }
         }
       }
-      const requested = collectCampusFromAnswers(visible, answers) || body.campusId;
-      let campusId = lockCampus(staff, requested);
+      const campuses = await campusList();
+      const requested = collectCampusFromAnswers(visible, answers, campuses) || body.campusId;
+      let campusId = lockCampus(staff, requested, campuses);
       if (staff.role === "campus") {
         if (!campusId) {
           console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: "no campus" }));
@@ -1240,7 +1246,7 @@ exports.handler = async (event) => {
       if (role === "admin" && email !== "ae@futures.global") {
         return json(event, 400, { error: "Ashley Evans (ae@futures.global) is the only admin." });
       }
-      const campus_id = isCampusId(body.campusId) ? body.campusId : null;
+      const campus_id = isCampusId(body.campusId, await campusList()) ? body.campusId : null;
       const named = fallbackStaff(email);
       const { data, error } = await db().from("staff_roster").upsert({
         email,
@@ -1303,7 +1309,7 @@ exports.handler = async (event) => {
 
     if (action === "corner_items") {
       const campusId = body.campusId;
-      if (!isCampusId(campusId)) return json(event, 400, { error: "Campus required" });
+      if (!isCampusId(campusId, await campusList())) return json(event, 400, { error: "Campus required" });
       const { data, error } = await db()
         .from("campus_content")
         .select("id, type, title, created_at")
@@ -1312,6 +1318,53 @@ exports.handler = async (event) => {
         .limit(40);
       if (error) throw error;
       return json(event, 200, { items: data || [] });
+    }
+
+    // ── Campuses (B09-02) ── The one campus list, kept by the owner in /staff ->
+    // Settings -> Campuses. Admin only (the gate above); the backend reads the
+    // table with the service key; anon and authenticated have no grant on it.
+    // An id is never renamed or deleted: "Hide from readers" sets active=false.
+    if (action === "campuses_list") {
+      clearCampusCache();
+      const list = await campusList();
+      return json(event, 200, {
+        campuses: list.map((c) => ({ ...publicCampus(c), pcoNames: c.pcoNames, active: c.active }))
+      });
+    }
+
+    if (action === "campus_save") {
+      clearCampusCache();
+      const { data: rows, error: readErr } = await db().from("dw_campuses")
+        .select("id, name, city, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active");
+      if (readErr) throw readErr;
+      const list = (rows || []).map(fromRow);
+      const checked = validateCampusSave(body.campus, list);
+      if (checked.error) return json(event, 400, { error: checked.error });
+      const row = { ...checked.row, updated_at: new Date().toISOString(), updated_by: staff.email };
+      const { data, error } = await db().from("dw_campuses").upsert(row, { onConflict: "id" })
+        .select("id, name, city, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active").single();
+      if (error) throw error;
+      clearCampusCache();
+      const saved = fromRow(data);
+      console.log("[intake] campus_save", JSON.stringify({ id: saved.id, isNew: checked.isNew, active: saved.active }));
+      return json(event, 200, { campus: { ...publicCampus(saved), pcoNames: saved.pcoNames, active: saved.active }, isNew: checked.isNew });
+    }
+
+    if (action === "campus_move") {
+      clearCampusCache();
+      const { data: rows, error: readErr } = await db().from("dw_campuses").select("id, name, sort_order");
+      if (readErr) throw readErr;
+      const list = (rows || []).map((r) => ({ id: r.id, name: r.name, sortOrder: Number(r.sort_order) || 0 }));
+      const plan = planCampusMove(body.id, body.direction, list);
+      if (plan.error) return json(event, 400, { error: plan.error });
+      const at = new Date().toISOString();
+      for (const ch of plan.changes) {
+        const { error } = await db().from("dw_campuses")
+          .update({ sort_order: ch.sort_order, updated_at: at, updated_by: staff.email }).eq("id", ch.id);
+        if (error) throw error;
+      }
+      clearCampusCache();
+      return json(event, 200, { ok: true, changed: plan.changes.length });
     }
 
     return json(event, 400, { error: "Unknown action" });

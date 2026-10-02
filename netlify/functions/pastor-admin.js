@@ -6,6 +6,7 @@ const PASTOR_SECRET = process.env.PASTOR_SECRET || "";
 const { ALLOWED_ORIGINS } = require('./lib/cors');
 const { isCampusId } = require('./lib/intake-core');
 const { generateCampusCode, validateCampusCode } = require('./lib/campus-code');
+const { loadCampuses, campusIds, campusName } = require('./lib/campuses');
 function getCorsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return { "Access-Control-Allow-Origin": allowed, "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Max-Age": "86400" };
@@ -20,13 +21,13 @@ function getSupabase() {
 // Pastor code for a campus: first 8 chars of SHA-256(campusId + ":" + secret).
 // ONE derivation shared with analytics-dashboard via lib/campus-code (the
 // dashboard used to hash the short slug, so listed codes never opened it).
-function generateCode(campusId) {
-  return generateCampusCode(campusId, PASTOR_SECRET);
+function generateCode(campusId, list) {
+  return generateCampusCode(campusId, PASTOR_SECRET, list);
 }
 
 // Validate a code against a campus (constant-time; accepts the legacy slug form too)
-function validateCode(campusId, code) {
-  return validateCampusCode(campusId, code, PASTOR_SECRET);
+function validateCode(campusId, code, list) {
+  return validateCampusCode(campusId, code, PASTOR_SECRET, list);
 }
 
 function sanitize(str, maxLen = 5000) {
@@ -62,7 +63,7 @@ exports.handler = async (event) => {
   // ── Action: verify ── Check if a pastor code is valid
   if (action === "verify") {
     if (!campusId || !code) return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Missing campusId or code" }) };
-    const valid = validateCode(campusId, code);
+    const valid = validateCode(campusId, code, await loadCampuses(getSupabase()));
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ valid, campusId }) };
   }
 
@@ -105,7 +106,8 @@ exports.handler = async (event) => {
       if (rosterRes.error) throw rosterRes.error;
       const roster = rosterRes.data;
       const rosterCampus = roster && typeof roster.campus_id === "string" ? roster.campus_id : "";
-      const campusId = isCampusId(rosterCampus) ? rosterCampus : null;
+      const campusList = await loadCampuses(getSupabase());
+      const campusId = isCampusId(rosterCampus, campusList) ? rosterCampus : null;
       // Only an ADMIN-confirmed campus mints a code (Ashley, 2 Sep 2026).
       // campus_set_by is 'admin' (Ashley, /staff → People → roster_save) or
       // 'self' (the pastor's own first /staff submission). The migration's
@@ -113,7 +115,7 @@ exports.handler = async (event) => {
       // row written by a path that predates the column, treated as 'admin'.
       const setBy = roster && roster.campus_set_by ? String(roster.campus_set_by) : "admin";
       const confirmed = setBy === "admin";
-      const code = campusId && confirmed ? generateCode(campusId) : null;
+      const code = campusId && confirmed ? generateCode(campusId, campusList) : null;
       const reason = campusId && !confirmed ? "campus_not_confirmed" : null;
       // Audit line: a roster campus can be self-assigned on a pastor's first
       // /staff submission, so every mint (and every refusal) is in the function log.
@@ -133,23 +135,13 @@ exports.handler = async (event) => {
       crypto.timingSafeEqual(Buffer.from(masterSecret), Buffer.from(PASTOR_SECRET));
     if (!secretMatch) return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Unauthorized" }) };
 
-    const CAMPUSES = {
-      "au-paradise": "Futures Paradise", "au-adelaide-city": "Futures Adelaide City",
-      "au-salisbury": "Futures Salisbury", "au-south": "Futures South",
-      "au-clare-valley": "Futures Clare Valley", "au-mount-barker": "Futures Mount Barker",
-      "au-victor-harbor": "Futures Victor Harbor", "au-copper-coast": "Futures Copper Coast",
-      "us-gwinnett": "Futures Gwinnett", "us-kennesaw": "Futures Kennesaw",
-      "us-alpharetta": "Futures Alpharetta",
-      "us-futuros-duluth": "Futuros Duluth", "us-futuros-kennesaw": "Futuros Kennesaw",
-      "us-futuros-grayson": "Futuros Grayson", "us-franklin": "Futures Franklin",
-      "id-solo": "Futures Solo", "id-cemani": "Futures Cemani",
-      "id-bali": "Futures Bali", "id-samarinda": "Futures Samarinda",
-      "id-langowan": "Futures Langowan",
-      "br-rio": "Futures Rio"
-    };
+    // Every staff campus on the one list (dw_campuses, B09-02), hidden ones
+    // included: a code already handed out keeps working.
+    const list = await loadCampuses(getSupabase());
+    const CAMPUSES = Object.fromEntries(campusIds(list).map((id) => [id, campusName(id, list)]));
 
     const codes = Object.entries(CAMPUSES).map(([id, name]) => ({
-      campusId: id, name, code: generateCode(id)
+      campusId: id, name, code: generateCode(id, list)
     }));
 
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ codes }) };

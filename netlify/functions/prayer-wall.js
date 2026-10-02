@@ -2,27 +2,9 @@ const { createClient } = require("@supabase/supabase-js");
 
 const { ALLOWED_ORIGINS } = require('./lib/cors');
 
-// 21 Futures campuses (8 AU + 7 US + 5 ID + 1 BR) + Non-Futures
-const CAMPUSES={
-  // Australia
-  'au-paradise':'Futures Paradise','au-adelaide-city':'Futures Adelaide City',
-  'au-salisbury':'Futures Salisbury','au-south':'Futures South',
-  'au-clare-valley':'Futures Clare Valley','au-mount-barker':'Futures Mount Barker',
-  'au-victor-harbor':'Futures Victor Harbor','au-copper-coast':'Futures Copper Coast',
-  // North America
-  'us-gwinnett':'Futures Gwinnett','us-kennesaw':'Futures Kennesaw',
-  'us-alpharetta':'Futures Alpharetta',
-  'us-futuros-duluth':'Futuros Duluth','us-futuros-kennesaw':'Futuros Kennesaw',
-  'us-futuros-grayson':'Futuros Grayson','us-franklin':'Futures Franklin',
-  // Indonesia
-  'id-solo':'Futures Solo','id-cemani':'Futures Cemani',
-  'id-bali':'Futures Bali','id-samarinda':'Futures Samarinda',
-  'id-langowan':'Futures Langowan',
-  // Brazil
-  'br-rio':'Futures Rio',
-  // Other
-  'other':'Non-Futures Church'
-};
+// The campus names come from the one campus list (dw_campuses, lib/campuses.js,
+// B09-02), so a campus the owner adds in /staff names itself here too.
+const { loadCampuses, campusName, isKnownCampus } = require('./lib/campuses');
 
 function sanitize(str, maxLen = 500) {
   if (typeof str !== "string") return "";
@@ -87,11 +69,12 @@ exports.handler = async (event) => {
       const { data, error } = await query;
       if (error) throw error;
 
+      const campuses = await loadCampuses(db);
       const prayers = (data || []).map(p => ({
         id: p.id,
         name: p.name,
         campus: p.campus,
-        campusName: CAMPUSES[p.campus] || p.campus,
+        campusName: campusName(p.campus, campuses),
         prayer: p.prayer,
         prayerCount: p.prayer_count || 0,
         timeAgo: timeAgo(p.created_at),
@@ -108,7 +91,10 @@ exports.handler = async (event) => {
       if (body.action === 'create') {
         const prayer = sanitize(body.prayer, 500);
         const name = sanitize(body.name, 100) || 'Anonymous';
-        const campus = sanitize(body.campus, 100);
+        // A campus id that is not on the list is stored as '' (it was not
+        // checked at all before B09-02).
+        const rawCampus = sanitize(body.campus, 100);
+        const campus = rawCampus && isKnownCampus(rawCampus, await loadCampuses(db)) ? rawCampus : '';
         const email = sanitize(body.email, 254);
 
         if (!prayer) return { statusCode: 400, headers, body: JSON.stringify({ error: "Prayer text required" }) };

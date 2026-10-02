@@ -1,0 +1,356 @@
+[
+  {
+    "id": "au-paradise",
+    "name": "Futures Paradise",
+    "city": "Paradise, SA",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "paradise",
+      "futures paradise"
+    ],
+    "sortOrder": 10,
+    "active": true
+  },
+  {
+    "id": "au-adelaide-city",
+    "name": "Futures Adelaide City",
+    "city": "Adelaide, SA",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "adelaide city",
+      "futures adelaide city",
+      "adelaide"
+    ],
+    "sortOrder": 20,
+    "active": true
+  },
+  {
+    "id": "au-salisbury",
+    "name": "Futures Salisbury",
+    "city": "Salisbury, SA",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "salisbury",
+      "futures salisbury"
+    ],
+    "sortOrder": 30,
+    "active": true
+  },
+  {
+    "id": "au-south",
+    "name": "Futures South",
+    "city": "South Australia",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "south",
+      "futures south"
+    ],
+    "sortOrder": 40,
+    "active": true
+  },
+  {
+    "id": "au-clare-valley",
+    "name": "Futures Clare Valley",
+    "city": "Clare Valley, SA",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "clare valley",
+      "futures clare valley"
+    ],
+    "sortOrder": 50,
+    "active": true
+  },
+  {
+    "id": "au-mount-barker",
+    "name": "Futures Mount Barker",
+    "city": "Mount Barker, SA",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "mount barker",
+      "futures mount barker",
+      "mt barker"
+    ],
+    "sortOrder": 60,
+    "active": true
+  },
+  {
+    "id": "au-victor-harbor",
+    "name": "Futures Victor Harbor",
+    "city": "Victor Harbor, SA",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "victor harbor",
+      "futures victor harbor",
+      "victor harbour"
+    ],
+    "sortOrder": 70,
+    "active": true
+  },
+  {
+    "id": "au-copper-coast",
+    "name": "Futures Copper Coast",
+    "city": "Copper Coast, SA",
+    "region": "Australia",
+    "congregation": "futures-au",
+    "timeZone": "Australia/Adelaide",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "copper coast",
+      "futures copper coast"
+    ],
+    "sortOrder": 80,
+    "active": true
+  },
+  {
+    "id": "us-gwinnett",
+    "name": "Futures Gwinnett",
+    "city": "Gwinnett, GA",
+    "region": "North America",
+    "congregation": "futures-us",
+    "timeZone": "America/New_York",
+    "sundayUntil": "16:00",
+    "videoUrl": "https://www.youtube.com/embed/live_stream?channel=UCbrXwvwaPr_ZootS3z8YKLQ",
+    "pcoNames": [
+      "gwinnett",
+      "futures gwinnett"
+    ],
+    "sortOrder": 90,
+    "active": true
+  },
+  {
+    "id": "us-kennesaw",
+    "name": "Futures Kennesaw",
+    "city": "Kennesaw, GA",
+    "region": "North America",
+    "congregation": "futures-us",
+    "timeZone": "America/New_York",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "kennesaw",
+      "futures kennesaw"
+    ],
+    "sortOrder": 100,
+    "active": true
+  },
+  {
+    "id": "us-alpharetta",
+    "name": "Futures Alpharetta",
+    "city": "Alpharetta, GA",
+    "region": "North America",
+    "congregation": "futures-us",
+    "timeZone": "America/New_York",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "alpharetta",
+      "futures alpharetta"
+    ],
+    "sortOrder": 110,
+    "active": true
+  },
+  {
+    "id": "us-futuros-duluth",
+    "name": "Futuros Duluth",
+    "city": "Duluth, GA",
+    "region": "North America",
+    "congregation": "futuros-us",
+    "timeZone": "America/New_York",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "futuros duluth",
+      "duluth"
+    ],
+    "sortOrder": 120,
+    "active": true
+  },
+  {
+    "id": "us-futuros-kennesaw",
+    "name": "Futuros Kennesaw",
+    "city": "Kennesaw, GA",
+    "region": "North America",
+    "congregation": "futuros-us",
+    "timeZone": "America/New_York",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "futuros kennesaw"
+    ],
+    "sortOrder": 130,
+    "active": true
+  },
+  {
+    "id": "us-futuros-grayson",
+    "name": "Futuros Grayson",
+    "city": "Grayson, GA",
+    "region": "North America",
+    "congregation": "futuros-us",
+    "timeZone": "America/New_York",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "futuros grayson",
+      "grayson"
+    ],
+    "sortOrder": 140,
+    "active": true
+  },
+  {
+    "id": "us-franklin",
+    "name": "Futures Franklin",
+    "city": "Franklin, TN",
+    "region": "North America",
+    "congregation": "futures-us",
+    "timeZone": "America/Chicago",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "franklin",
+      "futures franklin"
+    ],
+    "sortOrder": 150,
+    "active": true
+  },
+  {
+    "id": "id-solo",
+    "name": "Futures Solo",
+    "city": "Surakarta, Central Java",
+    "region": "Indonesia",
+    "congregation": null,
+    "timeZone": "Asia/Jakarta",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "solo",
+      "futures solo",
+      "surakarta"
+    ],
+    "sortOrder": 160,
+    "active": true
+  },
+  {
+    "id": "id-cemani",
+    "name": "Futures Cemani",
+    "city": "Cemani, Central Java",
+    "region": "Indonesia",
+    "congregation": null,
+    "timeZone": "Asia/Jakarta",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "cemani",
+      "futures cemani"
+    ],
+    "sortOrder": 170,
+    "active": true
+  },
+  {
+    "id": "id-bali",
+    "name": "Futures Bali",
+    "city": "Denpasar, Bali",
+    "region": "Indonesia",
+    "congregation": null,
+    "timeZone": "Asia/Makassar",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "bali",
+      "futures bali",
+      "denpasar"
+    ],
+    "sortOrder": 180,
+    "active": true
+  },
+  {
+    "id": "id-samarinda",
+    "name": "Futures Samarinda",
+    "city": "Samarinda, East Kalimantan",
+    "region": "Indonesia",
+    "congregation": null,
+    "timeZone": "Asia/Makassar",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "samarinda",
+      "futures samarinda"
+    ],
+    "sortOrder": 190,
+    "active": true
+  },
+  {
+    "id": "id-langowan",
+    "name": "Futures Langowan",
+    "city": "Langowan, North Sulawesi",
+    "region": "Indonesia",
+    "congregation": null,
+    "timeZone": "Asia/Makassar",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "langowan",
+      "futures langowan"
+    ],
+    "sortOrder": 200,
+    "active": true
+  },
+  {
+    "id": "br-rio",
+    "name": "Futures Rio",
+    "city": "Rio de Janeiro, Brazil",
+    "region": "Brazil",
+    "congregation": null,
+    "timeZone": "America/Sao_Paulo",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [
+      "rio",
+      "futures rio",
+      "rio de janeiro"
+    ],
+    "sortOrder": 210,
+    "active": true
+  },
+  {
+    "id": "other",
+    "name": "Non-Futures Church",
+    "city": "Any",
+    "region": "Other",
+    "congregation": null,
+    "timeZone": "UTC",
+    "sundayUntil": "16:00",
+    "videoUrl": null,
+    "pcoNames": [],
+    "sortOrder": 220,
+    "active": true
+  }
+]

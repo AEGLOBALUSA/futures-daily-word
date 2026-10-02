@@ -8,15 +8,12 @@
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 
-const CAMPUS_IDS = [
-  "au-paradise", "au-adelaide-city", "au-salisbury", "au-south",
-  "au-clare-valley", "au-mount-barker", "au-victor-harbor", "au-copper-coast",
-  "us-gwinnett", "us-kennesaw", "us-alpharetta",
-  "us-futuros-duluth", "us-futuros-kennesaw", "us-futuros-grayson", "us-franklin",
-  "id-solo", "id-cemani", "id-bali", "id-samarinda", "id-langowan",
-  "br-rio"
-];
-const CAMPUS_SET = new Set(CAMPUS_IDS);
+// The campus list lives in the dw_campuses table (lib/campuses.js, B09-02).
+// CAMPUS_IDS is the bundled copy's staff campuses (no 'other'), kept for tests
+// and for callers that have no list to hand; every function passes the loaded
+// list where it has one.
+const campuses = require("./campuses");
+const CAMPUS_IDS = campuses.campusIds();
 
 /** Named staff from the product request. Do not invent extra people. */
 const NAMED_STAFF = {
@@ -135,19 +132,20 @@ function questionVisibleForJob(question, role, job) {
   return aud === viewAs;
 }
 
-function isCampusId(id) {
-  return typeof id === "string" && CAMPUS_SET.has(id);
+/** A campus id on `list` (the loaded campus list; the bundled one when omitted). */
+function isCampusId(id, list) {
+  return campuses.isCampusId(id, list);
 }
 
 /** Campus pastors may only act on their assigned campus (or the one they pick once). */
-function lockCampus(staff, requestedCampus) {
-  const requested = isCampusId(requestedCampus) ? requestedCampus : null;
+function lockCampus(staff, requestedCampus, list) {
+  const requested = isCampusId(requestedCampus, list) ? requestedCampus : null;
   if (!staff) return null;
   if (staff.role === "campus") {
-    if (staff.campusId && isCampusId(staff.campusId)) return staff.campusId;
+    if (staff.campusId && isCampusId(staff.campusId, list)) return staff.campusId;
     return requested;
   }
-  return requested || (isCampusId(staff.campusId) ? staff.campusId : null);
+  return requested || (isCampusId(staff.campusId, list) ? staff.campusId : null);
 }
 
 function sanitize(str, maxLen = 5000) {
@@ -267,11 +265,11 @@ function sermonFromNotes(notes) {
   };
 }
 
-function collectCampusFromAnswers(questions, answers) {
+function collectCampusFromAnswers(questions, answers, list) {
   for (const q of questions || []) {
     if (q.type === "campus") {
       const v = answers && answers[q.id];
-      if (isCampusId(v)) return v;
+      if (isCampusId(v, list)) return v;
     }
   }
   return null;
