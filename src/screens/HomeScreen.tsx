@@ -11,7 +11,7 @@ import { fetchPassage, getServedTranslation, fetchStrongsMap } from '../utils/ap
 import type { TranslationCode, StrongsMap } from '../utils/api';
 import * as AP from '../utils/audioPlayer';
 import { QUOTES } from '../data/quotes';
-import { CAMPUSES } from '../data/tokens';
+import { campusName, campusRegions, findCampus, useCampuses } from '../data/campuses';
 import { useUser } from '../contexts/UserContext';
 import { HighlightToolbar } from '../components/HighlightToolbar';
 import { AudioWave } from '../components/AudioWave';
@@ -161,6 +161,7 @@ interface ReadingSlot {
 }
 
 export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) => void; onBack?: () => void }) {
+  const campuses = useCampuses();
   // Which church's Sermon Notes this device reads — shown on the banner.
   const [homeCongregation, setHomeCongregation] = useState(() => getCongregation());
   useEffect(() => onCongregationChange(setHomeCongregation), []);
@@ -484,7 +485,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // Weekly review
   const [weekReview] = useState(() => getWeekReviewData());
   const [weekReviewDismissed, setWeekReviewDismissed] = useState(false);
-  const currentCampus = CAMPUSES.find(c => c.id === userProfile?.campus);
+  const currentCampus = findCampus(userProfile?.campus, campuses);
   const lang = localStorage.getItem('dw_lang') || 'en';
 
   // Load Faith Pathway — persona-gated via config
@@ -3857,8 +3858,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
           {showCampusPicker && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
-                const regionCampuses = CAMPUSES.filter(c => c.region === region);
+              {campusRegions(campuses).map(region => {
+                const regionCampuses = campuses.filter(c => c.region === region);
                 if (!regionCampuses.length) return null;
                 return (
                   <div key={region}>
@@ -4080,9 +4081,9 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             campus code); the seeded pseudo-random counts are gone — progress is
             grounded in facts or not shown at all. */}
         {personaConfig.persona === 'pastor_leader' && (() => {
-          const campusName = campusStats
-            ? (CAMPUSES.find(c => c.id === campusStats.campus)?.name || campusStats.campus)
-            : (CAMPUSES.find(c => c.id === userProfile?.campus)?.name || 'your campus');
+          const campusNameLabel = campusStats
+            ? (campusName(campusStats.campus, campuses) || campusStats.campus)
+            : (campusName(userProfile?.campus, campuses) || 'your campus');
           return (
             <div style={{
               marginBottom: 16, borderRadius: 16, padding: '16px 14px',
@@ -4111,7 +4112,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     <p style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--dw-text-muted)', margin: '4px 0 0', letterSpacing: '0.04em' }}>prayer requests</p>
                   </div>
                   <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-info)', fontWeight: 600, margin: 0 }}>{campusName}</p>
+                    <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-info)', fontWeight: 600, margin: 0 }}>{campusNameLabel}</p>
                   </div>
                 </div>
               ) : campusStatsLoading ? (

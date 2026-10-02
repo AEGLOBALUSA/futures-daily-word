@@ -8,7 +8,7 @@
 import { X } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useIsPastorSignedIn } from '../utils/useStaffIdentity';
-import { CAMPUSES } from '../data/tokens';
+import { findCampus } from '../data/campuses';
 import type { TabId } from './TabBar';
 
 const COPY: Record<string, string> = {
@@ -36,7 +36,7 @@ export function PathArrivalStrip({
   const key = COPY[persona];
   if (!key) return null;
   const isPastor = persona === 'pastor_leader';
-  const campus = CAMPUSES.find(c => c.id === campusId);
+  const campus = findCampus(campusId);
   const campusLabel = campus ? campus.name.replace(/^Futures /, '').replace(/^Futuros /, '') : '';
 
   return (

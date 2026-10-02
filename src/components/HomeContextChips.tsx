@@ -10,12 +10,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ChevronDown, MapPin } from 'lucide-react';
 import { t, getLang } from '../utils/i18n';
-import { CAMPUSES } from '../data/tokens';
+import { campusRegions, findCampus, useCampuses } from '../data/campuses';
 import { useSubView } from '../utils/useSubView';
 import { useModalA11y } from '../utils/useModalA11y';
 import { hapticTap } from '../utils/haptics';
-
-const REGIONS = ['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'] as const;
 
 export function HomeContextChips({
   campusId,
@@ -24,6 +22,7 @@ export function HomeContextChips({
   campusId: string;
   onCampusChange: (campusId: string) => void;
 }) {
+  const campuses = useCampuses();
   const lang = getLang();
   const [open, setOpen] = useState(false);
   const campusBtnRef = useRef<HTMLButtonElement>(null);
@@ -32,7 +31,7 @@ export function HomeContextChips({
   useSubView(open, () => setOpen(false));
   const panelRef = useModalA11y(open, () => setOpen(false));
 
-  const campus = CAMPUSES.find(c => c.id === campusId);
+  const campus = findCampus(campusId, campuses);
   const campusLabel = campus
     ? campus.name.replace(/^Futures /, '').replace(/^Futuros /, '')
     : t('campus_chip', lang);
@@ -113,8 +112,8 @@ export function HomeContextChips({
               padding: 8,
             }}
           >
-            {REGIONS.map(region => {
-              const regionCampuses = CAMPUSES.filter(c => c.region === region);
+            {campusRegions(campuses).map(region => {
+              const regionCampuses = campuses.filter(c => c.region === region);
               if (!regionCampuses.length) return null;
               return (
                 <div key={region} style={{ marginBottom: 8 }}>

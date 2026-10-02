@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react';
-import { CAMPUSES } from '../data/tokens';
+import { campusRegions, useCampuses } from '../data/campuses';
 import { t, getLang } from '../utils/i18n';
 
 /**
@@ -9,6 +9,7 @@ import { t, getLang } from '../utils/i18n';
  * (saveProfile / requireEmail).
  */
 export function CampusSelect({ value, onChange }: { value: string; onChange: (campusId: string) => void }) {
+  const campuses = useCampuses();
   const lang = getLang();
   return (
     <div style={{ position: 'relative' }}>
@@ -33,8 +34,8 @@ export function CampusSelect({ value, onChange }: { value: string; onChange: (ca
         }}
       >
         <option value="">{t('select_your_campus', lang)}</option>
-        {['Australia', 'North America', 'Indonesia', 'Brazil', 'Other'].map(region => {
-          const regionCampuses = CAMPUSES.filter(c => c.region === region);
+        {campusRegions(campuses).map(region => {
+          const regionCampuses = campuses.filter(c => c.region === region);
           if (!regionCampuses.length) return null;
           return (
             <optgroup key={region} label={region}>

@@ -3,7 +3,7 @@ import { track } from '../utils/analytics';
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
-import { CAMPUSES } from '../data/tokens';
+import { findCampus } from '../data/campuses';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { CheckCircle, Clock, ArrowRight, RotateCcw, BookOpen, MapPin, Video, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar, Search } from 'lucide-react';
 import type { TabId } from '../components/TabBar';
@@ -358,7 +358,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   const browsePlans = PLAN_CATALOGUE
     .filter(p => priorityIds.includes(p.id))
     .sort((a, b) => priorityIds.indexOf(a.id) - priorityIds.indexOf(b.id));
-  const campusData = userProfile?.campus ? CAMPUSES.find(c => c.id === userProfile.campus) : null;
+  const campusData = userProfile?.campus ? findCampus(userProfile.campus) : null;
   const isNewChristian = isNewChristianPersona(persona);
 
   // Hub view (V1 structure) - the main Plans & More page

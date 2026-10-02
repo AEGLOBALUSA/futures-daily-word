@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
-import { CAMPUSES } from '../data/tokens';
+import { campusName as campusNameOf, useCampuses } from '../data/campuses';
 import { getStaffToken, intake, setStaffToken } from './api';
 import { localApiBase } from '../utils/api-base';
 import { getLang, t } from '../utils/i18n';
@@ -115,7 +115,7 @@ const btnGhost: CSSProperties = {
 
 function campusName(id: string | null | undefined) {
   if (!id) return '';
-  return CAMPUSES.find(c => c.id === id)?.name || id;
+  return campusNameOf(id);
 }
 
 function emptyAnswer(q: Question): unknown {
@@ -512,6 +512,7 @@ function formIntro(job: Job) {
 }
 
 function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: (s: string) => void }) {
+  const campuses = useCampuses();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [cornerItems, setCornerItems] = useState<CornerItem[]>([]);
@@ -717,7 +718,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
             style={inputStyle}
           >
             <option value="">Select campus</option>
-            {CAMPUSES.filter(c => c.id !== 'other').map(c => (
+            {campuses.filter(c => c.id !== 'other').map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
@@ -943,6 +944,7 @@ function QuestionField({
   /** Inline validation message shown under the field (e.g. a bad YouTube link). */
   problem?: string;
 }) {
+  const campuses = useCampuses();
   const required = require ?? q.required;
   if (q.type === 'campus') {
     const v = String(value || lockedCampus || '');
@@ -956,7 +958,7 @@ function QuestionField({
           style={inputStyle}
         >
           <option value="">Select campus</option>
-          {CAMPUSES.filter(c => c.id !== 'other').map(c => (
+          {campuses.filter(c => c.id !== 'other').map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
@@ -1178,6 +1180,7 @@ function formatExpiry(iso: string) {
 }
 
 function Roster({ onError }: { onError: (s: string) => void }) {
+  const campuses = useCampuses();
   const [rows, setRows] = useState<RosterRow[]>([]);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('campus');
@@ -1281,7 +1284,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
       <Field label="Campus (campus pastors)">
         <select value={campusId} onChange={e => setCampusId(e.target.value)} style={inputStyle}>
           <option value="">Unassigned — they pick once</option>
-          {CAMPUSES.filter(c => c.id !== 'other').map(c => (
+          {campuses.filter(c => c.id !== 'other').map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>

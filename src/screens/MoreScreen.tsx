@@ -8,7 +8,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, updatePushTime, pushSupported, openCalendarReminder } from '../utils/push';
 import { pushNow, syncMisc } from '../utils/cloudSync';
-import { CAMPUSES } from '../data/tokens';
+import { findCampus } from '../data/campuses';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
@@ -147,7 +147,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [bugMessage, setBugMessage] = useState('');
   const [bugSubmitting, setBugSubmitting] = useState(false);
   const [bugSubmitted, setBugSubmitted] = useState(false);
-  const campusData = CAMPUSES.find(c => c.id === userProfile?.campus);
+  const campusData = findCampus(userProfile?.campus);
   const currentPersona = PATHS.find(p => p.id === setup?.persona);
   const currentPath = pathFor(setup?.persona);
   const newPathSettings = isNewChristianPersona(setup?.persona);

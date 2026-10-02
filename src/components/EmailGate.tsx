@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { X, Loader2, CheckCircle } from 'lucide-react';
-import { CAMPUSES } from '../data/tokens';
+import { useCampuses } from '../data/campuses';
 import { API_BASE } from '../utils/api-base';
 import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
@@ -40,6 +40,7 @@ function readSetupPersona(): string {
 
 export function EmailGate() {
   const { showEmailGate, setShowEmailGate, saveProfile, saveSetup, emailGateCallback } = useUser();
+  const campuses = useCampuses();
   const lang = getLang();
 
   // Open straight to the email step if a persona already exists — never re-present the picker.
@@ -317,7 +318,7 @@ export function EmailGate() {
                 style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
               >
                 <option value="">{t('select_campus_optional', lang)}</option>
-                {CAMPUSES.map(c => (
+                {campuses.map(c => (
                   <option key={c.id} value={c.id}>{c.name} — {c.city}</option>
                 ))}
               </select>
