@@ -142,6 +142,21 @@ describe('validateCampusSave', () => {
     expect(r.row.updated_by).toBeUndefined();
   });
 
+  it('an edit that leaves a field out keeps what is saved; only an explicit empty clears it', () => {
+    const hidden = list.map((c) => (c.id === 'us-gwinnett' ? { ...c, active: false } : c));
+    const kept = campuses.validateCampusSave({ id: 'us-gwinnett', name: 'Futures Gwinnett', region: 'North America', timeZone: 'America/New_York' }, hidden);
+    expect(kept.error).toBeUndefined();
+    expect(kept.row.video_url).toMatch(/^https:\/\/www\.youtube\.com/);
+    expect(kept.row.pco_names).toEqual(['gwinnett', 'futures gwinnett']);
+    expect(kept.row.city).toBe('Gwinnett, GA');
+    expect(kept.row.congregation).toBe('futures-us');
+    expect(kept.row.active).toBe(false);
+    const cleared = campuses.validateCampusSave({ id: 'us-gwinnett', name: 'Futures Gwinnett', region: 'North America', timeZone: 'America/New_York', videoUrl: '', pcoNames: [], active: true }, hidden);
+    expect(cleared.row.video_url).toBeNull();
+    expect(cleared.row.pco_names).toEqual([]);
+    expect(cleared.row.active).toBe(true);
+  });
+
   it('says the fix in words', () => {
     expect(campuses.validateCampusSave({ ...NEW, name: '' }, list).error).toBe('Add the campus name first.');
     expect(campuses.validateCampusSave({ ...NEW, timeZone: 'Mars/Olympus' }, list).error).toBe('Choose the campus\'s time zone first.');

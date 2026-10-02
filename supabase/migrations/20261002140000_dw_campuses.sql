@@ -52,6 +52,10 @@ alter table public.dw_campuses enable row level security;
 
 revoke all on table public.dw_campuses from public, anon, authenticated;
 
+-- The backend (service key) is the one reader and writer; named so the gate
+-- does not rest on default privileges.
+grant select, insert, update on table public.dw_campuses to service_role;
+
 -- A row that already exists keeps its owner's edits.
 insert into public.dw_campuses (id, name, city, region, congregation, time_zone, video_url, pco_names, sort_order) values
   ('au-paradise', 'Futures Paradise', 'Paradise, SA', 'Australia', 'futures-au', 'Australia/Adelaide', null, array['paradise', 'futures paradise']::text[], 10),

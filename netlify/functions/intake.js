@@ -1325,8 +1325,14 @@ exports.handler = async (event) => {
     // table with the service key; anon and authenticated have no grant on it.
     // An id is never renamed or deleted: "Hide from readers" sets active=false.
     if (action === "campuses_list") {
+      // The editor reads the table itself, never the bundled copy: a save from
+      // stale seed values would un-hide a campus and drop the owner's edits.
       clearCampusCache();
-      const list = await campusList();
+      const { data: rows, error: readErr } = await db().from("dw_campuses")
+        .select("id, name, city, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active")
+        .order("sort_order", { ascending: true }).order("id", { ascending: true });
+      if (readErr) throw readErr;
+      const list = (rows || []).map(fromRow);
       return json(event, 200, {
         campuses: list.map((c) => ({ ...publicCampus(c), pcoNames: c.pcoNames, active: c.active }))
       });

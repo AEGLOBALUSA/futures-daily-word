@@ -179,8 +179,14 @@ function clean(v, max) {
  * it is an edit; an id is never changed (the client sends the saved id back).
  */
 function validateCampusSave(input, list) {
-  const c = input && typeof input === "object" ? input : {};
-  const id = typeof c.id === "string" ? c.id.trim() : "";
+  const given = input && typeof input === "object" ? input : {};
+  const id = typeof given.id === "string" ? given.id.trim() : "";
+  const all = Array.isArray(list) ? list : [];
+  const existing = all.find((x) => x.id === id) || null;
+  // An edit that leaves a field out keeps what is saved (the livestream link,
+  // the Planning Center spellings, hidden or shown). Only an explicit null or ""
+  // clears a field.
+  const c = existing && given.isNew !== true ? { ...existing, ...given } : given;
   const name = clean(c.name, 80);
   if (name.length < 2) return { error: "Add the campus name first." };
   if (name.length > 60) return { error: "Keep the campus name to 60 characters." };
@@ -207,8 +213,6 @@ function validateCampusSave(input, list) {
     .filter((n, i, a) => a.indexOf(n) === i)
     .slice(0, 20);
 
-  const all = Array.isArray(list) ? list : [];
-  const existing = all.find((x) => x.id === id) || null;
   if (!existing && c.isNew !== true) {
     // An edit names a saved id; a different id than the one saved is a rename.
     return { error: "The id never changes once saved. Add a new campus instead." };
