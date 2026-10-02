@@ -3,7 +3,7 @@
  * Shows active readers, prayer wall activity, and quick links.
  */
 import { Card } from '../components/Card';
-import { CAMPUSES } from '../data/tokens';
+import { findCampus } from '../data/campuses';
 import { useHome } from './HomeContext';
 
 export function CongregationStatsSection() {
@@ -13,7 +13,7 @@ export function CongregationStatsSection() {
   if (!campusStats) return null;
 
   const campusName = userProfile?.campus
-    ? CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus'
+    ? findCampus(userProfile.campus)?.name || 'your campus'
     : 'all campuses';
 
   const dailyCount = campusStats.readingToday;

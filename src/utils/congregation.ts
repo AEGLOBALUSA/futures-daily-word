@@ -6,15 +6,25 @@
  * default is derived — never asked — from what the device already tells us:
  * a Futuros campus or Spanish UI → Futuros USA; an Australian campus or
  * time zone → Futures Australia; otherwise Futures USA.
+ *
+ * The campus's own row (the one campus list, B09-02) says which congregation it
+ * reads when the owner has set one; the id-prefix rule below is the fallback for
+ * a campus without one.
  */
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, type CongregationId } from '../data/congregations';
+import { findCampus, type CampusRow } from '../data/campuses';
 
 export const CONGREGATION_KEY = 'dw_congregation';
 export const CONGREGATION_CHANGED_EVENT = 'dw-congregation-changed';
 export const OPEN_CONGREGATION_EVENT = 'dw-open-congregation';
 
-export function defaultCongregation(input: { lang?: string; campus?: string; timeZone?: string }): CongregationId {
+export function defaultCongregation(
+  input: { lang?: string; campus?: string; timeZone?: string },
+  campuses?: CampusRow[],
+): CongregationId {
   const campus = String(input.campus || '');
+  const fromRow = campus ? findCampus(campus, campuses)?.congregation : null;
+  if (isCongregationId(fromRow)) return fromRow;
   if (campus.startsWith('us-futuros')) return 'futuros-us';
   if (campus.startsWith('au-')) return 'futures-au';
   if (campus.startsWith('us-')) return 'futures-us';

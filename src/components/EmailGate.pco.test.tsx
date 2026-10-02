@@ -39,9 +39,11 @@ beforeEach(() => {
   localStorage.setItem('dw_setup', JSON.stringify({ persona: 'congregation', source: 'onboarding' }));
   user.saveProfile.mockReset();
   fetchMock.mockReset();
-  fetchMock.mockImplementation(async (url: string, init: { body: string }) => {
-    const body = JSON.parse(init.body);
+  fetchMock.mockImplementation(async (url: string, init?: { body: string }) => {
     const reply = (data: unknown) => ({ ok: true, status: 200, json: async () => data });
+    // The campus picker's list (GET /.netlify/functions/campuses, B09-02): keep the bundled list.
+    if (String(url).includes('/functions/campuses')) return { ok: false, status: 503, json: async () => ({}) };
+    const body = JSON.parse(init!.body);
     if (String(url).includes('pco-sync')) {
       return reply({ synced: false, profile: { firstName: 'Pia', lastName: 'Pco', email: PIA, campus: 'us-alpharetta', campusName: 'Alpharetta' } });
     }
@@ -82,6 +84,7 @@ describe('EmailGate: a new reader who is in PCO', () => {
     await act(async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); });
 
     const reg = fetchMock.mock.calls
+      .filter(([, init]) => init && (init as { body?: string }).body)
       .map(([, init]) => JSON.parse((init as { body: string }).body))
       .find((b) => b.action === 'register');
     expect(reg).toMatchObject({ action: 'register', email: PIA, firstName: 'Pia', lastName: 'Pco', campus: 'us-alpharetta', persona: 'congregation' });

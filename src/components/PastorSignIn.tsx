@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
 import { ShieldCheck, LogOut } from 'lucide-react';
 import { Card } from './Card';
-import { CAMPUSES } from '../data/tokens';
+import { campusName as campusNameOf } from '../data/campuses';
 import { intake, setStaffToken } from '../staff/api';
 import { useUser } from '../contexts/UserContext';
 import { useStaffIdentity } from '../utils/useStaffIdentity';
@@ -37,7 +37,7 @@ function roleLabel(role: string, lang: string): string {
 
 function campusName(id: string | null | undefined): string {
   if (!id) return '';
-  return CAMPUSES.find(c => c.id === id)?.name || id;
+  return campusNameOf(id);
 }
 
 /** The server's known refusals, shown in the card's language. */

@@ -11,6 +11,7 @@ import type { TabId } from '../components/TabBar';
 import { pushNow } from '../utils/cloudSync';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
 import { ALPHARETTA_TAB_LABEL, useAlpharettaTab } from '../alpharetta-gate/AlpharettaSlot';
+import { campusName } from '../data/campuses';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -22,19 +23,6 @@ interface Prayer {
   prayerCount: number;
   timeAgo: string;
 }
-
-const CAMPUS_LABELS: Record<string, string> = {
-  'au-paradise': 'Futures Paradise', 'au-adelaide-city': 'Futures Adelaide City',
-  'au-salisbury': 'Futures Salisbury', 'au-south': 'Futures South',
-  'au-clare-valley': 'Futures Clare Valley', 'au-mount-barker': 'Futures Mount Barker',
-  'au-victor-harbor': 'Futures Victor Harbor', 'au-copper-coast': 'Futures Copper Coast',
-  'us-gwinnett': 'Futures Gwinnett', 'us-kennesaw': 'Futures Kennesaw',
-  'us-alpharetta': 'Futures Alpharetta', 'us-futuros-duluth': 'Futuros Duluth',
-  'us-futuros-kennesaw': 'Futuros Kennesaw', 'us-futuros-grayson': 'Futuros Grayson',
-  'us-franklin': 'Futures Franklin', 'id-solo': 'Futures Solo', 'id-cemani': 'Futures Cemani',
-  'id-bali': 'Futures Bali', 'id-samarinda': 'Futures Samarinda', 'id-langowan': 'Futures Langowan',
-  'br-rio': 'Futures Rio', 'other': 'Non-Futures Church',
-};
 
 // ── {t("prayer_wall", lang)} API ────────────────────────────────────────────────────────────
 const API = `${API_BASE}/.netlify/functions/prayer-wall`;
@@ -368,7 +356,7 @@ function PrayerWallPanel({
   });
 
   const campus = userProfile?.campus || '';
-  const campusName = CAMPUS_LABELS[campus] || '';
+  const campusLabel = campusName(campus);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -425,7 +413,7 @@ function PrayerWallPanel({
               border: `1px solid ${filter === f ? 'var(--dw-accent)' : 'var(--dw-border)'}`,
               transition: 'all 0.15s ease',
             }}>
-              {f === 'all' ? t('all_campuses', lang) : (campusName || t('my_campus', lang))}
+              {f === 'all' ? t('all_campuses', lang) : (campusLabel || t('my_campus', lang))}
             </button>
           ))}
         </div>

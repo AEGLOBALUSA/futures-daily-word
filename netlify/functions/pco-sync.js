@@ -26,37 +26,9 @@ const { clientIp } = require('./lib/client-ip');
 
 const PCO_BASE = "https://api.planningcenteronline.com/people/v2";
 
-// Map PCO campus names to our campus IDs. Update as you add campuses.
-// Keys = how the campus appears in PCO (lowercase for matching)
-// Keys = lowercase PCO campus name. Values = our internal campus ID.
-// Add alternate spellings/abbreviations as needed once PCO is connected.
-const PCO_CAMPUS_MAP = {
-  // Australia
-  "paradise": "au-paradise", "futures paradise": "au-paradise",
-  "adelaide city": "au-adelaide-city", "futures adelaide city": "au-adelaide-city", "adelaide": "au-adelaide-city",
-  "salisbury": "au-salisbury", "futures salisbury": "au-salisbury",
-  "south": "au-south", "futures south": "au-south",
-  "clare valley": "au-clare-valley", "futures clare valley": "au-clare-valley",
-  "mount barker": "au-mount-barker", "futures mount barker": "au-mount-barker", "mt barker": "au-mount-barker",
-  "victor harbor": "au-victor-harbor", "futures victor harbor": "au-victor-harbor", "victor harbour": "au-victor-harbor",
-  "copper coast": "au-copper-coast", "futures copper coast": "au-copper-coast",
-  // North America
-  "gwinnett": "us-gwinnett", "futures gwinnett": "us-gwinnett",
-  "kennesaw": "us-kennesaw", "futures kennesaw": "us-kennesaw",
-  "alpharetta": "us-alpharetta", "futures alpharetta": "us-alpharetta",
-  "futuros duluth": "us-futuros-duluth", "duluth": "us-futuros-duluth",
-  "futuros kennesaw": "us-futuros-kennesaw",
-  "futuros grayson": "us-futuros-grayson", "grayson": "us-futuros-grayson",
-  "franklin": "us-franklin", "futures franklin": "us-franklin",
-  // Indonesia
-  "solo": "id-solo", "futures solo": "id-solo", "surakarta": "id-solo",
-  "cemani": "id-cemani", "futures cemani": "id-cemani",
-  "bali": "id-bali", "futures bali": "id-bali", "denpasar": "id-bali",
-  "samarinda": "id-samarinda", "futures samarinda": "id-samarinda",
-  "langowan": "id-langowan", "futures langowan": "id-langowan",
-  // Brazil
-  "rio": "br-rio", "futures rio": "br-rio", "rio de janeiro": "br-rio"
-};
+// Planning Center campus name → our campus id comes from the one campus list
+// (dw_campuses.pco_names, lower-case, kept by the owner in /staff; B09-02).
+const { loadCampuses, campusIdForPcoName } = require("./lib/campuses");
 
 function sanitize(str, maxLen = 254) {
   if (typeof str !== "string") return "";
@@ -151,7 +123,7 @@ async function lookupByEmail(email) {
     if (campusInc) {
       campusName = campusInc.attributes?.name || "";
       // Map PCO campus name to our internal ID
-      campusId = PCO_CAMPUS_MAP[campusName.toLowerCase()] || "";
+      campusId = campusIdForPcoName(campusName, await loadCampuses(getSupabase()));
     }
   }
 

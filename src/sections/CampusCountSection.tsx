@@ -1,4 +1,4 @@
-import { CAMPUSES } from '../data/tokens';
+import { findCampus } from '../data/campuses';
 import { useHome } from './HomeContext';
 
 export function CampusCountSection() {
@@ -7,7 +7,7 @@ export function CampusCountSection() {
   if (!userProfile?.campus) return null;
   if (!campusStats || campusStats.campus !== userProfile?.campus) return null;
 
-  const campusName = CAMPUSES.find(c => c.id === userProfile.campus)?.name || 'your campus';
+  const campusName = findCampus(userProfile.campus)?.name || 'your campus';
 
   return (
     <div className="dw-dark-surface" style={{
