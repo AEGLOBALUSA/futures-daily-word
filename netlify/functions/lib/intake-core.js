@@ -402,12 +402,25 @@ function applyAnswers(questions, answers, ctx) {
   return { sermon, sermonPatch, cornerAdds, cornerRemoves, youtubeOnly, notesPolish };
 }
 
-function publicStaff(staff) {
+/**
+ * What the app (and Sermon Prep, through `me`) is told about the signed-in
+ * staff member. `list` is the one campus list (lib/campuses.js loadCampuses);
+ * without it the bundled copy answers. campusName and congregation come from
+ * that list, never from a name typed here (MOS-to-8 build B08-06):
+ *   campusName    the campus's name as /staff -> Campuses has it; the id itself
+ *                 when the id is not on the list; null with no campus.
+ *   congregation  'futures-us' | 'futures-au' | 'futuros-us' | null (no campus,
+ *                 a campus with none set, or an id not on the list).
+ */
+function publicStaff(staff, list) {
   if (!staff) return null;
+  const campusId = staff.campusId || null;
   return {
     email: staff.email,
     role: staff.role,
-    campusId: staff.campusId || null,
+    campusId,
+    campusName: campusId ? campuses.campusName(campusId, list) : null,
+    congregation: campusId ? campuses.campusCongregation(campusId, list) : null,
     name: staff.name || "",
     isAdmin: staff.role === "admin",
     // True when this person's saves to the campus corner wait for Ashley to confirm the campus.

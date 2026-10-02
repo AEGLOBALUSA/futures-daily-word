@@ -80,6 +80,31 @@ async function loadCampuses(db, { now = Date.now() } = {}) {
   }
 }
 
+/**
+ * The list for an answer that must not wait on the table (sign-in: the session
+ * is already issued and, on a first-time setup, the code is already spent).
+ * The table read gets `ms` to answer; after that the bundled list names the
+ * campus. A slow read still fills the cache when it lands, for the next call.
+ */
+const SIGN_IN_READ_MS = 1500;
+async function loadCampusesWithin(db, ms = SIGN_IN_READ_MS) {
+  let timer = null;
+  const late = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      console.warn("[campuses] the campus read took over", ms, "ms: using the bundled list");
+      resolve(fallbackCampuses());
+    }, ms);
+  });
+  try {
+    return await Promise.race([loadCampuses(db), late]);
+  } catch (err) {
+    console.warn("[campuses] using the bundled list:", (err && err.message) || err);
+    return fallbackCampuses();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Forget the cached list (after a save, so this instance serves the change at once). */
 function clearCampusCache() {
   cache = null;
@@ -123,6 +148,12 @@ function campusIdForPcoName(name, list) {
 function campusTimeZone(id, list) {
   const c = findCampus(id, list);
   return c ? c.timeZone : null;
+}
+
+/** The campus's congregation ('futures-us' | 'futures-au' | 'futuros-us'), or null when it has none or is not in the list. */
+function campusCongregation(id, list) {
+  const c = findCampus(id, list);
+  return c ? c.congregation || null : null;
 }
 
 /** Every id that is a campus for staff purposes (no 'other'), in list order. */
@@ -280,6 +311,8 @@ module.exports = {
   CACHE_MS,
   planCampusMove,
   loadCampuses,
+  loadCampusesWithin,
+  SIGN_IN_READ_MS,
   clearCampusCache,
   fallbackCampuses,
   fromRow,
@@ -288,6 +321,7 @@ module.exports = {
   campusName,
   campusIdForPcoName,
   campusTimeZone,
+  campusCongregation,
   campusIds,
   publicCampus,
   slugify,
