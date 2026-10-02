@@ -1218,6 +1218,7 @@ function campusDraftFromRow(c: AdminCampus): CampusDraft {
 function Campuses({ onError }: { onError: (s: string) => void }) {
   const [campuses, setCampuses] = useState<AdminCampus[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
   const [loadError, setLoadError] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -1226,10 +1227,11 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
   const [saveStatus, setSaveStatus] = useState('');
 
   const load = useCallback(async () => {
-    setLoading(true); setLoadError('');
+    setLoading(!hasLoaded.current); setLoadError('');
     try {
       const data = await intake<{ campuses: AdminCampus[] }>('campuses_list');
       setCampuses(data.campuses || []);
+      hasLoaded.current = true;
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load campuses');
     }
@@ -1263,10 +1265,10 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
             <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)' }}>{campus.city} · {campus.region} · {campus.timeZone}</span>
             {!campus.active && <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)' }}>Hidden from readers</span>}
           </button>
-          {openId === campus.id && draft && <CampusEditor draft={draft} setDraft={setDraft} isNew={false} regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async id => { await load(); const moved = campuses.find(c => c.id === id); if (moved) setDraft(campusDraftFromRow(moved)); }} onError={onError} />}
+          {openId === campus.id && draft && <CampusEditor draft={draft} setDraft={setDraft} isNew={false} regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => { await load(); }} onError={onError} />}
         </div>
       ))}
-      {adding && draft ? <CampusEditor draft={draft} setDraft={setDraft} isNew regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => {}} onError={onError} /> : <button type="button" className="dw-next" style={{ ...campusMainStyle, marginTop: 14 }} onClick={openAdd}>Add a campus</button>}
+      {adding && draft ? <CampusEditor draft={draft} setDraft={setDraft} isNew regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => {}} onError={onError} /> : !openId ? <button type="button" className="dw-next" style={{ ...campusMainStyle, marginTop: 14 }} onClick={openAdd}>Add a campus</button> : null}
     </div>
   );
 }
@@ -1276,8 +1278,9 @@ function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouc
   const [busy, setBusy] = useState(false);
   const [newRegion, setNewRegion] = useState(false);
   const patch = (part: Partial<CampusDraft>) => setDraft({ ...draft, ...part });
-  const setName = (name: string) => patch({ name, ...(!isNew || idTouched ? {} : { id: draft.region ? `${(draft.region.slice(0, 2) || '').toLowerCase()}-${campusSlug(name)}` : campusSlug(name) }) });
-  const setRegion = (region: string) => { const regionZones = campuses.filter(c => c.region === region).map(c => c.timeZone); const preferredZone = regionZones.length ? regionZones.sort((a, b) => regionZones.filter(x => x === b).length - regionZones.filter(x => x === a).length)[0] : ''; const prefix = (campuses.find(c => c.region === region)?.id.split('-')[0] || region.slice(0, 2)).toLowerCase(); patch({ region, timeZone: preferredZone || draft.timeZone, ...(!isNew || idTouched ? {} : { id: `${prefix}-${campusSlug(draft.name)}` }) }); };
+  const regionPrefix = (region: string) => (campuses.find(c => c.region === region)?.id.split('-')[0] || region.slice(0, 2)).toLowerCase();
+  const setName = (name: string) => patch({ name, ...(!isNew || idTouched ? {} : { id: draft.region ? `${regionPrefix(draft.region)}-${campusSlug(name)}` : campusSlug(name) }) });
+  const setRegion = (region: string, chooseZone = true) => { const regionZones = campuses.filter(c => c.region === region).map(c => c.timeZone); const preferredZone = regionZones.length ? regionZones.sort((a, b) => regionZones.filter(x => x === b).length - regionZones.filter(x => x === a).length)[0] : ''; const prefix = regionPrefix(region); patch({ region, ...(chooseZone ? { timeZone: preferredZone || draft.timeZone } : {}), ...(!isNew || idTouched ? {} : { id: `${prefix}-${campusSlug(draft.name)}` }) }); };
   const save = async () => {
     const message = !draft.name.trim() ? 'Add the campus name first.' : !draft.region.trim() ? 'Choose the campus’s region first.' : !draft.timeZone ? 'Choose the campus’s time zone first.' : '';
     if (message) { setError(message); return; }
@@ -1298,7 +1301,7 @@ function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouc
       {isNew ? <Field label="Campus id"><input value={draft.id} onChange={e => { setIdTouched(true); patch({ id: e.target.value }); }} style={campusInputStyle} /></Field> : <p style={{ fontSize: 15, fontFamily: 'var(--font-sans)', margin: '0 0 24px' }}><strong>{draft.id}</strong> <span style={{ color: 'var(--dw-text-secondary)' }}>The id never changes once saved</span></p>}
       <Field label="Name"><input value={draft.name} onChange={e => setName(e.target.value)} style={campusInputStyle} /></Field>
       <Field label="Town"><input value={draft.city} onChange={e => patch({ city: e.target.value })} style={campusInputStyle} /></Field>
-      <Field label="Region"><select value={newRegion ? '__new__' : draft.region} onChange={e => { if (e.target.value === '__new__') { setNewRegion(true); patch({ region: '', timeZone: '' }); } else { setNewRegion(false); setRegion(e.target.value); } }} style={campusInputStyle}><option value="">Choose a region</option>{regions.map(region => <option key={region} value={region}>{region}</option>)}<option value="__new__">New region…</option></select>{newRegion && <input value={draft.region} onChange={e => setRegion(e.target.value)} placeholder="Region name" style={{ ...campusInputStyle, marginTop: 10 }} />}</Field>
+      <Field label="Region"><select value={newRegion ? '__new__' : draft.region} onChange={e => { if (e.target.value === '__new__') { setNewRegion(true); patch({ region: '' }); } else { setNewRegion(false); setRegion(e.target.value); } }} style={campusInputStyle}><option value="">Choose a region</option>{regions.map(region => <option key={region} value={region}>{region}</option>)}<option value="__new__">New region…</option></select>{newRegion && <input value={draft.region} onChange={e => setRegion(e.target.value, false)} placeholder="Region name" style={{ ...campusInputStyle, marginTop: 10 }} />}</Field>
       <Field label="Time zone"><select value={draft.timeZone} onChange={e => patch({ timeZone: e.target.value })} style={campusInputStyle}><option value="">Choose a time zone</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}{draft.timeZone && !zones.includes(draft.timeZone) && <option value={draft.timeZone}>{draft.timeZone}</option>}</select></Field>
       <Field label="Sunday notes show on Home until"><input type="time" value={draft.sundayUntil} onChange={e => patch({ sundayUntil: e.target.value })} style={campusInputStyle} /></Field>
       <Field label="Which Sermon Notes page it reads first"><select value={draft.congregation || ''} onChange={e => patch({ congregation: e.target.value || null })} style={campusInputStyle}><option value="">None (worked out from the campus)</option>{CONGREGATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
