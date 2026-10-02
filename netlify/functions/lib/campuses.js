@@ -125,6 +125,12 @@ function campusTimeZone(id, list) {
   return c ? c.timeZone : null;
 }
 
+/** The campus's congregation ('futures-us' | 'futures-au' | 'futuros-us'), or null when it has none or is not in the list. */
+function campusCongregation(id, list) {
+  const c = findCampus(id, list);
+  return c ? c.congregation || null : null;
+}
+
 /** Every id that is a campus for staff purposes (no 'other'), in list order. */
 function campusIds(list) {
   return listOr(list).filter((c) => c.id !== "other").map((c) => c.id);
@@ -288,6 +294,7 @@ module.exports = {
   campusName,
   campusIdForPcoName,
   campusTimeZone,
+  campusCongregation,
   campusIds,
   publicCampus,
   slugify,

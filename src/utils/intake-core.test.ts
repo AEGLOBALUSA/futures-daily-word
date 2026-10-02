@@ -102,6 +102,61 @@ describe('campusConfirmed', () => {
   });
 });
 
+describe('publicStaff names the campus from the one list (B08-06)', () => {
+  // Fixture campuses only: the names come from whatever list is passed in.
+  const list = [
+    { id: 'zz-test-north', name: 'Test North', congregation: 'futures-au', pcoNames: [], sortOrder: 10, active: true },
+    { id: 'zz-test-south', name: 'Test South', congregation: null, pcoNames: [], sortOrder: 20, active: true },
+    { id: 'zz-test-hidden', name: 'Test Hidden', congregation: 'futuros-us', pcoNames: [], sortOrder: 30, active: false }
+  ];
+  const pastor = (campusId: string | null) => ({ email: 'pastor@example.org', role: 'campus', campusId, campusSetBy: 'admin', name: 'Test Pastor' });
+
+  it('gives the campus name and congregation from the list', () => {
+    const s = core.publicStaff(pastor('zz-test-north'), list);
+    expect(s.campusId).toBe('zz-test-north');
+    expect(s.campusName).toBe('Test North');
+    expect(s.congregation).toBe('futures-au');
+  });
+
+  it('answers null for a campus with no congregation', () => {
+    const s = core.publicStaff(pastor('zz-test-south'), list);
+    expect(s.campusName).toBe('Test South');
+    expect(s.congregation).toBeNull();
+  });
+
+  it('falls back to the id for a campus that is not on the list', () => {
+    const s = core.publicStaff(pastor('zz-test-gone'), list);
+    expect(s.campusName).toBe('zz-test-gone');
+    expect(s.congregation).toBeNull();
+  });
+
+  it('still names a hidden campus', () => {
+    const s = core.publicStaff(pastor('zz-test-hidden'), list);
+    expect(s.campusName).toBe('Test Hidden');
+    expect(s.congregation).toBe('futuros-us');
+  });
+
+  it('answers null for both with no campus, and always carries both keys', () => {
+    const s = core.publicStaff({ email: 'hub@example.org', role: 'hub', name: 'Test Hub' }, list);
+    expect(s).toHaveProperty('campusName', null);
+    expect(s).toHaveProperty('congregation', null);
+  });
+
+  it('keeps every field it had before', () => {
+    const s = core.publicStaff(pastor('zz-test-north'), list);
+    expect(Object.keys(s).sort()).toEqual(
+      ['campusId', 'campusName', 'campusPending', 'congregation', 'email', 'isAdmin', 'name', 'role']
+    );
+    expect(s).toMatchObject({ email: 'pastor@example.org', role: 'campus', name: 'Test Pastor', isAdmin: false, campusPending: false });
+  });
+
+  it('uses the bundled list when no list is passed', () => {
+    const s = core.publicStaff(pastor('zz-test-north'));
+    expect(s.campusName).toBe('zz-test-north');
+    expect(s.congregation).toBeNull();
+  });
+});
+
 describe('campus lock', () => {
   it('pins a campus pastor to their assigned campus', () => {
     const staff = { email: 'p@futures.church', role: 'campus', campusId: 'us-gwinnett', name: '' };

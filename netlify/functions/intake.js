@@ -711,7 +711,7 @@ exports.handler = async (event) => {
       // The code is spent; its attempt rows are of no further use.
       await clearSetupMisses(email);
       const token = await issueSession(staff.email);
-      return json(event, 200, { token, staff: publicStaff(staff) });
+      return json(event, 200, { token, staff: publicStaff(staff, await loadCampuses(db())) });
     }
 
     // ── login ── Returning staff: email + the password they set.
@@ -745,7 +745,7 @@ exports.handler = async (event) => {
         if (dropErr) console.error("[intake] login: could not withdraw a session that raced a password reset");
         return refuse();
       }
-      return json(event, 200, { token, staff: publicStaff(staff) });
+      return json(event, 200, { token, staff: publicStaff(staff, await loadCampuses(db())) });
     }
 
     // Authenticated actions
@@ -780,7 +780,7 @@ exports.handler = async (event) => {
         const { count } = await db().from("intake_submissions").select("id", { count: "exact", head: true }).eq("status", "pending");
         pendingCount = count || 0;
       }
-      return json(event, 200, { staff: publicStaff(staff), pendingCount });
+      return json(event, 200, { staff: publicStaff(staff, await campusList()), pendingCount });
     }
 
     // ── sync_token ── A staff password sign-in is already proof of the person, so a
@@ -922,7 +922,7 @@ exports.handler = async (event) => {
         ? await listSermonChoices()
         : [];
       return json(event, 200, {
-        staff: publicStaff(staff),
+        staff: publicStaff(staff, await campusList()),
         questions: visible,
         cornerItems,
         submissions: mine || [],

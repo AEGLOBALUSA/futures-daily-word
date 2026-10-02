@@ -1479,3 +1479,72 @@ describe('campuses: only an admin session edits the list', () => {
     expect(tables.staff_roster.find((p) => p.email === 'merida.pastor@futures.church').campus_id).toBe('ve-futuros-merida');
   });
 });
+
+describe('the staff answer names the campus from the one list (B08-06)', () => {
+  const { clearCampusCache } = require_('../../netlify/functions/lib/campuses.js');
+  // Fixture campuses only (a public repo): the answer must follow the table, not the code.
+  const row = (id, name, congregation, sort_order) => ({
+    id, name, city: '', region: 'Test', congregation, time_zone: 'UTC', sunday_until: '16:00:00',
+    video_url: null, pco_names: [], sort_order, active: true,
+  });
+
+  beforeEach(() => {
+    clearCampusCache();
+    tables.dw_campuses = [row('zz-test-north', 'Test North', 'futures-au', 10), row('zz-test-south', 'Test South', null, 20)];
+  });
+  afterEach(() => { clearCampusCache(); });
+
+  const pastor = (email, campus_id) => addRoster({ email, campus_id, campus_set_by: 'admin', password_hash: hashPassword(PASSWORD) });
+
+  it('login and me both carry campusName and congregation from dw_campuses', async () => {
+    pastor('north.pastor@futures.church', 'zz-test-north');
+    const login = await call({ action: 'login', email: 'north.pastor@futures.church', password: PASSWORD });
+    expect(login.status).toBe(200);
+    expect(login.body.staff).toMatchObject({ campusId: 'zz-test-north', campusName: 'Test North', congregation: 'futures-au' });
+    const me = await call({ action: 'me' }, login.body.token);
+    expect(me.status).toBe(200);
+    expect(me.body.staff).toMatchObject({ campusId: 'zz-test-north', campusName: 'Test North', congregation: 'futures-au' });
+  });
+
+  it('a renamed campus is named as the table has it, with no code change', async () => {
+    pastor('north.pastor@futures.church', 'zz-test-north');
+    const token = await signIn('north.pastor@futures.church');
+    tables.dw_campuses[0].name = 'Test North Renamed';
+    clearCampusCache();
+    expect((await call({ action: 'me' }, token)).body.staff.campusName).toBe('Test North Renamed');
+  });
+
+  it('a campus with no congregation answers null; an id not on the list answers the id', async () => {
+    pastor('south.pastor@futures.church', 'zz-test-south');
+    pastor('gone.pastor@futures.church', 'zz-test-gone');
+    const south = await call({ action: 'me' }, await signIn('south.pastor@futures.church'));
+    expect(south.body.staff).toMatchObject({ campusName: 'Test South', congregation: null });
+    const gone = await call({ action: 'me' }, await signIn('gone.pastor@futures.church'));
+    expect(gone.body.staff).toMatchObject({ campusId: 'zz-test-gone', campusName: 'zz-test-gone', congregation: null });
+  });
+
+  it('staff with no campus get both keys as null, and nothing else changes', async () => {
+    const me = await call({ action: 'me' }, await adminToken());
+    expect(me.body.staff).toEqual({
+      email: 'ae@futures.global', role: 'admin', campusId: null, campusName: null, congregation: null,
+      name: 'Ashley Evans', isAdmin: true, campusPending: false,
+    });
+  });
+
+  it('me still answers when the campus table cannot be read (the bundled list names it)', async () => {
+    pastor('north.pastor@futures.church', 'us-gwinnett');
+    const token = await signIn('north.pastor@futures.church');
+    clearCampusCache();
+    failOn.add('dw_campuses:select');
+    const me = await call({ action: 'me' }, token);
+    expect(me.status).toBe(200);
+    expect(typeof me.body.staff.campusName).toBe('string');
+    expect(me.body.staff.campusName).not.toBe('');
+    expect(me.body.staff.congregation).toBe('futures-us');
+  });
+
+  it('me without a session is still refused', async () => {
+    expect((await call({ action: 'me' })).status).toBe(401);
+    expect((await call({ action: 'me' }, 'x'.repeat(64))).status).toBe(401);
+  });
+});
