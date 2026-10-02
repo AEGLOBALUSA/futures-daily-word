@@ -176,6 +176,7 @@
   --dw-accent-hover: #C97E54;
   --dw-accent-active: #B56E45;
   --dw-accent-bg: rgba(216, 144, 102, 0.14);
+  --dw-error: #F97066; /* readable error text on dark canvas */
   /* Success / "saved" — a calm green that belongs to the red+gold family,
      replacing the old iOS-blue #2563EB confirm state. */
   --dw-success: #4A7C59;
@@ -252,6 +253,7 @@
   --dw-accent-hover: #974A28;
   --dw-accent-active: #823F22;
   --dw-accent-bg: rgba(168, 85, 47, 0.10);
+  --dw-error: #B42318; /* readable error text on white */
   --dw-success: #2F8062;         /* muted forest — "done" without shouting */
   --dw-success-hover: #266B52;
   --dw-info: #4C7E97;            /* dusty slate-blue, calmed for the warm ground */

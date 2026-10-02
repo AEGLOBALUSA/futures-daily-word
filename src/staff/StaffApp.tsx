@@ -1250,7 +1250,7 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
   const closeEditor = () => { setOpenId(null); setAdding(false); setDraft(null); onError(''); };
 
   if (loading) return <p style={{ fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading campuses…</p>;
-  if (loadError) return <div><p role="alert" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: '#B42318' }}>{loadError}</p><button type="button" style={campusGhost} onClick={load}>Load campuses again</button></div>;
+  if (loadError) return <div><p role="alert" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--dw-error)' }}>{loadError}</p><button type="button" style={campusGhost} onClick={load}>Load campuses again</button></div>;
 
   return (
     <div>
@@ -1308,7 +1308,7 @@ function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouc
       <Field label="Planning Center spellings" help="Optional. How this campus is spelled in Planning Center, one per line."><textarea value={draft.pcoNames} onChange={e => patch({ pcoNames: e.target.value })} rows={4} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
       <Field label="Livestream link" help="Optional. https://…"><input type="url" value={draft.videoUrl} onChange={e => patch({ videoUrl: e.target.value })} style={campusInputStyle} /></Field>
       {!isNew && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}><button type="button" style={campusGhost} onClick={() => move('up')}>Move up</button><button type="button" style={campusGhost} onClick={() => move('down')}>Move down</button><button type="button" style={campusGhost} onClick={() => patch({ active: !draft.active })}>{draft.active ? 'Hide from readers' : 'Show to readers'}</button>{!draft.active && <span style={{ alignSelf: 'center', fontSize: 15, color: 'var(--dw-text-secondary)' }}>Readers stop seeing it when you save.</span>}<button type="button" style={campusGhost} onClick={onClose}>Close</button></div>}
-      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12 }}><button type="submit" className="dw-next" disabled={busy} style={campusMainStyle}>{busy ? 'Saving…' : 'Save campus'}</button>{error && <p role="alert" style={{ fontSize: 15, color: '#B42318', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>{error}</p>}</div>
+      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12 }}><button type="submit" className="dw-next" disabled={busy} style={campusMainStyle}>{busy ? 'Saving…' : 'Save campus'}</button>{error && <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>{error}</p>}</div>
       {isNew && <button type="button" style={{ ...campusGhost, marginTop: 4 }} onClick={onClose}>Cancel</button>}
     </form>
   );
