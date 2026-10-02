@@ -16,12 +16,12 @@ import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
-type Tab = 'home' | 'form' | 'review' | 'people';
+type Tab = 'home' | 'form' | 'review' | 'people' | 'campuses';
 
 /** Dead /staff?tab=questions (or #questions) must land on home, not an empty page. */
 export function staffTabFromRaw(raw: string | null | undefined): Tab {
   const v = (raw || '').trim().toLowerCase();
-  if (v === 'form' || v === 'review' || v === 'people' || v === 'home') return v;
+  if (v === 'form' || v === 'review' || v === 'people' || v === 'campuses' || v === 'home') return v;
   return 'home';
 }
 
@@ -137,7 +137,7 @@ export function StaffApp() {
   const [tab, setTab] = useState<Tab>(() => staffTabFromRaw(readStaffTabParam()));
   const [job, setJob] = useState<Job>('hub');
   const [error, setError] = useState('');
-  const view: Tab = tab === 'form' || tab === 'review' || tab === 'people' ? tab : 'home';
+  const view: Tab = tab === 'form' || tab === 'review' || tab === 'people' || tab === 'campuses' ? tab : 'home';
 
   useEffect(() => {
     document.title = 'Staff — Futures Daily Word';
@@ -228,6 +228,7 @@ export function StaffApp() {
             onJob={j => { setJob(j); setTab('form'); setError(''); }}
             onReview={() => { setTab('review'); setError(''); }}
             onPeople={() => { setTab('people'); setError(''); }}
+            onCampuses={() => { setTab('campuses'); setError(''); }}
           />
         )}
         {view === 'form' && <IntakeForm staff={staff} job={job} onError={setError} />}
@@ -235,6 +236,7 @@ export function StaffApp() {
           <ReviewQueue onError={setError} />
         )}
         {view === 'people' && staff.isAdmin && <Roster onError={setError} />}
+        {view === 'campuses' && staff.isAdmin && <Campuses onError={setError} />}
       </main>
     </div>
   );
@@ -448,12 +450,13 @@ function withStep(n: number, label: string) {
 }
 
 function StaffHome({
-  staff, onJob, onReview, onPeople,
+  staff, onJob, onReview, onPeople, onCampuses,
 }: {
   staff: Staff;
   onJob: (job: Job) => void;
   onReview: () => void;
   onPeople: () => void;
+  onCampuses: () => void;
 }) {
   const jobs: { id: Job; title: string; body: string }[] = [
     { id: 'hub', title: 'Put up this week’s sermon notes', body: 'Date, title, speaker, series, YouTube, paste your notes. Save puts it on the congregation page.' },
@@ -488,12 +491,13 @@ function StaffHome({
       ))}
       {staff.isAdmin && (
         <>
-          <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-text-muted)' }}>
+          <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: 'var(--dw-text-secondary)' }}>
             Settings
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" style={btnGhost} onClick={onPeople}>People</button>
             <button type="button" style={btnGhost} onClick={onReview}>History</button>
+            <button type="button" style={btnGhost} onClick={onCampuses}>Campuses</button>
           </div>
         </>
       )}
@@ -1173,6 +1177,139 @@ type RosterRow = {
   has_password?: boolean; code_live?: boolean; code_expires_at?: string | null;
 };
 type IssuedCode = { email: string; code: string; expiresAt: string };
+
+type AdminCampus = {
+  id: string; name: string; city: string; region: string; congregation: string | null;
+  timeZone: string; sundayUntil: string; videoUrl: string | null; sortOrder: number;
+  pcoNames: string[]; active: boolean;
+};
+
+type CampusDraft = {
+  id: string; name: string; city: string; region: string; timeZone: string;
+  sundayUntil: string; congregation: string | null; pcoNames: string; videoUrl: string; active: boolean;
+};
+
+const campusInputStyle: CSSProperties = { ...inputStyle, fontSize: 17, minHeight: 56 };
+const campusMainStyle: CSSProperties = {
+  background: 'var(--dw-accent)', color: 'var(--dw-canvas)', border: 'none', borderRadius: 999,
+  minHeight: 56, width: '100%', padding: '12px 18px', fontSize: 17, fontWeight: 700,
+  fontFamily: 'var(--font-sans)', cursor: 'pointer',
+};
+const campusGhost: CSSProperties = { ...btnGhost, fontSize: 15 };
+
+function campusSlug(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/g, '');
+}
+
+function campusZones(campuses: AdminCampus[]) {
+  const fallback = ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Australia/Sydney', 'Europe/London'];
+  try {
+    const values = (Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
+    if (values) return values('timeZone');
+  } catch { /* use the short fallback */ }
+  return Array.from(new Set([...campuses.map(c => c.timeZone), ...fallback]));
+}
+
+function campusDraftFromRow(c: AdminCampus): CampusDraft {
+  return { id: c.id, name: c.name, city: c.city, region: c.region, timeZone: c.timeZone, sundayUntil: c.sundayUntil || '16:00', congregation: c.congregation, pcoNames: c.pcoNames.join('\n'), videoUrl: c.videoUrl || '', active: c.active };
+}
+
+function Campuses({ onError }: { onError: (s: string) => void }) {
+  const [campuses, setCampuses] = useState<AdminCampus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<CampusDraft | null>(null);
+  const [idTouched, setIdTouched] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setLoadError('');
+    try {
+      const data = await intake<{ campuses: AdminCampus[] }>('campuses_list');
+      setCampuses(data.campuses || []);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Could not load campuses');
+    }
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const regions = Array.from(new Set(campuses.map(c => c.region).filter(Boolean)));
+  const zones = campusZones(campuses);
+  const openRow = (campus: AdminCampus) => {
+    setAdding(false); setOpenId(campus.id); setDraft(campusDraftFromRow(campus)); setSaveStatus(''); onError('');
+  };
+  const openAdd = () => {
+    setAdding(true); setOpenId(null); setDraft({ id: '', name: '', city: '', region: '', timeZone: '', sundayUntil: '16:00', congregation: null, pcoNames: '', videoUrl: '', active: true }); setIdTouched(false); setSaveStatus(''); onError('');
+  };
+  const closeEditor = () => { setOpenId(null); setAdding(false); setDraft(null); onError(''); };
+
+  if (loading) return <p style={{ fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading campuses…</p>;
+  if (loadError) return <div><p role="alert" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: '#B42318' }}>{loadError}</p><button type="button" style={campusGhost} onClick={load}>Load campuses again</button></div>;
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Campuses</h2>
+      <p style={{ ...helpStyle, fontSize: 15, marginBottom: 16 }}>{campuses.length} campuses. Readers see them in this order.</p>
+      <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.5, margin: '0 0 24px' }}><strong>How this connects:</strong> This one list feeds the reader app’s campus picker, the prayer wall’s campus names, campus pastor codes, Planning Center matching, and which Sermon Notes page a campus reads first. Readers see a change within five minutes.</p>
+      {saveStatus && <p role="status" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '0 0 16px' }}>{saveStatus}</p>}
+      {campuses.map(campus => (
+        <div key={campus.id} style={{ marginBottom: 10 }}>
+          <button type="button" aria-expanded={openId === campus.id} aria-label={`${campus.name}, ${campus.city}, ${campus.timeZone}${campus.active ? '' : ', hidden from readers'}`} onClick={() => openId === campus.id ? closeEditor() : openRow(campus)} style={{ display: 'block', width: '100%', minHeight: 56, textAlign: 'left', background: 'var(--dw-card)', border: '1px solid var(--dw-border)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}>
+            <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 17, fontWeight: 700 }}>{campus.name}</span>
+            <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)' }}>{campus.city} · {campus.region} · {campus.timeZone}</span>
+            {!campus.active && <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)' }}>Hidden from readers</span>}
+          </button>
+          {openId === campus.id && draft && <CampusEditor draft={draft} setDraft={setDraft} isNew={false} regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async id => { await load(); const moved = campuses.find(c => c.id === id); if (moved) setDraft(campusDraftFromRow(moved)); }} onError={onError} />}
+        </div>
+      ))}
+      {adding && draft ? <CampusEditor draft={draft} setDraft={setDraft} isNew regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => {}} onError={onError} /> : <button type="button" className="dw-next" style={{ ...campusMainStyle, marginTop: 14 }} onClick={openAdd}>Add a campus</button>}
+    </div>
+  );
+}
+
+function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouched, setIdTouched, onClose, onSaved, onMoved, onError }: { draft: CampusDraft; setDraft: (d: CampusDraft) => void; isNew: boolean; regions: string[]; zones: string[]; campuses: AdminCampus[]; idTouched: boolean; setIdTouched: (v: boolean) => void; onClose: () => void; onSaved: (name: string) => Promise<void>; onMoved: (id: string) => Promise<void>; onError: (s: string) => void }) {
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [newRegion, setNewRegion] = useState(false);
+  const patch = (part: Partial<CampusDraft>) => setDraft({ ...draft, ...part });
+  const setName = (name: string) => patch({ name, ...(!isNew || idTouched ? {} : { id: draft.region ? `${(draft.region.slice(0, 2) || '').toLowerCase()}-${campusSlug(name)}` : campusSlug(name) }) });
+  const setRegion = (region: string) => { const regionZones = campuses.filter(c => c.region === region).map(c => c.timeZone); const preferredZone = regionZones.length ? regionZones.sort((a, b) => regionZones.filter(x => x === b).length - regionZones.filter(x => x === a).length)[0] : ''; const prefix = (campuses.find(c => c.region === region)?.id.split('-')[0] || region.slice(0, 2)).toLowerCase(); patch({ region, timeZone: preferredZone || draft.timeZone, ...(!isNew || idTouched ? {} : { id: `${prefix}-${campusSlug(draft.name)}` }) }); };
+  const save = async () => {
+    const message = !draft.name.trim() ? 'Add the campus name first.' : !draft.region.trim() ? 'Choose the campus’s region first.' : !draft.timeZone ? 'Choose the campus’s time zone first.' : '';
+    if (message) { setError(message); return; }
+    setBusy(true); setError(''); onError('');
+    try {
+      await intake<{ campus: AdminCampus; isNew: boolean }>('campus_save', { campus: { ...draft, name: draft.name.trim(), pcoNames: draft.pcoNames, videoUrl: draft.videoUrl.trim() || null, isNew } });
+      await onSaved(draft.name.trim());
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not save the campus'); }
+    setBusy(false);
+  };
+  const move = async (direction: 'up' | 'down') => {
+    setError('');
+    try { await intake('campus_move', { id: draft.id, direction }); onError(''); await onMoved(draft.id); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Could not move the campus'); }
+  };
+  return (
+    <form noValidate onSubmit={e => { e.preventDefault(); save(); }} style={{ padding: '18px 4px 0' }}>
+      {isNew ? <Field label="Campus id"><input value={draft.id} onChange={e => { setIdTouched(true); patch({ id: e.target.value }); }} style={campusInputStyle} /></Field> : <p style={{ fontSize: 15, fontFamily: 'var(--font-sans)', margin: '0 0 24px' }}><strong>{draft.id}</strong> <span style={{ color: 'var(--dw-text-secondary)' }}>The id never changes once saved</span></p>}
+      <Field label="Name"><input value={draft.name} onChange={e => setName(e.target.value)} style={campusInputStyle} /></Field>
+      <Field label="Town"><input value={draft.city} onChange={e => patch({ city: e.target.value })} style={campusInputStyle} /></Field>
+      <Field label="Region"><select value={newRegion ? '__new__' : draft.region} onChange={e => { if (e.target.value === '__new__') { setNewRegion(true); patch({ region: '', timeZone: '' }); } else { setNewRegion(false); setRegion(e.target.value); } }} style={campusInputStyle}><option value="">Choose a region</option>{regions.map(region => <option key={region} value={region}>{region}</option>)}<option value="__new__">New region…</option></select>{newRegion && <input value={draft.region} onChange={e => setRegion(e.target.value)} placeholder="Region name" style={{ ...campusInputStyle, marginTop: 10 }} />}</Field>
+      <Field label="Time zone"><select value={draft.timeZone} onChange={e => patch({ timeZone: e.target.value })} style={campusInputStyle}><option value="">Choose a time zone</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}{draft.timeZone && !zones.includes(draft.timeZone) && <option value={draft.timeZone}>{draft.timeZone}</option>}</select></Field>
+      <Field label="Sunday notes show on Home until"><input type="time" value={draft.sundayUntil} onChange={e => patch({ sundayUntil: e.target.value })} style={campusInputStyle} /></Field>
+      <Field label="Which Sermon Notes page it reads first"><select value={draft.congregation || ''} onChange={e => patch({ congregation: e.target.value || null })} style={campusInputStyle}><option value="">None (worked out from the campus)</option>{CONGREGATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+      <Field label="Planning Center spellings" help="Optional. How this campus is spelled in Planning Center, one per line."><textarea value={draft.pcoNames} onChange={e => patch({ pcoNames: e.target.value })} rows={4} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
+      <Field label="Livestream link" help="Optional. https://…"><input type="url" value={draft.videoUrl} onChange={e => patch({ videoUrl: e.target.value })} style={campusInputStyle} /></Field>
+      {!isNew && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}><button type="button" style={campusGhost} onClick={() => move('up')}>Move up</button><button type="button" style={campusGhost} onClick={() => move('down')}>Move down</button><button type="button" style={campusGhost} onClick={() => patch({ active: !draft.active })}>{draft.active ? 'Hide from readers' : 'Show to readers'}</button>{!draft.active && <span style={{ alignSelf: 'center', fontSize: 15, color: 'var(--dw-text-secondary)' }}>Readers stop seeing it when you save.</span>}<button type="button" style={campusGhost} onClick={onClose}>Close</button></div>}
+      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12 }}><button type="submit" className="dw-next" disabled={busy} style={campusMainStyle}>{busy ? 'Saving…' : 'Save campus'}</button>{error && <p role="alert" style={{ fontSize: 15, color: '#B42318', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>{error}</p>}</div>
+      {isNew && <button type="button" style={{ ...campusGhost, marginTop: 4 }} onClick={onClose}>Cancel</button>}
+    </form>
+  );
+}
 
 function formatExpiry(iso: string) {
   const d = new Date(iso);

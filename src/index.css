@@ -2387,3 +2387,20 @@ body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
   margin: 20px 0 0; font-family: var(--font-ui, var(--font-sans)); font-size: 11px; font-weight: 600;
   letter-spacing: 1.1px; text-transform: uppercase; color: var(--dw-text-muted);
 }
+
+/* The one next step (design rules card rule 3): a slow ring in the accent, one
+   beat every 1.8 s, on exactly one element. Reduce Motion holds it still. */
+.dw-next {
+  animation: dwNextPulse 1.8s ease-out infinite;
+}
+@keyframes dwNextPulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dw-accent) 45%, transparent); }
+  70% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--dw-accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dw-accent) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dw-next {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--dw-accent);
+  }
+}
