@@ -58,6 +58,7 @@ export function QuickNotes({ onChangeDetails }: {
   const busyRef = useRef(true);
   const submittedText = useRef('');
   const latestText = useRef('');
+  latestText.current = text;
 
   useEffect(() => {
     let active = true;
@@ -128,7 +129,6 @@ export function QuickNotes({ onChangeDetails }: {
     setPublishedResult(null);
     setResult(null);
     setAnswer('');
-    latestText.current = '';
     setError('');
     setPasteOpen(true);
   }
@@ -221,7 +221,6 @@ export function QuickNotes({ onChangeDetails }: {
               <p id={`${id}-hint`} style={secondaryStyle}>{t('staff_quick_box_hint')}</p>
               <textarea id={`${id}-paste`} aria-describedby={`${id}-hint`} rows={6}
                 value={text} onChange={e => {
-                  latestText.current = e.target.value;
                   setText(e.target.value);
                 }} style={{ ...fieldStyle, minHeight: 160, resize: 'vertical' }} />
             </>
