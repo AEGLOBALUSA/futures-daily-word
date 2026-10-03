@@ -11,6 +11,7 @@ import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { setSessionToken } from '../utils/sessionToken';
 import { useModalA11y } from '../utils/useModalA11y';
+import { readCampusGuess } from '../utils/campusGuess';
 
 // i18n keys per persona (persona_* / persona_*_desc exist in all four languages).
 const PERSONA_I18N: Record<string, string> = {
@@ -51,7 +52,7 @@ export function EmailGate() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [campus, setCampus] = useState('');
+  const [campus, setCampus] = useState(() => readCampusGuess() || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [, setDone] = useState(false);
