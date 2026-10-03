@@ -9,6 +9,7 @@ vi.mock('./api', () => ({
   getStaffToken: () => 'test-token',
   setStaffToken: vi.fn(),
   intake: vi.fn(),
+  STAFF_SIGNED_OUT_EVENT: 'dw-staff-signed-out',
 }));
 
 import { StaffApp } from './StaffApp';

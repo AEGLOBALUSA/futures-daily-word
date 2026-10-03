@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
-import { getStaffToken, intake, setStaffToken } from './api';
+import { getStaffToken, intake, setStaffToken, STAFF_SIGNED_OUT_EVENT } from './api';
 import { localApiBase } from '../utils/api-base';
 import { getLang, t } from '../utils/i18n';
 import { messageFor } from '../components/PastorSignIn';
@@ -146,6 +146,12 @@ export function StaffApp() {
     document.title = 'Staff — Futures Daily Word';
     document.documentElement.setAttribute('data-theme', localStorage.getItem('dw_dark') === 'true' ? 'dark' : 'light');
     stripQuestionsDeepLink();
+  }, []);
+
+  useEffect(() => {
+    const handleSignedOut = () => { setToken(''); setStaff(null); };
+    window.addEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
+    return () => window.removeEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
   }, []);
 
   const loadMe = useCallback(async () => {
@@ -585,9 +591,13 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         }
         return next;
       });
-    } catch {
+    } catch (err) {
       setQuestions([]); setRewordable([]);
-      setLoadError(t('staff_form_load_failed', getLang()));
+      const status = err instanceof Error && 'status' in err ? err.status : undefined;
+      if (status === 401) return;
+      setLoadError(typeof status === 'number' && status >= 500
+        ? t('staff_form_load_server', getLang())
+        : t('staff_form_load_failed', getLang()));
     } finally {
       setLoading(false);
     }
@@ -837,7 +847,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
                 {formError}
               </p>
             )}
-            <button type="submit" className={editingId ? undefined : 'dw-next'} disabled={busy} aria-disabled={!loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
+            <button type="submit" className={editingId ? undefined : 'dw-next'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
               {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
             </button>
             {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
@@ -1039,8 +1049,10 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       const res = await intake<{ question: Question }>('question_wording_save', { id: question.id, label: label.trim(), help });
       onReworded(res.question);
     } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
       setSaveError(wordingError(err));
-      setSaveErrorStatus(err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null);
+      setSaveErrorStatus(status);
     } finally {
       setBusy(false);
     }
@@ -1053,8 +1065,10 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       await intake<{ question: Question }>('question_enabled_set', { id: question.id, enabled: false });
       onStopAsking(question.id);
     } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
       setStopError(wordingError(err));
-      setStopErrorStatus(err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null);
+      setStopErrorStatus(status);
     } finally {
       setBusy(false);
     }
@@ -1081,20 +1095,20 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       <Field label={t('staff_wording_help', getLang())} htmlFor={helpId}>
         <textarea id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: 17, resize: 'vertical' }} />
       </Field>
-      <button type="button" className="dw-next" disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
+      <button type="button" className="dw-next" aria-disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
       {saveError && <p role="alert" style={errorStyle}>{saveError}</p>}
       {saveErrorStatus === 404 || saveErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
-      <button type="button" disabled={busy} style={quiet} onClick={() => onEditingChange(false)}>{t('staff_wording_cancel', getLang())}</button>
+      <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; onEditingChange(false); }}>{t('staff_wording_cancel', getLang())}</button>
       {isAdmin && (confirmStop ? (
         <div>
           <p style={{ ...helpStyle, fontSize: 15 }}>{t('staff_stop_asking_confirm', getLang())}</p>
-          <button type="button" disabled={busy} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={stopAsking}>{t('staff_stop_asking', getLang())}</button>
+          <button type="button" aria-disabled={busy} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={stopAsking}>{t('staff_stop_asking', getLang())}</button>
           {stopError && <p role="alert" style={errorStyle}>{stopError}</p>}
           {stopErrorStatus === 404 || stopErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
-          <button type="button" disabled={busy} style={quiet} onClick={() => { setConfirmStop(false); setStopError(''); }}>{t('staff_wording_cancel', getLang())}</button>
+          <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; setConfirmStop(false); setStopError(''); }}>{t('staff_wording_cancel', getLang())}</button>
         </div>
       ) : (
-        <button type="button" disabled={busy} style={quiet} onClick={() => { setConfirmStop(true); setSaveError(''); }}>{t('staff_stop_asking', getLang())}</button>
+        <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; setConfirmStop(true); setSaveError(''); }}>{t('staff_stop_asking', getLang())}</button>
       ))}
     </div>
   );
@@ -1251,6 +1265,8 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
       await intake<{ question: Question }>('question_enabled_set', { id, enabled: true });
       await load();
     } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
       onError(wordingError(err));
     } finally {
       setRestoring(ids => ids.filter(value => value !== id));
@@ -1273,7 +1289,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
           {questions.filter(q => q.enabled === false).map(q => (
             <div key={q.id} style={{ marginBottom: 12 }}>
               <p style={{ fontSize: 15, margin: '0 0 8px', fontFamily: 'var(--font-sans)' }}>{q.label}</p>
-              <button type="button" disabled={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={() => askAgain(q.id)}>{t('staff_ask_again', getLang())}</button>
+              <button type="button" aria-disabled={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={() => askAgain(q.id)}>{t('staff_ask_again', getLang())}</button>
             </div>
           ))}
         </section>

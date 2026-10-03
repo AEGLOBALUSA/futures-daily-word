@@ -6,6 +6,7 @@ vi.mock('./api', () => ({
   getStaffToken: () => 'test-token',
   setStaffToken: vi.fn(),
   intake: vi.fn(),
+  STAFF_SIGNED_OUT_EVENT: 'dw-staff-signed-out',
 }));
 
 import { StaffApp } from './StaffApp';
@@ -599,6 +600,33 @@ describe('StaffApp job form: wording in place and a failed load beside the butto
     expect(el.textContent).toContain('What is on this week?');
     expect(el.textContent).not.toContain('The form didn\'t load');
     expect(buttonNamed(el, /Put this on the campus corner/)).toBeTruthy();
+    act(() => root.unmount());
+  });
+
+  it('a sign-in that ran out opens the sign-in screen instead of a Load-again loop', async () => {
+    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+      if (action === 'form') {
+        // What api.ts does on a 401: clear the token, tell the app, throw.
+        window.dispatchEvent(new Event('dw-staff-signed-out'));
+        throw Object.assign(new Error('Sign in required'), { status: 401 });
+      }
+      return {};
+    });
+    await flush();
+    expect(el.querySelector('[data-testid="staff-email-code"]')).toBeTruthy();
+    expect(buttonNamed(el, /^Load the form again$/)).toBeUndefined();
+    expect(el.textContent).not.toContain('Check your connection');
+    act(() => root.unmount());
+  });
+
+  it('a server fault on load says to try again in a minute, not to check the connection', async () => {
+    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+      if (action === 'form') throw Object.assign(new Error('Server error'), { status: 500 });
+      return {};
+    });
+    expect(el.textContent).toContain('The form didn\'t load. Try again in a minute.');
+    expect(el.textContent).not.toContain('Check your connection');
+    expect(buttonNamed(el, /^Load the form again$/)).toBeTruthy();
     act(() => root.unmount());
   });
 
