@@ -4,6 +4,8 @@ import './index.css'
 import App from './App.tsx'
 import { flushSync } from './utils/cloudSync'
 import { LS } from './utils/storage'
+import { detectFirstOpenLanguage } from './utils/firstOpenLanguage'
+import { consumeCampusParam } from './utils/campusGuess'
 
 const StaffApp = lazy(() => import('./staff/StaffApp').then(m => ({ default: m.StaffApp })));
 const IS_STAFF = (() => {
@@ -28,6 +30,15 @@ try {
   const lang = localStorage.getItem(LS.lang);
   if (lang) document.documentElement.lang = lang;
 } catch { /* ignore */ }
+
+// B09-07: worked out, not asked. A Spanish, Portuguese or Indonesian phone
+// opens in its own language on the very first open (never over a stored
+// choice, never a reload); a ?campus=<id> link or QR code becomes a device-only
+// guess the Campus tab asks about, and leaves the address bar.
+if (!IS_STAFF) {
+  detectFirstOpenLanguage();
+  consumeCampusParam();
+}
 
 const savedDark = localStorage.getItem(LS.dark);
 if (savedDark !== null) {
