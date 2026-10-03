@@ -2,6 +2,9 @@ import { localApiBase } from '../utils/api-base';
 
 const TOKEN_KEY = 'dw_staff_token';
 
+/** Fired on window when any staff call answers 401 (the token is already cleared). */
+export const STAFF_SIGNED_OUT_EVENT = 'dw-staff-signed-out';
+
 export function getStaffToken(): string {
   try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
 }
@@ -28,6 +31,8 @@ export async function intake<T = Record<string, unknown>>(
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
     setStaffToken('');
+    // The sign-in ran out: StaffApp listens and opens the sign-in screen (B09-03 review).
+    try { window.dispatchEvent(new Event(STAFF_SIGNED_OUT_EVENT)); } catch { /* no window */ }
     throw Object.assign(new Error('Sign in required'), { status: 401, data });
   }
   if (!res.ok) {
