@@ -498,6 +498,49 @@ describe('PastorSignIn', () => {
     expect(user.saveProfile).not.toHaveBeenCalled();
   });
 
+  it('change password: pressing early is never greyed and never silent; the fix shows beside the button and the cursor goes to that box', async () => {
+    api.token = TOKEN;
+    setAppStaffSignIn(true);
+    user.profile = { email: 'ae@futures.global', firstName: 'Ashley', lastName: 'Evans', phone: '', church: '', city: '', campus: '' };
+    user.setup = { persona: 'pastor_leader', source: 'settings' };
+    api.intake.mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: ASHLEY, pendingCount: 0 };
+      if (action === 'change_password') return { ok: true };
+      return {};
+    });
+    const el = mount(<PastorSignIn lang="en" />);
+    await flush();
+    await click(el.querySelector('#dw-pastor-change-password') as HTMLButtonElement);
+    const form = el.querySelector('form') as HTMLFormElement;
+    expect(form.noValidate).toBe(true); // iOS would otherwise stop it without a word
+    const save = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(save.disabled).toBe(false); // nothing greyed while the boxes are empty
+    expect(save.style.opacity === '' || save.style.opacity === '1').toBe(true);
+
+    await submit(form);
+    expect(el.textContent).toContain('Type your current password.');
+    expect(document.activeElement).toBe(el.querySelector('#dw-pastor-current'));
+    expect(api.intake).not.toHaveBeenCalledWith('change_password', expect.anything());
+
+    type(el.querySelector('#dw-pastor-current') as HTMLInputElement, 'correct horse battery');
+    type(el.querySelector('#dw-pastor-new') as HTMLInputElement, 'short');
+    await submit(form);
+    expect(el.textContent).toContain('Choose a password of at least 10 characters.');
+    expect(document.activeElement).toBe(el.querySelector('#dw-pastor-new'));
+    expect(api.intake).not.toHaveBeenCalledWith('change_password', expect.anything());
+
+    type(el.querySelector('#dw-pastor-new') as HTMLInputElement, 'staple horse battery');
+    await submit(form);
+    expect(el.textContent).toContain('Passwords do not match');
+    expect(document.activeElement).toBe(el.querySelector('#dw-pastor-new-confirm'));
+    expect(api.intake).not.toHaveBeenCalledWith('change_password', expect.anything());
+
+    type(el.querySelector('#dw-pastor-new-confirm') as HTMLInputElement, 'staple horse battery');
+    await submit(form);
+    expect(api.intake).toHaveBeenCalledWith('change_password', { currentPassword: 'correct horse battery', newPassword: 'staple horse battery' });
+    expect(el.querySelector('#dw-pastor-password-changed')).toBeTruthy();
+  });
+
   it('change password: the server\'s error shows inline, the form stays open, Cancel closes it', async () => {
     api.token = TOKEN;
     setAppStaffSignIn(true);

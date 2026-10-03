@@ -284,8 +284,16 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     e.preventDefault();
     if (busy) return;
     setError('');
-    if (password !== confirm) { setError(t('pastor_passwords_mismatch', lang)); return; }
-    if (password === currentPassword) { setError(t('pastor_password_same', lang)); return; }
+    // The form is noValidate (iOS stops a `required` form without a word), so every check is
+    // ours: the first box that needs something gets the words beside the button and the cursor.
+    const refuse = (key: string, fieldId: string) => {
+      setError(t(key, lang));
+      (document.getElementById(fieldId) as HTMLInputElement | null)?.focus();
+    };
+    if (!currentPassword) { refuse('pastor_type_current_password', 'dw-pastor-current'); return; }
+    if (password.length < 10) { refuse('pastor_password_too_short', 'dw-pastor-new'); return; }
+    if (password !== confirm) { refuse('pastor_passwords_mismatch', 'dw-pastor-new-confirm'); return; }
+    if (password === currentPassword) { refuse('pastor_password_same', 'dw-pastor-new'); return; }
     setBusy(true);
     try {
       // The server keeps THIS session and revokes every other one for the email.
