@@ -893,6 +893,7 @@ const UI: Translations = {
   pastor_change_password: { en: 'Change password', es: 'Cambiar contrase\u00f1a', pt: 'Alterar senha', id: 'Ubah kata sandi' },
   pastor_current_password: { en: 'Current password', es: 'Contrase\u00f1a actual', pt: 'Senha atual', id: 'Kata sandi saat ini' },
   pastor_password_changed: { en: 'Password changed. Other devices will need to sign in again.', es: 'Contrase\u00f1a cambiada. Los dem\u00e1s dispositivos tendr\u00e1n que iniciar sesi\u00f3n de nuevo.', pt: 'Senha alterada. Os outros dispositivos precisar\u00e3o entrar novamente.', id: 'Kata sandi telah diubah. Perangkat lain perlu masuk kembali.' },
+  pastor_type_current_password: { en: 'Type your current password.', es: 'Escribe tu contraseña actual.', pt: 'Digite sua senha atual.', id: 'Ketik kata sandi Anda saat ini.' },
   pastor_password_same: { en: 'Choose a different password from the current one.', es: 'Elige una contrase\u00f1a distinta de la actual.', pt: 'Escolha uma senha diferente da atual.', id: 'Pilih kata sandi yang berbeda dari yang sekarang.' },
   // ── PREACH workspace — prep sheet, publish, archive (Study & Preach plan, Phase 3) ──
   preach_prep_passage_ph: { en: 'Passage \u2014 e.g. Romans 8 or Romans 8:1-4', es: 'Pasaje \u2014 ej. Romanos 8 o Romanos 8:1-4', pt: 'Passagem \u2014 ex. Romanos 8 ou Romanos 8:1-4', id: 'Bagian \u2014 mis. Roma 8 atau Roma 8:1-4' },
