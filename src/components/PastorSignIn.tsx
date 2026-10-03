@@ -503,7 +503,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
               </p>
             )}
             {pwOpen && (
-              <form onSubmit={submitChangePassword} style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--dw-border)' }}>
+              <form onSubmit={submitChangePassword} noValidate style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--dw-border)' }}>
                 <label htmlFor="dw-pastor-current" style={labelStyle}>{t('pastor_current_password', lang)}</label>
                 <input
                   id="dw-pastor-current"
@@ -542,8 +542,8 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
                   <button type="button" onClick={closeChangePassword} disabled={busy} style={btnGhost}>{t('pastor_cancel', lang)}</button>
                   <button
                     type="submit"
-                    disabled={busy || !currentPassword || !password}
-                    style={{ ...btnPrimary, flex: 1, opacity: busy || !currentPassword || !password ? 0.6 : 1 }}
+                    disabled={busy}
+                    style={{ ...btnPrimary, flex: 1 }}
                   >
                     {busy ? t('pastor_please_wait', lang) : t('pastor_change_password', lang)}
                   </button>
