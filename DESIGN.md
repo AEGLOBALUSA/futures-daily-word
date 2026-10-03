@@ -8,3 +8,4 @@ The `logo:`, `look:` and `accent:` lines are recorded only through the design sk
 
 - `/staff` → Settings → Campuses, a row open · the owner (admin staff) · Save campus
 - `/staff` → Settings → Campuses, nothing open · the owner (admin staff) · Add a campus
+- `/` Home · every reader (comfort, I'm New, congregation, pastor and study paths) · the next step as a verb and an object: Read {passage} / Read Day {n} / Open today's sermon notes / Write it down; when nothing is left, no button, only "Tomorrow: {passage}". The app works out which one from the reading, the journey day, the reflection, the campus's Sunday clock and the published notes, so the reader never has to look for it; everything else waits one tap away under More for today.
