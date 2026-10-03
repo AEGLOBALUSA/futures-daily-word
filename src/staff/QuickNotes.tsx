@@ -189,7 +189,7 @@ export function QuickNotes({ onChangeDetails }: {
                 }}>{t('staff_quick_change')}</button>
               </div>
               <p style={secondaryStyle}>{t('staff_quick_not_live_yet')}</p>
-              <div className="dw-sermon-notes-phone" style={{ minWidth: 0, width: '100%' }}><SermonNotesSurface sermon={result.preview as SermonNotesData} persist={false} /></div>
+              <div className="dw-sermon-notes-phone" style={{ minWidth: 0 }}><SermonNotesSurface sermon={result.preview as SermonNotesData} persist={false} /></div>
             </>
           ) : (
             <>
