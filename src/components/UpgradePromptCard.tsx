@@ -8,11 +8,12 @@ import { checkForUpgrade, dismissUpgrade } from '../utils/pathway-upgrades';
 import { isNewChristianPersona } from '../utils/persona-config';
 
 interface UpgradePromptCardProps {
+  next?: boolean;
   persona: string;
   onUpgrade: (newPersona: string) => void;
 }
 
-export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps) {
+export function UpgradePromptCard({ persona, onUpgrade, next = false }: UpgradePromptCardProps) {
   const [upgrade, setUpgrade] = useState<ReturnType<typeof checkForUpgrade>>(null);
   const [dismissed, setDismissed] = useState(false);
   const [animateOut, setAnimateOut] = useState(false);
@@ -79,6 +80,7 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
 
       <div style={{ display: 'flex', gap: 10 }}>
         <button
+          className={next ? 'dw-next' : undefined}
           onClick={handleUpgrade}
           style={{
             flex: 1,

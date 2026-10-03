@@ -1050,6 +1050,33 @@ const UI: Translations = {
   ai_teaser_study_sub: { en: 'Greek and Hebrew word studies with the source named on every result, and the passages pointed to in the text.', es: 'Estudios de palabras en griego y hebreo con la fuente nombrada en cada resultado, y los pasajes señalados en el texto.', pt: 'Estudos de palavras em grego e hebraico com a fonte nomeada em cada resultado, e as passagens indicadas no texto.', id: 'Studi kata Yunani dan Ibrani dengan sumber yang disebutkan pada setiap hasil, dan bagian yang ditunjuk dalam teks.' },
   ai_teaser_pastor_title: { en: 'Bible AI for sermon prep', es: 'Bible AI para preparar sermones', pt: 'Bible AI para preparar sermões', id: 'Bible AI untuk persiapan khotbah' },
   ai_teaser_pastor_sub: { en: 'It finds the sources, names the licence, and points you at the passages. You write the message.', es: 'Encuentra las fuentes, nombra la licencia y te señala los pasajes. Tú escribes el mensaje.', pt: 'Ele encontra as fontes, nomeia a licença e indica as passagens. Você escreve a mensagem.', id: 'Menemukan sumber, menyebutkan lisensinya, dan menunjukkan bagian yang dimaksud. Anda yang menulis pesannya.' },
+
+  // ── HOME: THE ONE NEXT STEP (B09-08) ──
+  next_read_passage: { en: 'Read {passage}', es: 'Lee {passage}', pt: 'Leia {passage}', id: 'Baca {passage}' },
+  next_read_day: { en: 'Read Day {n}', es: 'Lee el d\u00eda {n}', pt: 'Leia o dia {n}', id: 'Baca Hari {n}' },
+  next_sermon_notes: { en: "Open today's sermon notes", es: 'Abre las notas del mensaje de hoy', pt: 'Abra as notas da mensagem de hoje', id: 'Buka catatan khotbah hari ini' },
+  next_finish_passage: { en: 'Mark as read when you finish {passage}', es: 'Marca como le\u00eddo cuando termines {passage}', pt: 'Marque como lido quando terminar {passage}', id: 'Tandai sudah dibaca setelah selesai membaca {passage}' },
+  next_write_it_down: { en: 'Write it down', es: 'Escr\u00edbelo', pt: 'Escreva', id: 'Tuliskan' },
+  next_write_prompt: { en: 'What is God saying to you in {passage}?', es: '\u00bfQu\u00e9 te est\u00e1 diciendo Dios en {passage}?', pt: 'O que Deus est\u00e1 dizendo a voc\u00ea em {passage}?', id: 'Apa yang Tuhan katakan kepadamu dalam {passage}?' },
+  next_tomorrow: { en: 'Tomorrow: {passage}', es: 'Ma\u00f1ana: {passage}', pt: 'Amanh\u00e3: {passage}', id: 'Besok: {passage}' },
+  next_done_today: { en: "Done for today. Tomorrow's reading will be here in the morning.", es: 'Listo por hoy. La lectura de ma\u00f1ana estar\u00e1 aqu\u00ed por la ma\u00f1ana.', pt: 'Pronto por hoje. A leitura de amanh\u00e3 estar\u00e1 aqui pela manh\u00e3.', id: 'Selesai untuk hari ini. Bacaan besok akan ada di sini pagi nanti.' },
+  next_why_sunday: { en: "It's Sunday morning at {campus}", es: 'Es domingo por la ma\u00f1ana en {campus}', pt: '\u00c9 domingo de manh\u00e3 em {campus}', id: 'Minggu pagi di {campus}' },
+  next_set_up_plan: { en: 'Set up your study plan', es: 'Prepara tu plan de estudio', pt: 'Monte seu plano de estudo', id: 'Siapkan rencana belajarmu' },
+  next_choose_plan: { en: 'Choose your plan', es: 'Elige tu plan', pt: 'Escolha seu plano', id: 'Pilih rencanamu' },
+  next_setup_install: { en: 'Add Daily Word to your Home Screen', es: 'Agrega Palabra Diaria a tu pantalla de inicio', pt: 'Adicione a Palavra Di\u00e1ria \u00e0 sua tela inicial', id: 'Tambahkan Firman Harian ke layar utama' },
+  next_setup_email: { en: 'Back up your reading', es: 'Guarda tu lectura', pt: 'Salve sua leitura', id: 'Cadangkan bacaanmu' },
+  next_setup_upgrade: { en: 'Try a next step on your path', es: 'Prueba un siguiente paso en tu camino', pt: 'Experimente um pr\u00f3ximo passo no seu caminho', id: 'Coba langkah berikutnya di jalanmu' },
+  more_for_today: { en: 'More for today', es: 'M\u00e1s para hoy', pt: 'Mais para hoje', id: 'Lainnya untuk hari ini' },
+  more_item_sermon_notes: { en: 'Sermon Notes', es: 'notas del mensaje', pt: 'notas da mensagem', id: 'catatan khotbah' },
+  more_item_preach: { en: 'Sermon Prep', es: 'preparaci\u00f3n del mensaje', pt: 'prepara\u00e7\u00e3o da mensagem', id: 'persiapan khotbah' },
+  more_item_journey: { en: 'your journey', es: 'tu camino', pt: 'sua jornada', id: 'perjalananmu' },
+  more_item_comfort: { en: 'comfort for today', es: 'consuelo para hoy', pt: 'conforto para hoje', id: 'penghiburan untuk hari ini' },
+  more_item_plan: { en: 'your plan', es: 'tu plan', pt: 'seu plano', id: 'rencanamu' },
+  more_item_books: { en: 'Book of the week', es: 'libro de la semana', pt: 'livro da semana', id: 'buku minggu ini' },
+  more_item_campus: { en: 'your campus', es: 'tu sede', pt: 'seu campus', id: 'kampusmu' },
+  more_item_word: { en: 'word of the day', es: 'palabra del d\u00eda', pt: 'palavra do dia', id: 'kata hari ini' },
+  more_item_campus_overview: { en: 'campus overview', es: 'resumen de la sede', pt: 'vis\u00e3o do campus', id: 'ringkasan kampus' },
+  more_item_for_you: { en: 'picked for you', es: 'elegido para ti', pt: 'escolhido para voc\u00ea', id: 'dipilih untukmu' },
 };
 
 export function t(key: string, lang?: string): string {

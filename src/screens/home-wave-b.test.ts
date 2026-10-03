@@ -12,22 +12,30 @@ const HOME = readFileSync(join(__dirname, '../screens/HomeScreen.tsx'), 'utf-8')
 const COMFORT = readFileSync(join(__dirname, '../components/ComfortSection.tsx'), 'utf-8');
 
 describe('Home wave-b contracts', () => {
-  it('ruling: Sermon Notes is demoted below the hero reading + InlineReflection for returning personas', () => {
-    const heroSermonNotes = HOME.indexOf("{isNewPath && isSundayWindow() && sermonNotesRow}");
+  it('ruling: Sermon Notes is demoted below the hero reading + InlineReflection for returning personas; on I\'m New it leads on a Sunday morning as the next step', () => {
+    const NEXT = readFileSync(join(__dirname, '../utils/nextStep.ts'), 'utf-8');
+    const HOOK = readFileSync(join(__dirname, '../utils/useHomeNextStep.ts'), 'utf-8');
     const inlineReflection = HOME.indexOf('<InlineReflection');
     const demotedSermonNotes = HOME.indexOf('{!isNewPath && sermonNotesRow}');
-    expect(heroSermonNotes).toBeGreaterThan(-1);
+    const pastoral = HOME.indexOf('<PastoralReflectionSection');
     expect(inlineReflection).toBeGreaterThan(-1);
     expect(demotedSermonNotes).toBeGreaterThan(-1);
-    // The demoted (returning-persona) render sits after both the hero panel
-    // (represented by the isNewPath sermon-notes render inside it) and the
-    // InlineReflection mount.
-    expect(demotedSermonNotes).toBeGreaterThan(heroSermonNotes);
+    // Returning personas: the row sits after the hero reading, its InlineReflection
+    // and (pastor path) Between You & God — never above today's reading.
     expect(demotedSermonNotes).toBeGreaterThan(inlineReflection);
-    // sermonNotesRow is rendered in exactly these two places.
+    expect(demotedSermonNotes).toBeGreaterThan(pastoral);
+    // sermonNotesRow is rendered in exactly one place now (B09-08): the I'm-New
+    // Sunday row above the hero became kind 2 of the one next step.
     const occurrences = HOME.split('sermonNotesRow').length - 1;
-    expect(occurrences).toBe(3); // 1 definition + 2 renders
-    expect(HOME).toMatch(/import \{ isSundayWindow \} from '\.\.\/utils\/sunday'/);
+    expect(occurrences).toBe(2); // 1 definition + 1 render
+    expect(HOME).not.toMatch(/isSundayWindow\(\) && sermonNotesRow/);
+    // I'm New: Sunday's notes come before the journey day; returning paths: the
+    // reading (kind 5) comes before Sunday's notes (kind 6).
+    expect(NEXT.indexOf("kind: 'sunday_new'")).toBeGreaterThan(-1);
+    expect(NEXT.indexOf("kind: 'sunday_new'")).toBeLessThan(NEXT.indexOf("kind: 'journey_day'"));
+    expect(NEXT.indexOf("kind: 'read'")).toBeLessThan(NEXT.indexOf("kind: 'sunday_notes'"));
+    // The Sunday window is the campus clock's, through the hook.
+    expect(HOOK).toMatch(/import \{ isSundayWindow[^}]*\} from '\.\/sunday'/);
   });
 
   it('ruling: one chapter surface — plan sections filter through notInHero against heroChapterRefs and title with also_today', () => {
