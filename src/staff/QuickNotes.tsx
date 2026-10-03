@@ -216,7 +216,7 @@ export function QuickNotes({ onChangeDetails }: {
           ) : (
             <>
               <h2 style={headingStyle}>{t('staff_quick_heading').replace('{congregation}', congregationName)}</h2>
-              <p style={secondaryStyle}>{sundayLabel(status.sunday)} · {t(status.current ? 'staff_quick_why_stale' : 'staff_quick_why_none')}</p>
+              <p style={secondaryStyle}>{sundayLabel(status.sunday)} · {t(status.up ? 'staff_quick_why_replace' : status.current ? 'staff_quick_why_stale' : 'staff_quick_why_none').replace('{title}', status.current?.title ?? '')}</p>
               <label htmlFor={`${id}-paste`} style={{ fontSize: 17, fontWeight: 600 }}>{t('staff_quick_box')}</label>
               <p id={`${id}-hint`} style={secondaryStyle}>{t('staff_quick_box_hint')}</p>
               <textarea id={`${id}-paste`} aria-describedby={`${id}-hint`} rows={6}
