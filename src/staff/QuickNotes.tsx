@@ -152,7 +152,7 @@ export function QuickNotes({ onChangeDetails }: {
       color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', overflowWrap: 'anywhere',
     }}>
       {done ? (
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           <p role="status" style={{ ...detailsStyle, color: 'var(--dw-info)' }}>
             {t(done.verified ? 'staff_quick_done' : 'staff_quick_done_unverified')}
           </p>
@@ -161,7 +161,7 @@ export function QuickNotes({ onChangeDetails }: {
           <button type="button" style={quietStyle} onClick={startOver}>{t('staff_quick_start_over')}</button>
         </div>
       ) : up ? (
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           <h2 style={headingStyle}>{t('staff_quick_up').replace('{congregation}', congregationName).replace('{title}', status.current?.title ?? '')}</h2>
           {openPage}
           <button type="button" onClick={startOver} style={{
@@ -170,7 +170,7 @@ export function QuickNotes({ onChangeDetails }: {
           }}>{t('staff_quick_other_version')}</button>
         </div>
       ) : (
-        <form noValidate onSubmit={act} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+        <form noValidate onSubmit={act} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, minWidth: 0 }}>
           {!status ? (
             <p role="status" style={secondaryStyle}>{t(busy ? 'staff_quick_reading' : 'staff_quick_err_generic')}</p>
           ) : result?.needs ? (
@@ -189,7 +189,7 @@ export function QuickNotes({ onChangeDetails }: {
                 }}>{t('staff_quick_change')}</button>
               </div>
               <p style={secondaryStyle}>{t('staff_quick_not_live_yet')}</p>
-              <div className="dw-sermon-notes-phone"><SermonNotesSurface sermon={result.preview as SermonNotesData} persist={false} /></div>
+              <div className="dw-sermon-notes-phone" style={{ minWidth: 0, width: '100%' }}><SermonNotesSurface sermon={result.preview as SermonNotesData} persist={false} /></div>
             </>
           ) : (
             <>
