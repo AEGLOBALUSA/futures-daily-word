@@ -2,12 +2,13 @@
  * Staff portal at /staff — one login, one job at a time.
  * Hub / media put sermon notes on the congregation page; campus pastors
  * put updates on the campus corner. Save publishes. Ashley owns people,
- * not a review step. Form prompts live in the database — change them in SQL.
+ * not a review step. Owners change a question's wording on the form itself;
+ * adding or reordering questions is done in SQL.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
-import { getStaffToken, intake, setStaffToken } from './api';
+import { getStaffToken, intake, setStaffToken, STAFF_SIGNED_OUT_EVENT } from './api';
 import { localApiBase } from '../utils/api-base';
 import { getLang, t } from '../utils/i18n';
 import { messageFor } from '../components/PastorSignIn';
@@ -100,7 +101,7 @@ const labelStyle: CSSProperties = {
   color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1.3,
 };
 const helpStyle: CSSProperties = {
-  fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
+  fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
 };
 const btnPrimary: CSSProperties = {
   background: 'var(--dw-accent)', color: '#fff', border: 'none', borderRadius: 12,
@@ -137,12 +138,20 @@ export function StaffApp() {
   const [tab, setTab] = useState<Tab>(() => staffTabFromRaw(readStaffTabParam()));
   const [job, setJob] = useState<Job>('hub');
   const [error, setError] = useState('');
+  const bannerRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (error) bannerRef.current?.focus(); }, [error]);
   const view: Tab = tab === 'form' || tab === 'review' || tab === 'people' || tab === 'campuses' ? tab : 'home';
 
   useEffect(() => {
     document.title = 'Staff — Futures Daily Word';
     document.documentElement.setAttribute('data-theme', localStorage.getItem('dw_dark') === 'true' ? 'dark' : 'light');
     stripQuestionsDeepLink();
+  }, []);
+
+  useEffect(() => {
+    const handleSignedOut = () => { setToken(''); setStaff(null); };
+    window.addEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
+    return () => window.removeEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
   }, []);
 
   const loadMe = useCallback(async () => {
@@ -220,7 +229,7 @@ export function StaffApp() {
 
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 80px' }}>
         {error && (
-          <p style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)', marginBottom: 16 }}>{error}</p>
+          <p ref={bannerRef} role="alert" tabIndex={-1} style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', marginBottom: 16 }}>{error}</p>
         )}
         {view === 'home' && (
           <StaffHome
@@ -518,6 +527,12 @@ function formIntro(job: Job) {
 function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: (s: string) => void }) {
   const campuses = useCampuses();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [rewordable, setRewordable] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [wordingSaved, setWordingSaved] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [cornerItems, setCornerItems] = useState<CornerItem[]>([]);
   const [sermons, setSermons] = useState<SermonChoice[]>([]);
@@ -553,12 +568,16 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
 
   const load = useCallback(async (campusId?: string) => {
     onError('');
+    setLoadError(''); setLoaded(false); setLoading(true);
+    setEditingId(null); setWordingSaved(null);
     try {
-      const data = await intake<{ questions: Question[]; cornerItems: CornerItem[]; submissions: typeof mine; staff: Staff; sermons?: SermonChoice[] }>(
+      const data = await intake<{ rewordable?: string[]; questions: Question[]; cornerItems: CornerItem[]; submissions: typeof mine; staff: Staff; sermons?: SermonChoice[] }>(
         'form',
         { job, ...(campusId ? { campusId } : {}) },
       );
       setQuestions(data.questions || []);
+      setRewordable(data.rewordable || []);
+      setLoadError(''); setLoaded(true);
       setCornerItems(data.cornerItems || []);
       setMine(data.submissions || []);
       setSermons(data.sermons || []);
@@ -573,7 +592,14 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         return next;
       });
     } catch (err) {
-      onError(err instanceof Error ? err.message : 'Could not load the form');
+      setQuestions([]); setRewordable([]);
+      const status = err instanceof Error && 'status' in err ? err.status : undefined;
+      if (status === 401) return;
+      setLoadError(typeof status === 'number' && status >= 500
+        ? t('staff_form_load_server', getLang())
+        : t('staff_form_load_failed', getLang()));
+    } finally {
+      setLoading(false);
     }
   }, [onError, staff.campusId, job]);
 
@@ -593,6 +619,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const stepStart = formQs.length;
 
   const setAnswer = (id: string, v: unknown) => {
+    setWordingSaved(null);
     setAnswers(a => ({ ...a, [id]: v }));
     // Only the notes themselves (or the AI choice) invalidate the formatted
     // preview. Fixing the title, date, speaker or link keeps it — the server
@@ -629,6 +656,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
 
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
+    if (busy || !loaded || loadError || questions.length === 0) return;
     if (haveQ && answers[haveQ.id] !== true && answers[haveQ.id] !== false) {
       fail('Do you have your notes?');
       return;
@@ -690,12 +718,34 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
     setBusy(false);
   };
 
+  // The hub form shows its own help under the YouTube question, so its stored
+  // words are not offered for rewording there (the editor would not match the page).
+  const wordingFor = (q: Question) => rewordable.includes(q.id) && !(job === 'hub' && q.config?.sermonKey === 'youtubeUrl') ? (
+    <QuestionWording
+      question={q}
+      isAdmin={staff.isAdmin}
+      editing={editingId === q.id}
+      saved={wordingSaved === q.id}
+      onEditingChange={editing => { setEditingId(editing ? q.id : null); setWordingSaved(null); }}
+      onReworded={question => {
+        setQuestions(qs => qs.map(row => row.id === question.id ? question : row));
+        setEditingId(id => id === question.id ? null : id); setWordingSaved(question.id);
+      }}
+      onReload={() => load(pickCampus || staff.campusId || undefined)}
+      onStopAsking={id => {
+        setQuestions(qs => qs.filter(row => row.id !== id));
+        setEditingId(current => current === id ? null : current); setWordingSaved(null);
+      }}
+    />
+  ) : null;
+
   return (
-    <form onSubmit={submit} noValidate>
+    <form noValidate onSubmit={submit} onChangeCapture={() => setWordingSaved(null)}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>
         {job === 'hub' ? 'This week’s sermon notes' : job === 'media' ? 'YouTube and notes' : 'Campus corner'}
       </h2>
       <p style={{ ...helpStyle, marginBottom: 28 }}>{formIntro(job)}</p>
+      {rewordable.length > 0 && <p style={{ ...helpStyle, fontSize: 15 }}>{t('staff_wording_guide', getLang())}</p>}
 
       {sermonForm && (
         <Field label="Which church is this for?" help="Each church has its own Sermon Notes page. People pick theirs from the banner in the app.">
@@ -737,6 +787,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
             label: withStep(i + 1, q.label),
             help: job === 'hub' && q.config?.sermonKey === 'youtubeUrl' ? 'You can add this after Sunday.' : q.help,
           } : q}
+          wording={wordingFor(q)}
           problem={q.config?.sermonKey === 'youtubeUrl' ? youtubeProblem : ''}
           value={answers[q.id]}
           campusLocked={campusLocked}
@@ -766,6 +817,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
           onAI={v => {
             if (!aiQ) return;
             const next = { ...answers, [aiQ.id]: v };
+            setWordingSaved(null);
             setAnswers(next);
             setPreview(null);
             setDone(false);
@@ -775,26 +827,36 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         />
       )}
 
-      {questions.length === 0 && (
-        <p style={helpStyle}>No questions on this form yet.</p>
-      )}
-
       {sermonForm && preview && wantsAI && (
         <p style={{ ...helpStyle, marginBottom: 12 }}>
           The preview above is not live yet. The button below puts it on the congregation page.
         </p>
       )}
-      {formError && (
-        <p ref={errorRef} role="alert" style={{ color: '#B42318', fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '0 0 12px' }}>
-          {formError}
-        </p>
-      )}
-      <button type="submit" disabled={busy || questions.length === 0} style={{ ...btnPrimary, marginTop: 8 }}>
-        {busy ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
-      </button>
+      <div style={{ position: editingId ? 'static' : 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 1 }}>
+        {loadError ? (
+          <>
+            <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontWeight: 600 }}>{loadError}</p>
+            <button type="button" className="dw-next" style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={() => load(pickCampus || staff.campusId || undefined)}>
+              {t('staff_form_load_again', getLang())}
+            </button>
+          </>
+        ) : (
+          <>
+            {formError && (
+              <p ref={errorRef} role="alert" style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '0 0 12px' }}>
+                {formError}
+              </p>
+            )}
+            <button type="submit" className={editingId ? undefined : 'dw-next'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
+              {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
+            </button>
+            {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
+          </>
+        )}
+      </div>
       {done && !formError && (
         <div style={{ marginTop: 12, fontFamily: 'var(--font-sans)' }}>
-          <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 14, fontWeight: 600 }}>
+          <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 15, fontWeight: 600 }}>
             {held
               ? 'Saved. It goes on the campus corner once your campus is confirmed.'
               : job === 'campus'
@@ -806,7 +868,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
                   : 'Saved.'}
           </p>
           {job !== 'campus' && !held && (
-            <a href={congregationPageUrl(congregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 14, color: 'var(--dw-accent)', fontWeight: 600 }}>
+            <a href={congregationPageUrl(congregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600 }}>
               Open the {congregationName(congregation)} page →
             </a>
           )}
@@ -829,11 +891,12 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   );
 }
 
-function Field({ label, help, htmlFor, children }: { label: string; help?: string; htmlFor?: string; children: ReactNode }) {
+function Field({ label, help, htmlFor, afterHelp, children }: { label: string; help?: string; htmlFor?: string; afterHelp?: ReactNode; children: ReactNode }) {
   return (
     <div style={{ marginBottom: 32 }}>
       <label htmlFor={htmlFor} style={labelStyle}>{label}</label>
       {help ? <p style={helpStyle}>{help}</p> : null}
+      {afterHelp}
       {children}
     </div>
   );
@@ -866,13 +929,14 @@ function NotesFlow({
   return (
     <div>
       {haveQ && (
-        <Field label={haveLabel} help={haveQ.help}>
-          <YesNo value={haveNotes} onChange={onHave} required={haveQ.required} />
+        <Field label={haveLabel} help={haveQ.help} htmlFor={`q-${haveQ.id}`}>
+          <YesNo id={`q-${haveQ.id}`} value={haveNotes} onChange={onHave} required={haveQ.required} />
         </Field>
       )}
       {showPaste && pasteQ && (
-        <Field label={pasteLabel} help="Whatever you have is fine.">
+        <Field label={pasteLabel} help="Whatever you have is fine." htmlFor={`q-${pasteQ.id}`}>
           <textarea
+            id={`q-${pasteQ.id}`}
             value={paste}
             onChange={e => onPaste(e.target.value)}
             rows={10}
@@ -882,8 +946,8 @@ function NotesFlow({
         </Field>
       )}
       {showAI && aiQ && (
-        <Field label={aiLabel} help="Optional. You can look first, or save and it formats then.">
-          <YesNo value={wantAI} onChange={onAI} />
+        <Field label={aiLabel} help="Optional. You can look first, or save and it formats then." htmlFor={`q-${aiQ.id}`}>
+          <YesNo id={`q-${aiQ.id}`} value={wantAI} onChange={onAI} />
         </Field>
       )}
       {showAI && wantAI === true && (
@@ -910,10 +974,11 @@ function NotesFlow({
   );
 }
 
-function YesNo({ value, onChange, required }: { value: unknown; onChange: (v: boolean) => void; required?: boolean }) {
+function YesNo({ id, value, onChange, required }: { id: string; value: unknown; onChange: (v: boolean) => void; required?: boolean }) {
   const v = value === true ? 'yes' : value === false ? 'no' : '';
   return (
     <select
+      id={id}
       required={required}
       value={v}
       onChange={e => onChange(e.target.value === 'yes')}
@@ -934,10 +999,128 @@ function SermonPreview({ sermon }: { sermon: FormattedSermon }) {
   );
 }
 
+function wordingError(err: unknown): string {
+  const status = err instanceof Error && 'status' in err ? err.status : undefined;
+  const key = status === 400 ? 'staff_wording_too_short'
+    : status === 403 ? 'staff_wording_not_allowed'
+    : status === 404 ? 'staff_wording_gone'
+    : status === 409 ? 'staff_wording_changed'
+    : 'staff_wording_failed';
+  return t(key, getLang());
+}
+
+function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, onReworded, onReload, onStopAsking }: {
+  question: Question;
+  isAdmin: boolean;
+  editing: boolean;
+  saved: boolean;
+  onEditingChange: (editing: boolean) => void;
+  onReworded: (question: Question) => void;
+  onReload: () => void;
+  onStopAsking: (id: string) => void;
+}) {
+  const [label, setLabel] = useState(question.label);
+  const [help, setHelp] = useState(question.help || '');
+  const [saveError, setSaveError] = useState('');
+  const [stopError, setStopError] = useState('');
+  const [saveErrorStatus, setSaveErrorStatus] = useState<number | null>(null);
+  const [stopErrorStatus, setStopErrorStatus] = useState<number | null>(null);
+  const [confirmStop, setConfirmStop] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (editing) editorRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [editing]);
+  const quiet: CSSProperties = { ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 };
+  const errorStyle: CSSProperties = { fontSize: 15, color: 'var(--dw-error)', margin: '8px 0', fontFamily: 'var(--font-sans)' };
+  const labelId = `wording-label-${question.id}`;
+  const helpId = `wording-help-${question.id}`;
+
+  const save = async () => {
+    if (busy) return;
+    setSaveError('');
+    setSaveErrorStatus(null);
+    if (label.trim().length < 2) {
+      setSaveError(t('staff_wording_too_short', getLang()));
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await intake<{ question: Question }>('question_wording_save', { id: question.id, label: label.trim(), help });
+      onReworded(res.question);
+    } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
+      setSaveError(wordingError(err));
+      setSaveErrorStatus(status);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const stopAsking = async () => {
+    if (busy) return;
+    setStopError(''); setStopErrorStatus(null); setBusy(true);
+    try {
+      await intake<{ question: Question }>('question_enabled_set', { id: question.id, enabled: false });
+      onStopAsking(question.id);
+    } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
+      setStopError(wordingError(err));
+      setStopErrorStatus(status);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!editing) return (
+    <div style={{ marginBottom: 10 }}>
+      <button type="button" style={quiet} onClick={() => {
+        setLabel(question.label); setHelp(question.help || '');
+        setSaveError(''); setStopError(''); setConfirmStop(false);
+        onEditingChange(true);
+      }}>{t('staff_change_wording', getLang())}</button>
+      {saved && <p role="status" style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', margin: '8px 0' }}>{t('staff_wording_saved', getLang())}</p>}
+    </div>
+  );
+
+  return (
+    <div ref={editorRef} style={{ marginBottom: 16 }} onKeyDown={e => {
+      if (e.key === 'Enter' && e.target instanceof HTMLInputElement) { e.preventDefault(); void save(); }
+    }}>
+      <Field label={t('staff_wording_question', getLang())} htmlFor={labelId}>
+        <input id={labelId} type="text" value={label} maxLength={200} onChange={e => { setLabel(e.target.value); setSaveError(''); }} style={{ ...inputStyle, minHeight: 56, fontSize: 17 }} />
+      </Field>
+      <Field label={t('staff_wording_help', getLang())} htmlFor={helpId}>
+        <textarea id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: 17, resize: 'vertical' }} />
+      </Field>
+      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 2 }}>
+        <button type="button" className="dw-next" aria-disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
+        {saveError && <p role="alert" style={errorStyle}>{saveError}</p>}
+        {saveErrorStatus === 404 || saveErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
+      </div>
+      <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; onEditingChange(false); }}>{t('staff_wording_cancel', getLang())}</button>
+      {isAdmin && (confirmStop ? (
+        <div>
+          <p style={{ ...helpStyle, fontSize: 15 }}>{t('staff_stop_asking_confirm', getLang())}</p>
+          <button type="button" aria-disabled={busy} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={stopAsking}>{t('staff_stop_asking', getLang())}</button>
+          {stopError && <p role="alert" style={errorStyle}>{stopError}</p>}
+          {stopErrorStatus === 404 || stopErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
+          <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; setConfirmStop(false); setStopError(''); }}>{t('staff_wording_cancel', getLang())}</button>
+        </div>
+      ) : (
+        <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; setConfirmStop(true); setSaveError(''); }}>{t('staff_stop_asking', getLang())}</button>
+      ))}
+    </div>
+  );
+}
+
 function QuestionField({
-  q, value, onChange, campusLocked, lockedCampus, cornerItems, sermons, require, problem,
+  q, value, onChange, campusLocked, lockedCampus, cornerItems, sermons, require, problem, wording,
 }: {
   q: Question;
+  wording?: ReactNode;
   value: unknown;
   onChange: (v: unknown) => void;
   campusLocked: boolean;
@@ -949,12 +1132,14 @@ function QuestionField({
   problem?: string;
 }) {
   const campuses = useCampuses();
+  const id = `q-${q.id}`;
   const required = require ?? q.required;
   if (q.type === 'campus') {
     const v = String(value || lockedCampus || '');
     return (
-      <Field label={q.label} help={q.help}>
+      <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         <select
+          id={id}
           required={required}
           disabled={campusLocked}
           value={v}
@@ -971,24 +1156,24 @@ function QuestionField({
   }
   if (q.type === 'yes_no') {
     return (
-      <Field label={q.label} help={q.help}>
-        <YesNo value={value} onChange={v => onChange(v)} required={required} />
+      <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
+        <YesNo id={id} value={value} onChange={v => onChange(v)} required={required} />
       </Field>
     );
   }
   if (q.type === 'date') {
     return (
-      <Field label={q.label} help={q.help}>
-        <input type="date" required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle} />
+      <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
+        <input id={id} type="date" required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle} />
       </Field>
     );
   }
   if (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target') {
     const choices = sermons || [];
     return (
-      <Field label={q.label} help={q.help}>
+      <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         {choices.length > 0 ? (
-          <select required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle}>
+          <select id={id} required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle}>
             <option value="">Select this week's message</option>
             {choices.map(s => (
               <option key={s.id} value={s.id}>{s.title}{s.date ? ` · ${s.date}` : ''}</option>
@@ -996,6 +1181,7 @@ function QuestionField({
           </select>
         ) : (
           <input
+            id={id}
             type="text"
             required={required}
             value={String(value || '')}
@@ -1010,28 +1196,29 @@ function QuestionField({
   if (q.type === 'long_text' || q.type === 'text') {
     const Comp = q.type === 'long_text' ? 'textarea' : 'input';
     return (
-      <Field label={q.label} help={q.help}>
+      <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         <Comp
+          id={id}
           required={required}
           value={String(value || '')}
           onChange={e => onChange(e.target.value)}
           rows={q.type === 'long_text' ? 5 : undefined}
           aria-invalid={problem ? true : undefined}
-          style={{ ...inputStyle, minHeight: q.type === 'long_text' ? 120 : undefined, resize: 'vertical' as const, ...(problem ? { borderColor: '#B42318' } : {}) }}
+          style={{ ...inputStyle, minHeight: q.type === 'long_text' ? 120 : undefined, resize: 'vertical' as const, ...(problem ? { borderColor: 'var(--dw-error)' } : {}) }}
         />
         {problem && (
-          <p style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>{problem}</p>
+          <p style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>{problem}</p>
         )}
       </Field>
     );
   }
   if (q.type === 'corner_remove') {
     return (
-      <Field label={q.label} help={q.help}>
+      <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         {cornerItems.length === 0 ? (
           <p style={helpStyle}>Nothing is on the campus corner yet.</p>
         ) : (
-          <select value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)} style={inputStyle}>
+          <select id={id} value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)} style={inputStyle}>
             <option value="">Leave everything up</option>
             {cornerItems.map(item => (
               <option key={item.id} value={item.id}>{item.title}{item.type ? ` · ${item.type}` : ''}</option>
@@ -1049,6 +1236,10 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
   const [rows, setRows] = useState<Submission[]>([]);
   const [open, setOpen] = useState<Submission | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [restoring, setRestoring] = useState<string[]>([]);
+  const [reloading, setReloading] = useState<Record<string, boolean>>({});
+  const [askAgainErrors, setAskAgainErrors] = useState<Record<string, { message: string; status: number | null }>>({});
+  const [askAgainDone, setAskAgainDone] = useState('');
 
   const load = useCallback(async () => {
     const [subs, qs] = await Promise.all([
@@ -1072,6 +1263,49 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
     }
   };
 
+  const askAgain = async (id: string) => {
+    if (restoring.includes(id)) return;
+    const label = questions.find(q => q.id === id)?.label || '';
+    onError('');
+    setAskAgainDone('');
+    setAskAgainErrors(errors => { const next = { ...errors }; delete next[id]; return next; });
+    setRestoring(ids => [...ids, id]);
+    try {
+      await intake<{ question: Question }>('question_enabled_set', { id, enabled: true });
+      setQuestions(qs => qs.map(q => q.id === id ? { ...q, enabled: true } : q));
+      setAskAgainDone(label);
+      try {
+        await load();
+      } catch {
+        // The enable succeeded; keep the local state and let the next refresh catch up.
+      }
+    } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
+      setAskAgainErrors(errors => ({ ...errors, [id]: { message: wordingError(err), status } }));
+    } finally {
+      setRestoring(ids => ids.filter(value => value !== id));
+    }
+  };
+
+  const reloadQuestion = async (id: string) => {
+    if (reloading[id]) return;
+    setReloading(current => ({ ...current, [id]: true }));
+    try {
+      await load();
+      setAskAgainErrors(errors => { const next = { ...errors }; delete next[id]; return next; });
+    } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
+      setAskAgainErrors(errors => ({
+        ...errors,
+        [id]: { message: t('staff_ask_again_reload_failed', getLang()), status: errors[id]?.status ?? status },
+      }));
+    } finally {
+      setReloading(current => ({ ...current, [id]: false }));
+    }
+  };
+
   const labelFor = useMemo(() => {
     const map: Record<string, string> = {};
     for (const q of questions) map[q.id] = q.label;
@@ -1082,6 +1316,20 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>History</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>What already went live. Saves go live on their own — this is a record, not a queue.</p>
+      {(questions.some(q => q.enabled === false) || askAgainDone) && (
+        <section style={{ marginBottom: 16 }}>
+          {askAgainDone && <p role="status" style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>{t('staff_ask_again_done', getLang()).replace('{label}', askAgainDone)}</p>}
+          <h3 style={{ fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{t('staff_switched_off_questions', getLang())}</h3>
+          {questions.filter(q => q.enabled === false).map(q => (
+            <div key={q.id} style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 15, margin: '0 0 8px', fontFamily: 'var(--font-sans)' }}>{q.label}</p>
+              <button type="button" aria-disabled={restoring.includes(q.id)} aria-busy={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={() => askAgain(q.id)}>{restoring.includes(q.id) ? t('staff_ask_again_busy', getLang()) : t('staff_ask_again', getLang())}</button>
+              {askAgainErrors[q.id] && <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0' }}>{askAgainErrors[q.id].message}</p>}
+              {askAgainErrors[q.id]?.status === 404 || askAgainErrors[q.id]?.status === 409 ? <button type="button" aria-busy={reloading[q.id] || undefined} aria-disabled={reloading[q.id] || undefined} style={{ ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 }} onClick={() => reloadQuestion(q.id)}>{reloading[q.id] ? t('staff_ask_again_busy_list', getLang()) : t('staff_ask_again_reload', getLang())}</button> : null}
+            </div>
+          ))}
+        </section>
+      )}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {(['pending', 'approved', 'declined'] as const).map(s => (
           <button
