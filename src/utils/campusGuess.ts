@@ -21,6 +21,8 @@
 import { getCampuses, type CampusRow } from '../data/campuses';
 
 export const CAMPUS_GUESS_KEY = 'dw_campus_guess';
+/** A campus the reader tapped Yes on (or picked) before sign-up. Device only, never synced. */
+export const CAMPUS_CONFIRMED_KEY = 'dw_campus_confirmed';
 
 /**
  * Towns that point at one campus, or at nothing single. Keyed by the town's
@@ -313,8 +315,46 @@ export function chooseCampus<P extends object>(
     return 'saved';
   }
   writeCampusGuess(known);
+  writeConfirmedCampus(known);
   deps.requireEmail();
   return 'needs-email';
+}
+
+/** The campus the reader tapped before sign-up, if still a known campus. */
+export function readConfirmedCampus(campuses: CampusRow[] = getCampuses()): string | null {
+  try {
+    const raw = localStorage.getItem(CAMPUS_CONFIRMED_KEY);
+    if (raw === 'other') return 'other';
+    return knownCampusId(raw, campuses);
+  } catch {
+    return null;
+  }
+}
+
+function writeConfirmedCampus(id: string): void {
+  try { localStorage.setItem(CAMPUS_CONFIRMED_KEY, id); } catch { /* storage blocked */ }
+}
+
+/** Sign-up has carried the tapped campus into the profile: the device copy is spent. */
+export function clearConfirmedCampus(): void {
+  try { localStorage.removeItem(CAMPUS_CONFIRMED_KEY); } catch { /* storage blocked */ }
+}
+
+/**
+ * The campus the email gate registers (B09-07 review MUST). Only a tap may beat
+ * her Planning Center or stored campus: a campus she picked in the gate's own
+ * dropdown, or a Yes she tapped before sign-up. An unconfirmed link or QR guess
+ * only fills the gap when she has no campus anywhere else.
+ */
+export function resolveGateCampus(input: {
+  touched: boolean;
+  picked: string;
+  confirmed: string | null;
+  profileCampus: string | null | undefined;
+  guess: string | null;
+}): string {
+  if (input.touched && input.picked) return input.picked;
+  return input.confirmed || input.profileCampus || (input.touched ? '' : input.guess || '') || '';
 }
 
 /** Test seam. */

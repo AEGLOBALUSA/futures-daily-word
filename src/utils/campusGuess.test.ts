@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   guessCampus, knownCampusId, consumeCampusParam, readCampusGuess, chooseCampus,
   CAMPUS_GUESS_KEY, __resetCampusGuessForTests,
+  readConfirmedCampus, resolveGateCampus, clearConfirmedCampus, CAMPUS_CONFIRMED_KEY,
 } from './campusGuess';
 import { FALLBACK_CAMPUSES } from '../data/campuses.fallback';
 import type { CampusRow } from '../data/campuses';
@@ -177,5 +178,54 @@ describe('chooseCampus (the Yes tap)', () => {
     const saveProfile = vi.fn();
     expect(chooseCampus('zz-nope', { userProfile: { campus: '' }, saveProfile, requireEmail: vi.fn() }, LIST)).toBe('ignored');
     expect(saveProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('the email gate campus (review MUST: only a tap beats her real campus)', () => {
+  it('an unconfirmed ?campus= guess never beats her Planning Center campus', () => {
+    consumeCampusParam(
+      { href: 'https://futuresdailyword.com/?campus=us-alpharetta', search: '?campus=us-alpharetta' },
+      { replaceState: () => {} },
+      LIST,
+    );
+    const guess = readCampusGuess(LIST);
+    expect(guess).toBe('us-alpharetta');
+    expect(readConfirmedCampus(LIST)).toBeNull();
+    expect(resolveGateCampus({
+      touched: false, picked: guess || '', confirmed: readConfirmedCampus(LIST),
+      profileCampus: 'us-kennesaw', guess,
+    })).toBe('us-kennesaw');
+  });
+
+  it('the unconfirmed guess only fills the gap when she has no campus anywhere', () => {
+    expect(resolveGateCampus({
+      touched: false, picked: 'us-alpharetta', confirmed: null, profileCampus: '', guess: 'us-alpharetta',
+    })).toBe('us-alpharetta');
+  });
+
+  it('a Yes tapped before sign-up beats the stored campus', () => {
+    chooseCampus('us-alpharetta', { userProfile: null, saveProfile: vi.fn(), requireEmail: vi.fn() }, LIST);
+    expect(localStorage.getItem(CAMPUS_CONFIRMED_KEY)).toBe('us-alpharetta');
+    expect(resolveGateCampus({
+      touched: false, picked: 'us-alpharetta', confirmed: readConfirmedCampus(LIST),
+      profileCampus: 'us-kennesaw', guess: 'us-alpharetta',
+    })).toBe('us-alpharetta');
+    clearConfirmedCampus();
+    expect(readConfirmedCampus(LIST)).toBeNull();
+  });
+
+  it('a campus picked in the gate itself wins', () => {
+    expect(resolveGateCampus({
+      touched: true, picked: 'us-gwinnett', confirmed: 'us-alpharetta', profileCampus: 'us-kennesaw', guess: 'us-alpharetta',
+    })).toBe('us-gwinnett');
+  });
+
+  it('a link or QR guess alone writes no confirmed campus', () => {
+    consumeCampusParam(
+      { href: 'https://futuresdailyword.com/?campus=us-kennesaw', search: '?campus=us-kennesaw' },
+      { replaceState: () => {} },
+      LIST,
+    );
+    expect(localStorage.getItem(CAMPUS_CONFIRMED_KEY)).toBeNull();
   });
 });
