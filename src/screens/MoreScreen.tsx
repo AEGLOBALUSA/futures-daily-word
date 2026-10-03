@@ -8,7 +8,8 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
 import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, updatePushTime, pushSupported, openCalendarReminder } from '../utils/push';
 import { pushNow, syncMisc } from '../utils/cloudSync';
-import { findCampus } from '../data/campuses';
+import { campusName, findCampus } from '../data/campuses';
+import { settingsSummary, readSettingsSummaryInput } from '../utils/settingsSummary';
 import type { TranslationCode } from '../utils/api';
 import { LibraryScreen } from './LibraryScreen';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
@@ -275,6 +276,19 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     <div className="screen-container">
       <ScreenHeader title={t("settings_title", lang)} onBack={onBack} />
       <div style={{ padding: '24px 24px 0' }}>
+        <p aria-live="polite" style={{ color: 'var(--dw-text)', fontSize: 17, lineHeight: 1.45, fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '0 4px 20px' }}>
+          {(() => {
+            const stored = readSettingsSummaryInput();
+            return settingsSummary({
+              lang,
+              persona: setup?.persona,
+              ...stored,
+              chaptersPerDay,
+              reminderHour: pushSubscribed ? pushHour : null,
+              campusName: userProfile?.campus ? campusName(userProfile.campus) : '',
+            });
+          })()}
+        </p>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{
