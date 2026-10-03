@@ -1806,13 +1806,17 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       case 'open_notes':
         openCongregationChooser('open');
         break;
-      case 'open_wizard':
+      case 'open_wizard': {
         setMoreOpen(true);
         writeMoreOpen(true);
+        // Open the row now (not on React's next render) so the wizard can be scrolled to.
+        const more = document.querySelector<HTMLDetailsElement>('details.dw-more');
+        if (more) more.open = true;
         requestAnimationFrame(() => {
           document.getElementById('dw-more-wizard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         break;
+      }
       case 'open_plans':
         onNavigate?.('plans');
         break;
