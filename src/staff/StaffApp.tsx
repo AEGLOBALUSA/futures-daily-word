@@ -2,7 +2,8 @@
  * Staff portal at /staff — one login, one job at a time.
  * Hub / media put sermon notes on the congregation page; campus pastors
  * put updates on the campus corner. Save publishes. Ashley owns people,
- * not a review step. Form prompts live in the database — change them in SQL.
+ * not a review step. Owners change a question's wording on the form itself;
+ * adding or reordering questions is done in SQL.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
