@@ -529,6 +529,12 @@ describe('PastorSignIn', () => {
     expect(document.activeElement).toBe(el.querySelector('#dw-pastor-new'));
     expect(api.intake).not.toHaveBeenCalledWith('change_password', expect.anything());
 
+    type(el.querySelector('#dw-pastor-new') as HTMLInputElement, 'AE@futures.global');
+    await submit(form);
+    expect(el.textContent).toContain('Do not use your email as the password.');
+    expect(document.activeElement).toBe(el.querySelector('#dw-pastor-new'));
+    expect(api.intake).not.toHaveBeenCalledWith('change_password', expect.anything());
+
     type(el.querySelector('#dw-pastor-new') as HTMLInputElement, 'staple horse battery');
     await submit(form);
     expect(el.textContent).toContain('Passwords do not match');

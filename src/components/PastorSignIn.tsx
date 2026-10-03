@@ -292,6 +292,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     };
     if (!currentPassword) { refuse('pastor_type_current_password', 'dw-pastor-current'); return; }
     if (password.length < 10) { refuse('pastor_password_too_short', 'dw-pastor-new'); return; }
+    if (staff?.email && password.toLowerCase() === staff.email.trim().toLowerCase()) { refuse('pastor_password_is_email', 'dw-pastor-new'); return; }
     if (password !== confirm) { refuse('pastor_passwords_mismatch', 'dw-pastor-new-confirm'); return; }
     if (password === currentPassword) { refuse('pastor_password_same', 'dw-pastor-new'); return; }
     setBusy(true);
