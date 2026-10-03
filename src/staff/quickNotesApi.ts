@@ -115,18 +115,43 @@ export async function quickNotesRead(args: {
       ...(args.preview ? { preview: args.preview } : {}),
     });
   } catch (err) {
-    throw new Error(quickErrorText(err));
+    throw new QuickError(quickErrorText(err));
   }
 }
 
-/** The person's own words for a refusal, in their language. */
-export function quickErrorText(err: unknown): string {
-  const code = (err as { data?: { code?: string } })?.data?.code;
-  if (code === 'empty') return t('staff_quick_err_empty');
-  if (code === 'bad_link') return t('staff_quick_err_link');
-  if (code === 'too_long') return t('staff_quick_err_long');
-  if ((err as { status?: number })?.status === 401) return t('staff_quick_err_signin');
-  return err instanceof Error && err.message ? err.message : t('staff_quick_err_generic');
+/** An error whose words are already the person's own, in their language. */
+export class QuickError extends Error {
+  readonly translated = true;
+}
+
+/**
+ * The person's own words for a refusal, in their language. The server's or the
+ * browser's English ("Failed to fetch", "Missing: Title") never reaches the
+ * screen: each known failure maps to its fix, anything else to the generic line.
+ */
+export function quickErrorText(err: unknown, lang = getLang()): string {
+  if (err instanceof QuickError && err.message) return err.message;
+  const e = err as { status?: number; data?: { code?: string; error?: string }; message?: string; name?: string };
+  const code = e?.data?.code;
+  if (code === 'empty') return t('staff_quick_err_empty', lang);
+  if (code === 'bad_link') return t('staff_quick_err_link', lang);
+  if (code === 'too_long') return t('staff_quick_err_long', lang);
+  if (e?.status === 401) return t('staff_quick_err_signin', lang);
+  if (e?.status === 403) return t('staff_quick_err_role', lang);
+  const said = String(e?.data?.error || '');
+  if (e?.status === 400 && /^Missing: /.test(said)) return t('staff_quick_err_missing', lang);
+  if (!e?.status && (e?.name === 'TypeError' || /fetch|network|load failed/i.test(String(e?.message || '')))) {
+    return t('staff_quick_err_network', lang);
+  }
+  return t('staff_quick_err_generic', lang);
+}
+
+/** Question types the one box can answer in words; anything else (a campus, a pick list) belongs in the full form. */
+const WORD_TYPES = ['text', 'long_text', 'date', 'url'];
+
+/** True when the one missing detail cannot be typed into the one box, so Change details (the form, pre-filled) is the way on. */
+export function needsTheForm(needs: QuickNeeds): boolean {
+  return !!needs && needs.key === 'other' && !WORD_TYPES.includes(needs.type || 'text');
 }
 
 /**
@@ -145,10 +170,10 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
       formatted_sermon: result.preview,
     });
   } catch (err) {
-    throw new Error(quickErrorText(err));
+    throw new QuickError(quickErrorText(err));
   }
   const sermon = data.publish_result?.sermon;
-  if (!data.published || !sermon?.id) throw new Error(t('staff_quick_err_not_live'));
+  if (!data.published || !sermon?.id) throw new QuickError(t('staff_quick_err_not_live'));
   rememberCongregation(result.congregation);
   let verified = false;
   try {
@@ -194,6 +219,9 @@ export function needsQuestion(needs: QuickNeeds, lang = getLang()): string {
   if (needs.key === 'title') return t('staff_quick_ask_title', lang);
   if (needs.key === 'speaker') return t('staff_quick_ask_speaker', lang);
   if (needs.key === 'date') return t('staff_quick_ask_date', lang);
+  if (needs.key === 'series') return t('staff_quick_ask_series', lang);
+  if (needs.key === 'youtubeUrl') return t('staff_quick_ask_youtube', lang);
+  if (needsTheForm(needs)) return t('staff_quick_ask_in_form', lang).replace('{label}', needs.label);
   return needs.label;
 }
 
@@ -208,7 +236,7 @@ export function answerNeeds(result: QuickResult, value: string): Partial<QuickDe
 
 /** For a required question the quick path does not know: fold the answer into the answers by its id. */
 export function withOtherAnswer(result: QuickResult, value: string): QuickResult {
-  if (!result.needs || result.needs.key !== 'other') return result;
+  if (!result.needs || result.needs.key !== 'other' || needsTheForm(result.needs) || !value.trim()) return result;
   return { ...result, answers: { ...result.answers, [result.needs.questionId]: value.trim() }, needs: null };
 }
 

@@ -103,6 +103,13 @@ describe('who hears about it: hub and admin roster members only', () => {
       expect(got).not.toContain('media@example.com');
     }
   });
+  it('a hub row whose campus no longer resolves hears about nothing (fails closed)', () => {
+    const campuses = require_('../../netlify/functions/lib/campuses.fallback.json').map((c) => ({ ...c, pcoNames: c.pcoNames || [] }));
+    const rows = [{ email: 'hub.stale@example.com', role: 'hub', campus_id: 'no-such-campus' }];
+    for (const c of ['futures-us', 'futures-au', 'futuros-us']) {
+      expect(sn.recipientsFor(c, rows, campuses)).toEqual([]);
+    }
+  });
 });
 
 describe('runSundayNotesCheck', () => {

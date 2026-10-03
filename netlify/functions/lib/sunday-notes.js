@@ -51,7 +51,8 @@ function nudgeSunday(congregation, now = new Date()) {
 /**
  * Who hears about this congregation: admin staff for every congregation; hub
  * staff for the congregation their campus reads (any hub member without one
- * hears about every congregation, as the hub job covers all three).
+ * hears about every congregation, as the hub job covers all three; a campus id
+ * that no longer resolves hears nothing).
  */
 function recipientsFor(congregation, roster, campuses) {
   const out = [];
@@ -61,8 +62,10 @@ function recipientsFor(congregation, roster, campuses) {
     const email = normalizeRecipient(row.email);
     if (!email || seen.has(email)) continue;
     if (row.role === "hub" && row.campus_id) {
+      // A campus that no longer resolves fails closed: that hub hears nothing
+      // until the owner fixes the row, rather than every congregation.
       const theirs = campusCongregation(row.campus_id, campuses);
-      if (theirs && theirs !== congregation) continue;
+      if (!theirs || theirs !== congregation) continue;
     }
     seen.add(email);
     out.push(email);
