@@ -15,6 +15,7 @@ import { messageFor } from '../components/PastorSignIn';
 import { youtubeLinkProblem } from './youtubeLink';
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
+import { QuickNotes } from './QuickNotes';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'form' | 'review' | 'people' | 'campuses';
@@ -77,6 +78,7 @@ type FormattedSermon = {
   youtubeUrl?: string;
   youtubeOnly?: boolean;
 };
+type IntakeSeed = { answers: Record<string, unknown>; preview: FormattedSermon | null; congregation: CongregationId };
 type Submission = {
   id: string;
   email: string;
@@ -137,6 +139,7 @@ export function StaffApp() {
   const [boot, setBoot] = useState(!!getStaffToken());
   const [tab, setTab] = useState<Tab>(() => staffTabFromRaw(readStaffTabParam()));
   const [job, setJob] = useState<Job>('hub');
+  const [seed, setSeed] = useState<IntakeSeed | undefined>(undefined);
   const [error, setError] = useState('');
   const bannerRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (error) bannerRef.current?.focus(); }, [error]);
@@ -218,7 +221,7 @@ export function StaffApp() {
           {view !== 'home' && (
             <button
               type="button"
-              onClick={() => { setTab('home'); setError(''); }}
+              onClick={() => { setTab('home'); setSeed(undefined); setError(''); }}
               style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 12 }}
             >
               ← Staff home
@@ -234,13 +237,14 @@ export function StaffApp() {
         {view === 'home' && (
           <StaffHome
             staff={staff}
-            onJob={j => { setJob(j); setTab('form'); setError(''); }}
+            onJob={j => { setSeed(undefined); setJob(j); setTab('form'); setError(''); }}
+            onChangeDetails={seed => { setSeed(seed); setJob('hub'); setTab('form'); setError(''); }}
             onReview={() => { setTab('review'); setError(''); }}
             onPeople={() => { setTab('people'); setError(''); }}
             onCampuses={() => { setTab('campuses'); setError(''); }}
           />
         )}
-        {view === 'form' && <IntakeForm staff={staff} job={job} onError={setError} />}
+        {view === 'form' && <IntakeForm staff={staff} job={job} seed={job === 'hub' ? seed : undefined} onError={setError} />}
         {view === 'review' && staff.isAdmin && (
           <ReviewQueue onError={setError} />
         )}
@@ -459,13 +463,14 @@ function withStep(n: number, label: string) {
 }
 
 function StaffHome({
-  staff, onJob, onReview, onPeople, onCampuses,
+  staff, onJob, onReview, onPeople, onCampuses, onChangeDetails,
 }: {
   staff: Staff;
   onJob: (job: Job) => void;
   onReview: () => void;
   onPeople: () => void;
   onCampuses: () => void;
+  onChangeDetails: (seed: IntakeSeed) => void;
 }) {
   const jobs: { id: Job; title: string; body: string }[] = [
     { id: 'hub', title: 'Put up this week’s sermon notes', body: 'Date, title, speaker, series, YouTube, paste your notes. Save puts it on the congregation page.' },
@@ -479,6 +484,7 @@ function StaffHome({
       : jobs.filter(j => j.id === staff.role);
   return (
     <div>
+      {(staff.isAdmin || staff.role === 'hub' || staff.role === 'media') && <QuickNotes onChangeDetails={onChangeDetails} />}
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         This is how Sunday’s sermon notes get onto the page people write in.
@@ -524,7 +530,7 @@ function formIntro(job: Job) {
   return 'What’s on this week, a prayer point if you have one, and anything that should come down. Save puts it on the campus corner.';
 }
 
-function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: (s: string) => void }) {
+function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; seed?: IntakeSeed; onError: (s: string) => void }) {
   const campuses = useCampuses();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [rewordable, setRewordable] = useState<string[]>([]);
@@ -533,14 +539,14 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const [loadError, setLoadError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>(() => seed?.answers ?? {});
   const [cornerItems, setCornerItems] = useState<CornerItem[]>([]);
   const [sermons, setSermons] = useState<SermonChoice[]>([]);
   const [mine, setMine] = useState<{ id: string; status: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [held, setHeld] = useState(false);
-  const [preview, setPreview] = useState<FormattedSermon | null>(null);
+  const [preview, setPreview] = useState<FormattedSermon | null>(() => seed?.preview ?? null);
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
   // The shell shows errors at the top of the page; the save button sits at the
   // bottom of a long form, so the same message is repeated next to the button
@@ -550,6 +556,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   // Which congregation's Sermon Notes this message is for (Futures USA /
   // Futures Australia / Futuros USA). Sent with preview and save; remembered per browser.
   const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
+    if (seed) return seed.congregation;
     try { const v = localStorage.getItem('dw_staff_congregation'); if (isCongregationId(v)) return v; } catch { /* */ }
     return DEFAULT_CONGREGATION;
   });
