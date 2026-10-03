@@ -2383,7 +2383,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     <div style={{ padding: '0 4px', margin: '0 0 6px' }}>
                       <input
                         className="hero-range-slider"
-                        type="range"
+                        type="range" data-mo-allow="scrubber"
                         aria-label={tI18n('chapter_navigator', lang)}
                         aria-valuetext={`${allLabels[heroChapterIndex] || ''} — ${tI18n('p_chapter_of', lang)} ${heroChapterIndex + 1} ${tI18n('p_of', lang)} ${allLabels.length}`}
                         min={0}

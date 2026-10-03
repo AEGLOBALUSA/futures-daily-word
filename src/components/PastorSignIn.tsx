@@ -284,8 +284,16 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
     e.preventDefault();
     if (busy) return;
     setError('');
-    if (password !== confirm) { setError(t('pastor_passwords_mismatch', lang)); return; }
-    if (password === currentPassword) { setError(t('pastor_password_same', lang)); return; }
+    // The form is noValidate (iOS stops a `required` form without a word), so every check is
+    // ours: the first box that needs something gets the words beside the button and the cursor.
+    const refuse = (key: string, fieldId: string) => {
+      setError(t(key, lang));
+      (document.getElementById(fieldId) as HTMLInputElement | null)?.focus();
+    };
+    if (!currentPassword) { refuse('pastor_type_current_password', 'dw-pastor-current'); return; }
+    if (password.length < 10) { refuse('pastor_password_too_short', 'dw-pastor-new'); return; }
+    if (password !== confirm) { refuse('pastor_passwords_mismatch', 'dw-pastor-new-confirm'); return; }
+    if (password === currentPassword) { refuse('pastor_password_same', 'dw-pastor-new'); return; }
     setBusy(true);
     try {
       // The server keeps THIS session and revokes every other one for the email.
@@ -495,7 +503,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
               </p>
             )}
             {pwOpen && (
-              <form onSubmit={submitChangePassword} style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--dw-border)' }}>
+              <form onSubmit={submitChangePassword} noValidate style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--dw-border)' }}>
                 <label htmlFor="dw-pastor-current" style={labelStyle}>{t('pastor_current_password', lang)}</label>
                 <input
                   id="dw-pastor-current"
@@ -534,8 +542,8 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
                   <button type="button" onClick={closeChangePassword} disabled={busy} style={btnGhost}>{t('pastor_cancel', lang)}</button>
                   <button
                     type="submit"
-                    disabled={busy || !currentPassword || !password}
-                    style={{ ...btnPrimary, flex: 1, opacity: busy || !currentPassword || !password ? 0.6 : 1 }}
+                    disabled={busy}
+                    style={{ ...btnPrimary, flex: 1 }}
                   >
                     {busy ? t('pastor_please_wait', lang) : t('pastor_change_password', lang)}
                   </button>

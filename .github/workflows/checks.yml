@@ -28,6 +28,18 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+  design-lint:
+    # The Futures design rules (B00-07L): fails on any NEW BLOCK finding against the
+    # checked-in baseline. Shrink the baseline with --write-baseline when a fix lands.
+    name: design-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 scripts/design_lint.py . --paths src netlify public --baseline .design-lint-baseline.json
+
   test:
     name: test
     runs-on: ubuntu-latest
