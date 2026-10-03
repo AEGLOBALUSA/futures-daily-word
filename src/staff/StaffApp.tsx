@@ -721,6 +721,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         setQuestions(qs => qs.map(row => row.id === question.id ? question : row));
         setEditingId(id => id === question.id ? null : id); setWordingSaved(question.id);
       }}
+      onReload={() => load(pickCampus || staff.campusId || undefined)}
       onStopAsking={id => {
         setQuestions(qs => qs.filter(row => row.id !== id));
         setEditingId(current => current === id ? null : current); setWordingSaved(null);
@@ -821,26 +822,28 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
           The preview above is not live yet. The button below puts it on the congregation page.
         </p>
       )}
-      {formError && (
-        <p ref={errorRef} role="alert" style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '0 0 12px' }}>
-          {formError}
-        </p>
-      )}
-      {loadError ? (
-        <>
-          <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontWeight: 600 }}>{loadError}</p>
-          <button type="button" className="dw-next" style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={() => load(pickCampus || staff.campusId || undefined)}>
-            {t('staff_form_load_again', getLang())}
-          </button>
-        </>
-      ) : (
-        <>
-          <button type="submit" className={editingId ? undefined : 'dw-next'} disabled={busy} aria-disabled={!loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
-            {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
-          </button>
-          {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
-        </>
-      )}
+      <div style={{ position: editingId ? 'static' : 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 1 }}>
+        {loadError ? (
+          <>
+            <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontWeight: 600 }}>{loadError}</p>
+            <button type="button" className="dw-next" style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={() => load(pickCampus || staff.campusId || undefined)}>
+              {t('staff_form_load_again', getLang())}
+            </button>
+          </>
+        ) : (
+          <>
+            {formError && (
+              <p ref={errorRef} role="alert" style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '0 0 12px' }}>
+                {formError}
+              </p>
+            )}
+            <button type="submit" className={editingId ? undefined : 'dw-next'} disabled={busy} aria-disabled={!loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
+              {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
+            </button>
+            {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
+          </>
+        )}
+      </div>
       {done && !formError && (
         <div style={{ marginTop: 12, fontFamily: 'var(--font-sans)' }}>
           <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 15, fontWeight: 600 }}>
@@ -996,21 +999,28 @@ function wordingError(err: unknown): string {
   return t(key, getLang());
 }
 
-function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, onReworded, onStopAsking }: {
+function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, onReworded, onReload, onStopAsking }: {
   question: Question;
   isAdmin: boolean;
   editing: boolean;
   saved: boolean;
   onEditingChange: (editing: boolean) => void;
   onReworded: (question: Question) => void;
+  onReload: () => void;
   onStopAsking: (id: string) => void;
 }) {
   const [label, setLabel] = useState(question.label);
   const [help, setHelp] = useState(question.help || '');
   const [saveError, setSaveError] = useState('');
   const [stopError, setStopError] = useState('');
+  const [saveErrorStatus, setSaveErrorStatus] = useState<number | null>(null);
+  const [stopErrorStatus, setStopErrorStatus] = useState<number | null>(null);
   const [confirmStop, setConfirmStop] = useState(false);
   const [busy, setBusy] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (editing) editorRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [editing]);
   const quiet: CSSProperties = { ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 };
   const errorStyle: CSSProperties = { fontSize: 15, color: 'var(--dw-error)', margin: '8px 0', fontFamily: 'var(--font-sans)' };
   const labelId = `wording-label-${question.id}`;
@@ -1019,6 +1029,7 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
   const save = async () => {
     if (busy) return;
     setSaveError('');
+    setSaveErrorStatus(null);
     if (label.trim().length < 2) {
       setSaveError(t('staff_wording_too_short', getLang()));
       return;
@@ -1029,6 +1040,7 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       onReworded(res.question);
     } catch (err) {
       setSaveError(wordingError(err));
+      setSaveErrorStatus(err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null);
     } finally {
       setBusy(false);
     }
@@ -1036,12 +1048,13 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
 
   const stopAsking = async () => {
     if (busy) return;
-    setStopError(''); setBusy(true);
+    setStopError(''); setStopErrorStatus(null); setBusy(true);
     try {
       await intake<{ question: Question }>('question_enabled_set', { id: question.id, enabled: false });
       onStopAsking(question.id);
     } catch (err) {
       setStopError(wordingError(err));
+      setStopErrorStatus(err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null);
     } finally {
       setBusy(false);
     }
@@ -1059,7 +1072,7 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
   );
 
   return (
-    <div style={{ marginBottom: 16 }} onKeyDown={e => {
+    <div ref={editorRef} style={{ marginBottom: 16 }} onKeyDown={e => {
       if (e.key === 'Enter' && e.target instanceof HTMLInputElement) { e.preventDefault(); void save(); }
     }}>
       <Field label={t('staff_wording_question', getLang())} htmlFor={labelId}>
@@ -1068,14 +1081,16 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       <Field label={t('staff_wording_help', getLang())} htmlFor={helpId}>
         <textarea id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: 17, resize: 'vertical' }} />
       </Field>
-      <button type="button" className="dw-next" disabled={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}</button>
+      <button type="button" className="dw-next" disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
       {saveError && <p role="alert" style={errorStyle}>{saveError}</p>}
+      {saveErrorStatus === 404 || saveErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
       <button type="button" disabled={busy} style={quiet} onClick={() => onEditingChange(false)}>{t('staff_wording_cancel', getLang())}</button>
       {isAdmin && (confirmStop ? (
         <div>
           <p style={{ ...helpStyle, fontSize: 15 }}>{t('staff_stop_asking_confirm', getLang())}</p>
           <button type="button" disabled={busy} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={stopAsking}>{t('staff_stop_asking', getLang())}</button>
           {stopError && <p role="alert" style={errorStyle}>{stopError}</p>}
+          {stopErrorStatus === 404 || stopErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
           <button type="button" disabled={busy} style={quiet} onClick={() => { setConfirmStop(false); setStopError(''); }}>{t('staff_wording_cancel', getLang())}</button>
         </div>
       ) : (
