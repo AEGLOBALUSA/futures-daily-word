@@ -1,0 +1,4807 @@
+[
+  {
+    "rule": "ALERT-ERROR",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "214c4f5270bdb9f5144ac4e33ee94796602f48f9"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "80d8b8ce4040ff8fd0626583a0b632bf26be0d0e"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "e04d550b3153edcd240d08cc25241b0cc5781490"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "b4f3e95995db284571c1158265b94bc31e2e83a2"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "fbb0f202a683d2a14a5af5dd722ad8285f24cc24"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "cbea51ab408b03b2ff993f20c43abb6d3987dcb6"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "9678c329e4df295f1a40e79bc729208f6287083c"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "01be9c37eccd025ab6fe54069a68f8386c956757"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "85e00c7ab4b8ea8b3fd420c627abfd2556dba12e"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "9745bc84862ee72ef08dd8a6a48181fc31ebfb92"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "25d0a736dcabcbd49d22c67fbfb60302ae00919c"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "a63bd908eee7de28c4ba86ebf0ee43b77a081eed"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "b2118fe29713f88e0bf03eaa07db019d22520c80"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "012e944edf093b7757f32bb38a4febb463bf37d3"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5909f75916b59a3d97651509bf7133655a5ea08c"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "0fc6f53e6fea7d8c23398727b9454582c2c1c37a"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "e384487cf64dce168ac8a4ef94de5775ca4bc1eb"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "cf50a2461c2d1926e67fb8552c2ed13ddad0b242"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5306dfd44dc64a9841e11b2d60730043b89b49b6"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "9615300b5f5a4218f17c4ba8dd278da7a365ffd0"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5909f75916b59a3d97651509bf7133655a5ea08c"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "4b384346c804aa8bb2367a6487cf6b402d908305"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5fca3e43d122cbea3edaef773194e617b9c90fe7"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "716e7c7080fe7f0e226a58662f740787c940493d"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "e384487cf64dce168ac8a4ef94de5775ca4bc1eb"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "cf50a2461c2d1926e67fb8552c2ed13ddad0b242"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5306dfd44dc64a9841e11b2d60730043b89b49b6"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "10ed4670329681574c65be111617b7b0ad25a535"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "f4287f5b356edab6a4add3f327539fedd323517a"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "335b92a27736783f9667d9924f092e986435b096"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "efcaf0c9b14694d85699ef2cb65f97b9e92ebc7c"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "e384487cf64dce168ac8a4ef94de5775ca4bc1eb"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "cf50a2461c2d1926e67fb8552c2ed13ddad0b242"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "78ddec4e10915e39a5573bcfb2725b3fc376ade8"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "9615300b5f5a4218f17c4ba8dd278da7a365ffd0"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5909f75916b59a3d97651509bf7133655a5ea08c"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "cf50a2461c2d1926e67fb8552c2ed13ddad0b242"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "8a8b3a3eb30b05ffff37de303fa2f8b7a495bd99"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "cbc628e844579b3cdc033c9260483eeeb6f453b4"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "5909f75916b59a3d97651509bf7133655a5ea08c"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "61a53542ee34ff1a29d639be83e9a2de87621f8e"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "bb71dcb276d433d7b63f573787687d17a05d8dc1"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "834e46f9cb10a6df3a457a73e788087177a32dba"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "2ee5ea573fc78a1e3ee4d116dec019f73945a384"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "fb9fa212ec68209a301f98eff317e9837267ff71"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "03743009e7ab83d14a4c084ff526a6255494f81b"
+  },
+  {
+    "rule": "EMAIL-VAR",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "4cf537953ae47a86ae254e30887268b594a71990"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/sections/GreetingSection.tsx",
+    "fingerprint": "0951b9a0228aca960016ba88b41519bd1d6c7086"
+  },
+  {
+    "rule": "GREYED-FIELD",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "44f21f45edc1b794386ac913d396ca0d93d8fa1c"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "NO-FOCUS",
+    "file": "src/index.css",
+    "fingerprint": "7d5edca9ceaceb0ed15c409c598fc51ba96442c2"
+  },
+  {
+    "rule": "WAITS-ON-PERSON",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "WAITS-ON-PERSON",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "946b8cf477beffa1d06c96304050f73b5c12c0ec"
+  },
+  {
+    "rule": "BROWSER-CONFIRM",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "203aea2e7d91a4467ed01045a7b62bf4f1a52df8"
+  },
+  {
+    "rule": "BROWSER-CONFIRM",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "9ed34e0fd8efff62d48899ed632077049fb2854d"
+  },
+  {
+    "rule": "BROWSER-CONFIRM",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "3f1dbbe5cec9e8f677bdaf5e5eb409a33b9c90dd"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "b82e9e9e7bea2cca50124c34b6aa09c5c82f8def"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "261654cc8e8427e832896a62e6c7c436071a8e2a"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/FontSizeControls.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/FontSizeControls.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "9223e545911b70df8afc5cd111e4c1871312376a"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "9223e545911b70df8afc5cd111e4c1871312376a"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "ab58406498b99bc3af85b178b561d3bda0d4fb5b"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "b3698f23d1bad8231382cf21781c43ca97a4efd4"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "092f0a00114a09ab67f1be67d3923788f166e8cd"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/PushOptIn.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/SermonNotesSurface.tsx",
+    "fingerprint": "768bf95e31bf3e8abff0dcf5f1edbcfd57bfdd29"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "946b8cf477beffa1d06c96304050f73b5c12c0ec"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "3ee301544aa55f531f1e4bd57d4d7847b9369a93"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "a1c188def51de49bd8da73fed17376c10bac2666"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "cfa17e604c14cb008b314bc2c10ee7a46e6b8197"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "3f3263e307376f1c1a71bdb2266ff63c9d880153"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "217c9c6db5321111e2d613ee5cd3bfbadea266a0"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "d512187b3250e7d5251c1e1b027345b48c1a816a"
+  },
+  {
+    "rule": "DEAD-BUTTON",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "b7d225f12db2257851fb9a7173d05f21709f3d7f"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "netlify/functions/lib/notes-email.js",
+    "fingerprint": "150bde54c9ac7cb26a4e3156edde872a93924606"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "054e30ece8479c50d64f669c7e3f0bc63cd04148"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "ac48e034cd885673d003a1cd200703569b65466f"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "999f7b0ac4e51b9c8fc5c89eddcb9742f607e8fa"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "713a4b4a476f30d11679ba5245fa42392736dea1"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "8f75dcaedddf346911a79d736ba68bbdb7ad4481"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "b7caf6428dfe89cd48a4e93c9d6f05aa9f305f64"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "2104a5e6cfb08e9836608d7843e412234ee54300"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/data/bible-sections.ts",
+    "fingerprint": "659f70cbd2d160b9d3a037145f0738a3f2d50668"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/utils/behavior.ts",
+    "fingerprint": "a5cc7acc991a2d968b6ab72619de72ec96d6bb7b"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/utils/personalization.ts",
+    "fingerprint": "52a490dfa7e71f598dccd28618441cfb69e0f183"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/utils/personalization.ts",
+    "fingerprint": "c6e6e74f8115e797d12403f229e678e12c6c987f"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/utils/personalization.ts",
+    "fingerprint": "ad9a577bf9af004e4dd4720a6bd5bc4d0905425b"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/utils/personalization.ts",
+    "fingerprint": "d14ee62516674ffc16ba397b63d80e93323ee03d"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/utils/personalization.ts",
+    "fingerprint": "465e851ab6433029aa70b6839b1876686acd5112"
+  },
+  {
+    "rule": "EMOJI-UI",
+    "file": "src/utils/personalization.ts",
+    "fingerprint": "17ba00ba4941adc2326df8cd031b40467f479911"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "netlify/functions/lib/notes-email.js",
+    "fingerprint": "d6ef90b85d58db4447832cd6411c83ba271b84c2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "netlify/functions/lib/notes-email.js",
+    "fingerprint": "972811e1984640e11bcfd5d5eda2af6a66df0744"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "netlify/functions/lib/notes-email.js",
+    "fingerprint": "e69c8278ef56f5910d26c14a106b5d896e316291"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "netlify/functions/lib/notes-email.js",
+    "fingerprint": "3754a99e6b95159013f6b512b152df5bb80becf3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "netlify/functions/lib/notes-email.js",
+    "fingerprint": "0d6024ccaffe8c61119b2d01e99fdfba7eed6286"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/App.tsx",
+    "fingerprint": "756137a0cd1a0e263ad715f7b8f24d9e88782488"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/App.tsx",
+    "fingerprint": "754a2f7073fea67ac3dcced2183505eb9435037d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/App.tsx",
+    "fingerprint": "da89d01d107f1672feeb118c4b0c2789efbad5ca"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta-gate/AlpharettaSlot.tsx",
+    "fingerprint": "52a1a96e4f1593bfadf83322de6dd5871d387de4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta-gate/AlpharettaSlot.tsx",
+    "fingerprint": "fececef9155f350b9763afc7028c2c30191d2971"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta-gate/FeatureSheet.tsx",
+    "fingerprint": "142dbe29889025c936d286b4884e7dc140055787"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta-gate/FeatureSheet.tsx",
+    "fingerprint": "e6b5b17af473e75f88aecbb64979e8b32ac0ff02"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta-gate/FeatureSheet.tsx",
+    "fingerprint": "d865d7045121a30dbab4d08e7881920b420f335e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta/AlpharettaPanel.tsx",
+    "fingerprint": "2e3602933da6d9f8d4d231c0d6faac4331e54bac"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta/AlpharettaPanel.tsx",
+    "fingerprint": "0a91f484174533bcf08a4485c5ab9123baf7b5cd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta/AlpharettaPanel.tsx",
+    "fingerprint": "cb0c5d92962fc7ffe18cb31c89a25c021a3ea1a1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/alpharetta/AlpharettaPanel.tsx",
+    "fingerprint": "1e045549578193148de5dd052168404a2dd86087"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "b263ddb1e3048a632aea8fb10ec4e1c0409e0469"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "62e6cbfb657e2f80a12bd4d5c6bc137173d8ae94"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "b263ddb1e3048a632aea8fb10ec4e1c0409e0469"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "5a2e73ea0b2d791aa1ef51e5a3540527c38b3bf2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "9e0f2e75c76dbf87e9f88d9f2a80ff65c0466af3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "52fbe10cd88a23ca0544de9c177b3bae0f919eb2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "4583c655a181cef02997eb34e5fa8eb4ccfc12e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "c756764a7e6c50f5cdad09bd15a632cc6e9ba146"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "1703efb2aac1cb967f5ff717cda2adf1c364bbbb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "c8ea22ddaa31e650c613796a1724a26d64c7f370"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "7f56b1cdeda6dc4ceb6fcc4d1c298d7acf35f353"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "9f6926bd36b4366a6299e76a076b4bd8ef9e216a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/AnalyticsDashboard.tsx",
+    "fingerprint": "3b36f1dec36d43d6b14f55161c9e60206ba5e831"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "e46a63ea8fe1a6a956321f0ccfbfeba77879e78b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "b5cb1eaf98a8a10016bcb8fde91807c80a8e2531"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "42900e73d1aef59749c6a93467bbd68b54f94e3a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "68d290aebb7745928499db409ad6106c20a0a81e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8749a8c78c0bdff62dba5fc7e77e1d257aedd042"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "248d2f483ad93351a91b94e50cc7c98d31e45ba8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "32fef94827f70b5c0f07ad47e6ad6e9a05cc6e13"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "26e043db65a41ec12f2cc57fccf79e88ad55a561"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b2e58b37e8778b7d20fc4870c0c3ba5b7d93edb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "34362d27dfd175aec8ee662475bbad6dad3bd641"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "0c90f63a6835b43af28c41130cdf0ff15f2640f4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "4c12cc7c92be69fba57c305512ea3ad84a7e3f32"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "2f3e030546e729ca39d02d75ae4569872ae43bbd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleAI.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "fd63d4a4efb4943b02b295f98c8191422f435c43"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "3ff1263393cf25572aa428ce0609b49df27f0a97"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "ef36fcd3420911619f87ec43302b36f189374a1c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "db06b6506459e89e3e87c3fbb105fdb0927f02a0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "06af20545086a088f71540dd3187ccf40a752470"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "227b498968cc9191b50cc2bdfdbac8d312531c41"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "ce1e2c1ad3a17098832cb0c1e6705f00baf1739e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "12bb57d0189998efa52747f036f57d4f8ef6e632"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/BibleSearch.tsx",
+    "fingerprint": "17465439f135f42a0a07be5e11432d8a2a459af4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CampusSelect.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ChoosePathSheet.tsx",
+    "fingerprint": "ce7f727065c1392cd9674906aaeef1d08c5b7eed"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ChoosePathSheet.tsx",
+    "fingerprint": "b5f56825b60e04a5367143ace6bd28b1b79d4e91"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ChoosePathSheet.tsx",
+    "fingerprint": "865ed5c55a3ef42ef52c3e585476c50c37509f1f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ChoosePathSheet.tsx",
+    "fingerprint": "32db94dbb44d49225e742ea9ab75f5aeab998dcb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ChoosePathSheet.tsx",
+    "fingerprint": "efc1a51d6588ee6818a9bef08d5e8b873d3921a5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ChoosePathSheet.tsx",
+    "fingerprint": "69cae438b048cb214271260afcbb914f32dde07d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CloseTheDay.tsx",
+    "fingerprint": "f49a4bb9536b55a1ab33be33ba7d24a4a5b22b8a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CloseTheDay.tsx",
+    "fingerprint": "fac39ce797daf57b76f0726e1119a10924d9f2ba"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CloseTheDay.tsx",
+    "fingerprint": "8256e3af2323bbc565946d896e911697c51e05e5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ComfortSection.tsx",
+    "fingerprint": "5a7862d0b6f00875bb529f353c82b04973f17aec"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ComfortSection.tsx",
+    "fingerprint": "029e6fd7a6646370dae4fd8593fd8cfd17909b27"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ComfortSection.tsx",
+    "fingerprint": "72f839101a615bb5bcf1cff31a1428c9f4b9b6bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CongregationSheet.tsx",
+    "fingerprint": "b5f56825b60e04a5367143ace6bd28b1b79d4e91"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CongregationSheet.tsx",
+    "fingerprint": "865ed5c55a3ef42ef52c3e585476c50c37509f1f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CongregationSheet.tsx",
+    "fingerprint": "32db94dbb44d49225e742ea9ab75f5aeab998dcb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CongregationSheet.tsx",
+    "fingerprint": "69cae438b048cb214271260afcbb914f32dde07d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CongregationSheet.tsx",
+    "fingerprint": "f13110749e82851bf293e6c5eb3cb0d8306038a9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CookieConsent.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CookieConsent.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/CookieConsent.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DailyWordCard.tsx",
+    "fingerprint": "8b417f7ba00be0de7902ccb10d0e23dd74c3f734"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DailyWordCard.tsx",
+    "fingerprint": "52296c8d0f9c51b335e0c76ac41ce2abe87df88d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DailyWordCard.tsx",
+    "fingerprint": "6324b9e0cf3712088e693c37a8a4dd4f7f5c8ed5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DailyWordCard.tsx",
+    "fingerprint": "26509a095fba3d34a2519fd3308a45bbb6db2707"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DailyWordCard.tsx",
+    "fingerprint": "b0f94dfdbddc46bafc11787f9af6aa52a485c617"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DatePicker.tsx",
+    "fingerprint": "68a6d79fd092e7b9cc8b87783249b059aebb87c0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DatePicker.tsx",
+    "fingerprint": "f75df3bd0fa15f92f63832cc59f3ce580e3918a4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DatePicker.tsx",
+    "fingerprint": "f75df3bd0fa15f92f63832cc59f3ce580e3918a4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DoneCelebration.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DoneCelebration.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/DoneCelebration.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "80d8b8ce4040ff8fd0626583a0b632bf26be0d0e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "01be9c37eccd025ab6fe54069a68f8386c956757"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "85e00c7ab4b8ea8b3fd420c627abfd2556dba12e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "a63bd908eee7de28c4ba86ebf0ee43b77a081eed"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "b2118fe29713f88e0bf03eaa07db019d22520c80"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5306dfd44dc64a9841e11b2d60730043b89b49b6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5fca3e43d122cbea3edaef773194e617b9c90fe7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "716e7c7080fe7f0e226a58662f740787c940493d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "5306dfd44dc64a9841e11b2d60730043b89b49b6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "10ed4670329681574c65be111617b7b0ad25a535"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "f4287f5b356edab6a4add3f327539fedd323517a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "78ddec4e10915e39a5573bcfb2725b3fc376ade8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailGate.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "bb71dcb276d433d7b63f573787687d17a05d8dc1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "834e46f9cb10a6df3a457a73e788087177a32dba"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "fb9fa212ec68209a301f98eff317e9837267ff71"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmailNudgeCard.tsx",
+    "fingerprint": "4cf537953ae47a86ae254e30887268b594a71990"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/EmptyState.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ErrorBoundary.tsx",
+    "fingerprint": "906af83d91edfcdd39d23624d29c158da72da757"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ErrorBoundary.tsx",
+    "fingerprint": "47dad140f7891bf8e145d29328d30274abcc4af9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/FontSizeControls.tsx",
+    "fingerprint": "209bb6bda0e84638a786fd6f930c3afce7a361dc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/FontSizeControls.tsx",
+    "fingerprint": "b1d02f127c651d743b03b5907a91ca9d0807d400"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "2dcf42e12699a81bd6397dabb66d5ff625fd9de9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "c7890e9c2567708625de41e44e01b17a2b2479fb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "8aa22e69257587202c4d36a3e53a6f476a429b3c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "1a73b325f65137a85980e9a505237de999290e5b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "d7717a502ae6d6826e4d9924d9ef86a97f11ea2c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "3829422a945dc021a7e7dc6152c61aec20f3f3c9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "383dc7ea0396158b84994f28d9a51e55c4ead54b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "3b7987cd3fc77e5322ce83fa47bd880213046204"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "4de9c14df76f8bec3a11cda6391ffc1f7a697eb1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/GreekHebrewPopup.tsx",
+    "fingerprint": "24419a790612eb9f0711b44f48ebc6fe80a7a1b1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/HighlightToolbar.tsx",
+    "fingerprint": "1ca22612a185648e12f96a29b2f9224dcc9b846a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/HighlightToolbar.tsx",
+    "fingerprint": "67ea184b36b15f767bc530bf40f8a58b35ab6e5f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/HighlightToolbar.tsx",
+    "fingerprint": "b142cc7f6b8c5510f31564a697360c51be36126f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/HomeContextChips.tsx",
+    "fingerprint": "51429509ca6dcdcb3cbef96f9559e4acb0fdf920"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/HomeContextChips.tsx",
+    "fingerprint": "0f79e319cdd5c1e6ee20ea5dc637813ea65c3240"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/HomeContextChips.tsx",
+    "fingerprint": "ad91ef1627174d4c675bcc704c3baf4b9c2e0f9d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/HomeContextChips.tsx",
+    "fingerprint": "81c2437b8f4560d69ac24271d1db12f10e69f2b4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "cddb7f897a212c5e6fc0948c29cf5a2e878f707b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "c1a7da3b34a4dbd5c62ffdfa16462e484a99d5ab"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "0d4892735ac9b0da92c4b51939869723d6f5a930"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "7a9f5ceed1e7ae8511dadbdaeafbfbbddc709d01"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "028443cfdd046ad98d98fe12e653586fe261f43d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "014ee6bf64a3103edc685b76388ae3992091890d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "1314c078280c58d6fe2aacca5bacb2bfdf3ea274"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/InlineReflection.tsx",
+    "fingerprint": "855242644dcc111325822d62ecf03893accc8459"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/JourneyHandoffCard.tsx",
+    "fingerprint": "b6fb4008cfe415866d946eb106a08a0d7fed0c6f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/JourneyHandoffCard.tsx",
+    "fingerprint": "fac39ce797daf57b76f0726e1119a10924d9f2ba"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/JourneyHandoffCard.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/JourneyHandoffCard.tsx",
+    "fingerprint": "8256e3af2323bbc565946d896e911697c51e05e5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/JourneyHandoffCard.tsx",
+    "fingerprint": "f9e14d3e08e2d8d24da94205a3f5db65bc31cacd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/LanguageSwitch.tsx",
+    "fingerprint": "67df69692bce86e593c02c519315a52dba7078aa"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/LanguageSwitch.tsx",
+    "fingerprint": "3e56dacdcc0e2a7702153d7b692d30eb2d16ba9f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ListenButton.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/MarkdownText.tsx",
+    "fingerprint": "733f94994b54e658f1946378bc0ba0a16213498b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "c7ebd4f0a98e998c5abd41a50ab73607d7a2fc86"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "60161aa96974041d9cd5733971ddce9876a61bd6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "0dec24f973b4ce2914c091d4fdd8933a97e4df95"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "5159f8cade68af9b404901889776d22faf4abb89"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "8256e3af2323bbc565946d896e911697c51e05e5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "f013e25acfd55ef0ba80b8216aaae8d9a0271ff9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "517b66d1aef4e0a9e9a2697d89c6a5874ba47149"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "0312464e9fc7152c49b9a4949a05fe3e8a97a500"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "eecbff194bf2e4cb3ebd00ef97297059b30e7886"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "c5e586610b08f01f7943f3aca5dff5b190361c14"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "80c31525cec8d2d73b1a2cf4728cb52a351a6913"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/NewBelieverLessonCard.tsx",
+    "fingerprint": "a84fb5eea745646cf22c821129b9433f03d9ef89"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PWAInstall.tsx",
+    "fingerprint": "9afbc814b7eef8ae12f3f5a2051d0fa41284f57f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PWAInstall.tsx",
+    "fingerprint": "d0cb683a2a424fb5f4c59ed16d5143123daac097"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PWAInstall.tsx",
+    "fingerprint": "c1f16392e74fcd5ef6d9d0fb9856bacc7c19587b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PWAInstall.tsx",
+    "fingerprint": "4b3db355fd2992452b047fb340c262dd6e0770d3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PWAInstall.tsx",
+    "fingerprint": "c1f16392e74fcd5ef6d9d0fb9856bacc7c19587b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PWAInstall.tsx",
+    "fingerprint": "d0cb683a2a424fb5f4c59ed16d5143123daac097"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "332d8dee560cd78ded9ee64e07ce34864463a88a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "aa35104add9e254e53c64d07df3533d8b5e2cf80"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "dabae94a36fa81b43293474a1d974c28aa244ba8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "ba4aecd48b4c617b06fe9d15a155d4f928f8494d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "9b096ea67aac5640ff08331032b9656fb86c2e3a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "859139021a2e22a3a49b8fcb485b9e114ea6ee0f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "77407410490100692d24edbad2f6cc0dda597b21"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "c6a2a57b5d3b1742de369f8c57ba7ee5d2f0097b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "d48f978a2ef0904fc43a24f413e8e5c400e41902"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "e5df14e72a4d8a5a6c46b6aee82ab42277e09e9b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "4a801ff7f689137a03a10a82f264e6e08c555d27"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorSignIn.tsx",
+    "fingerprint": "c52ce67b8da7dc53385757d3c1f43a0116f530ed"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "1f653d1e871d905d68be3a76d5a7bcc02af80fcd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "6f33223c0c2562ad4e4b4ae1356905da81bca4d0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "4f093bb2b0043834cf4d043f343e856c9e251fc3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "4951d9da71a99ed1be1c2a035f0a897642c6967a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "4eb16476ae2932e43264f078606bdbb193b33d52"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "07448800ecb42282f44a1644dcf2e7634467a50b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "a1ed843f3383c16adac1b9a22bf32be7fd4b4b03"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d3694be716d9567863e395c9f2e355934ce7b49f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "44837188ae5bbdb5e74d51d3e029dac5327cd572"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "5ad91f21b719e63ade23fe6a08048da6a3c8eb7f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "b3f427d6ae578253763e7c6b95c1c3f3667b39d5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d51da5fa522d19a79e8a03b52f1b369b263c8218"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "a8c4607f7bcc33a139ab87c2f6c6fbddc2a09f72"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d075f4449d4b995971ea779d45dcf9f0ded2dafe"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "b3f427d6ae578253763e7c6b95c1c3f3667b39d5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d51da5fa522d19a79e8a03b52f1b369b263c8218"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "a8c4607f7bcc33a139ab87c2f6c6fbddc2a09f72"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "ef7e43ec88038033ef9dca645bb4e6b89878d314"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "b3f427d6ae578253763e7c6b95c1c3f3667b39d5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d51da5fa522d19a79e8a03b52f1b369b263c8218"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "a8c4607f7bcc33a139ab87c2f6c6fbddc2a09f72"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "bd267108185a18d621b79efc9d8da67a118be881"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "b3f427d6ae578253763e7c6b95c1c3f3667b39d5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d51da5fa522d19a79e8a03b52f1b369b263c8218"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "a8c4607f7bcc33a139ab87c2f6c6fbddc2a09f72"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "c339ca4f132d876b9e1b11e280bc6623bf4d4570"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "57bc2939606b80f517c60d3420ae71d5aeee5941"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "b3f427d6ae578253763e7c6b95c1c3f3667b39d5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d51da5fa522d19a79e8a03b52f1b369b263c8218"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d523d584f09074a79cce42787b91b33aa8798bb0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "4f093bb2b0043834cf4d043f343e856c9e251fc3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "0be7f8923f41316b01aa4e510d984ac9c96d02eb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "0cf8381a3482f2ce99db62db92a6d3e3b60451ac"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "7f5d4277fc4dc6774a3d7a01a767c5b09c17c826"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "22ca4dce05822a6ce6eacf5a585450c72a95d92f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "d3694be716d9567863e395c9f2e355934ce7b49f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "44837188ae5bbdb5e74d51d3e029dac5327cd572"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "5692131ac6e7e8700f570d362b972457d19112ef"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "ea1f56798bd04bd591ff9b26b06abcd3dbfadd07"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "658791e43d185b847152678418505a869164e927"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastorStudyOnboarding.tsx",
+    "fingerprint": "21cff2b7c2a97cb58a3a43928ae7b59fa4493fa0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastoralReflectionSection.tsx",
+    "fingerprint": "8a0fb41d0e55ea78db3a7763a325f6da3311f1ff"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastoralReflectionSection.tsx",
+    "fingerprint": "a84fb5eea745646cf22c821129b9433f03d9ef89"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PastoralReflectionSection.tsx",
+    "fingerprint": "a84fb5eea745646cf22c821129b9433f03d9ef89"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PathArrivalStrip.tsx",
+    "fingerprint": "14d545aab0fa617b2a1180b947a06d1bba2a8669"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PathArrivalStrip.tsx",
+    "fingerprint": "ba05bc27a0cdcaa70da1d91018db38e43035ec71"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PathArrivalStrip.tsx",
+    "fingerprint": "79edbf71bcdcd23956f6fd1490c28eba30e6da8c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PathArrivalStrip.tsx",
+    "fingerprint": "50eff786f7bcc0d6826837679ba390ce5618ebaf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "6428cf19e19e269d37bce5b374b088d93bbc7434"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "d161be31b896ded71650f527ce370e5443aa509d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "375a5aad8bb90cb092b93407e297c9765bdfdac1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "19d5bc1847d4ac5ef4d6ae70b4d5aaf4c2835778"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "011f5cb381949bd8e7097e200641b328383a43f5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "cc007b542cd3730dfb1477fa8338fd08d6e5d0c0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "19d5bc1847d4ac5ef4d6ae70b4d5aaf4c2835778"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "011f5cb381949bd8e7097e200641b328383a43f5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "0f48dfc557c7bfbb978b9f32dc96f2c4f5ad3c78"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "19d5bc1847d4ac5ef4d6ae70b4d5aaf4c2835778"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "9b372fb64e36d1ea470a8c8118e04addff526e5b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "96f4a3f59d4c791e7f3c30257f81462e5f7b189b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "7da46528284f0edcf13e1991a5288540ae6114fe"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PollDashboard.tsx",
+    "fingerprint": "58ec24b4fd4d99a49a505106e175966219769dfe"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PrayerGlobe.tsx",
+    "fingerprint": "e91e7a249cbfd8b7a3500d1a56b597175c092e4b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PrayerGlobe.tsx",
+    "fingerprint": "e91e7a249cbfd8b7a3500d1a56b597175c092e4b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PushOptIn.tsx",
+    "fingerprint": "7fc0f21fcc0d825f8b0f48002ba04effc0f584e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PushOptIn.tsx",
+    "fingerprint": "78846305456f3ca28d4987e678d43b4f820d9fcb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PushOptIn.tsx",
+    "fingerprint": "4220348933dd31d30fa6d6985d266c8ae946b7b7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PushOptIn.tsx",
+    "fingerprint": "424a2594e5c299bdf2b39bea264f0f0ccaeb563b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/PushOptIn.tsx",
+    "fingerprint": "a97259c80e7df1f051c32b0c4d2ed2e36cf83df0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ReadingActionBar.tsx",
+    "fingerprint": "0ec0e70341f406ba8903acc1e479d4e5a4ec1819"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ScreenHeader.tsx",
+    "fingerprint": "dc412160e2b5026da84675dbccb400f362621bd2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ScreenHeader.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ScriptureBlock.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ScriptureBlock.tsx",
+    "fingerprint": "5d9a2dec4567a7877cf9e9ac698e23e500150e0f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ScriptureBlock.tsx",
+    "fingerprint": "96f8219c0ffb8ddc6d0a62332265b5f7e854226e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ScripturePassage.tsx",
+    "fingerprint": "b263ddb1e3048a632aea8fb10ec4e1c0409e0469"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/ScripturePassage.tsx",
+    "fingerprint": "c33058da496d8daca5b50503f16ce538ffd2e320"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "6428cf19e19e269d37bce5b374b088d93bbc7434"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "3ab77f3df9e81154482792276326336048d73dfc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "5a25585d432688b05018db63853e8af4f3cae82f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "501fd8c9cead343c9c732428a03a06dd323b7b50"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "d502e2fd90e7f0f81c134b4422e823f887c11173"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "5b88e807a2e01b049cc28990be7045e2d8304a6c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "7e606de39c694aa4971e9db6560aa96bb05e0941"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "65540a321f83546fe4481d1119c79c4eae80b205"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "4c95397a39aa26592b2abd3687c5e57dcd991982"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "abf79a33e7d6bd898fe7dbf63c7ffbf7b9d8c84f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "2e6907faf48f2aa8345196dc819a8db1ae4dd84e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "52b55568eee6bc554d93aa15ffd5bfb9298e75c5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "3d94eb6e93d7cdd4910c75bcf7f141829065c868"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "c34cd887dd827a3b4c61f91426d151179278f46b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "7938e35a7877e91bbaca5bafc7e89a12e066077a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "5108418915b806bbef55b1cd0ef8aa9d73ae99bb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "afc0ae609db9ef8bb807be45cb6a7cda52a3fe1c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SermonWorkspace.tsx",
+    "fingerprint": "1b31ea66f6a2d9ea492860c2ee12a658c67110f5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "ce128e0905ab2a70eccec29b23b4fd92dd560a2d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "277a7d61e51236d7a11286312596c61e7c689d2d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "ec432a1a4bb146cd47a2f15aaace7a0dd2ccfb7c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "a869deee997867c74a3966434ecb60cedd1504fc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "56d4e04b01e5f241ce0c8271c480861db187a165"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "ec432a1a4bb146cd47a2f15aaace7a0dd2ccfb7c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "a869deee997867c74a3966434ecb60cedd1504fc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "56d4e04b01e5f241ce0c8271c480861db187a165"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "d6a0ed9c8d04d9684459fc3f6a4783c80e5c5b6d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/SetupPromptModal.tsx",
+    "fingerprint": "e41fdc86d70c6627039c95bdd38a890b7f914c73"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/StopAllAudio.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/StudySourcesCard.tsx",
+    "fingerprint": "0931d9162ccce7c446642be6a3a8a33204cec586"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/UpgradePromptCard.tsx",
+    "fingerprint": "229397b754133010aee4c88514a296bb3d1c7592"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/UpgradePromptCard.tsx",
+    "fingerprint": "50bdc4c2652cc0ab76e39bf76fd549183ab460b8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/UpgradePromptCard.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/UpgradePromptCard.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "2b38cc3b97c230f16dc2a486f50311dead7b1c7c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "7e73540bac85116ed3ae0e1a432bd0852090f2a2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "cce552c91720352816fd1f99454b8894b25a66ee"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "cce552c91720352816fd1f99454b8894b25a66ee"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "07e74569ac695ffa2a5583f663d17a1a4744f3d7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "611652501b106cd539362a8c68fcbe821174f4dd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "0471f3ddecc81e03d8c5c202cde0eeb5e80f6145"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "8449a8ef620fe9e233c8b3f9893c7c33b65e2763"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "0154c940fa8bd563c4a71dd2da244ae37a2eac5d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "78ddec4e10915e39a5573bcfb2725b3fc376ade8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "e10d75893102af69d365eaf70ded68fa8abeb2d7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "a1af3b8830523d3ffc6c28df5418b7d39cea11a0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "9cba0220f6582631f0c711ddefac68ba067e1901"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "78ddec4e10915e39a5573bcfb2725b3fc376ade8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "8863ed0e4a02dd4713925234e7c29d27ddb3cb3a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "4fccc960c721a8aa3f106d939dff8ffc4613c082"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "cc26b29019421524ecae9b2c4232205f80afc2cb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "a1af3b8830523d3ffc6c28df5418b7d39cea11a0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/VerseNoteDrawer.tsx",
+    "fingerprint": "9cba0220f6582631f0c711ddefac68ba067e1901"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/WeeklyReviewCard.tsx",
+    "fingerprint": "d8c5368456cd097e2991fb114d147b3fece78871"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/WeeklyReviewCard.tsx",
+    "fingerprint": "3be52abb679b15f1871f1b8eca7d742e8068b31b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/WeeklyReviewCard.tsx",
+    "fingerprint": "7c5c8b225746c77b2cd7bebfa4ab78e567223efe"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "34362d27dfd175aec8ee662475bbad6dad3bd641"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "abf79a33e7d6bd898fe7dbf63c7ffbf7b9d8c84f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "919a2c26ca65fdf9f2dd63f0a3546bfaeddf1d2e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "2f6f611cb25dc1558b8200d61f72c7ffee4a9e98"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "27cc8a9c09f18a806df5df7a2536c50f3dead8e2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "6428cf19e19e269d37bce5b374b088d93bbc7434"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "fa9052b4a3a1d4c9a79af25feb24b05940b874e2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "460a2d5f64c779867464d03e39dc30a9ce9d460f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "16b009ea5f3ec65245fe93d9d6c57843eb266301"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "fe0e5431092d62aee8bd8c92919ff4f74b6bc3ed"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/OutlineBuilder.tsx",
+    "fingerprint": "1b31ea66f6a2d9ea492860c2ee12a658c67110f5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "afc0ae609db9ef8bb807be45cb6a7cda52a3fe1c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "3656c3a433688c339e5639be379569fbde7152d9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "f2bdf7a0b15dbe80f590016ad708858b39e4cdf9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "6428cf19e19e269d37bce5b374b088d93bbc7434"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "71cc510d09c17eb7fd571d9996cdf58bb2f6e8eb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "ee8b96304ff6d3651b1a8b286e7e388bb47b4574"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "667c56797f9258eb0e5c49e919c1cb4ea33f5d9a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "467b19012c55109ebb052bf96e887fcf1b558a4e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "81d8d4892ab8cfcec9a847d3b2bdcbbd2cd4e9c3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "ac524b5bade22847c26c6ebbf8f638e64e7bcdb1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "0042f9907b6eb6a17a6086caef1f69c2461a4f45"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "7d5b0f6a4b280253ce72bb4613e364a6edeac98c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PrepSheet.tsx",
+    "fingerprint": "94f100cba2c9a1572ef1d0ba8eab629327c1debc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "3656c3a433688c339e5639be379569fbde7152d9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "efa911dc650e82beb481d037f36aa3f0ceb02490"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "311207932aed11faf20531376c53e13733e9d956"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "b8b282aed564179e1fad070a070a23dd6e3f3bb7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "1617163e8e5b1a4ed6e176ffe4e2591978c5bdd1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "313d8db1171eed8365b1b7fb4662ffab1a4334ea"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "6d477bb4c9f07ce7094eab9b29179a444c96b458"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "5c21d072088f167cc156ca629efd161c0eb0cbdd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/PublishSermon.tsx",
+    "fingerprint": "f3577324935e721670ede96d017924220e9fe9fd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/SermonArchive.tsx",
+    "fingerprint": "829987c6521eb1594fbb0d972446f4c5f710937f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/SermonArchive.tsx",
+    "fingerprint": "1211e586e07764f8d4a4dd3d0a48b8a472f6a31e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/SermonArchive.tsx",
+    "fingerprint": "7aa2b00264785f3d36a0e3306b9365f8a75d31ba"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/SermonArchive.tsx",
+    "fingerprint": "eeb19e3d12934effeb8e8fdcdd807b18f459c8a2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/SermonArchive.tsx",
+    "fingerprint": "4c95397a39aa26592b2abd3687c5e57dcd991982"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/preach/SermonArchive.tsx",
+    "fingerprint": "4c95397a39aa26592b2abd3687c5e57dcd991982"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "b263ddb1e3048a632aea8fb10ec4e1c0409e0469"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "96b28c7e0410186092bfb356018ba09a0872a948"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "928ff3661571da8371964691205096755ec628fa"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "161bb64dbce49d4b554c3177c77365a4a2fb68fc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "3fb83907c73c475b98a533195f159f661c153a21"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "3d74b4f370b5971b44b5e614471297e41e06ac79"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "161bb64dbce49d4b554c3177c77365a4a2fb68fc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "3fb83907c73c475b98a533195f159f661c153a21"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "e32fdd4275dd276fac7f36b374bc816075a7150e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "a53e76cd64d7fa373278e6951f3a294bf9fa8219"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "1740cf0311901f915b1834715994491e0cab3689"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "d701ba948928067a685cdf5834448cc6840a65e8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "966e56ad4919f210891337463fe45873215d3f29"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "d69fa69fe8f39ce999d48cde312b485cf8c8100a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CommentaryCard.tsx",
+    "fingerprint": "1fe37f41c91381a6d6232e01972ae6fba24fe737"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "9a9091f1ca316c1e53642f904cde5668a287bcf3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "1fe37f41c91381a6d6232e01972ae6fba24fe737"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "4c95397a39aa26592b2abd3687c5e57dcd991982"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "32495c4072fa686b21267d17b59c2dd052bdb532"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "32495c4072fa686b21267d17b59c2dd052bdb532"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "0042f9907b6eb6a17a6086caef1f69c2461a4f45"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "9d360546478111f75da46ad6371b78d3630a0d3c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "9d360546478111f75da46ad6371b78d3630a0d3c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/CrossRefsCard.tsx",
+    "fingerprint": "36054695c956d4a541d359d04408690f6527249e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/StudySourcesSheet.tsx",
+    "fingerprint": "67ec234e2f45291c53daa1c5b1c0103f95ce8891"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/components/study/StudySourcesSheet.tsx",
+    "fingerprint": "dda5c9e45cde10ed401b8bc663096c6458172dde"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "cdc34a99cec12dffbf8af90c933df540cd27389d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "abcff9f6fcae62756838f2075598fbe52bc9a190"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "d38c223d72d456e25199689bd50171fb11bd9c90"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "da9e2f5836ac8dec860e3856f9cd1c6cc9d86b2c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "b1c08f1f51f94f9069f161638adb2868e7d458f0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "eefff2f8dd9128926d5f2b48341b1ec266c93588"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e059bc33623577a3206ed226a40c50683aeea65b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "eefff2f8dd9128926d5f2b48341b1ec266c93588"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7a459431c4a74c345782047d159305b5cd9531bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f112760ebc3452ea7d26d4d5bf16b62a77168201"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "900fb81a6d1889eef83bdc305ae937085ba27330"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "eefff2f8dd9128926d5f2b48341b1ec266c93588"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "eefff2f8dd9128926d5f2b48341b1ec266c93588"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "e9e0e4af65ea33106f975863fbbcd4ebe54f5283"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "eefff2f8dd9128926d5f2b48341b1ec266c93588"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "f7ab5cba635b08b8528fd4f92b3fe3c1ac48ba19"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "df67104f3b601ba328b3f449ed450d83fa0d8a53"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "7b5c85a668f8b87c49e57d7ba2c92dc1bd14110f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/index.css",
+    "fingerprint": "1a5255e36ffdf4c732881c831422f11cd237a263"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "112d2098186d21e83606740023debd90db191e3d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "2affa0b535b64566ff574e2066ce476fa7abbebf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "df4d56001a4fa400137f34923dce23148b200df7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "844071219069359e43b45bfdb9f2449c7b1ac9c6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "781fd181e21402b2ba14fad7b19583e2799994d1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "08400d2bc50175e09e22ed4009c71ee406a5f553"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "9276a36a04dfc15a6774ddd065d6a69ffd592261"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "d1cf90ac25f1662fa72c1878376e3b2303090f35"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "5945c7f02b5f35306134518cb8afe205740cd1d4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "7d2df3db1de5060d1c8f9dafff384540786000c9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "f178ed84c7293d1287a2fa302abe0346fd135bb1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "90c1839a2744d8dca1a87ef82ec6c5af0ee93f9c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "ea3ffe49d07d64894457ebce8f19c2b2910b258a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "7fed7d95bae05f2bab5ce15bbf37bd7f9b196880"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b7476008d2331939b9f1cfdff9497258e8c0d5a5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "be77caea1743dd1797fba5c6b424827f04896d11"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "ca3970db269e29663eee5151d8d2fab1d90befb1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b142cc7f6b8c5510f31564a697360c51be36126f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "94f491e3e07abdbc8c5a92aa9f01c6f0d15ee7c5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "50eff786f7bcc0d6826837679ba390ce5618ebaf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "50eff786f7bcc0d6826837679ba390ce5618ebaf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "919b97ddd35374362ba139162803238216c0719a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "781fd181e21402b2ba14fad7b19583e2799994d1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "781fd181e21402b2ba14fad7b19583e2799994d1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "781fd181e21402b2ba14fad7b19583e2799994d1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "5159f8cade68af9b404901889776d22faf4abb89"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "97bbc6f3df991c431f633043c1f8f2d838aa6f28"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "5159f8cade68af9b404901889776d22faf4abb89"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "0a3263b116c1eec45f561f9f4eeab7448a92b0ed"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "025594fc678aac7c678108337b06bfb7cdeddc5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "1a186fec17e0602ea077f384bf028c2f36254f17"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "6b7f460ca75dfec9104d1cfdcc1cf03f77c6bfb8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "c5c56d0094615d663d32c6a8e0255466aa589e1e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "781fd181e21402b2ba14fad7b19583e2799994d1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b400e049374782f87dbdc0ca83547d4864dd3a4b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "9a2e7760f58177993e4d96f6f4c8e26571ad562c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "bb057f257fa285a4af8b025e0e3638cd974f9af5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "d869863ff2f24b70c598783ce2f70016f0cb80ff"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "f325751f3792c42dd116746c05c837af2f910776"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b129c002f4431a0e0d14d792a1ebb4671fc79317"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "0b3ebe1ceda4002f015cca8bf17c0903b54cd508"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "365c180cf725b897c3f66fd62f854d460d3c3651"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "d58f23c5d4bb15534d5b9b42f1a75fe05ffb963a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "a8a745166830149c6589e5e9e3a060f535d111a0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "28f0f2a65a96a38d94446a8184f883fcdac47a61"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "823e1b997bba7f03337e5c62f3297aaad1587db2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "e216777d7ff4fa7c12de5466316ecd0950105e7a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "a84fb5eea745646cf22c821129b9433f03d9ef89"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "897286e185a67afbc36973731e653925675b2dc4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "e684f921f8152c9d9686851df4abb73405b7c226"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "586a41261183061529e4cead09f51c89453a49d7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "57f856acd3bf146f35774b22ce60b7f8b94406cc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "6b2adbc859a39475a9615671ca33f622e560d4fd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "f68ae280a0aed0a77ff0cb93a14c47b408665015"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "c96d1bb75053e4aaa98e805062301ca5db3bb319"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "36594a52eab4dc0efca62809031b4cb2bcc709ba"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "741cf139b2077648b1f4f6dfdc3c5f4cbea866bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "c1ecaad0e5b5f02c1730691f9bbae8f553086e12"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "f36f35d192831e0e6c98a99585ea366037d135eb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "57f856acd3bf146f35774b22ce60b7f8b94406cc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "69ed6791a342c0440cc3c741c64a99e7481eac0c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "a78856a2cad8411a4c6436c8e542d5210f95b18b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "897286e185a67afbc36973731e653925675b2dc4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "3f9ad3d749869a1bb1fd2e1cbcad2a3a442b11fc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "82846b413f54c420d5e2f551f28be7ddc1b1033d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "f1c68f84ba2f027d0eb10391db23509e64395e2f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b8f23812923ce2636bd6e5c42eaf46511b32d81f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "c6e4906b1b308bf8b8dd2fd4a023fce3116c81bd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "106dba8efe22cb04654aede15cb89847a40bd5bd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "7f75153ac1bba1a5d53e0a25719d4962ad81e491"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "92acb183c4cf8d7fbc6da25d42f5db1a93d184bf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "9c688db7ced49963c16e5f73788b45ecdb0328d8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "3654b3aaad3862e398193ce0c8c2440ed2003242"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "8d54986b970891bfcb8d061668e064501af6cdcb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "cff1e507047deff63e2ac8f5acb4a641eef3b137"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "83316f9dec12e83fe71f7ad212e1b10c2e7defc7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "da0a05dd91fd279183fee24f1f8e333d2f518474"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "55e35f1432cc2cc0f37a4a725f211f06ce2e407f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "1422b93d7f3412107dd27ff65f68ec1109562623"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "d75c760201d1a40d04c4bca68706ad74a5bf64d9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "1f53721162bdd7cb9be4492a7fecf2eac353e10f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "58ec24b4fd4d99a49a505106e175966219769dfe"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "03c3beeb0703362bbb84c898f5060fa39d674cf5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "37f08387525c3808fdd24b4e359c5e95f4f4197d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "2224503359255f96dbdeba8af28d0bdec0a8e6f6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "318a8d3a08fbeada425d2c7e732f9e7f5a8bb706"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "47e1a5c295bb509932a512af01594a7ae6c3244d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "6c631688fecb82540bdf297ec85fe0b9ce4ec0df"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "c79320723e5f3af06018048d68f1a2ed5281abd7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "fb9fa212ec68209a301f98eff317e9837267ff71"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "8023818aa6d7f93d26b5d2430ff9c859f6f03f41"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "005879a9aed767c17aeeb93006329ba94b998172"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/HomeScreen.tsx",
+    "fingerprint": "77a70bac1903013037c258e945fad05d77cce879"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "490ac3d76cf809c5b2186d9a7cbdfc2f0dc53bdf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "a84dcd4c26b9576633c551e3d4255fd65ab26a48"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "02a6691243bc4e8b783407fe73d7f98b404f282a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "fd8e6287c0e8e113a00225f181f3493dfb0ec118"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "1ca22612a185648e12f96a29b2f9224dcc9b846a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "aa4cd34c4bf65c6e7ddf3428676dcfcd7a488bf5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "460a0acf447b1468ac360bd1e193d04dc13c25c6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "460a0acf447b1468ac360bd1e193d04dc13c25c6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "821e83874b20996c8cd8b388d5a2721578ccf705"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "e1e5381f1088743b8aa0a640093ca49a81c73aa6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "281fce21ddd83b5b31409e55e0369974412e9ab9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "b7125147b267451966b2b4eaba6661a0c57ef672"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "b9b6d6ffab4722895224af0f68879fa14a1576ab"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "4a2bec7c761a5e9913ab7596614fef1ff2d22787"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "61544b8788db03c6166404961e0fa0ae97b30d3f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "90dd2cf15c1208c2dcb77bf9600c2b131f7a5e50"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "fde09f42e989ae5d567253f9e250a4c5b3260321"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "1d99af9502acabc7b22a9cbc6527758b750a75d0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "5bb0c510dbdf5e9db68e4ecd8305c3d2dcfc7afb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "1a186fec17e0602ea077f384bf028c2f36254f17"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "afc0ae609db9ef8bb807be45cb6a7cda52a3fe1c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "8e9592453b03b8081bb8e8b9ca7e191cb94c547c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "afc0ae609db9ef8bb807be45cb6a7cda52a3fe1c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "3b812cb34458de69e55124617435a8168a02d962"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "4a93cb9c8d9a2de3a64f78518bd8f9f66b7c301a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "32d43512a23539eff6f61120549610ff6e47a7b6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "58377933f2be940781c8b49111b0fdc13726deab"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "66f686671a0d991b7d4f9f69f265a113b59e51e7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "1bc9017d67f7b7fd2740ddba848ecd0352f1da84"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "f9d18da8939401948feecd6162e3789b38a5dc8d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "c08c339d92f133f90f9e86dbde9d69ac780e0a8d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "7d3d6a6cb3f0a28178445a442a672dabc41cba25"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "9aa5aba01a858cef723ea0e11d51bf5893f36daf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "bdf2e14d016026f1a19123ce8531ca99144311a0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "f32596f47f3afd539a871f0bb2ab06e329d01b95"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "f32596f47f3afd539a871f0bb2ab06e329d01b95"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "755ffeb41328c84fff33bd6e7440875fecfffa38"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "a81182b90ed8528aa2ef9af9ca8d56a98effa41d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "8b2e58b37e8778b7d20fc4870c0c3ba5b7d93edb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "a1e76535040dcc41b2cc94ab2600e467ab2ab743"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "dfd6dec219567ff2bc1babd2827d93697ea8154d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "1cea093836954c519c8a003c947abaac602be38f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "80ed52fa7ad9cf9fc458975fdc0018ca9e7d006b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "611652501b106cd539362a8c68fcbe821174f4dd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "d769babad0633ea2d0b79a33de35d135fb924374"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "e2a402708941e9e2fac11b177faa2ada335247fa"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "0bc680151bdff8481229ad9870e5ee011783d02c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "8061e4a3978ffcbed6b0924316fd2aff356d8a40"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "a9ff60bbb7f657b26ebf9bbd0d6578e570436e5b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "80ed52fa7ad9cf9fc458975fdc0018ca9e7d006b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "f9d18da8939401948feecd6162e3789b38a5dc8d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "6e3be676540ae2ab2e6af3de70a8d79ea9e6806a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "d190a1545e9b75b39ab5ab4499a5a3b78a0cd551"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "8845356ebbe63b8cd4072fc98085dc3f0b0b5ee6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "94822fe0007f55de5acc5c5ea928fade49710f27"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "de40fd467a8fe8c8d689ee2b8527a9f7f667d0c0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "adf67355e829ceb24edbae044313d62935b556df"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "9aa5aba01a858cef723ea0e11d51bf5893f36daf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "700d3021a79bd4f4a295780bc95aebd0f82fffea"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "8e53247c67ef45988f236182a7a487e5c5e41b17"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "f62aa5028d3ef8548ee7d3d7d75f5fef5ac211e8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "4d515ab30c377e790d98ec3075f50bd877e3ffc1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "e6b37927353ce9125abc4644f75ac0d4911e5bc0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "20762ff6621395638ff5f8de6b9cba14474b2cbf"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "756137a0cd1a0e263ad715f7b8f24d9e88782488"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "afc0ae609db9ef8bb807be45cb6a7cda52a3fe1c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/JournalScreen.tsx",
+    "fingerprint": "8e9592453b03b8081bb8e8b9ca7e191cb94c547c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "f36bc3a43e3a9ebdb2a550ac29859d93582611fd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "5306dfd44dc64a9841e11b2d60730043b89b49b6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "56703f99b88728cc1b653712c9cd57c69338182d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "716e7c7080fe7f0e226a58662f740787c940493d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "5306dfd44dc64a9841e11b2d60730043b89b49b6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "a9e8f1b1903547feedbae11552dbf4879dde7f79"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "9a2e7760f58177993e4d96f6f4c8e26571ad562c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "11f945742af4b1ddbb6a27eadf138eece580232c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "5078b47121df2ed1aa1b8098a10342581688c093"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "11f945742af4b1ddbb6a27eadf138eece580232c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "cfc22e8425f837cb10221fae38b016b584c0ec18"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "e9df2c8d5e97f1a790e82df5e64b77263c30d8f9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "0409206bcc5d716c471433440bb6f796fdcae829"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/LibraryScreen.tsx",
+    "fingerprint": "83853c41d50d6996b75391593478db7e94cc78ee"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "fa1b59fd55370411c49519824c0e88c2e6081c73"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "0da679efb27df1922685fdc5285dc54c8cab0e5c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "efdc5f5bc2c16bf7ebf4c0c12e73c1132f4515c0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "c25c83de0e365047464c8acb2e609ef8e88b45b5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "de89cd2e46233770f3edeb59d644e86e3e165722"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "06d1f8b021a0e8bca9265400993759d4d82436b1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "fb4ed13bf6e7a10b80031546752b061f8079bd2c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "029e6fd7a6646370dae4fd8593fd8cfd17909b27"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "aef8e497988fd38305c5f67c1cf3d3cc859cf1c7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "4cf537953ae47a86ae254e30887268b594a71990"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "ba429aea44f726c40aec0c922813df597ea3093a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "de40fd467a8fe8c8d689ee2b8527a9f7f667d0c0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "5f932c7e55d46f1540e90c4da1d1ce9329181c4d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "fa4a24f35297dd9523dab755fb267493e6d82bf2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "e958780f37dbdf5af330ddb7ea51f794f99b3ae5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "c22a88defffe6808f5fc709f8da8eed7dc107543"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "33f7ed9c907320a8eac09cfda70f351f9c6a808f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "d9356c311912e3dcc51cd7cf64931534643318bc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "760952e8f1f5d9b52c81415c19666e8ed71d303b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "e4b04b2809ac4ebe482d8a0a35a35b7ad20703f9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "78ddec4e10915e39a5573bcfb2725b3fc376ade8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "ccdb164f519e8ee0b8c8c3fbbe49f47c0e13ceea"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "78ddec4e10915e39a5573bcfb2725b3fc376ade8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "dbde2b654b005e80264b16c8e2fbb2057d3e11de"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "22f67a06bb483418604049bab4fdb2e0eb631f58"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "6f4814395464b0e13a63da5778a15d35ae1f8f45"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "9a053e14d3f86fbc7de7234d883108486b4601b4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "54d86c4d6fda921b984263aaf0b4e069652b4100"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "05bc7b64d491cadd948ee4a4e3624bccfb7b6428"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "fb73768e7822ae9942a8e2aaa5f8fb4af0aff6e2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "5777e7f4bfd0739706376a0c1dbf4b507d858778"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "fb2d317c32f06450de5b9bcab49211ffaf1b4c4a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "fe58535587ddb61be5fb8505fa19bda016f8f152"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "34362d27dfd175aec8ee662475bbad6dad3bd641"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "34562a8197f2f489f0a272ff99d50a844b906311"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "5cab30323d5401e1b40549c6ba1d44cffef217e3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "a81182b90ed8528aa2ef9af9ca8d56a98effa41d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "3417ea5c699ba20bd0e6cc0d7b062e2cd2589ca0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "027fa564dd4431326ebf715736fc9401d8f97b42"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "027fa564dd4431326ebf715736fc9401d8f97b42"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "eb3fc011237107f08bc6a93f6300e2d67e99df2c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "2d2f36908d01b3985e51a2879c76b5ca012370c7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "ae78a3c580ada50cceed9462fadce1f6d7f34f16"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "e0ae41f698be2053dd7a5e4e229bb76866516871"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "9306466cf9b9b9489a93b9d90cad2469071b0f74"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "4220348933dd31d30fa6d6985d266c8ae946b7b7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "3582ed99a94c21a1650706fde4242a9aa4efa168"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "4220348933dd31d30fa6d6985d266c8ae946b7b7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "cf5c20d61f162f4dfc443c89ea8a3c09f0611dde"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "9306466cf9b9b9489a93b9d90cad2469071b0f74"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "ba4f40867bd739ba1ef7fe45cd3a9e00adb51e2f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "f773ccd626a1440fc0f7f4d207f2108dfe66a35d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "53ebcc1a92424333c954c151891dc0ad7ebdb8f9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "ea178b5c169030180199cdaaca6380ddb6a8fb5d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "011d106a9b31cc02dfdd5fe95a122fbb009d2bbc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "a128898166bf1c658e22ec87a374c9fcc1733bce"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "4cf537953ae47a86ae254e30887268b594a71990"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "b9b6d6ffab4722895224af0f68879fa14a1576ab"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "5cab30323d5401e1b40549c6ba1d44cffef217e3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "756137a0cd1a0e263ad715f7b8f24d9e88782488"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "58ec24b4fd4d99a49a505106e175966219769dfe"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "be15428f3d402e7b39acc61bad81b776ae9271c4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "c4bbdc70a15a1d3a4c9661d2406381dba97de4bc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "71a083e65535f81fcc1f1711791ab37eaceab147"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "b263ddb1e3048a632aea8fb10ec4e1c0409e0469"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/MoreScreen.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "b95c337890333377adc193127288a2448f9429db"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "ca9b534772f372e7ffb320d2d9c7ecadae95242f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "1a9b7120a26ab0dc20a5bc4237a1642855c6aa29"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "5bfed790317036f3137fefd878528a9d586f091c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "eb5b47f2b395a971aea4cd6faf7ffc3f58026298"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "4c6668ae6ad173f0d9da84f7b1d22591a9b0953a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "0336c6bc33ff0ad750590da7ecc2100979b00744"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "10d347197bd53c49fe8a2fde4ce6ef488fab22ce"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "716e7c7080fe7f0e226a58662f740787c940493d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "0ac156d191567f3ef06670b3f5b8cee49b8cfcf7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "8c88a36749f85b8cb8099a525b98249bd65c996a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "f4e3f302837a5b62c9898be2eae4d398df51ef52"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "2e9238b27096cc290aecf0d0faa4910a6b12117c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "938d7c873d7fd4441d9dcb6aba2946a2a7ceec00"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "919a2c26ca65fdf9f2dd63f0a3546bfaeddf1d2e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "c4bbdc70a15a1d3a4c9661d2406381dba97de4bc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "c4bbdc70a15a1d3a4c9661d2406381dba97de4bc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "22c81702614b4802d4bcf57e0ac62f5ed331b460"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "2e9238b27096cc290aecf0d0faa4910a6b12117c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "5a83a78e1692013ed6157b17271029066435d83e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "7e75ed3a12aa5727dc3ab23ef7ebd86fce0e94c2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "716e7c7080fe7f0e226a58662f740787c940493d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "5306dfd44dc64a9841e11b2d60730043b89b49b6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "aea57d099a6fb240593e1cd8ce0473081e1a49fd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "8932cc077505b2ccdc032410b67262126d042078"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "58c01646f934d30851616febde63c05ecf40e650"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "5f54653d281c3095a351dffebec406456cf3d7b0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "26c3c345a444d81199c6b9df6d950049b73da818"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "26c3c345a444d81199c6b9df6d950049b73da818"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "26c3c345a444d81199c6b9df6d950049b73da818"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "6b0b4a68600ed3fc71bc15dc1bce25af6d235b1e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "aea57d099a6fb240593e1cd8ce0473081e1a49fd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "97508a070397e8a99c65a66dc52008c3e8e73a93"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "ee47a423f80225a05d26d5409f0376ec9f0dd1d0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "8b2e58b37e8778b7d20fc4870c0c3ba5b7d93edb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "556b4ad211e986e799b49a6b3e071e0e8fc9d7f5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "8b2e58b37e8778b7d20fc4870c0c3ba5b7d93edb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "556b4ad211e986e799b49a6b3e071e0e8fc9d7f5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "1ab4f7960a7a35c62312624b3f710c7a38d5104a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "1f3ab7137ec286b7973904a176b7f41326cb5aeb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "2a82f6935805c2c1a13c8887dbf52e601675757e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "e58370b1239226fa365ef7be87ca039fee61d23d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "9e83b2ad70d204989db8d4b43b61b33ccaaf674f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "5374e0c6e88baa0d974995c7346b857d26940146"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "b7664931f091020298516befa481279a7031a853"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "95f1d27f29bb2b391a101801bdf87520c858df5a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "92b2f5569b1a2d9e9f4fa8291e6f491e68a141dd"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "65540a321f83546fe4481d1119c79c4eae80b205"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "d34800f52e6aeabe5e3e3fa22261065afae495ad"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "abf79a33e7d6bd898fe7dbf63c7ffbf7b9d8c84f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "ae391c84f9427fe6d636136db9ccb202de214cd7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "919a2c26ca65fdf9f2dd63f0a3546bfaeddf1d2e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/PreachScreen.tsx",
+    "fingerprint": "2423147d02a02605b308d074e560ddb336807bd8"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/SermonNotesScreen.tsx",
+    "fingerprint": "983c468218641ace135f4ef58feebb39c5b5c6f6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/SermonNotesScreen.tsx",
+    "fingerprint": "011d106a9b31cc02dfdd5fe95a122fbb009d2bbc"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/screens/SermonNotesScreen.tsx",
+    "fingerprint": "0289a321ebfc605f14bd398ea922172b10d68279"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/BibleAIPromptSection.tsx",
+    "fingerprint": "f7878260cdc023cb4132fc8dc0b8de2f60ca3030"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/BibleAIPromptSection.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/BibleAIPromptSection.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/BookCardsSection.tsx",
+    "fingerprint": "f325751f3792c42dd116746c05c837af2f910776"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/BookCardsSection.tsx",
+    "fingerprint": "b129c002f4431a0e0d14d792a1ebb4671fc79317"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/CampusCountSection.tsx",
+    "fingerprint": "81cb4627c9fad504f3850545c23d665a5ccfa0e2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/ComfortVerseBannerSection.tsx",
+    "fingerprint": "ecb164378e00460826ca94b4e129fc88216c3b67"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/ComfortVerseBannerSection.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/ComfortVerseBannerSection.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/ComfortVerseBannerSection.tsx",
+    "fingerprint": "663eab0838c08959226b8f427dc1cf09f72c6a1b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/CongregationStatsSection.tsx",
+    "fingerprint": "7a4d53bd3887cb026ab1466339197e3522381944"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/CongregationStatsSection.tsx",
+    "fingerprint": "7e07f99fcd64d9e1139e250b79e81f597edebdf7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/CongregationStatsSection.tsx",
+    "fingerprint": "7e07f99fcd64d9e1139e250b79e81f597edebdf7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/CongregationStatsSection.tsx",
+    "fingerprint": "7e07f99fcd64d9e1139e250b79e81f597edebdf7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/CongregationStatsSection.tsx",
+    "fingerprint": "8332762c9862970a6cd1771461da607d467396fb"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/DailyQuoteSection.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/GreetingSection.tsx",
+    "fingerprint": "8b26edcde2b7f6d2c1da90d3d2d661d633e4f857"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/GreetingSection.tsx",
+    "fingerprint": "b17a1b28a1b5fcb8b66aff615e47cebad5147fc6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WeeklyReviewSection.tsx",
+    "fingerprint": "722c21da7b5eed51eb5f1404cd88de855e51135e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WeeklyReviewSection.tsx",
+    "fingerprint": "3be52abb679b15f1871f1b8eca7d742e8068b31b"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WeeklyReviewSection.tsx",
+    "fingerprint": "7c5c8b225746c77b2cd7bebfa4ab78e567223efe"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "8b417f7ba00be0de7902ccb10d0e23dd74c3f734"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "52296c8d0f9c51b335e0c76ac41ce2abe87df88d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "6324b9e0cf3712088e693c37a8a4dd4f7f5c8ed5"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "26509a095fba3d34a2519fd3308a45bbb6db2707"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "b0f94dfdbddc46bafc11787f9af6aa52a485c617"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "7b02b08c56883075b018a00e334f16987a48c9d6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "06b3f5e6f8bc0a42d4b321e0a569622597ad36b9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "7b02b08c56883075b018a00e334f16987a48c9d6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "06b3f5e6f8bc0a42d4b321e0a569622597ad36b9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "dacff6647d3ea3af0d597874224065c811361da4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/sections/WordOfDaySection.tsx",
+    "fingerprint": "cdf2e8c2b6905b99862a8eba300d9039ae0f80b7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "d643f5968421142905a60766e2a50f759ebeb633"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "5602bb50631afe769563bcedd298a7c636921d78"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "311207932aed11faf20531376c53e13733e9d956"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "b8b282aed564179e1fad070a070a23dd6e3f3bb7"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "5925f1f6e0325943becc76671446fff6e1f68fb1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "c37c17c44b5877e0163fd8bb963c76448f49c960"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "4d8d8f382d9696c027f71e1581435369a269d520"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "5925f1f6e0325943becc76671446fff6e1f68fb1"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "ea1d26720bc2467f2a57d8ade6c76d7bf5eedd92"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "4866eee7e1065536fe4eadf94608b9b45ea74683"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "65816633b806e2c389954899c892c3ed885ad19e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "91834dee666e6afd69ba77aa92937c5b64ac13f9"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "c61b13d1b5368790a0c21630c961afedbf17309c"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "55697c93cd52314fe04a30937813f3ed6747368d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "2cbbaba39ac2452d1f17847abee238220efdd224"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "4c38a3624ea5cd777ccfddc94833e24a1dd5a4ca"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "a54da3d3f0cda64f8b57c84e8a0d231e052a29e6"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "0167180835a77022ae6f176b2f44da930e71ce9e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "a816e79347d4c439930b740d6f98b29a2d650748"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "15b678995a667d4a4ea3fc1023d91a2f44173171"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "510d07f25d0d39bcfdb0af7000b2318b8aac3503"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "cd2e7b3f123939f82140ccd2cde2d9d090ebaa86"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "73ebfcc2dc2b05c44cac6c12aec756c0bdaa10b0"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "108a37d6d38871a829b51929ff8742bf18fe2ef2"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "51956b030ef3439c91710fce9b01094af12b7624"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "bf9c0e1696cb544a4d332052b72325472796267d"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "4a23e7e70f8731ae1907b73f8eb63b24efcd3681"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "98e0d842c66d75a27a70ad64dc186e918833680a"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "9c7a54ecf60e8b8da34783174abd15a96e7bf17e"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "5b0910f265e76636afc5407086a7a662adde14a4"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "beb93ab67554aea873dbe6e695d32fa2ae60f006"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "c2048f982717887b8c085fefcc10c602fd635c38"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "3f346ccfb1158e279f20f241812833df98fffa47"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "b7d225f12db2257851fb9a7173d05f21709f3d7f"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "c8a5afad04e79315620ab94f41540bf801fce7c3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "4ff20ba7030f4ac928e9426544681b3bac0d50d3"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "c36ba9260983e5f2872ba2ffd96cdd92cc0ec895"
+  },
+  {
+    "rule": "SMALL-TYPE",
+    "file": "src/staff/StaffApp.tsx",
+    "fingerprint": "575865c1d15406015e514b1a194affd65f7ea92f"
+  },
+  {
+    "rule": "TWO-MAINS",
+    "file": "src/components/EmailCodePrompt.tsx",
+    "fingerprint": "3e409f60925aba65bf78a9bbbcb735e076d1abac"
+  },
+  {
+    "rule": "TWO-MAINS",
+    "file": "src/screens/MessagesScreen.tsx",
+    "fingerprint": "430efcb9b73dce56b7a535274b7bbe207f0fea9d"
+  },
+  {
+    "rule": "TWO-MAINS",
+    "file": "src/screens/PlansScreen.tsx",
+    "fingerprint": "38240438dc9b1c72578c4eb6ac7172c6d3737913"
+  }
+]
