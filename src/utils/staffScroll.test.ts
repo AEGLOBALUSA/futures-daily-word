@@ -16,8 +16,9 @@ describe('staff route scrolls; congregation tabs stay locked', () => {
   it('overrides overflow on the staff route without changing the tab-app lock', () => {
     const css = read('src/index.css');
     expect(css).toMatch(/html,\s*body,\s*#root\s*\{[^}]*overflow:\s*hidden/s);
-    expect(css).toMatch(/html\.staff-route,\s*html\.staff-route body,\s*html\.staff-route #root\s*\{[^}]*height:\s*auto/s);
-    expect(css).toMatch(/html\.staff-route[\s\S]*?overflow:\s*auto/);
+    // html scrolls the page; body and #root stay visible so sticky bars stick (B09-03).
+    expect(css).toMatch(/html\.staff-route\s*\{[^}]*height:\s*auto[^}]*overflow:\s*auto/s);
+    expect(css).toMatch(/html\.staff-route body,\s*html\.staff-route #root\s*\{[^}]*height:\s*auto[^}]*overflow:\s*visible/s);
     expect(css).toMatch(/-webkit-overflow-scrolling:\s*touch/);
   });
 

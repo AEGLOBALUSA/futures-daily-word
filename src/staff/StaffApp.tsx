@@ -1095,9 +1095,11 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       <Field label={t('staff_wording_help', getLang())} htmlFor={helpId}>
         <textarea id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: 17, resize: 'vertical' }} />
       </Field>
-      <button type="button" className="dw-next" aria-disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
-      {saveError && <p role="alert" style={errorStyle}>{saveError}</p>}
-      {saveErrorStatus === 404 || saveErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
+      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 2 }}>
+        <button type="button" className="dw-next" aria-disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
+        {saveError && <p role="alert" style={errorStyle}>{saveError}</p>}
+        {saveErrorStatus === 404 || saveErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
+      </div>
       <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; onEditingChange(false); }}>{t('staff_wording_cancel', getLang())}</button>
       {isAdmin && (confirmStop ? (
         <div>
@@ -1235,6 +1237,8 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
   const [open, setOpen] = useState<Submission | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [restoring, setRestoring] = useState<string[]>([]);
+  const [askAgainErrors, setAskAgainErrors] = useState<Record<string, { message: string; status: number | null }>>({});
+  const [askAgainDone, setAskAgainDone] = useState('');
 
   const load = useCallback(async () => {
     const [subs, qs] = await Promise.all([
@@ -1260,14 +1264,19 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
 
   const askAgain = async (id: string) => {
     if (restoring.includes(id)) return;
-    onError(''); setRestoring(ids => [...ids, id]);
+    const label = questions.find(q => q.id === id)?.label || '';
+    onError('');
+    setAskAgainDone('');
+    setAskAgainErrors(errors => { const next = { ...errors }; delete next[id]; return next; });
+    setRestoring(ids => [...ids, id]);
     try {
       await intake<{ question: Question }>('question_enabled_set', { id, enabled: true });
       await load();
+      setAskAgainDone(label);
     } catch (err) {
       const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
       if (status === 401) return;
-      onError(wordingError(err));
+      setAskAgainErrors(errors => ({ ...errors, [id]: { message: wordingError(err), status } }));
     } finally {
       setRestoring(ids => ids.filter(value => value !== id));
     }
@@ -1283,13 +1292,16 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>History</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>What already went live. Saves go live on their own — this is a record, not a queue.</p>
-      {questions.some(q => q.enabled === false) && (
+      {(questions.some(q => q.enabled === false) || askAgainDone) && (
         <section style={{ marginBottom: 16 }}>
+          {askAgainDone && <p role="status" style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>{t('staff_ask_again_done', getLang()).replace('{label}', askAgainDone)}</p>}
           <h3 style={{ fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{t('staff_switched_off_questions', getLang())}</h3>
           {questions.filter(q => q.enabled === false).map(q => (
             <div key={q.id} style={{ marginBottom: 12 }}>
               <p style={{ fontSize: 15, margin: '0 0 8px', fontFamily: 'var(--font-sans)' }}>{q.label}</p>
-              <button type="button" aria-disabled={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={() => askAgain(q.id)}>{t('staff_ask_again', getLang())}</button>
+              <button type="button" aria-disabled={restoring.includes(q.id)} aria-busy={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={() => askAgain(q.id)}>{restoring.includes(q.id) ? t('staff_ask_again_busy', getLang()) : t('staff_ask_again', getLang())}</button>
+              {askAgainErrors[q.id] && <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0' }}>{askAgainErrors[q.id].message}</p>}
+              {askAgainErrors[q.id]?.status === 404 || askAgainErrors[q.id]?.status === 409 ? <button type="button" style={{ ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 }} onClick={() => { load().catch(err => onError(err instanceof Error ? err.message : 'Could not load')); setAskAgainErrors(errors => { const next = { ...errors }; delete next[q.id]; return next; }); }}>{t('staff_ask_again_reload', getLang())}</button> : null}
             </div>
           ))}
         </section>

@@ -333,13 +333,18 @@ html, body, #root {
 }
 
 /* /staff is a separate full page. Congregation tabs still need the lock above. */
-html.staff-route,
-html.staff-route body,
-html.staff-route #root {
+html.staff-route {
   height: auto;
   min-height: 100%;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+html.staff-route body,
+html.staff-route #root {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
 }
 
 body {
