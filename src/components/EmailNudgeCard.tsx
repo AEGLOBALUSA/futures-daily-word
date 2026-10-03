@@ -13,7 +13,7 @@ import { t, getLang } from '../utils/i18n';
 
 const DISMISS_KEY = 'dw_email_nudge_dismissed';
 
-export function EmailNudgeCard() {
+export function EmailNudgeCard({ next = false }: { next?: boolean }) {
   const { userProfile, requireEmail } = useUser();
   const lang = getLang();
   const [dismissed, setDismissed] = useState(() => {
@@ -60,6 +60,7 @@ export function EmailNudgeCard() {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
         <button
+          className={next ? 'dw-next' : undefined}
           onClick={() => requireEmail()}
           style={{
             padding: '8px 12px', borderRadius: 8, border: 'none',

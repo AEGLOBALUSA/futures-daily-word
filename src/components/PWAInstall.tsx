@@ -64,7 +64,7 @@ async function handleInstallTap(ios: boolean, canPrompt: boolean, onIos: () => v
 }
 
 /** One-time card on Home — after the reader has a real reason to come back. */
-export function PWAInstallBanner() {
+export function PWAInstallBanner({ next = false }: { next?: boolean }) {
   const { hide, canPrompt, dismissed, ios, setDismissed } = useInstallState();
   const [sheet, setSheet] = useState(false);
   const [hasRead, setHasRead] = useState(() => {
@@ -137,6 +137,7 @@ export function PWAInstallBanner() {
         </div>
         <button
           type="button"
+          className={next ? 'dw-next' : undefined}
           onClick={() => handleInstallTap(ios, canPrompt, () => setSheet(true))}
           style={{
             width: '100%', marginTop: 14, minHeight: 44,

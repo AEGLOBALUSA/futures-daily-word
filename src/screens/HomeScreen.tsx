@@ -57,7 +57,10 @@ import { PathSwatch } from '../components/ChoosePathSheet';
 import { getCongregation, congregationLabel, onCongregationChange, openCongregationChooser } from '../utils/congregation';
 import { PathArrivalStrip } from '../components/PathArrivalStrip';
 import { readPathArrival, clearPathArrival } from '../utils/choosePath';
-import { isSundayWindow } from '../utils/sunday';
+import { NextStepCard } from '../components/NextStepCard';
+import { useHomeNextStep } from '../utils/useHomeNextStep';
+import { readMoreOpen, writeMoreOpen, moreForTodayNames, localToday } from '../utils/homeToday';
+import type { NextAction, SetupAsk } from '../utils/nextStep';
 import { chapterOf, notInHero } from '../utils/heroDedupe';
 import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
 import { parseVerses } from '../utils/parseVerses';
@@ -368,7 +371,12 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [readingBarVisible, setReadingBarVisible] = useState(false);
   const barNoteSelectionRef = useRef(false); // Note-from-bar selected the chapter; clear it when the drawer closes
   const readingObserverRef = useRef<IntersectionObserver | null>(null);
+  const readingSurfaceNodeRef = useRef<HTMLDivElement | null>(null);
+  const reflectionSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const [reflectOpenSignal, setReflectOpenSignal] = useState(0);
+  const [reflectRequestedFor, setReflectRequestedFor] = useState<string | null>(null);
   const readingSurfaceRef = useCallback((node: HTMLDivElement | null) => {
+    readingSurfaceNodeRef.current = node;
     if (readingObserverRef.current) {
       readingObserverRef.current.disconnect();
       readingObserverRef.current = null;
@@ -1741,13 +1749,78 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   };
 
   const isNewPath = isNewChristianPersona(personaConfig.persona);
+  const homeNext = useHomeNextStep({
+    persona: personaConfig.persona,
+    isNewPath,
+    passage: heroChapterRefs[0] || null,
+    readDoneToday,
+    pathwayEnrolled: !!pathwayProgress.enrolled,
+    pathwayData,
+    pathwayDisplayDay,
+    journeyDayDone: pathwayProgress.lastCompletedDate === new Date().toLocaleDateString('en-CA'),
+    planPassages: todaysPlanPassages,
+    firstSlot: readingSlots[0] ? { book: readingSlots[0].book, currentChapter: readingSlots[0].currentChapter } : null,
+    campusId: userProfile?.campus,
+    email: userProfile?.email,
+    congregation: homeCongregation,
+    dayIndex: localDayIndex(),
+  });
+  const [moreOpen, setMoreOpen] = useState(() => readMoreOpen());
+  const moreToday = localToday();
+  useEffect(() => {
+    setMoreOpen(readMoreOpen(moreToday));
+  }, [moreToday]);
 
-  // Sermon notes — one tap from Home, kept slim. Its position depends on the
-  // path: above the hero ONLY for I'm-New, and only inside the Sunday window
-  // (the QR guest flow lands people as new_to_faith and they need it up top
-  // on a Sunday); for the other four personas it renders BELOW the reading —
-  // and below Between You & God on the pastor path — so nothing sits above
-  // today's reading (persona-flow spec, 1 Sep; demotion ruling, 10 Sep).
+  useEffect(() => {
+    if (!reflectRequestedFor) return;
+    const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
+    if (ref !== reflectRequestedFor) {
+      setReflectRequestedFor(null);
+      return;
+    }
+    // The reflection mounts only once the passage text has arrived.
+    if (!reflectionSurfaceRef.current) return;
+    setReflectOpenSignal(n => n + 1);
+    setReflectRequestedFor(null);
+    requestAnimationFrame(() => {
+      reflectionSurfaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [reflectRequestedFor, passageTexts, heroChapterRefs, heroChapterIndex]);
+
+  const handleNextAction = (action: NextAction) => {
+    switch (action) {
+      case 'open_passage':
+      case 'write': {
+        const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
+        if (!ref) return;
+        if (!isReadingOpen(ref)) handleRead(ref);
+        requestAnimationFrame(() => {
+          readingSurfaceNodeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (action === 'write') setReflectRequestedFor(ref);
+        });
+        break;
+      }
+      case 'open_journey':
+        setShowJourneyDay(true);
+        break;
+      case 'open_notes':
+        openCongregationChooser('open');
+        break;
+      case 'open_wizard':
+        setMoreOpen(true);
+        writeMoreOpen(true);
+        requestAnimationFrame(() => {
+          document.getElementById('dw-more-wizard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        break;
+      case 'open_plans':
+        onNavigate?.('plans');
+        break;
+    }
+  };
+
+  // Sermon notes — first inside More for today for returning readers.
+  // The next-step hook brings Sunday's congregation notes forward when due.
   // Three Sermon Notes — Futures USA / Futures Australia / Futuros USA. The
   // banner opens the chooser (a real drop-down, every tap); a pick opens the
   // notes for that church. The sub-line names the one currently chosen.
@@ -2072,9 +2145,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             onDismiss={() => { clearPathArrival(); setPathArrival(false); }}
           />
         )}
-
-        {/* Sermon notes — I'm-New only, and only inside the Sunday window */}
-        {isNewPath && isSundayWindow() && sermonNotesRow}
 
         {/* What this actually is — one line, for the persona that has never used
             a Bible app. Only while they are early in the pathway. */}
@@ -2714,8 +2784,10 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         {/* Read → reflect, in place: a one-tap journal capture right under the passage.
                             key={readRef} remounts it per chapter so the panel (which stays mounted as
                             the chapter auto-advances) never shows a stale 'Saved' state for a prior chapter. */}
+                        <div ref={reflectionSurfaceRef}>
                         <InlineReflection
                           key={readRef}
+                          openSignal={reflectOpenSignal}
                           tone="paper"
                           newPath={isNewPath}
                           label={tI18n('reflect_label', lang)}
@@ -2723,6 +2795,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           verseRef={readRef}
                           onViewJournal={onNavigate ? () => onNavigate('journal') : undefined}
                         />
+                        </div>
                         <button
                           onClick={() => handleMarkRead(readRef)}
                           disabled={readDoneToday}
@@ -2846,6 +2919,46 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           </button>
         </div>}
 
+        <NextStepCard
+          next={homeNext}
+          onAction={handleNextAction}
+          renderAsk={(ask: SetupAsk) => ask === 'install' ? <PWAInstallBanner next /> : ask === 'email' ? <EmailNudgeCard next /> : (
+        <UpgradePromptCard next
+          persona={setup?.persona || 'congregation'}
+          onUpgrade={(newPersona) => {
+            // Deliberate persona change → real-choice source so it stamps + syncs
+            // (the prior source could be 'default', which saveSetup would skip).
+            saveSetup({ persona: newPersona, source: 'upgrade' });
+            flushNow(); // back up the choice immediately; saveSetup updates context reactively (no reload)
+          }}
+        />
+          )}
+        />
+        <details
+          className="dw-more"
+          open={moreOpen}
+          onToggle={e => {
+            setMoreOpen(e.currentTarget.open);
+            writeMoreOpen(e.currentTarget.open);
+          }}
+        >
+          <summary className="dw-more-row">
+            <span>
+              {tI18n('more_for_today', lang)}
+              <span className="dw-more-names">
+                {moreForTodayNames({
+                  persona: personaConfig.persona,
+                  isNewPath,
+                  hasPlan: todaysPlanPassages.length > 0 || readingSlots.length > 0,
+                  bookCards: pf.bookCards.length > 0,
+                  campus: pf.campusCount !== 'hidden',
+                  wordOfDay: pf.wordOfDay !== 'hidden',
+                }).map(k => tI18n(k, lang)).join(', ')}
+              </span>
+            </span>
+            <ChevronRight className="dw-more-chevron" size={20} aria-hidden="true" />
+          </summary>
+
         {/* The Day N lesson no longer mounts inline here: the journey hero above
             opens NewBelieverLessonCard as the FULL-SCREEN Day N reading (verses
             already open) — mounted with the other overlays at the end of this
@@ -2868,12 +2981,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         {/* Sermon Notes / Preach — below the reading and Between You & God for
             the four returning personas (demotion ruling, 10 Sep). */}
         {!isNewPath && sermonNotesRow}
-
-        {/* Post-first-reading backup nudge — appears only after the push prompt
-            is resolved, so the two post-reading moments never stack. */}
-        <PWAInstallBanner />
-
-        <EmailNudgeCard />
 
         {/* ── Choose Your Plan — only while nothing is set up yet. Mid-plan users
              already have entry points; pastor/study personas get the tailored
@@ -2902,6 +3009,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
         {/* ── Pastor/Study Onboarding wizard (extracted to <PastorStudyOnboarding>) ── */}
         {personaConfig.sectionOrder.includes('plan_scripture') && (
+          <div id="dw-more-wizard">
           <PastorStudyOnboarding
             isPastor={personaConfig.persona === 'pastor_leader'}
             t={t}
@@ -2909,6 +3017,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             startPlanFromHome={startPlanFromHome}
             onNavigate={onNavigate}
           />
+          </div>
         )}
 
         {/* Comfort Verse Banner — comfort persona only */}
@@ -2983,20 +3092,6 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               );
             })}
           </div>
-        )}
-
-        {/* ── Upgrade Prompt — congregation "Go Deeper?" / comfort "Feeling Stronger?"
-             Never mount for new_to_faith: I'm New stays until they change path themselves. ── */}
-        {personaConfig.persona !== 'new_to_faith' && (
-        <UpgradePromptCard
-          persona={setup?.persona || 'congregation'}
-          onUpgrade={(newPersona) => {
-            // Deliberate persona change → real-choice source so it stamps + syncs
-            // (the prior source could be 'default', which saveSetup would skip).
-            saveSetup({ persona: newPersona, source: 'upgrade' });
-            flushNow(); // back up the choice immediately; saveSetup updates context reactively (no reload)
-          }}
-        />
         )}
 
         {/* Start Your Journey — removed; "Choose Your Plan" button at top handles this */}
@@ -4164,6 +4259,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             </div>
           );
         })()}
+
+        </details>
 
         {/* Bottom spacing */}
         <div style={{ height: 24 }} />
