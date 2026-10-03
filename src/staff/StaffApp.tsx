@@ -101,7 +101,7 @@ const labelStyle: CSSProperties = {
   color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1.3,
 };
 const helpStyle: CSSProperties = {
-  fontSize: 14, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
+  fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
 };
 const btnPrimary: CSSProperties = {
   background: 'var(--dw-accent)', color: '#fff', border: 'none', borderRadius: 12,
@@ -708,7 +708,9 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
     setBusy(false);
   };
 
-  const wordingFor = (q: Question) => rewordable.includes(q.id) ? (
+  // The hub form shows its own help under the YouTube question, so its stored
+  // words are not offered for rewording there (the editor would not match the page).
+  const wordingFor = (q: Question) => rewordable.includes(q.id) && !(job === 'hub' && q.config?.sermonKey === 'youtubeUrl') ? (
     <QuestionWording
       question={q}
       isAdmin={staff.isAdmin}
