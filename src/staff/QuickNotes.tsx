@@ -57,6 +57,7 @@ export function QuickNotes({ onChangeDetails }: {
   const [error, setError] = useState('');
   const busyRef = useRef(true);
   const submittedText = useRef('');
+  const latestText = useRef('');
 
   useEffect(() => {
     let active = true;
@@ -107,6 +108,7 @@ export function QuickNotes({ onChangeDetails }: {
       } else {
         submittedText.current = text;
         const next = await quickNotesRead({ text, congregation: status.congregation });
+        if (latestText.current !== submittedText.current) return;
         if (!next.preview && !next.needs) throw new Error(t('staff_quick_err_generic'));
         rememberCongregation(next.congregation);
         setResult(next);
@@ -126,8 +128,15 @@ export function QuickNotes({ onChangeDetails }: {
     setPublishedResult(null);
     setResult(null);
     setAnswer('');
+    latestText.current = '';
     setError('');
     setPasteOpen(true);
+  }
+
+  function changeDetailsWithAnswer(next: QuickResult) {
+    if (!answer.trim() || !next.needs) return next;
+    if (next.needs.key === 'other') return withOtherAnswer(next, answer);
+    return { ...next, answers: { ...next.answers, [next.needs.questionId]: answer.trim() } };
   }
 
   const congregation = result?.congregation ?? status?.congregation;
@@ -144,12 +153,15 @@ export function QuickNotes({ onChangeDetails }: {
     <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-card)', padding: '12px 0' }}>
       <button type={needsForm ? 'button' : 'submit'} className="dw-next dw-campus-main" style={campusMainStyle} aria-busy={busy}
         onClick={needsForm ? () => {
-          if (!busyRef.current && result) onChangeDetails(changeDetailsSeed(result));
+          if (!busyRef.current && result) onChangeDetails(changeDetailsSeed(changeDetailsWithAnswer(result)));
         } : undefined}>
         {busy ? t(publishing ? 'staff_quick_publishing' : 'staff_quick_reading')
           : t(needsForm ? 'staff_quick_open_form' : result?.needs ? 'staff_quick_answer' : publishing ? 'staff_quick_publish' : 'staff_quick_read')}
       </button>
       {error && <p role="alert" style={{ margin: '8px 0 0', color: 'var(--dw-error)', fontSize: 15, fontWeight: 600 }}>{error}</p>}
+      {error && result?.preview && !result.needs && <button type="button" style={quietStyle} onClick={() => {
+        if (!busyRef.current) onChangeDetails(changeDetailsSeed(result));
+      }}>{t('staff_quick_change')}</button>}
     </div>
   );
 
@@ -208,13 +220,16 @@ export function QuickNotes({ onChangeDetails }: {
               <label htmlFor={`${id}-paste`} style={{ fontSize: 17, fontWeight: 600 }}>{t('staff_quick_box')}</label>
               <p id={`${id}-hint`} style={secondaryStyle}>{t('staff_quick_box_hint')}</p>
               <textarea id={`${id}-paste`} aria-describedby={`${id}-hint`} rows={6}
-                value={text} onChange={e => setText(e.target.value)} style={{ ...fieldStyle, minHeight: 160, resize: 'vertical' }} />
+                value={text} onChange={e => {
+                  latestText.current = e.target.value;
+                  setText(e.target.value);
+                }} style={{ ...fieldStyle, minHeight: 160, resize: 'vertical' }} />
             </>
           )}
           {mainAction}
           {result?.needs && !needsForm && (
             <button type="button" style={quietStyle} onClick={() => {
-              if (!busyRef.current) onChangeDetails(changeDetailsSeed(result));
+              if (!busyRef.current) onChangeDetails(changeDetailsSeed(changeDetailsWithAnswer(result)));
             }}>{t('staff_quick_change')}</button>
           )}
           {result?.needs && <button type="button" style={quietStyle} onClick={startOver}>{t('staff_quick_start_over')}</button>}
