@@ -276,19 +276,6 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
     <div className="screen-container">
       <ScreenHeader title={t("settings_title", lang)} onBack={onBack} />
       <div style={{ padding: '24px 24px 0' }}>
-        <p aria-live="polite" style={{ color: 'var(--dw-text)', fontSize: 17, lineHeight: 1.45, fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '0 4px 20px' }}>
-          {(() => {
-            const stored = readSettingsSummaryInput();
-            return settingsSummary({
-              lang,
-              persona: setup?.persona,
-              ...stored,
-              chaptersPerDay,
-              reminderHour: pushSubscribed ? pushHour : null,
-              campusName: userProfile?.campus ? campusName(userProfile.campus) : '',
-            });
-          })()}
-        </p>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{
@@ -302,6 +289,20 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </h1>
           <ThemeToggle />
         </div>
+
+        <p aria-live="polite" style={{ color: 'var(--dw-text)', fontSize: 17, lineHeight: 1.45, fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '-8px 4px 24px' }}>
+          {(() => {
+            const stored = readSettingsSummaryInput();
+            return settingsSummary({
+              lang,
+              persona: setup?.persona,
+              ...stored,
+              chaptersPerDay,
+              reminderHour: pushSubscribed ? pushHour : null,
+              campusName: userProfile?.campus ? campusName(userProfile.campus) : '',
+            });
+          })()}
+        </p>
 
         {/* Profile avatar */}
         <div
