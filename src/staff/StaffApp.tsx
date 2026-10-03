@@ -1237,6 +1237,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
   const [open, setOpen] = useState<Submission | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [restoring, setRestoring] = useState<string[]>([]);
+  const [reloading, setReloading] = useState<Record<string, boolean>>({});
   const [askAgainErrors, setAskAgainErrors] = useState<Record<string, { message: string; status: number | null }>>({});
   const [askAgainDone, setAskAgainDone] = useState('');
 
@@ -1271,14 +1272,37 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
     setRestoring(ids => [...ids, id]);
     try {
       await intake<{ question: Question }>('question_enabled_set', { id, enabled: true });
-      await load();
+      setQuestions(qs => qs.map(q => q.id === id ? { ...q, enabled: true } : q));
       setAskAgainDone(label);
+      try {
+        await load();
+      } catch {
+        // The enable succeeded; keep the local state and let the next refresh catch up.
+      }
     } catch (err) {
       const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
       if (status === 401) return;
       setAskAgainErrors(errors => ({ ...errors, [id]: { message: wordingError(err), status } }));
     } finally {
       setRestoring(ids => ids.filter(value => value !== id));
+    }
+  };
+
+  const reloadQuestion = async (id: string) => {
+    if (reloading[id]) return;
+    setReloading(current => ({ ...current, [id]: true }));
+    try {
+      await load();
+      setAskAgainErrors(errors => { const next = { ...errors }; delete next[id]; return next; });
+    } catch (err) {
+      const status = err instanceof Error && 'status' in err && typeof err.status === 'number' ? err.status : null;
+      if (status === 401) return;
+      setAskAgainErrors(errors => ({
+        ...errors,
+        [id]: { message: t('staff_ask_again_reload_failed', getLang()), status: errors[id]?.status ?? status },
+      }));
+    } finally {
+      setReloading(current => ({ ...current, [id]: false }));
     }
   };
 
@@ -1301,7 +1325,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
               <p style={{ fontSize: 15, margin: '0 0 8px', fontFamily: 'var(--font-sans)' }}>{q.label}</p>
               <button type="button" aria-disabled={restoring.includes(q.id)} aria-busy={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={() => askAgain(q.id)}>{restoring.includes(q.id) ? t('staff_ask_again_busy', getLang()) : t('staff_ask_again', getLang())}</button>
               {askAgainErrors[q.id] && <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0' }}>{askAgainErrors[q.id].message}</p>}
-              {askAgainErrors[q.id]?.status === 404 || askAgainErrors[q.id]?.status === 409 ? <button type="button" style={{ ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 }} onClick={() => { load().catch(err => onError(err instanceof Error ? err.message : 'Could not load')); setAskAgainErrors(errors => { const next = { ...errors }; delete next[q.id]; return next; }); }}>{t('staff_ask_again_reload', getLang())}</button> : null}
+              {askAgainErrors[q.id]?.status === 404 || askAgainErrors[q.id]?.status === 409 ? <button type="button" aria-busy={reloading[q.id] || undefined} aria-disabled={reloading[q.id] || undefined} style={{ ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 }} onClick={() => reloadQuestion(q.id)}>{reloading[q.id] ? t('staff_ask_again_busy_list', getLang()) : t('staff_ask_again_reload', getLang())}</button> : null}
             </div>
           ))}
         </section>
