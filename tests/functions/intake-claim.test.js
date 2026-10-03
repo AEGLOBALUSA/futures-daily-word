@@ -66,6 +66,8 @@ function matches(row, filters) {
 
 // `failOn.add('rate_limit_hits:insert')` makes that op on that table return { error }.
 const failOn = new Set();
+// Every update payload, in order, so a test can assert exactly which columns a write touched.
+let updateLog = [];
 // `selectHook` (when set) runs after a maybeSingle() read has taken its rows and
 // before they are returned, so a test can hold a read (its snapshot already
 // taken, as under read-committed) while another request runs.
@@ -97,7 +99,7 @@ function builder(table) {
   const b = {
     select(cols, o) { if (state.op !== 'select') state.wantRows = true; else { state.cols = cols; if (o && o.count) state.count = true; } return b; },
     insert(p) { state.op = 'insert'; state.payload = p; return b; },
-    update(p) { state.op = 'update'; state.payload = p; return b; },
+    update(p) { state.op = 'update'; state.payload = p; updateLog.push({ table, payload: p }); return b; },
     upsert(p, o) { state.op = 'upsert'; state.payload = p; state.opts = o; return b; },
     delete() { state.op = 'delete'; return b; },
     eq(col, val) { state.filters.push({ op: 'eq', col, val }); return b; },
@@ -145,7 +147,7 @@ beforeAll(() => {
 
 afterAll(() => { Module._load = realLoad; });
 
-beforeEach(() => { resetTables(); limiterIps = []; failOn.clear(); selectHook = null; });
+beforeEach(() => { resetTables(); limiterIps = []; failOn.clear(); selectHook = null; updateLog = []; });
 // Password hashing here is synchronous and the fake database answers in
 // microtasks, so without this the worker never turns its event loop for the
 // whole file. Past 60 seconds vitest then fails the run with
@@ -1602,5 +1604,116 @@ describe('the staff answer names the campus from the one list (B08-06)', () => {
   it('me without a session is still refused', async () => {
     expect((await call({ action: 'me' })).status).toBe(401);
     expect((await call({ action: 'me' }, 'x'.repeat(64))).status).toBe(401);
+  });
+});
+
+describe('question wording changes in place (B09-03)', { timeout: 30_000 }, () => {
+  async function as(role, extra = {}) {
+    const email = `${role}.words@futures.church`;
+    addRoster({ email, role, campus_id: role === 'campus' ? 'us-gwinnett' : null, campus_set_by: role === 'campus' ? 'admin' : null, password_hash: hashPassword(PASSWORD), ...extra });
+    return signIn(email);
+  }
+  const q = (id) => tables.intake_questions.find((r) => r.id === id);
+  const words = { label: 'One thing to do before next Sunday', help: 'A single sentence.' };
+
+  it('anon is refused with 401 and nothing changes', async () => {
+    const before = JSON.parse(JSON.stringify(tables.intake_questions));
+    for (const body of [{ action: 'question_wording_save', id: 'q_hub_title', ...words }, { action: 'question_enabled_set', id: 'q_hub_title', enabled: false }]) {
+      expect((await call(body)).status).toBe(401);
+    }
+    expect(tables.intake_questions).toEqual(before);
+    expect(updateLog).toHaveLength(0);
+  });
+
+  it('a campus pastor and media are refused on every question, campus or hub', async () => {
+    for (const role of ['campus', 'media']) {
+      const token = await as(role);
+      for (const id of ['q_title', 'q_hub_title']) {
+        const r = await call({ action: 'question_wording_save', id, ...words }, token);
+        expect(r.status).toBe(403);
+        expect(r.body.error).toBe("Only the owner can change this question's wording.");
+      }
+    }
+    expect(updateLog.filter((u) => u.table === 'intake_questions')).toHaveLength(0);
+  });
+
+  it('hub is refused on a campus question', async () => {
+    const r = await call({ action: 'question_wording_save', id: 'q_title', ...words }, await as('hub'));
+    expect(r.status).toBe(403);
+    expect(q('q_title').label).toBe('Title');
+  });
+
+  it('hub on a hub question: 200, and the update writes only label, help and updated_at', async () => {
+    const before = { ...q('q_hub_title') };
+    const r = await call({ action: 'question_wording_save', id: 'q_hub_title', ...words, type: 'yes_no', audience: 'campus', required: true, enabled: false, sort_order: 1, config: { publish: 'campus_title' } }, await as('hub'));
+    expect(r.status).toBe(200);
+    expect(r.body.question.label).toBe(words.label);
+    const writes = updateLog.filter((u) => u.table === 'intake_questions');
+    expect(writes).toHaveLength(1);
+    expect(Object.keys(writes[0].payload).sort()).toEqual(['help', 'label', 'updated_at']);
+    const after = q('q_hub_title');
+    for (const k of ['type', 'audience', 'required', 'enabled', 'sort_order', 'config']) expect(after[k]).toEqual(before[k]);
+  });
+
+  it('hub may reword an all-audience question', async () => {
+    tables.intake_questions.push({ id: 'q_all', label: 'Anything else?', help: '', type: 'text', audience: 'all', required: false, enabled: true, sort_order: 60, config: {} });
+    const r = await call({ action: 'question_wording_save', id: 'q_all', ...words }, await as('hub'));
+    expect(r.status).toBe(200);
+  });
+
+  it('admin may reword any question, a campus one included', async () => {
+    const r = await call({ action: 'question_wording_save', id: 'q_title', label: 'What is on this week?', help: '' }, await adminToken());
+    expect(r.status).toBe(200);
+    expect(q('q_title').label).toBe('What is on this week?');
+  });
+
+  it('a 1-character label is refused with a reason; tags are stripped and the caps hold', async () => {
+    const token = await as('hub');
+    const short = await call({ action: 'question_wording_save', id: 'q_hub_title', label: ' x ', help: '' }, token);
+    expect(short.status).toBe(400);
+    expect(short.body.error).toMatch(/at least 2 characters/);
+    const long = await call({ action: 'question_wording_save', id: 'q_hub_title', label: '<b>Title</b>' + 'a'.repeat(400), help: 'h'.repeat(900) }, token);
+    expect(long.status).toBe(200);
+    expect(q('q_hub_title').label.startsWith('Title')).toBe(true);
+    expect(q('q_hub_title').label).toHaveLength(200);
+    expect(q('q_hub_title').help).toHaveLength(500);
+  });
+
+  it('a switched-off or missing question is not reworded', async () => {
+    const token = await adminToken();
+    q('q_hub_title').enabled = false;
+    expect((await call({ action: 'question_wording_save', id: 'q_hub_title', ...words }, token)).status).toBe(404);
+    expect((await call({ action: 'question_wording_save', id: 'nope', ...words }, token)).status).toBe(404);
+    expect(updateLog.filter((u) => u.table === 'intake_questions')).toHaveLength(0);
+  });
+
+  it('the form tells each person which questions they may reword', async () => {
+    const hub = await call({ action: 'form', job: 'hub' }, await as('hub'));
+    expect(hub.body.rewordable).toEqual(['q_hub_title', 'q_hub_outline']);
+    const campus = await call({ action: 'form', job: 'campus' }, await as('campus'));
+    expect(campus.body.questions.length).toBeGreaterThan(0);
+    expect(campus.body.rewordable).toEqual([]);
+  });
+
+  it('question_enabled_set: admin switches a question off and back on, writing only enabled and updated_at', async () => {
+    const token = await adminToken();
+    const before = { ...q('q_hub_title') };
+    const off = await call({ action: 'question_enabled_set', id: 'q_hub_title', enabled: false, label: 'changed', audience: 'campus' }, token);
+    expect(off.status).toBe(200);
+    expect(q('q_hub_title').enabled).toBe(false);
+    const writes = updateLog.filter((u) => u.table === 'intake_questions');
+    expect(Object.keys(writes[0].payload).sort()).toEqual(['enabled', 'updated_at']);
+    expect(q('q_hub_title').label).toBe(before.label);
+    expect(q('q_hub_title').audience).toBe(before.audience);
+    const form = await call({ action: 'form', job: 'hub' }, token);
+    expect(form.body.questions.map((x) => x.id)).not.toContain('q_hub_title');
+    expect((await call({ action: 'question_enabled_set', id: 'q_hub_title', enabled: true }, token)).status).toBe(200);
+    expect(q('q_hub_title').enabled).toBe(true);
+  });
+
+  it('question_enabled_set refuses hub (403) and a missing enabled flag (400)', async () => {
+    expect((await call({ action: 'question_enabled_set', id: 'q_hub_title', enabled: false }, await as('hub'))).status).toBe(403);
+    expect(q('q_hub_title').enabled).toBe(true);
+    expect((await call({ action: 'question_enabled_set', id: 'q_hub_title' }, await adminToken())).status).toBe(400);
   });
 });

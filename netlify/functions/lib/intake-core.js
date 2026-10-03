@@ -132,6 +132,35 @@ function questionVisibleForJob(question, role, job) {
   return aud === viewAs;
 }
 
+/**
+ * Who may change a form question's wording in /staff (B09-03; Ashley, 2 Oct
+ * 2026: "Yes, wording only."): admin on every question, hub on questions whose
+ * audience is hub or all. Campus pastors and media never: a campus question is
+ * shared by every campus, so one pastor's edit would change it for all of them.
+ */
+function canRewordQuestion(role, question) {
+  if (!question) return false;
+  if (role === "admin") return true;
+  const aud = question.audience || "all";
+  return role === "hub" && (aud === "hub" || aud === "all");
+}
+
+const WORDING_LABEL_MIN = 2;
+const WORDING_LABEL_MAX = 200;
+const WORDING_HELP_MAX = 500;
+
+/**
+ * The only columns a wording change may write: label and help, sanitised with
+ * the same caps as the old question editor (so no existing label is refused),
+ * and updated_at. Returns { error } when the label is too short.
+ */
+function wordingPatch(input, now = new Date()) {
+  const label = sanitize(typeof input?.label === "string" ? input.label : "", WORDING_LABEL_MAX);
+  const help = sanitize(typeof input?.help === "string" ? input.help : "", WORDING_HELP_MAX);
+  if (label.length < WORDING_LABEL_MIN) return { error: "Write the question in at least 2 characters." };
+  return { patch: { label, help, updated_at: now.toISOString() } };
+}
+
 /** A campus id on `list` (the loaded campus list; the bundled one when omitted). */
 function isCampusId(id, list) {
   return campuses.isCampusId(id, list);
@@ -517,6 +546,10 @@ module.exports = {
   campusConfirmed,
   questionVisible,
   questionVisibleForJob,
+  canRewordQuestion,
+  wordingPatch,
+  WORDING_LABEL_MAX,
+  WORDING_HELP_MAX,
   isKeyVerseField,
   isCampusId,
   lockCampus,

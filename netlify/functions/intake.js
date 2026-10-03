@@ -17,6 +17,8 @@ const {
   staffFromRoster,
   campusConfirmed,
   questionVisibleForJob,
+  canRewordQuestion,
+  wordingPatch,
   isCampusId,
   lockCampus,
   sanitize,
@@ -924,6 +926,9 @@ exports.handler = async (event) => {
       return json(event, 200, {
         staff: publicStaff(staff, await campusList()),
         questions: visible,
+        // The questions this person may reword in place (B09-03): worked out
+        // here so the form never offers an edit the server would refuse.
+        rewordable: visible.filter((q) => canRewordQuestion(staff.role, q)).map((q) => q.id),
         cornerItems,
         submissions: mine || [],
         sermons
@@ -1131,8 +1136,60 @@ exports.handler = async (event) => {
       });
     }
 
+    // ── question_wording_save ── Change a question's words in place on the form
+    // (B09-03; Ashley, 2 Oct 2026: "Yes, wording only."). Admin on every
+    // question, hub on hub/all questions; everyone else is refused. Writes only
+    // label, help and updated_at: never type, audience, required, enabled,
+    // config or sort_order (question_save rebuilds the whole row, so it is not
+    // reused). Adding, removing or reordering questions stays in SQL.
+    if (action === "question_wording_save") {
+      const refuse = () => json(event, 403, { error: "Only the owner can change this question's wording." });
+      if (staff.role !== "admin" && staff.role !== "hub") return refuse();
+      const id = typeof body.id === "string" ? body.id.trim().slice(0, 100) : "";
+      if (!id) return json(event, 400, { error: "Missing id" });
+      const { data: row, error: findErr } = await db()
+        .from("intake_questions")
+        .select("id, audience, enabled")
+        .eq("id", id)
+        .maybeSingle();
+      if (findErr) throw findErr;
+      if (!row || row.enabled === false) return json(event, 404, { error: "That question is no longer on the form. Load the form again." });
+      if (!canRewordQuestion(staff.role, row)) return refuse();
+      const { patch, error: invalid } = wordingPatch(body);
+      if (invalid) return json(event, 400, { error: invalid });
+      const { data, error } = await db()
+        .from("intake_questions")
+        .update(patch)
+        .eq("id", id)
+        .eq("audience", row.audience)
+        .eq("enabled", true)
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return json(event, 409, { error: "That question changed while you were editing. Load the form again." });
+      console.log(`[intake] question_wording_save ${id} by ${staff.role}`);
+      return json(event, 200, { question: data });
+    }
+
     // ── Admin-only ──
     if (staff.role !== "admin") return json(event, 403, { error: "Only Ashley can change this." });
+
+    // ── question_enabled_set ── Stop asking a question, or ask it again (B09-03).
+    // Writes only enabled and updated_at; the question and its answers stay.
+    if (action === "question_enabled_set") {
+      const id = typeof body.id === "string" ? body.id.trim().slice(0, 100) : "";
+      if (!id) return json(event, 400, { error: "Missing id" });
+      if (typeof body.enabled !== "boolean") return json(event, 400, { error: "Say whether to ask this question." });
+      const { data, error } = await db()
+        .from("intake_questions")
+        .update({ enabled: body.enabled, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return json(event, 404, { error: "That question is not in the list." });
+      return json(event, 200, { question: data });
+    }
 
     if (action === "questions_list") {
       const { data, error } = await db().from("intake_questions").select("*").order("sort_order", { ascending: true });
