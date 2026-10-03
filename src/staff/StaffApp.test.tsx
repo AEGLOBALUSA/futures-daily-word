@@ -530,3 +530,211 @@ describe('StaffApp People shows the one-time code to Ashley', () => {
     act(() => root.unmount());
   });
 });
+
+describe('StaffApp job form: wording in place and a failed load beside the button (B09-03)', () => {
+  const Q_TITLE = { id: 'q-title', sort_order: 110, label: 'What is the title of this message?', help: 'One line.', type: 'text', audience: 'hub', required: false, enabled: true, config: { publish: 'sermon_field', sermonKey: 'title' } };
+  const Q_ACTION = { id: 'q-action', sort_order: 120, label: 'Weekly action', help: 'One sentence people can do this week', type: 'long_text', audience: 'hub', required: false, enabled: true, config: {} };
+  const Q_CORNER = { id: 'q-corner', sort_order: 10, label: 'What is on this week?', help: '', type: 'text', audience: 'campus', required: false, enabled: true, config: {} };
+
+  type Role = 'admin' | 'hub' | 'campus' | 'media';
+  const staffFor = (role: Role) => ({
+    email: `${role}@futures.church`, role, campusId: role === 'campus' ? 'us-gwinnett' : null, name: 'Test', isAdmin: role === 'admin',
+  });
+
+  async function setInput(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
+    const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  const buttons = (el: HTMLElement) => [...el.querySelectorAll('button')];
+  const buttonNamed = (el: HTMLElement, re: RegExp) => buttons(el).find(b => re.test((b.textContent || '').trim()));
+  async function click(btn: HTMLElement | undefined) {
+    expect(btn, 'button missing').toBeTruthy();
+    await act(async () => { btn!.click(); });
+    await flush();
+  }
+  /** The input a <label for> points at, found by the label's words (getByLabelText). */
+  function byLabelText(el: HTMLElement, text: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null {
+    const label = [...el.querySelectorAll('label')].find(l => (l.textContent || '').includes(text));
+    const id = label?.getAttribute('for');
+    if (!id) return null;
+    return el.querySelector(`#${CSS.escape(id)}`);
+  }
+
+  async function openForm(role: Role, jobTitle: RegExp, impl: (action: string, body: Record<string, unknown>) => unknown) {
+    vi.mocked(intake).mockImplementation(async (action: string, body: Record<string, unknown> = {}) => {
+      if (action === 'me') return { staff: staffFor(role) };
+      return impl(action, body);
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    await click(buttonNamed(el, jobTitle));
+    await flush();
+    return { el, root };
+  }
+
+  it('a failed load says so where the button would be, with one Load the form again, and nothing disabled', async () => {
+    let fail = true;
+    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+      if (action === 'form') {
+        if (fail) throw new Error('Failed to fetch');
+        return { questions: [Q_CORNER], rewordable: [], cornerItems: [], submissions: [], sermons: [] };
+      }
+      return {};
+    });
+    expect(el.textContent).toContain('The form didn\'t load. Check your connection and try again.');
+    const alert = [...el.querySelectorAll('[role="alert"]')].find(a => /didn't load/.test(a.textContent || ''));
+    expect(alert).toBeTruthy();
+    expect(buttonNamed(el, /Put this on the campus corner/)).toBeUndefined();
+    expect(el.textContent).not.toContain('No questions on this form yet.');
+    expect(el.querySelectorAll('[disabled]')).toHaveLength(0);
+    const again = buttonNamed(el, /^Load the form again$/);
+    expect(again?.classList.contains('dw-next')).toBe(true);
+    expect(el.querySelectorAll('.dw-next')).toHaveLength(1);
+    fail = false;
+    await click(again);
+    await flush();
+    expect(el.textContent).toContain('What is on this week?');
+    expect(el.textContent).not.toContain('The form didn\'t load');
+    expect(buttonNamed(el, /Put this on the campus corner/)).toBeTruthy();
+    act(() => root.unmount());
+  });
+
+  it('an empty form after a good load keeps the button words, aria-disabled, with the reason beside it', async () => {
+    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+      if (action === 'form') return { questions: [], rewordable: [], cornerItems: [], submissions: [], sermons: [] };
+      return {};
+    });
+    const save = buttonNamed(el, /Put this on the campus corner/)!;
+    expect(save).toBeTruthy();
+    expect(save.hasAttribute('disabled')).toBe(false);
+    expect(save.getAttribute('aria-disabled')).toBe('true');
+    expect(el.textContent).toContain('There\'s nothing to fill in on this form yet.');
+    act(() => root.unmount());
+  });
+
+  it('every question box is tied to its label', async () => {
+    const { el, root } = await openForm('hub', /Put up this week/, async action => {
+      if (action === 'form') return { questions: [Q_TITLE, Q_ACTION], rewordable: [], cornerItems: [], submissions: [], sermons: [] };
+      return {};
+    });
+    expect(byLabelText(el, 'What is the title of this message?')?.tagName).toBe('INPUT');
+    expect(byLabelText(el, 'Weekly action')?.tagName).toBe('TEXTAREA');
+    act(() => root.unmount());
+  });
+
+  it('hub changes a hub question\'s words in place; the new words show and the typed answer stays', async () => {
+    const calls: { action: string; body: Record<string, unknown> }[] = [];
+    const { el, root } = await openForm('hub', /Put up this week/, async (action, body) => {
+      calls.push({ action, body });
+      if (action === 'form') return { questions: [Q_TITLE, Q_ACTION], rewordable: ['q-title', 'q-action'], cornerItems: [], submissions: [], sermons: [] };
+      if (action === 'question_wording_save') return { question: { ...Q_ACTION, label: String(body.label), help: String(body.help) } };
+      return {};
+    });
+    await setInput(byLabelText(el, 'Weekly action') as HTMLTextAreaElement, 'Call one person');
+    const changes = buttons(el).filter(b => /^Change the wording$/.test((b.textContent || '').trim()));
+    expect(changes).toHaveLength(2);
+    expect(changes.every(b => !b.hasAttribute("disabled"))).toBe(true);
+    await click(changes[1]);
+    const label = byLabelText(el, 'Question') as HTMLInputElement;
+    const help = byLabelText(el, 'Help text') as HTMLTextAreaElement;
+    expect(label.value).toBe('Weekly action');
+    expect(help.value).toBe('One sentence people can do this week');
+    await setInput(help, 'One thing to do before next Sunday');
+    const saveWording = buttonNamed(el, /^Save wording$/)!;
+    expect(saveWording.classList.contains('dw-next')).toBe(true);
+    expect(el.querySelectorAll('.dw-next')).toHaveLength(1);
+    await click(saveWording);
+    const sent = calls.find(c => c.action === 'question_wording_save')!;
+    expect(sent.body).toMatchObject({ id: 'q-action', label: 'Weekly action', help: 'One thing to do before next Sunday' });
+    expect(el.textContent).toContain('One thing to do before next Sunday');
+    expect(el.textContent).toContain('Saved. Everyone filling in this form sees the new wording.');
+    expect((byLabelText(el, 'Weekly action') as HTMLTextAreaElement).value).toBe('Call one person');
+    expect(buttonNamed(el, /^Save wording$/)).toBeUndefined();
+    expect(el.querySelectorAll('.dw-next')).toHaveLength(1);
+    act(() => root.unmount());
+  });
+
+  it('a too-short label is refused beside Save wording without calling the server', async () => {
+    const calls: string[] = [];
+    const { el, root } = await openForm('hub', /Put up this week/, async action => {
+      calls.push(action);
+      if (action === 'form') return { questions: [Q_TITLE], rewordable: ['q-title'], cornerItems: [], submissions: [], sermons: [] };
+      return {};
+    });
+    await click(buttonNamed(el, /^Change the wording$/));
+    await setInput(byLabelText(el, 'Question') as HTMLInputElement, 'x');
+    await click(buttonNamed(el, /^Save wording$/));
+    expect(calls).not.toContain('question_wording_save');
+    const alert = [...el.querySelectorAll('[role="alert"]')].find(a => /at least 2 characters/.test(a.textContent || ''));
+    expect(alert).toBeTruthy();
+    act(() => root.unmount());
+  });
+
+  it('a campus pastor and media see no Change the wording', async () => {
+    for (const [role, job] of [['campus', /Update a campus corner/], ['media', /Add the YouTube/]] as const) {
+      const { el, root } = await openForm(role, job, async action => {
+        if (action === 'form') return { questions: [Q_CORNER, Q_TITLE], rewordable: [], cornerItems: [], submissions: [], sermons: [] };
+        return {};
+      });
+      expect(buttonNamed(el, /Change the wording/)).toBeUndefined();
+      act(() => root.unmount());
+    }
+  });
+
+  it('admin stops asking a question after the in-place confirm; nothing else is sent', async () => {
+    const calls: { action: string; body: Record<string, unknown> }[] = [];
+    const { el, root } = await openForm('admin', /Put up this week/, async (action, body) => {
+      calls.push({ action, body });
+      if (action === 'form') return { questions: [Q_TITLE, Q_ACTION], rewordable: ['q-title', 'q-action'], cornerItems: [], submissions: [], sermons: [] };
+      if (action === 'question_enabled_set') return { question: { ...Q_ACTION, enabled: false } };
+      return {};
+    });
+    await click(buttons(el).filter(b => /^Change the wording$/.test((b.textContent || '').trim()))[1]);
+    await click(buttonNamed(el, /^Stop asking this$/));
+    expect(el.textContent).toContain('People filling in this form won\'t see this question. You can bring it back from History.');
+    expect(calls.some(c => c.action === 'question_enabled_set')).toBe(false);
+    const confirm = buttons(el).filter(b => /^Stop asking this$/.test((b.textContent || '').trim())).pop();
+    await click(confirm);
+    const sent = calls.find(c => c.action === 'question_enabled_set')!;
+    expect(sent.body).toEqual({ id: 'q-action', enabled: false });
+    expect(byLabelText(el, 'Weekly action')).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('hub sees no Stop asking this', async () => {
+    const { el, root } = await openForm('hub', /Put up this week/, async action => {
+      if (action === 'form') return { questions: [Q_TITLE], rewordable: ['q-title'], cornerItems: [], submissions: [], sermons: [] };
+      return {};
+    });
+    await click(buttonNamed(el, /^Change the wording$/));
+    expect(buttonNamed(el, /Stop asking this/)).toBeUndefined();
+    act(() => root.unmount());
+  });
+
+  it('History lists switched-off questions with Ask this again', async () => {
+    const calls: { action: string; body: Record<string, unknown> }[] = [];
+    let off = true;
+    vi.mocked(intake).mockImplementation(async (action: string, body: Record<string, unknown> = {}) => {
+      calls.push({ action, body });
+      if (action === 'me') return { staff: staffFor('admin') };
+      if (action === 'submissions') return { submissions: [] };
+      if (action === 'questions_list') return { questions: [Q_TITLE, { ...Q_ACTION, enabled: !off }] };
+      if (action === 'question_enabled_set') { off = false; return { question: { ...Q_ACTION, enabled: true } }; }
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    await click(buttonNamed(el, /^History$/));
+    await flush();
+    expect(el.textContent).toContain('Questions no one is asked now');
+    expect(el.textContent).toContain('Weekly action');
+    await click(buttonNamed(el, /^Ask this again$/));
+    await flush();
+    expect(calls.find(c => c.action === 'question_enabled_set')!.body).toEqual({ id: 'q-action', enabled: true });
+    expect(buttonNamed(el, /^Ask this again$/)).toBeUndefined();
+    act(() => root.unmount());
+  });
+});
