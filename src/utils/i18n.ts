@@ -1076,6 +1076,25 @@ const UI: Translations = {
   ai_teaser_study_sub: { en: 'Greek and Hebrew word studies with the source named on every result, and the passages pointed to in the text.', es: 'Estudios de palabras en griego y hebreo con la fuente nombrada en cada resultado, y los pasajes señalados en el texto.', pt: 'Estudos de palavras em grego e hebraico com a fonte nomeada em cada resultado, e as passagens indicadas no texto.', id: 'Studi kata Yunani dan Ibrani dengan sumber yang disebutkan pada setiap hasil, dan bagian yang ditunjuk dalam teks.' },
   ai_teaser_pastor_title: { en: 'Bible AI for sermon prep', es: 'Bible AI para preparar sermones', pt: 'Bible AI para preparar sermões', id: 'Bible AI untuk persiapan khotbah' },
   ai_teaser_pastor_sub: { en: 'It finds the sources, names the licence, and points you at the passages. You write the message.', es: 'Encuentra las fuentes, nombra la licencia y te señala los pasajes. Tú escribes el mensaje.', pt: 'Ele encontra as fontes, nomeia a licença e indica as passagens. Você escreve a mensagem.', id: 'Menemukan sumber, menyebutkan lisensinya, dan menunjukkan bagian yang dimaksud. Anda yang menulis pesannya.' },
+  // -- B09-07: campus worked out, one question; Settings sentence --
+  campus_confirm_q: { en: 'Are you part of {campus}?', es: '¿Eres parte de {campus}?', pt: 'Você faz parte de {campus}?', id: 'Apakah Anda bagian dari {campus}?' },
+  campus_which_q: { en: 'Which Futures campus are you part of?', es: '¿De qué campus de Futures eres parte?', pt: 'De qual campus da Futures você faz parte?', id: 'Anda bagian dari kampus Futures yang mana?' },
+  campus_confirm_yes: { en: 'Yes', es: 'Sí', pt: 'Sim', id: 'Ya' },
+  campus_confirm_yes_aria: { en: 'Yes, {campus} is my campus', es: 'Sí, {campus} es mi campus', pt: 'Sim, {campus} é o meu campus', id: 'Ya, {campus} adalah kampus saya' },
+  campus_confirm_other: { en: 'Another campus', es: 'Otro campus', pt: 'Outro campus', id: 'Kampus lain' },
+  campus_somewhere_else: { en: 'Somewhere else', es: 'En otro lugar', pt: 'Em outro lugar', id: 'Di tempat lain' },
+  campus_near_you: { en: 'Near you', es: 'Cerca de ti', pt: 'Perto de você', id: 'Di dekat Anda' },
+  campus_why_param: { en: 'From the link you opened.', es: 'Por el enlace que abriste.', pt: 'Pelo link que você abriu.', id: 'Dari tautan yang Anda buka.' },
+  campus_why_pco: { en: 'From your church record.', es: 'Según tu registro en la iglesia.', pt: 'Pelo seu cadastro na igreja.', id: 'Dari data gereja Anda.' },
+  campus_why_town: { en: 'It is the campus nearest you.', es: 'Es el campus más cercano a ti.', pt: 'É o campus mais perto de você.', id: 'Ini kampus yang paling dekat dengan Anda.' },
+  campus_choose_aria: { en: 'Choose {campus}', es: 'Elegir {campus}', pt: 'Escolher {campus}', id: 'Pilih {campus}' },
+  settings_sum_chapter: { en: 'You read {t}, one chapter a day', es: 'Lees {t}, un capítulo al día', pt: 'Você lê {t}, um capítulo por dia', id: 'Anda membaca {t}, satu pasal sehari' },
+  settings_sum_chapters: { en: 'You read {t}, {n} chapters a day', es: 'Lees {t}, {n} capítulos al día', pt: 'Você lê {t}, {n} capítulos por dia', id: 'Anda membaca {t}, {n} pasal sehari' },
+  settings_sum_new: { en: 'You read {t}, one day of your journey at a time', es: 'Lees {t}, un día de tu camino a la vez', pt: 'Você lê {t}, um dia da sua jornada de cada vez', id: 'Anda membaca {t}, satu hari perjalanan Anda setiap kali' },
+  settings_sum_comfort: { en: 'You read {t} at your own pace', es: 'Lees {t} a tu propio ritmo', pt: 'Você lê {t} no seu próprio ritmo', id: 'Anda membaca {t} sesuai kecepatan Anda' },
+  settings_sum_reminder: { en: ', with a reminder at {time}', es: ', con un recordatorio a las {time}', pt: ', com um lembrete às {time}', id: ', dengan pengingat pukul {time}' },
+  settings_sum_campus: { en: 'Your campus is {campus}.', es: 'Tu campus es {campus}.', pt: 'Seu campus é {campus}.', id: 'Kampus Anda adalah {campus}.' },
+  settings_sum_no_campus: { en: 'You have not chosen a campus yet.', es: 'Aún no has elegido tu campus.', pt: 'Você ainda não escolheu seu campus.', id: 'Anda belum memilih kampus.' },
 };
 
 export function t(key: string, lang?: string): string {
