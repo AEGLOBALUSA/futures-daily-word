@@ -10,6 +10,7 @@ const KEYS: Record<string, string[]> = {
   next_read_day: ['{n}'],
   next_sermon_notes: [],
   next_write_it_down: [],
+  next_finish_passage: ['{passage}'],
   next_write_prompt: ['{passage}'],
   next_tomorrow: ['{passage}'],
   next_done_today: [],

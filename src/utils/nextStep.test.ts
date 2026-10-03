@@ -86,6 +86,14 @@ describe('nextStep: the order', () => {
     expect(s.labelKey).not.toMatch(/mark/i);
   });
 
+  it('5. the passage already open (returning paths arrive with it open): the words point at the one Mark as read, no button', () => {
+    const s = nextStep(state({ passageOpen: true }));
+    expect(s).toMatchObject({ kind: 'reading', step: 5, labelKey: 'next_finish_passage', params: { passage: 'Luke 5' }, action: 'none' });
+    expect(nextStep(state({ persona: 'comfort', passage: 'Psalm 23', passageOpen: true }))).toMatchObject({ kind: 'comfort', action: 'none', labelKey: 'next_finish_passage' });
+    // once read, the open passage changes nothing: Write it down follows
+    expect(nextStep(state({ passageOpen: true, readDoneToday: true })).kind).toBe('write');
+  });
+
   it('6. returning path, Sunday window, reading done: Open today\'s sermon notes', () => {
     const s = nextStep(state({ readDoneToday: true, sundayWindow: true, sermonNotesPublished: true }));
     expect(s).toMatchObject({ kind: 'sunday_notes', step: 6, labelKey: 'next_sermon_notes', action: 'open_notes', whyKey: 'next_why_sunday' });

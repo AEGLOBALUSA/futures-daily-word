@@ -35,6 +35,8 @@ export interface HomeNextStepInput {
   /** Today's hero reading (heroChapterRefs[0]). */
   passage: string | null;
   readDoneToday: boolean;
+  /** Today's passage is open in the hero right now. */
+  passageOpen?: boolean;
   /** I'm New: the journey, the day on screen and whether today's day is finished. */
   pathwayEnrolled: boolean;
   pathwayData: PathwayData | null;
@@ -158,6 +160,7 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
       journeyDayDone: input.journeyDayDone,
       passage: input.passage,
       readDoneToday: input.readDoneToday,
+      passageOpen: !!input.passageOpen,
       reflectedToday: reflected,
       sundayWindow,
       sermonNotesPublished: input.congregation in published ? published[input.congregation] : null,
@@ -171,7 +174,7 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     tick, today, sundayWindow, published, campus?.name,
-    input.persona, input.isNewPath, input.passage, input.readDoneToday,
+    input.persona, input.isNewPath, input.passage, input.readDoneToday, input.passageOpen,
     input.pathwayEnrolled, input.pathwayData, input.pathwayDisplayDay, input.journeyDayDone,
     planKey, slotKey, input.email, input.congregation, input.dayIndex,
   ]);

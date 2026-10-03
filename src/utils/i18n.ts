@@ -1055,6 +1055,7 @@ const UI: Translations = {
   next_read_passage: { en: 'Read {passage}', es: 'Lee {passage}', pt: 'Leia {passage}', id: 'Baca {passage}' },
   next_read_day: { en: 'Read Day {n}', es: 'Lee el d\u00eda {n}', pt: 'Leia o dia {n}', id: 'Baca Hari {n}' },
   next_sermon_notes: { en: "Open today's sermon notes", es: 'Abre las notas del mensaje de hoy', pt: 'Abra as notas da mensagem de hoje', id: 'Buka catatan khotbah hari ini' },
+  next_finish_passage: { en: 'Mark as read when you finish {passage}', es: 'Marca como le\u00eddo cuando termines {passage}', pt: 'Marque como lido quando terminar {passage}', id: 'Tandai sudah dibaca setelah selesai membaca {passage}' },
   next_write_it_down: { en: 'Write it down', es: 'Escr\u00edbelo', pt: 'Escreva', id: 'Tuliskan' },
   next_write_prompt: { en: 'What is God saying to you in {passage}?', es: '\u00bfQu\u00e9 te est\u00e1 diciendo Dios en {passage}?', pt: 'O que Deus est\u00e1 dizendo a voc\u00ea em {passage}?', id: 'Apa yang Tuhan katakan kepadamu dalam {passage}?' },
   next_tomorrow: { en: 'Tomorrow: {passage}', es: 'Ma\u00f1ana: {passage}', pt: 'Amanh\u00e3: {passage}', id: 'Besok: {passage}' },

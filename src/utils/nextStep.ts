@@ -13,6 +13,9 @@
  *      (Any path with no reading at all → Choose your plan.)
  *   5. Today's reading not marked → Read {passage}. Mark as read stays at the
  *      end of the passage, so there is never a second Mark as read button.
+ *      When the passage is already open (returning paths arrive with it open)
+ *      the card says "Mark as read when you finish {passage}" with no button,
+ *      and the one Mark as read at the passage's end carries the pulse.
  *   6. Returning path, Sunday window, notes published, reading done → Open
  *      today's sermon notes (the 10 Sep demotion: the reading comes first).
  *   7. Read, not reflected, not quietened → Write it down.
@@ -37,6 +40,7 @@ export type NextKind =
   | 'journey_day'
   | 'plan_setup'
   | 'read'
+  | 'reading'
   | 'sunday_notes'
   | 'write'
   | 'setup_ask'
@@ -51,7 +55,7 @@ export type NextAction =
   | 'open_plans'     // the Plans tab
   | 'write'          // open the passage and its in-place reflection box
   | 'install' | 'email' | 'upgrade' // the set-up ask's own component, in the card
-  | 'none';
+  | 'none';          // no button: the step is on the page already, or the day is done
 
 export interface NextStepState {
   /** Persona id from setup (new_to_faith, congregation, deeper_study, pastor_leader, comfort). */
@@ -66,6 +70,13 @@ export interface NextStepState {
   passage: string | null;
   /** Mark as read was tapped today. */
   readDoneToday: boolean;
+  /**
+   * Today's passage is already open in the hero. Returning paths arrive with it
+   * open (his 1 Sep ruling, "Arrival IS the reading"), so the next step is to
+   * finish it: the one Mark as read at its end is the step, and the card only
+   * says so in words.
+   */
+  passageOpen?: boolean;
   /** A reflection was saved to the journal today. */
   reflectedToday: boolean;
   /** Sunday window on the reader's campus clock. */
@@ -130,7 +141,9 @@ export function nextStep(state: NextStepState): NextStep {
 
   // 1. Comfort: the auto-served passage, nothing else competes with it.
   if (state.persona === 'comfort' && !state.readDoneToday && passage) {
-    return { kind: 'comfort', step: 1, labelKey: 'next_read_passage', params: { passage }, action: 'open_passage' };
+    return state.passageOpen
+      ? { kind: 'comfort', step: 1, labelKey: 'next_finish_passage', params: { passage }, action: 'none' }
+      : { kind: 'comfort', step: 1, labelKey: 'next_read_passage', params: { passage }, action: 'open_passage' };
   }
 
   if (state.isNewPath) {
@@ -152,8 +165,11 @@ export function nextStep(state: NextStepState): NextStep {
     return { kind: 'plan_setup', step: 4, labelKey: 'next_choose_plan', params: {}, action: 'open_plans' };
   }
 
-  // 5. Today's reading.
+  // 5. Today's reading. Already open: finish it with the one Mark as read at its end.
   if (passage && !state.readDoneToday && !state.isNewPath) {
+    if (state.passageOpen) {
+      return { kind: 'reading', step: 5, labelKey: 'next_finish_passage', params: { passage }, action: 'none' };
+    }
     return { kind: 'read', step: 5, labelKey: 'next_read_passage', params: { passage }, action: 'open_passage' };
   }
 
