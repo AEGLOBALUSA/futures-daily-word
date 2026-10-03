@@ -45,6 +45,9 @@ const {
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
+const { quickNotes, hubQuestions, nextSundayFor, isForSunday } = require("./lib/quick-notes");
+const { isCongregationId } = require("./lib/congregations");
+const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
 const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow } = require("./lib/campuses");
@@ -400,7 +403,13 @@ async function buildFormattedFromPlan(plan, { useAI, congregation }) {
     throw err;
   }
   const row = await findPublished(patch.target, congregation);
-  const base = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
+  const current = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
+  // A new title is a new message (B09-10, 3 Oct 2026): it never inherits the
+  // current message's notes, details or id. Without this a hub save of next
+  // Sunday's title with no notes yet published LAST week's notes under it.
+  const newTitle = String(patch.title || "").trim().toLowerCase();
+  const sameMessage = !!current && (!newTitle || newTitle === String(current.title || "").trim().toLowerCase());
+  const base = sameMessage ? current : null;
   const youtubeUrl = youtubeWatchUrl(patch.youtubeUrl) || (base && base.youtubeUrl) || "";
 
   if (plan.youtubeOnly && base) {
@@ -443,6 +452,8 @@ async function buildFormattedFromPlan(plan, { useAI, congregation }) {
 
   const formatted = await formatSermon(fields, { useAI: shouldAI, base });
   if (youtubeUrl) formatted.sermon.youtubeUrl = youtubeUrl;
+  // The same message with only its link or details changed keeps its row.
+  if (base && base.id && !hasNotesContent(patch)) formatted.sermon.id = base.id;
   if (plan.youtubeOnly) formatted.sermon.youtubeOnly = true;
   if (plan.notesPolish && base) formatted.sermon.id = base.id;
   return formatted;
@@ -1098,6 +1109,68 @@ exports.handler = async (event) => {
         }
         throw fmtErr;
       }
+    }
+
+    // ── Sunday's notes, pasted once (B09-10) ──
+    // Hub, media and admin staff only: the same people who may publish Sermon
+    // Notes through `submit`. Neither action publishes anything.
+    if (action === "notes_quick_status" || action === "notes_quick") {
+      if (!["admin", "hub", "media"].includes(staff.role)) {
+        console.log("[intake] notes_quick refused", JSON.stringify({ email: staff.email, role: staff.role, action }));
+        return json(event, 403, { error: "Only hub, media or admin staff can put up Sunday's notes.", code: "role" });
+      }
+      // The church: the one asked for, else the staff member's own campus's, else Futures USA.
+      const congregation = isCongregationId(body.congregation)
+        ? body.congregation
+        : (staff.campusId && campusCongregation(staff.campusId, await campusList())) || DEFAULT_CONGREGATION;
+      const { data: currentRow, error: curErr } = await db()
+        .from("published_sermons")
+        .select("id, sermon, is_current, congregation, published_at")
+        .eq("is_current", true)
+        .eq("congregation", congregation)
+        .maybeSingle();
+      if (curErr) throw curErr;
+      const now = new Date();
+      const sunday = nextSundayFor(congregation, now);
+      if (action === "notes_quick_status") {
+        const s = currentRow && currentRow.sermon ? currentRow.sermon : null;
+        return json(event, 200, {
+          congregation,
+          congregationName: congregationName(congregation),
+          sunday,
+          up: isForSunday(currentRow, sunday, congregation),
+          current: s ? { title: String(s.title || ""), date: String(s.date || "") } : null
+        });
+      }
+      const text = typeof body.text === "string" ? body.text : "";
+      if (text.length > 20000) {
+        return json(event, 400, { error: "That is longer than Sunday's notes can be. Paste the outline only.", code: "too_long" });
+      }
+      const { data: questions, error: qErr } = await db()
+        .from("intake_questions")
+        .select("*")
+        .eq("enabled", true)
+        .order("sort_order", { ascending: true });
+      if (qErr) throw qErr;
+      const out = await quickNotes({
+        questions: hubQuestions(questions, staff.role),
+        text,
+        congregation,
+        now,
+        overrides: body.details,
+        preview: body.preview,
+        current: currentRow,
+        format: formatSermon
+      });
+      if (out.error) {
+        console.log("[intake] notes_quick refused", JSON.stringify({ email: staff.email, reason: out.code }));
+        return json(event, 400, { error: out.error, code: out.code });
+      }
+      console.log("[intake] notes_quick", JSON.stringify({
+        email: staff.email, congregation, sunday, source: out.source, youtubeOnly: out.youtubeOnly,
+        needs: out.needs ? out.needs.key : null, id: out.preview && out.preview.id
+      }));
+      return json(event, 200, { ...out, congregation, congregationName: congregationName(congregation), published: false });
     }
 
     if (action === "sermons_list") {

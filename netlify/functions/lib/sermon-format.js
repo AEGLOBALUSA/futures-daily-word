@@ -291,8 +291,13 @@ function sanitizeAiSermon(parsed, fields, base) {
     : [];
   const notes = answersToOutline(fields) || String((fields && fields.outline) || "").trim();
   const fromNotes = extractKeyVerseFromNotes(notes);
+  // A titled message is a message of its own: it keeps the base's id only when
+  // it is the base being cleaned up (notes with no title, the media job), the
+  // same rule as formatSermonDeterministic. Before 3 Oct 2026 a hub save with a
+  // title took the CURRENT message's id here and overwrote last week's row.
+  const keepBaseId = !!(base && base.id && !(fields && fields.title));
   const sermon = tightenSermon({
-    id: (base && base.id) || slugify(title) + "-" + date,
+    id: keepBaseId ? base.id : slugify(title) + "-" + date,
     title,
     series: sanitize(parsed.series || fallback.series || "", 200),
     date,
@@ -320,7 +325,11 @@ Rules:
 - Do not invent points. Keep the pastor's meaning. youtubeUrl is a YouTube watch URL or empty — video is block 1 only, never inside a section.
 - keyVerse is a short reference (e.g. John 21:15-19) taken from the pasted notes. keyVerseText is the verse wording only if it is in the notes. If the notes have no scripture, leave both "". Never invent a verse.`;
 
-async function formatSermon(fields, { useAI, base } = {}) {
+/**
+ * `retry: false` makes at most ONE model call (the quick notes path, B09-10);
+ * the default keeps the second, shorter attempt the hub form has always made.
+ */
+async function formatSermon(fields, { useAI, base, retry = true } = {}) {
   const fallback = formatSermonDeterministic(fields, base);
   const notes = answersToOutline(fields) || String((fields && fields.outline) || "").trim();
   if (!useAI || !notes) {
@@ -338,6 +347,7 @@ async function formatSermon(fields, { useAI, base } = {}) {
   let parsed = extractJson(text);
   let sermon = sanitizeAiSermon(parsed, fields, base);
   if (sermon) return { sermon, source: "ai" };
+  if (!retry) return { sermon: fallback, source: "deterministic" };
   const shorter = await callClaudeMessages({
     system: FORMAT_SYSTEM + "\nTOO LONG OR INVALID. Cut to 4 sections, 3–5 short points each, under 400 words.",
     user,
