@@ -17,6 +17,9 @@
  * The claim key is notes_missing:<congregation>:<sunday>:<recipient>, so a
  * second run in the same hour (or a retry) claims nothing and sends nothing.
  *
+ * Futuros USA is set up, not launched: it is skipped until its gate is on
+ * (NOT_LAUNCHED below), so nothing is logged or mailed about it.
+ *
  * The words are a template (no model), English, and Spanish for Futuros USA.
  * The owner reads them before the kind leaves off. Recipients come from the
  * roster only, never from a hard-coded address.
@@ -25,7 +28,7 @@
  */
 const { CONGREGATIONS, congregationName } = require("./congregations");
 const { congregationTimeZone, localParts, parseDateOnly } = require("./sermon-window");
-const { isForSunday } = require("./quick-notes");
+const { isForSunday, rowSunday } = require("./quick-notes");
 const { modeOf, raiseStaffEmail, normalizeRecipient } = require("./prompts");
 const { loadCampuses, campusCongregation } = require("./campuses");
 
@@ -33,6 +36,20 @@ const KIND = "dw_sunday_notes_missing";
 const NUDGE_HOUR = 18;
 const RECIPIENT_ROLES = ["hub", "admin"];
 const DEFAULT_SITE = "https://futuresdailyword.com";
+
+/**
+ * Congregations set up but not launched: Futuros USA (Ashley, 30 Sep 2026:
+ * "set up, not launched"). The check skips them, so shadow logs no row and
+ * mails no one about a page that is not open yet. An explicit gate that
+ * defaults to off: Futuros USA joins only when the site's environment says
+ * DW_FUTUROS_NOTES_NUDGE=on, until B09-13's Daily Word nation gate replaces this.
+ */
+const NOT_LAUNCHED = { "futuros-us": "DW_FUTUROS_NOTES_NUDGE" };
+
+function congregationOn(congregation, env = process.env) {
+  const flag = NOT_LAUNCHED[congregation];
+  return !flag || String((env && env[flag]) || "").trim().toLowerCase() === "on";
+}
 
 function pad(n) {
   return String(n).padStart(2, "0");
@@ -86,25 +103,47 @@ function shortDate(value, lang) {
 }
 
 /**
- * The email, word for word. `current` is the congregation's current published
- * sermon (or null). Spanish for Futuros USA, English for the others.
+ * Which message the page still shows, relative to the Sunday the nudge is for:
+ * "last" (the Sunday before it), "later" (a Sunday after it) or "earlier"
+ * (any older one, or a row that says neither its date nor when it went up).
  */
-function nudgeEmail(congregation, current, link) {
+function whichWeek(row, congregation, sunday) {
+  const s = rowSunday(row, congregation);
+  const d = parseDateOnly(sunday);
+  if (!s || !d) return "earlier";
+  const prev = new Date(Date.UTC(d.year, d.month - 1, d.day - 7));
+  const prevYmd = `${prev.getUTCFullYear()}-${pad(prev.getUTCMonth() + 1)}-${pad(prev.getUTCDate())}`;
+  if (s === prevYmd) return "last";
+  return s > sunday ? "later" : "earlier";
+}
+
+/**
+ * The email, word for word. `current` is the congregation's current published
+ * sermon (or null); `week` says which week it is from ("last", "earlier" or
+ * "later", see whichWeek). Spanish for Futuros USA, English for the others.
+ */
+function nudgeEmail(congregation, current, link, week = "last") {
   const name = congregationName(congregation);
   const spanish = congregation === "futuros-us";
   const title = current && current.title ? String(current.title).trim() : "";
   const when = current ? shortDate(current.date, spanish ? "es" : "en") : "";
   if (spanish) {
+    const which = week === "later" ? "un mensaje para un domingo posterior"
+      : week === "earlier" ? "un mensaje anterior"
+        : "el mensaje de la semana pasada";
     const lastWeek = title
-      ? `La página de ${name} todavía muestra el mensaje de la semana pasada («${title}»${when ? `, ${when}` : ""}).`
+      ? `La página de ${name} todavía muestra ${which} («${title}»${when ? `, ${when}` : ""}).`
       : `La página de ${name} todavía no tiene un mensaje para el domingo.`;
     return {
       subject: `Las notas del domingo para ${name} aún no están publicadas`,
       text: `${lastWeek} Si el sermón se preparó en Sermon Prep, «Send to Sunday» lo publica; si no, pega las notas aquí:\n${link}\n\nFutures Daily Word`
     };
   }
+  const which = week === "later" ? "a message for a later Sunday"
+    : week === "earlier" ? "an earlier message"
+      : "last week's message";
   const lastWeek = title
-    ? `The ${name} page still shows last week's message (“${title}”${when ? `, ${when}` : ""}).`
+    ? `The ${name} page still shows ${which} (“${title}”${when ? `, ${when}` : ""}).`
     : `The ${name} page has no message for Sunday yet.`;
   return {
     subject: `Sunday's notes for ${name} aren't up yet`,
@@ -121,7 +160,7 @@ function staffLink() {
  * One run of the hourly check. Never throws. Returns a summary for the log:
  * { mode, due: [congregation], results: [{ congregation, up, sent, logged, skipped }] }.
  */
-async function runSundayNotesCheck(db, { now = new Date(), link = staffLink() } = {}) {
+async function runSundayNotesCheck(db, { now = new Date(), link = staffLink(), env = process.env } = {}) {
   const summary = { mode: "off", due: [], results: [] };
   try {
     // The switch first: while the kind is off this reads nothing else.
@@ -130,6 +169,7 @@ async function runSundayNotesCheck(db, { now = new Date(), link = staffLink() } 
     if (mode === "off") return summary;
 
     const due = CONGREGATIONS
+      .filter((c) => congregationOn(c.id, env))
       .map((c) => ({ congregation: c.id, sunday: nudgeSunday(c.id, now) }))
       .filter((d) => d.sunday);
     summary.due = due.map((d) => d.congregation);
@@ -164,7 +204,7 @@ async function runSundayNotesCheck(db, { now = new Date(), link = staffLink() } 
         continue;
       }
       const current = row && row.sermon ? row.sermon : null;
-      const { subject, text } = nudgeEmail(congregation, current, link);
+      const { subject, text } = nudgeEmail(congregation, current, link, whichWeek(row, congregation, sunday));
       for (const recipient of recipientsFor(congregation, roster, campuses)) {
         const out = await raiseStaffEmail(db, {
           kind: KIND,
@@ -190,4 +230,4 @@ async function runSundayNotesCheck(db, { now = new Date(), link = staffLink() } 
   }
 }
 
-module.exports = { KIND, NUDGE_HOUR, nudgeSunday, recipientsFor, nudgeEmail, runSundayNotesCheck, staffLink };
+module.exports = { KIND, NUDGE_HOUR, nudgeSunday, recipientsFor, congregationOn, whichWeek, nudgeEmail, runSundayNotesCheck, staffLink };

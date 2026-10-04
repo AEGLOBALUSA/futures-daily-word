@@ -129,18 +129,43 @@ describe('runSundayNotesCheck', () => {
     expect(us.map((r) => r.recipient).sort()).toEqual([OWNER, 'hub.any@example.com', 'hub.usa@example.com'].sort());
     expect(us.every((r) => r.dedupe_key.startsWith('notes_missing:futures-us:2026-10-04:'))).toBe(true);
     expect(us.every((r) => r.mode === 'shadow' && r.written_by === 'template')).toBe(true);
-    // Futuros USA has nothing published: it is stale too, in Spanish.
-    expect(logFor('futuros-us').map((r) => r.recipient).sort()).toEqual([OWNER, 'hub.any@example.com'].sort());
+    // Futuros USA is set up, not launched: nothing is logged or mailed about it.
+    expect(logFor('futuros-us')).toHaveLength(0);
     expect(logFor('futures-au')).toHaveLength(0); // not 18:00 in Adelaide
-    // Only the owner (the shadow list) is emailed: once per congregation.
-    expect(sent.map((m) => m.to[0])).toEqual([OWNER, OWNER]);
-    expect(fake.tables.dw_prompt_log.filter((r) => r.delivered).map((r) => r.recipient)).toEqual([OWNER, OWNER]);
+    // Only the owner (the shadow list) is emailed: once, for Futures USA.
+    expect(sent.map((m) => m.to[0])).toEqual([OWNER]);
+    expect(fake.tables.dw_prompt_log.filter((r) => r.delivered).map((r) => r.recipient)).toEqual([OWNER]);
     const english = sent.find((m) => m.subject.includes('Futures USA'));
     expect(english.subject).toBe("Sunday's notes for Futures USA aren't up yet");
-    expect(english.text).toContain('Grace Upon Grace');
+    expect(english.text).toContain("still shows last week's message (“Grace Upon Grace”, 27 Sep)");
     expect(english.text).toContain(LINK);
+  });
+
+  it('Futuros USA joins only when its gate is on, in Spanish', async () => {
+    expect(sn.congregationOn('futuros-us', {})).toBe(false);
+    expect(sn.congregationOn('futuros-us', { DW_FUTUROS_NOTES_NUDGE: 'off' })).toBe(false);
+    expect(sn.congregationOn('futures-us', {})).toBe(true);
+    expect(sn.congregationOn('futures-au', {})).toBe(true);
+    setup({ mode: 'shadow' });
+    const out = await sn.runSundayNotesCheck(fake, { now: SAT_NY_1810, link: LINK, env: {} });
+    expect(out.due).toEqual(['futures-us']);
+    expect(logFor('futuros-us')).toHaveLength(0);
+    setup({ mode: 'shadow' });
+    sent = [];
+    await sn.runSundayNotesCheck(fake, { now: SAT_NY_1810, link: LINK, env: { DW_FUTUROS_NOTES_NUDGE: 'on' } });
+    // Futuros USA has nothing published: it is stale too, in Spanish.
+    expect(logFor('futuros-us').map((r) => r.recipient).sort()).toEqual([OWNER, 'hub.any@example.com'].sort());
     const spanish = sent.find((m) => m.subject.includes('Futuros USA'));
     expect(spanish.subject).toBe('Las notas del domingo para Futuros USA aún no están publicadas');
+  });
+
+  it('a page two or more Sundays old says an earlier message, not last week\'s', async () => {
+    const older = { ...lastWeek('futures-us'), published_at: '2026-09-17T15:00:00Z', sermon: { ...lastWeek('futures-us').sermon, title: 'Hope', date: '2026-09-20' } };
+    setup({ mode: 'shadow', sermons: [older] });
+    await sn.runSundayNotesCheck(fake, { now: SAT_NY_1810, link: LINK, env: {} });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toContain('still shows an earlier message (“Hope”, 20 Sep)');
+    expect(sent[0].text).not.toContain("last week's");
   });
 
   it('a second run in the same hour claims nothing and sends nothing', async () => {
@@ -206,5 +231,22 @@ describe('the words', () => {
     expect(sn.nudgeEmail('futures-us', { title: 'Grace Upon Grace', date: '2026-09-27' }, LINK).text)
       .toContain("still shows last week's message (“Grace Upon Grace”, 27 Sep)");
     expect(sn.nudgeEmail('futuros-us', null, LINK).text).toContain('pega las notas aquí');
+    for (const week of ['last', 'earlier', 'later']) {
+      for (const c of ['futures-us', 'futuros-us']) {
+        const { text } = sn.nudgeEmail(c, { title: 'Hope', date: '2026-09-20' }, LINK, week);
+        expect(lintStaffText(text).ok).toBe(true);
+      }
+    }
+    expect(sn.nudgeEmail('futures-us', { title: 'Hope', date: '2026-09-20' }, LINK, 'earlier').text).toContain('still shows an earlier message (“Hope”, 20 Sep)');
+    expect(sn.nudgeEmail('futuros-us', { title: 'Hope', date: '2026-09-20' }, LINK, 'earlier').text).toContain('todavía muestra un mensaje anterior («Hope», 20 sept)');
+  });
+
+  it('which week the page shows, against the Sunday the nudge is for', () => {
+    const row = (date, published_at = '2026-09-01T12:00:00Z') => ({ congregation: 'futures-us', published_at, sermon: { title: 'X', date } });
+    expect(sn.whichWeek(row('2026-09-27'), 'futures-us', '2026-10-04')).toBe('last');
+    expect(sn.whichWeek(row('2026-09-20'), 'futures-us', '2026-10-04')).toBe('earlier');
+    expect(sn.whichWeek(row('2026-10-11'), 'futures-us', '2026-10-04')).toBe('later');
+    expect(sn.whichWeek({ congregation: 'futures-us', sermon: { title: 'X' } }, 'futures-us', '2026-10-04')).toBe('earlier');
+    expect(sn.whichWeek(null, 'futures-us', '2026-10-04')).toBe('earlier');
   });
 });
