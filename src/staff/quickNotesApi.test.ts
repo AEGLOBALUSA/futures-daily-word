@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { QuickError, needsTheForm, needsQuestion, quickErrorText, withOtherAnswer, type QuickResult } from './quickNotesApi';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { QuickError, changeDetailsSeed, needsTheForm, needsQuestion, quickErrorText, quickNotesPublish, withOtherAnswer, type QuickResult } from './quickNotesApi';
+import { intake } from './api';
 import { t } from '../utils/i18n';
+
+vi.mock('./api', () => ({ intake: vi.fn() }));
 
 const base = (needs: QuickResult['needs']): QuickResult => ({
   congregation: 'futures-us', congregationName: 'Futures USA', sunday: '2026-10-04',
@@ -57,5 +60,53 @@ describe('a missing detail the one box cannot take goes to the form', () => {
   it('the question names the form for a pick-list detail', () => {
     expect(needsQuestion(pick, 'en')).toBe(t('staff_quick_ask_in_form', 'en').replace('{label}', 'Campus'));
     expect(needsQuestion({ key: 'series', questionId: 'q3', label: 'Series', type: 'text' }, 'es')).toBe(t('staff_quick_ask_series', 'es'));
+  });
+});
+
+describe('a link that joins the message just preached (review MUST, 4 Oct 2026)', () => {
+  const YT = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+  const attachResult = (): QuickResult => ({
+    ...base(null),
+    details: { date: '2026-10-04', title: 'Ordinary Faith', speaker: 'S', series: '', youtubeUrl: YT, keyVerse: '' },
+    youtubeOnly: true,
+    preview: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', date: '2026-10-04', speaker: 'S', youtubeUrl: YT },
+    answers: { 'x-title': 'Ordinary Faith', 'x-date': '2026-10-04' },
+    attach: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', job: 'media', answers: { pick: 'ordinary-faith-2026-10-04', yt: YT } },
+  });
+  afterEach(() => { vi.mocked(intake).mockReset(); vi.unstubAllGlobals(); });
+
+  it('publishes through submit with the media job and the media answers only, never a formatted sermon', async () => {
+    vi.mocked(intake).mockResolvedValue({ published: true, publish_result: { sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith' } } });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'ordinary-faith-2026-10-04', youtubeUrl: YT } }) })));
+    const out = await quickNotesPublish(attachResult());
+    expect(vi.mocked(intake)).toHaveBeenCalledWith('submit', { answers: { pick: 'ordinary-faith-2026-10-04', yt: YT }, job: 'media', congregation: 'futures-us' });
+    expect(out).toEqual({ id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', verified: true });
+  });
+
+  it('is verified only when the page shows the new link', async () => {
+    vi.mocked(intake).mockResolvedValue({ published: true, publish_result: { sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith' } } });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'ordinary-faith-2026-10-04', youtubeUrl: '' } }) })));
+    expect((await quickNotesPublish(attachResult())).verified).toBe(false);
+  });
+
+  it('notes still publish through the hub job with the preview', async () => {
+    vi.mocked(intake).mockResolvedValue({ published: true, publish_result: { sermon: { id: 'p1', title: 'T' } } });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'p1' } }) })));
+    const r = { ...base(null), preview: { id: 'p1', title: 'T', date: '2026-10-04', speaker: 'S' }, attach: null };
+    await quickNotesPublish(r);
+    expect(vi.mocked(intake)).toHaveBeenCalledWith('submit', { answers: { q1: 'a' }, job: 'hub', congregation: 'futures-us', formatted_sermon: r.preview });
+  });
+
+  it('Change details opens the media form on that message; notes open the hub form', () => {
+    expect(changeDetailsSeed(attachResult())).toEqual({ answers: { pick: 'ordinary-faith-2026-10-04', yt: YT }, preview: null, congregation: 'futures-us', job: 'media' });
+    expect(changeDetailsSeed(base(null))).toMatchObject({ answers: { q1: 'a' }, job: 'hub' });
+  });
+
+  it('a word answer to a media-form question folds into the attach answers', () => {
+    const r = { ...attachResult(), needs: { key: 'other' as const, questionId: 'note', label: 'Note', type: 'text' } };
+    const next = withOtherAnswer(r, ' ok ');
+    expect(next.needs).toBeNull();
+    expect(next.attach?.answers).toEqual({ pick: 'ordinary-faith-2026-10-04', yt: YT, note: 'ok' });
+    expect(next.answers).toEqual(r.answers);
   });
 });

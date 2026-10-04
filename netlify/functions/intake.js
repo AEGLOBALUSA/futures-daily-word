@@ -45,7 +45,7 @@ const {
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
-const { quickNotes, hubQuestions, nextSundayFor, isForSunday } = require("./lib/quick-notes");
+const { quickNotes, hubQuestions, mediaQuestions, nextSundayFor, isForSunday } = require("./lib/quick-notes");
 const { isCongregationId } = require("./lib/congregations");
 const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
@@ -1160,6 +1160,7 @@ exports.handler = async (event) => {
         overrides: body.details,
         preview: body.preview,
         current: currentRow,
+        mediaQuestions: mediaQuestions(questions, staff.role),
         format: formatSermon
       });
       if (out.error) {
@@ -1168,7 +1169,7 @@ exports.handler = async (event) => {
       }
       console.log("[intake] notes_quick", JSON.stringify({
         email: staff.email, congregation, sunday, source: out.source, youtubeOnly: out.youtubeOnly,
-        needs: out.needs ? out.needs.key : null, id: out.preview && out.preview.id
+        needs: out.needs ? out.needs.key : null, id: out.preview && out.preview.id, attach: out.attach ? out.attach.id : null
       }));
       return json(event, 200, { ...out, congregation, congregationName: congregationName(congregation), published: false });
     }

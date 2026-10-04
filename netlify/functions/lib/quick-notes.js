@@ -18,7 +18,7 @@
  * at any instant. The tests live in tests/functions/quick-notes.test.js.
  */
 const { sanitize, slugify, youtubeWatchUrl, parseYoutubeId, questionVisibleForJob } = require("./intake-core");
-const { congregationTimeZone, localParts, serviceSunday, parseDateOnly } = require("./sermon-window");
+const { congregationTimeZone, localParts, serviceSunday, parseDateOnly, isCurrentAt } = require("./sermon-window");
 
 const MAX_TEXT = 20000;
 
@@ -41,6 +41,25 @@ function ymd(d) {
 function nextSundayFor(congregation, now = new Date()) {
   const p = localParts(now, congregationTimeZone(congregation));
   return ymd(serviceSunday(p.year, p.month, p.day));
+}
+
+/** `YYYY-MM-DD` moved by whole days. */
+function shiftDays(date, n) {
+  const d = parseDateOnly(date);
+  if (!d) return "";
+  const t = new Date(Date.UTC(d.year, d.month - 1, d.day) + n * 86400000);
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
+
+/**
+ * The Sunday just preached on the congregation's own clock: today on a Sunday,
+ * else the Sunday before. A YouTube link is the video of a message already
+ * preached, so this is the date a link on its own belongs to. `YYYY-MM-DD`.
+ */
+function lastSundayFor(congregation, now = new Date()) {
+  const p = localParts(now, congregationTimeZone(congregation));
+  const next = nextSundayFor(congregation, now);
+  return next === ymd(p) ? next : shiftDays(next, -7);
 }
 
 const LABELS = [
@@ -167,14 +186,14 @@ function answersByConfig(questions, { details, notes }) {
  * { key, questionId, label } or null. `key` is the sermon detail it fills, or
  * "other" for a required question the quick path does not know.
  */
-function firstMissing(questions, answers) {
+function firstMissing(questions, answers, audience = "hub") {
   const order = (q) => {
     const k = q.config && q.config.sermonKey;
     const i = DETAIL_KEYS.indexOf(k);
     return i < 0 ? DETAIL_KEYS.length : i;
   };
   const required = (questions || [])
-    .filter((q) => q && q.required && (q.audience === "hub" || q.audience === "all"))
+    .filter((q) => q && q.required && (q.audience === audience || q.audience === "all"))
     .filter((q) => q.type !== "yes_no" && q.type !== "corner_remove")
     .slice()
     .sort((a, b) => order(a) - order(b));
@@ -188,15 +207,58 @@ function firstMissing(questions, answers) {
   return null;
 }
 
+/**
+ * The Sunday a published row is for on that congregation's clock: its typed
+ * date's Sunday, else the Sunday on or after the day it was published.
+ * `YYYY-MM-DD`, or "" when the row says neither.
+ */
+function rowSunday(row, congregation) {
+  if (!row || !row.sermon) return "";
+  const typed = parseDateOnly(row.sermon.date);
+  if (typed) return ymd(serviceSunday(typed.year, typed.month, typed.day));
+  const at = new Date(row.published_at || NaN);
+  if (Number.isNaN(at.getTime())) return "";
+  const p = localParts(at, congregationTimeZone(congregation));
+  return ymd(serviceSunday(p.year, p.month, p.day));
+}
+
 /** Is this published row this Sunday's message on that congregation's clock? */
 function isForSunday(row, sunday, congregation) {
-  if (!row || !row.sermon) return false;
-  const typed = parseDateOnly(row.sermon.date);
-  if (typed) return ymd(serviceSunday(typed.year, typed.month, typed.day)) === sunday;
-  const at = new Date(row.published_at || NaN);
-  if (Number.isNaN(at.getTime())) return false;
-  const p = localParts(at, congregationTimeZone(congregation));
-  return ymd(serviceSunday(p.year, p.month, p.day)) === sunday;
+  const s = rowSunday(row, congregation);
+  return !!s && s === sunday;
+}
+
+/**
+ * The published message a YouTube link pasted on its own belongs to: the
+ * congregation's current row, still inside its week (lib/sermon-window.js),
+ * when it is the coming Sunday's message or the one just preached. On Monday
+ * the link is yesterday's video: it joins yesterday's message with that
+ * message's own date and id, and never becomes a new message for next Sunday
+ * (review of B09-10, 4 Oct 2026). null when there is no such row.
+ */
+function linkTarget(current, congregation, now = new Date()) {
+  if (!current || !current.sermon || !isCurrentAt(current, now)) return null;
+  const s = rowSunday(current, congregation);
+  if (!s) return null;
+  return s === nextSundayFor(congregation, now) || s === lastSundayFor(congregation, now) ? current : null;
+}
+
+/**
+ * The media form's answers for attaching a link to one published row: the
+ * row picked (sermon_pick / sermon_target) and the link, by CONFIG. `submit`
+ * with job "media" then merges the link into that row and keeps its date,
+ * id and published_at (intake.js publishApproved). null when the media form
+ * has no question that carries a link.
+ */
+function mediaAnswersByConfig(questions, { targetId, youtubeUrl }) {
+  const answers = {};
+  let carriesLink = false;
+  for (const q of questions || []) {
+    const cfg = q && q.config && typeof q.config === "object" ? q.config : {};
+    if (q.type === "sermon_pick" || cfg.publish === "sermon_target") { answers[q.id] = targetId; continue; }
+    if (cfg.sermonKey === "youtubeUrl") { answers[q.id] = youtubeUrl; carriesLink = true; }
+  }
+  return carriesLink ? answers : null;
 }
 
 /**
@@ -211,12 +273,15 @@ function isForSunday(row, sunday, congregation) {
  *   preview      the preview this box already made (a follow-up answer reuses
  *                it instead of calling the model again)
  *   current      the congregation's current published row, or null
+ *   mediaQuestions the media form's visible questions (for a link on its own)
  *   format       async (fields, { useAI, base, retry }) => { sermon, source }
  *
- * output: { sunday, details, guessed, youtubeOnly, preview, answers, needs, source }
- * or { error, code } when there is nothing to work from.
+ * output: { sunday, details, guessed, youtubeOnly, preview, answers, needs, source, attach }
+ * or { error, code } when there is nothing to work from. `attach` is set when
+ * a link on its own joins a message already up: { id, title, job: "media",
+ * answers } is what publishing sends to `submit` instead of the hub answers.
  */
-async function quickNotes({ questions, text, congregation, now = new Date(), overrides, preview, current, format }) {
+async function quickNotes({ questions, text, congregation, now = new Date(), overrides, preview, current, mediaQuestions, format }) {
   const parsed = parseQuickText(text);
   if (!parsed.notes && !parsed.youtubeUrl) {
     if (parsed.badLink) return { error: "Paste a YouTube watch, youtu.be, shorts, or embed link.", code: "bad_link" };
@@ -224,14 +289,17 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
   }
   const sunday = nextSundayFor(congregation, now);
   const given = cleanOverrides(overrides);
-  const currentIsThisSunday = isForSunday(current, sunday, congregation);
+  const target = parsed.youtubeOnly ? linkTarget(current, congregation, now) : null;
   const last = current && current.sermon ? current.sermon : null;
   const guessed = [];
+  let attach = null;
 
   const details = {
     title: given.title || parsed.labelled.title || "",
     speaker: given.speaker || parsed.labelled.speaker || "",
-    date: given.date || sunday,
+    // Notes are for the coming Sunday; a link on its own is the video of the
+    // message just preached.
+    date: given.date || (parsed.youtubeOnly ? lastSundayFor(congregation, now) : sunday),
     series: given.series || parsed.labelled.series || "",
     youtubeUrl: given.youtubeUrl || parsed.youtubeUrl || "",
     keyVerse: ""
@@ -241,13 +309,18 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
   let source = "none";
 
   if (parsed.youtubeOnly) {
-    // Only the link. When this Sunday's message is already up, the link joins
-    // it (the same message, the same details). Otherwise ask for the title.
-    if (currentIsThisSunday && last) {
-      for (const key of ["title", "speaker", "series"]) if (!details[key] && last[key]) details[key] = sanitize(String(last[key]), 200);
-      if (!given.date && parseDateOnly(last.date)) details.date = cleanDetail("date", last.date);
-      sermon = { ...last, youtubeUrl: details.youtubeUrl };
+    // Only the link. When the coming Sunday's message or the one just preached
+    // is up, the link joins it: its own title, date and id, nothing to ask,
+    // published through the media form's merge (`attach`). Otherwise ask for
+    // the title.
+    if (target) {
+      const msg = target.sermon;
+      for (const key of ["title", "speaker", "series"]) if (!details[key] && msg[key]) details[key] = sanitize(String(msg[key]), 200);
+      if (!given.date) details.date = cleanDetail("date", msg.date) || rowSunday(target, congregation);
+      sermon = { ...msg, id: msg.id || target.id, youtubeUrl: details.youtubeUrl };
       source = "current";
+      const media = mediaAnswersByConfig(mediaQuestions, { targetId: target.id, youtubeUrl: details.youtubeUrl });
+      if (media) attach = { id: target.id, title: details.title || sanitize(String(msg.title || ""), 200), job: "media", answers: media };
     } else if (details.title) {
       const out = await format({ title: details.title, speaker: details.speaker, date: details.date, series: details.series, youtubeUrl: details.youtubeUrl }, { useAI: false, base: null, retry: false });
       sermon = out && out.sermon;
@@ -301,7 +374,7 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
   }
 
   const answers = answersByConfig(questions, { details, notes: parsed.notes });
-  const needs = firstMissing(questions, answers);
+  const needs = attach ? firstMissing(mediaQuestions, attach.answers, "media") : firstMissing(questions, answers);
   return {
     sunday,
     details,
@@ -310,7 +383,8 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
     preview: needs && needs.key === "title" ? null : sermon,
     answers,
     needs,
-    source
+    source,
+    attach
   };
 }
 
@@ -319,15 +393,25 @@ function hubQuestions(questions, role) {
   return (questions || []).filter((q) => questionVisibleForJob(q, role, "hub"));
 }
 
+/** The media form's questions as `submit` sees them for the media job. */
+function mediaQuestions(questions, role) {
+  return (questions || []).filter((q) => questionVisibleForJob(q, role, "media"));
+}
+
 module.exports = {
   DETAIL_KEYS,
   nextSundayFor,
+  lastSundayFor,
   parseQuickText,
   titleFromFirstLine,
   cleanOverrides,
   answersByConfig,
   firstMissing,
+  rowSunday,
   isForSunday,
+  linkTarget,
+  mediaAnswersByConfig,
   quickNotes,
-  hubQuestions
+  hubQuestions,
+  mediaQuestions
 };

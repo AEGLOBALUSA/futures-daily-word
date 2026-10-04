@@ -44,6 +44,19 @@ export type QuickPreview = {
   youtubeUrl?: string;
 };
 
+/**
+ * A YouTube link on its own that joins a message already up (the coming
+ * Sunday's, or the one just preached): publishing sends these media-form
+ * answers to `submit` with job "media", which adds the link to that row and
+ * keeps its date, id and published_at.
+ */
+export type QuickAttach = {
+  id: string;
+  title: string;
+  job: 'media';
+  answers: Record<string, unknown>;
+};
+
 export type QuickResult = {
   congregation: CongregationId;
   congregationName: string;
@@ -56,6 +69,8 @@ export type QuickResult = {
   answers: Record<string, unknown>;
   needs: QuickNeeds;
   source: string;
+  /** Set when the link joins a message already up; null otherwise. */
+  attach?: QuickAttach | null;
   published: false;
 };
 
@@ -161,14 +176,14 @@ export function needsTheForm(needs: QuickNeeds): boolean {
  */
 export async function quickNotesPublish(result: QuickResult): Promise<QuickPublished> {
   if (!result.preview || result.needs) throw new Error(t('staff_quick_err_generic'));
+  const attach = result.attach || null;
   let data: { published?: boolean; pending?: boolean; publish_result?: { sermon?: { id?: string; title?: string } | null } };
   try {
-    data = await intake('submit', {
-      answers: result.answers,
-      job: 'hub',
-      congregation: result.congregation,
-      formatted_sermon: result.preview,
-    });
+    // A link that joins a message already up goes through the media form's
+    // merge: only the link changes, the message keeps its date and its week.
+    data = await intake('submit', attach
+      ? { answers: attach.answers, job: attach.job, congregation: result.congregation }
+      : { answers: result.answers, job: 'hub', congregation: result.congregation, formatted_sermon: result.preview });
   } catch (err) {
     throw new QuickError(quickErrorText(err));
   }
@@ -179,9 +194,11 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
   try {
     const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(result.congregation)}`, { cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
-    verified = !!(j && j.sermon && j.sermon.id === sermon.id);
+    verified = !!(j && j.sermon && (attach
+      ? j.sermon.youtubeUrl === result.details.youtubeUrl
+      : j.sermon.id === sermon.id));
   } catch { /* verified stays false */ }
-  return { id: sermon.id, title: sermon.title || result.preview.title, verified };
+  return { id: sermon.id, title: sermon.title || attach?.title || result.preview.title, verified };
 }
 
 /** "Sunday 4 Oct" in the staff member's language. */
@@ -237,10 +254,21 @@ export function answerNeeds(result: QuickResult, value: string): Partial<QuickDe
 /** For a required question the quick path does not know: fold the answer into the answers by its id. */
 export function withOtherAnswer(result: QuickResult, value: string): QuickResult {
   if (!result.needs || result.needs.key !== 'other' || needsTheForm(result.needs) || !value.trim()) return result;
-  return { ...result, answers: { ...result.answers, [result.needs.questionId]: value.trim() }, needs: null };
+  const id = result.needs.questionId;
+  if (result.attach) {
+    return { ...result, attach: { ...result.attach, answers: { ...result.attach.answers, [id]: value.trim() } }, needs: null };
+  }
+  return { ...result, answers: { ...result.answers, [id]: value.trim() }, needs: null };
 }
 
-/** The hub form, pre-filled: for "Change details". */
-export function changeDetailsSeed(result: QuickResult): { answers: Record<string, unknown>; preview: QuickPreview | null; congregation: CongregationId } {
-  return { answers: { ...result.answers }, preview: result.preview, congregation: result.congregation };
+/**
+ * The form, pre-filled: for "Change details". Notes open the hub form; a link
+ * that joins a message already up opens the media form on that message, whose
+ * save adds the link without re-publishing the notes.
+ */
+export function changeDetailsSeed(result: QuickResult): { answers: Record<string, unknown>; preview: QuickPreview | null; congregation: CongregationId; job: 'hub' | 'media' } {
+  if (result.attach) {
+    return { answers: { ...result.attach.answers }, preview: null, congregation: result.congregation, job: 'media' };
+  }
+  return { answers: { ...result.answers }, preview: result.preview, congregation: result.congregation, job: 'hub' };
 }
