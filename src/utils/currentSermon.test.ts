@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { fetchCurrentSermon, openSermonNotesId } from './currentSermon';
+import { fetchCurrentSermon, fetchSermonNotesPublished, openSermonNotesId } from './currentSermon';
 
 const ROOT = join(__dirname, '../..');
 const LATEST = join(ROOT, 'public/sermons/latest.json');
@@ -113,5 +113,41 @@ describe('openSermonNotesId', () => {
   it('falls back to a per-day open note when nothing is published', () => {
     const id = openSermonNotesId(null);
     expect(id).toMatch(/^open_\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('fetchSermonNotesPublished (Home\'s Sunday question, B09-08)', () => {
+  const prod = () => vi.stubGlobal('location', { hostname: 'futuresdailyword.com' });
+
+  it('true when the feed has a current sermon', async () => {
+    prod();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ sermon: { id: 'hope-2026-10-04' } }) }));
+    await expect(fetchSermonNotesPublished('futures-us')).resolves.toBe(true);
+  });
+
+  it('false only for the feed\'s own 200 "none this week"', async () => {
+    prod();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ sermon: null, congregation: 'futures-us', current_until: null }) }));
+    await expect(fetchSermonNotesPublished('futures-us')).resolves.toBe(false);
+  });
+
+  it('unknown (null) when the network fails', async () => {
+    prod();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    await expect(fetchSermonNotesPublished('futures-us')).resolves.toBeNull();
+  });
+
+  it('unknown (null) on the feed\'s 500, even though its body says sermon: null', async () => {
+    prod();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ sermon: null }) }));
+    await expect(fetchSermonNotesPublished('futures-us')).resolves.toBeNull();
+  });
+
+  it('unknown (null) when the body is not the feed\'s answer', async () => {
+    prod();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => { throw new SyntaxError('Unexpected token <'); } }));
+    await expect(fetchSermonNotesPublished('futures-us')).resolves.toBeNull();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+    await expect(fetchSermonNotesPublished('futures-us')).resolves.toBeNull();
   });
 });

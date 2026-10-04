@@ -51,6 +51,12 @@ export async function promptPwaInstall(): Promise<'accepted' | 'dismissed' | 'un
   if (!fn) return 'unavailable';
   try {
     const accepted = await fn();
+    // Either answer settles the ask: the browser will not show its prompt again
+    // this visit, so a 'no' is remembered like the banner's own dismiss, and
+    // Home's one next step moves on at once (dw-next-refresh).
+    if (accepted) markInstalled();
+    else dismissInstall();
+    try { window.dispatchEvent(new Event('dw-next-refresh')); } catch { /* no window */ }
     return accepted ? 'accepted' : 'dismissed';
   } catch {
     return 'unavailable';
@@ -65,4 +71,19 @@ export function isInstallDismissed(): boolean {
 
 export function dismissInstall(): void {
   try { localStorage.setItem(PWA_DISMISS_KEY, '1'); } catch { /* quota */ }
+}
+
+/**
+ * Installed from this browser (the prompt was accepted, or the browser said
+ * appinstalled). The page itself is still not standalone, so without this the
+ * install ask would still count as due and Home's next step would stall on it.
+ */
+export const PWA_INSTALLED_KEY = 'dw_pwa_installed';
+
+export function markInstalled(): void {
+  try { localStorage.setItem(PWA_INSTALLED_KEY, '1'); } catch { /* quota */ }
+}
+
+export function isInstallMarked(): boolean {
+  try { return localStorage.getItem(PWA_INSTALLED_KEY) === '1'; } catch { return false; }
 }

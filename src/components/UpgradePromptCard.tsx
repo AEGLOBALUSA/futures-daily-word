@@ -6,13 +6,15 @@ import { useState, useEffect } from 'react';
 import { Card } from './Card';
 import { checkForUpgrade, dismissUpgrade } from '../utils/pathway-upgrades';
 import { isNewChristianPersona } from '../utils/persona-config';
+import { NEXT_REFRESH_EVENT } from '../utils/useHomeNextStep';
 
 interface UpgradePromptCardProps {
+  next?: boolean;
   persona: string;
   onUpgrade: (newPersona: string) => void;
 }
 
-export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps) {
+export function UpgradePromptCard({ persona, onUpgrade, next = false }: UpgradePromptCardProps) {
   const [upgrade, setUpgrade] = useState<ReturnType<typeof checkForUpgrade>>(null);
   const [dismissed, setDismissed] = useState(false);
   const [animateOut, setAnimateOut] = useState(false);
@@ -33,11 +35,13 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
     setTimeout(() => {
       dismissUpgrade(persona);
       setDismissed(true);
+      try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
     }, 300);
   };
 
   const handleUpgrade = () => {
     onUpgrade(upgrade.to);
+    try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
   };
 
   return (
@@ -56,7 +60,9 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
           position: 'absolute', top: 12, right: 12,
           background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
+          ...(next ? { width: 44, height: 44, top: 4, right: 4 } : {}),
         }}
+        aria-label="Not yet"
       >
         &times;
       </button>
@@ -64,6 +70,7 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
       <p style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
         textTransform: 'uppercase', color: 'var(--dw-info)',
+        ...(next ? { fontSize: 16, letterSpacing: 'normal', textTransform: 'none', paddingRight: 44 } : {}),
         fontFamily: 'var(--font-sans)', marginBottom: 6,
       }}>
         {upgrade.label}
@@ -71,27 +78,29 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
 
       <p style={{
         fontSize: 14, color: 'var(--dw-text-secondary)',
+        ...(next ? { fontSize: 16 } : {}),
         fontFamily: 'var(--font-serif-text)', lineHeight: 1.55,
         marginBottom: 14,
       }}>
         {upgrade.description}
       </p>
 
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10, ...(next ? { flexDirection: 'column' as const } : {}) }}>
         <button
+          className={next ? 'dw-next dw-next-main' : undefined}
           onClick={handleUpgrade}
           style={{
             flex: 1,
-            background: 'var(--dw-plan)',
+            ...(next ? {} : { background: 'var(--dw-plan)' }),
             border: 'none',
             borderRadius: 10,
             padding: '10px 16px',
-            color: '#fff',
-            fontSize: 13,
+            ...(next ? {} : { color: '#fff' }),
+            fontSize: next ? 17 : 13,
             fontWeight: 700,
             cursor: 'pointer',
             fontFamily: 'var(--font-sans)',
-            minHeight: 42,
+            minHeight: next ? 56 : 42,
           }}
         >
           Let's Go
@@ -109,7 +118,8 @@ export function UpgradePromptCard({ persona, onUpgrade }: UpgradePromptCardProps
             fontWeight: 600,
             cursor: 'pointer',
             fontFamily: 'var(--font-sans)',
-            minHeight: 42,
+            minHeight: next ? 44 : 42,
+            ...(next ? { fontSize: 16 } : {}),
           }}
         >
           Not Yet

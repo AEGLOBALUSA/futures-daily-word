@@ -6,6 +6,7 @@ import { flushSync } from './utils/cloudSync'
 import { LS } from './utils/storage'
 import { detectFirstOpenLanguage } from './utils/firstOpenLanguage'
 import { consumeCampusParam } from './utils/campusGuess'
+import { markInstalled } from './utils/pwa'
 
 const StaffApp = lazy(() => import('./staff/StaffApp').then(m => ({ default: m.StaffApp })));
 const IS_STAFF = (() => {
@@ -95,6 +96,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 window.addEventListener('appinstalled', () => {
+  markInstalled();
   deferredPrompt = null;
   (window as any).__pwaCanInstall = false;
   window.dispatchEvent(new CustomEvent('pwa-installed'));

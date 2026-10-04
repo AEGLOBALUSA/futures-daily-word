@@ -10,6 +10,7 @@ import { Share, PlusSquare, X, Smartphone } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { track } from '../utils/analytics';
 import { hapticTap } from '../utils/haptics';
+import { NEXT_REFRESH_EVENT } from '../utils/useHomeNextStep';
 import {
   isStandaloneDisplay,
   isIosDevice,
@@ -56,6 +57,9 @@ async function handleInstallTap(ios: boolean, canPrompt: boolean, onIos: () => v
   if (canPrompt) {
     const result = await promptPwaInstall();
     track('pwa_install', result);
+    if (result === 'accepted') {
+      try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
+    }
     return;
   }
   // Browser never fired beforeinstallprompt (Firefox, desktop Safari, in-app browsers).
@@ -64,7 +68,7 @@ async function handleInstallTap(ios: boolean, canPrompt: boolean, onIos: () => v
 }
 
 /** One-time card on Home — after the reader has a real reason to come back. */
-export function PWAInstallBanner() {
+export function PWAInstallBanner({ next = false }: { next?: boolean }) {
   const { hide, canPrompt, dismissed, ios, setDismissed } = useInstallState();
   const [sheet, setSheet] = useState(false);
   const [hasRead, setHasRead] = useState(() => {
@@ -76,6 +80,14 @@ export function PWAInstallBanner() {
     window.addEventListener('dw-reading-completed', h);
     return () => window.removeEventListener('dw-reading-completed', h);
   }, []);
+
+  const closeHint = () => {
+    setSheet(false);
+    dismissInstall();
+    setDismissed(true);
+    track('pwa_install', 'hint_closed');
+    try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
+  };
 
   useEffect(() => {
     if (!hide && !dismissed && hasRead) track('pwa_install_prompt_shown', ios ? 'ios' : canPrompt ? 'native' : 'hint');
@@ -119,17 +131,22 @@ export function PWAInstallBanner() {
             <p style={{
               margin: 0, fontFamily: 'var(--font-sans)',
               fontSize: 13, lineHeight: 1.5, color: 'var(--dw-text-muted)',
+              ...(next ? { fontSize: 16 } : {}),
             }}>
               {t('pwa_install_body')}
             </p>
           </div>
           <button
             type="button"
-            onClick={() => { dismissInstall(); setDismissed(true); track('pwa_install', 'dismissed'); }}
+            onClick={() => {
+              dismissInstall(); setDismissed(true); track('pwa_install', 'dismissed');
+              try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
+            }}
             aria-label={t('pwa_install_dismiss')}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--dw-text-muted)', padding: 4, margin: '-4px -4px 0 0',
+              ...(next ? { width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 } : {}),
             }}
           >
             <X size={18} />
@@ -137,18 +154,19 @@ export function PWAInstallBanner() {
         </div>
         <button
           type="button"
+          className={next ? 'dw-next dw-next-main' : undefined}
           onClick={() => handleInstallTap(ios, canPrompt, () => setSheet(true))}
           style={{
-            width: '100%', marginTop: 14, minHeight: 44,
+            width: '100%', marginTop: 14, minHeight: next ? 56 : 44,
             border: 'none', borderRadius: 12, cursor: 'pointer',
-            background: 'var(--dw-accent)', color: '#fff',
-            fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700,
+            ...(next ? {} : { background: 'var(--dw-accent)', color: '#fff' }),
+            fontFamily: 'var(--font-sans)', fontSize: next ? 17 : 14, fontWeight: 700,
           }}
         >
           {t('pwa_install_cta')}
         </button>
       </div>
-      {sheet && <InstallHintSheet ios={ios} onClose={() => setSheet(false)} />}
+      {sheet && <InstallHintSheet ios={ios} onClose={closeHint} />}
     </>
   );
 }

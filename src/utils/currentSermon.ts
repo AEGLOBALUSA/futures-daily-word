@@ -61,6 +61,35 @@ export async function fetchCurrentSermon<T extends { id: string } = CurrentSermo
   return trySermon<T>(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(c)}`);
 }
 
+/**
+ * Home's Sunday question (B09-08): are this week's notes up for this
+ * congregation? Three answers, because only a definite "none this week" may
+ * take the notes off an I'm New reader's Home:
+ *   true  - a sermon is published and current;
+ *   false - the feed answered 200 with `sermon: null` (none current);
+ *   null  - unknown: the network failed, the feed answered non-OK (its own
+ *           500 carries `{sermon:null}` too) or the body was unreadable.
+ * Deploy previews read the SAMPLE first, as fetchCurrentSermon does.
+ */
+export async function fetchSermonNotesPublished(congregation?: CongregationId): Promise<boolean | null> {
+  if (isDeployPreview()) {
+    const fromFile = await trySermon('/sermons/sample.json');
+    if (fromFile) return true;
+  }
+  const c = congregation || getCongregation();
+  try {
+    const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(c)}`);
+    if (!r.ok) return null;
+    const body: unknown = await r.json();
+    if (!body || typeof body !== 'object') return null;
+    if (pickSermon(body)) return true;
+    // Only the feed's own answer, `{sermon: null}`, is a definite "none".
+    return 'sermon' in body ? false : null;
+  } catch {
+    return null;
+  }
+}
+
 /** localStorage bag id for sermon-workspace notes. Uses the published sermon
  *  id when one exists; otherwise a per-day open note so Sunday still has a
  *  place to write without a broken empty outline. */
