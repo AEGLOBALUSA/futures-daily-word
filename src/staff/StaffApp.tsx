@@ -78,7 +78,7 @@ type FormattedSermon = {
   youtubeUrl?: string;
   youtubeOnly?: boolean;
 };
-type IntakeSeed = { answers: Record<string, unknown>; preview: FormattedSermon | null; congregation: CongregationId };
+type IntakeSeed = { answers: Record<string, unknown>; preview: FormattedSermon | null; congregation: CongregationId; job?: 'hub' | 'media' };
 type Submission = {
   id: string;
   email: string;
@@ -238,13 +238,13 @@ export function StaffApp() {
           <StaffHome
             staff={staff}
             onJob={j => { setSeed(undefined); setJob(j); setTab('form'); setError(''); }}
-            onChangeDetails={seed => { setSeed(seed); setJob('hub'); setTab('form'); setError(''); }}
+            onChangeDetails={seed => { setSeed(seed); setJob(seed.job ?? 'hub'); setTab('form'); setError(''); }}
             onReview={() => { setTab('review'); setError(''); }}
             onPeople={() => { setTab('people'); setError(''); }}
             onCampuses={() => { setTab('campuses'); setError(''); }}
           />
         )}
-        {view === 'form' && <IntakeForm staff={staff} job={job} seed={job === 'hub' ? seed : undefined} onError={setError} />}
+        {view === 'form' && <IntakeForm staff={staff} job={job} seed={seed && (seed.job ?? 'hub') === job ? seed : undefined} onError={setError} />}
         {view === 'review' && staff.isAdmin && (
           <ReviewQueue onError={setError} />
         )}

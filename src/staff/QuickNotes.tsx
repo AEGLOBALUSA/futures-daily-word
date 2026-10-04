@@ -155,8 +155,8 @@ export function QuickNotes({ onChangeDetails }: {
         onClick={needsForm ? () => {
           if (!busyRef.current && result) onChangeDetails(changeDetailsSeed(changeDetailsWithAnswer(result)));
         } : undefined}>
-        {busy ? t(publishing ? 'staff_quick_publishing' : 'staff_quick_reading')
-          : t(needsForm ? 'staff_quick_open_form' : result?.needs ? 'staff_quick_answer' : publishing ? 'staff_quick_publish' : 'staff_quick_read')}
+        {busy ? t(publishing ? result?.attach ? 'staff_quick_attaching' : 'staff_quick_publishing' : 'staff_quick_reading')
+          : t(needsForm ? 'staff_quick_open_form' : result?.needs ? 'staff_quick_answer' : publishing ? result?.attach ? 'staff_quick_attach' : 'staff_quick_publish' : 'staff_quick_read')}
       </button>
       {error && <p role="alert" style={{ margin: '8px 0 0', color: 'var(--dw-error)', fontSize: 15, fontWeight: 600 }}>{error}</p>}
       {error && result?.preview && !result.needs && <button type="button" style={quietStyle} onClick={() => {
@@ -174,9 +174,11 @@ export function QuickNotes({ onChangeDetails }: {
       {done ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           <p role="status" style={{ ...detailsStyle, color: 'var(--dw-info)' }}>
-            {t(done.verified ? 'staff_quick_done' : 'staff_quick_done_unverified')}
+            {done.verified && publishedResult?.attach
+              ? t('staff_quick_done_attached').replace('{title}', publishedResult.attach.title)
+              : t(done.verified ? 'staff_quick_done' : 'staff_quick_done_unverified')}
           </p>
-          <p style={secondaryStyle}>{t(publishedResult?.details.youtubeUrl || publishedResult?.preview?.youtubeUrl ? 'staff_quick_done_next_linked' : 'staff_quick_done_next')}</p>
+          <p style={secondaryStyle}>{t(publishedResult?.attach ? 'staff_quick_done_next_attached' : publishedResult?.details.youtubeUrl || publishedResult?.preview?.youtubeUrl ? 'staff_quick_done_next_linked' : 'staff_quick_done_next')}</p>
           {openPageMain}
           <button type="button" style={quietStyle} onClick={startOver}>{t('staff_quick_start_over')}</button>
         </div>
@@ -210,7 +212,7 @@ export function QuickNotes({ onChangeDetails }: {
                   if (!busyRef.current) onChangeDetails(changeDetailsSeed(result));
                 }}>{t('staff_quick_change')}</button>
               </div>
-              <p style={secondaryStyle}>{t('staff_quick_not_live_yet')}</p>
+              <p style={secondaryStyle}>{result.attach ? t('staff_quick_adds_video').replace('{title}', result.attach.title) : t('staff_quick_not_live_yet')}</p>
               <div className="dw-sermon-notes-phone" style={{ minWidth: 0 }}><SermonNotesSurface sermon={result.preview as SermonNotesData} persist={false} /></div>
             </>
           ) : (
