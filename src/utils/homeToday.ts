@@ -46,6 +46,22 @@ export function localToday(now: Date = new Date()): string {
   return now.toLocaleDateString('en-CA');
 }
 
+/**
+ * The I'm New journey day on screen is finished: finished today, or already
+ * among the finished days. The last day stays on screen once it is finished
+ * (currentDay never passes the end), so without the second half a graduate
+ * was shown "Day 40 is ready" every day after.
+ */
+export function isJourneyDayDone(
+  progress: { lastCompletedDate?: string; completedDays?: number[] } | null | undefined,
+  displayDay: number,
+  today: string = localToday(),
+): boolean {
+  if (!progress) return false;
+  if (progress.lastCompletedDate === today) return true;
+  return Array.isArray(progress.completedDays) && progress.completedDays.includes(displayDay);
+}
+
 /** True when a journal reflection was saved or edited today on this device. */
 export function reflectedToday(today: string = localToday()): boolean {
   try {

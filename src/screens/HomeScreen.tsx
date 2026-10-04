@@ -60,7 +60,7 @@ import { readPathArrival, clearPathArrival } from '../utils/choosePath';
 import { NextStepCard } from '../components/NextStepCard';
 import { NextPill } from '../components/NextPill';
 import { useHomeNextStep } from '../utils/useHomeNextStep';
-import { readMoreOpen, writeMoreOpen, moreForTodayNames, localToday } from '../utils/homeToday';
+import { readMoreOpen, writeMoreOpen, moreForTodayNames, localToday, isJourneyDayDone } from '../utils/homeToday';
 import type { NextAction, SetupAsk } from '../utils/nextStep';
 import { chapterOf, notInHero } from '../utils/heroDedupe';
 import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
@@ -1761,7 +1761,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     pathwayData,
     pathwayDisplayDay,
     journeyInHero,
-    journeyDayDone: pathwayProgress.lastCompletedDate === new Date().toLocaleDateString('en-CA'),
+    journeyDayDone: isJourneyDayDone(pathwayProgress, pathwayDisplayDay, new Date().toLocaleDateString('en-CA')),
     planPassages: todaysPlanPassages,
     firstSlot: readingSlots[0] ? { book: readingSlots[0].book, currentChapter: readingSlots[0].currentChapter } : null,
     campusId: userProfile?.campus,

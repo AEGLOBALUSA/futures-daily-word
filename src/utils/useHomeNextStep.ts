@@ -8,20 +8,23 @@
  * change, the tab coming back (focus / visibilitychange) and once a minute,
  * so the Sunday card leaves at the campus's closing time with the app open.
  *
- * Sermon Notes: on a Sunday morning it asks once per congregation per session
- * whether this week's notes are published (the same feed the notes screen
- * reads). Until it knows, the notes count as published, so a slow feed never
- * takes Sunday's notes off an I'm New reader's Home.
+ * Sermon Notes: on a Sunday morning it asks whether this week's notes are
+ * published for this congregation (the same feed the notes screen reads).
+ * Until it knows, the notes count as published, so a slow or failed feed never
+ * takes Sunday's notes off an I'm New reader's Home. A failure stays unknown,
+ * and while the answer is unknown or "none yet" it asks again on the minute
+ * tick and on focus, at most every five minutes, so notes approved mid-morning
+ * arrive with the app open. A "yes" is kept for the day.
  *
  * Nothing here sends anything, syncs anything new or reaches a model.
  * dw_next_skips stays on this device.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { nextStep, readSkips, noteShown, noteQuiet, noteTapped, quietKeyFor, fillParams, type NextStep, type QuietableKind } from './nextStep';
 import { applicableSetupAsks } from './setupAsks';
 import { isSundayWindow, readerSundayUntil, readerTimeZone } from './sunday';
 import { tomorrowPassage, reflectedToday, localToday } from './homeToday';
-import { fetchCurrentSermon } from './currentSermon';
+import { fetchSermonNotesPublished } from './currentSermon';
 import { t } from './i18n';
 import { findCampus } from '../data/campuses';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -84,6 +87,8 @@ const REFRESH_EVENTS = [
   'focus',
 ];
 const QUIETABLE: QuietableKind[] = ['write', 'install', 'email', 'upgrade'];
+/** While the notes are unknown or not up yet, ask again at most this often. */
+export const NOTES_RECHECK_MS = 5 * 60_000;
 
 /** Pastor/study: a plan is running, or the set-up wizard was finished. */
 function studyPlanSetUp(): boolean {
@@ -118,18 +123,25 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const sundayWindow = useMemo(() => isSundayWindow(new Date(), timeZone, until), [timeZone, until, tick]);
 
-  // This week's notes for this congregation: asked once per session, only on a Sunday morning.
-  const [published, setPublished] = useState<Record<string, boolean>>({});
-  useEffect(() => {
-    if (!sundayWindow || input.congregation in published) return;
-    let live = true;
-    fetchCurrentSermon(input.congregation)
-      .then((s) => { if (live) setPublished((p) => ({ ...p, [input.congregation]: !!s })); })
-      .catch(() => { /* unknown stays unknown: the notes keep their place */ });
-    return () => { live = false; };
-  }, [sundayWindow, input.congregation, published]);
-
   const today = localToday();
+
+  // This week's notes for this congregation, only on a Sunday morning. Keyed by
+  // the day so a Home kept alive into next Sunday asks afresh. true is kept;
+  // false (none yet) and null (unknown) are asked again on the tick or focus,
+  // at most every NOTES_RECHECK_MS.
+  const notesKey = `${input.congregation}|${today}`;
+  const [published, setPublished] = useState<Record<string, boolean | null>>({});
+  const notesAskedAt = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (!sundayWindow || published[notesKey] === true) return;
+    const last = notesAskedAt.current[notesKey];
+    if (last !== undefined && Date.now() - last < NOTES_RECHECK_MS) return;
+    notesAskedAt.current[notesKey] = Date.now();
+    fetchSermonNotesPublished(input.congregation)
+      .then((v) => setPublished((p) => (p[notesKey] === true ? p : { ...p, [notesKey]: v })))
+      .catch(() => { /* unknown stays unknown: the notes keep their place */ });
+  }, [sundayWindow, notesKey, input.congregation, published, tick]);
+
   const loading = input.isNewPath && input.pathwayEnrolled && !input.pathwayData;
 
   // Home rebuilds these arrays on every render; key the memo on their content.
@@ -171,7 +183,7 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
       journeyInHero: !!input.journeyInHero,
       reflectedToday: reflected,
       sundayWindow,
-      sermonNotesPublished: input.congregation in published ? published[input.congregation] : null,
+      sermonNotesPublished: published[notesKey] ?? null,
       planSetUp: studyPlanSetUp(),
       setupAsks: applicableSetupAsks(input.persona, input.email),
       tomorrow,
@@ -181,7 +193,7 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    tick, today, sundayWindow, published, campus?.name,
+    tick, today, sundayWindow, published, notesKey, campus?.name,
     input.persona, input.isNewPath, input.passage, input.readDoneToday, input.passageOpen, input.journeyInHero,
     input.pathwayEnrolled, input.pathwayData, input.pathwayDisplayDay, input.journeyDayDone,
     planKey, slotKey, input.email, input.congregation, input.dayIndex,

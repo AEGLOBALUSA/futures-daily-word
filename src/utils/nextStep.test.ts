@@ -119,6 +119,12 @@ describe('nextStep: the order', () => {
     expect(nextStep(newPath({ journeyDayDone: true })).kind).toBe('write');
   });
 
+  it('3. a journey graduate (Day 40 finished on an earlier day) moves on to the asks and the done line, not "Day 40 is ready"', () => {
+    const grad = newPath({ journeyDay: 40, journeyDayDone: true, journeyInHero: true, tomorrow: null });
+    expect(nextStep({ ...grad, setupAsks: ['email'] })).toMatchObject({ kind: 'setup_ask', action: 'email' });
+    expect(nextStep(grad)).toMatchObject({ kind: 'done', labelKey: 'next_done_today' });
+  });
+
   it('8. one set-up ask after the reading, in the order install, email, upgrade', () => {
     const base = { readDoneToday: true, reflectedToday: true };
     expect(nextStep(state({ ...base, setupAsks: ['upgrade', 'email', 'install'] }))).toMatchObject({ kind: 'setup_ask', step: 8, action: 'install', labelKey: 'next_setup_install' });

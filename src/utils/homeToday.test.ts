@@ -3,7 +3,7 @@
  * open state (step 6) and the words that name what is inside it.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { tomorrowPassage, reflectedToday, readMoreOpen, writeMoreOpen, moreForTodayNames, localToday, MORE_OPEN_KEY } from './homeToday';
+import { tomorrowPassage, reflectedToday, readMoreOpen, writeMoreOpen, moreForTodayNames, localToday, isJourneyDayDone, MORE_OPEN_KEY } from './homeToday';
 import { COMFORT_CHAPTERS } from '../data/comfort';
 import { PASTOR_CHAPTERS } from '../data/pastor';
 
@@ -127,5 +127,27 @@ describe('moreForTodayNames', () => {
 
   it('never more than three names', () => {
     expect(moreForTodayNames({ persona: 'pastor_leader', isNewPath: false, hasPlan: true, bookCards: true, campus: true, wordOfDay: true })).toHaveLength(3);
+  });
+});
+
+describe('isJourneyDayDone', () => {
+  const TODAY = '2026-10-06';
+
+  it('the day finished today is done', () => {
+    expect(isJourneyDayDone({ lastCompletedDate: TODAY, completedDays: [1, 2, 3] }, 3, TODAY)).toBe(true);
+  });
+
+  it('tomorrow\'s day on screen is not done yet', () => {
+    expect(isJourneyDayDone({ lastCompletedDate: '2026-10-05', completedDays: [1, 2, 3] }, 4, TODAY)).toBe(false);
+  });
+
+  it('a graduate: Day 40 finished on an earlier day stays done, so "Day 40 is ready" never comes back', () => {
+    const all = Array.from({ length: 40 }, (_, i) => i + 1);
+    expect(isJourneyDayDone({ lastCompletedDate: '2026-09-01', completedDays: all }, 40, TODAY)).toBe(true);
+  });
+
+  it('no progress yet, or a missing list, is not done', () => {
+    expect(isJourneyDayDone(null, 1, TODAY)).toBe(false);
+    expect(isJourneyDayDone({}, 1, TODAY)).toBe(false);
   });
 });
