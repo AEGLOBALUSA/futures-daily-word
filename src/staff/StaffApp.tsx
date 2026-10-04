@@ -552,7 +552,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   // bottom of a long form, so the same message is repeated next to the button
   // and scrolled into view — a refused save must never look like nothing happened.
   const [formError, setFormError] = useState('');
-  const [live, setLive] = useState<{ title: string; verified: boolean } | null>(null);
+  const [live, setLive] = useState<{ title: string; verified: boolean; showing?: string } | null>(null);
   // Which congregation's Sermon Notes this message is for (Futures USA /
   // Futures Australia / Futuros USA). Sent with preview and save; remembered per browser.
   const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
@@ -710,12 +710,15 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         } else {
           // Read it back the way the congregation does, so "It's on the page" is a fact, not a hope.
           let verified = false;
+          let showing = '';
           try {
             const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(congregation)}`, { cache: 'no-store' });
             const j = r.ok ? await r.json() : null;
             verified = !!(j && j.sermon && j.sermon.id === published.id);
+            showing = j && j.sermon && j.sermon.id !== published.id && String(j.sermon.title || '') !== String(published.title || '')
+              ? String(j.sermon.title || '') : '';
           } catch { /* verified stays false */ }
-          setLive({ title: published.title || data.preview?.title || '', verified });
+          setLive({ title: published.title || data.preview?.title || '', verified, showing });
         }
       }
       await load(pickCampus || staff.campusId || undefined);
@@ -870,6 +873,10 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
               ? 'It’s on the campus corner.'
               : live?.verified
                 ? `It’s on the ${congregationName(congregation)} page: ${live.title}`
+                : live && !live.verified && live.showing
+                  ? job === 'media'
+                    ? `The video is saved on “${live.title}”. The ${congregationName(congregation)} page shows “${live.showing}”, the message that is on now.`
+                    : `Saved as “${live.title}”. The ${congregationName(congregation)} page shows “${live.showing}”, the message that is on now.`
                 : live
                   ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}

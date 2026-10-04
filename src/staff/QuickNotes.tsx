@@ -177,6 +177,8 @@ export function QuickNotes({ onChangeDetails }: {
           <p role="status" style={{ ...detailsStyle, color: 'var(--dw-info)' }}>
             {done.verified && publishedResult?.attach
               ? t('staff_quick_done_attached').replace('{title}', publishedResult.attach.title)
+              : !done.verified && done.showing && publishedResult?.attach
+                ? t('staff_quick_done_saved_other').replace('{title}', done.title).replace('{showing}', done.showing)
               : t(done.verified ? 'staff_quick_done' : 'staff_quick_done_unverified')}
           </p>
           <p style={secondaryStyle}>{t(publishedResult?.attach ? 'staff_quick_done_next_attached' : publishedResult?.details.youtubeUrl || publishedResult?.preview?.youtubeUrl ? 'staff_quick_done_next_linked' : 'staff_quick_done_next')}</p>
