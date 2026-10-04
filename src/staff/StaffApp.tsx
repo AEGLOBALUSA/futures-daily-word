@@ -1504,7 +1504,7 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Campuses</h2>
       <p style={{ ...helpStyle, fontSize: 15, marginBottom: 16 }}>{campuses.length} campuses. Readers see them in this order.</p>
-      <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.5, margin: '0 0 24px' }}><strong>How this connects:</strong> This one list feeds the reader app’s campus picker, the prayer wall’s campus names, campus pastor codes, Planning Center matching, and which Sermon Notes page a campus reads first. Readers see a change within five minutes.</p>
+      <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.5, margin: '0 0 24px' }}><strong>How this connects:</strong> This one list feeds the reader app’s campus picker, the prayer wall’s campus names, campus pastor codes, Planning Center matching, and which Sermon Notes page a campus reads first. It also guesses a new reader's campus (from a link or QR code ending in ?campus= and the campus id, or from their town) and asks them one question; nothing is saved until they tap Yes. Readers see a change within five minutes.</p>
       {saveStatus && <p role="status" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '0 0 16px' }}>{saveStatus}</p>}
       {campuses.map(campus => (
         <div key={campus.id} style={{ marginBottom: 10 }}>

@@ -61,3 +61,46 @@ export async function detectCountry(): Promise<string | null> {
     return null;
   }
 }
+
+export interface GeoPlace {
+  country: string | null;
+  city: string | null;
+  subdivision: string | null;
+}
+
+let placePromise: Promise<GeoPlace> | null = null;
+
+function cleanPlace(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() && v.length <= 80 ? v.trim() : null;
+}
+
+/**
+ * Country, town and state for the campus guess (B09-07). Town and state live
+ * in memory only, for this page load: never localStorage, never sessionStorage,
+ * never synced, never sent anywhere. Never throws; offline gives all nulls.
+ */
+export function detectPlace(): Promise<GeoPlace> {
+  if (!placePromise) {
+    placePromise = (async () => {
+      try {
+        const res = await fetch(`${localApiBase()}/api/geo`);
+        if (!res.ok) return { country: null, city: null, subdivision: null };
+        const data = await res.json();
+        const raw = typeof data?.country === 'string' ? data.country.trim().toUpperCase() : '';
+        return {
+          country: /^[A-Z]{2}$/.test(raw) ? raw : null,
+          city: cleanPlace(data?.city),
+          subdivision: cleanPlace(data?.subdivision),
+        };
+      } catch {
+        return { country: null, city: null, subdivision: null };
+      }
+    })();
+  }
+  return placePromise;
+}
+
+/** Test seam. */
+export function __resetPlaceForTests(): void {
+  placePromise = null;
+}

@@ -11,6 +11,7 @@ import { ALL_PERSONAS, PERSONA_CONFIGS } from '../utils/persona-config';
 import { t, getLang } from '../utils/i18n';
 import { setSessionToken } from '../utils/sessionToken';
 import { useModalA11y } from '../utils/useModalA11y';
+import { readCampusGuess, readConfirmedCampus, resolveGateCampus, clearConfirmedCampus } from '../utils/campusGuess';
 
 // i18n keys per persona (persona_* / persona_*_desc exist in all four languages).
 const PERSONA_I18N: Record<string, string> = {
@@ -51,7 +52,8 @@ export function EmailGate() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [campus, setCampus] = useState('');
+  const [campus, setCampus] = useState(() => readConfirmedCampus() || readCampusGuess() || '');
+  const [campusTouched, setCampusTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [, setDone] = useState(false);
@@ -130,7 +132,13 @@ export function EmailGate() {
       // Step 3: Register if new
       const regFirst = firstName.trim() || profile.firstName;
       const regLast = lastName.trim() || profile.lastName;
-      const regCampus = campus || profile.campus || '';
+      const regCampus = resolveGateCampus({
+        touched: campusTouched,
+        picked: campus,
+        confirmed: readConfirmedCampus(),
+        profileCampus: profile.campus,
+        guess: campus,
+      });
 
       const regRes = await fetch(`${API_BASE}/api/user-profile`, {
         method: 'POST',
@@ -159,6 +167,7 @@ export function EmailGate() {
       profile.email = trimEmail;
 
       saveProfile(profile);
+      clearConfirmedCampus();
       setDone(true);
       setStep('done');
 
@@ -314,7 +323,7 @@ export function EmailGate() {
 
               <select
                 value={campus}
-                onChange={e => setCampus(e.target.value)}
+                onChange={e => { setCampus(e.target.value); setCampusTouched(true); }}
                 style={{ ...inputStyle, appearance: 'none', paddingRight: 32, cursor: 'pointer' }}
               >
                 <option value="">{t('select_campus_optional', lang)}</option>

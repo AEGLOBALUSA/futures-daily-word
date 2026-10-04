@@ -3,9 +3,9 @@ import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useUser } from '../contexts/UserContext';
-import { Plus, Loader2, Heart, HandHeart, RefreshCw, Send, MessageSquare, MapPin } from 'lucide-react';
+import { Plus, Loader2, Heart, HandHeart, RefreshCw, Send, MessageSquare } from 'lucide-react';
 import { PrayerGlobe } from '../components/PrayerGlobe';
-import { CampusSelect } from '../components/CampusSelect';
+import { CampusConfirm } from '../components/CampusConfirm';
 import { t, getLang } from '../utils/i18n';
 import type { TabId } from '../components/TabBar';
 import { pushNow } from '../utils/cloudSync';
@@ -71,7 +71,6 @@ async function prayForIt(id: string): Promise<boolean> {
 interface CampusItem { id: string; type: string; title: string; content: string; author: string; date: string; }
 
 function PastorsCornerPanel({ userProfile }: { userProfile: any }) {
-  const { saveProfile, requireEmail } = useUser();
   const campus = userProfile?.campus || '';
   const [items, setItems] = useState<CampusItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,29 +93,7 @@ function PastorsCornerPanel({ userProfile }: { userProfile: any }) {
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
   if (!campus) {
-    // The moment of highest intent — offer the actual picker here instead of
-    // a text instruction pointing at the Settings tab.
-    return (
-      <div style={{ padding: '32px 24px', textAlign: 'center' }}>
-        <MapPin size={28} style={{ color: 'var(--dw-text-faint)', marginBottom: 10 }} />
-        <p style={{ color: 'var(--dw-text-muted)', fontSize: 14, fontFamily: 'var(--font-sans)', lineHeight: 1.5, marginBottom: 16 }}>
-          {t('choose_campus_here', lang)}
-        </p>
-        <div style={{ textAlign: 'left' }}>
-          <CampusSelect
-            value=""
-            onChange={campusId => {
-              if (!campusId) return;
-              if (userProfile) {
-                saveProfile({ ...userProfile, campus: campusId });
-              } else {
-                requireEmail();
-              }
-            }}
-          />
-        </div>
-      </div>
-    );
+    return <CampusConfirm userProfile={userProfile} />;
   }
 
   // Type config: label, color, icon emoji

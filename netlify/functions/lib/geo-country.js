@@ -1,6 +1,8 @@
 /**
- * Country from Netlify geo headers / context.
+ * Country (and, for the campus guess, town and state) from Netlify geo.
  * Headers: x-nf-country, x-country. Fallback: context.geo.country.code.
+ * Town and state come from x-nf-geo (base64 JSON) or context.geo. They are
+ * handed straight back to the reader's own device and never logged or stored.
  */
 
 function headerVal(headers, name) {
@@ -31,4 +33,34 @@ function countryFromRequest(event, context) {
   return null;
 }
 
-module.exports = { countryFromRequest, headerVal };
+function cleanPlace(v, max) {
+  const s = String(v || '').replace(/[\u0000-\u001f<>]/g, '').trim();
+  return s && s.length <= max ? s : null;
+}
+
+function parseGeoHeader(raw) {
+  if (!raw) return null;
+  try {
+    const json = Buffer.from(raw, 'base64').toString('utf8');
+    const v = JSON.parse(json);
+    return v && typeof v === 'object' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * { city, subdivision } for the campus guess (B09-07). subdivision is the
+ * state or region code ("GA", "SA") when Netlify gives one, else its name.
+ * Either is null when absent. Latitude, longitude and postcode are never read.
+ */
+function placeFromRequest(event, context) {
+  const headers = (event && event.headers) || {};
+  const geo = parseGeoHeader(headerVal(headers, 'x-nf-geo')) || (context && context.geo) || {};
+  const city = cleanPlace(geo.city, 80);
+  const sub = geo.subdivision;
+  const subdivision = cleanPlace(sub && typeof sub === 'object' ? (sub.code || sub.name) : sub, 80);
+  return { city, subdivision };
+}
+
+module.exports = { countryFromRequest, placeFromRequest, headerVal };
