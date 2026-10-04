@@ -82,7 +82,7 @@ export function QuickNotes({ onChangeDetails }: {
       setError(t('staff_quick_err_empty'));
       return;
     }
-    if (result?.needs && !answer.trim()) {
+    if (result?.needs && !pickMessage && !answer.trim()) {
       setError(needsQuestion(result.needs));
       return;
     }
@@ -144,6 +144,7 @@ export function QuickNotes({ onChangeDetails }: {
   const up = status?.up && !pasteOpen && !result;
   const publishing = !!result?.preview && !result.needs;
   const needsForm = !!result?.needs && needsTheForm(result.needs);
+  const pickMessage = !!result?.needs && !!result.attach && !result.attach.id;
   const openPageMain = congregation && (
     <a href={congregationPageUrl(congregation)} className="dw-next dw-campus-main" style={{ ...campusMainStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
       {t('staff_quick_open_page').replace('{congregation}', congregationName)}
@@ -156,7 +157,7 @@ export function QuickNotes({ onChangeDetails }: {
           if (!busyRef.current && result) onChangeDetails(changeDetailsSeed(changeDetailsWithAnswer(result)));
         } : undefined}>
         {busy ? t(publishing ? result?.attach ? 'staff_quick_attaching' : 'staff_quick_publishing' : 'staff_quick_reading')
-          : t(needsForm ? 'staff_quick_open_form' : result?.needs ? 'staff_quick_answer' : publishing ? result?.attach ? 'staff_quick_attach' : 'staff_quick_publish' : 'staff_quick_read')}
+          : t(needsForm ? pickMessage ? 'staff_quick_open_media_form' : 'staff_quick_open_form' : result?.needs ? 'staff_quick_answer' : publishing ? result?.attach ? 'staff_quick_attach' : 'staff_quick_publish' : 'staff_quick_read')}
       </button>
       {error && <p role="alert" style={{ margin: '8px 0 0', color: 'var(--dw-error)', fontSize: 15, fontWeight: 600 }}>{error}</p>}
       {error && result?.preview && !result.needs && <button type="button" style={quietStyle} onClick={() => {
@@ -198,8 +199,12 @@ export function QuickNotes({ onChangeDetails }: {
           ) : result?.needs ? (
             <>
               <p style={secondaryStyle}>{congregationName}</p>
-              <p style={detailsStyle}>{detailsLine(result)}</p>
-              <label htmlFor={`${id}-answer`} style={{ fontSize: 17, fontWeight: 600 }}>{needsQuestion(result.needs)}</label>
+              <p style={detailsStyle}>{pickMessage
+                ? t('staff_quick_later_up').replace('{title}', result.attach?.later?.title ?? '').replace('{date}', sundayLabel(result.attach?.later?.date ?? ''))
+                : detailsLine(result)}</p>
+              {pickMessage
+                ? <p style={{ fontSize: 17, fontWeight: 600 }}>{t('staff_quick_pick_message')}</p>
+                : <label htmlFor={`${id}-answer`} style={{ fontSize: 17, fontWeight: 600 }}>{needsQuestion(result.needs)}</label>}
               {!needsForm && <input id={`${id}-answer`} type={result.needs.key === 'date' ? 'date' : 'text'}
                 value={answer} onChange={e => setAnswer(e.target.value)} style={fieldStyle} />}
             </>
