@@ -18,9 +18,11 @@ function deviceTimeZone(): string | null {
 
 /**
  * `enabled` false (the reader already has a campus) skips the geo request.
- * `pcoCampus` is her Planning Center campus when the app has one.
+ * `pcoCampus` is her Planning Center campus when the app has one (usePcoCampus,
+ * B09-07F); `pcoPending` true while that lookup has not answered, so the card
+ * waits for it instead of asking from her town and then swapping the question.
  */
-export function useCampusGuess(enabled: boolean, pcoCampus?: string | null): CampusGuess & { ready: boolean } {
+export function useCampusGuess(enabled: boolean, pcoCampus?: string | null, pcoPending = false): CampusGuess & { ready: boolean } {
   const campuses = useCampuses();
   const [place, setPlace] = useState<GeoPlace | null>(null);
   const param = enabled ? readCampusGuess(campuses) : null;
@@ -42,8 +44,10 @@ export function useCampusGuess(enabled: boolean, pcoCampus?: string | null): Cam
       timeZone: deviceTimeZone(),
       lang: getLang(),
     }, campuses);
-    // Ready once geo has answered (or was not needed): the card never swaps
-    // its question under the reader's thumb.
-    return { ...guess, ready: !enabled || !!param || !!pcoCampus || place !== null };
-  }, [param, pcoCampus, place, campuses, enabled]);
+    // Ready once the link guess is there, or Planning Center has answered and
+    // either named a campus on the list or geo has answered too: the card never
+    // swaps its question under the reader's thumb.
+    const ready = !enabled || !!param || (!pcoPending && (guess.source === 'pco' || place !== null));
+    return { ...guess, ready };
+  }, [param, pcoCampus, pcoPending, place, campuses, enabled]);
 }

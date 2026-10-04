@@ -93,6 +93,59 @@ describe('guessCampus', () => {
     expect(g.campusId).toBe('us-marietta');
   });
 
+  it('a second campus the owner adds in a town already guessed is matched from its row, no code change (B09-07F)', () => {
+    // Futuros opens in Alpharetta: added in /staff with its own Town, nothing else.
+    const added: CampusRow = {
+      ...LIST.find((c) => c.id === 'us-futuros-duluth')!,
+      id: 'us-futuros-alpharetta', name: 'Futuros Alpharetta', city: 'Alpharetta, GA', towns: [], sortOrder: 145,
+    };
+    const list = [...LIST, added];
+    const es = guessCampus({ city: 'Alpharetta', subdivision: 'GA', country: 'US', lang: 'es' }, list);
+    expect(es.campusId).toBe('us-futuros-alpharetta');
+    expect(es.source).toBe('town');
+    const en = guessCampus({ city: 'Alpharetta', subdivision: 'GA', country: 'US', lang: 'en' }, list);
+    expect(en.campusId).toBe('us-alpharetta');
+  });
+
+  it('a town the owner lists under a campus points at it (B09-07F)', () => {
+    const list = LIST.map((c) => (c.id === 'us-kennesaw' ? { ...c, towns: ['Marietta', 'Acworth'] } : c));
+    const g = guessCampus({ city: 'Acworth', subdivision: 'GA', country: 'US', lang: 'en' }, list);
+    expect(g.campusId).toBe('us-kennesaw');
+    expect(g.source).toBe('town');
+    // Without the row's town there is nothing to match: her region, no single guess.
+    expect(guessCampus({ city: 'Acworth', subdivision: 'GA', country: 'US', lang: 'en' }, LIST).campusId).toBeUndefined();
+  });
+
+  it('metro: a town named by several campuses of the same kind gives a short list, those campuses first (B09-07F)', () => {
+    for (const city of ['Adelaide', 'Paradise', 'Salisbury']) {
+      const g = guessCampus({ city, subdivision: 'SA', country: 'AU', timeZone: 'Australia/Adelaide', lang: 'en' }, LIST);
+      expect(g.campusId).toBeUndefined();
+      expect(g.source).toBe('region');
+      expect(g.shortList.slice(0, 4)).toEqual(['au-paradise', 'au-adelaide-city', 'au-salisbury', 'au-south']);
+      // A Spanish reader there has no Futuros campus to choose: still no single guess.
+      expect(guessCampus({ city, subdivision: 'SA', country: 'AU', lang: 'es' }, LIST).campusId).toBeUndefined();
+    }
+    // The owner writes a new metro down with no code change: Roswell under two Georgia campuses.
+    const roswell = LIST.map((c) => (c.id === 'us-alpharetta' || c.id === 'us-kennesaw' ? { ...c, towns: [...c.towns, 'Roswell'] } : c));
+    const g = guessCampus({ city: 'Roswell', subdivision: 'GA', country: 'US', lang: 'en' }, roswell);
+    expect(g.campusId).toBeUndefined();
+    expect(g.shortList.slice(0, 2)).toEqual(['us-kennesaw', 'us-alpharetta']);
+  });
+
+  it('the metro is data: with the rows\' other towns cleared, Adelaide is only Adelaide City (B09-07F)', () => {
+    const bare = LIST.map((c) => ({ ...c, towns: [] }));
+    const g = guessCampus({ city: 'Adelaide', subdivision: 'SA', country: 'AU' }, bare);
+    expect(g.campusId).toBe('au-adelaide-city');
+    // And with no towns listed, Kadina has no campus of its own.
+    expect(guessCampus({ city: 'Kadina', subdivision: 'SA', country: 'AU' }, bare).campusId).toBeUndefined();
+  });
+
+  it('matches a listed town ignoring case and accents', () => {
+    expect(guessCampus({ city: 'NITEROI', country: 'BR' }, LIST).campusId).toBe('br-rio');
+    expect(guessCampus({ city: 'clare', subdivision: 'SA', country: 'AU' }, LIST).campusId).toBe('au-clare-valley');
+    expect(guessCampus({ city: 'Lawrenceville', subdivision: 'GA', country: 'US' }, LIST).campusId).toBe('us-gwinnett');
+  });
+
   it('never offers Other as a guess', () => {
     const g = guessCampus({ param: 'other' }, LIST);
     expect(g.campusId).toBeUndefined();

@@ -50,7 +50,7 @@ const { isCongregationId } = require("./lib/congregations");
 const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
-const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow } = require("./lib/campuses");
+const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow, COLUMNS: CAMPUS_COLUMNS } = require("./lib/campuses");
 
 let supabase;
 function db() {
@@ -1505,7 +1505,7 @@ exports.handler = async (event) => {
       // stale seed values would un-hide a campus and drop the owner's edits.
       clearCampusCache();
       const { data: rows, error: readErr } = await db().from("dw_campuses")
-        .select("id, name, city, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active")
+        .select(CAMPUS_COLUMNS)
         .order("sort_order", { ascending: true }).order("id", { ascending: true });
       if (readErr) throw readErr;
       const list = (rows || []).map(fromRow);
@@ -1517,14 +1517,14 @@ exports.handler = async (event) => {
     if (action === "campus_save") {
       clearCampusCache();
       const { data: rows, error: readErr } = await db().from("dw_campuses")
-        .select("id, name, city, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active");
+        .select(CAMPUS_COLUMNS);
       if (readErr) throw readErr;
       const list = (rows || []).map(fromRow);
       const checked = validateCampusSave(body.campus, list);
       if (checked.error) return json(event, 400, { error: checked.error });
       const row = { ...checked.row, updated_at: new Date().toISOString(), updated_by: staff.email };
       const { data, error } = await db().from("dw_campuses").upsert(row, { onConflict: "id" })
-        .select("id, name, city, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active").single();
+        .select(CAMPUS_COLUMNS).single();
       if (error) throw error;
       clearCampusCache();
       const saved = fromRow(data);

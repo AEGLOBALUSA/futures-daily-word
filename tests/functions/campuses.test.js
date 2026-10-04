@@ -19,6 +19,7 @@ function row(over = {}) {
     id: 've-futuros-merida', name: 'Futuros Mérida', city: 'Mérida, Venezuela', region: 'Venezuela',
     congregation: 'futuros-us', time_zone: 'America/Caracas', sunday_until: '16:00:00', video_url: null,
     pco_names: ['Futuros Merida'], sort_order: 215, active: true, updated_by: 'someone@example.org',
+    towns: ['Ejido'],
     ...over,
   };
 }
@@ -38,7 +39,7 @@ function fakeDb(result) {
 }
 
 const seedRows = () => FALLBACK.map((c) => ({
-  id: c.id, name: c.name, city: c.city, region: c.region, congregation: c.congregation,
+  id: c.id, name: c.name, city: c.city, towns: c.towns, region: c.region, congregation: c.congregation,
   time_zone: c.timeZone, sunday_until: '16:00:00', video_url: c.videoUrl, pco_names: c.pcoNames,
   sort_order: c.sortOrder, active: true,
 }));
@@ -73,10 +74,22 @@ describe('loadCampuses', () => {
     }
   });
 
+  it('before the towns column is applied, reads the rest of the owner\'s list instead of the bundled seed (B09-07F)', async () => {
+    const answers = [
+      { data: null, error: { code: '42703', message: 'column dw_campuses.towns does not exist' } },
+      { data: [row({ towns: undefined })], error: null },
+    ];
+    const db = fakeDb(() => answers.shift());
+    const list = await campuses.loadCampuses(db);
+    expect(db.reads).toBe(2);
+    expect(list.map((c) => c.id)).toEqual(['ve-futuros-merida']);
+    expect(list[0].towns).toEqual([]);
+  });
+
   it('maps a row to the list shape: camelCase, HH:MM, lower-case Planning Center spellings, no updated_by', async () => {
     const list = await campuses.loadCampuses(fakeDb({ data: [row()], error: null }));
     expect(list[0]).toEqual({
-      id: 've-futuros-merida', name: 'Futuros Mérida', city: 'Mérida, Venezuela', region: 'Venezuela',
+      id: 've-futuros-merida', name: 'Futuros Mérida', city: 'Mérida, Venezuela', towns: ['Ejido'], region: 'Venezuela',
       congregation: 'futuros-us', timeZone: 'America/Caracas', sundayUntil: '16:00', videoUrl: null,
       pcoNames: ['futuros merida'], sortOrder: 215, active: true,
     });
@@ -157,6 +170,22 @@ describe('validateCampusSave', () => {
     expect(cleared.row.active).toBe(true);
   });
 
+  it('keeps the other towns as typed: trimmed, tags dropped, duplicates dropped ignoring case and accents, at most 20 (B09-07F)', () => {
+    const r = campuses.validateCampusSave({ ...NEW, towns: ' Ejido \nejido\n<b>Tabay</b>\n\nTábay, Lagunillas' }, list);
+    expect(r.error).toBeUndefined();
+    expect(r.row.towns).toEqual(['Ejido', 'Tabay', 'Lagunillas']);
+    const many = Array.from({ length: 25 }, (_, i) => `Town ${i}`);
+    expect(campuses.validateCampusSave({ ...NEW, towns: many }, list).row.towns).toHaveLength(20);
+    expect(campuses.MAX_TOWNS).toBe(20);
+  });
+
+  it('an edit that leaves the towns out keeps them; an explicit empty list clears them (B09-07F)', () => {
+    const base = { id: 'au-copper-coast', name: 'Futures Copper Coast', region: 'Australia', timeZone: 'Australia/Adelaide' };
+    expect(campuses.validateCampusSave(base, list).row.towns).toEqual(['Kadina', 'Wallaroo', 'Moonta']);
+    expect(campuses.validateCampusSave({ ...base, towns: [] }, list).row.towns).toEqual([]);
+    expect(campuses.validateCampusSave({ ...base, towns: 'Kadina\nPort Hughes' }, list).row.towns).toEqual(['Kadina', 'Port Hughes']);
+  });
+
   it('says the fix in words', () => {
     expect(campuses.validateCampusSave({ ...NEW, name: '' }, list).error).toBe('Add the campus name first.');
     expect(campuses.validateCampusSave({ ...NEW, timeZone: 'Mars/Olympus' }, list).error).toBe('Choose the campus\'s time zone first.');
@@ -222,7 +251,9 @@ describe('GET /.netlify/functions/campuses', () => {
     expect(res.headers['Cache-Control']).toBe('public, max-age=300');
     const body = JSON.parse(res.body);
     expect(body.campuses).toHaveLength(22);
-    expect(Object.keys(body.campuses[0]).sort()).toEqual(['city', 'congregation', 'id', 'name', 'region', 'sortOrder', 'sundayUntil', 'timeZone', 'videoUrl']);
+    expect(Object.keys(body.campuses[0]).sort()).toEqual(['city', 'congregation', 'id', 'name', 'region', 'sortOrder', 'sundayUntil', 'timeZone', 'towns', 'videoUrl']);
+    // The other towns near a campus are public, so the phone matches its own town in memory (B09-07F).
+    expect(body.campuses.find((c) => c.id === 'au-copper-coast').towns).toEqual(['Kadina', 'Wallaroo', 'Moonta']);
     expect(res.body).not.toContain('updated_by');
     expect(res.body).not.toContain('someone@example.org');
     expect(body.campuses.find((c) => c.id === 'us-gwinnett').videoUrl).toMatch(/^https:\/\/www\.youtube\.com\//);
