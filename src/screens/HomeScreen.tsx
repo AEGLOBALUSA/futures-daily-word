@@ -2952,7 +2952,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         />
           )}
         />
-        <NextPill />
+        <NextPill quietWhileReading={homeNext.step.action === 'none' && (homeNext.step.kind === 'reading' || homeNext.step.kind === 'comfort')} />
         <details
           className="dw-more"
           open={moreOpen}

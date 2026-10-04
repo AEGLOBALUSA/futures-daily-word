@@ -81,6 +81,14 @@ export function PWAInstallBanner({ next = false }: { next?: boolean }) {
     return () => window.removeEventListener('dw-reading-completed', h);
   }, []);
 
+  const closeHint = () => {
+    setSheet(false);
+    dismissInstall();
+    setDismissed(true);
+    track('pwa_install', 'hint_closed');
+    try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
+  };
+
   useEffect(() => {
     if (!hide && !dismissed && hasRead) track('pwa_install_prompt_shown', ios ? 'ios' : canPrompt ? 'native' : 'hint');
   }, [hide, dismissed, hasRead, ios, canPrompt]);
@@ -123,6 +131,7 @@ export function PWAInstallBanner({ next = false }: { next?: boolean }) {
             <p style={{
               margin: 0, fontFamily: 'var(--font-sans)',
               fontSize: 13, lineHeight: 1.5, color: 'var(--dw-text-muted)',
+              ...(next ? { fontSize: 15 } : {}),
             }}>
               {t('pwa_install_body')}
             </p>
@@ -137,6 +146,7 @@ export function PWAInstallBanner({ next = false }: { next?: boolean }) {
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--dw-text-muted)', padding: 4, margin: '-4px -4px 0 0',
+              ...(next ? { width: 44, height: 44 } : {}),
             }}
           >
             <X size={18} />
@@ -156,7 +166,7 @@ export function PWAInstallBanner({ next = false }: { next?: boolean }) {
           {t('pwa_install_cta')}
         </button>
       </div>
-      {sheet && <InstallHintSheet ios={ios} onClose={() => setSheet(false)} />}
+      {sheet && <InstallHintSheet ios={ios} onClose={closeHint} />}
     </>
   );
 }

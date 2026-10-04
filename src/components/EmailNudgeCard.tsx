@@ -5,7 +5,7 @@
  * push prompt has been dealt with — the two post-reading moments never stack),
  * offer the account hand-off via the existing requireEmail() gate.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CloudUpload } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { getStreak } from '../utils/streak';
@@ -26,6 +26,7 @@ export function EmailNudgeCard({ next = false }: { next?: boolean }) {
   const [pushDone, setPushDone] = useState(() => {
     try { return !!localStorage.getItem('dw_push_onboarded'); } catch { return false; }
   });
+  const copyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onRead = () => setHasRead(true);
     const onPush = () => setPushDone(true);
@@ -36,6 +37,21 @@ export function EmailNudgeCard({ next = false }: { next?: boolean }) {
       window.removeEventListener('dw-push-onboarded', onPush);
     };
   }, []);
+
+  useEffect(() => {
+    const paragraphs = copyRef.current?.querySelectorAll('p');
+    const title = paragraphs?.[0];
+    const body = paragraphs?.[1];
+    if (next) {
+      title?.style.setProperty('font-size', '17px');
+      body?.style.setProperty('font-size', '15px');
+      body?.style.setProperty('line-height', '1.45');
+    } else {
+      title?.style.removeProperty('font-size');
+      body?.style.removeProperty('font-size');
+      body?.style.removeProperty('line-height');
+    }
+  }, [next]);
 
   if (dismissed || !hasRead || !pushDone || userProfile?.email) return null;
 
@@ -52,7 +68,7 @@ export function EmailNudgeCard({ next = false }: { next?: boolean }) {
       ...(next ? { flexDirection: 'column' as const, alignItems: 'stretch' } : {}),
     }}>
       <CloudUpload size={20} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div ref={copyRef} style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: '0 0 2px' }}>
           {t('email_nudge_title', lang)}
         </p>
@@ -89,7 +105,7 @@ export function EmailNudgeCard({ next = false }: { next?: boolean }) {
             background: 'transparent', color: 'var(--dw-text-muted)',
             fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
             cursor: 'pointer', minHeight: 24, whiteSpace: 'nowrap',
-            ...(next ? { minHeight: 44 } : {}),
+            ...(next ? { minHeight: 44, fontSize: 15, width: '100%' } : {}),
           }}
         >
           {t('email_nudge_later', lang)}

@@ -60,7 +60,9 @@ export function UpgradePromptCard({ persona, onUpgrade, next = false }: UpgradeP
           position: 'absolute', top: 12, right: 12,
           background: 'none', border: 'none', cursor: 'pointer',
           color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
+          ...(next ? { width: 44, height: 44 } : {}),
         }}
+        aria-label="Not yet"
       >
         &times;
       </button>
@@ -68,6 +70,7 @@ export function UpgradePromptCard({ persona, onUpgrade, next = false }: UpgradeP
       <p style={{
         fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
         textTransform: 'uppercase', color: 'var(--dw-info)',
+        ...(next ? { fontSize: 15, letterSpacing: 'normal', textTransform: 'none' } : {}),
         fontFamily: 'var(--font-sans)', marginBottom: 6,
       }}>
         {upgrade.label}
@@ -75,6 +78,7 @@ export function UpgradePromptCard({ persona, onUpgrade, next = false }: UpgradeP
 
       <p style={{
         fontSize: 14, color: 'var(--dw-text-secondary)',
+        ...(next ? { fontSize: 16 } : {}),
         fontFamily: 'var(--font-serif-text)', lineHeight: 1.55,
         marginBottom: 14,
       }}>
@@ -114,7 +118,8 @@ export function UpgradePromptCard({ persona, onUpgrade, next = false }: UpgradeP
             fontWeight: 600,
             cursor: 'pointer',
             fontFamily: 'var(--font-sans)',
-            minHeight: 42,
+            minHeight: next ? 44 : 42,
+            ...(next ? { fontSize: 15 } : {}),
           }}
         >
           Not Yet

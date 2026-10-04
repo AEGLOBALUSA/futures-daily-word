@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '../utils/i18n';
 
-export function NextPill() {
+export function NextPill({ quietWhileReading = false }: { quietWhileReading?: boolean }) {
+  const quietWhileReadingRef = useRef(quietWhileReading);
   const [next, setNext] = useState<HTMLElement | null>(null);
   const [offScreen, setOffScreen] = useState(false);
   const [label, setLabel] = useState('');
+  const [quiet, setQuiet] = useState(false);
+
+  useEffect(() => {
+    quietWhileReadingRef.current = quietWhileReading;
+    setQuiet(quietWhileReading && document.body.classList.contains('dw-reading-active'));
+  }, [quietWhileReading]);
 
   useEffect(() => {
     let observed: HTMLElement | null = null;
@@ -13,6 +20,7 @@ export function NextPill() {
     const readLabel = (element: HTMLElement) => element.innerText?.trim() || element.textContent?.trim() || '';
     const update = () => {
       if (!observed) return;
+      setQuiet(quietWhileReadingRef.current && document.body.classList.contains('dw-reading-active'));
       const rect = observed.getBoundingClientRect();
       const tabTop = document.querySelector<HTMLElement>('.tab-bar')?.getBoundingClientRect().top ?? window.innerHeight;
       const topChromeBottom = Array.from(document.querySelectorAll<HTMLElement>('.dw-seam-bar, header'))
@@ -57,7 +65,7 @@ export function NextPill() {
     };
   }, []);
 
-  if (!next || !offScreen || !label) return null;
+  if (quiet || !next || !offScreen || !label) return null;
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   return (

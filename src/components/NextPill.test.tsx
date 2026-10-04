@@ -54,4 +54,17 @@ describe('NextPill', () => {
     const pill = document.querySelector('.dw-next-pill');
     expect(pill?.textContent).toContain('Mark as read');
   });
+
+  it('stays quiet while reading, then returns when reading ends', async () => {
+    document.body.classList.add('dw-reading-active');
+    placeNext(window.innerHeight + 400);
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    await act(async () => { root!.render(<NextPill quietWhileReading />); });
+    expect(document.querySelector('.dw-next-pill')).toBeNull();
+
+    await act(async () => { document.body.classList.remove('dw-reading-active'); });
+    expect(document.querySelector('.dw-next-pill')).not.toBeNull();
+  });
 });
