@@ -10,10 +10,11 @@ import { CloudUpload } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { getStreak } from '../utils/streak';
 import { t, getLang } from '../utils/i18n';
+import { NEXT_REFRESH_EVENT } from '../utils/useHomeNextStep';
 
 const DISMISS_KEY = 'dw_email_nudge_dismissed';
 
-export function EmailNudgeCard() {
+export function EmailNudgeCard({ next = false }: { next?: boolean }) {
   const { userProfile, requireEmail } = useUser();
   const lang = getLang();
   const [dismissed, setDismissed] = useState(() => {
@@ -48,6 +49,7 @@ export function EmailNudgeCard() {
       display: 'flex',
       alignItems: 'center',
       gap: 12,
+      ...(next ? { flexDirection: 'column' as const, alignItems: 'stretch' } : {}),
     }}>
       <CloudUpload size={20} style={{ color: 'var(--dw-accent)', flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -58,10 +60,16 @@ export function EmailNudgeCard() {
           {t('email_nudge_body', lang)}
         </p>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0, ...(next ? { flex: 1, width: '100%' } : {}) }}>
         <button
-          onClick={() => requireEmail()}
-          style={{
+          className={next ? 'dw-next dw-next-main' : undefined}
+          onClick={() => requireEmail(() => {
+            try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
+          })}
+          style={next ? {
+            padding: '12px 16px', borderRadius: 12, border: 'none', fontWeight: 700,
+            cursor: 'pointer', whiteSpace: 'nowrap',
+          } : {
             padding: '8px 12px', borderRadius: 8, border: 'none',
             background: 'var(--dw-accent)', color: '#fff',
             fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)',
@@ -74,12 +82,14 @@ export function EmailNudgeCard() {
           onClick={() => {
             try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* quota */ }
             setDismissed(true);
+            try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
           }}
           style={{
             padding: '4px 12px', borderRadius: 8, border: 'none',
             background: 'transparent', color: 'var(--dw-text-muted)',
             fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
             cursor: 'pointer', minHeight: 24, whiteSpace: 'nowrap',
+            ...(next ? { minHeight: 44 } : {}),
           }}
         >
           {t('email_nudge_later', lang)}

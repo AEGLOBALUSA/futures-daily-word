@@ -173,6 +173,7 @@
   --dw-charcoal-deep: #14120F;
   --dw-charcoal-light: #2C2A25;
   --dw-accent: #D89066;
+  --dw-accent-on-fill: #0F0D0B;
   --dw-accent-hover: #C97E54;
   --dw-accent-active: #B56E45;
   --dw-accent-bg: rgba(216, 144, 102, 0.14);
@@ -251,6 +252,7 @@
   --dw-charcoal-light: #FFFFFF;
   --dw-accent: #A8552F;          /* deep terracotta clay — AA as text on ivory & white, AA white-on-fill */
   --dw-accent-hover: #974A28;
+  --dw-accent-on-fill: #FFFFFF;
   --dw-accent-active: #823F22;
   --dw-accent-bg: rgba(168, 85, 47, 0.10);
   --dw-error: #B42318; /* readable error text on white */
@@ -299,6 +301,7 @@ body.dw-persona-new {
   --dw-accent-hover: var(--dw-new-hover);
   --dw-accent-active: var(--dw-new-hover);
   --dw-accent-bg: var(--dw-new-soft);
+  --dw-accent-on-fill: var(--dw-new-on-fill);
 }
 body.dw-persona-new .dw-btn-primary { color: var(--dw-new-on-fill) !important; }
 /* Most accent fills in the app are inline styles that hard-code white ink
@@ -2400,6 +2403,15 @@ body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
 .dw-next {
   animation: dwNextPulse 1.8s ease-out infinite;
 }
+.dw-next-main {
+  width: 100%;
+  min-height: 56px;
+  background: var(--dw-accent);
+  color: var(--dw-accent-on-fill);
+  font-size: 17px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+}
 @keyframes dwNextPulse {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dw-accent) 45%, transparent); }
   70% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--dw-accent) 0%, transparent); }
@@ -2411,6 +2423,104 @@ body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
     box-shadow: 0 0 0 3px var(--dw-accent);
   }
 }
+.dw-next-pill {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(100px + var(--safe-bottom) + 36px + 12px);
+  z-index: 101;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--dw-accent);
+  color: var(--dw-accent-on-fill);
+  font: 700 15px var(--font-sans);
+  cursor: pointer;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+}
+body.dw-reading-active .dw-next-pill {
+  bottom: calc(64px + var(--safe-bottom) + 10px + 60px + 12px);
+}
+.dw-nextstep {
+  margin-bottom: 16px;
+  padding: 18px;
+  background: var(--dw-card);
+  border: 1px solid var(--dw-border);
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.06);
+  font-family: var(--font-sans);
+  color: var(--dw-text-primary);
+}
+/* A set-up ask is already its own card: no second frame around it. */
+.dw-nextstep--ask {
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+.dw-nextstep-why {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--dw-text-secondary);
+}
+.dw-nextstep-done {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--dw-text-secondary);
+}
+.dw-nextstep-btn {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  border: none;
+  border-radius: 14px;
+  font: 700 17px var(--font-sans);
+  padding: 14px 18px;
+  cursor: pointer;
+}
+.dw-nextstep-btn:focus-visible,
+.dw-more-row:focus-visible {
+  outline: 3px solid var(--dw-accent);
+  outline-offset: 2px;
+}
+.dw-more {
+  margin-bottom: 16px;
+}
+.dw-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 0;
+  border-top: 1px solid var(--dw-border);
+  border-bottom: 1px solid var(--dw-border);
+  list-style: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--dw-text-primary);
+}
+.dw-more-row::-webkit-details-marker { display: none; }
+.dw-more-names {
+  display: block;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--dw-text-secondary);
+}
+.dw-more-chevron {
+  flex-shrink: 0;
+  color: var(--dw-text-secondary);
+}
+.dw-more[open] .dw-more-chevron { transform: rotate(90deg); }
+.dw-more[open] > .dw-more-row { margin-bottom: 16px; }
+
 .dw-campus-main {
   background: var(--dw-accent);
   color: var(--dw-canvas);

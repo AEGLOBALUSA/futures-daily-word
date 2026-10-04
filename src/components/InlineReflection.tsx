@@ -26,6 +26,7 @@ interface InlineReflectionProps {
   onViewJournal?: () => void; // when set, the saved confirmation becomes a tappable hand-off to the journal
   /** I'm New path — paper/default chrome uses sage, not terracotta. */
   newPath?: boolean;
+  openSignal?: number;
 }
 
 type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
@@ -47,7 +48,7 @@ function formatTime(d: Date): string {
 }
 
 export function InlineReflection({
-  label, prompt, tone = 'default', verseRef, savedLabel, placeholder, onViewJournal, newPath = false,
+  label, prompt, tone = 'default', verseRef, savedLabel, placeholder, onViewJournal, newPath = false, openSignal,
 }: InlineReflectionProps) {
   // Defaults resolve per render so they follow the active language.
   savedLabel = savedLabel ?? t('saved_to_journal');
@@ -82,6 +83,16 @@ export function InlineReflection({
   const [saveState, setSaveState] = useState<SaveState>(init.draft ? 'dirty' : (init.existing ? 'saved' : 'idle'));
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const previousOpenSignal = useRef(openSignal);
+
+  useEffect(() => {
+    const changed = openSignal !== previousOpenSignal.current;
+    previousOpenSignal.current = openSignal;
+    if (!changed || !openSignal || openSignal <= 0) return;
+    setOpen(true);
+    const frame = requestAnimationFrame(() => taRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [openSignal]);
   const entryIdRef = useRef<string | null>(init.existing?.id || null);   // stable journal entry id — edits upsert, never duplicate
   const lastSavedTextRef = useRef<string>(init.existing?.body || '');
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
