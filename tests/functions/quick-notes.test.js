@@ -159,19 +159,32 @@ describe('quickNotes: works it out, fills by config, never publishes', () => {
     expect(out.attach).toBeNull();
   });
 
-  it('YouTube only when this Sunday\'s message is already up: the link joins it, nothing to ask', async () => {
-    const current = { id: 'faith-2026-10-04', congregation: 'futures-us', published_at: '2026-10-01T12:00:00Z', is_current: true, sermon: { id: 'faith-2026-10-04', title: 'Faith', speaker: 'Ps Sam Example', date: '2026-10-04', series: 'Built to Last', sections: [{ num: '1', title: 'Notes', content: [] }] } };
-    const out = await qn.quickNotes({ questions: HUB_QUESTIONS, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: NOW, current, format: deterministic });
+  // Sunday 4 Oct, 14:00 in New York: the message on the page is today's.
+  const SUNDAY = new Date('2026-10-04T18:00:00Z');
+  const todays = () => ({ id: 'faith-2026-10-04', congregation: 'futures-us', published_at: '2026-10-01T12:00:00Z', is_current: true, sermon: { id: 'faith-2026-10-04', title: 'Faith', speaker: 'Ps Sam Example', date: '2026-10-04', series: 'Built to Last', sections: [{ num: '1', title: 'Notes', content: [] }] } });
+
+  it('YouTube only on Sunday with today\'s message up: the link joins it, nothing to ask', async () => {
+    const out = await qn.quickNotes({ questions: HUB_QUESTIONS, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: SUNDAY, current: todays(), format: deterministic });
     expect(out.needs).toBeNull();
     expect(out.answers).toMatchObject({ 'x-title': 'Faith', 'x-speaker': 'Ps Sam Example', 'x-date': '2026-10-04', 'x-yt': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
     expect(out.preview.id).toBe('faith-2026-10-04');
   });
 
-  it('YouTube only when this Sunday\'s message is already up, with the media form: it attaches through the media merge', async () => {
-    const current = { id: 'faith-2026-10-04', congregation: 'futures-us', published_at: '2026-10-01T12:00:00Z', is_current: true, sermon: { id: 'faith-2026-10-04', title: 'Faith', speaker: 'Ps Sam Example', date: '2026-10-04', sections: [{ num: '1', title: 'Notes', content: [] }] } };
-    const out = await qn.quickNotes({ questions: HUB_QUESTIONS, mediaQuestions: MEDIA_QUESTIONS, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: NOW, current, format: deterministic });
+  it('YouTube only on Sunday with today\'s message up, with the media form: it attaches through the media merge', async () => {
+    const out = await qn.quickNotes({ questions: HUB_QUESTIONS, mediaQuestions: MEDIA_QUESTIONS, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: SUNDAY, current: todays(), format: deterministic });
     expect(out.needs).toBeNull();
     expect(out.attach).toEqual({ id: 'faith-2026-10-04', title: 'Faith', job: 'media', answers: { 'x-media-pick': 'faith-2026-10-04', 'x-media-yt': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } });
+  });
+
+  it('YouTube only on a weekday with the coming Sunday\'s message up: never picked on its own, the media form opens with the link in', async () => {
+    // Thursday 1 Oct: "Faith" is for Sunday 4 Oct, still to come. The link
+    // may be last Sunday's video or a link for Sunday: the person picks.
+    let called = 0;
+    const out = await qn.quickNotes({ questions: HUB_QUESTIONS, mediaQuestions: MEDIA_QUESTIONS, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: NOW, current: todays(), format: async () => { called++; return null; } });
+    expect(called).toBe(0);
+    expect(out.preview).toBeNull();
+    expect(out.attach).toEqual({ id: '', title: '', job: 'media', answers: { 'x-media-yt': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, later: { title: 'Faith', date: '2026-10-04' } });
+    expect(out.needs).toEqual({ key: 'other', questionId: 'x-media-pick', label: 'Which sermon are you updating?', type: 'sermon_pick' });
   });
 
   it('no speaker in the notes: offers last week\'s, marked as a guess', async () => {
@@ -258,6 +271,17 @@ describe('quickNotes: a link on Monday joins the message just preached', () => {
     expect(out.attach).toBeNull();
     expect(out.needs).toMatchObject({ key: 'title' });
     expect(out.details.date).toBe('2026-10-04');
+  });
+
+  it('next Sunday\'s notes already up on Monday: the link is never put on them, the person picks in the media form (flow review MUST)', async () => {
+    const nextWeek = { id: 'grace-2026-10-11', congregation: 'futures-us', is_current: true, published_at: '2026-10-05T12:00:00Z', sermon: { id: 'grace-2026-10-11', title: 'Grace', speaker: 'Ps Sam Example', date: '2026-10-11', sections: [{ num: '1', title: 'Grace is free', content: [] }] } };
+    expect(qn.linkTarget(nextWeek, 'futures-us', MONDAY)).toBeNull();
+    expect(qn.laterMessage(nextWeek, 'futures-us', MONDAY)).toBe(nextWeek);
+    const out = await qn.quickNotes({ questions: qn.hubQuestions(HUB_QUESTIONS, 'hub'), mediaQuestions: MEDIA_QUESTIONS, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: MONDAY, current: nextWeek, format: deterministic });
+    expect(out.attach).toMatchObject({ id: '', job: 'media', answers: { 'x-media-yt': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, later: { title: 'Grace', date: '2026-10-11' } });
+    expect(out.attach.answers['x-media-pick']).toBeUndefined();
+    expect(out.needs).toMatchObject({ key: 'other', questionId: 'x-media-pick', type: 'sermon_pick' });
+    expect(out.preview).toBeNull();
   });
 
   it('notes pasted on Monday are still for the coming Sunday', async () => {
@@ -427,5 +451,25 @@ describe('notes_quick then submit on a frozen Monday: the link joins yesterday\'
     expect(qn.isForSunday(row, '2026-10-11', 'futures-us')).toBe(false);
     const status = await call({ action: 'notes_quick_status', congregation: 'futures-us' }, TOKENS.hub);
     expect(status.body).toMatchObject({ sunday: '2026-10-11', up: false });
+  });
+
+  it('with next Sunday\'s notes already up, the link is not put on them and nothing is written: the media form is the way on', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-05T14:00:00Z')); // Mon 5 Oct, 10:00 in New York
+    fake.tables.published_sermons.push(
+      { id: 'ordinary-faith-2026-10-04', congregation: 'futures-us', is_current: false, published_at: '2026-10-01T15:00:00.000Z',
+        sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', date: '2026-10-04', sections: [{ num: '1', title: 'Faith starts small', content: [] }] } },
+      { id: 'grace-2026-10-11', congregation: 'futures-us', is_current: true, published_at: '2026-10-05T12:00:00.000Z',
+        sermon: { id: 'grace-2026-10-11', title: 'Grace', date: '2026-10-11', sections: [{ num: '1', title: 'Grace is free', content: [] }] } },
+    );
+    const before = JSON.stringify(fake.tables.published_sermons);
+    const q = await call({ action: 'notes_quick', text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us' }, TOKENS.hub);
+    expect(q.status).toBe(200);
+    expect(q.body.preview).toBeNull();
+    expect(q.body.attach).toMatchObject({ id: '', job: 'media', later: { title: 'Grace', date: '2026-10-11' } });
+    expect(Object.values(q.body.attach.answers)).toEqual(['https://www.youtube.com/watch?v=dQw4w9WgXcQ']);
+    expect(q.body.needs).toMatchObject({ key: 'other', type: 'sermon_pick' });
+    expect(JSON.stringify(fake.tables.published_sermons)).toBe(before);
+    expect(fake.tables.intake_submissions).toHaveLength(0);
   });
 });

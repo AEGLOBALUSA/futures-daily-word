@@ -231,31 +231,57 @@ function isForSunday(row, sunday, congregation) {
 /**
  * The published message a YouTube link pasted on its own belongs to: the
  * congregation's current row, still inside its week (lib/sermon-window.js),
- * when it is the coming Sunday's message or the one just preached. On Monday
- * the link is yesterday's video: it joins yesterday's message with that
- * message's own date and id, and never becomes a new message for next Sunday
- * (review of B09-10, 4 Oct 2026). null when there is no such row.
+ * when it is the message just preached (today's on a Sunday). On Monday the
+ * link is yesterday's video: it joins yesterday's message with that message's
+ * own date and id, and never becomes a new message for next Sunday (review of
+ * B09-10, 4 Oct 2026). A later Sunday's message is never picked for it: that
+ * is `laterMessage`. null when there is no such row.
  */
 function linkTarget(current, congregation, now = new Date()) {
   if (!current || !current.sermon || !isCurrentAt(current, now)) return null;
   const s = rowSunday(current, congregation);
-  if (!s) return null;
-  return s === nextSundayFor(congregation, now) || s === lastSundayFor(congregation, now) ? current : null;
+  return s && s === lastSundayFor(congregation, now) ? current : null;
+}
+
+/**
+ * The current row when it is for a Sunday still to come (next Sunday's notes
+ * already up on a weekday). A link on its own may then be the video of the
+ * message just preached or a link for the coming one: the app cannot tell, so
+ * the person picks the message in the media form, the link already filled in
+ * (flow review of B09-10, 4 Oct 2026: never pick a future Sunday on its own).
+ * null otherwise.
+ */
+function laterMessage(current, congregation, now = new Date()) {
+  if (!current || !current.sermon || !isCurrentAt(current, now)) return null;
+  const s = rowSunday(current, congregation);
+  return s && s > lastSundayFor(congregation, now) ? current : null;
+}
+
+/**
+ * The media form's question that names the message being updated (the
+ * sermon pick), or null.
+ */
+function mediaPickQuestion(questions) {
+  return (questions || []).find((q) => {
+    const cfg = q && q.config && typeof q.config === "object" ? q.config : {};
+    return q && (q.type === "sermon_pick" || cfg.publish === "sermon_target");
+  }) || null;
 }
 
 /**
  * The media form's answers for attaching a link to one published row: the
  * row picked (sermon_pick / sermon_target) and the link, by CONFIG. `submit`
  * with job "media" then merges the link into that row and keeps its date,
- * id and published_at (intake.js publishApproved). null when the media form
- * has no question that carries a link.
+ * id and published_at (intake.js publishApproved). Without a `targetId` the
+ * pick is left for the person. null when the media form has no question that
+ * carries a link.
  */
 function mediaAnswersByConfig(questions, { targetId, youtubeUrl }) {
   const answers = {};
   let carriesLink = false;
   for (const q of questions || []) {
     const cfg = q && q.config && typeof q.config === "object" ? q.config : {};
-    if (q.type === "sermon_pick" || cfg.publish === "sermon_target") { answers[q.id] = targetId; continue; }
+    if (q.type === "sermon_pick" || cfg.publish === "sermon_target") { if (targetId) answers[q.id] = targetId; continue; }
     if (cfg.sermonKey === "youtubeUrl") { answers[q.id] = youtubeUrl; carriesLink = true; }
   }
   return carriesLink ? answers : null;
@@ -280,6 +306,10 @@ function mediaAnswersByConfig(questions, { targetId, youtubeUrl }) {
  * or { error, code } when there is nothing to work from. `attach` is set when
  * a link on its own joins a message already up: { id, title, job: "media",
  * answers } is what publishing sends to `submit` instead of the hub answers.
+ * With `id` "" (a later Sunday's message is up, so which message the link is
+ * for is the person's call) it carries `later: { title, date }`, `needs` is
+ * the media form's sermon pick, and there is no preview: the card opens the
+ * media form with the link filled in.
  */
 async function quickNotes({ questions, text, congregation, now = new Date(), overrides, preview, current, mediaQuestions, format }) {
   const parsed = parseQuickText(text);
@@ -290,6 +320,7 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
   const sunday = nextSundayFor(congregation, now);
   const given = cleanOverrides(overrides);
   const target = parsed.youtubeOnly ? linkTarget(current, congregation, now) : null;
+  const later = parsed.youtubeOnly && !target ? laterMessage(current, congregation, now) : null;
   const last = current && current.sermon ? current.sermon : null;
   const guessed = [];
   let attach = null;
@@ -309,10 +340,11 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
   let source = "none";
 
   if (parsed.youtubeOnly) {
-    // Only the link. When the coming Sunday's message or the one just preached
-    // is up, the link joins it: its own title, date and id, nothing to ask,
-    // published through the media form's merge (`attach`). Otherwise ask for
-    // the title.
+    // Only the link. When the message just preached is up, the link joins it:
+    // its own title, date and id, nothing to ask, published through the media
+    // form's merge (`attach`). When a later Sunday's message is already up,
+    // the person picks the message in the media form, the link filled in
+    // (`attach` without an id). Otherwise ask for the title.
     if (target) {
       const msg = target.sermon;
       for (const key of ["title", "speaker", "series"]) if (!details[key] && msg[key]) details[key] = sanitize(String(msg[key]), 200);
@@ -321,6 +353,18 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
       source = "current";
       const media = mediaAnswersByConfig(mediaQuestions, { targetId: target.id, youtubeUrl: details.youtubeUrl });
       if (media) attach = { id: target.id, title: details.title || sanitize(String(msg.title || ""), 200), job: "media", answers: media };
+    } else if (later) {
+      // Never a new message here: publishing one would take the later
+      // Sunday's notes off the congregation page.
+      const msg = later.sermon;
+      attach = {
+        id: "",
+        title: "",
+        job: "media",
+        answers: mediaAnswersByConfig(mediaQuestions, { targetId: "", youtubeUrl: details.youtubeUrl }) || {},
+        later: { title: sanitize(String(msg.title || ""), 200), date: rowSunday(later, congregation) }
+      };
+      source = "later";
     } else if (details.title) {
       const out = await format({ title: details.title, speaker: details.speaker, date: details.date, series: details.series, youtubeUrl: details.youtubeUrl }, { useAI: false, base: null, retry: false });
       sermon = out && out.sermon;
@@ -374,7 +418,14 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
   }
 
   const answers = answersByConfig(questions, { details, notes: parsed.notes });
-  const needs = attach ? firstMissing(mediaQuestions, attach.answers, "media") : firstMissing(questions, answers);
+  let needs;
+  if (attach && !attach.id) {
+    // Which message the video is for: a pick list, so always the media form.
+    const pick = mediaPickQuestion(mediaQuestions);
+    needs = { key: "other", questionId: pick ? pick.id : "", label: pick ? pick.label || "" : "", type: "sermon_pick" };
+  } else {
+    needs = attach ? firstMissing(mediaQuestions, attach.answers, "media") : firstMissing(questions, answers);
+  }
   return {
     sunday,
     details,
@@ -410,6 +461,8 @@ module.exports = {
   rowSunday,
   isForSunday,
   linkTarget,
+  laterMessage,
+  mediaPickQuestion,
   mediaAnswersByConfig,
   quickNotes,
   hubQuestions,

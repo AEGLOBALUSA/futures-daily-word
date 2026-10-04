@@ -45,16 +45,19 @@ export type QuickPreview = {
 };
 
 /**
- * A YouTube link on its own that joins a message already up (the coming
- * Sunday's, or the one just preached): publishing sends these media-form
- * answers to `submit` with job "media", which adds the link to that row and
- * keeps its date, id and published_at.
+ * A YouTube link on its own that joins a message already up (the one just
+ * preached): publishing sends these media-form answers to `submit` with job
+ * "media", which adds the link to that row and keeps its date, id and
+ * published_at. `id` "" means a later Sunday's message is already up, so the
+ * person picks which message the link is for in the media form (`later` names
+ * the message on the page); the link is already filled in there.
  */
 export type QuickAttach = {
   id: string;
   title: string;
   job: 'media';
   answers: Record<string, unknown>;
+  later?: { title: string; date: string };
 };
 
 export type QuickResult = {
@@ -175,8 +178,8 @@ export function needsTheForm(needs: QuickNeeds): boolean {
  * way the congregation does, so "It's on the congregation page" is a fact.
  */
 export async function quickNotesPublish(result: QuickResult): Promise<QuickPublished> {
-  if (!result.preview || result.needs) throw new Error(t('staff_quick_err_generic'));
   const attach = result.attach || null;
+  if (!result.preview || result.needs || (attach && !attach.id)) throw new Error(t('staff_quick_err_generic'));
   let data: { published?: boolean; pending?: boolean; publish_result?: { sermon?: { id?: string; title?: string } | null } };
   try {
     // A link that joins a message already up goes through the media form's
@@ -194,8 +197,14 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
   try {
     const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(result.congregation)}`, { cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
+    // A link is on the page only when the message the card named carries it:
+    // the row submit changed is that message, and the page shows that message
+    // (by its row id or its own id) with this link. Another message that
+    // happens to have the same link never counts.
     verified = !!(j && j.sermon && (attach
-      ? j.sermon.youtubeUrl === result.details.youtubeUrl
+      ? sermon.id === attach.id
+        && (j.sermon.id === attach.id || j.sermon.id === result.preview.id)
+        && j.sermon.youtubeUrl === result.details.youtubeUrl
       : j.sermon.id === sermon.id));
   } catch { /* verified stays false */ }
   return { id: sermon.id, title: sermon.title || attach?.title || result.preview.title, verified };
@@ -264,7 +273,9 @@ export function withOtherAnswer(result: QuickResult, value: string): QuickResult
 /**
  * The form, pre-filled: for "Change details". Notes open the hub form; a link
  * that joins a message already up opens the media form on that message, whose
- * save adds the link without re-publishing the notes.
+ * save adds the link without re-publishing the notes. A link whose message is
+ * the person's call (`attach.id` "") opens the media form with the link filled
+ * in and the message left to pick.
  */
 export function changeDetailsSeed(result: QuickResult): { answers: Record<string, unknown>; preview: QuickPreview | null; congregation: CongregationId; job: 'hub' | 'media' } {
   if (result.attach) {

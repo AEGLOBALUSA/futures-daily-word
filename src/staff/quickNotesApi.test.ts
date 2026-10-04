@@ -89,6 +89,32 @@ describe('a link that joins the message just preached (review MUST, 4 Oct 2026)'
     expect((await quickNotesPublish(attachResult())).verified).toBe(false);
   });
 
+  it('another message with the same link never passes as this one (flow review MUST, 4 Oct 2026)', async () => {
+    // The page shows a different message that happens to carry the same link.
+    vi.mocked(intake).mockResolvedValue({ published: true, publish_result: { sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith' } } });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'grace-2026-10-11', youtubeUrl: YT } }) })));
+    expect((await quickNotesPublish(attachResult())).verified).toBe(false);
+    // submit changed a different row than the one the card named.
+    vi.mocked(intake).mockResolvedValue({ published: true, publish_result: { sermon: { id: 'grace-2026-10-11', title: 'Grace' } } });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'ordinary-faith-2026-10-04', youtubeUrl: YT } }) })));
+    const out = await quickNotesPublish(attachResult());
+    expect(out.verified).toBe(false);
+    expect(out.title).toBe('Grace');
+  });
+
+  it('a link whose message is the person\'s call never publishes from the card; Change details opens the media form with the link in', async () => {
+    const r: QuickResult = {
+      ...attachResult(), preview: null,
+      needs: { key: 'other', questionId: 'pick', label: 'Which sermon', type: 'sermon_pick' },
+      attach: { id: '', title: '', job: 'media', answers: { yt: YT }, later: { title: 'Grace', date: '2026-10-11' } },
+    };
+    expect(needsTheForm(r.needs)).toBe(true);
+    await expect(quickNotesPublish(r)).rejects.toThrow();
+    await expect(quickNotesPublish({ ...r, needs: null, preview: attachResult().preview })).rejects.toThrow();
+    expect(vi.mocked(intake)).not.toHaveBeenCalled();
+    expect(changeDetailsSeed(r)).toEqual({ answers: { yt: YT }, preview: null, congregation: 'futures-us', job: 'media' });
+  });
+
   it('notes still publish through the hub job with the preview', async () => {
     vi.mocked(intake).mockResolvedValue({ published: true, publish_result: { sermon: { id: 'p1', title: 'T' } } });
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'p1' } }) })));
