@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useCampusGuess } from '../utils/useCampusGuess';
 import { usePcoCampus } from '../utils/pcoCampus';
-import { chooseCampus } from '../utils/campusGuess';
+import { chooseCampus, readCampusGuess } from '../utils/campusGuess';
 import { campusName, useCampuses } from '../data/campuses';
 import { CampusSelect } from './CampusSelect';
 import { t, getLang } from '../utils/i18n';
 
 export function CampusConfirm({ userProfile }: { userProfile: any }) {
   const { saveProfile, requireEmail } = useUser();
-  const pco = usePcoCampus(userProfile?.email, true);
+  const pco = usePcoCampus(userProfile?.email, !readCampusGuess());
   const guess = useCampusGuess(true, pco.campusId, pco.pending);
   const campuses = useCampuses();
   const [lang, setLang] = useState(getLang());

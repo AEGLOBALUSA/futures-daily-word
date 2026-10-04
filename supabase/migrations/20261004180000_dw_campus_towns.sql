@@ -23,21 +23,17 @@
 --
 -- RLS and grants are unchanged (RLS on, no policies, service_role only).
 --
--- The update below writes down exactly what the code list held on 4 Oct 2026,
--- and only on rows the owner has not given towns of their own.
+-- The first values are written once, when the column is created (it is null
+-- only on that first run, until the end of this file): exactly what the code
+-- list held on 4 Oct 2026. Running this file again changes nothing, so a town
+-- list the owner has since edited, or cleared on purpose, is never put back.
 --
 -- No transaction control in this file (28 Sep 2026: a "dry run" of a file that
 -- carried its own transaction control applied it). Rehearse it inside an outer
--- transaction that is rolled back.
+-- transaction that is rolled back; apply it inside one transaction too.
 
 alter table public.dw_campuses
-  add column if not exists towns text[] not null default '{}';
-
-alter table public.dw_campuses
-  drop constraint if exists dw_campuses_towns_max;
-
-alter table public.dw_campuses
-  add constraint dw_campuses_towns_max check (cardinality(towns) <= 20);
+  add column if not exists towns text[];
 
 update public.dw_campuses as c
 set towns = v.towns
@@ -52,4 +48,20 @@ from (values
   ('br-rio', array['Niterói']::text[])
 ) as v(id, towns)
 where c.id = v.id
-  and c.towns = '{}';
+  and c.towns is null;
+
+update public.dw_campuses
+set towns = '{}'
+where towns is null;
+
+alter table public.dw_campuses
+  alter column towns set default '{}';
+
+alter table public.dw_campuses
+  alter column towns set not null;
+
+alter table public.dw_campuses
+  drop constraint if exists dw_campuses_towns_max;
+
+alter table public.dw_campuses
+  add constraint dw_campuses_towns_max check (cardinality(towns) <= 20);

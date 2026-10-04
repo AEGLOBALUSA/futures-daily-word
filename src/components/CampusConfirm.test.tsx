@@ -149,11 +149,36 @@ describe('CampusConfirm (B09-07)', () => {
     expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Kennesaw?');
   });
 
-  it('a link or QR guess still wins over Planning Center and asks at once (B09-07F)', async () => {
+  it('a link or QR guess still wins over Planning Center, asks at once, and Planning Center is not asked (B09-07F)', async () => {
     localStorage.setItem(CAMPUS_GUESS_KEY, 'us-alpharetta');
-    stubGeoAndPco({}, { found: true, profile: { campus: 'us-gwinnett' } });
+    const { f } = stubGeoAndPco({}, { found: true, profile: { campus: 'us-gwinnett' } });
     const el = await mount({ email: 'reader@example.com', campus: '' });
     expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Alpharetta?');
+    expect(pcoCalls(f)).toHaveLength(0);
+  });
+
+  it('once a question is on screen, a campus list that lands later never changes it (B09-07F review)', async () => {
+    // Her Planning Center campus is one the owner added after this phone cached its list.
+    const marietta = { id: 'us-marietta', name: 'Futures Marietta', city: 'Marietta, GA', towns: [], region: 'North America', congregation: 'futures-us', timeZone: 'America/New_York', sundayUntil: '16:00', videoUrl: null, sortOrder: 155 };
+    let releaseList: () => void = () => {};
+    const listHeld = new Promise<void>((r) => { releaseList = r; });
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('/api/geo')) return { ok: true, json: async () => ({ country: 'US', city: 'Kennesaw', subdivision: 'GA' }) };
+      if (String(url).includes('/api/pco-sync')) return { ok: true, json: async () => ({ found: true, profile: { campus: 'us-marietta' } }) };
+      if (String(url).includes('/campuses')) {
+        await listHeld;
+        const { FALLBACK_CAMPUSES } = await import('../data/campuses.fallback');
+        return { ok: true, json: async () => ({ campuses: [...FALLBACK_CAMPUSES, marietta] }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    }));
+    const profile = { email: 'reader@example.com', campus: '' };
+    const el = await mount(profile);
+    expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Kennesaw?');
+    await act(async () => { releaseList(); for (let i = 0; i < 12; i++) await Promise.resolve(); });
+    expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Kennesaw?');
+    await act(async () => { byText(el, 'Yes')!.click(); });
+    expect(saveProfile).toHaveBeenCalledWith({ ...profile, campus: 'us-kennesaw' });
   });
 
   it('not signed in: Planning Center is never asked (B09-07F)', async () => {

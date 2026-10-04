@@ -166,13 +166,15 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Email required" }) };
     }
 
-    // Anti-enumeration: holders of a PROVEN session token pass freely; anonymous
-    // callers (the email gate fires exactly one call per submission) and holders
-    // of an unproven token are capped at the same 5/min-per-IP budget the
-    // migration path uses. An unproven token is free to mint for any address that
-    // has a profile, so it must not lift the cap on name + campus lookups.
+    // Anti-enumeration: a PROVEN session token passes freely for ITS OWN address
+    // only (the Campus tab looks up the signed-in reader's own campus, B09-07F);
+    // anonymous callers (the email gate fires exactly one call per submission),
+    // holders of an unproven token, and a proven token asking about anyone else
+    // are capped at the same 5/min-per-IP budget the migration path uses. An
+    // unproven token is free to mint for any address that has a profile, so it
+    // must not lift the cap on name + campus lookups.
     const session = await authenticateSession(event, getSupabase());
-    if (!session || !session.proven || session.provisional) {
+    if (!session || !session.proven || session.provisional || session.email !== email) {
       const clientIP = clientIp(event);
       if (await isSharedRateLimited("pco-sync", clientIP, 5)) {
         return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };

@@ -34,7 +34,7 @@ export function useCampusGuess(enabled: boolean, pcoCampus?: string | null, pcoP
     return () => { alive = false; };
   }, [enabled, param]);
 
-  return useMemo(() => {
+  const live = useMemo(() => {
     const guess = guessCampus({
       param,
       pcoCampus: pcoCampus || null,
@@ -50,4 +50,12 @@ export function useCampusGuess(enabled: boolean, pcoCampus?: string | null, pcoP
     const ready = !enabled || !!param || (!pcoPending && (guess.source === 'pco' || place !== null));
     return { ...guess, ready };
   }, [param, pcoCampus, pcoPending, place, campuses, enabled]);
+
+  // Once a question ("Are you part of …?") is on screen it stays: a campus list
+  // or answer that lands later never changes which campus her Yes saves.
+  const [shown, setShown] = useState<(CampusGuess & { ready: boolean }) | null>(null);
+  useEffect(() => {
+    if (!shown && enabled && live.ready && live.campusId) setShown(live);
+  }, [shown, enabled, live]);
+  return shown || live;
 }
