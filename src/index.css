@@ -2412,6 +2412,9 @@ body.dw-promo-in-view .dw-ai-launcher { display: none !important; }
   font-family: var(--font-sans);
   font-weight: 700;
 }
+.dw-ask-copy { flex: 1; min-width: 0; }
+.dw-ask-title { margin: 0 0 4px; font-family: var(--font-sans); font-size: 17px; font-weight: 600; color: var(--dw-text-primary); }
+.dw-ask-body { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--dw-text-muted); }
 @keyframes dwNextPulse {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--dw-accent) 45%, transparent); }
   70% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--dw-accent) 0%, transparent); }

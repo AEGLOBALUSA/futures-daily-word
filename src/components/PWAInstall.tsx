@@ -131,7 +131,7 @@ export function PWAInstallBanner({ next = false }: { next?: boolean }) {
             <p style={{
               margin: 0, fontFamily: 'var(--font-sans)',
               fontSize: 13, lineHeight: 1.5, color: 'var(--dw-text-muted)',
-              ...(next ? { fontSize: 15 } : {}),
+              ...(next ? { fontSize: 16 } : {}),
             }}>
               {t('pwa_install_body')}
             </p>
@@ -146,7 +146,7 @@ export function PWAInstallBanner({ next = false }: { next?: boolean }) {
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--dw-text-muted)', padding: 4, margin: '-4px -4px 0 0',
-              ...(next ? { width: 44, height: 44 } : {}),
+              ...(next ? { width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 } : {}),
             }}
           >
             <X size={18} />
