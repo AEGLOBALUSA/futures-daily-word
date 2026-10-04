@@ -80,7 +80,7 @@ describe('a link that joins the message just preached (review MUST, 4 Oct 2026)'
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'ordinary-faith-2026-10-04', youtubeUrl: YT } }) })));
     const out = await quickNotesPublish(attachResult());
     expect(vi.mocked(intake)).toHaveBeenCalledWith('submit', { answers: { pick: 'ordinary-faith-2026-10-04', yt: YT }, job: 'media', congregation: 'futures-us' });
-    expect(out).toEqual({ id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', verified: true });
+    expect(out).toEqual({ id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', verified: true, showing: '' });
   });
 
   it('is verified only when the page shows the new link', async () => {
@@ -100,6 +100,15 @@ describe('a link that joins the message just preached (review MUST, 4 Oct 2026)'
     const out = await quickNotesPublish(attachResult());
     expect(out.verified).toBe(false);
     expect(out.title).toBe('Grace');
+  });
+
+  it('when another message became current before the save, says which one the page shows instead of "pull to refresh" (flow review MUST)', async () => {
+    vi.mocked(intake).mockResolvedValue({ published: true, publish_result: { sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith' } } });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'grace-2026-10-11', title: 'Grace', youtubeUrl: '' } }) })));
+    expect(await quickNotesPublish(attachResult())).toEqual({ id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', verified: false, showing: 'Grace' });
+    // The same message, just not refreshed yet: no `showing`.
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', youtubeUrl: '' } }) })));
+    expect((await quickNotesPublish(attachResult())).showing).toBe('');
   });
 
   it('a link whose message is the person\'s call never publishes from the card; Change details opens the media form with the link in', async () => {

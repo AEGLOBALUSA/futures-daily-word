@@ -86,7 +86,12 @@ export type QuickStatus = {
   current: { title: string; date: string } | null;
 };
 
-export type QuickPublished = { id: string; title: string; verified: boolean };
+/**
+ * What publishing did. `verified`: the page shows it. `showing`: the title of
+ * a DIFFERENT message the page shows instead (another message became current
+ * in the meantime), so "pull to refresh" would be wrong; empty otherwise.
+ */
+export type QuickPublished = { id: string; title: string; verified: boolean; showing?: string };
 
 /** Same key the long hub form uses, so both remember the same church. */
 const LAST_CONGREGATION_KEY = 'dw_staff_congregation';
@@ -194,9 +199,12 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
   if (!data.published || !sermon?.id) throw new QuickError(t('staff_quick_err_not_live'));
   rememberCongregation(result.congregation);
   let verified = false;
+  let showing = '';
   try {
     const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(result.congregation)}`, { cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
+    const ours = attach ? [attach.id, result.preview.id] : [sermon.id];
+    if (j && j.sermon && j.sermon.id && !ours.includes(j.sermon.id)) showing = String(j.sermon.title || '');
     // A link is on the page only when the message the card named carries it:
     // the row submit changed is that message, and the page shows that message
     // (by its row id or its own id) with this link. Another message that
@@ -207,7 +215,7 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
         && j.sermon.youtubeUrl === result.details.youtubeUrl
       : j.sermon.id === sermon.id));
   } catch { /* verified stays false */ }
-  return { id: sermon.id, title: sermon.title || attach?.title || result.preview.title, verified };
+  return { id: sermon.id, title: sermon.title || attach?.title || result.preview.title, verified, showing };
 }
 
 /** "Sunday 4 Oct" in the staff member's language. */
