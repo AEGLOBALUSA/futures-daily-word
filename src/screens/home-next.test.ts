@@ -83,7 +83,9 @@ describe('Home: one next step, then More for today', () => {
   it('an open passage: Home tells the chooser, and the one Mark as read is the pulsing step only while the card is quiet', () => {
     expect(HOME).toMatch(/useHomeNextStep\(\{[\s\S]{0,300}passage: heroChapterRefs\[heroChapterIndex\][\s\S]{0,120}passageOpen: isReadingOpen\(heroChapterRefs\[heroChapterIndex\]/);
     expect(HOME).toMatch(/journeyInHero,[\s\S]{0,40}journeyDayDone/);
-    expect(HOME.split('<NextPill />').length - 1).toBe(1);
+    expect(HOME.split('<NextPill').length - 1).toBe(1);
+    // The pill keeps quiet over the passage being read when the step is that passage's own Mark as read.
+    expect(HOME).toMatch(/<NextPill quietWhileReading=\{homeNext\.step\.action === 'none' && \(homeNext\.step\.kind === 'reading' \|\| homeNext\.step\.kind === 'comfort'\)\} \/>/);
     const mark = HOME.indexOf('onClick={() => handleMarkRead(readRef)}');
     expect(mark).toBeGreaterThan(-1);
     const markTag = HOME.slice(mark, HOME.indexOf('>', HOME.indexOf('style={{', mark)));
