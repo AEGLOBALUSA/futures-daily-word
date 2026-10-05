@@ -24,10 +24,10 @@ import { QuickNotes } from './QuickNotes';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
-type Tab = 'home' | 'form' | 'review' | 'people' | 'campuses';
+type Tab = 'home' | 'notes' | 'form' | 'review' | 'people' | 'campuses';
 
 const staffAppName = 'Futures Daily Word';
-const staffTabLabels = { home: '← Staff home', people: 'People', review: 'History', campuses: 'Campuses' };
+const staffTabLabels = { home: '← Staff home', notes: 'Sunday’s notes', people: 'People', review: 'History', campuses: 'Campuses' };
 
 function MosBrandLockup() {
   return (
@@ -44,11 +44,32 @@ function MosBrandLockup() {
   );
 }
 
-/** Dead /staff?tab=questions (or #questions) must land on home, not an empty page. */
+/**
+ * The staff app opens on its first screen, Staff home (Ashley, 5 Oct 2026:
+ * "it should be opening to the first screen"). Only a link that names a screen
+ * (/staff?tab=notes, ?tab=people, #review) opens another one. Dead
+ * /staff?tab=questions (or #questions) must land on home, not an empty page.
+ */
+const STAFF_TABS: readonly Tab[] = ['home', 'notes', 'form', 'review', 'people', 'campuses'];
+
 export function staffTabFromRaw(raw: string | null | undefined): Tab {
   const v = (raw || '').trim().toLowerCase();
-  if (v === 'form' || v === 'review' || v === 'people' || v === 'campuses' || v === 'home') return v;
-  return 'home';
+  return (STAFF_TABS as readonly string[]).includes(v) ? (v as Tab) : 'home';
+}
+
+/** Who may use the Sunday's notes screen (the server's notes_quick roles). */
+function canPasteNotes(staff: Pick<Staff, 'isAdmin' | 'role'>): boolean {
+  return staff.isAdmin || staff.role === 'hub' || staff.role === 'media';
+}
+
+/**
+ * The screen this person may see for a requested tab: a screen their role
+ * does not have falls back to Staff home, never a blank page.
+ */
+export function staffViewFor(tab: Tab, staff: Pick<Staff, 'isAdmin' | 'role'>): Tab {
+  if (tab === 'review' || tab === 'people' || tab === 'campuses') return staff.isAdmin ? tab : 'home';
+  if (tab === 'notes') return canPasteNotes(staff) ? tab : 'home';
+  return tab;
 }
 
 function readStaffTabParam(): string {
@@ -61,14 +82,19 @@ function readStaffTabParam(): string {
   }
 }
 
-function stripQuestionsDeepLink() {
+/**
+ * A deep link is read once, when the page opens, then leaves the address bar,
+ * so a reload or a later visit opens on Staff home again.
+ */
+function stripTabDeepLink() {
   try {
     const url = new URL(window.location.href);
-    const tab = (url.searchParams.get('tab') || '').toLowerCase();
-    const hash = url.hash.replace(/^#/, '').toLowerCase();
-    if (tab !== 'questions' && hash !== 'questions') return;
-    if (tab === 'questions') url.searchParams.delete('tab');
-    if (hash === 'questions') url.hash = '';
+    const hadTab = url.searchParams.has('tab');
+    const hash = url.hash.replace(/^#/, '').trim().toLowerCase();
+    const hashIsTab = hash === 'questions' || (STAFF_TABS as readonly string[]).includes(hash);
+    if (!hadTab && !hashIsTab) return;
+    url.searchParams.delete('tab');
+    if (hashIsTab) url.hash = '';
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   } catch { /* */ }
 }
@@ -167,12 +193,13 @@ export function StaffApp() {
   const [error, setError] = useState('');
   const bannerRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (error) bannerRef.current?.focus(); }, [error]);
-  const view: Tab = tab === 'form' || tab === 'review' || tab === 'people' || tab === 'campuses' ? tab : 'home';
+  // Staff home unless a link named another screen this person may open.
+  const view: Tab = staff ? staffViewFor(tab, staff) : 'home';
 
   useEffect(() => {
     document.title = 'Staff — Futures Daily Word';
     document.documentElement.setAttribute('data-theme', localStorage.getItem('dw_dark') === 'true' ? 'dark' : 'light');
-    stripQuestionsDeepLink();
+    stripTabDeepLink();
   }, []);
 
   useEffect(() => {
@@ -185,8 +212,8 @@ export function StaffApp() {
     if (!getStaffToken()) { setBoot(false); return; }
     try {
       const data = await intake<{ staff: Staff }>('me');
+      // Keep the screen the page opened on: Staff home, or the one a link named.
       setStaff(data.staff);
-      setTab('home');
     } catch {
       setStaffToken('');
       setToken('');
@@ -199,10 +226,11 @@ export function StaffApp() {
 
   const signOut = async () => {
     try { await intake('logout'); } catch { /* */ }
-    setStaffToken(''); setToken(''); setStaff(null);
+    setStaffToken(''); setToken(''); setStaff(null); setTab('home'); setSeed(undefined);
   };
 
   const goHome = () => { setTab('home'); setSeed(undefined); setError(''); };
+  const goNotes = () => { setTab('notes'); setError(''); };
   const goReview = () => { setTab('review'); setError(''); };
   const goPeople = () => { setTab('people'); setError(''); };
   const goCampuses = () => { setTab('campuses'); setError(''); };
@@ -218,7 +246,7 @@ export function StaffApp() {
   if (!token || !staff) {
     return (
       <Login
-        onSignedIn={(t, s) => { setStaffToken(t); setToken(t); setStaff(s); setTab('home'); }}
+        onSignedIn={(t, s) => { setStaffToken(t); setToken(t); setStaff(s); }}
       />
     );
   }
@@ -230,6 +258,9 @@ export function StaffApp() {
           <MosBrandLockup />
           <nav className="mos-shell__nav">
             <button type="button" aria-current={view === 'home' ? 'page' : undefined} onClick={goHome}>{staffTabLabels.home}</button>
+            {canPasteNotes(staff) && (
+              <button type="button" aria-current={view === 'notes' ? 'page' : undefined} onClick={goNotes}>{staffTabLabels.notes}</button>
+            )}
             {staff.isAdmin && (
               <>
                 <button type="button" aria-current={view === 'people' ? 'page' : undefined} onClick={goPeople}>{staffTabLabels.people}</button>
@@ -276,7 +307,7 @@ export function StaffApp() {
             <button
               type="button"
               onClick={goHome}
-              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 12 }}
+              style={{ ...btnGhost, minHeight: 44, padding: '8px 14px', marginTop: 12 }}
             >
               {staffTabLabels.home}
             </button>
@@ -292,11 +323,14 @@ export function StaffApp() {
           <StaffHome
             staff={staff}
             onJob={j => { setSeed(undefined); setJob(j); setTab('form'); setError(''); }}
-            onChangeDetails={seed => { setSeed(seed); setJob(seed.job ?? 'hub'); setTab('form'); setError(''); }}
+            onNotes={goNotes}
             onReview={goReview}
             onPeople={goPeople}
             onCampuses={goCampuses}
           />
+        )}
+        {view === 'notes' && (
+          <QuickNotes onChangeDetails={seed => { setSeed(seed); setJob(seed.job ?? 'hub'); setTab('form'); setError(''); }} />
         )}
         {view === 'form' && <IntakeForm staff={staff} job={job} seed={seed && (seed.job ?? 'hub') === job ? seed : undefined} onError={setError} />}
         {view === 'review' && staff.isAdmin && (
@@ -518,15 +552,18 @@ function withStep(n: number, label: string) {
 }
 
 function StaffHome({
-  staff, onJob, onReview, onPeople, onCampuses, onChangeDetails,
+  staff, onJob, onNotes, onReview, onPeople, onCampuses,
 }: {
   staff: Staff;
   onJob: (job: Job) => void;
+  onNotes: () => void;
   onReview: () => void;
   onPeople: () => void;
   onCampuses: () => void;
-  onChangeDetails: (seed: IntakeSeed) => void;
 }) {
+  // Sunday's notes is its own screen (B09-10's one pasted box), listed first
+  // for the staff who can use it; Staff home itself stays the first screen.
+  const notesJob = { id: 'notes' as const, title: 'Paste Sunday’s notes', body: 'One paste. The app works out the Sunday, title, speaker, series and YouTube, and shows you the page before it goes up.' };
   const jobs: { id: Job; title: string; body: string }[] = [
     { id: 'hub', title: 'Put up this week’s sermon notes', body: 'Date, title, speaker, series, YouTube, paste your notes. Save puts it on the congregation page.' },
     { id: 'media', title: 'Add the YouTube or clean the notes', body: 'Pick the sermon. Paste a link. Or paste notes if they need a cleanup.' },
@@ -537,19 +574,19 @@ function StaffHome({
     : staff.role === 'media'
       ? jobs.filter(j => j.id === 'hub' || j.id === 'media')
       : jobs.filter(j => j.id === staff.role);
+  const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
   return (
     <div>
-      {(staff.isAdmin || staff.role === 'hub' || staff.role === 'media') && <QuickNotes onChangeDetails={onChangeDetails} />}
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         This is how Sunday’s sermon notes get onto the page people write in.
       </p>
-      {visible.map(j => (
+      {cards.map(j => (
         <button
           key={j.id}
           type="button"
           className="mos-card"
-          onClick={() => onJob(j.id)}
+          onClick={() => (j.id === 'notes' ? onNotes() : onJob(j.id))}
           style={{
             display: 'block', width: '100%', textAlign: 'left',
             background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
@@ -557,7 +594,7 @@ function StaffHome({
           }}
         >
           <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
-          <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
+          <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
         </button>
       ))}
       {staff.isAdmin && (

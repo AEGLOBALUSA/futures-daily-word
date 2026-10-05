@@ -109,6 +109,92 @@ describe('StaffApp admin home', () => {
   });
 });
 
+describe('StaffApp opens on its first screen (Ashley, 5 Oct 2026)', () => {
+  const quickStatus = { congregation: 'futures-usa', sunday: '2026-10-11', up: false, current: null };
+  const hubMe = { staff: { email: 'hub@futures.global', role: 'hub', campusId: null, name: 'Hub', isAdmin: false } };
+  const adminMe = { staff: { email: 'ae@futures.global', role: 'admin', campusId: null, name: 'Ashley Evans', isAdmin: true } };
+
+  function mockAs(me: unknown) {
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return me;
+      if (action === 'notes_quick_status') return quickStatus;
+      if (action === 'roster_list') return { roster: [] };
+      return {};
+    });
+  }
+
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/staff');
+  });
+
+  it('the launcher tile (/staff) opens on Staff home, not on Sunday\u2019s notes', async () => {
+    mockAs(hubMe);
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    const h2 = [...el.querySelectorAll('main h2')].map(h => (h.textContent || '').trim());
+    expect(h2[0]).toBe('Staff');
+    expect(el.textContent).not.toContain('Put up Sunday\u2019s notes for');
+    expect(el.querySelector('textarea')).toBeNull();
+    expect(vi.mocked(intake).mock.calls.some(c => c[0] === 'notes_quick_status')).toBe(false);
+    act(() => root.unmount());
+  });
+
+  it('Paste Sunday\u2019s notes on Staff home opens the notes screen, and Staff home comes back', async () => {
+    mockAs(hubMe);
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    const card = [...el.querySelectorAll('button')].find(b => /Paste Sunday\u2019s notes/.test(b.textContent || ''));
+    expect(card).toBeTruthy();
+    await act(async () => { card!.click(); });
+    await flush();
+    expect(el.textContent).toContain('Put up Sunday\u2019s notes for');
+    expect(el.querySelector('textarea')).toBeTruthy();
+    const home = [...el.querySelectorAll('button')].find(b => /Staff home/.test(b.textContent || ''));
+    await act(async () => { home!.click(); });
+    await flush();
+    expect(el.querySelector('textarea')).toBeNull();
+    act(() => root.unmount());
+  });
+
+  it('a campus pastor sees no Sunday\u2019s notes card', async () => {
+    mockAs({ staff: { email: 'cp@futures.global', role: 'campus', campusId: 'alpharetta', name: 'CP', isAdmin: false } });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    expect(el.textContent).not.toContain('Paste Sunday\u2019s notes');
+    act(() => root.unmount());
+  });
+
+  it('a link to Sunday\u2019s notes (/staff?tab=notes) still opens that screen, then leaves the address bar', async () => {
+    window.history.replaceState({}, '', '/staff?tab=notes');
+    mockAs(hubMe);
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    expect(el.textContent).toContain('Put up Sunday\u2019s notes for');
+    expect(window.location.search).toBe('');
+    act(() => root.unmount());
+  });
+
+  it('a link to People survives the sign-in check (me) instead of being sent home', async () => {
+    window.history.replaceState({}, '', '/staff#people');
+    mockAs(adminMe);
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    expect(el.textContent).toMatch(/Who can sign in/);
+    expect(window.location.hash).toBe('');
+    act(() => root.unmount());
+  });
+
+  it('an owner-only link for someone who is not the owner lands on Staff home, not a blank page', async () => {
+    window.history.replaceState({}, '', '/staff?tab=people');
+    mockAs(hubMe);
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    const h2 = [...el.querySelectorAll('main h2')].map(h => (h.textContent || '').trim());
+    expect(h2[0]).toBe('Staff');
+    act(() => root.unmount());
+  });
+});
+
 describe('StaffApp hub save never fails silently', () => {
   const HUB_QUESTIONS = [
     { id: 'q-title', sort_order: 110, label: 'What is the title of this message?', help: '', type: 'text', audience: 'hub', required: false, enabled: true, config: { publish: 'sermon_field', sermonKey: 'title' } },

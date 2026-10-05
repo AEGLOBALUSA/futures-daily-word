@@ -69,6 +69,19 @@ afterEach(() => { vi.unstubAllGlobals(); delete process.env.RESEND_API_KEY; });
 
 const logFor = (congregation) => fake.tables.dw_prompt_log.filter((r) => r.dedupe_key.startsWith(`notes_missing:${congregation}:`));
 
+
+describe('staffLink', () => {
+  const prev = process.env.URL;
+  afterEach(() => { if (prev === undefined) delete process.env.URL; else process.env.URL = prev; });
+
+  it('points the nudge ("paste the notes here") at the Sunday\u2019s notes screen, not bare /staff', () => {
+    delete process.env.URL;
+    expect(sn.staffLink()).toBe('https://futuresdailyword.com/staff?tab=notes');
+    process.env.URL = 'https://deploy-preview-1--futures-daily-word.netlify.app/';
+    expect(sn.staffLink()).toBe('https://deploy-preview-1--futures-daily-word.netlify.app/staff?tab=notes');
+  });
+});
+
 describe('when it runs: Saturday 18:00 on the congregation clock, across daylight saving', () => {
   it('New York: Sat 18:10 is due, 17:59 and 19:00 are not', () => {
     expect(sn.nudgeSunday('futures-us', SAT_NY_1810)).toBe('2026-10-04');
