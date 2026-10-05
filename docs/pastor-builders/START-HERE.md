@@ -11,9 +11,11 @@ Ashley built the Daily Word Bible app for every campus. You're the first "beta c
 ## How building works
 It's four steps, every time:
 1. **Tell Claude what you want.** Plain English. Say what it should do and who should see it.
-2. **Get a preview link.** Claude gives you a link. Open it on your phone to see how it looks before anyone else can. Previews don't use the church's live information, so anything that shows real posts or data gets checked after you merge, in the real app, where only you can see it.
-3. **Wait for the green checks.** These are automatic tests that make sure nothing else in the app broke.
-4. **Merge.** Once the checks are green, Claude (or you) presses Merge. At this point, only you see the new feature. It shows up in the Alpharetta panel on the Campus tab, but only when you're signed in as pastor.
+2. **Wait for the green checks.** These are automatic tests that make sure nothing else in the app broke. They take a few minutes.
+3. **Merge.** Once the checks are green, Claude (or you) presses Merge. It goes live, but only you see the new feature.
+4. **Try it in the real app.** Open the Alpharetta panel on the Campus tab, signed in as pastor. If it needs changing, tell Claude and go round again.
+
+You'll also see a Netlify "deploy preview" line on the pull request waiting for approval. You don't need it: merge when the checks are green and look at it in the real app, where only you can see it.
 
 When you're happy with it and want every Alpharetta member to see it, tell Claude to switch it on for everyone and merge again.
 
