@@ -1,3 +1,349 @@
 @import "./tokens.css";
 
-/* Every other rule in this file must be prefixed html[data-ui="multiplyos"]. */
+/* This stylesheet is loaded by the staff chunk; every override also needs the flag. */
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) {
+  --dw-canvas: var(--mos-background);
+  --dw-card: var(--mos-surface);
+  --dw-surface: var(--mos-surface);
+  --dw-border: var(--mos-border);
+  --dw-text-primary: var(--mos-text);
+  --dw-text-secondary: var(--mos-muted);
+  --dw-text-muted: var(--mos-muted);
+  --dw-accent: var(--mos-primary);
+  --dw-error: var(--mos-danger);
+  --dw-success: var(--mos-success);
+  --dw-info: var(--mos-info);
+  --font-sans: var(--mos-font-family);
+  --font-serif: var(--mos-font-family);
+  --font-ui: var(--mos-font-family);
+  --dw-font-sans: var(--mos-font-family);
+  --dw-font-serif: var(--mos-font-family);
+  font-family: var(--mos-font-family);
+  font-size: 30px;
+  line-height: 1.5;
+  color: var(--mos-text);
+  overflow-wrap: anywhere;
+  color-scheme: light;
+}
+
+/* Match the approved dark tokens, respecting the app's explicit saved choice. */
+html[data-ui="multiplyos"][data-theme="dark"] {
+  --mos-background: #0B1220;
+  --mos-surface: #131E2F;
+  --mos-surface-raised: #19263A;
+  --mos-surface-soft: #223249;
+  --mos-text: #F2F6FC;
+  --mos-muted: #B4C2D6;
+  --mos-border: #34465E;
+  --mos-control-border: #8396AF;
+  --mos-primary: #8CBFFF;
+  --mos-primary-hover: #B8D7FF;
+  --mos-on-primary: #061629;
+  --mos-focus: #8CBFFF;
+  --mos-nav-background: #060B12;
+  --mos-nav-text: #F2F6FC;
+  --mos-nav-muted: #B4C2D6;
+  --mos-success: #8CE2B3;
+  --mos-success-tint: #133C2B;
+  --mos-warning: #FFE095;
+  --mos-warning-tint: #493805;
+  --mos-danger: #FFB4BE;
+  --mos-danger-tint: #49202B;
+  --mos-info: #8CBFFF;
+  --mos-info-tint: #18385E;
+}
+
+html[data-ui="multiplyos"][data-theme="dark"] :is(.staff-app, .mos-shell) {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-ui="multiplyos"]:not([data-theme="light"]) {
+    --mos-background: #0B1220;
+    --mos-surface: #131E2F;
+    --mos-surface-raised: #19263A;
+    --mos-surface-soft: #223249;
+    --mos-text: #F2F6FC;
+    --mos-muted: #B4C2D6;
+    --mos-border: #34465E;
+    --mos-control-border: #8396AF;
+    --mos-primary: #8CBFFF;
+    --mos-primary-hover: #B8D7FF;
+    --mos-on-primary: #061629;
+    --mos-focus: #8CBFFF;
+    --mos-nav-background: #060B12;
+    --mos-nav-text: #F2F6FC;
+    --mos-nav-muted: #B4C2D6;
+    --mos-success: #8CE2B3;
+    --mos-success-tint: #133C2B;
+    --mos-warning: #FFE095;
+    --mos-warning-tint: #493805;
+    --mos-danger: #FFB4BE;
+    --mos-danger-tint: #49202B;
+    --mos-info: #8CBFFF;
+    --mos-info-tint: #18385E;
+  }
+
+  html[data-ui="multiplyos"]:not([data-theme="light"]) :is(.staff-app, .mos-shell) {
+    color-scheme: dark;
+  }
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) *,
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) *::before,
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) *::after {
+  box-sizing: border-box;
+}
+
+/* Existing staff forms carry inline type sizes and line heights. */
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(p, span, label, button, a, input, select, textarea, pre, summary, li, [style*="font-size"]):not(:is(h1, h2, h3, h4)) {
+  font-size: inherit !important;
+  line-height: 1.5 !important;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(h1, h2, h3, h4) {
+  font-size: 1.55em !important;
+  line-height: 1.5 !important;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(button, input, select, textarea) {
+  font-family: var(--mos-font-family);
+  max-width: 100%;
+  min-width: 0;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) button {
+  min-height: 52px !important;
+  border-radius: 12px !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(input, select, textarea) {
+  --dw-border: var(--mos-control-border);
+  min-height: 52px !important;
+  border-radius: 12px !important;
+  accent-color: var(--mos-primary);
+}
+
+/* Inline outline:none on the existing fields must not suppress keyboard focus. */
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :focus-visible {
+  outline: 3px solid var(--mos-focus) !important;
+  outline-offset: 4px;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(.mos-button--primary:not([style*="background: transparent"]), .dw-campus-main, button[style*="background: var(--dw-accent)"]:not([style*="text-transform"])) {
+  background: var(--mos-primary);
+  color: var(--mos-on-primary) !important;
+  border-color: var(--mos-primary);
+  padding: 12px 20px;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(.mos-button--primary:not([style*="background: transparent"]), .dw-campus-main, button[style*="background: var(--dw-accent)"]:not([style*="text-transform"])):hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--mos-primary-hover) !important;
+}
+
+/* History filters retain selection without competing with the workflow action. */
+html[data-ui="multiplyos"] .staff-app button[style*="text-transform: capitalize"] {
+  --dw-accent: var(--mos-nav-active);
+}
+
+/* Campus staff start with their existing job card as the next action. */
+html[data-ui="multiplyos"] .mos-shell__main > div:not(:has(.dw-campus-main)) > .mos-card:first-of-type {
+  --dw-card: var(--mos-primary);
+  --dw-text-primary: var(--mos-on-primary);
+  --dw-text-muted: var(--mos-on-primary);
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(.mos-card, section[style*="var(--dw-card)"], div[style*="border-radius"][style*="var(--dw-border)"]) {
+  border-radius: 22px !important;
+  border: 1px solid var(--mos-border);
+}
+
+html[data-ui="multiplyos"] .mos-card {
+  padding: 24px !important;
+}
+
+html[data-ui="multiplyos"] :is(.mos-shell__main, .mos-shell__header-inner) {
+  width: 100%;
+  max-width: 1600px !important;
+  min-width: 0;
+}
+
+html[data-ui="multiplyos"] .mos-shell__main {
+  padding: 32px 24px 80px !important;
+}
+
+html[data-ui="multiplyos"] .mos-shell__main :is(form, pre) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+html[data-ui="multiplyos"] .mos-shell__main [style*="display: flex"],
+html[data-ui="multiplyos"] .mos-shell__header-inner > div {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+html[data-ui="multiplyos"] .mos-shell__sidebar {
+  display: none;
+}
+
+html[data-ui="multiplyos"] .mos-brand-lockup {
+  padding: 20px;
+  background: var(--mos-nav-background);
+  color: var(--mos-nav-text);
+  border-radius: 22px;
+  margin-bottom: 24px;
+}
+
+html[data-ui="multiplyos"] .mos-brand-lockup__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+html[data-ui="multiplyos"] .mos-brand-mark {
+  width: 52px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+html[data-ui="multiplyos"] .mos-brand-wordmark {
+  width: 180px;
+  max-width: calc(100% - 64px);
+  height: auto;
+}
+
+html[data-ui="multiplyos"] .mos-brand-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 0;
+}
+
+html[data-ui="multiplyos"] .mos-brand-context img {
+  width: 48px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+html[data-ui="multiplyos"] .mos-shell__header-inner > div:not(.mos-brand-lockup) > div > p,
+html[data-ui="multiplyos"] .mos-auth__form > .mos-brand-lockup + p {
+  display: none;
+}
+
+html[data-ui="multiplyos"] .mos-shell__nav {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-ui="multiplyos"] .mos-shell__nav button,
+html[data-ui="multiplyos"] .mos-shell__account button {
+  width: 100%;
+  min-height: 56px !important;
+  padding: 12px 16px;
+  background: transparent;
+  color: var(--mos-nav-text);
+  border: 1px solid var(--mos-nav-muted);
+  text-align: left;
+}
+
+html[data-ui="multiplyos"] .mos-shell__nav button {
+  border-color: transparent;
+  color: var(--mos-nav-muted);
+}
+
+html[data-ui="multiplyos"] .mos-shell__nav button:is(:hover, [aria-current="page"]) {
+  background: var(--mos-nav-active);
+  color: var(--mos-nav-text);
+}
+
+html[data-ui="multiplyos"] .mos-shell__account {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--mos-nav-muted);
+}
+
+html[data-ui="multiplyos"] .mos-shell__account p {
+  margin: 0 0 16px;
+}
+
+html[data-ui="multiplyos"] .mos-auth__form {
+  width: min(680px, 100%) !important;
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  html[data-ui="multiplyos"] .staff-app {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  html[data-ui="multiplyos"] .mos-shell__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow-y: auto;
+    padding: 32px 20px 24px;
+    background: var(--mos-nav-background);
+    color: var(--mos-nav-text);
+  }
+
+  html[data-ui="multiplyos"] .mos-shell__sidebar .mos-brand-lockup {
+    padding: 0;
+    margin: 0;
+  }
+
+  html[data-ui="multiplyos"] .mos-shell__header {
+    display: none;
+  }
+
+  html[data-ui="multiplyos"] .mos-shell__main {
+    padding: 48px 36px 80px !important;
+  }
+}
+
+@media (max-width: 599px) {
+  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(h1, h2, h3, h4) {
+    font-size: 1.35em !important;
+  }
+
+  html[data-ui="multiplyos"] .mos-shell__main {
+    padding: 24px 16px 64px !important;
+  }
+
+  html[data-ui="multiplyos"] .mos-shell__header {
+    position: static !important;
+    padding: 16px !important;
+  }
+
+  html[data-ui="multiplyos"] .mos-shell--auth {
+    padding: 16px !important;
+  }
+
+  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(.mos-button--primary, .dw-campus-main) {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) *,
+  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) *::before,
+  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) *::after {
+    animation: none;
+    transition: none;
+    scroll-behavior: auto;
+  }
+}

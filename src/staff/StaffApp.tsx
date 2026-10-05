@@ -10,6 +10,10 @@ import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
 import { getStaffToken, intake, setStaffToken, STAFF_SIGNED_OUT_EVENT } from './api';
 import '../multiplyos/staff-ui.css';
+import { isMosUi } from '../multiplyos/uiFlag';
+import multiplyosMark from '../multiplyos/assets/multiplyos-mark.png';
+import multiplyosWordmark from '../multiplyos/assets/multiplyos-wordmark-white.png';
+import dailyWordTile from '../multiplyos/assets/app-daily-word.png';
 import { localApiBase } from '../utils/api-base';
 import { getLang, t } from '../utils/i18n';
 import { messageFor } from '../components/PastorSignIn';
@@ -21,6 +25,24 @@ import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'form' | 'review' | 'people' | 'campuses';
+
+const staffAppName = 'Futures Daily Word';
+const staffTabLabels = { home: '← Staff home', people: 'People', review: 'History', campuses: 'Campuses' };
+
+function MosBrandLockup() {
+  return (
+    <div className="mos-brand-lockup">
+      <div className="mos-brand-lockup__identity">
+        <img className="mos-brand-mark" src={multiplyosMark} alt="" />
+        <img className="mos-brand-wordmark" src={multiplyosWordmark} alt="MultiplyOS" />
+      </div>
+      <p className="mos-brand-context">
+        <img src={dailyWordTile} alt="" />
+        <span>{staffAppName}</span>
+      </p>
+    </div>
+  );
+}
 
 /** Dead /staff?tab=questions (or #questions) must land on home, not an empty page. */
 export function staffTabFromRaw(raw: string | null | undefined): Tab {
@@ -180,6 +202,11 @@ export function StaffApp() {
     setStaffToken(''); setToken(''); setStaff(null);
   };
 
+  const goHome = () => { setTab('home'); setSeed(undefined); setError(''); };
+  const goReview = () => { setTab('review'); setError(''); };
+  const goPeople = () => { setTab('people'); setError(''); };
+  const goCampuses = () => { setTab('campuses'); setError(''); };
+
   if (boot) {
     return (
       <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -198,15 +225,38 @@ export function StaffApp() {
 
   return (
     <div className="staff-app" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
+      {isMosUi() && (
+        <aside className="mos-shell__sidebar">
+          <MosBrandLockup />
+          <nav className="mos-shell__nav">
+            <button type="button" aria-current={view === 'home' ? 'page' : undefined} onClick={goHome}>{staffTabLabels.home}</button>
+            {staff.isAdmin && (
+              <>
+                <button type="button" aria-current={view === 'people' ? 'page' : undefined} onClick={goPeople}>{staffTabLabels.people}</button>
+                <button type="button" aria-current={view === 'review' ? 'page' : undefined} onClick={goReview}>{staffTabLabels.review}</button>
+                <button type="button" aria-current={view === 'campuses' ? 'page' : undefined} onClick={goCampuses}>{staffTabLabels.campuses}</button>
+              </>
+            )}
+          </nav>
+          <div className="mos-shell__account">
+            <p>
+              {staff.name || staff.email}
+              {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
+            </p>
+            <button type="button" onClick={signOut}>Sign out</button>
+          </div>
+        </aside>
+      )}
       <header className="mos-shell__header" style={{
         position: 'sticky', top: 0, zIndex: 10, background: 'var(--dw-canvas)',
         borderBottom: '1px solid var(--dw-border)', padding: '14px 20px',
       }}>
         <div className="mos-shell__header-inner" style={{ maxWidth: 720, margin: '0 auto' }}>
+          {isMosUi() && <MosBrandLockup />}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
             <div>
               <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
-                Futures Daily Word
+                {staffAppName}
               </p>
               <h1 style={{ margin: '4px 0 0', fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 700 }}>Staff</h1>
             </div>
@@ -225,10 +275,10 @@ export function StaffApp() {
           {view !== 'home' && (
             <button
               type="button"
-              onClick={() => { setTab('home'); setSeed(undefined); setError(''); }}
+              onClick={goHome}
               style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 12 }}
             >
-              ← Staff home
+              {staffTabLabels.home}
             </button>
           )}
         </div>
@@ -243,9 +293,9 @@ export function StaffApp() {
             staff={staff}
             onJob={j => { setSeed(undefined); setJob(j); setTab('form'); setError(''); }}
             onChangeDetails={seed => { setSeed(seed); setJob(seed.job ?? 'hub'); setTab('form'); setError(''); }}
-            onReview={() => { setTab('review'); setError(''); }}
-            onPeople={() => { setTab('people'); setError(''); }}
-            onCampuses={() => { setTab('campuses'); setError(''); }}
+            onReview={goReview}
+            onPeople={goPeople}
+            onCampuses={goCampuses}
           />
         )}
         {view === 'form' && <IntakeForm staff={staff} job={job} seed={seed && (seed.job ?? 'hub') === job ? seed : undefined} onError={setError} />}
@@ -342,8 +392,9 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   return (
     <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <form className="mos-auth__form" noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
+        {isMosUi() && <MosBrandLockup />}
         <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
-          Futures Daily Word
+          {staffAppName}
         </p>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>{setup ? t('pastor_choose_password', getLang()) : t('pastor_staff_sign_in', getLang())}</h1>
         <p data-testid={setup && sentTo ? 'staff-code-sent' : undefined} style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
@@ -515,9 +566,9 @@ function StaffHome({
             Settings
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" style={btnGhost} onClick={onPeople}>People</button>
-            <button type="button" style={btnGhost} onClick={onReview}>History</button>
-            <button type="button" style={btnGhost} onClick={onCampuses}>Campuses</button>
+            <button type="button" style={btnGhost} onClick={onPeople}>{staffTabLabels.people}</button>
+            <button type="button" style={btnGhost} onClick={onReview}>{staffTabLabels.review}</button>
+            <button type="button" style={btnGhost} onClick={onCampuses}>{staffTabLabels.campuses}</button>
           </div>
         </>
       )}
