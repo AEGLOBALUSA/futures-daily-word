@@ -14,7 +14,7 @@ import { ALPHARETTA_TAB_LABEL, useAlpharettaTab } from '../alpharetta-gate/Alpha
 import { campusName } from '../data/campuses';
 import {
   rememberMyPrayer, takePrayerWallRequest, OPEN_PRAYER_WALL_EVENT,
-  readMyPrayers, refreshMyPrayers, prayedCard, noteCardShown, MY_PRAYERS_EVENT,
+  readMyPrayers, refreshMyPrayers, prayedCard, noteCardShown, MY_PRAYERS_EVENT, recheckWhenNotConfirmed,
   type MyPrayersRecord,
 } from '../utils/myPrayers';
 import { localToday } from '../utils/homeToday';
@@ -407,6 +407,8 @@ function PrayerWallPanel({
     setPrayerError(result.error);
     setPrayedConfirm(result.prayedConfirm);
     setLoading(false);
+    // B09-11: a cached count must not outlive the switch going off.
+    if (!result.error) void recheckWhenNotConfirmed(result.prayedConfirm);
   }, [filter, campus]);
 
   useEffect(() => { load(); }, [load]);

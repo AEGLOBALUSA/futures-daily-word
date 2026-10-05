@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   readMyPrayers, rememberMyPrayer, refreshMyPrayers, prayedCard, noteCardShown, applyCounts, prune,
   MY_PRAYERS_KEY, MY_PRAYERS_DAYS, MY_PRAYERS_FETCH_MS, requestPrayerWall, takePrayerWallRequest,
+  recheckWhenNotConfirmed,
 } from './myPrayers';
 import { tabShowing } from './useTabShowing';
 
@@ -155,5 +156,36 @@ describe('See your request', () => {
     requestPrayerWall();
     expect(takePrayerWallRequest()).toBe('');
     expect(takePrayerWallRequest()).toBeNull();
+  });
+});
+
+describe('recheckWhenNotConfirmed (the wall says the poster is not being told)', () => {
+  it('asks again at once inside the hour, and the cached card goes when the server answers []', async () => {
+    rememberMyPrayer(A, T0);
+    await refreshMyPrayers({ now: T0, fetchImpl: okFetch([{ id: A, prayerCount: 3 }]) });
+    expect(prayedCard(readMyPrayers(T0 + 1), '2026-10-05', T0 + 1)).toEqual({ id: A, count: 3 });
+    const off = okFetch([]);
+    expect(await recheckWhenNotConfirmed(false, { now: T0 + 60_000, fetchImpl: off })).toBe(true);
+    expect(off).toHaveBeenCalledTimes(1);
+    expect(prayedCard(readMyPrayers(T0 + 60_001), '2026-10-05', T0 + 60_001)).toBeNull();
+    // Nothing cached any more: no second ask, so it never loops.
+    const again = okFetch([]);
+    expect(await recheckWhenNotConfirmed(false, { now: T0 + 120_000, fetchImpl: again })).toBe(false);
+    expect(again).not.toHaveBeenCalled();
+  });
+
+  it('keeps a shadow-list count (the server still answers it)', async () => {
+    rememberMyPrayer(A, T0);
+    await refreshMyPrayers({ now: T0, fetchImpl: okFetch([{ id: A, prayerCount: 2 }]) });
+    await recheckWhenNotConfirmed(false, { now: T0 + 60_000, fetchImpl: okFetch([{ id: A, prayerCount: 2 }]) });
+    expect(prayedCard(readMyPrayers(T0 + 60_001), '2026-10-05', T0 + 60_001)).toEqual({ id: A, count: 2 });
+  });
+
+  it('does nothing while the poster is being told, or when nothing is cached', async () => {
+    const f = okFetch([]);
+    expect(await recheckWhenNotConfirmed(true, { now: T0, fetchImpl: f })).toBe(false);
+    rememberMyPrayer(A, T0);
+    expect(await recheckWhenNotConfirmed(false, { now: T0, fetchImpl: f })).toBe(false);
+    expect(f).not.toHaveBeenCalled();
   });
 });

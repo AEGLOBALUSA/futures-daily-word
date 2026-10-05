@@ -155,6 +155,24 @@ export async function refreshMyPrayers(opts: { now?: number; force?: boolean; fe
 }
 
 /**
+ * The wall just said the poster is not being told (prayedConfirm false: the
+ * kind is off or only in shadow) while this phone still holds a count. Ask the
+ * server again now instead of waiting out the hour: off answers [] and the
+ * cached card goes at once; shadow keeps the counts of the requests on its list.
+ * Holding no count, nothing is asked, so this never loops.
+ */
+export async function recheckWhenNotConfirmed(
+  prayedConfirm: boolean,
+  opts: { now?: number; fetchImpl?: typeof fetch } = {},
+): Promise<boolean> {
+  if (prayedConfirm) return false;
+  const rec = readMyPrayers(opts.now ?? Date.now());
+  if (!rec.prayers.some((p) => p.count > 0)) return false;
+  await refreshMyPrayers({ ...opts, force: true });
+  return true;
+}
+
+/**
  * The card to show today, or null. A request qualifies while it is inside its
  * 14 days, someone has prayed, and either the count grew since she last saw it
  * or the card already showed today (it stays for the rest of the day). The
