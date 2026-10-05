@@ -16,15 +16,18 @@
  * (Netlify treats every file under netlify/functions as a function).
  */
 
-const EMAIL_RE = /[^\s@<>()]+@[^\s@<>()]+\.[a-z]{2,}/i;
-// "name at gmail dot com" and friends.
-const SPELLED_EMAIL_RE = /\b(?:at|@)\s*(?:gmail|hotmail|outlook|yahoo|icloud|live|bigpond|proton(?:mail)?)\b/i;
+const EMAIL_RE = /[^\s@<>()]+\s?@\s?[^\s@<>()]+\.[a-z]{2,}/i;
+// Spelled out, for any domain: "sam at example dot org", "sam (at) example (dot) org",
+// "sam [at] example.org". A bare "." after "at" needs letters on both sides with
+// no space, so "meet at 5. Then" is not an address.
+const SPELLED_EMAIL_RE = /\b[a-z0-9._-]+\s*(?:\(at\)|\[at\]|\bat\b)\s*[a-z][a-z0-9-]*(?:\s*(?:\(dot\)|\[dot\])\s*|\s+dot\s+|\.)[a-z]{2,}\b/i;
 
 // A run of digits with the separators people type in a phone number. Colons
 // are not separators, so "John 3:16" or "10:30" never count.
-const PHONE_RUN_RE = /\+?\(?\d[\d\s().\-‐-―]*\d/g;
-// Calendar dates are taken out first, so "05/10/2026" or "2026-10-05" is not a phone.
-const DATE_RE = /\b(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})\b/g;
+const PHONE_RUN_RE = /\+?\(?\d[\d\s()./\-\u2010-\u2015]*\d/g;
+// A run that is exactly a calendar date ("05/10/2026", "2026-10-05") is not a
+// phone; a longer number that only starts like one ("06-12-34-56-78") is.
+const DATE_ONLY_RE = /^(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})$/;
 const MIN_PHONE_DIGITS = 8;
 
 const URL_RE = /\b(?:https?:\/\/|www\.)\S+/i;
@@ -51,9 +54,12 @@ const LANGUAGE_RE = new RegExp(
 );
 
 function hasPhone(text) {
-  const withoutDates = text.replace(DATE_RE, " ");
-  const runs = withoutDates.match(PHONE_RUN_RE) || [];
-  return runs.some((run) => run.replace(/\D/g, "").length >= MIN_PHONE_DIGITS);
+  const runs = text.match(PHONE_RUN_RE) || [];
+  return runs.some((run) => {
+    const r = run.trim();
+    if (DATE_ONLY_RE.test(r)) return false;
+    return r.replace(/\D/g, "").length >= MIN_PHONE_DIGITS;
+  });
 }
 
 function reasonFor(text) {

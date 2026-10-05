@@ -34,6 +34,9 @@ describe('screenPrayer (B09-12)', () => {
       'Text +61 400 123 456',
       'my number (08) 8123 4567',
       'whatsapp 0812.3456.7890',
+      'appelle 06-12-34-56-78',
+      'or 06.12.34.56.78',
+      'ring 0400/123/456',
     ]) {
       expect(screenPrayer(text, ''), text).toEqual({ held: true, reason: 'contact' });
     }
@@ -41,7 +44,16 @@ describe('screenPrayer (B09-12)', () => {
 
   it('holds an email address, typed or spelled out', () => {
     expect(screenPrayer('email me at sam@example.org', '')).toEqual({ held: true, reason: 'contact' });
-    expect(screenPrayer('write to sam dot e at gmail dot com', '')).toEqual({ held: true, reason: 'contact' });
+    for (const text of [
+      'write to sam dot e at gmail dot com',
+      'Please write, jane at example dot church',
+      'sam (at) example (dot) org',
+      'sam [at] example.org',
+      'sam @ example.org',
+    ]) {
+      expect(screenPrayer(text, ''), text).toEqual({ held: true, reason: 'contact' });
+    }
+    expect(screenPrayer('Meet at 5. Then we pray at home.', '')).toEqual({ held: false, reason: null });
   });
 
   it('holds a link', () => {
