@@ -72,7 +72,7 @@ const MAX_TOWNS = 20;
 function townKey(t) {
   return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
-function cleanTowns(v) {
+function cleanTowns(v, cap = MAX_TOWNS) {
   const parts = Array.isArray(v) ? v : String(v || "").split(/\n|,/);
   const seen = new Set();
   const out = [];
@@ -81,7 +81,7 @@ function cleanTowns(v) {
     if (!t || seen.has(townKey(t))) continue;
     seen.add(townKey(t));
     out.push(t);
-    if (out.length === MAX_TOWNS) break;
+    if (out.length === cap) break;
   }
   return out;
 }
@@ -281,7 +281,11 @@ function validateCampusSave(input, list) {
     .filter((n, i, a) => a.indexOf(n) === i)
     .slice(0, 20);
 
-  const towns = cleanTowns(c.towns);
+  const towns = cleanTowns(c.towns, Infinity);
+  // Too many is said beside Save campus, never cut silently: the draft stays.
+  if (towns.length > MAX_TOWNS) {
+    return { error: `Keep it to ${MAX_TOWNS} other towns. This campus has ${towns.length}.` };
+  }
 
   if (!existing && c.isNew !== true) {
     // An edit names a saved id; a different id than the one saved is a rename.

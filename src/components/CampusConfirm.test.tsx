@@ -5,6 +5,7 @@ import { __resetCampusesForTests } from '../data/campuses';
 import { __resetPlaceForTests } from '../utils/geo';
 import { CAMPUS_GUESS_KEY, __resetCampusGuessForTests } from '../utils/campusGuess';
 import { __resetPcoCampusForTests } from '../utils/pcoCampus';
+import { GEO_WAIT_MS } from '../utils/useCampusGuess';
 
 const saveProfile = vi.fn();
 const requireEmail = vi.fn();
@@ -179,6 +180,45 @@ describe('CampusConfirm (B09-07)', () => {
     expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Kennesaw?');
     await act(async () => { byText(el, 'Yes')!.click(); });
     expect(saveProfile).toHaveBeenCalledWith({ ...profile, campus: 'us-kennesaw' });
+  });
+
+  it('a geo request that never answers leaves "Loading" after four seconds for the campus question (B09-07F review)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      vi.stubGlobal('fetch', vi.fn((url: string) => (
+        String(url).includes('/api/geo')
+          ? new Promise(() => {})
+          : Promise.resolve({ ok: false, json: async () => ({}) })
+      )));
+      const el = await mount(null);
+      expect(el.querySelector('h2')).toBeNull();
+      expect(el.textContent).toContain('Loading');
+      await act(async () => { vi.advanceTimersByTime(GEO_WAIT_MS); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+      expect(el.textContent).not.toContain('Loading');
+      expect(el.querySelector('h2')?.textContent).toBe('Which Futures campus are you part of?');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('once the short list near her is on screen, a campus list that lands later never moves its choices (B09-07F review)', async () => {
+    const north = { id: 'au-adelaide-north', name: 'Futures Adelaide North', city: 'Elizabeth, SA', towns: ['Adelaide'], region: 'Australia', congregation: 'futures-au', timeZone: 'Australia/Adelaide', sundayUntil: '16:00', videoUrl: null, sortOrder: 5 };
+    let releaseList: () => void = () => {};
+    const listHeld = new Promise<void>((r) => { releaseList = r; });
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('/api/geo')) return { ok: true, json: async () => ({ country: 'AU', city: 'Adelaide', subdivision: 'SA' }) };
+      if (String(url).includes('/campuses')) {
+        await listHeld;
+        const { FALLBACK_CAMPUSES } = await import('../data/campuses.fallback');
+        return { ok: true, json: async () => ({ campuses: [...FALLBACK_CAMPUSES, north] }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    }));
+    const el = await mount(null);
+    const before = buttons(el).slice(0, 4).map((b) => b.getAttribute('aria-label'));
+    expect([...before].sort()).toEqual(['Choose Futures Adelaide City', 'Choose Futures Paradise', 'Choose Futures Salisbury', 'Choose Futures South']);
+    await act(async () => { releaseList(); for (let i = 0; i < 12; i++) await Promise.resolve(); });
+    expect(buttons(el).slice(0, 4).map((b) => b.getAttribute('aria-label'))).toEqual(before);
   });
 
   it('not signed in: Planning Center is never asked (B09-07F)', async () => {

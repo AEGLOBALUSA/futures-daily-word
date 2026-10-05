@@ -170,13 +170,21 @@ describe('validateCampusSave', () => {
     expect(cleared.row.active).toBe(true);
   });
 
-  it('keeps the other towns as typed: trimmed, tags dropped, duplicates dropped ignoring case and accents, at most 20 (B09-07F)', () => {
+  it('keeps the other towns as typed: trimmed, tags dropped, duplicates dropped ignoring case and accents (B09-07F)', () => {
     const r = campuses.validateCampusSave({ ...NEW, towns: ' Ejido \nejido\n<b>Tabay</b>\n\nTábay, Lagunillas' }, list);
     expect(r.error).toBeUndefined();
     expect(r.row.towns).toEqual(['Ejido', 'Tabay', 'Lagunillas']);
-    const many = Array.from({ length: 25 }, (_, i) => `Town ${i}`);
-    expect(campuses.validateCampusSave({ ...NEW, towns: many }, list).row.towns).toHaveLength(20);
     expect(campuses.MAX_TOWNS).toBe(20);
+  });
+
+  it('more than 20 other towns is said beside Save campus, never cut silently (B09-07F)', () => {
+    const twenty = Array.from({ length: 20 }, (_, i) => `Town ${i}`);
+    expect(campuses.validateCampusSave({ ...NEW, towns: twenty }, list).row.towns).toHaveLength(20);
+    // 21 lines, one a duplicate ignoring case: still 20, so it saves.
+    expect(campuses.validateCampusSave({ ...NEW, towns: [...twenty, 'town 3'].join('\n') }, list).row.towns).toHaveLength(20);
+    const r = campuses.validateCampusSave({ ...NEW, towns: [...twenty, 'Town 20'].join('\n') }, list);
+    expect(r.row).toBeUndefined();
+    expect(r.error).toBe('Keep it to 20 other towns. This campus has 21.');
   });
 
   it('an edit that leaves the towns out keeps them; an explicit empty list clears them (B09-07F)', () => {
