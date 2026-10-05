@@ -173,7 +173,7 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
           aria-pressed={campusId === campus.campusId}
           onClick={() => {
             if (busyRef.current || (draft && draftKey(draft) === draftKey(campus))) return;
-            if (!waiting.some(row => draftKey(row) === draftKey(campus))) {
+            if (editorMemory.get(draftKey(campus))?.outcome) {
               setLocalRecovery(true);
               setDraft(openedDrafts.find(opened => draftKey(opened) === draftKey(campus)) ?? null);
               setReadState('finished');
@@ -372,19 +372,23 @@ function DraftEditor({ initial, memory, active, campusId, serverFinished, onRete
         if (edits.current.answer === answer) {
           edits.current.answer = ''; setAnswer(''); setPendingQuestion(null);
         } else setPendingQuestion(question);
-      } else if (action === 'publish') {
-        const sent = { body, prayerPoint };
-        await publishCornerDraft(sent.body, sent.prayerPoint, campusId, draft.version);
-        storeEditor(draft, null);
-        const current = edits.current;
-        if (current.body !== sent.body || current.prayerPoint !== sent.prayerPoint || current.answer.trim()) {
-          setSavedWords([current.body, current.prayerPoint, current.answer].filter(value => value.trim()).join('\n\n'));
-        }
-        setOutcome('published'); onComplete();
-      } else if (action === 'skip') {
-        await skipCornerDraft(campusId, draft.version);
-        storeEditor(draft, null);
-        setOutcome('skipped'); onComplete();
+      } else if (action === 'publish' || action === 'skip') {
+        const sent = { body, prayerPoint, answer };
+        if (action === 'publish') await publishCornerDraft(sent.body, sent.prayerPoint, campusId, draft.version);
+        else await skipCornerDraft(campusId, draft.version);
+        // Storage may have newer words even after this editor has unmounted.
+        const current = readEditors().get(draftKey(draft)) ?? {
+          draft, ...edits.current, fresh, pendingQuestion, dismissed, savedWords, outcome,
+        };
+        const changed = current.body !== sent.body || current.prayerPoint !== sent.prayerPoint || current.answer !== sent.answer;
+        const recovered = changed
+          ? [current.body, current.prayerPoint, current.answer].filter(value => value.trim()).join('\n\n') : null;
+        const nextOutcome = action === 'publish' ? 'published' : 'skipped';
+        storeEditor(draft, changed ? { ...current, savedWords: recovered, outcome: nextOutcome } : null);
+        edits.current = { body: current.body, prayerPoint: current.prayerPoint, answer: current.answer };
+        setBody(current.body); setPrayerPoint(current.prayerPoint); setAnswer(current.answer);
+        setSavedWords(recovered);
+        setOutcome(nextOutcome); onComplete();
       }
     } catch (err) {
       const code = cornerDraftErrorCode(err);
@@ -437,7 +441,7 @@ function DraftEditor({ initial, memory, active, campusId, serverFinished, onRete
       {preservedWords}
     </section>;
   if (outcome === 'skipped') return <section style={panelStyle} lang={draft.lang}>
-    <p role="status" style={{ margin: 0 }}>{words('skipped')}</p>{useForm}
+    <p role="status" style={{ margin: 0 }}>{words('skipped')}</p>{savedWords !== null ? preservedWords : useForm}
   </section>;
 
   return <section style={panelStyle} aria-labelledby={`${id}-title`} lang={draft.lang}>

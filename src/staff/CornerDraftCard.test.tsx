@@ -100,6 +100,61 @@ afterEach(() => {
 });
 
 describe('CornerDraftCard, campus pastor', () => {
+  it.each((['publish', 'skip'] as const).flatMap(action =>
+    (['note', 'prayer', 'answer', 'empty', 'stored', 'unchanged'] as const).flatMap(changed =>
+      [false, true].map(leave => [action, changed, leave] as const))))(
+    'round 6 MUST: %s preserves newer %s words when leaving Staff is %s', async (action, changed, leave) => {
+      const pending = deferred<Awaited<ReturnType<typeof publishCornerDraft>>>();
+      const skipped = deferred<void>();
+      vi.mocked(publishCornerDraft).mockReturnValue(pending.promise);
+      vi.mocked(skipCornerDraft).mockReturnValue(skipped.promise);
+      if (changed === 'prayer') vi.mocked(getCornerDraft).mockResolvedValue(response(draft({ prayerPoint: 'Original prayer' })));
+      await mount();
+      type('The corner note', 'Submitted note');
+      await press(action === 'publish' ? PUBLISH : 'Not this week');
+      if (changed === 'note') type('The corner note', 'Late note');
+      if (changed === 'prayer') type('Prayer point (your words)', 'Late prayer');
+      if (changed === 'answer') type('Anything on at Test Campus this week?', 'Late answer');
+      if (changed === 'empty') type('The corner note', '');
+      if (leave) act(() => root.render(null));
+      if (changed === 'stored') {
+        // A later editor saved words the original request's refs cannot know about.
+        const stored = JSON.parse(sessionStorage.getItem(unsavedKey())!);
+        sessionStorage.setItem(unsavedKey(), JSON.stringify({ ...stored, body: 'Newer stored note' }));
+      }
+      const otherCampusKey = unsavedKey('us-two');
+      const otherWeekKey = unsavedKey('us-test', '2026-10-12');
+      sessionStorage.setItem(otherCampusKey, 'untouched campus');
+      sessionStorage.setItem(otherWeekKey, 'untouched week');
+      await act(async () => {
+        if (action === 'publish') pending.resolve({ campusId: 'us-test', campusName: 'Test Campus', item: { title: '', content: '' } });
+        else skipped.resolve();
+      });
+      expect(sessionStorage.getItem(otherCampusKey)).toBe('untouched campus');
+      expect(sessionStorage.getItem(otherWeekKey)).toBe('untouched week');
+      if (changed === 'unchanged') {
+        expect(sessionStorage.getItem(unsavedKey())).toBeNull();
+        return;
+      }
+      const kept = [changed === 'note' ? 'Late note' : changed === 'empty' ? ''
+        : changed === 'stored' ? 'Newer stored note' : 'Submitted note',
+        changed === 'prayer' ? 'Late prayer' : '', changed === 'answer' ? 'Late answer' : ''].filter(Boolean).join('\n\n');
+      // This assertion runs before any remount can persist React state.
+      expect(JSON.parse(sessionStorage.getItem(unsavedKey())!)).toMatchObject({
+        savedWords: kept, outcome: action === 'publish' ? 'published' : 'skipped',
+      });
+      if (leave) {
+        vi.mocked(getCornerDraft).mockResolvedValue(response(null));
+        act(() => root.render(<CornerDraftCard onJob={onJob} />));
+        await flush();
+      }
+      expect(el.querySelector('[role="region"]')?.textContent).toBe(kept);
+      expect(el.textContent).toContain('These words are not on the corner.');
+      expect(button('Copy my words')).toBeTruthy();
+      expect(button(PUBLISH)).toBeUndefined();
+    },
+  );
+
   it('round 5 MUST: restores the editor after the form unmounts it, retaining its original version', async () => {
     vi.mocked(getCornerDraft).mockResolvedValue(response(draft({ prayerPoint: 'Original prayer' })));
     await mount();
@@ -767,6 +822,31 @@ describe('CornerDraftCard, admin', () => {
       { campusId: 'us-two', campusName: 'Second Campus', weekOf: '2026-10-05', writtenBy: 'template' },
     ]);
   });
+
+  it.each(['loading', 'empty', 'failed'] as const)(
+    'round 6 SHOULD: restored words stay publishable when the campus list is %s', async listState => {
+      await mount(true);
+      await press('Corner draft waiting: Test Campus');
+      type('The corner note', 'Restored admin note');
+      const list = deferred<Awaited<ReturnType<typeof listCornerDrafts>>>();
+      if (listState === 'loading') vi.mocked(listCornerDrafts).mockReturnValue(list.promise);
+      else if (listState === 'empty') vi.mocked(listCornerDrafts).mockResolvedValue([]);
+      else vi.mocked(listCornerDrafts).mockRejectedValue(new Error('offline'));
+      const read = deferred<Awaited<ReturnType<typeof getCornerDraft>>>();
+      vi.mocked(getCornerDraft).mockClear().mockReturnValue(read.promise);
+      await remount(true);
+      await press('Test Campus: your unsaved words');
+      expect(getCornerDraft).toHaveBeenCalledExactlyOnceWith('us-test');
+      expect(el.textContent).not.toContain("This week's draft is already done.");
+      expect(JSON.parse(sessionStorage.getItem(unsavedKey())!).outcome).toBeNull();
+      await act(async () => read.resolve(response(draft())));
+      expect(field('The corner note')?.value).toBe('Restored admin note');
+      expect(button(PUBLISH)).toBeTruthy();
+      if (listState === 'loading') await act(async () => list.resolve([]));
+      await press(PUBLISH);
+      expect(publishCornerDraft).toHaveBeenCalledExactlyOnceWith('Restored admin note', '', 'us-test', 'v1');
+    },
+  );
 
   it('round 5 MUST: every campus survives full unmounts and stored recovery is listed, scrolled and focused', async () => {
     const scroll = vi.fn();
