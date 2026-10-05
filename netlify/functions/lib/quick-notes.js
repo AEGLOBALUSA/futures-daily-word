@@ -279,12 +279,16 @@ function mediaPickQuestion(questions) {
 function mediaAnswersByConfig(questions, { targetId, youtubeUrl }) {
   const answers = {};
   let carriesLink = false;
+  let namesMessage = false;
   for (const q of questions || []) {
     const cfg = q && q.config && typeof q.config === "object" ? q.config : {};
-    if (q.type === "sermon_pick" || cfg.publish === "sermon_target") { if (targetId) answers[q.id] = targetId; continue; }
+    if (q.type === "sermon_pick" || cfg.publish === "sermon_target") { namesMessage = true; if (targetId) answers[q.id] = targetId; continue; }
     if (cfg.sermonKey === "youtubeUrl") { answers[q.id] = youtubeUrl; carriesLink = true; }
   }
-  return carriesLink ? answers : null;
+  // Both are needed: without the message question the save would land on
+  // whatever is current, without the link question there is nothing to add
+  // (B09-10 round 10).
+  return carriesLink && namesMessage ? answers : null;
 }
 
 /**
@@ -339,6 +343,12 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
   let sermon = null;
   let source = "none";
 
+  if (parsed.youtubeOnly && (target || later) && !mediaAnswersByConfig(mediaQuestions, { targetId: "", youtubeUrl: details.youtubeUrl })) {
+    // A message is up but the media form cannot name it or carry the link:
+    // never fall back to re-putting a message up, which could replace the
+    // one on the page (B09-10 round 10).
+    return { error: "The media form's message or YouTube question is switched off, so a link on its own cannot be added. Switch them on in Settings, Questions.", code: "media_form_off" };
+  }
   if (parsed.youtubeOnly) {
     // Only the link. When the message just preached is up, the link joins it:
     // its own title, date and id, nothing to ask, published through the media

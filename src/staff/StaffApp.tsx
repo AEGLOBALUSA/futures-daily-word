@@ -737,6 +737,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
     const pickQ = job === 'media' ? questions.find(q =>
       (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')
       && (q.audience === job || q.audience === 'all')) : undefined;
+    // A link on its own goes on the message picked or nowhere.
+    if (pickQ && mediaLinkOnly && (answers[pickQ.id] == null || answers[pickQ.id] === '')) {
+      fail('Pick the message the video is for.');
+      return;
+    }
     const pickedOther = pickQ ? sermons.find(s => s.id === answers[pickQ.id]) : undefined;
     if (pickedOther?.congregation && pickedOther.congregation !== congregation) {
       fail(`“${pickedOther.title}” is on the ${congregationName(pickedOther.congregation as CongregationId)} page. Pick a ${congregationName(congregation)} message.`);
@@ -796,7 +801,16 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       }
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
-      fail(err instanceof Error ? err.message : 'Could not submit');
+      const code = (err as { data?: { code?: string } })?.data?.code;
+      if (pickQ && (code === 'target_gone' || code === 'other_congregation')) {
+        // The message is gone (or belongs to another church): clear the pick,
+        // keep the link, and reload the list so only real messages are offered.
+        setAnswers(a => ({ ...a, [pickQ.id]: '' }));
+        fail('That message is no longer on the list. Pick the message again; the link is still filled in.');
+        void load(pickCampus || staff.campusId || undefined);
+      } else {
+        fail(err instanceof Error ? err.message : 'Could not submit');
+      }
     }
     setBusy(false);
   };

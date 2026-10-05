@@ -163,11 +163,10 @@ describe('quickNotes: works it out, fills by config, never publishes', () => {
   const SUNDAY = new Date('2026-10-04T18:00:00Z');
   const todays = () => ({ id: 'faith-2026-10-04', congregation: 'futures-us', published_at: '2026-10-01T12:00:00Z', is_current: true, sermon: { id: 'faith-2026-10-04', title: 'Faith', speaker: 'Ps Sam Example', date: '2026-10-04', series: 'Built to Last', sections: [{ num: '1', title: 'Notes', content: [] }] } });
 
-  it('YouTube only on Sunday with today\'s message up: the link joins it, nothing to ask', async () => {
+  it('YouTube only with today\'s message up but no media form questions: refused, never re-put up through the hub form (round 10)', async () => {
     const out = await qn.quickNotes({ questions: HUB_QUESTIONS, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: SUNDAY, current: todays(), format: deterministic });
-    expect(out.needs).toBeNull();
-    expect(out.answers).toMatchObject({ 'x-title': 'Faith', 'x-speaker': 'Ps Sam Example', 'x-date': '2026-10-04', 'x-yt': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
-    expect(out.preview.id).toBe('faith-2026-10-04');
+    expect(out.code).toBe('media_form_off');
+    expect(out.preview).toBeUndefined();
   });
 
   it('YouTube only on Sunday with today\'s message up, with the media form: it attaches through the media merge', async () => {
@@ -257,12 +256,12 @@ describe('quickNotes: a link on Monday joins the message just preached', () => {
     expect(out.attach.answers['x-media-paste']).toBeUndefined();
   });
 
-  it('without a media question for the link it still keeps yesterday\'s date and id, and asks nothing', async () => {
+  it('without the media form\'s questions a link on its own is refused, and with only the link question too (round 10)', async () => {
     const out = await qn.quickNotes({ questions: qn.hubQuestions(HUB_QUESTIONS, 'hub'), mediaQuestions: [], text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: MONDAY, current: yesterday(), format: deterministic });
-    expect(out.attach).toBeNull();
-    expect(out.needs).toBeNull();
-    expect(out.preview).toMatchObject({ id: 'ordinary-faith-2026-10-04', date: '2026-10-04' });
-    expect(out.answers).toMatchObject({ 'x-title': 'Ordinary Faith', 'x-date': '2026-10-04' });
+    expect(out.code).toBe('media_form_off');
+    const linkOnly = MEDIA_QUESTIONS.filter((q) => q.type !== 'sermon_pick');
+    const out2 = await qn.quickNotes({ questions: qn.hubQuestions(HUB_QUESTIONS, 'hub'), mediaQuestions: linkOnly, text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us', now: MONDAY, current: yesterday(), format: deterministic });
+    expect(out2.code).toBe('media_form_off');
   });
 
   it('a message older than last Sunday (past its week) is not the target: asks the title, dated yesterday', async () => {

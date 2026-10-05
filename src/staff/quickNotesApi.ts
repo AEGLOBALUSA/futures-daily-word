@@ -169,6 +169,7 @@ export function quickErrorText(err: unknown, lang = getLang()): string {
   if (code === 'bad_link') return t('staff_quick_err_link', lang);
   if (code === 'too_long') return t('staff_quick_err_long', lang);
   if (code === 'target_gone' || code === 'other_congregation') return t('staff_quick_err_target_gone', lang);
+  if (code === 'media_form_off') return t('staff_quick_err_media_off', lang);
   if (e?.status === 401) return t('staff_quick_err_signin', lang);
   if (e?.status === 403) return t('staff_quick_err_role', lang);
   const said = String(e?.data?.error || '');
