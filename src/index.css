@@ -2483,6 +2483,10 @@ body.dw-reading-active .dw-next-pill {
   font: 700 17px var(--font-sans);
   padding: 14px 18px;
   cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.dw-nextstep-btn.dw-campus-main {
+  color: var(--dw-accent-on-fill);
 }
 .dw-nextstep-alt {
   display: block;
@@ -2500,9 +2504,36 @@ body.dw-reading-active .dw-next-pill {
 }
 .dw-nextstep-btn:focus-visible,
 .dw-nextstep-alt:focus-visible,
+.dw-reminder-retry:focus-visible,
 .dw-more-row:focus-visible {
   outline: 3px solid var(--dw-accent);
   outline-offset: 2px;
+}
+.dw-reminder-feedback {
+  margin: 12px 0 0;
+  color: var(--dw-text-primary);
+  font: 17px/1.5 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+.dw-reminder-feedback > p { margin: 0; }
+.dw-reminder-retry {
+  min-height: 44px;
+  max-width: 100%;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--dw-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dw-text-primary);
+  font: 17px var(--font-sans);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.dw-nextstep-btn:disabled,
+.dw-nextstep-alt:disabled,
+.dw-reminder-retry:disabled {
+  opacity: 1;
+  cursor: wait;
 }
 .dw-more {
   margin-bottom: 16px;

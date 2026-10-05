@@ -60,7 +60,8 @@ import { readPathArrival, clearPathArrival } from '../utils/choosePath';
 import { NextStepCard } from '../components/NextStepCard';
 import { NextPill } from '../components/NextPill';
 import { useHomeNextStep, NEXT_REFRESH_EVENT } from '../utils/useHomeNextStep';
-import { answerReminderOffer } from '../utils/openTimes';
+import { answerReminderOffer, formatReminderTime } from '../utils/openTimes';
+import { getPushHour } from '../utils/push';
 import { readMoreOpen, writeMoreOpen, moreForTodayNames, localToday, isJourneyDayDone } from '../utils/homeToday';
 import type { NextAction, SetupAsk } from '../utils/nextStep';
 import { chapterOf, notInHero } from '../utils/heroDedupe';
@@ -1771,6 +1772,16 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     dayIndex: localDayIndex(),
   });
   const [moreOpen, setMoreOpen] = useState(() => readMoreOpen());
+  // Hold the offer steady if Home refreshes while the hour is being saved.
+  const [pendingReminder, setPendingReminder] = useState<typeof homeNext | null>(null);
+  const reminderSavingRef = useRef(false);
+  const [reminderFailed, setReminderFailed] = useState(false);
+  const [savedReminderHour, setSavedReminderHour] = useState<number | null>(null);
+  useEffect(() => {
+    if (savedReminderHour === null) return;
+    const timer = window.setTimeout(() => setSavedReminderHour(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [savedReminderHour]);
   const moreToday = localToday();
   useEffect(() => {
     setMoreOpen(readMoreOpen(moreToday));
@@ -1792,7 +1803,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     });
   }, [reflectRequestedFor, passageTexts, heroChapterRefs, heroChapterIndex]);
 
-  const handleNextAction = (action: NextAction) => {
+  const handleNextAction = async (action: NextAction) => {
     switch (action) {
       case 'open_passage':
       case 'write': {
@@ -1826,13 +1837,30 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       case 'open_plans':
         onNavigate?.('plans');
         break;
-      case 'set_reminder':
       case 'keep_reminder':
-        // B09-17: her answer to "Remind you then?". Closed at once either way;
-        // Yes moves the reminder the way the Settings picker does.
-        void answerReminderOffer(action === 'set_reminder', personaConfig.persona);
+        if (reminderSavingRef.current) return;
+        setReminderFailed(false);
+        void answerReminderOffer(false, personaConfig.persona);
         window.dispatchEvent(new Event(NEXT_REFRESH_EVENT));
         break;
+      case 'set_reminder': {
+        if (reminderSavingRef.current) return;
+        reminderSavingRef.current = true;
+        setPendingReminder(homeNext);
+        setReminderFailed(false);
+        try {
+          const saved = await answerReminderOffer(true, personaConfig.persona);
+          if (saved) setSavedReminderHour(getPushHour());
+          else setReminderFailed(true);
+        } catch {
+          setReminderFailed(true);
+        } finally {
+          reminderSavingRef.current = false;
+          setPendingReminder(null);
+          window.dispatchEvent(new Event(NEXT_REFRESH_EVENT));
+        }
+        break;
+      }
     }
   };
 
@@ -2946,8 +2974,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         </div>}
 
         <NextStepCard
-          next={homeNext}
+          next={pendingReminder || homeNext}
           onAction={handleNextAction}
+          busy={pendingReminder ? tI18n('reminder_saving', lang) : undefined}
+          notice={savedReminderHour !== null ? tI18n('reminder_saved', lang).replace('{time}', formatReminderTime(savedReminderHour, lang)) : undefined}
+          error={reminderFailed && homeNext.step.kind === 'reminder_offer' ? tI18n('reminder_save_failed', lang) : undefined}
           renderAsk={(ask: SetupAsk) => ask === 'install' ? <PWAInstallBanner next /> : ask === 'email' ? <EmailNudgeCard next /> : (
         <UpgradePromptCard next
           persona={setup?.persona || 'congregation'}

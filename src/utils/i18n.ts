@@ -1161,6 +1161,10 @@ const UI: Translations = {
   next_reminder_keep: { en: 'Keep {time}', es: 'Deja las {time}', pt: 'Manter {time}', id: 'Tetap pukul {time}' },
   settings_reminder_time: { en: 'Reminder time: {time}', es: 'Hora del recordatorio: {time}', pt: 'Hora do lembrete: {time}', id: 'Waktu pengingat: {time}' },
   settings_reminder_change: { en: 'Change', es: 'Cambiar', pt: 'Alterar', id: 'Ubah' },
+  reminder_saving: { en: 'Saving\u2026', es: 'Guardando\u2026', pt: 'Salvando\u2026', id: 'Menyimpan\u2026' },
+  reminder_saved: { en: 'Your reminder is now {time}.', es: 'Tu recordatorio ahora es a las {time}.', pt: 'Seu lembrete agora \u00e9 \u00e0s {time}.', id: 'Pengingatmu sekarang pukul {time}.' },
+  reminder_save_failed: { en: "Couldn't change your reminder. Try again.", es: 'No se pudo cambiar tu recordatorio. Int\u00e9ntalo de nuevo.', pt: 'N\u00e3o foi poss\u00edvel alterar seu lembrete. Tente novamente.', id: 'Tidak dapat mengubah pengingatmu. Coba lagi.' },
+  reminder_retry: { en: 'Try again', es: 'Int\u00e9ntalo de nuevo', pt: 'Tente novamente', id: 'Coba lagi' },
   // B09-17: the daily reminder's title, built on the reader's device (pushReadingState.ts). Neutral, no streak or guilt words.
   push_day_of: { en: 'Day {n} of {plan}', es: 'D\u00eda {n} de {plan}', pt: 'Dia {n} de {plan}', id: 'Hari {n} dari {plan}' },
   push_day_of_journey: { en: 'Day {n} of the 40-day journey', es: 'D\u00eda {n} del camino de 40 d\u00edas', pt: 'Dia {n} da jornada de 40 dias', id: 'Hari {n} dari perjalanan 40 hari' },

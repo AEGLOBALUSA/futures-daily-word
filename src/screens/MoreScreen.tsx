@@ -6,7 +6,8 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { SeamFooter } from '../components/Seam';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useUser } from '../contexts/UserContext';
-import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, updatePushTime, pushSupported, openCalendarReminder } from '../utils/push';
+import { subscribePush, unsubscribePush, isPushSubscribed, getPushHour, pushSupported, openCalendarReminder } from '../utils/push';
+import { saveReminderHour, formatReminderTime, PUSH_HOUR_EVENT } from '../utils/openTimes';
 import { pushNow, syncMisc } from '../utils/cloudSync';
 import { campusName, findCampus } from '../data/campuses';
 import { settingsSummary, readSettingsSummaryInput } from '../utils/settingsSummary';
@@ -57,12 +58,6 @@ const LANGUAGES = [
   { value: 'id', label: 'Bahasa Indonesia' },
 ];
 
-// 12-hour label for the daily-reminder hour picker (5am–10pm).
-function formatHour(h: number): string {
-  const period = h < 12 ? 'AM' : 'PM';
-  const hr = h % 12 === 0 ? 12 : h % 12;
-  return `${hr}:00 ${period}`;
-}
 const REMINDER_HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 5 → 22
 
 export function MoreScreen({ onBack }: { onBack?: () => void }) {
@@ -77,6 +72,34 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [pushHour, setPushHour] = useState(() => getPushHour());
   const [editingPushHour, setEditingPushHour] = useState(false);
+  const [savingPushHour, setSavingPushHour] = useState(false);
+  const pushHourSavingRef = useRef(false);
+  const [failedPushHour, setFailedPushHour] = useState<number | null>(null);
+  useEffect(() => {
+    const onHourChanged = () => setPushHour(getPushHour());
+    window.addEventListener(PUSH_HOUR_EVENT, onHourChanged);
+    return () => window.removeEventListener(PUSH_HOUR_EVENT, onHourChanged);
+  }, []);
+  const handleReminderHour = async (hour: number) => {
+    if (pushHourSavingRef.current) return;
+    pushHourSavingRef.current = true;
+    setSavingPushHour(true);
+    try {
+      const saved = await saveReminderHour(hour);
+      if (saved) {
+        setPushHour(hour);
+        setFailedPushHour(null);
+        setEditingPushHour(false);
+      } else {
+        setFailedPushHour(hour);
+      }
+    } catch {
+      setFailedPushHour(hour);
+    } finally {
+      pushHourSavingRef.current = false;
+      setSavingPushHour(false);
+    }
+  };
   // Native push needs a service worker; where there's none (e.g. proxied at
   // futures.church/daily-word) the reminder is a recurring calendar event instead.
   const canPush = pushSupported();
@@ -699,13 +722,15 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                           htmlFor="dw-reminder-hour"
                           style={{ display: 'block', fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}
                         >
-                          {t('settings_reminder_time', lang).replace('{time}', formatHour(pushHour))}
+                          {t('settings_reminder_time', lang).replace('{time}', formatReminderTime(pushHour, lang))}
                         </label>
                         <select
                           id="dw-reminder-hour"
                           autoFocus
                           value={pushHour}
-                          onChange={(e) => { const h = parseInt(e.target.value, 10); setPushHour(h); updatePushTime(h); setEditingPushHour(false); }}
+                          aria-disabled={savingPushHour || undefined}
+                          aria-describedby={failedPushHour !== null || savingPushHour ? 'dw-reminder-feedback' : undefined}
+                          onChange={(e) => { void handleReminderHour(parseInt(e.target.value, 10)); }}
                           style={{
                             width: '100%', minHeight: 56, padding: '12px', borderRadius: 10, fontSize: 17,
                             fontFamily: 'var(--font-sans)', background: 'var(--dw-surface-hover)',
@@ -713,14 +738,32 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                           }}
                         >
                           {REMINDER_HOURS.map(h => (
-                            <option key={h} value={h}>{formatHour(h)}</option>
+                            <option key={h} value={h}>{formatReminderTime(h, lang)}</option>
                           ))}
                         </select>
+                        {(savingPushHour || failedPushHour !== null) && (
+                          <div className="dw-reminder-feedback">
+                            <p id="dw-reminder-feedback" role={savingPushHour ? 'status' : 'alert'}>
+                              {t(savingPushHour ? 'reminder_saving' : 'reminder_save_failed', lang)}
+                            </p>
+                            {failedPushHour !== null && (
+                              <button
+                                type="button"
+                                className="dw-reminder-retry"
+                                disabled={savingPushHour}
+                                aria-describedby="dw-reminder-feedback"
+                                onClick={() => { void handleReminderHour(failedPushHour); }}
+                              >
+                                {t(savingPushHour ? 'reminder_saving' : 'reminder_retry', lang)}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                         <span style={{ fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
-                          {t('settings_reminder_time', lang).replace('{time}', formatHour(pushHour))}
+                          {t('settings_reminder_time', lang).replace('{time}', formatReminderTime(pushHour, lang))}
                         </span>
                         <button
                           type="button"
@@ -753,7 +796,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                   }}
                 >
                   {REMINDER_HOURS.map(h => (
-                    <option key={h} value={h}>{formatHour(h)}</option>
+                    <option key={h} value={h}>{formatReminderTime(h, lang)}</option>
                   ))}
                 </select>
                 <button

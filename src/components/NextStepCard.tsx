@@ -7,17 +7,23 @@ import { ScriptureSkeleton } from '../components/Skeleton';
 export interface NextStepCardProps {
   next: HomeNextStep;
   onAction: (action: NextAction) => void;
+  busy?: string;
+  notice?: string;
+  error?: string;
   /** Home renders the set-up ask's own component (install / email / upgrade) with its `next` prop. */
   renderAsk?: (ask: SetupAsk) => ReactNode;
 }
 
-export function NextStepCard({ next, onAction, renderAsk }: NextStepCardProps): JSX.Element {
+export function NextStepCard({ next, onAction, busy, notice, error, renderAsk }: NextStepCardProps): JSX.Element {
   const whyId = useId();
+  const errorId = useId();
   const { step, loading, label, why, alt } = next;
 
   return (
-    <section className={step.kind === 'setup_ask' && !loading ? 'dw-nextstep dw-nextstep--ask' : 'dw-nextstep'} aria-label={label} aria-busy={loading || undefined}>
-      {loading ? (
+    <section className={step.kind === 'setup_ask' && !loading && !notice ? 'dw-nextstep dw-nextstep--ask' : 'dw-nextstep'} aria-label={notice || label} aria-busy={loading || !!busy || undefined}>
+      {notice ? (
+        <p className="dw-reminder-feedback" role="status">{notice}</p>
+      ) : loading ? (
         <ScriptureSkeleton />
       ) : step.kind === 'done' ? (
         <p className="dw-nextstep-done" data-testid="next-step-done">{label}</p>
@@ -32,21 +38,24 @@ export function NextStepCard({ next, onAction, renderAsk }: NextStepCardProps): 
             type="button"
             className="dw-next dw-campus-main dw-nextstep-btn"
             data-testid="next-step-button"
-            aria-describedby={why ? whyId : undefined}
-            onClick={() => { next.onTapped(); onAction(next.step.action); }}
+            disabled={!!busy}
+            aria-describedby={[why && whyId, error && errorId].filter(Boolean).join(' ') || undefined}
+            onClick={() => { if (busy) return; next.onTapped(); onAction(next.step.action); }}
           >
-            {label}
+            {busy || label}
           </button>
           {alt && (
             <button
               type="button"
               className="dw-nextstep-alt"
               data-testid="next-step-alt"
-              onClick={() => onAction(alt.action)}
+              disabled={!!busy}
+              onClick={() => { if (!busy) onAction(alt.action); }}
             >
               {alt.label}
             </button>
           )}
+          {error && <p className="dw-reminder-feedback" id={errorId} role="alert">{error}</p>}
         </>
       )}
     </section>
