@@ -1,6 +1,25 @@
 @import "./tokens.css";
 
 /* This stylesheet is loaded by the staff chunk; every override also needs the flag. */
+/* Apple-standard type (owner ruling 5 Oct 2026): 13px on desktop, 17px on phones. */
+html[data-ui="multiplyos"] {
+  --mos-font-size: 13px;
+  --mos-line-height: 1.4;
+  --mos-control-height: 32px;
+  --mos-main-button-height: 36px;
+  --mos-nav-item-height: 36px;
+}
+
+@media (max-width: 767px) {
+  html[data-ui="multiplyos"] {
+    --mos-font-size: 17px;
+    --mos-line-height: 1.35;
+    --mos-control-height: 44px;
+    --mos-main-button-height: 50px;
+    --mos-nav-item-height: 44px;
+  }
+}
+
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) {
   --dw-canvas: var(--mos-background);
   --dw-card: var(--mos-surface);
@@ -19,8 +38,8 @@ html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) {
   --dw-font-sans: var(--mos-font-family);
   --dw-font-serif: var(--mos-font-family);
   font-family: var(--mos-font-family);
-  font-size: 30px;
-  line-height: 1.5;
+  font-size: var(--mos-font-size);
+  line-height: var(--mos-line-height);
   color: var(--mos-text);
   overflow-wrap: anywhere;
   color-scheme: light;
@@ -98,12 +117,26 @@ html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) *::after {
 /* Existing staff forms carry inline type sizes and line heights. */
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(p, span, label, button, a, input, select, textarea, pre, summary, li, [style*="font-size"]):not(:is(h1, h2, h3, h4)) {
   font-size: inherit !important;
-  line-height: 1.5 !important;
+  line-height: var(--mos-line-height) !important;
 }
 
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(h1, h2, h3, h4) {
-  font-size: 1.55em !important;
-  line-height: 1.5 !important;
+  line-height: 1.2 !important;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h1 {
+  font-size: 26px !important;
+  font-weight: 700;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h2 {
+  font-size: 17px !important;
+  font-weight: 600;
+}
+
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(h3, h4) {
+  font-size: var(--mos-font-size) !important;
+  font-weight: 600;
 }
 
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(button, input, select, textarea) {
@@ -113,7 +146,7 @@ html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(button, input, select
 }
 
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) button {
-  min-height: 52px !important;
+  min-height: var(--mos-control-height) !important;
   border-radius: 12px !important;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -123,12 +156,12 @@ html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) button {
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) a {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--mos-control-height);
 }
 
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(input, select, textarea) {
   --dw-border: var(--mos-control-border);
-  min-height: 52px !important;
+  min-height: var(--mos-control-height) !important;
   border-radius: 12px !important;
   accent-color: var(--mos-primary);
 }
@@ -143,7 +176,8 @@ html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(.mos-button--primary:
   background: var(--mos-primary);
   color: var(--mos-on-primary) !important;
   border-color: var(--mos-primary);
-  padding: 12px 20px;
+  min-height: var(--mos-main-button-height) !important;
+  padding: 8px 16px;
 }
 
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(.mos-button--primary:not([style*="background: transparent"]), .dw-campus-main, button[style*="background: var(--dw-accent)"]:not([style*="text-transform"])):hover:not(:disabled):not([aria-disabled="true"]) {
@@ -248,8 +282,8 @@ html[data-ui="multiplyos"] .mos-shell__nav {
 html[data-ui="multiplyos"] .mos-shell__nav button,
 html[data-ui="multiplyos"] .mos-shell__account button {
   width: 100%;
-  min-height: 56px !important;
-  padding: 12px 16px;
+  min-height: var(--mos-nav-item-height) !important;
+  padding: 6px 12px;
   background: transparent;
   color: var(--mos-nav-text);
   border: 1px solid var(--mos-nav-muted);
@@ -284,7 +318,7 @@ html[data-ui="multiplyos"] .mos-auth__form {
 @media (min-width: 1100px) {
   html[data-ui="multiplyos"] .staff-app {
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
     align-items: start;
   }
 
@@ -315,11 +349,17 @@ html[data-ui="multiplyos"] .mos-auth__form {
   }
 }
 
-@media (max-width: 599px) {
-  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(h1, h2, h3, h4) {
-    font-size: 1.35em !important;
+@media (max-width: 767px) {
+  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h1 {
+    font-size: 28px !important;
   }
 
+  html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h2 {
+    font-size: 20px !important;
+  }
+}
+
+@media (max-width: 599px) {
   html[data-ui="multiplyos"] .mos-shell__main {
     padding: 24px 16px 64px !important;
   }
