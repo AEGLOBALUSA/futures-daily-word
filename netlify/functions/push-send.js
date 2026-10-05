@@ -97,6 +97,7 @@ function buildPayload(passage, lang) {
 // or when a shadow list holds no push row id. Otherwise { mode, rows } with the
 // reading state of each row that gets the v2 reminder (shadow: the listed rows
 // only; live: every active row).
+const V2_PAGE = 1000;
 const UUID_ONLY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 async function loadV2(db) {
   try {
@@ -110,18 +111,22 @@ async function loadV2(db) {
     const ids = pushV2.shadowIds(sw.shadowRecipients, note);
     const listed = [...ids].filter((id) => UUID_ONLY.test(id));
     if (sw.mode === "shadow" && listed.length === 0) return null;
-    let q = db.from("push_subscriptions")
-      .select("id, persona, journey_day, next_passage, next_label, next_for_date, last_read_date, last_sent_at, unopened_streak")
-      .eq("active", true);
-    if (sw.mode === "shadow") q = q.in("id", listed);
-    const { data, error } = await q;
-    if (error) {
-      console.error("push-send v2: reading state unavailable, every row runs as before:", error.message || error);
-      return null;
-    }
+    // Paged, so live mode reads every row's state past PostgREST's 1,000-row cap.
     const rows = new Map();
-    for (const r of data || []) {
-      if (pushV2.inScope(sw.mode, r.id, ids)) rows.set(r.id, r);
+    for (let from = 0; ; from += V2_PAGE) {
+      let q = db.from("push_subscriptions")
+        .select("id, persona, journey_day, next_passage, next_label, next_for_date, last_read_date, last_sent_at, unopened_streak")
+        .eq("active", true);
+      if (sw.mode === "shadow") q = q.in("id", listed);
+      const { data, error } = await q.order("id").range(from, from + V2_PAGE - 1);
+      if (error) {
+        console.error("push-send v2: reading state unavailable, every row runs as before:", error.message || error);
+        return null;
+      }
+      for (const r of data || []) {
+        if (pushV2.inScope(sw.mode, r.id, ids)) rows.set(r.id, r);
+      }
+      if (!data || data.length < V2_PAGE) break;
     }
     return { mode: sw.mode, rows };
   } catch (err) {
@@ -235,7 +240,12 @@ async function runPushSend({ db, send }) {
       try {
         await prompts.markDelivered(db, key);
         const { error: stateErr } = await db.from("push_subscriptions")
-          .update({ last_sent_at: runAt.toISOString(), unopened_streak: (Number.isInteger(state.unopened_streak) ? state.unopened_streak : 0) + 1 })
+          .update({
+            last_sent_at: runAt.toISOString(),
+            unopened_streak: (Number.isInteger(state.unopened_streak) ? state.unopened_streak : 0) + 1,
+            // Today's ledger too, so switching the kind off the same day cannot bring a second reminder.
+            ...(hasLedger ? { last_sent_date: plan.localDate } : {}),
+          })
           .eq("id", sub.id);
         if (stateErr) console.error("push-send v2: could not record the send:", stateErr.message || stateErr);
       } catch (err) {

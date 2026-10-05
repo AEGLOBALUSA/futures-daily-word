@@ -22,7 +22,10 @@
  *     (decision 14; chapter 09 section 5 conflict 4: the later likely answer);
  *   - never twice: one dw_prompt_log claim per row per local day, and nothing
  *     within 12 hours of the last v2 send (a time-zone change cannot make two);
- *   - after three sent and unopened, only every third day; the first app open
+ *   - at her hour, or up to two hours late when an hourly run was missed
+ *     (today's catch-up window), once: last_sent_date and the day's claim;
+ *   - after three sent and unopened, the next comes three local days after
+ *     the last one; the first app open
  *     (push-subscribe.js, opened: true) brings daily back;
  *   - title = her own plan and day (next_label), body = "{passage} is ready
  *     when you are." in her language, but only when the device said they are
@@ -42,6 +45,9 @@ const NO_SUNDAY_FOR_PASTORS = true;
 /** After this many v2 reminders in a row went unopened, send only every BACKOFF_EVERY_DAYS local days. */
 const BACKOFF_AFTER = 3;
 const BACKOFF_EVERY_DAYS = 3;
+
+/** Hours after her hour a missed hourly run may still send (today's sender uses 2). */
+const CATCH_UP_HOURS = 2;
 
 /** No second v2 reminder within this long of the last one, whatever the clock says. */
 const MIN_GAP_MS = 12 * 60 * 60 * 1000;
@@ -154,8 +160,8 @@ function cleanText(value, max) {
 /**
  * Should this row get its v2 reminder now, and with what words? Pure: the
  * caller passes the row (with its reading state) and the clock.
- *   { send: false, reason } where reason is one of not_hour, comfort,
- *     read_today, sunday_pastor, sent_recently, backoff
+ *   { send: false, reason } where reason is one of not_hour, sent_today,
+ *     comfort, read_today, sunday_pastor, sent_recently, backoff
  *   { send: true, localDate, title, body, passage } where title/body are null
  *     when the device has not said what is due today: the caller then uses
  *     today's template, exactly as the old reminder would.
@@ -163,7 +169,14 @@ function cleanText(value, max) {
 function planV2(row, now = new Date()) {
   const local = localNow(row.timezone, now);
   const preferredHour = row.preferred_hour ?? 7;
-  if (local.hour !== preferredHour) return { send: false, reason: "not_hour" };
+  // Her hour, or up to CATCH_UP_HOURS after it (the same catch-up window as
+  // today's sender: the hourly run is best-effort). The day's dw_prompt_log
+  // claim and last_sent_date keep it to one.
+  const late = local.hour - preferredHour;
+  if (late < 0 || late > CATCH_UP_HOURS) return { send: false, reason: "not_hour" };
+  if (row.last_sent_date && String(row.last_sent_date).slice(0, 10) === local.date) {
+    return { send: false, reason: "sent_today" };
+  }
 
   if (COMFORT_PERSONAS.has(row.persona)) return { send: false, reason: "comfort" };
   if (row.last_read_date && String(row.last_read_date).slice(0, 10) === local.date) {
@@ -177,8 +190,14 @@ function planV2(row, now = new Date()) {
     if (Number.isFinite(last) && now.getTime() - last < MIN_GAP_MS) return { send: false, reason: "sent_recently" };
   }
   const streak = Number.isInteger(row.unopened_streak) ? row.unopened_streak : 0;
-  if (streak >= BACKOFF_AFTER && dayNumber(local.date) % BACKOFF_EVERY_DAYS !== 0) {
-    return { send: false, reason: "backoff" };
+  if (streak >= BACKOFF_AFTER && row.last_sent_at) {
+    // Three unopened in a row: the next comes BACKOFF_EVERY_DAYS local days
+    // after the last one. The first open (streak 0) brings daily back.
+    const last = new Date(row.last_sent_at);
+    if (Number.isFinite(last.getTime())) {
+      const lastLocal = localNow(row.timezone, last).date;
+      if (dayNumber(local.date) - dayNumber(lastLocal) < BACKOFF_EVERY_DAYS) return { send: false, reason: "backoff" };
+    }
   }
 
   const dueToday = row.next_for_date && String(row.next_for_date).slice(0, 10) === local.date;
@@ -265,6 +284,7 @@ module.exports = {
   BACKOFF_AFTER,
   BACKOFF_EVERY_DAYS,
   MIN_GAP_MS,
+  CATCH_UP_HOURS,
   MAX_LABEL,
   MAX_PASSAGE,
   STATE_FIELDS,

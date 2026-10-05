@@ -48,9 +48,17 @@ describe('planV2: who gets the reminder, and when', () => {
     expect(p).toMatchObject({ send: true, localDate: '2026-10-06', title: 'Day 12 of Bible Basics', body: 'John 3 is ready when you are.' });
   });
 
-  it('is silent outside her hour', () => {
-    expect(v2.planV2(row(), new Date('2026-10-06T12:00:00Z'))).toEqual({ send: false, reason: 'not_hour' });
+  it('is silent before her hour and more than two hours after it', () => {
+    expect(v2.planV2(row(), new Date('2026-10-06T14:00:00Z'))).toEqual({ send: false, reason: 'not_hour' });
     expect(v2.planV2(row(), new Date('2026-10-06T10:00:00Z'))).toEqual({ send: false, reason: 'not_hour' });
+  });
+
+  it('a missed hourly run still sends up to two hours late (today\'s catch-up window), once', () => {
+    expect(v2.planV2(row(), new Date('2026-10-06T12:00:00Z')).send).toBe(true);
+    expect(v2.planV2(row(), new Date('2026-10-06T13:00:00Z')).send).toBe(true);
+    // Already sent today (the old sender's ledger or this one's): nothing more.
+    expect(v2.planV2(row({ last_sent_date: '2026-10-06' }), new Date('2026-10-06T12:00:00Z'))).toEqual({ send: false, reason: 'sent_today' });
+    expect(v2.planV2(row({ last_sent_at: NY_7AM.toISOString() }), new Date('2026-10-06T12:00:00Z'))).toEqual({ send: false, reason: 'sent_recently' });
   });
 
   it('a null preferred hour means 7 am, as today', () => {
@@ -95,18 +103,24 @@ describe('planV2: who gets the reminder, and when', () => {
     expect(v2.planV2(row({ last_sent_at: sentLondon }), NY_7AM)).toEqual({ send: false, reason: 'sent_recently' });
   });
 
-  it('backs off after three unopened: only every third local day, and an open (streak 0) brings daily back', () => {
+  it('backs off after three unopened: the next comes three days after the last, and an open (streak 0) brings daily back', () => {
+    // Three sent and unopened, the third on Mon 5 Oct: nothing Tue or Wed, then Thu 8 Oct.
+    const lastSent = new Date(NY_7AM.getTime() - 86400_000).toISOString();
     const days = [];
+    let state = { unopened_streak: 3, last_sent_at: lastSent };
     for (let i = 0; i < 9; i++) {
       const now = new Date(NY_7AM.getTime() + i * 86400_000);
       const date = now.toISOString().slice(0, 10);
-      const p = v2.planV2(row({ unopened_streak: 3, next_for_date: date }), now);
-      if (p.send) days.push(date);
+      const p = v2.planV2(row({ ...state, next_for_date: date }), now);
+      if (p.send) {
+        days.push(date);
+        state = { unopened_streak: state.unopened_streak + 1, last_sent_at: now.toISOString() };
+      }
     }
-    expect(days).toHaveLength(3);
-    for (const d of days) expect(v2.dayNumber(d) % 3).toBe(0);
-    expect(v2.planV2(row({ unopened_streak: 2 }), NY_7AM).send).toBe(true);
-    expect(v2.planV2(row({ unopened_streak: 0 }), NY_7AM).send).toBe(true);
+    expect(days).toEqual(['2026-10-08', '2026-10-11', '2026-10-14']);
+    expect(v2.planV2(row({ unopened_streak: 3, last_sent_at: lastSent }), NY_7AM)).toEqual({ send: false, reason: 'backoff' });
+    expect(v2.planV2(row({ unopened_streak: 2, last_sent_at: lastSent }), NY_7AM).send).toBe(true);
+    expect(v2.planV2(row({ unopened_streak: 0, last_sent_at: lastSent }), NY_7AM).send).toBe(true);
   });
 
   it('names her plan only on the day the device said it is due; any other day it is today\'s template', () => {
@@ -149,7 +163,7 @@ describe('daylight saving: the same local hour either side of the change', () =>
     expect(v2.planV2(r('2026-10-03'), new Date('2026-10-02T22:00:00Z'))).toMatchObject({ send: true, localDate: '2026-10-03' });
     expect(v2.planV2(r('2026-10-03'), new Date('2026-10-02T21:00:00Z')).send).toBe(false);
     expect(v2.planV2(r('2026-10-05'), new Date('2026-10-04T21:00:00Z'))).toMatchObject({ send: true, localDate: '2026-10-05' });
-    expect(v2.planV2(r('2026-10-05'), new Date('2026-10-04T22:00:00Z')).send).toBe(false);
+    expect(v2.planV2(r('2026-10-05'), new Date('2026-10-04T20:00:00Z')).send).toBe(false);
     expect(v2.localNow('Australia/Adelaide', new Date('2026-10-02T22:00:00Z')).hour).toBe(7);
     expect(v2.localNow('Australia/Adelaide', new Date('2026-10-04T21:00:00Z')).hour).toBe(7);
   });
@@ -157,18 +171,22 @@ describe('daylight saving: the same local hour either side of the change', () =>
   it('America/New_York across Sun 1 Nov 2026 (EDT -4 → EST -5)', () => {
     const r = (date) => row({ next_for_date: date, last_read_date: null });
     expect(v2.planV2(r('2026-10-31'), new Date('2026-10-31T11:00:00Z'))).toMatchObject({ send: true, localDate: '2026-10-31' });
-    expect(v2.planV2(r('2026-10-31'), new Date('2026-10-31T12:00:00Z')).send).toBe(false);
+    expect(v2.planV2(r('2026-10-31'), new Date('2026-10-31T10:00:00Z')).send).toBe(false);
     expect(v2.planV2(r('2026-11-02'), new Date('2026-11-02T12:00:00Z'))).toMatchObject({ send: true, localDate: '2026-11-02' });
     expect(v2.planV2(r('2026-11-02'), new Date('2026-11-02T11:00:00Z')).send).toBe(false);
   });
 
   it('the day of the change itself sends once, at 7 local', () => {
-    let sends = 0;
+    const at = [];
+    let lastSent = null;
     for (let h = 0; h < 24; h++) {
       const now = new Date(Date.UTC(2026, 10, 1, h));
-      if (v2.planV2(row({ next_for_date: '2026-11-01' }), now).send) sends++;
+      if (v2.planV2(row({ next_for_date: '2026-11-01', last_sent_at: lastSent }), now).send) {
+        at.push(v2.localNow('America/New_York', now).hour);
+        lastSent = now.toISOString();
+      }
     }
-    expect(sends).toBe(1);
+    expect(at).toEqual([7]);
   });
 });
 

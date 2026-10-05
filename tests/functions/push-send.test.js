@@ -73,6 +73,8 @@ function fakeDb({ kind = null, kindError = false, hasLedger = false, hasState = 
       select(cols) { q.cols = cols; return api; },
       eq(c, v) { q.filters.push(['eq', c, v]); return api; },
       in(c, v) { q.filters.push(['in', c, v]); return api; },
+      order() { return api; },
+      range(a, b) { q.range = [a, b]; return api; },
       update(p) { q.op = 'update'; q.patch = p; return api; },
       delete() { q.op = 'delete'; return api; },
       insert(row) { q.op = 'insert'; q.patch = row; return Promise.resolve(run()); },
@@ -104,7 +106,8 @@ function fakeDb({ kind = null, kindError = false, hasLedger = false, hasState = 
         if (q.op === 'select') {
           if (cols.includes('last_sent_date') && !hasLedger) return { data: null, error: { message: 'column push_subscriptions.last_sent_date does not exist' } };
           if (cols.some((c) => STATE_COLS.includes(c)) && !hasState) return { data: null, error: { message: 'column push_subscriptions.persona does not exist' } };
-          const data = rows.filter(match).map((r) => Object.fromEntries(cols.map((c) => [c, r[c] ?? null])));
+          let data = rows.filter(match).map((r) => Object.fromEntries(cols.map((c) => [c, r[c] ?? null])));
+          if (q.range) data = data.slice(q.range[0], q.range[1] + 1);
           return single ? { data: data[0] || null, error: null } : { data, error: null };
         }
         writes.push({ op: q.op, patch: q.patch, filters: q.filters });
@@ -257,6 +260,27 @@ describe('live', () => {
   it('fails closed: when the send log cannot be written, nothing is sent', async () => {
     const now = await runWith(NOW_PATH, fakeDb({ kind: { mode: 'live' }, logFails: true }));
     expect(now.sent).toEqual([]);
+  });
+
+  it('a v2 send writes today\'s ledger, so switching the kind off the same day sends nothing more', async () => {
+    const db = fakeDb({ kind: { mode: 'live' }, hasLedger: true });
+    const first = await runWith(NOW_PATH, db);
+    expect(first.sent.some((x) => x.endpoint.endsWith('0b6f'))).toBe(true);
+    expect(db.rows.find((r) => r.id === TEST_ID).last_sent_date).toBe('2026-10-06');
+    const offDb = fakeDb({ kind: { mode: 'off' }, hasLedger: true, rows: db.rows });
+    vi.setSystemTime(new Date('2026-10-06T12:00:00Z'));
+    const later = await runWith(NOW_PATH, offDb);
+    expect(later.sent.some((x) => x.endpoint.endsWith('0b6f'))).toBe(false);
+  });
+
+  it('reads every row\'s reading state past the 1,000-row page', async () => {
+    const many = subs().slice(0, 1);
+    for (let i = 0; i < 1500; i++) {
+      many.push({ ...subs()[4], id: `9a9a9a9a-9999-4999-8999-${String(i).padStart(12, '0')}`, endpoint_hash: `h${i}` });
+    }
+    const db = fakeDb({ kind: { mode: 'live' }, rows: many });
+    const r = await runWith(NOW_PATH, db);
+    expect(JSON.parse(r.res.body).v2.rows).toBe(1501);
   });
 
   it('one a day across a whole day of hourly runs, even when the cron fires twice an hour', async () => {
