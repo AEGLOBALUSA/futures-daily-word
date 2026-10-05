@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { t } from '../utils/i18n';
 import {
@@ -48,10 +48,20 @@ const scrollClearance = () => {
 export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   const [waiting, setWaiting] = useState<CornerDraftWaiting[]>([]);
   const [campusId, setCampusId] = useState<string>();
+  const [localRecovery, setLocalRecovery] = useState(false);
   const [readVersion, setReadVersion] = useState(0);
   const [listVersion, setListVersion] = useState(0);
   const [draft, setDraft] = useState<CornerDraft | null>(null);
   const [openedDrafts, setOpenedDrafts] = useState<CornerDraft[]>([]);
+  const [retained, setRetained] = useState<Set<string>>(() => new Set());
+  const onRetentionChange = useCallback((key: string, keep: boolean) => {
+    setRetained(current => {
+      if (current.has(key) === keep) return current;
+      const next = new Set(current);
+      if (keep) next.add(key); else next.delete(key);
+      return next;
+    });
+  }, []);
   const [listState, setListState] = useState<ReadState>('loading');
   const [readState, setReadState] = useState<ReadState>('loading');
   const busyRef = useRef(false);
@@ -78,7 +88,7 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   }, [isAdmin, listVersion]);
 
   useEffect(() => {
-    if (isAdmin && !campusId) return;
+    if (isAdmin && (!campusId || localRecovery)) return;
     let active = true;
     setReadState('loading');
     getCornerDraft(campusId).then(({ draft: next }) => {
@@ -89,7 +99,7 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
           if (index === -1) return [...current, next];
           return current.map((opened, i) => i === index ? next : opened);
         });
-        setReadState('ready');
+        setReadState(isAdmin && (!next || next.status !== 'draft') ? 'finished' : 'ready');
         if (!next || next.status !== 'draft') setWaiting(rows => rows.filter(row => row.campusId !== campusId));
       }
     }).catch(err => {
@@ -100,9 +110,15 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
       if (finished) setWaiting(rows => rows.filter(row => row.campusId !== campusId));
     });
     return () => { active = false; };
-  }, [isAdmin, campusId, readVersion]);
+  }, [isAdmin, campusId, readVersion, localRecovery]);
 
-  const readFeedback = (state: ReadState, retry: () => void, selected = false) => state === 'ready' ? null :
+  const recoveryDraft = readState === 'finished'
+    ? openedDrafts.find(opened => opened.campusId === campusId && retained.has(draftKey(opened))) : undefined;
+  const selectedDraft = draft ?? recoveryDraft;
+  const campuses = [...waiting, ...openedDrafts.filter(opened => retained.has(draftKey(opened)) &&
+    !waiting.some(campus => campus.campusId === opened.campusId))];
+  const readFeedback = (state: ReadState, retry: () => void, selected = false) =>
+    state === 'ready' || (state === 'finished' && recoveryDraft) ? null :
     <div ref={selected ? selectedReadRef : undefined} tabIndex={selected ? -1 : undefined}
       style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)', scrollMarginTop: 96 }}>
       <p role="status" style={{ margin: 0 }}>{t(`corner_draft_${state === 'loading' ? 'loading' : state === 'finished' ? 'error_not_draft' : 'error_load'}`)}</p>
@@ -111,28 +127,38 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
 
   return <>
     {isAdmin && readFeedback(listState, () => setListVersion(version => version + 1))}
-    {isAdmin && waiting.map(campus => (
+    {isAdmin && campuses.map(campus => (
       <div key={campus.campusId}>
         <button type="button" style={quietStyle} aria-busy={busy}
           aria-pressed={campusId === campus.campusId}
           onClick={() => {
             if (busyRef.current || (campusId === campus.campusId && draft)) return;
+            if (!waiting.some(row => row.campusId === campus.campusId)) {
+              setLocalRecovery(true);
+              setDraft(openedDrafts.find(opened => opened.campusId === campus.campusId) ?? null);
+              setReadState('ready');
+              setCampusId(campus.campusId);
+              return;
+            }
+            setLocalRecovery(false);
             setDraft(null);
             setReadState('loading');
             setCampusId(campus.campusId);
             setReadVersion(version => version + 1);
           }}>
-          {t('corner_draft_waiting').replace('{campus}', campus.campusName)}
+          {t(waiting.some(row => row.campusId === campus.campusId)
+            ? 'corner_draft_waiting' : 'corner_draft_unsaved_campus').replace('{campus}', () => campus.campusName)}
         </button>
         {campusId === campus.campusId && readFeedback(readState, () => setReadVersion(version => version + 1), true)}
       </div>
     ))}
-    {(!isAdmin || (campusId && !waiting.some(campus => campus.campusId === campusId))) &&
+    {(!isAdmin || (campusId && !campuses.some(campus => campus.campusId === campusId))) &&
       readFeedback(readState, () => setReadVersion(version => version + 1), isAdmin)}
     {openedDrafts.map(opened => {
-      const active = !!draft && draftKey(opened) === draftKey(draft);
+      const active = !!selectedDraft && draftKey(opened) === draftKey(selectedDraft);
       return <section key={draftKey(opened)} hidden={!active}>
         <DraftEditor initial={opened} memory={editorMemory.current} active={active} campusId={isAdmin ? opened.campusId : undefined}
+          serverFinished={active && readState === 'finished'} onRetentionChange={onRetentionChange}
           onJob={onJob} onBusy={value => { busyRef.current = value; setBusy(value); }}
           onComplete={() => setWaiting(rows => rows.filter(row => row.campusId !== opened.campusId))} />
       </section>;
@@ -140,8 +166,9 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   </>;
 }
 
-function DraftEditor({ initial, memory, active, campusId, onJob, onBusy, onComplete }: {
+function DraftEditor({ initial, memory, active, campusId, serverFinished, onRetentionChange, onJob, onBusy, onComplete }: {
   initial: CornerDraft; active: boolean; campusId?: string; onJob: Props['onJob'];
+  serverFinished: boolean; onRetentionChange: (key: string, keep: boolean) => void;
   memory: Map<string, EditorMemory>;
   onBusy: (busy: boolean) => void; onComplete: () => void;
 }) {
@@ -178,6 +205,15 @@ function DraftEditor({ initial, memory, active, campusId, onJob, onBusy, onCompl
   useEffect(() => {
     memory.set(draftKey(draft), { draft, body, prayerPoint, answer, fresh, pendingQuestion, dismissed });
   }, [memory, draft, body, prayerPoint, answer, fresh, pendingQuestion, dismissed]);
+
+  const keepWords = savedWords !== null || (!outcome &&
+    (body !== draft.body || prayerPoint !== draft.prayerPoint || !!answer.trim()));
+  useEffect(() => {
+    onRetentionChange(draftKey(initial), keepWords);
+  }, [initial, keepWords, onRetentionChange]);
+  useEffect(() => {
+    if (serverFinished && !outcome) finish();
+  }, [serverFinished, outcome]);
 
   useEffect(() => {
     if (!active) return;
@@ -319,7 +355,7 @@ function DraftEditor({ initial, memory, active, campusId, onJob, onBusy, onCompl
     <div role="region" aria-label={words('my_words')} tabIndex={0}
       style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedWords}</div>
     <div>
-      <button type="button" style={quietStyle} aria-busy={copyState === 'busy'}
+      <button type="button" className="dw-next dw-campus-main" style={campusMainStyle} aria-busy={copyState === 'busy'}
         onClick={() => void copyWords()}>{words('copy_words')}</button>
       {copyState === 'done' && <p role="status" style={{ margin: 0 }}>{words('copied')}</p>}
       {copyState === 'failed' && <p role="alert" style={{ margin: 0 }}>{words('error_copy')}</p>}

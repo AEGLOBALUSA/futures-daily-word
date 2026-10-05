@@ -643,6 +643,86 @@ describe('CornerDraftCard, admin', () => {
     ]);
   });
 
+  it.each(['null', 'published', 'skipped', 'no_draft', 'not_draft'] as const)(
+    'round 4 MUST: a %s read keeps the campus reachable and opens recovery for local edits', async result => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      clipboard({ writeText });
+      vi.mocked(getCornerDraft).mockImplementation(async campusId => response(draft({
+        campusId, campusName: campusId === 'us-two' ? 'Second Campus' : 'Test Campus', prayerPoint: 'Original prayer',
+      })));
+      await mount(true);
+      await press('Corner draft waiting: Test Campus');
+      type('The corner note', 'My unpublished note');
+      type('Prayer point (your words)', 'My unpublished prayer');
+      type('Anything on at Test Campus this week?', 'My unpublished answer');
+      await press('Corner draft waiting: Second Campus');
+      if (result === 'no_draft' || result === 'not_draft') {
+        vi.mocked(getCornerDraft).mockRejectedValueOnce({ data: { code: result } });
+      } else {
+        vi.mocked(getCornerDraft).mockResolvedValueOnce(response(result === 'null' ? null : draft({ status: result })));
+      }
+      await press('Corner draft waiting: Test Campus');
+      const kept = 'My unpublished note\n\nMy unpublished prayer\n\nMy unpublished answer';
+      const recovery = () => [...el.querySelectorAll('[role="region"]')].find(region => !region.closest('[hidden]'));
+      expect(button('Test Campus: your unsaved words')).toBeTruthy();
+      expect(button('Corner draft waiting: Test Campus')).toBeUndefined();
+      expect(recovery()?.textContent).toBe(kept);
+      expect(recovery()?.parentElement?.textContent).toContain("This week's draft is already done.");
+      expect(button(PUBLISH)).toBeUndefined();
+      expect([...el.querySelectorAll('.dw-next.dw-campus-main')].filter(b => !b.closest('[hidden]'))).toHaveLength(1);
+      expect(el.querySelector('[disabled]')).toBeNull();
+      await press('Corner draft waiting: Second Campus');
+      const reads = vi.mocked(getCornerDraft).mock.calls.length;
+      await press('Test Campus: your unsaved words');
+      expect(getCornerDraft).toHaveBeenCalledTimes(reads);
+      expect(recovery()?.textContent).toBe(kept);
+      await press('Copy my words');
+      expect(writeText).toHaveBeenCalledWith(kept);
+      await press('Use the form instead');
+      expect(onJob).toHaveBeenCalledWith('campus', 'us-test');
+      expect(publishCornerDraft).not.toHaveBeenCalled();
+      expect(refreshCornerDraft).not.toHaveBeenCalled();
+      expect(skipCornerDraft).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['note', 'prayer', 'answer'] as const)(
+    'round 4 MUST: late %s words after publishing stay reachable across campus switches', async changed => {
+      const pending = deferred<Awaited<ReturnType<typeof publishCornerDraft>>>();
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      clipboard({ writeText });
+      vi.mocked(getCornerDraft).mockImplementation(async campusId => response(draft({
+        campusId, campusName: campusId === 'us-two' ? 'Second Campus' : 'Test Campus', prayerPoint: 'Original prayer',
+      })));
+      vi.mocked(publishCornerDraft).mockReturnValue(pending.promise);
+      await mount(true);
+      await press('Corner draft waiting: Test Campus');
+      type('The corner note', 'Submitted note');
+      await press(PUBLISH);
+      type(changed === 'note' ? 'The corner note' : changed === 'prayer' ? 'Prayer point (your words)'
+        : 'Anything on at Test Campus this week?', 'Late words');
+      await act(async () => pending.resolve({ campusId: 'us-test', campusName: 'Test Campus', item: { title: '', content: '' } }));
+      expect(publishCornerDraft).toHaveBeenCalledExactlyOnceWith('Submitted note', 'Original prayer', 'us-test', 'v1');
+      expect(button('Test Campus: your unsaved words')).toBeTruthy();
+      await press('Corner draft waiting: Second Campus');
+      expect(button(PUBLISH)).toBeTruthy();
+      const reads = vi.mocked(getCornerDraft).mock.calls.length;
+      await press('Test Campus: your unsaved words');
+      expect(getCornerDraft).toHaveBeenCalledTimes(reads);
+      expect(button(PUBLISH)).toBeUndefined();
+      const recovery = [...el.querySelectorAll('[role="region"]')].find(region => !region.closest('[hidden]'));
+      expect(recovery?.parentElement?.textContent).toContain('Words you typed after it went up (not on the corner):');
+      const kept = [changed === 'note' ? 'Late words' : 'Submitted note',
+        changed === 'prayer' ? 'Late words' : 'Original prayer', changed === 'answer' ? 'Late words' : ''].filter(Boolean).join('\n\n');
+      expect(recovery?.textContent).toBe(kept);
+      expect([...el.querySelectorAll('.dw-next.dw-campus-main')].filter(b => !b.closest('[hidden]'))).toHaveLength(1);
+      await press('Copy my words');
+      expect(writeText).toHaveBeenCalledWith(kept);
+      await press('Use the form instead');
+      expect(onJob).toHaveBeenCalledWith('campus', 'us-test');
+    },
+  );
+
   it('round 3 MUST: keeps each editor mounted, including recovery state, with only one visible main button', async () => {
     vi.mocked(getCornerDraft).mockImplementation(async campusId => response(draft({
       campusId, campusName: campusId === 'us-two' ? 'Second Campus' : 'Test Campus',
