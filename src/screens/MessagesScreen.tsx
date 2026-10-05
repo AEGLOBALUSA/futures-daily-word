@@ -12,7 +12,12 @@ import { pushNow } from '../utils/cloudSync';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
 import { ALPHARETTA_TAB_LABEL, useAlpharettaTab } from '../alpharetta-gate/AlpharettaSlot';
 import { campusName } from '../data/campuses';
-import { rememberMyPrayer, takePrayerWallRequest, OPEN_PRAYER_WALL_EVENT } from '../utils/myPrayers';
+import {
+  rememberMyPrayer, takePrayerWallRequest, OPEN_PRAYER_WALL_EVENT,
+  readMyPrayers, refreshMyPrayers, prayedCard, noteCardShown, MY_PRAYERS_EVENT,
+  type MyPrayersRecord,
+} from '../utils/myPrayers';
+import { localToday } from '../utils/homeToday';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -347,6 +352,35 @@ function PrayerWallPanel({
   const [prayedFor, setPrayedFor] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dw_prayed_for') || '[]')); } catch { return new Set(); }
   });
+  const [confirmedPrayers, setConfirmedPrayers] = useState<Set<string>>(() => new Set());
+  // B09-11: the requests she posted from this phone (dw_my_prayers, device-only).
+  const [myPrayers, setMyPrayers] = useState<MyPrayersRecord | null>(null);
+  const [scrollToPrayer, setScrollToPrayer] = useState<string | null>(null);
+
+  useEffect(() => {
+    const reread = () => setMyPrayers(readMyPrayers());
+    window.addEventListener(MY_PRAYERS_EVENT, reread);
+    reread();
+    void refreshMyPrayers();
+    return () => window.removeEventListener(MY_PRAYERS_EVENT, reread);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) setMyPrayers(readMyPrayers());
+  }, [loading]);
+
+  const card = myPrayers ? prayedCard(myPrayers, localToday()) : null;
+  const cardId = card?.id;
+  const cardCount = card?.count;
+  useEffect(() => {
+    if (cardId && cardCount !== undefined) noteCardShown({ id: cardId, count: cardCount }, localToday());
+  }, [cardId, cardCount]);
+
+  useEffect(() => {
+    if (!scrollToPrayer || loading || filter !== 'all') return;
+    document.getElementById(`prayer-${scrollToPrayer}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setScrollToPrayer(null);
+  }, [scrollToPrayer, loading, filter, prayers]);
 
   const campus = userProfile?.campus || '';
   const campusLabel = campusName(campus);
@@ -386,6 +420,7 @@ function PrayerWallPanel({
   const handlePray = async (id: string) => {
     if (prayedFor.has(id)) return;
     await prayForIt(id);
+    if (prayedConfirm) setConfirmedPrayers(prev => new Set(prev).add(id));
     const next = new Set(prayedFor).add(id);
     setPrayedFor(next);
     localStorage.setItem('dw_prayed_for', JSON.stringify([...next]));
@@ -468,6 +503,27 @@ function PrayerWallPanel({
         </Card>
       )}
 
+      {card && (
+        <Card style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+            {card.count === 1 ? t('next_prayed_one', lang) : t('next_prayed_many', lang).replace('{n}', String(card.count))}
+          </p>
+          <button onClick={() => {
+            if (filter !== 'all') {
+              setLoading(true);
+              setFilter('all');
+            }
+            setScrollToPrayer(card.id);
+          }} style={{
+            background: 'none', border: 'none', padding: 0, minHeight: 44,
+            fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600,
+            fontFamily: 'var(--font-sans)', cursor: 'pointer',
+          }}>
+            {t('next_see_request', lang)}
+          </button>
+        </Card>
+      )}
+
       {/* Prayer Globe — world map showing prayer activity */}
       <div style={{ marginBottom: 16 }}>
         <PrayerGlobe
@@ -514,11 +570,17 @@ function PrayerWallPanel({
           {prayers.map(prayer => {
             const hasPrayed = prayedFor.has(prayer.id);
             return (
-              <Card key={prayer.id} style={{ borderLeft: '3px solid var(--dw-accent)' }}>
+              <div key={prayer.id} id={`prayer-${prayer.id}`}>
+              <Card style={{ borderLeft: '3px solid var(--dw-accent)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div>
                     <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
                       {prayer.name}
+                      {myPrayers?.prayers.some(p => p.id === prayer.id) && (
+                        <span style={{ fontSize: 15, fontWeight: 400, color: 'var(--dw-text-muted)', marginLeft: 6 }}>
+                          {t('prayer_yours', lang)}
+                        </span>
+                      )}
                     </p>
                     <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
                       {prayer.campusName} · {prayer.timeAgo}
@@ -540,7 +602,13 @@ function PrayerWallPanel({
                 <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-sans)', margin: 0 }}>
                   {prayer.prayer}
                 </p>
+                {prayedConfirm && confirmedPrayers.has(prayer.id) && (
+                  <p role="status" style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>
+                    {t('prayed_confirm', lang)}
+                  </p>
+                )}
               </Card>
+              </div>
             );
           })}
         </div>
