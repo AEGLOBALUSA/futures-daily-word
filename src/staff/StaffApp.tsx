@@ -625,6 +625,26 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   const showPaste = !haveQ || haveNotes === true;
   const showAI = showPaste && paste.trim().length > 0;
   const stepStart = formQs.length;
+  const currentSermon = useMemo(
+    () => sermons.find(s => s.current && s.congregation === congregation)
+      || sermons.find(s => s.current && !s.congregation),
+    [sermons, congregation],
+  );
+  const pickedSermon = useMemo(() => {
+    const targetQuestion = questions.find(q =>
+      (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')
+      && (q.audience === job || q.audience === 'all'),
+    );
+    const answer = targetQuestion ? answers[targetQuestion.id] : undefined;
+    if (answer == null || answer === '') return null;
+    if (answer === '__current__') return currentSermon || null;
+    return sermons.find(s => s.id === answer) || { id: '', title: String(answer) };
+  }, [answers, currentSermon, job, questions, sermons]);
+  const mediaButtonLabel = pickedSermon?.title ? `Add the video to “${pickedSermon.title}”` : 'Add the video';
+  const mediaKeepsCurrentMessage = job === 'media'
+    && !!currentSermon
+    && !!pickedSermon?.id
+    && pickedSermon.id !== currentSermon.id;
 
   const setAnswer = (id: string, v: unknown) => {
     setWordingSaved(null);
@@ -869,8 +889,13 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
               </p>
             )}
             <button type="submit" className={editingId ? undefined : 'dw-next'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
-              {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
+              {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : job === 'media' ? mediaButtonLabel : 'Put this on the congregation page'}
             </button>
+            {mediaKeepsCurrentMessage && (
+              <p style={{ ...helpStyle, fontSize: 15, marginTop: 8 }}>
+                “{currentSermon.title}” stays the message on the {congregationName(congregation)} page.
+              </p>
+            )}
             {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
           </>
         )}
@@ -888,6 +913,10 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
                   ? job === 'media'
                     ? `The video is saved on “${live.title}”. The ${congregationName(congregation)} page shows “${live.showing}”, the message that is on now.`
                     : `Saved as “${live.title}”. The ${congregationName(congregation)} page shows “${live.showing}”, the message that is on now.`
+                : live && !live.verified && live.checked === false
+                  ? job === 'media'
+                    ? `The video is saved on “${live.title}”. We couldn’t check the ${congregationName(congregation)} page just now: open it to see.`
+                    : `Saved as “${live.title}”. We couldn’t check the ${congregationName(congregation)} page just now: open it to see.`
                 : live
                   ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}
