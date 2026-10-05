@@ -197,7 +197,7 @@ export function StaffApp() {
   }
 
   return (
-    <div className="staff-app mos-shell" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
+    <div className="staff-app" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
       <header className="mos-shell__header" style={{
         position: 'sticky', top: 0, zIndex: 10, background: 'var(--dw-canvas)',
         borderBottom: '1px solid var(--dw-border)', padding: '14px 20px',
