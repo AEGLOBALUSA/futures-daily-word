@@ -40,6 +40,10 @@ type EditorMemory = {
   dismissed: { extra: boolean; prayerPoint: boolean };
 };
 const draftKey = (draft: CornerDraft) => JSON.stringify([draft.campusId, draft.weekOf]);
+const scrollClearance = () => {
+  const height = document.querySelector('header')?.getBoundingClientRect().height;
+  return height ? height + 16 : 96;
+};
 
 export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   const [waiting, setWaiting] = useState<CornerDraftWaiting[]>([]);
@@ -47,6 +51,7 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   const [readVersion, setReadVersion] = useState(0);
   const [listVersion, setListVersion] = useState(0);
   const [draft, setDraft] = useState<CornerDraft | null>(null);
+  const [openedDrafts, setOpenedDrafts] = useState<CornerDraft[]>([]);
   const [listState, setListState] = useState<ReadState>('loading');
   const [readState, setReadState] = useState<ReadState>('loading');
   const busyRef = useRef(false);
@@ -79,6 +84,11 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
     getCornerDraft(campusId).then(({ draft: next }) => {
       if (active) {
         setDraft(next?.status === 'draft' ? next : null);
+        if (next?.status === 'draft') setOpenedDrafts(current => {
+          const index = current.findIndex(opened => opened.campusId === next.campusId);
+          if (index === -1) return [...current, next];
+          return current.map((opened, i) => i === index ? next : opened);
+        });
         setReadState('ready');
         if (!next || next.status !== 'draft') setWaiting(rows => rows.filter(row => row.campusId !== campusId));
       }
@@ -119,14 +129,19 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
     ))}
     {(!isAdmin || (campusId && !waiting.some(campus => campus.campusId === campusId))) &&
       readFeedback(readState, () => setReadVersion(version => version + 1), isAdmin)}
-    {draft && <DraftEditor key={draftKey(draft)} initial={draft} memory={editorMemory.current} campusId={isAdmin ? campusId : undefined}
-      onJob={onJob} onBusy={value => { busyRef.current = value; setBusy(value); }}
-      onComplete={() => setWaiting(rows => rows.filter(row => row.campusId !== draft.campusId))} />}
+    {openedDrafts.map(opened => {
+      const active = !!draft && draftKey(opened) === draftKey(draft);
+      return <section key={draftKey(opened)} hidden={!active}>
+        <DraftEditor initial={opened} memory={editorMemory.current} active={active} campusId={isAdmin ? opened.campusId : undefined}
+          onJob={onJob} onBusy={value => { busyRef.current = value; setBusy(value); }}
+          onComplete={() => setWaiting(rows => rows.filter(row => row.campusId !== opened.campusId))} />
+      </section>;
+    })}
   </>;
 }
 
-function DraftEditor({ initial, memory, campusId, onJob, onBusy, onComplete }: {
-  initial: CornerDraft; campusId?: string; onJob: Props['onJob'];
+function DraftEditor({ initial, memory, active, campusId, onJob, onBusy, onComplete }: {
+  initial: CornerDraft; active: boolean; campusId?: string; onJob: Props['onJob'];
   memory: Map<string, EditorMemory>;
   onBusy: (busy: boolean) => void; onComplete: () => void;
 }) {
@@ -165,15 +180,20 @@ function DraftEditor({ initial, memory, campusId, onJob, onBusy, onComplete }: {
   }, [memory, draft, body, prayerPoint, answer, fresh, pendingQuestion, dismissed]);
 
   useEffect(() => {
+    if (!active) return;
+    if (headingRef.current) headingRef.current.style.scrollMarginTop = `${scrollClearance()}px`;
     if (campusId) {
       headingRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
       headingRef.current?.focus({ preventScroll: true });
     }
-  }, [campusId]);
+  }, [active, campusId]);
   useEffect(() => { if (outcome === 'published') doneRef.current?.focus(); }, [outcome]);
   useEffect(() => {
-    if (fresh) freshRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
-  }, [fresh]);
+    if (active && fresh && freshRef.current) {
+      freshRef.current.style.scrollMarginTop = `${scrollClearance()}px`;
+      freshRef.current.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    }
+  }, [active, fresh]);
   useEffect(() => {
     if (!answer.trim()) setErrors(current => current.publish === 'error_answer_pending'
       ? { ...current, publish: undefined } : current);
@@ -259,9 +279,10 @@ function DraftEditor({ initial, memory, campusId, onJob, onBusy, onComplete }: {
           edits.current.answer = ''; setAnswer(''); setPendingQuestion(null);
         } else setPendingQuestion(question);
       } else if (action === 'publish') {
-        await publishCornerDraft(body, prayerPoint, campusId, draft.version);
+        const sent = { body, prayerPoint };
+        await publishCornerDraft(sent.body, sent.prayerPoint, campusId, draft.version);
         const current = edits.current;
-        if (current.body !== body || current.prayerPoint !== prayerPoint || current.answer.trim()) {
+        if (current.body !== sent.body || current.prayerPoint !== sent.prayerPoint || current.answer.trim()) {
           setSavedWords([current.body, current.prayerPoint, current.answer].filter(value => value.trim()).join('\n\n'));
         }
         setOutcome('published'); onComplete();
@@ -294,6 +315,7 @@ function DraftEditor({ initial, memory, campusId, onJob, onBusy, onComplete }: {
   const useForm = <button type="button" style={quietStyle} aria-busy={!!busy || copyState === 'busy'}
     onClick={() => { if (!busyRef.current) onJob('campus', campusId); }}>{words('use_form')}</button>;
   const preservedWords = savedWords !== null && <>
+    <p style={{ margin: 0 }}>{words('recovered_words')}</p>
     <div role="region" aria-label={words('my_words')} tabIndex={0}
       style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedWords}</div>
     <div>
