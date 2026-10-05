@@ -554,6 +554,9 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   // and scrolled into view — a refused save must never look like nothing happened.
   const [formError, setFormError] = useState('');
   const [live, setLive] = useState<{ title: string; verified: boolean; checked?: boolean; empty?: boolean; showing?: string } | null>(null);
+  // The church the last save went to: done names it and links to it, even
+  // if the picker was switched while the save was still working.
+  const [savedCongregation, setSavedCongregation] = useState<CongregationId | null>(null);
   // Which congregation's Sermon Notes this message is for (Futures USA /
   // Futures Australia / Futuros USA). Sent with preview and save; remembered per browser.
   const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
@@ -656,6 +659,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   const mediaLinkOnly = job === 'media' && !paste.trim();
   const mediaButtonLabel = !mediaLinkOnly ? 'Put this on the congregation page'
     : pickedSermon?.title ? `Add the video to “${pickedSermon.title}”` : 'Add the video';
+  const doneCongregation = savedCongregation || congregation;
   const mediaKeepsCurrentMessage = mediaLinkOnly
     && !!currentSermon
     && !!pickedSermon?.id
@@ -756,6 +760,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         formatted_sermon: preview || undefined,
       });
       if (data.preview) setPreview(data.preview);
+      setSavedCongregation(congregation);
       setDone(true);
       // Saved but waiting: the campus has not been confirmed yet, so nothing is live.
       if (data.pending) setHeld(true);
@@ -945,26 +950,26 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
               : job === 'campus'
               ? 'It’s on the campus corner.'
               : live?.verified
-                ? `It’s on the ${congregationName(congregation)} page: ${live.title}`
+                ? `It’s on the ${congregationName(doneCongregation)} page: ${live.title}`
                 : live && !live.verified && live.showing
                   ? job === 'media'
-                    ? `The video is saved on “${live.title}”. The ${congregationName(congregation)} page shows “${live.showing}”, the message that is on now.`
-                    : `Saved as “${live.title}”. The ${congregationName(congregation)} page shows “${live.showing}”, the message that is on now.`
+                    ? `The video is saved on “${live.title}”. The ${congregationName(doneCongregation)} page shows “${live.showing}”, the message that is on now.`
+                    : `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page shows “${live.showing}”, the message that is on now.`
                 : live && !live.verified && live.checked === false
                   ? job === 'media'
-                    ? `The video is saved on “${live.title}”. We couldn’t check the ${congregationName(congregation)} page just now: open it to see.`
-                    : `Saved as “${live.title}”. We couldn’t check the ${congregationName(congregation)} page just now: open it to see.`
+                    ? `The video is saved on “${live.title}”. We couldn’t check the ${congregationName(doneCongregation)} page just now: open it to see.`
+                    : `Saved as “${live.title}”. We couldn’t check the ${congregationName(doneCongregation)} page just now: open it to see.`
                 : live && !live.verified && live.empty
                   ? job === 'media'
-                    ? `The video is saved on “${live.title}”. The ${congregationName(congregation)} page shows no message right now.`
-                    : `Saved as “${live.title}”. The ${congregationName(congregation)} page shows no message right now.`
+                    ? `The video is saved on “${live.title}”. The ${congregationName(doneCongregation)} page shows no message right now.`
+                    : `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page shows no message right now.`
                 : live
-                  ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
+                  ? `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}
           </p>
           {job !== 'campus' && !held && (
-            <a href={congregationPageUrl(congregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600 }}>
-              Open the {congregationName(congregation)} page →
+            <a href={congregationPageUrl(doneCongregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600 }}>
+              Open the {congregationName(doneCongregation)} page →
             </a>
           )}
         </div>
