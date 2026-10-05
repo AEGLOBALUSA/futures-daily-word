@@ -147,17 +147,44 @@ export function noteOfferShown(today: string = localToday()): void {
   } catch { /* storage blocked */ }
 }
 
+/** Fired on window whenever the reminder hour this device holds may have changed. */
+export const PUSH_HOUR_EVENT = 'dw-push-hour-changed';
+
 /**
- * Her answer. Never asked again either way. Yes moves the reminder to the
- * offered hour (the same call the Settings picker makes); Keep changes nothing.
- * The offer is closed before the network call, so the card leaves at once.
+ * Move the daily reminder to `hour` and wait for the server. On failure the
+ * hour this device shows goes back to what it was (updatePushTime writes it
+ * first), so no screen shows an hour the reminder does not have. Either way
+ * PUSH_HOUR_EVENT fires so an open Settings screen re-reads getPushHour().
+ * Resolves true when the server took it.
+ */
+export async function saveReminderHour(hour: number): Promise<boolean> {
+  const before = getPushHour();
+  let ok = false;
+  try { ok = await updatePushTime(hour); } catch { ok = false; }
+  if (!ok) {
+    try { localStorage.setItem('dw_push_hour', String(before)); } catch { /* storage blocked */ }
+  }
+  try { window.dispatchEvent(new Event(PUSH_HOUR_EVENT)); } catch { /* no window */ }
+  return ok;
+}
+
+/**
+ * Her answer. Keep closes the offer for good and changes nothing. Yes moves
+ * the reminder to the offered hour (saveReminderHour) and closes the offer
+ * only once the server has taken it: when the save fails, the hour goes back
+ * and the offer stays, so tapping Yes again is the retry.
  * Resolves true when the reminder moved.
  */
 export async function answerReminderOffer(accept: boolean, persona: string, today: string = localToday()): Promise<boolean> {
   const offer = currentReminderOffer(persona, today);
-  try { localStorage.setItem(OFFER_DONE_KEY, '1'); } catch { /* storage blocked */ }
-  if (!accept || !offer) return false;
-  return updatePushTime(offer.hour);
+  const close = () => { try { localStorage.setItem(OFFER_DONE_KEY, '1'); } catch { /* storage blocked */ } };
+  if (!accept || !offer) {
+    close();
+    return false;
+  }
+  const ok = await saveReminderHour(offer.hour);
+  if (ok) close();
+  return ok;
 }
 
 /** "7:00 AM" / "7:00 a. m." / "07:00" / "07.00", in the reader's language. */

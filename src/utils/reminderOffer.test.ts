@@ -5,13 +5,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   recordOpen, readOpenTimes, medianMinute, suggestedHour, reminderOffer, currentReminderOffer,
-  noteOfferShown, answerReminderOffer, formatReminderTime,
+  noteOfferShown, answerReminderOffer, formatReminderTime, PUSH_HOUR_EVENT,
   OPEN_TIMES_KEY, OFFER_DONE_KEY, OFFER_SHOWN_KEY, type OpenTime, type OfferInput,
 } from './openTimes';
 import { nextStep, type NextStepState } from './nextStep';
 import { isSyncedMiscKey } from './cloudSync';
 import { t } from './i18n';
 
+/** The mocked server refuses the hour (the Yes retry test). */
+let pushSaveFails = false;
 const TODAY = '2026-10-06';
 const opens = (...hm: Array<[number, number]>): OpenTime[] =>
   hm.map(([h, m], i) => ({ d: `2026-09-${String(20 + i).padStart(2, '0')}`, m: h * 60 + m }));
@@ -120,11 +122,25 @@ describe('reminderOffer', () => {
       expect(currentReminderOffer('congregation', TODAY)).toBeNull();
     });
 
-    it('Yes closes it at once and moves the reminder to the offered hour', async () => {
-      const p = answerReminderOffer(true, 'congregation', TODAY);
-      expect(localStorage.getItem(OFFER_DONE_KEY)).toBe('1'); // before the network answers
-      await p;
+    it('Yes moves the reminder to the offered hour, then closes it, and tells Settings', async () => {
+      const heard = vi.fn();
+      window.addEventListener(PUSH_HOUR_EVENT, heard);
+      expect(await answerReminderOffer(true, 'congregation', TODAY)).toBe(true);
+      window.removeEventListener(PUSH_HOUR_EVENT, heard);
       expect(localStorage.getItem('dw_push_hour')).toBe('6');
+      expect(localStorage.getItem(OFFER_DONE_KEY)).toBe('1');
+      expect(heard).toHaveBeenCalled();
+    });
+
+    it('a Yes the server did not take puts the hour back and keeps the offer, so Yes again is the retry', async () => {
+      pushSaveFails = true;
+      expect(await answerReminderOffer(true, 'congregation', TODAY)).toBe(false);
+      expect(localStorage.getItem('dw_push_hour')).toBe('7');
+      expect(localStorage.getItem(OFFER_DONE_KEY)).toBeNull();
+      expect(currentReminderOffer('congregation', TODAY)).toEqual({ hour: 6, current: 7 });
+      pushSaveFails = false;
+      expect(await answerReminderOffer(true, 'congregation', TODAY)).toBe(true);
+      expect(currentReminderOffer('congregation', TODAY)).toBeNull();
     });
   });
 });
@@ -207,6 +223,6 @@ vi.mock('./push', async (orig) => {
   return {
     ...real,
     // The Yes path's network call: record the hour the way the real one does, no network.
-    updatePushTime: async (hour: number) => { localStorage.setItem('dw_push_hour', String(hour)); return true; },
+    updatePushTime: async (hour: number) => { localStorage.setItem('dw_push_hour', String(hour)); return !pushSaveFails; },
   };
 });
