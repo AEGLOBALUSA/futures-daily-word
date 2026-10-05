@@ -684,7 +684,10 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
 
   const wantsAI = !!aiQ && answers[aiQ.id] === true;
   const youtubeQ = questions.find(q => q.config?.sermonKey === 'youtubeUrl' && (q.audience === job || q.audience === 'all'));
-  const youtubeProblem = youtubeQ ? youtubeLinkProblem(answers[youtubeQ.id]) : '';
+  // The media form exists to add the link, so it never suggests leaving it blank.
+  const youtubeProblem = !youtubeQ ? '' : job === 'media' && youtubeLinkProblem(answers[youtubeQ.id])
+    ? 'That is not a YouTube video link. Paste the watch, youtu.be, shorts, or embed link.'
+    : youtubeLinkProblem(answers[youtubeQ.id]);
 
   const runPreview = async (override?: Record<string, unknown>) => {
     if (youtubeProblem) { fail(youtubeProblem); return; }
@@ -810,7 +813,13 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
       const code = (err as { data?: { code?: string } })?.data?.code;
-      if (pickQ && (code === 'target_gone' || code === 'other_congregation')) {
+      const typedTitle = pickQ && typeof answers[pickQ.id] === 'string' && answers[pickQ.id] !== '__current__'
+        && !sermons.some(s => s.id === answers[pickQ.id]) ? String(answers[pickQ.id]) : '';
+      if (pickQ && code === 'target_gone' && typedTitle) {
+        // A typed title that matches no message: keep it to correct, and say
+        // where a new message goes instead of "pick again" from an empty list.
+        fail(`No message called “${typedTitle}” is on the ${congregationName(congregation)} page. Check the title, or put the message up first with “Put up this week’s sermon notes”; the link is still filled in.`);
+      } else if (pickQ && (code === 'target_gone' || code === 'other_congregation')) {
         // The message is gone (or belongs to another church): clear the pick,
         // keep the link, and reload the list so only real messages are offered.
         setAnswers(a => ({ ...a, [pickQ.id]: '' }));
