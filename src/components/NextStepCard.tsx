@@ -20,10 +20,11 @@ export function NextStepCard({ next, onAction, busy, notice, error, renderAsk }:
   const { step, loading, label, why, alt } = next;
 
   return (
-    <section className={step.kind === 'setup_ask' && !loading && !notice ? 'dw-nextstep dw-nextstep--ask' : 'dw-nextstep'} aria-label={notice || label} aria-busy={loading || !!busy || undefined}>
-      {notice ? (
-        <p className="dw-reminder-feedback" role="status">{notice}</p>
-      ) : loading ? (
+    <section className={step.kind === 'setup_ask' && !loading ? 'dw-nextstep dw-nextstep--ask' : 'dw-nextstep'} aria-label={label} aria-busy={loading || !!busy || undefined}>
+      {notice && (
+        <p className="dw-reminder-feedback" role="status" style={{ margin: '0 0 12px' }}>{notice}</p>
+      )}
+      {loading ? (
         <ScriptureSkeleton />
       ) : step.kind === 'done' ? (
         <p className="dw-nextstep-done" data-testid="next-step-done">{label}</p>

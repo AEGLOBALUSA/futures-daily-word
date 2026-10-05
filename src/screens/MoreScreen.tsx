@@ -743,12 +743,14 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                         </select>
                         <button
                           type="button"
+                          disabled={savingPushHour}
+                          aria-describedby="dw-reminder-feedback"
                           onClick={() => {
                             if (pushHourSavingRef.current) return;
                             setEditingPushHour(false);
                             setFailedPushHour(null);
                           }}
-                          style={{ minHeight: 44, padding: '10px 12px', border: 'none', background: 'transparent', color: 'var(--dw-text-primary)', fontSize: 17, fontFamily: 'var(--font-sans)', textDecoration: 'underline', cursor: 'pointer' }}
+                          style={{ minHeight: 44, padding: '10px 12px', border: 'none', background: 'transparent', color: 'var(--dw-text-primary)', fontSize: 17, fontFamily: 'var(--font-sans)', textDecoration: 'underline', opacity: 1, cursor: savingPushHour ? 'wait' : 'pointer' }}
                         >
                           {t('next_reminder_keep', lang).replace('{time}', formatReminderTime(pushHour, lang))}
                         </button>
