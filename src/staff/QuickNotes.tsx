@@ -183,6 +183,10 @@ export function QuickNotes({ onChangeDetails }: {
                   ? publishedResult?.attach
                     ? t('staff_quick_done_unchecked_attached').replace('{title}', done.title)
                     : t('staff_quick_done_unchecked')
+                  : !done.verified && done.empty
+                    ? publishedResult?.attach
+                      ? t('staff_quick_done_empty_attached').replace('{title}', done.title)
+                      : t('staff_quick_done_empty')
                   : t(done.verified ? 'staff_quick_done' : 'staff_quick_done_unverified')}
           </p>
           <p style={secondaryStyle}>{t(publishedResult?.attach ? 'staff_quick_done_next_attached' : publishedResult?.details.youtubeUrl || publishedResult?.preview?.youtubeUrl ? 'staff_quick_done_next_linked' : 'staff_quick_done_next')}</p>

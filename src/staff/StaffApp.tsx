@@ -937,6 +937,10 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
                   ? job === 'media'
                     ? `The video is saved on “${live.title}”. We couldn’t check the ${congregationName(congregation)} page just now: open it to see.`
                     : `Saved as “${live.title}”. We couldn’t check the ${congregationName(congregation)} page just now: open it to see.`
+                : live && !live.verified && live.empty
+                  ? job === 'media'
+                    ? `The video is saved on “${live.title}”. The ${congregationName(congregation)} page shows no message right now.`
+                    : `Saved as “${live.title}”. The ${congregationName(congregation)} page shows no message right now.`
                 : live
                   ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}
