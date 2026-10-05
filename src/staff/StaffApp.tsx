@@ -1659,13 +1659,13 @@ type RosterRow = {
 type IssuedCode = { email: string; code: string; expiresAt: string };
 
 type AdminCampus = {
-  id: string; name: string; city: string; region: string; congregation: string | null;
+  id: string; name: string; city: string; towns: string[]; region: string; congregation: string | null;
   timeZone: string; sundayUntil: string; videoUrl: string | null; sortOrder: number;
   pcoNames: string[]; active: boolean;
 };
 
 type CampusDraft = {
-  id: string; name: string; city: string; region: string; timeZone: string;
+  id: string; name: string; city: string; towns: string; region: string; timeZone: string;
   sundayUntil: string; congregation: string | null; pcoNames: string; videoUrl: string; active: boolean;
 };
 
@@ -1692,7 +1692,7 @@ function campusZones(campuses: AdminCampus[]) {
 }
 
 function campusDraftFromRow(c: AdminCampus): CampusDraft {
-  return { id: c.id, name: c.name, city: c.city, region: c.region, timeZone: c.timeZone, sundayUntil: c.sundayUntil || '16:00', congregation: c.congregation, pcoNames: c.pcoNames.join('\n'), videoUrl: c.videoUrl || '', active: c.active };
+  return { id: c.id, name: c.name, city: c.city, towns: (c.towns || []).join('\n'), region: c.region, timeZone: c.timeZone, sundayUntil: c.sundayUntil || '16:00', congregation: c.congregation, pcoNames: c.pcoNames.join('\n'), videoUrl: c.videoUrl || '', active: c.active };
 }
 
 function Campuses({ onError }: { onError: (s: string) => void }) {
@@ -1725,7 +1725,7 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
     setAdding(false); setOpenId(campus.id); setDraft(campusDraftFromRow(campus)); setSaveStatus(''); onError('');
   };
   const openAdd = () => {
-    setAdding(true); setOpenId(null); setDraft({ id: '', name: '', city: '', region: '', timeZone: '', sundayUntil: '16:00', congregation: null, pcoNames: '', videoUrl: '', active: true }); setIdTouched(false); setSaveStatus(''); onError('');
+    setAdding(true); setOpenId(null); setDraft({ id: '', name: '', city: '', towns: '', region: '', timeZone: '', sundayUntil: '16:00', congregation: null, pcoNames: '', videoUrl: '', active: true }); setIdTouched(false); setSaveStatus(''); onError('');
   };
   const closeEditor = () => { setOpenId(null); setAdding(false); setDraft(null); onError(''); };
 
@@ -1736,7 +1736,7 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Campuses</h2>
       <p style={{ ...helpStyle, fontSize: 15, marginBottom: 16 }}>{campuses.length} campuses. Readers see them in this order.</p>
-      <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.5, margin: '0 0 24px' }}><strong>How this connects:</strong> This one list feeds the reader app’s campus picker, the prayer wall’s campus names, campus pastor codes, Planning Center matching, and which Sermon Notes page a campus reads first. It also guesses a new reader's campus (from a link or QR code ending in ?campus= and the campus id, or from their town) and asks them one question; nothing is saved until they tap Yes. Readers see a change within five minutes.</p>
+      <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.5, margin: '0 0 24px' }}><strong>How this connects:</strong> This one list feeds the reader app’s campus picker, the prayer wall’s campus names, campus pastor codes, Planning Center matching, and which Sermon Notes page a campus reads first. It also guesses a new reader's campus (from a link or QR code ending in ?campus= and the campus id, from their Planning Center record, or from their town, matched against each campus's Town and its other towns) and asks them one question; nothing is saved until they tap Yes. Readers see a change within five minutes.</p>
       {saveStatus && <p role="status" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '0 0 16px' }}>{saveStatus}</p>}
       {campuses.map(campus => (
         <div key={campus.id} style={{ marginBottom: 10 }}>
@@ -1766,7 +1766,7 @@ function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouc
     if (message) { setError(message); return; }
     setBusy(true); setError(''); onError('');
     try {
-      await intake<{ campus: AdminCampus; isNew: boolean }>('campus_save', { campus: { ...draft, name: draft.name.trim(), pcoNames: draft.pcoNames, videoUrl: draft.videoUrl.trim() || null, isNew } });
+      await intake<{ campus: AdminCampus; isNew: boolean }>('campus_save', { campus: { ...draft, name: draft.name.trim(), pcoNames: draft.pcoNames, towns: draft.towns, videoUrl: draft.videoUrl.trim() || null, isNew } });
       await onSaved(draft.name.trim());
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save the campus'); }
     setBusy(false);
@@ -1781,6 +1781,7 @@ function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouc
       {isNew ? <Field label="Campus id" htmlFor="campus-id"><input id="campus-id" value={draft.id} onChange={e => { setIdTouched(true); patch({ id: e.target.value }); }} style={campusInputStyle} /></Field> : <p style={{ fontSize: 15, fontFamily: 'var(--font-sans)', margin: '0 0 24px' }}><strong>{draft.id}</strong> <span style={{ color: 'var(--dw-text-secondary)' }}>The id never changes once saved</span></p>}
       <Field label="Name" htmlFor="campus-name"><input id="campus-name" value={draft.name} onChange={e => setName(e.target.value)} style={campusInputStyle} /></Field>
       <Field label="Town" htmlFor="campus-town"><input id="campus-town" value={draft.city} onChange={e => patch({ city: e.target.value })} style={campusInputStyle} /></Field>
+      <Field label="Other towns near this campus" htmlFor="campus-towns"><p id="campus-towns-help" style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. Towns this campus’s readers live in besides its own town, one per line. New readers in these towns are asked about this campus. Write a town under more than one campus and readers there choose from a short list instead.</p><textarea id="campus-towns" aria-describedby="campus-towns-help" value={draft.towns} onChange={e => patch({ towns: e.target.value })} rows={3} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
       <Field label="Region" htmlFor="campus-region"><select id="campus-region" value={newRegion ? '__new__' : draft.region} onChange={e => { if (e.target.value === '__new__') { setNewRegion(true); patch({ region: '' }); } else { setNewRegion(false); setRegion(e.target.value); } }} style={campusInputStyle}><option value="">Choose a region</option>{regions.map(region => <option key={region} value={region}>{region}</option>)}<option value="__new__">New region…</option></select>{newRegion && <input id="campus-region-new" aria-label="New region name" value={draft.region} onChange={e => setRegion(e.target.value, false)} placeholder="Region name" style={{ ...campusInputStyle, marginTop: 10 }} />}</Field>
       <Field label="Time zone" htmlFor="campus-zone"><select id="campus-zone" value={draft.timeZone} onChange={e => patch({ timeZone: e.target.value })} style={campusInputStyle}><option value="">Choose a time zone</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}{draft.timeZone && !zones.includes(draft.timeZone) && <option value={draft.timeZone}>{draft.timeZone}</option>}</select></Field>
       <Field label="Sunday notes show on Home until" htmlFor="campus-sunday"><input id="campus-sunday" type="time" value={draft.sundayUntil} onChange={e => patch({ sundayUntil: e.target.value })} style={campusInputStyle} /></Field>
