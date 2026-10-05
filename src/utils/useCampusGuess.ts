@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCampuses } from '../data/campuses';
 import { detectPlace, type GeoPlace } from './geo';
-import { guessCampus, readCampusGuess, type CampusGuess } from './campusGuess';
+import { guessCampus, knownCampusId, readCampusGuess, type CampusGuess } from './campusGuess';
 import { getLang } from './i18n';
 
 /**
@@ -63,12 +63,20 @@ export function useCampusGuess(enabled: boolean, pcoCampus?: string | null, pcoP
   }, [param, pcoCampus, pcoPending, place, geoGaveUp, campuses, enabled]);
 
   // Once a question is on screen it stays: the one question ("Are you part of
-  // …?") or the short list of campuses near her. A campus list or answer that
-  // lands later never changes which campus her Yes saves, nor moves the choices
-  // under her thumb.
+  // …?"), the short list of campuses near her, or the plain chooser. A campus
+  // list or answer that lands later never changes which campus her Yes saves,
+  // nor moves the choices under her thumb. The one exception: the owner hid or
+  // removed a campus it names, so a tap on it could not save. Then the card asks
+  // again from the current list rather than leave a Yes that does nothing.
   const [shown, setShown] = useState<(CampusGuess & { ready: boolean }) | null>(null);
+  const saves = (g: CampusGuess) =>
+    (!g.campusId || g.campusId === 'other' || !!knownCampusId(g.campusId, campuses))
+    && g.shortList.every((id) => id === 'other' || !!knownCampusId(id, campuses));
+  const shownStillSaves = !!shown && saves(shown);
+  const liveSaves = saves(live);
   useEffect(() => {
-    if (!shown && enabled && live.ready && (live.campusId || live.shortList.length > 0)) setShown(live);
-  }, [shown, enabled, live]);
-  return shown || live;
+    if (shown && !shownStillSaves) { setShown(null); return; }
+    if (!shown && enabled && live.ready && liveSaves) setShown(live);
+  }, [shown, shownStillSaves, enabled, live, liveSaves]);
+  return shown && shownStillSaves ? shown : live;
 }

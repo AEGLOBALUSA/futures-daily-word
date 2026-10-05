@@ -221,6 +221,55 @@ describe('CampusConfirm (B09-07)', () => {
     expect(buttons(el).slice(0, 4).map((b) => b.getAttribute('aria-label'))).toEqual(before);
   });
 
+  it('after the geo wait runs out, a late geo answer never swaps the chooser on screen (B09-07F review)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    // A phone in a time zone with no campus: the chooser has no short list.
+    const realOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+    const tz = vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...realOptions.call(this), timeZone: 'Europe/London' };
+    });
+    try {
+      let answerGeo: () => void = () => {};
+      const geoHeld = new Promise<void>((r) => { answerGeo = r; });
+      vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+        if (String(url).includes('/api/geo')) { await geoHeld; return { ok: true, json: async () => ({ country: 'US', city: 'Kennesaw', subdivision: 'GA' }) }; }
+        return { ok: false, json: async () => ({}) };
+      }));
+      const el = await mount(null);
+      await act(async () => { vi.advanceTimersByTime(GEO_WAIT_MS); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+      const before = el.innerHTML;
+      expect(el.querySelector('h2')?.textContent).toBe('Which Futures campus are you part of?');
+      await act(async () => { answerGeo(); await geoHeld; for (let i = 0; i < 30; i++) await Promise.resolve(); });
+      expect(el.querySelector('h2')?.textContent).toBe('Which Futures campus are you part of?');
+      expect(el.innerHTML).toBe(before);
+    } finally {
+      tz.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('when the owner hides the campus on screen, the card asks again instead of leaving a Yes that does nothing (B09-07F review)', async () => {
+    let releaseList: () => void = () => {};
+    const listHeld = new Promise<void>((r) => { releaseList = r; });
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('/api/geo')) return { ok: true, json: async () => ({ country: 'US', city: 'Kennesaw', subdivision: 'GA' }) };
+      if (String(url).includes('/campuses')) {
+        await listHeld;
+        const { FALLBACK_CAMPUSES } = await import('../data/campuses.fallback');
+        return { ok: true, json: async () => ({ campuses: FALLBACK_CAMPUSES.filter((c) => c.id !== 'us-kennesaw') }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    }));
+    const profile = { email: 'reader@example.com', campus: '' };
+    const el = await mount(profile);
+    await act(async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); });
+    expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Kennesaw?');
+    await act(async () => { releaseList(); for (let i = 0; i < 12; i++) await Promise.resolve(); });
+    expect(el.querySelector('h2')?.textContent).not.toBe('Are you part of Futures Kennesaw?');
+    expect(el.textContent).not.toContain('Futures Kennesaw');
+    expect(saveProfile).not.toHaveBeenCalled();
+  });
+
   it('not signed in: Planning Center is never asked (B09-07F)', async () => {
     const { f } = stubGeoAndPco({ country: 'US', city: 'Kennesaw', subdivision: 'GA' }, { found: true, profile: { campus: 'us-gwinnett' } });
     const el = await mount(null);
