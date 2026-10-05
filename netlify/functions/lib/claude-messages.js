@@ -1,12 +1,20 @@
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_TIMEOUT_MS = 45000;
+
 /**
  * Server-side Anthropic call for staff intake (not the public /api/claude browser proxy).
  * Returns the text, or null if the key is missing or the model is down.
+ * `model` and `timeoutMs` are optional (B09-18's corner draft passes its own
+ * model from DW_DRAFT_MODEL and an 8 s limit); every other caller keeps the
+ * defaults above.
  */
-async function callClaudeMessages({ system, user, maxTokens }) {
+async function callClaudeMessages({ system, user, maxTokens, model, timeoutMs }) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
+  const useModel = typeof model === "string" && /^claude-[a-z0-9.-]{3,80}$/.test(model) ? model : DEFAULT_MODEL;
+  const limitMs = Number(timeoutMs) > 0 ? Math.min(Number(timeoutMs), DEFAULT_TIMEOUT_MS) : DEFAULT_TIMEOUT_MS;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45000);
+  const timer = setTimeout(() => controller.abort(), limitMs);
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -16,7 +24,7 @@ async function callClaudeMessages({ system, user, maxTokens }) {
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: useModel,
         max_tokens: Math.min(Math.max(Number(maxTokens) || 2500, 400), 4000),
         system: String(system || "").slice(0, 8000),
         messages: [{ role: "user", content: String(user || "").slice(0, 20000) }]
@@ -38,4 +46,4 @@ async function callClaudeMessages({ system, user, maxTokens }) {
   }
 }
 
-module.exports = { callClaudeMessages };
+module.exports = { callClaudeMessages, DEFAULT_MODEL };

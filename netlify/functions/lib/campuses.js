@@ -363,6 +363,7 @@ module.exports = {
   clearCampusCache,
   fallbackCampuses,
   fromRow,
+  findCampus,
   isCampusId,
   isKnownCampus,
   campusName,
