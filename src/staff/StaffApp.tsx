@@ -578,6 +578,9 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         if (!(q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')) continue;
         const picked = sermons.find(s => s.id === next[q.id]);
         if (picked?.congregation && picked.congregation !== v) next[q.id] = '';
+        // "This week's published message" only stands when the new church has one.
+        const hasCurrent = sermons.some(s => s.current && (s.congregation === v || !s.congregation));
+        if (next[q.id] === '__current__' && !hasCurrent) next[q.id] = '';
       }
       return next;
     });
@@ -742,6 +745,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       fail('Pick the message the video is for.');
       return;
     }
+    if (pickQ && answers[pickQ.id] === '__current__' && !currentSermon?.id) {
+      setAnswers(a => ({ ...a, [pickQ.id]: '' }));
+      fail(`Nothing is on the ${congregationName(congregation)} page this week. Pick the message the video is for.`);
+      return;
+    }
     const pickedOther = pickQ ? sermons.find(s => s.id === answers[pickQ.id]) : undefined;
     if (pickedOther?.congregation && pickedOther.congregation !== congregation) {
       fail(`“${pickedOther.title}” is on the ${congregationName(pickedOther.congregation as CongregationId)} page. Pick a ${congregationName(congregation)} message.`);
@@ -890,7 +898,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
           campusLocked={campusLocked}
           lockedCampus={staff.campusId}
           cornerItems={cornerItems}
-          sermons={job === 'media' ? sermons.filter(s => s.source === 'current' || !s.congregation || s.congregation === congregation) : sermons}
+          sermons={job === 'media' ? sermons.filter(s => (s.source === 'current' ? !!currentSermon : !s.congregation || s.congregation === congregation)) : sermons}
           require={q.required && (q.audience === job || q.audience === 'all')}
           onChange={v => setAnswer(q.id, v)}
         />

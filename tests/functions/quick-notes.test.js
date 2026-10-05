@@ -508,6 +508,13 @@ describe('notes_quick then submit on a frozen Monday: the link joins yesterday\'
     expect(fake.tables.intake_submissions).toHaveLength(0);
   });
 
+  it('"This week\'s published message" with nothing current is refused in words, never a server error (round 12)', async () => {
+    const s = await call({ action: 'submit', job: 'media', congregation: 'futures-au', answers: { 'x-media-pick': '__current__', 'x-media-yt': 'https://youtu.be/dQw4w9WgXcQ' } }, TOKENS.hub);
+    expect(s.status).toBe(400);
+    expect(s.body.code).toBe('target_gone');
+    expect(fake.tables.published_sermons).toHaveLength(0);
+  });
+
   it('with next Sunday\'s notes already up, the link is not put on them and nothing is written: the media form is the way on', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-05T14:00:00Z')); // Mon 5 Oct, 10:00 in New York

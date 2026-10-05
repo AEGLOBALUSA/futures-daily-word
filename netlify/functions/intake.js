@@ -426,7 +426,7 @@ async function buildFormattedFromPlan(plan, { useAI, congregation }) {
   // nowhere: if it was removed meanwhile, the save is refused and they pick
   // again, never moved onto whatever message is current (B09-10 round 8).
   const explicitTarget = String(patch.target || "").trim();
-  if (plan.youtubeOnly && explicitTarget && explicitTarget !== "__current__" && !row) {
+  if (plan.youtubeOnly && explicitTarget && !row) {
     throw targetRefusal("target_gone", "That message is no longer on the list. Pick the message again.");
   }
   const current = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
