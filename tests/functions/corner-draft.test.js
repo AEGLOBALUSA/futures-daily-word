@@ -675,3 +675,18 @@ describe('review round 2: no version, no write; glue-only sentences; verse after
     expect(db.tables.campus_corner_draft[0].status).toBe('draft');
   });
 });
+
+describe('review round 3: shared first letters are not a fact; every quote item is scripture', () => {
+  const facts = cd.buildFacts({ campus: ALPHARETTA, lang: 'en', sermon: sermon(), cornerTitles: [], pastor: {} });
+  it('"Ordination" does not trace back to "Ordinary Faith"', () => {
+    expect(cd.checkDraft(`${TRACEABLE} Ordination will be shared this week.`, facts).ok).toBe(false);
+  });
+  it('a verse after "John 3:16," or after a quote item with no value is not quoted', () => {
+    const verse = 'For God so loved the world that he gave his one and only Son.';
+    const own = 'Love always moves first, and it moves toward people.';
+    for (const lead of [{ type: 'text', value: 'John 3:16,' }, { type: 'quote', text: 'x', ref: 'John 3:16' }]) {
+      const s = sermon({ sections: [{ content: [lead, { type: 'blank', value: '' }, { type: 'text', value: verse }, { type: 'text', value: own }] }] });
+      expect(cd.buildFacts({ campus: ALPHARETTA, sermon: s }).message.line).toBe(own);
+    }
+  });
+});

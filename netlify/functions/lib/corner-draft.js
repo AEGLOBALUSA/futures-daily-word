@@ -200,12 +200,14 @@ function quoteLine(sermon) {
     for (const item of content.slice(0, 40)) {
       if (!item) continue;
       const raw = clean(item.value, 600);
+      // A quote item is scripture whatever field holds its words.
+      if (item.type === "quote") { afterScripture = true; continue; }
       // A blank line keeps the flag: the verse may sit after a gap.
       if (!raw) continue;
       const follows = afterScripture;
       // A quote, or a line that ends on a reference ("John 3:16 (NIV)",
       // "Read John 3:16"): the next line is likely the verse itself.
-      afterScripture = item.type === "quote" || verseReference(raw) !== "" || /\d{1,3}\s?:\s?\d{1,3}(?:\s?[-\u2013]\s?\d{1,3})?\s*(?:\(?[A-Z]{2,7}\)?)?\s*[:.]?$/.test(raw);
+      afterScripture = item.type === "quote" || verseReference(raw) !== "" || /\d{1,3}\s?:\s?\d{1,3}(?:\s?[-\u2013]\s?\d{1,3})?\s*(?:\(?[A-Z]{2,7}\)?)?\s*[:.,;]?$/.test(raw);
       if (!LINE_TYPES.has(item.type) || follows) continue;
       if (/\d{1,3}\s?:\s?\d{1,3}/.test(raw)) continue;
       if (/^["\u201C\u2018'\u00AB\u2039]/.test(raw)) continue;
@@ -407,8 +409,18 @@ function quotedSegments(text) {
   return out;
 }
 
+// A word matches a fact word itself or a plain inflection of it ("preach" /
+// "preached", "family" / "families"), never just a shared first five letters
+// ("ordination" is not "Ordinary").
+const INFLECTIONS = ["s", "es", "ed", "d", "ing", "er", "ers", "ies", "ly"];
 function stemIn(word, stems) {
-  return stems.has(word) || (word.length >= 5 && stems.has(word.slice(0, 5)));
+  if (stems.has(word)) return true;
+  for (const end of INFLECTIONS) {
+    if (word.length > end.length + 2 && word.endsWith(end) && stems.has(word.slice(0, -end.length))) return true;
+    if (stems.has(word + end)) return true;
+  }
+  if (word.endsWith("ies") && stems.has(`${word.slice(0, -3)}y`)) return true;
+  return false;
 }
 
 /** A joining word matches whole, never by prefix ("after" must not pass "afternoon"). */
@@ -419,10 +431,7 @@ function joining(word) {
 function stemsOf(...texts) {
   const out = new Set();
   for (const t of texts) {
-    for (const w of tokens(t)) {
-      out.add(w);
-      if (w.length >= 5) out.add(w.slice(0, 5));
-    }
+    for (const w of tokens(t)) out.add(w);
   }
   return out;
 }
