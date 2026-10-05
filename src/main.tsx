@@ -7,6 +7,7 @@ import { LS } from './utils/storage'
 import { detectFirstOpenLanguage } from './utils/firstOpenLanguage'
 import { consumeCampusParam } from './utils/campusGuess'
 import { markInstalled } from './utils/pwa'
+import { applyUiFlag } from './multiplyos/uiFlag'
 
 const StaffApp = lazy(() => import('./staff/StaffApp').then(m => ({ default: m.StaffApp })));
 const IS_STAFF = (() => {
@@ -20,6 +21,7 @@ const IS_STAFF = (() => {
 if (IS_STAFF) {
   document.documentElement.classList.add('staff-route');
 }
+applyUiFlag({ scoped: IS_STAFF });
 
 // Apply saved theme or OS preference before React renders (avoids flash).
 // Must read the SAME key ThemeContext writes (dw_dark = 'true'|'false'); the old

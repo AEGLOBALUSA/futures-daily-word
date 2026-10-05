@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
 import { getStaffToken, intake, setStaffToken, STAFF_SIGNED_OUT_EVENT } from './api';
+import '../multiplyos/staff-ui.css';
 import { localApiBase } from '../utils/api-base';
 import { getLang, t } from '../utils/i18n';
 import { messageFor } from '../components/PastorSignIn';
@@ -174,9 +175,14 @@ export function StaffApp() {
 
   useEffect(() => { loadMe(); }, [loadMe]);
 
+  const signOut = async () => {
+    try { await intake('logout'); } catch { /* */ }
+    setStaffToken(''); setToken(''); setStaff(null);
+  };
+
   if (boot) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>Loading…</p>
       </div>
     );
@@ -191,12 +197,12 @@ export function StaffApp() {
   }
 
   return (
-    <div className="staff-app" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
-      <header style={{
+    <div className="staff-app mos-shell" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
+      <header className="mos-shell__header" style={{
         position: 'sticky', top: 0, zIndex: 10, background: 'var(--dw-canvas)',
         borderBottom: '1px solid var(--dw-border)', padding: '14px 20px',
       }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+        <div className="mos-shell__header-inner" style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
             <div>
               <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
@@ -206,10 +212,7 @@ export function StaffApp() {
             </div>
             <button
               type="button"
-              onClick={async () => {
-                try { await intake('logout'); } catch { /* */ }
-                setStaffToken(''); setToken(''); setStaff(null);
-              }}
+              onClick={signOut}
               style={{ ...btnGhost, minHeight: 36, padding: '6px 12px' }}
             >
               Sign out
@@ -231,7 +234,7 @@ export function StaffApp() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 80px' }}>
+      <main className="mos-shell__main" style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 80px' }}>
         {error && (
           <p ref={bannerRef} role="alert" tabIndex={-1} style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', marginBottom: 16 }}>{error}</p>
         )}
@@ -337,8 +340,8 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <form noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
+    <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <form className="mos-auth__form" noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
         <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
           Futures Daily Word
         </p>
@@ -415,7 +418,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
           </>
         )}
         {error && <p role="alert" style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)' }}>{error}</p>}
-        <button type="submit" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
+        <button type="submit" className="mos-button mos-button--primary" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
           {busy ? t('pastor_please_wait', getLang()) : setup ? t('pastor_save_password', getLang()) : t('pastor_sign_in_btn', getLang())}
         </button>
         {setup ? (
@@ -494,6 +497,7 @@ function StaffHome({
         <button
           key={j.id}
           type="button"
+          className="mos-card"
           onClick={() => onJob(j.id)}
           style={{
             display: 'block', width: '100%', textAlign: 'left',
@@ -959,7 +963,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         {loadError ? (
           <>
             <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontWeight: 600 }}>{loadError}</p>
-            <button type="button" className="dw-next" style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={() => load(pickCampus || staff.campusId || undefined)}>
+            <button type="button" className="dw-next mos-button mos-button--primary" style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={() => load(pickCampus || staff.campusId || undefined)}>
               {t('staff_form_load_again', getLang())}
             </button>
           </>
@@ -970,7 +974,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
                 {formError}
               </p>
             )}
-            <button type="submit" className={editingId ? undefined : 'dw-next'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
+            <button type="submit" className={editingId ? 'mos-button mos-button--primary' : 'dw-next mos-button mos-button--primary'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
               {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : job === 'media' ? mediaButtonLabel : 'Put this on the congregation page'}
             </button>
             {mediaKeepsCurrentMessage && (
