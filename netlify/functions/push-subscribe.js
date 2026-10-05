@@ -102,7 +102,11 @@ exports.handler = async (event) => {
       // hour or language change.
       if (reading && Object.keys(reading.updates).length > 0) {
         const { error: stateErr } = await db.from("push_subscriptions").update(reading.updates).eq("endpoint_hash", endpointHash);
-        if (stateErr) console.error("Push subscribe: reading state not stored:", stateErr.code || "", stateErr.message || "");
+        if (stateErr) {
+          console.error("Push subscribe: reading state not stored:", stateErr.code || "", stateErr.message || "");
+          // The hour and language above are kept; the device hears the state did not land and retries it.
+          return { statusCode: 503, headers, body: JSON.stringify({ error: "Reading state not stored" }) };
+        }
       }
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Updated" }) };
     }

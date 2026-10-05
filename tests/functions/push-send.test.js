@@ -75,13 +75,19 @@ function fakeDb({ kind = null, kindError = false, hasLedger = false, hasState = 
       in(c, v) { q.filters.push(['in', c, v]); return api; },
       order() { return api; },
       range(a, b) { q.range = [a, b]; return api; },
+      or(expr) {
+        // Only the shape push-send uses: "<col>.is.null,<col>.lt.<iso>".
+        const [, col, iso] = /^(\w+)\.is\.null,\w+\.lt\.(.+)$/.exec(expr);
+        q.filters.push(['fn', col, (v) => v == null || new Date(v).getTime() < new Date(iso).getTime()]);
+        return api;
+      },
       update(p) { q.op = 'update'; q.patch = p; return api; },
       delete() { q.op = 'delete'; return api; },
       insert(row) { q.op = 'insert'; q.patch = row; return Promise.resolve(run()); },
       maybeSingle() { return Promise.resolve(run(true)); },
       then(res, rej) { return Promise.resolve(run()).then(res, rej); },
     };
-    const match = (r) => q.filters.every(([t, c, v]) => (t === 'eq' ? r[c] === v : v.includes(r[c])));
+    const match = (r) => q.filters.every(([t, c, v]) => (t === 'eq' ? r[c] === v : t === 'fn' ? v(r[c]) : v.includes(r[c])));
     function run(single) {
       if (table === 'dw_prompt_kind') {
         if (kindError) return { data: null, error: { message: 'relation does not exist' } };
@@ -263,6 +269,21 @@ describe('live', () => {
     const now = await runWith(NOW_PATH, fakeDb({ kind: { mode: 'live' }, rows }));
     expect(now.sent.some((x) => x.endpoint.endsWith('3c3c'))).toBe(false);
     expect(JSON.parse(now.res.body).v2.skipped.unknown_path).toBe(1);
+  });
+
+  it('an open during the run keeps the count at 0 even when it was already 0', async () => {
+    const db = fakeDb({ kind: { mode: 'live' } });
+    const realSendFn = webpush.sendNotification;
+    webpush.sendNotification = async (subscription, payload) => {
+      if (subscription.endpoint.endsWith('0b6f')) {
+        const r = db.rows.find((x) => x.id === TEST_ID);
+        r.unopened_streak = 0;
+        r.last_opened_at = new Date(Date.now() + 1000).toISOString();
+      }
+      return realSendFn(subscription, payload);
+    };
+    await runWith(NOW_PATH, db);
+    expect(db.rows.find((r) => r.id === TEST_ID).unopened_streak).toBe(0);
   });
 
   it('an open that lands during the run keeps the unopened count at 0', async () => {

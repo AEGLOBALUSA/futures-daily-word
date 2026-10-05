@@ -285,9 +285,11 @@ describe('push-subscribe update: the whitelist at the door', () => {
   let realCreate;
   let writes;
   let handler;
+  let stateWriteFails;
 
   beforeEach(() => {
     writes = [];
+    stateWriteFails = false;
     supa = require('@supabase/supabase-js');
     realCreate = supa.createClient;
     supa.createClient = () => ({
@@ -297,6 +299,7 @@ describe('push-subscribe update: the whitelist at the door', () => {
             return {
               async eq(col, val) {
                 writes.push({ table, patch, col, val });
+                if (stateWriteFails && 'persona' in patch) return { error: { code: '42703', message: 'column does not exist' } };
                 return { error: null };
               },
             };
@@ -325,6 +328,16 @@ describe('push-subscribe update: the whitelist at the door', () => {
     expect(writes[0].patch).toEqual({ preferred_hour: 6 });
     expect(Object.keys(writes[1].patch).sort()).toEqual(['last_opened_at', 'next_label', 'persona', 'unopened_streak']);
     expect(writes[1].col).toBe('endpoint_hash');
+  });
+
+  it('a reading state that did not store answers 503 (the device retries) and keeps the hour', async () => {
+    stateWriteFails = true;
+    const res = await call({
+      action: 'update', subscription: { endpoint: ENDPOINT }, preferredHour: 6,
+      state: { persona: 'congregation', opened: true },
+    });
+    expect(res.statusCode).toBe(503);
+    expect(writes[0].patch).toEqual({ preferred_hour: 6 });
   });
 
   it('refuses an unknown field or a long label before writing anything', async () => {

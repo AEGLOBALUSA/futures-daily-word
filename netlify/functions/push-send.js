@@ -253,7 +253,9 @@ async function runPushSend({ db, send }) {
         const { error: streakErr } = await db.from("push_subscriptions")
           .update({ unopened_streak: before + 1 })
           .eq("id", sub.id)
-          .eq("unopened_streak", before);
+          .eq("unopened_streak", before)
+          // An open during this run stamps last_opened_at after runAt: then nothing matches.
+          .or(`last_opened_at.is.null,last_opened_at.lt.${runAt.toISOString()}`);
         if (streakErr) console.error("push-send v2: could not count the send:", streakErr.message || streakErr);
       } catch (err) {
         console.error("push-send v2: could not record the send:", err && err.message);
