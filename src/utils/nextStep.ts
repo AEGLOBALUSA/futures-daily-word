@@ -18,6 +18,10 @@
  *      and the one Mark as read at the passage's end carries the pulse.
  *   6. Returning path, Sunday window, notes published, reading done → Open
  *      today's sermon notes (the 10 Sep demotion: the reading comes first).
+ *   6b. Someone prayed for a request she posted from this phone, and the count
+ *      grew since she last saw it (B09-11) → "{n} people prayed for your
+ *      request this week." See your request. Only while dw_prayed_count is on
+ *      (the server answers nothing while it is off); 14 days per request.
  *   7. Read, not reflected, not quietened → Write it down.
  *   8. One set-up ask, after the reading, at most one a day: install, back-up
  *      email, then path upgrade, each only when its own component applies.
@@ -28,7 +32,7 @@
  * (dw_next_skips, this device only, never synced).
  *
  * Later builds add their Home cards here as kinds (after 5, before 7):
- * reminders (B09-17, "Remind you then?") and prayer counts (B09-11).
+ * reminders (B09-17, "Remind you then?"). Prayer counts (B09-11) are 6b.
  */
 import { addDays } from './zonedTime';
 
@@ -42,6 +46,7 @@ export type NextKind =
   | 'read'
   | 'reading'
   | 'sunday_notes'
+  | 'prayed'
   | 'write'
   | 'setup_ask'
   | 'done';
@@ -53,6 +58,7 @@ export type NextAction =
   | 'open_notes'     // open this week's Sermon Notes for the reader's congregation
   | 'open_wizard'    // open More for today at the pastor/study set-up wizard
   | 'open_plans'     // the Plans tab
+  | 'open_prayers'   // the Campus tab's Prayer Wall, at her request (B09-11)
   | 'write'          // open the passage and its in-place reflection box
   | 'install' | 'email' | 'upgrade' // the set-up ask's own component, in the card
   | 'none';          // no button: the step is on the page already, or the day is done
@@ -101,6 +107,11 @@ export interface NextStepState {
   today: string;
   /** Device-only skip learning (dw_next_skips). */
   skips?: NextSkips;
+  /**
+   * B09-11: someone prayed for a request she posted from this phone and the
+   * count is new to her (myPrayers.prayedCard). null or absent: nothing to say.
+   */
+  prayed?: { count: number } | null;
 }
 
 export interface NextStep {
@@ -184,6 +195,15 @@ export function nextStep(state: NextStepState): NextStep {
   // 6. Returning paths: Sunday's notes once the reading is done.
   if (!state.isNewPath && notesUp(state) && state.readDoneToday) {
     return { kind: 'sunday_notes', step: 6, labelKey: 'next_sermon_notes', params: {}, action: 'open_notes', ...sundayWhy(state) };
+  }
+
+  // 6b. People prayed for her request (B09-11). The day's word comes first.
+  if (state.prayed && state.prayed.count > 0) {
+    const n = Math.floor(state.prayed.count);
+    return {
+      kind: 'prayed', step: 6, labelKey: 'next_see_request', params: {}, action: 'open_prayers',
+      whyKey: n === 1 ? 'next_prayed_one' : 'next_prayed_many', whyParams: { n: String(n) },
+    };
   }
 
   const readToday = state.readDoneToday || (state.isNewPath && state.journeyDayDone);
