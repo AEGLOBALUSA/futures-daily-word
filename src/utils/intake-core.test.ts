@@ -5,6 +5,12 @@ const require = createRequire(import.meta.url);
 const core = require('../../netlify/functions/lib/intake-core.js');
 
 describe('staff allowlist', () => {
+  it('allows jane0202@me.com by name as hub, and no other @me.com address', () => {
+    expect(core.isAllowlistedEmail('jane0202@me.com')).toBe(true);
+    expect(core.fallbackStaff('jane0202@me.com').role).toBe('hub');
+    expect(core.isAllowlistedEmail('someone@me.com')).toBe(false);
+  });
+
   it('allows alexis@futuros.global by name as hub, and no other @futuros.global address', () => {
     expect(core.isAllowlistedEmail('alexis@futuros.global')).toBe(true);
     expect(core.isAllowlistedEmail(' Alexis@Futuros.Global ')).toBe(true);
