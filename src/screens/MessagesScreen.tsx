@@ -12,6 +12,7 @@ import { pushNow } from '../utils/cloudSync';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
 import { ALPHARETTA_TAB_LABEL, useAlpharettaTab } from '../alpharetta-gate/AlpharettaSlot';
 import { campusName } from '../data/campuses';
+import { rememberMyPrayer, takePrayerWallRequest, OPEN_PRAYER_WALL_EVENT } from '../utils/myPrayers';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -27,17 +28,18 @@ interface Prayer {
 // ── {t("prayer_wall", lang)} API ────────────────────────────────────────────────────────────
 const API = `${API_BASE}/.netlify/functions/prayer-wall`;
 
-async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<{ prayers: Prayer[]; error: boolean }> {
+async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<{ prayers: Prayer[]; error: boolean; prayedConfirm: boolean }> {
   try {
     const url = filter === 'my-campus' && campus
       ? `${API}?filter=my-campus&campus=${encodeURIComponent(campus)}`
       : `${API}?filter=all`;
     const res = await fetch(url);
-    if (!res.ok) return { prayers: [], error: true };
+    if (!res.ok) return { prayers: [], error: true, prayedConfirm: false };
     const data = await res.json();
-    return { prayers: data.prayers || [], error: false };
+    // B09-11: true only while the poster's phone is really told someone prayed.
+    return { prayers: data.prayers || [], error: false, prayedConfirm: data.prayedConfirm === true };
   } catch {
-    return { prayers: [], error: true };
+    return { prayers: [], error: true, prayedConfirm: false };
   }
 }
 
@@ -48,7 +50,11 @@ async function postPrayer(prayer: string, name: string, campus: string, email: s
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'create', prayer, name, campus, email }),
     });
-    return res.ok;
+    if (!res.ok) return false;
+    // B09-11: keep the new request's id on this phone only (dw_my_prayers, never
+    // synced), so it can later show how many people prayed for it.
+    try { rememberMyPrayer((await res.json())?.id); } catch { /* posted; just not counted */ }
+    return true;
   } catch {
     return false;
   }
@@ -241,6 +247,14 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
     if (activeTab === 'alpharetta' && !alpharettaAllowed) setActiveTab('pastor');
   }, [activeTab, alpharettaAllowed]);
 
+  // B09-11: Home's "See your request" opens the Prayer Wall.
+  useEffect(() => {
+    const take = () => { if (takePrayerWallRequest() !== null) setActiveTab('prayer'); };
+    take();
+    window.addEventListener(OPEN_PRAYER_WALL_EVENT, take);
+    return () => window.removeEventListener(OPEN_PRAYER_WALL_EVENT, take);
+  }, []);
+
   // Re-tap of the Campus tab in the tab bar → back to the tab's root state.
   useEffect(() => {
     const onReset = () => {
@@ -328,6 +342,8 @@ function PrayerWallPanel({
   const [prayerText, setPrayerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  // B09-11: the Pray button says "They'll know someone prayed" only while true.
+  const [prayedConfirm, setPrayedConfirm] = useState(false);
   const [prayedFor, setPrayedFor] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dw_prayed_for') || '[]')); } catch { return new Set(); }
   });
@@ -341,6 +357,7 @@ function PrayerWallPanel({
     const result = await fetchPrayers(filter, campus);
     setPrayers(result.prayers);
     setPrayerError(result.error);
+    setPrayedConfirm(result.prayedConfirm);
     setLoading(false);
   }, [filter, campus]);
 

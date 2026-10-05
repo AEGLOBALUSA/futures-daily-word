@@ -25,6 +25,7 @@ import { applicableSetupAsks } from './setupAsks';
 import { isSundayWindow, readerSundayUntil, readerTimeZone } from './sunday';
 import { tomorrowPassage, reflectedToday, localToday } from './homeToday';
 import { fetchSermonNotesPublished } from './currentSermon';
+import { readMyPrayers, refreshMyPrayers, prayedCard, noteCardShown, MY_PRAYERS_EVENT } from './myPrayers';
 import { t } from './i18n';
 import { findCampus } from '../data/campuses';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -84,6 +85,8 @@ const REFRESH_EVENTS = [
   'dw-lang-changed',
   // A set-up ask was answered or dismissed: show the next thing at once.
   NEXT_REFRESH_EVENT,
+  // B09-11: a prayer count arrived, or she posted a request.
+  MY_PRAYERS_EVENT,
   'focus',
 ];
 const QUIETABLE: QuietableKind[] = ['write', 'install', 'email', 'upgrade'];
@@ -142,6 +145,15 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
       .catch(() => { /* unknown stays unknown: the notes keep their place */ });
   }, [sundayWindow, notesKey, input.congregation, published, tick]);
 
+  // B09-11: counts for the requests she posted from this phone. The store asks
+  // the server at most once an hour (the tick and focus only re-read it), and
+  // fires MY_PRAYERS_EVENT when something changed.
+  useEffect(() => {
+    void refreshMyPrayers();
+  }, [tick]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const prayed = useMemo(() => prayedCard(readMyPrayers(), today), [tick, today]);
+
   const loading = input.isNewPath && input.pathwayEnrolled && !input.pathwayData;
 
   // Home rebuilds these arrays on every render; key the memo on their content.
@@ -190,10 +202,11 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
       campusName: campus?.name || null,
       today,
       skips,
+      prayed,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    tick, today, sundayWindow, published, notesKey, campus?.name,
+    tick, today, sundayWindow, published, notesKey, campus?.name, prayed?.id, prayed?.count,
     input.persona, input.isNewPath, input.passage, input.readDoneToday, input.passageOpen, input.journeyInHero,
     input.pathwayEnrolled, input.pathwayData, input.pathwayDisplayDay, input.journeyDayDone,
     planKey, slotKey, input.email, input.congregation, input.dayIndex,
@@ -204,6 +217,14 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
   useEffect(() => {
     if (quietKey && !loading) noteShown(quietKey, today);
   }, [quietKey, today, loading]);
+
+  // B09-11: the count she has now seen. The card stays for the rest of the day
+  // and comes back only when the number grows.
+  const prayedId = step.kind === 'prayed' && prayed ? prayed.id : null;
+  const prayedCount = step.kind === 'prayed' && prayed ? prayed.count : 0;
+  useEffect(() => {
+    if (prayedId && !loading) noteCardShown({ id: prayedId, count: prayedCount }, today);
+  }, [prayedId, prayedCount, today, loading]);
 
   const onTapped = useCallback(() => {
     if (quietKey) noteTapped(quietKey, today);
