@@ -304,6 +304,17 @@ const DEFAULT_BODY = {
   pt: "Sua leitura diária está pronta.",
 };
 
+// B09-17: the v2 reminder's body when the reader's own device has told us
+// which passage is next (push_subscriptions.next_passage, already in her
+// language). Neutral, one line, no streak or guilt words; the title is her own
+// plan and day (next_label) or today's template title.
+const PUSH_READY = {
+  en: "{passage} is ready when you are.",
+  es: "{passage} te espera cuando quieras.",
+  pt: "{passage} está pronto quando você quiser.",
+  id: "{passage} siap kapan pun kamu mau.",
+};
+
 const SUPPORTED_LANGS = ["en", "es", "pt", "id"];
 
 /** Normalise a subscriber's stored lang (which may be region-tagged, e.g.
@@ -334,6 +345,14 @@ function getPassageLabel(passage, lang) {
   return langLabels[passage] || PASSAGE_LABELS.en[passage] || passage;
 }
 
+/** B09-17: "{passage} is ready when you are." in the reader's language. */
+function pushReadyBody(passage, lang) {
+  const normalized = normLang(lang);
+  const template = PUSH_READY[normalized] || PUSH_READY.en;
+  // A function replacer: a stored passage can never be read as a "$&" pattern.
+  return template.replace("{passage}", () => String(passage));
+}
+
 module.exports = {
   ALL_PASSAGES,
   PASSAGE_LABELS,
@@ -344,4 +363,6 @@ module.exports = {
   getVerseSnippet,
   getTemplate,
   getPassageLabel,
+  PUSH_READY,
+  pushReadyBody,
 };
