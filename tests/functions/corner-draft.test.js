@@ -690,3 +690,18 @@ describe('review round 3: shared first letters are not a fact; every quote item 
     }
   });
 });
+
+describe('review round 4: short reference lines; short words match only themselves', () => {
+  it('a verse after "John 3:16, NIV" or "(John 3:16)" is not quoted', () => {
+    const verse = 'For God so loved the world that he gave his one and only Son.';
+    const own = 'Love always moves first, and it moves toward people.';
+    for (const lead of ['John 3:16, NIV', '(John 3:16)', 'John 3:16; ESV']) {
+      const s = sermon({ sections: [{ content: [{ type: 'bold', value: lead }, { type: 'text', value: verse }, { type: 'text', value: own }] }] });
+      expect(cd.buildFacts({ campus: ALPHARETTA, sermon: s }).message.line).toBe(own);
+    }
+  });
+  it('"tend" does not trace back to "ten"', () => {
+    const f = cd.buildFacts({ campus: ALPHARETTA, lang: 'en', sermon: sermon({ title: 'Ten Words' }), cornerTitles: [], pastor: {} });
+    expect(cd.checkDraft('On Sunday Ps Sam Example preached “Ten Words”. We tend to be here this week.', f).ok).toBe(false);
+  });
+});
