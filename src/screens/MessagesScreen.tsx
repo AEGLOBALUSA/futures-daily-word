@@ -49,7 +49,12 @@ async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promis
   }
 }
 
-async function postPrayer(prayer: string, name: string, campus: string, email: string): Promise<boolean> {
+/**
+ * Post a request. 'shown' = on the wall now; 'held' = it waits for a staff
+ * look first (B09-12: it carried contact details, a link or bad language);
+ * false = it did not post.
+ */
+async function postPrayer(prayer: string, name: string, campus: string, email: string): Promise<'shown' | 'held' | false> {
   try {
     const res = await fetch(API, {
       method: 'POST',
@@ -57,10 +62,12 @@ async function postPrayer(prayer: string, name: string, campus: string, email: s
       body: JSON.stringify({ action: 'create', prayer, name, campus, email }),
     });
     if (!res.ok) return false;
+    let data: { id?: unknown; held?: unknown } | null = null;
+    try { data = await res.json(); } catch { /* posted; just not counted */ }
     // B09-11: keep the new request's id on this phone only (dw_my_prayers, never
     // synced), so it can later show how many people prayed for it.
-    try { rememberMyPrayer((await res.json())?.id); } catch { /* posted; just not counted */ }
-    return true;
+    try { rememberMyPrayer(data?.id); } catch { /* posted; just not counted */ }
+    return data?.held === true ? 'held' : 'shown';
   } catch {
     return false;
   }
