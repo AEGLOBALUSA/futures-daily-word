@@ -34,6 +34,12 @@ const campusMainStyle: CSSProperties = {
 type Props = { isAdmin?: boolean; onJob: (job: 'campus', campusId?: string) => void };
 type Action = 'refresh' | 'publish' | 'skip';
 type ReadState = 'loading' | 'ready' | 'failed' | 'finished';
+type EditorMemory = {
+  draft: CornerDraft; body: string; prayerPoint: string; answer: string;
+  fresh: CornerDraft | null; pendingQuestion: 'extra' | 'prayerPoint' | null;
+  dismissed: { extra: boolean; prayerPoint: boolean };
+};
+const draftKey = (draft: CornerDraft) => JSON.stringify([draft.campusId, draft.weekOf]);
 
 export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   const [waiting, setWaiting] = useState<CornerDraftWaiting[]>([]);
@@ -45,6 +51,16 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   const [readState, setReadState] = useState<ReadState>('loading');
   const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
+  // Private words stay in this card's session, separately for each campus and week.
+  const editorMemory = useRef(new Map<string, EditorMemory>());
+  const selectedReadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isAdmin && campusId && readState !== 'ready') {
+      selectedReadRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+      selectedReadRef.current?.focus({ preventScroll: true });
+    }
+  }, [isAdmin, campusId, readState, readVersion]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -76,8 +92,9 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
     return () => { active = false; };
   }, [isAdmin, campusId, readVersion]);
 
-  const readFeedback = (state: ReadState, retry: () => void) => state === 'ready' ? null :
-    <div style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)' }}>
+  const readFeedback = (state: ReadState, retry: () => void, selected = false) => state === 'ready' ? null :
+    <div ref={selected ? selectedReadRef : undefined} tabIndex={selected ? -1 : undefined}
+      style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)', scrollMarginTop: 96 }}>
       <p role="status" style={{ margin: 0 }}>{t(`corner_draft_${state === 'loading' ? 'loading' : state === 'finished' ? 'error_not_draft' : 'error_load'}`)}</p>
       {state === 'failed' && <button type="button" style={quietStyle} onClick={retry}>{t('corner_draft_retry')}</button>}
     </div>;
@@ -97,29 +114,34 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
           }}>
           {t('corner_draft_waiting').replace('{campus}', campus.campusName)}
         </button>
+        {campusId === campus.campusId && readFeedback(readState, () => setReadVersion(version => version + 1), true)}
       </div>
     ))}
-    {(!isAdmin || campusId) && readFeedback(readState, () => setReadVersion(version => version + 1))}
-    {draft && <DraftEditor key={draft.id} initial={draft} campusId={isAdmin ? campusId : undefined}
+    {(!isAdmin || (campusId && !waiting.some(campus => campus.campusId === campusId))) &&
+      readFeedback(readState, () => setReadVersion(version => version + 1), isAdmin)}
+    {draft && <DraftEditor key={draftKey(draft)} initial={draft} memory={editorMemory.current} campusId={isAdmin ? campusId : undefined}
       onJob={onJob} onBusy={value => { busyRef.current = value; setBusy(value); }}
       onComplete={() => setWaiting(rows => rows.filter(row => row.campusId !== draft.campusId))} />}
   </>;
 }
 
-function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
+function DraftEditor({ initial, memory, campusId, onJob, onBusy, onComplete }: {
   initial: CornerDraft; campusId?: string; onJob: Props['onJob'];
+  memory: Map<string, EditorMemory>;
   onBusy: (busy: boolean) => void; onComplete: () => void;
 }) {
   const id = useId();
-  const [draft, setDraft] = useState(initial);
-  const [body, setBody] = useState(initial.body);
-  const [prayerPoint, setPrayerPoint] = useState(initial.prayerPoint);
-  const [answer, setAnswer] = useState('');
+  const remembered = memory.get(draftKey(initial));
+  // Keep the baseline version with the edits so the server still checks for stale writes.
+  const [draft, setDraft] = useState(remembered?.draft ?? initial);
+  const [body, setBody] = useState(remembered?.body ?? initial.body);
+  const [prayerPoint, setPrayerPoint] = useState(remembered?.prayerPoint ?? initial.prayerPoint);
+  const [answer, setAnswer] = useState(remembered?.answer ?? '');
   // These refs include keystrokes made while a request is in flight.
-  const edits = useRef({ body: initial.body, prayerPoint: initial.prayerPoint, answer: '' });
-  const [fresh, setFresh] = useState<CornerDraft | null>(null);
-  const [pendingQuestion, setPendingQuestion] = useState<'extra' | 'prayerPoint' | null>(null);
-  const [dismissed, setDismissed] = useState({ extra: false, prayerPoint: false });
+  const edits = useRef({ body, prayerPoint, answer });
+  const [fresh, setFresh] = useState<CornerDraft | null>(remembered?.fresh ?? null);
+  const [pendingQuestion, setPendingQuestion] = useState<'extra' | 'prayerPoint' | null>(remembered?.pendingQuestion ?? null);
+  const [dismissed, setDismissed] = useState(remembered?.dismissed ?? { extra: false, prayerPoint: false });
   const [busy, setBusy] = useState<Action | null>(null);
   const busyRef = useRef(false);
   const [outcome, setOutcome] = useState<'published' | 'skipped' | 'finished' | null>(null);
@@ -137,6 +159,10 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
   const question = pendingQuestion ?? (draft.refreshesLeft === 0 ? null
     : !draft.answered.extra && !dismissed.extra ? 'extra'
       : !draft.answered.prayerPoint && !dismissed.prayerPoint ? 'prayerPoint' : null);
+
+  useEffect(() => {
+    memory.set(draftKey(draft), { draft, body, prayerPoint, answer, fresh, pendingQuestion, dismissed });
+  }, [memory, draft, body, prayerPoint, answer, fresh, pendingQuestion, dismissed]);
 
   useEffect(() => {
     if (campusId) {
@@ -186,10 +212,11 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
   async function reload(action: Action) {
     try {
       const { draft: next } = await getCornerDraft(campusId);
+      setReloadAction(null);
+      setErrors(current => Object.fromEntries(Object.entries(current).filter(([, error]) => error !== 'error_load')));
       if (!next || next.status !== 'draft') { finish(); return; }
       receive(next);
       if (edits.current.answer.trim()) setPendingQuestion(question);
-      setReloadAction(null);
       setErrors(current => ({ ...current, [action]: 'error_stale' }));
     } catch (err) {
       const code = cornerDraftErrorCode(err);
@@ -233,6 +260,10 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
         } else setPendingQuestion(question);
       } else if (action === 'publish') {
         await publishCornerDraft(body, prayerPoint, campusId, draft.version);
+        const current = edits.current;
+        if (current.body !== body || current.prayerPoint !== prayerPoint || current.answer.trim()) {
+          setSavedWords([current.body, current.prayerPoint, current.answer].filter(value => value.trim()).join('\n\n'));
+        }
         setOutcome('published'); onComplete();
       } else if (action === 'skip') {
         await skipCornerDraft(campusId, draft.version);
@@ -262,24 +293,29 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
   </>;
   const useForm = <button type="button" style={quietStyle} aria-busy={!!busy || copyState === 'busy'}
     onClick={() => { if (!busyRef.current) onJob('campus', campusId); }}>{words('use_form')}</button>;
+  const preservedWords = savedWords !== null && <>
+    <div role="region" aria-label={words('my_words')} tabIndex={0}
+      style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedWords}</div>
+    <div>
+      <button type="button" style={quietStyle} aria-busy={copyState === 'busy'}
+        onClick={() => void copyWords()}>{words('copy_words')}</button>
+      {copyState === 'done' && <p role="status" style={{ margin: 0 }}>{words('copied')}</p>}
+      {copyState === 'failed' && <p role="alert" style={{ margin: 0 }}>{words('error_copy')}</p>}
+    </div>
+    {useForm}
+  </>;
 
   if (outcome === 'published') return <section style={panelStyle} aria-labelledby={`${id}-done`} lang={draft.lang}>
     <h3 id={`${id}-done`} ref={doneRef} tabIndex={-1} style={headingStyle}>{words('done')}</h3>
     <p style={{ margin: 0 }}>{words('done_next')}</p>
+    {savedWords !== null && <p role="status" style={{ margin: 0 }}>{words('unsaved_after_publish')}</p>}
+    {preservedWords}
   </section>;
   if (outcome === 'finished') return savedWords === null ? <p role="status" lang={draft.lang}
     style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)' }}>{words('error_not_draft')}</p>
     : <section style={panelStyle} lang={draft.lang}>
       <p role="status" style={{ margin: 0 }}>{words('error_not_draft')}</p>
-      <div role="region" aria-label={words('my_words')} tabIndex={0}
-        style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedWords}</div>
-      <div>
-        <button type="button" style={quietStyle} aria-busy={copyState === 'busy'}
-          onClick={() => void copyWords()}>{words('copy_words')}</button>
-        {copyState === 'done' && <p role="status" style={{ margin: 0 }}>{words('copied')}</p>}
-        {copyState === 'failed' && <p role="alert" style={{ margin: 0 }}>{words('error_copy')}</p>}
-      </div>
-      {useForm}
+      {preservedWords}
     </section>;
   if (outcome === 'skipped') return <section style={panelStyle} lang={draft.lang}>
     <p role="status" style={{ margin: 0 }}>{words('skipped')}</p>{useForm}
@@ -365,7 +401,9 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
     </div>
     <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
       <div>
-        <button type="button" style={quietStyle} aria-busy={busy === 'skip'} onClick={() => void act('skip')}>{words('skip')}</button>
+        <button type="button" style={quietStyle} aria-busy={busy === 'skip'} onClick={() => void act('skip')}>
+          {words(busy === 'skip' ? 'skipping' : 'skip')}
+        </button>
         {feedback('skip')}
       </div>
       {useForm}

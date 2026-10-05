@@ -91,6 +91,66 @@ afterEach(() => {
 });
 
 describe('CornerDraftCard, campus pastor', () => {
+  it.each(['note', 'prayer', 'answer', 'all'])('round 3: keeps late %s edits after publishing the submitted words', async changed => {
+    const pending = deferred<Awaited<ReturnType<typeof publishCornerDraft>>>();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    clipboard({ writeText });
+    vi.mocked(getCornerDraft).mockResolvedValue(response(draft({ prayerPoint: 'Original prayer' })));
+    vi.mocked(publishCornerDraft).mockReturnValue(pending.promise);
+    await mount();
+    type('The corner note', 'Submitted note');
+    await press(PUBLISH);
+    // Returning to the original draft is still an edit to the submitted words.
+    if (changed === 'note' || changed === 'all') type('The corner note', 'A note for this week.');
+    if (changed === 'prayer' || changed === 'all') type('Prayer point (your words)', 'Late prayer');
+    if (changed === 'answer' || changed === 'all') type('Anything on at Test Campus this week?', 'Late answer');
+    await act(async () => pending.resolve({ campusId: 'us-test', campusName: 'Test Campus', item: { title: '', content: '' } }));
+    expect(publishCornerDraft).toHaveBeenCalledExactlyOnceWith('Submitted note', 'Original prayer', undefined, 'v1');
+    expect(el.textContent).toContain("It's on the Test Campus corner.");
+    expect(el.textContent).toContain('Your later edits were not published. Copy these words before leaving, or use the form to update the corner.');
+    const kept = [changed === 'note' || changed === 'all' ? 'A note for this week.' : 'Submitted note',
+      changed === 'prayer' || changed === 'all' ? 'Late prayer' : 'Original prayer',
+      changed === 'answer' || changed === 'all' ? 'Late answer' : ''].filter(Boolean).join('\n\n');
+    expect(el.querySelector<HTMLElement>('[role="region"]')?.textContent).toBe(kept);
+    expect(el.querySelector<HTMLElement>('[role="region"]')?.style.userSelect).toBe('text');
+    expect(el.querySelector('textarea')).toBeNull();
+    await press('Copy my words');
+    expect(writeText).toHaveBeenCalledWith(kept);
+    await press('Use the form instead');
+    expect(onJob).toHaveBeenCalledWith('campus', undefined);
+  });
+
+  it.each([
+    ['refresh', 'Add this to the draft', PUBLISH],
+    ['publish', PUBLISH, 'Not this week'],
+  ] as const)('round 3: clears a failed %s reload when a different button recovers', async (action, first, recovery) => {
+    vi.mocked(action === 'refresh' ? refreshCornerDraft : publishCornerDraft).mockRejectedValue({ data: { code: 'stale' } });
+    await mount();
+    vi.mocked(getCornerDraft).mockRejectedValueOnce(new Error('offline'));
+    if (action === 'refresh') type('Anything on at Test Campus this week?', 'Pending answer');
+    await press(first);
+    expect(button(first)?.parentElement?.textContent).toContain('The corner draft did not load.');
+    await press(recovery);
+    expect(el.textContent).not.toContain('The corner draft did not load.');
+    expect(button('Try again')).toBeUndefined();
+    expect(button(recovery)?.parentElement?.textContent).toContain('Check the note, then try again.');
+    expect(getCornerDraft).toHaveBeenCalledTimes(3);
+    expect(skipCornerDraft).not.toHaveBeenCalled();
+    if (action === 'refresh') expect(publishCornerDraft).not.toHaveBeenCalled();
+  });
+
+  it('round 3: Not this week says it is working until the request finishes', async () => {
+    const pending = deferred<void>();
+    vi.mocked(skipCornerDraft).mockReturnValue(pending.promise);
+    await mount();
+    await press('Not this week');
+    expect(button('Skipping this week…')?.getAttribute('aria-busy')).toBe('true');
+    await press('Skipping this week…');
+    expect(skipCornerDraft).toHaveBeenCalledTimes(1);
+    await act(async () => pending.resolve());
+    expect(el.textContent).toContain('No corner this week.');
+  });
+
   it.each(['published', 'skipped', 'missing', 'no_draft', 'not_draft', 'reload_no_draft', 'reload_not_draft'])(
     'round 2 MUST: %s preserves unsaved words read-only with copy and form actions', async terminal => {
       const writeText = vi.fn().mockResolvedValue(undefined);
@@ -484,6 +544,8 @@ describe('CornerDraftCard, campus pastor', () => {
     expect(publishCornerDraft).toHaveBeenCalledWith('My own words.', '', undefined, 'v1');
     expect(el.textContent).toContain("It's on the Test Campus corner.");
     expect(el.textContent).toContain('People at Test Campus see it under Campus.');
+    expect(el.querySelector('[role="region"]')).toBeNull();
+    expect(button('Copy my words')).toBeUndefined();
     expect(el.querySelectorAll('.dw-next')).toHaveLength(0);
   });
 
@@ -542,6 +604,68 @@ describe('CornerDraftCard, admin', () => {
     ]);
   });
 
+  it('round 3: remembers each campus note, prayer, question and answer across switches', async () => {
+    // Deliberately share an id: the session must be keyed by campus and week.
+    vi.mocked(getCornerDraft).mockImplementation(async campusId => response(draft({
+      campusId, campusName: campusId === 'us-two' ? 'Second Campus' : 'Test Campus', prayerPoint: 'Original prayer',
+    })));
+    await mount(true);
+    await press('Corner draft waiting: Test Campus');
+    type('The corner note', 'First campus note');
+    type('Prayer point (your words)', 'First campus prayer');
+    await press('Skip this question');
+    type('A prayer point for your people?', 'First campus answer');
+    await press('Corner draft waiting: Second Campus');
+    expect(field('The corner note')?.value).toBe('A note for this week.');
+    type('The corner note', 'Second campus note');
+    type('Prayer point (your words)', 'Second campus prayer');
+    type('Anything on at Second Campus this week?', 'Second campus answer');
+    await press('Corner draft waiting: Test Campus');
+    expect(field('The corner note')?.value).toBe('First campus note');
+    expect(field('Prayer point (your words)')?.value).toBe('First campus prayer');
+    expect(field('A prayer point for your people?')?.value).toBe('First campus answer');
+    await press('Corner draft waiting: Second Campus');
+    expect(field('The corner note')?.value).toBe('Second campus note');
+    expect(field('Prayer point (your words)')?.value).toBe('Second campus prayer');
+    expect(field('Anything on at Second Campus this week?')?.value).toBe('Second campus answer');
+    expect(publishCornerDraft).not.toHaveBeenCalled();
+    expect(refreshCornerDraft).not.toHaveBeenCalled();
+    vi.mocked(getCornerDraft).mockResolvedValue(response(draft({ weekOf: '2026-10-12', body: 'Next week note' })));
+    await press('Corner draft waiting: Test Campus');
+    expect(field('The corner note')?.value).toBe('Next week note');
+    expect(field('Anything on at Test Campus this week?')?.value).toBe('');
+  });
+
+  it('round 3: remembers a pending answer after the refresh limit across campus switches', async () => {
+    vi.mocked(getCornerDraft).mockImplementation(async campusId => response(draft({
+      campusId, campusName: campusId === 'us-two' ? 'Second Campus' : 'Test Campus',
+    })));
+    vi.mocked(refreshCornerDraft).mockRejectedValue({ data: { code: 'refresh_cap' } });
+    await mount(true);
+    await press('Corner draft waiting: Test Campus');
+    type('Anything on at Test Campus this week?', 'Keep this pending answer');
+    await press('Add this to the draft');
+    await press('Corner draft waiting: Second Campus');
+    await press('Corner draft waiting: Test Campus');
+    expect(field('Anything on at Test Campus this week?')?.value).toBe('Keep this pending answer');
+    expect(button('Add this to the draft')).toBeUndefined();
+    await press('Add my words to the note');
+    expect(field('The corner note')?.value).toBe('A note for this week.\n\nKeep this pending answer');
+  });
+
+  it('round 3: focuses loading beside the selected campus while its read is pending', async () => {
+    const pending = deferred<Awaited<ReturnType<typeof getCornerDraft>>>();
+    vi.mocked(getCornerDraft).mockReturnValue(pending.promise);
+    await mount(true);
+    await press('Corner draft waiting: Test Campus');
+    const feedback = button('Corner draft waiting: Test Campus')?.parentElement?.querySelector('[tabindex="-1"]');
+    expect(feedback?.textContent).toBe("Loading this week's corner…");
+    expect(document.activeElement).toBe(feedback);
+    expect(button('Corner draft waiting: Second Campus')?.parentElement?.querySelector('[role="status"]')).toBeNull();
+    await act(async () => pending.resolve(response(draft())));
+    expect(document.activeElement).toBe(el.querySelector('h3'));
+  });
+
   it('renders nothing when nothing is waiting', async () => {
     vi.mocked(listCornerDrafts).mockResolvedValue([]);
     await mount(true);
@@ -566,6 +690,9 @@ describe('CornerDraftCard, admin', () => {
       await mount(true);
       await press('Corner draft waiting: Test Campus');
       expect(el.textContent).toContain('The corner draft did not load.');
+      const feedback = button('Try again')?.parentElement;
+      expect(feedback?.parentElement).toBe(button('Corner draft waiting: Test Campus')?.parentElement);
+      expect(document.activeElement).toBe(feedback);
       await press('Try again');
       expect(getCornerDraft).toHaveBeenLastCalledWith('us-test');
       expect(document.activeElement).toBe(el.querySelector('h3'));
