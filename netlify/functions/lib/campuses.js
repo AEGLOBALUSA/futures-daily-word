@@ -30,7 +30,11 @@ const FALLBACK = require("./campuses.fallback.json");
 
 const CACHE_MS = 5 * 60 * 1000;
 const ID_RE = /^[a-z]{2}-[a-z0-9-]{2,40}$/;
-const COLUMNS = "id, name, city, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active";
+const COLUMNS = "id, name, city, towns, region, congregation, time_zone, sunday_until, video_url, pco_names, sort_order, active";
+// The same read before 20261004180000_dw_campus_towns.sql is applied (no towns
+// column yet): the readers keep the owner's list, with no extra towns, instead
+// of falling back to the bundled seed.
+const COLUMNS_BEFORE_TOWNS = COLUMNS.replace(" towns,", "");
 
 let cache = null; // { at, list }
 
@@ -45,6 +49,7 @@ function fromRow(row) {
     id: String(row.id),
     name: String(row.name || row.id),
     city: String(row.city || ""),
+    towns: cleanTowns(row.towns),
     region: String(row.region || "Other"),
     congregation: row.congregation || null,
     timeZone: String(row.time_zone || "UTC"),
@@ -56,19 +61,46 @@ function fromRow(row) {
   };
 }
 
+/**
+ * The other towns near a campus (B09-07F), as the owner typed them: one per
+ * line (or comma), trimmed, tags and control characters dropped, duplicates
+ * dropped ignoring case and accents, at most 20. Not lower-cased: /staff shows
+ * them back as typed, and the reader's phone ignores case and accents when it
+ * matches its own town.
+ */
+const MAX_TOWNS = 20;
+function townKey(t) {
+  return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+function cleanTowns(v, cap = MAX_TOWNS) {
+  const parts = Array.isArray(v) ? v : String(v || "").split(/\n|,/);
+  const seen = new Set();
+  const out = [];
+  for (const p of parts) {
+    const t = clean(String(p == null ? "" : p), 80);
+    if (!t || seen.has(townKey(t))) continue;
+    seen.add(townKey(t));
+    out.push(t);
+    if (out.length === cap) break;
+  }
+  return out;
+}
+
 function byOrder(a, b) {
   return a.sortOrder - b.sortOrder || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
 /** A fresh copy of the bundled list (callers may not mutate the shared one). */
 function fallbackCampuses() {
-  return FALLBACK.map((c) => ({ ...c, pcoNames: [...c.pcoNames] })).sort(byOrder);
+  return FALLBACK.map((c) => ({ ...c, towns: [...(c.towns || [])], pcoNames: [...c.pcoNames] })).sort(byOrder);
 }
 
 async function loadCampuses(db, { now = Date.now() } = {}) {
   if (cache && now - cache.at < CACHE_MS) return cache.list;
   try {
-    const { data, error } = await db.from("dw_campuses").select(COLUMNS).order("sort_order", { ascending: true });
+    const read = (columns) => db.from("dw_campuses").select(columns).order("sort_order", { ascending: true });
+    let { data, error } = await read(COLUMNS);
+    if (error && /\btowns\b/.test(String(error.message || ""))) ({ data, error } = await read(COLUMNS_BEFORE_TOWNS));
     if (error) throw error;
     if (!Array.isArray(data) || !data.length) throw new Error("dw_campuses is empty");
     const list = data.map(fromRow).sort(byOrder);
@@ -161,12 +193,17 @@ function campusIds(list) {
   return listOr(list).filter((c) => c.id !== "other").map((c) => c.id);
 }
 
-/** What the public GET serves for one campus. Never updated_by, never pco_names. */
+/**
+ * What the public GET serves for one campus. Never updated_by, never pco_names.
+ * `towns` is public on purpose: the reader's phone matches its own town against
+ * it in memory, so the reader's town never leaves the phone.
+ */
 function publicCampus(c) {
   return {
     id: c.id,
     name: c.name,
     city: c.city,
+    towns: [...(c.towns || [])],
     region: c.region,
     congregation: c.congregation,
     timeZone: c.timeZone,
@@ -244,6 +281,12 @@ function validateCampusSave(input, list) {
     .filter((n, i, a) => a.indexOf(n) === i)
     .slice(0, 20);
 
+  const towns = cleanTowns(c.towns, Infinity);
+  // Too many is said beside Save campus, never cut silently: the draft stays.
+  if (towns.length > MAX_TOWNS) {
+    return { error: `Keep it to ${MAX_TOWNS} other towns. This campus has ${towns.length}.` };
+  }
+
   if (!existing && c.isNew !== true) {
     // An edit names a saved id; a different id than the one saved is a rename.
     return { error: "The id never changes once saved. Add a new campus instead." };
@@ -271,6 +314,7 @@ function validateCampusSave(input, list) {
       id,
       name,
       city: clean(c.city, 80),
+      towns,
       region,
       congregation,
       time_zone: timeZone,
@@ -309,6 +353,9 @@ function planCampusMove(id, direction, list) {
 
 module.exports = {
   CACHE_MS,
+  COLUMNS,
+  MAX_TOWNS,
+  cleanTowns,
   planCampusMove,
   loadCampuses,
   loadCampusesWithin,

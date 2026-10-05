@@ -8,9 +8,12 @@
  *
  *   1. the QR code or link she arrived by (?campus=<id>, a known id only);
  *   2. her Planning Center match;
- *   3. her town, for distinctive towns only (Netlify geo city);
+ *   3. her town (Netlify geo city), matched against each campus row: its own
+ *      Town and the other towns the owner listed under it in /staff (B09-07F).
+ *      A town named by several campuses of the same kind is a metro town;
  *   4. otherwise her region (state, then time zone, then country): a short
- *      list and no single guess, because Adelaide's metro has four campuses.
+ *      list and no single guess. In a metro town (Adelaide's four campuses)
+ *      the campuses that name her town lead it.
  *
  * A guess is never a choice. Nothing here saves the profile campus: only the
  * reader's tap on Yes does, through the same path the dropdown uses.
@@ -23,44 +26,6 @@ import { getCampuses, type CampusRow } from '../data/campuses';
 export const CAMPUS_GUESS_KEY = 'dw_campus_guess';
 /** A campus the reader tapped Yes on (or picked) before sign-up. Device only, never synced. */
 export const CAMPUS_CONFIRMED_KEY = 'dw_campus_confirmed';
-
-/**
- * Towns that point at one campus, or at nothing single. Keyed by the town's
- * plain lower-case name (accents dropped). The ids are checked against the live
- * campus list on every call, so a hidden or retired campus is never guessed.
- *
- * An empty list means "this town has several campuses near it: give the short
- * list, not a single guess" (Adelaide's metro).
- *
- * A campus the owner adds later in /staff, whose id is not named here, is
- * matched by the first part of its own `city` field, so a new campus in a new
- * town needs no code change.
- */
-const TOWNS: Record<string, string[]> = {
-  kennesaw: ['us-kennesaw', 'us-futuros-kennesaw'],
-  alpharetta: ['us-alpharetta'],
-  duluth: ['us-futuros-duluth'],
-  lawrenceville: ['us-gwinnett'],
-  grayson: ['us-futuros-grayson'],
-  franklin: ['us-franklin'],
-  'mount barker': ['au-mount-barker'],
-  'victor harbor': ['au-victor-harbor'],
-  clare: ['au-clare-valley'],
-  kadina: ['au-copper-coast'],
-  wallaroo: ['au-copper-coast'],
-  moonta: ['au-copper-coast'],
-  'rio de janeiro': ['br-rio'],
-  niteroi: ['br-rio'],
-  // Adelaide metro: several campuses, so the short list and no single guess.
-  adelaide: [],
-  paradise: [],
-  salisbury: [],
-};
-
-/** Campus ids that are metro campuses: never matched by their own town name. */
-const METRO_IDS = new Set(['au-paradise', 'au-adelaide-city', 'au-salisbury', 'au-south']);
-
-const NAMED_IDS = new Set([...Object.values(TOWNS).flat(), ...METRO_IDS]);
 
 export interface CampusGuessInput {
   /** ?campus=<id> from the link or QR code she arrived by. */
@@ -127,15 +92,27 @@ function fitsPlace(c: CampusRow, country: string, subdivision: string): boolean 
   return true;
 }
 
-/** Of several campuses in one town, the one for this reader: Futuros for a Spanish reader, else the owner's first. */
+/** Every town a campus row names: its own Town, then the other towns the owner listed. */
+function townsOf(c: CampusRow): string[] {
+  return [townOf(c), ...(c.towns || []).map(plain)].filter(Boolean);
+}
+
+function isFuturos(c: CampusRow): boolean {
+  return (c.congregation || '').startsWith('futuros');
+}
+
+/**
+ * Of the campuses whose rows name her town, the one to ask about, or none.
+ * One campus: that one. Several: her language chooses between a Futures and a
+ * Futuros campus (Kennesaw). Several of the same kind still left means the town
+ * has no single campus (the Adelaide metro), so there is no single guess.
+ */
 function pickInTown(rows: CampusRow[], lang: string): CampusRow | undefined {
   if (rows.length <= 1) return rows[0];
-  if (lang === 'es') {
-    const futuros = rows.find((c) => (c.congregation || '').startsWith('futuros'));
-    if (futuros) return futuros;
-  }
-  const notFuturos = rows.find((c) => !(c.congregation || '').startsWith('futuros'));
-  return notFuturos || rows[0];
+  const futuros = rows.filter(isFuturos);
+  const futures = rows.filter((c) => !isFuturos(c));
+  const side = lang === 'es' && futuros.length ? futuros : futures.length ? futures : futuros;
+  return side.length === 1 ? side[0] : undefined;
 }
 
 /** The region around a campus or a place: same state, else same time zone, else same country. */
@@ -201,33 +178,19 @@ export function guessCampus(input: CampusGuessInput, campuses: CampusRow[] = get
   const pco = input.pcoCampus ? byId.get(String(input.pcoCampus).trim()) : undefined;
   if (pco) return answer(pco, 'pco');
 
-  // 3. Her town, for distinctive towns only.
+  // 3. Her town, matched against the campus rows (no town list in code).
   const town = plain(input.city);
-  if (town) {
-    let rows: CampusRow[] | null = null;
-    if (Object.prototype.hasOwnProperty.call(TOWNS, town)) {
-      rows = TOWNS[town].map((id) => byId.get(id)).filter((c): c is CampusRow => !!c);
-    } else {
-      // A campus added later in /staff, matched by its own town.
-      const fresh = list.filter((c) => !NAMED_IDS.has(c.id) && townOf(c) === town);
-      if (fresh.length) rows = fresh;
-    }
-    const fitting = (rows || []).filter((c) => fitsPlace(c, country, subdivision));
-    const pick = pickInTown(fitting, lang);
-    if (pick) return answer(pick, 'town');
-  }
+  const inTown = town
+    ? list.filter((c) => townsOf(c).includes(town) && fitsPlace(c, country, subdivision))
+    : [];
+  const pick = pickInTown(inTown, lang);
+  if (pick) return answer(pick, 'town');
 
-  // 4. Her region: a short list, no single guess. In a metro town (Adelaide)
-  //    the metro campuses lead it.
+  // 4. Her region: a short list, no single guess. Where her town has several
+  //    campuses (the Adelaide metro), those lead it, in the owner's order.
   const region = regionList(list, { country, subdivision, timeZone });
-  if (region.length) {
-    const metroFirst = town && Object.prototype.hasOwnProperty.call(TOWNS, town) && TOWNS[town].length === 0;
-    const ids = region.map((c) => c.id);
-    const ordered = metroFirst
-      ? [...ids.filter((id) => METRO_IDS.has(id)), ...ids.filter((id) => !METRO_IDS.has(id))]
-      : ids;
-    return { shortList: ordered, source: 'region' };
-  }
+  const ids = [...new Set([...inTown, ...region].map((c) => c.id))];
+  if (ids.length) return { shortList: ids, source: 'region' };
   return { shortList: [], source: 'none' };
 }
 

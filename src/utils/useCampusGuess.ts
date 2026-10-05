@@ -9,8 +9,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCampuses } from '../data/campuses';
 import { detectPlace, type GeoPlace } from './geo';
-import { guessCampus, readCampusGuess, type CampusGuess } from './campusGuess';
+import { guessCampus, knownCampusId, readCampusGuess, type CampusGuess } from './campusGuess';
 import { getLang } from './i18n';
+
+/**
+ * How long the card waits for /api/geo before it asks from what it has (her
+ * region from the device's time zone). The Planning Center lookup has its own
+ * 4 s cap, and the two run side by side, so the card never shows "Loading" for
+ * much more than four seconds.
+ */
+export const GEO_WAIT_MS = 4000;
 
 function deviceTimeZone(): string | null {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; }
@@ -18,21 +26,26 @@ function deviceTimeZone(): string | null {
 
 /**
  * `enabled` false (the reader already has a campus) skips the geo request.
- * `pcoCampus` is her Planning Center campus when the app has one.
+ * `pcoCampus` is her Planning Center campus when the app has one (usePcoCampus,
+ * B09-07F); `pcoPending` true while that lookup has not answered, so the card
+ * waits for it instead of asking from her town and then swapping the question.
  */
-export function useCampusGuess(enabled: boolean, pcoCampus?: string | null): CampusGuess & { ready: boolean } {
+export function useCampusGuess(enabled: boolean, pcoCampus?: string | null, pcoPending = false): CampusGuess & { ready: boolean } {
   const campuses = useCampuses();
   const [place, setPlace] = useState<GeoPlace | null>(null);
+  const [geoGaveUp, setGeoGaveUp] = useState(false);
   const param = enabled ? readCampusGuess(campuses) : null;
 
   useEffect(() => {
     if (!enabled || param) return;
     let alive = true;
     void detectPlace().then((p) => { if (alive) setPlace(p); });
-    return () => { alive = false; };
+    // A geo request that never answers must not leave her on "Loading".
+    const timer = setTimeout(() => { if (alive) setGeoGaveUp(true); }, GEO_WAIT_MS);
+    return () => { alive = false; clearTimeout(timer); };
   }, [enabled, param]);
 
-  return useMemo(() => {
+  const live = useMemo(() => {
     const guess = guessCampus({
       param,
       pcoCampus: pcoCampus || null,
@@ -42,8 +55,31 @@ export function useCampusGuess(enabled: boolean, pcoCampus?: string | null): Cam
       timeZone: deviceTimeZone(),
       lang: getLang(),
     }, campuses);
-    // Ready once geo has answered (or was not needed): the card never swaps
-    // its question under the reader's thumb.
-    return { ...guess, ready: !enabled || !!param || !!pcoCampus || place !== null };
-  }, [param, pcoCampus, place, campuses, enabled]);
+    // Ready once the link guess is there, or Planning Center has answered and
+    // either named a campus on the list or geo has answered (or run out of
+    // time) too: the card never swaps its question under the reader's thumb.
+    const ready = !enabled || !!param || (!pcoPending && (guess.source === 'pco' || place !== null || geoGaveUp));
+    return { ...guess, ready };
+  }, [param, pcoCampus, pcoPending, place, geoGaveUp, campuses, enabled]);
+
+  // Once a question is on screen it stays: the one question ("Are you part of
+  // …?"), the short list of campuses near her, or the plain chooser. A campus
+  // list or answer that lands later never changes which campus her Yes saves,
+  // nor moves the choices under her thumb. If the owner hides or removes a
+  // campus meanwhile: one the short list names just drops off it, and only when
+  // the campus her Yes would save is gone does the card ask again from the
+  // current list, rather than leave a Yes that does nothing.
+  const [shown, setShown] = useState<(CampusGuess & { ready: boolean }) | null>(null);
+  const known = (id: string) => id === 'other' || !!knownCampusId(id, campuses);
+  const shownGone = !!shown && !!shown.campusId && !known(shown.campusId);
+  const liveSaves = !live.campusId || known(live.campusId);
+  useEffect(() => {
+    if (shownGone) { setShown(null); return; }
+    if (!shown && enabled && live.ready && liveSaves) setShown(live);
+  }, [shown, shownGone, enabled, live, liveSaves]);
+  if (shown && !shownGone) {
+    const shortList = shown.shortList.filter(known);
+    return shortList.length === shown.shortList.length ? shown : { ...shown, shortList };
+  }
+  return live;
 }

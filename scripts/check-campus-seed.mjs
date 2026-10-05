@@ -3,6 +3,7 @@
  * The campus seed and its two bundled copies must say the same thing (B09-02).
  *
  *   supabase/migrations/20261002140000_dw_campuses.sql   the seed (source)
+ *   supabase/migrations/20261004180000_dw_campus_towns.sql  the seed's other towns (B09-07F)
  *   netlify/functions/lib/campuses.fallback.json         the functions' copy
  *   src/data/campuses.fallback.ts                        the reader app's copy
  *
@@ -22,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SEED = join(root, 'supabase/migrations/20261002140000_dw_campuses.sql');
+const TOWNS_SEED = join(root, 'supabase/migrations/20261004180000_dw_campus_towns.sql');
 const JSON_COPY = join(root, 'netlify/functions/lib/campuses.fallback.json');
 const TS_COPY = join(root, 'src/data/campuses.fallback.ts');
 
@@ -70,7 +72,25 @@ function sqlValue(v) {
   throw new Error(`Cannot read seed value: ${v}`);
 }
 
-export function readSeed(sql = readFileSync(SEED, 'utf8')) {
+/** The seed's other towns per campus id, from the towns migration's update (B09-07F). */
+export function readTownsSeed(sql = readFileSync(TOWNS_SEED, 'utf8')) {
+  const start = sql.indexOf('set towns = v.towns');
+  if (start < 0) throw new Error('No towns update in the towns migration');
+  const from = sql.indexOf('(values', start);
+  const end = sql.indexOf(') as v(id, towns)', from);
+  if (from < 0 || end < 0) throw new Error('Cannot read the towns update');
+  const towns = {};
+  const re = /^\s*\((.*)\),?\s*$/gm;
+  const body = sql.slice(from + '(values'.length, end);
+  let m;
+  while ((m = re.exec(body))) {
+    const [id, list] = splitTuple(m[1]).map(sqlValue);
+    towns[id] = list;
+  }
+  return towns;
+}
+
+export function readSeed(sql = readFileSync(SEED, 'utf8'), townsById = readTownsSeed()) {
   const start = sql.indexOf('insert into public.dw_campuses');
   if (start < 0) throw new Error('No seed insert in the migration');
   const head = /insert into public\.dw_campuses \(([^)]*)\) values/.exec(sql.slice(start));
@@ -87,6 +107,7 @@ export function readSeed(sql = readFileSync(SEED, 'utf8')) {
       id: r.id,
       name: r.name,
       city: r.city,
+      towns: townsById[r.id] || [],
       region: r.region,
       congregation: r.congregation,
       timeZone: r.time_zone,

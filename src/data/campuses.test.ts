@@ -4,7 +4,7 @@ import { FALLBACK_CAMPUSES } from './campuses.fallback';
 import { defaultCongregation } from '../utils/congregation';
 
 const MERIDA: CampusRow = {
-  id: 've-futuros-merida', name: 'Futuros Mérida', city: 'Mérida, Venezuela', region: 'Venezuela',
+  id: 've-futuros-merida', name: 'Futuros Mérida', city: 'Mérida, Venezuela', towns: ['Ejido'], region: 'Venezuela',
   congregation: 'futuros-us', timeZone: 'America/Caracas', sundayUntil: '16:00', videoUrl: null, sortOrder: 215,
 };
 
@@ -30,6 +30,15 @@ describe('the reader-side campus list', () => {
     __resetCampusesForTests();
     expect(getCampuses().map((c) => c.id)).toContain('ve-futuros-merida');
     expect(localStorage.getItem(CAMPUSES_CACHE_KEY)).toContain('ve-futuros-merida');
+  });
+
+  it('keeps each campus\'s other towns, and a list from before they existed has none (B09-07F)', async () => {
+    const { towns: _t, ...older } = MERIDA;
+    vi.stubGlobal('fetch', respond({ campuses: [MERIDA, { ...older, id: 've-futuros-caracas', name: 'Futuros Caracas', towns: ['', 4] }, { ...older, id: 've-futuros-valencia', name: 'Futuros Valencia' }] }));
+    await refreshCampuses();
+    expect(findCampus('ve-futuros-merida')?.towns).toEqual(['Ejido']);
+    expect(findCampus('ve-futuros-caracas')?.towns).toEqual([]);
+    expect(findCampus('ve-futuros-valencia')?.towns).toEqual([]);
   });
 
   it('keeps the bundled 22 when the fetch fails or the answer is the SPA page', async () => {

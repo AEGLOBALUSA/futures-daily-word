@@ -25,7 +25,10 @@ import { FALLBACK_CAMPUSES } from './campuses.fallback';
 export interface CampusRow {
   id: string;
   name: string;
+  /** Its own town, then the state or country ("Kennesaw, GA"). */
   city: string;
+  /** Other towns near it, as the owner typed them in /staff (B09-07F). */
+  towns: string[];
   region: string;
   /** Which Sermon Notes congregation this campus reads by default, when set. */
   congregation: string | null;
@@ -53,6 +56,7 @@ function normalize(v: unknown): CampusRow[] | null {
     id: r.id,
     name: r.name,
     city: typeof r.city === 'string' ? r.city : '',
+    towns: Array.isArray(r.towns) ? r.towns.filter((t): t is string => typeof t === 'string' && t.trim() !== '') : [],
     region: typeof r.region === 'string' && r.region ? r.region : 'Other',
     congregation: typeof r.congregation === 'string' ? r.congregation : null,
     timeZone: typeof r.timeZone === 'string' && r.timeZone ? r.timeZone : 'UTC',

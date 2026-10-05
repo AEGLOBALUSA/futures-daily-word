@@ -3,10 +3,12 @@
  *
  * Answers the ACTIVE rows of dw_campuses (the owner keeps them in /staff ->
  * Settings -> Campuses), in reader order:
- *   { campuses: [{ id, name, city, region, congregation, timeZone, sundayUntil, videoUrl, sortOrder }] }
+ *   { campuses: [{ id, name, city, towns, region, congregation, timeZone, sundayUntil, videoUrl, sortOrder }] }
  *
  * Public by design: a campus row holds public facts only. It never carries
- * updated_by (the saving staff address) or the Planning Center spellings. The
+ * updated_by (the saving staff address) or the Planning Center spellings.
+ * `towns` (the other towns near a campus, B09-07F) is served so the reader's
+ * phone can match its own town in memory; her town never comes here. The
  * table itself has no grant for anon or authenticated; this function reads it
  * with the service key through lib/campuses.js (5-minute cache, the bundled
  * seed if the read fails), so the reader app always gets a list.

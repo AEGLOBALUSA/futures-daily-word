@@ -461,6 +461,14 @@ describe('readers who are not affected', () => {
     }
   });
 
+  it('a proven token lifts the pco-sync limit for its own address only, never for anyone else\'s (B09-07F)', async () => {
+    const ip = '203.0.113.91';
+    const statuses = [];
+    for (let i = 0; i < 8; i++) statuses.push((await call(pcoSync, { action: 'lookup', email: 'someone-else@example.com' }, { token: DEVICE_RAW, ip })).status);
+    expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
+    expect(statuses.slice(5)).toEqual([429, 429, 429]);
+  });
+
   it('pco-sync keeps its 5 a minute limit for an unproven token (free to mint for any known address)', async () => {
     const token = await strangerToken();
     const ip = '203.0.113.89';
