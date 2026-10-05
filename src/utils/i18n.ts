@@ -874,7 +874,7 @@ const UI: Translations = {
 
   // \u2500\u2500 PRAYER WALL \u2500\u2500
   pray_failed: { en: "Couldn't send your prayer. Try again.", es: 'No se pudo enviar tu oración. Inténtalo de nuevo.', pt: 'Não foi possível enviar sua oração. Tente de novo.', id: 'Doamu belum terkirim. Coba lagi.' },
-  prayer_request_older: { en: 'Your request is further back than the wall shows. The count above is still right.', es: 'Tu petición está más atrás de lo que muestra el muro. El número de arriba sigue siendo correcto.', pt: 'Seu pedido está mais atrás do que o mural mostra. O número acima continua certo.', id: 'Permohonanmu lebih lama dari yang ditampilkan dinding. Jumlah di atas tetap benar.' },
+  prayer_request_older: { en: "Your request isn't on the wall right now.", es: 'Tu petición no está en el muro ahora mismo.', pt: 'Seu pedido não está no mural neste momento.', id: 'Permohonanmu tidak ada di dinding doa saat ini.' },
   all_campuses: { en: 'All Campuses', es: 'Todas las sedes', pt: 'Todos os campi', id: 'Semua Kampus' },
   my_campus: { en: 'My Campus', es: 'Mi sede', pt: 'Meu campus', id: 'Kampusku' },
   add_prayer: { en: 'Add Prayer', es: 'Agregar oraci\u00f3n', pt: 'Adicionar ora\u00e7\u00e3o', id: 'Tambah Doa' },

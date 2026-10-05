@@ -536,7 +536,7 @@ function PrayerWallPanel({
             setScrollToPrayer(card.id);
           }} style={{
             background: 'none', border: 'none', padding: 0, minHeight: 44,
-            fontSize: 15, color: 'var(--dw-accent)',
+            fontSize: 15, fontWeight: 400, color: 'var(--dw-accent)',
             fontFamily: 'var(--font-sans)', cursor: 'pointer',
           }}>
             {t('next_see_request', lang)}
