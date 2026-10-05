@@ -414,6 +414,15 @@ async function buildFormattedFromPlan(plan, { useAI, congregation }) {
     throw err;
   }
   const row = await findPublished(patch.target, congregation);
+  // A link saved onto a message the person picked goes on that message or
+  // nowhere: if it was removed meanwhile, the save is refused and they pick
+  // again, never moved onto whatever message is current (B09-10 round 8).
+  const explicitTarget = String(patch.target || "").trim();
+  if (plan.youtubeOnly && explicitTarget && explicitTarget !== "__current__" && !row) {
+    const err = new Error("That message is no longer on the list. Pick the message again.");
+    err.status = 400;
+    throw err;
+  }
   const current = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
   // A new title is a new message (B09-10, 3 Oct 2026): it never inherits the
   // current message's notes, details or id. Without this a hub save of next
