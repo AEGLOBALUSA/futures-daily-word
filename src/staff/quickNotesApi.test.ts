@@ -17,6 +17,7 @@ describe('quickErrorText: never the server or browser English', () => {
       expect(quickErrorText(new TypeError('Failed to fetch'), lang)).toBe(t('staff_quick_err_network', lang));
       expect(quickErrorText(new TypeError('Load failed'), lang)).toBe(t('staff_quick_err_network', lang));
       expect(quickErrorText({ status: 403, data: { error: 'Only hub, media or admin staff can put up Sunday\'s notes.', code: 'role' } }, lang)).toBe(t('staff_quick_err_role', lang));
+      expect(quickErrorText({ status: 400, data: { error: 'That message is no longer on the list. Pick the message again.', code: 'target_gone' } }, lang)).toBe(t('staff_quick_err_target_gone', lang));
       expect(quickErrorText({ status: 400, data: { error: 'Missing: Title' } }, lang)).toBe(t('staff_quick_err_missing', lang));
       expect(quickErrorText({ status: 401, data: {} }, lang)).toBe(t('staff_quick_err_signin', lang));
       expect(quickErrorText({ status: 400, data: { code: 'too_long', error: 'That is longer…' } }, lang)).toBe(t('staff_quick_err_long', lang));

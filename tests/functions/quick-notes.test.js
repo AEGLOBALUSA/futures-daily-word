@@ -486,6 +486,7 @@ describe('notes_quick then submit on a frozen Monday: the link joins yesterday\'
     const s = await call({ action: 'submit', job: 'media', congregation: 'futures-us', answers: q.body.attach.answers }, TOKENS.hub);
     expect(s.status).toBe(400);
     expect(s.body.error).toMatch(/Pick the message again/);
+    expect(s.body.code).toBe('target_gone');
     expect(JSON.stringify(fake.tables.published_sermons)).toBe(before);
   });
 
