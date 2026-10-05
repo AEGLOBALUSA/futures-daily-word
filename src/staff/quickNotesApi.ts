@@ -95,10 +95,12 @@ export type QuickStatus = {
 /**
  * `checked`: the page was read back. When it is false nothing is known about
  * the page, so the done line must not promise that a refresh will show it.
+ * `empty`: the page was read and shows no message at all (it expired or was
+ * taken down), so a refresh will not show the video either.
  * `showing`: the message the page shows when it is not the one just saved
  * (with its Sunday when the two share a title).
  */
-export type QuickPublished = { id: string; title: string; verified: boolean; checked?: boolean; showing?: string };
+export type QuickPublished = { id: string; title: string; verified: boolean; checked?: boolean; empty?: boolean; showing?: string };
 
 /** Same key the long hub form uses, so both remember the same church. */
 const LAST_CONGREGATION_KEY = 'dw_staff_congregation';
@@ -207,12 +209,14 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
   rememberCongregation(result.congregation);
   let verified = false;
   let checked = false;
+  let empty = false;
   let showing = '';
   const title = sermon.title || attach?.title || result.preview.title;
   try {
     const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(result.congregation)}`, { cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
     checked = !!(j && typeof j === 'object');
+    empty = checked && !(j.sermon && j.sermon.id);
     const ours = attach ? [attach.id, result.preview.id] : [sermon.id];
     if (j && j.sermon && j.sermon.id && !ours.includes(j.sermon.id)) showing = otherMessageLabel(j.sermon, title);
     // A link is on the page only when the message the card named carries it:
@@ -225,7 +229,7 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
         && sameVideo(j.sermon.youtubeUrl, result.details.youtubeUrl)
       : j.sermon.id === sermon.id));
   } catch { /* verified and checked stay false */ }
-  return { id: sermon.id, title, verified, checked, showing };
+  return { id: sermon.id, title, verified, checked, empty, showing };
 }
 
 /**

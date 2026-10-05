@@ -553,7 +553,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   // bottom of a long form, so the same message is repeated next to the button
   // and scrolled into view — a refused save must never look like nothing happened.
   const [formError, setFormError] = useState('');
-  const [live, setLive] = useState<{ title: string; verified: boolean; checked?: boolean; showing?: string } | null>(null);
+  const [live, setLive] = useState<{ title: string; verified: boolean; checked?: boolean; empty?: boolean; showing?: string } | null>(null);
   // Which congregation's Sermon Notes this message is for (Futures USA /
   // Futures Australia / Futuros USA). Sent with preview and save; remembered per browser.
   const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
@@ -640,8 +640,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
     if (answer === '__current__') return currentSermon || null;
     return sermons.find(s => s.id === answer) || { id: '', title: String(answer) };
   }, [answers, currentSermon, job, questions, sermons]);
-  const mediaButtonLabel = pickedSermon?.title ? `Add the video to “${pickedSermon.title}”` : 'Add the video';
-  const mediaKeepsCurrentMessage = job === 'media'
+  // Pasted notes re-put the message up; only a link-only save keeps the current one.
+  const mediaLinkOnly = job === 'media' && !paste.trim();
+  const mediaButtonLabel = !mediaLinkOnly ? 'Put this on the congregation page'
+    : pickedSermon?.title ? `Add the video to “${pickedSermon.title}”` : 'Add the video';
+  const mediaKeepsCurrentMessage = mediaLinkOnly
     && !!currentSermon
     && !!pickedSermon?.id
     && pickedSermon.id !== currentSermon.id;
@@ -694,6 +697,12 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       return;
     }
     if (youtubeProblem) { fail(youtubeProblem); return; }
+    // The media form adds a video (or polished notes) to a message. With
+    // neither, saving would re-put that message up over the current one.
+    if (job === 'media' && youtubeQ && !String(answers[youtubeQ.id] || '').trim() && !paste.trim()) {
+      fail('Paste the YouTube link first.');
+      return;
+    }
     // Our own required check (the form is noValidate): the browser's bubble is
     // silent on iOS and easy to miss on a long page, and it never reaches submit().
     const missing = formQs.find(q => {
@@ -741,6 +750,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
           // Read it back the way the congregation does, so "It's on the page" is a fact, not a hope.
           let verified = false;
           let checked = false;
+          let empty = false;
           let showing = '';
           const savedTitle = published.title || data.preview?.title || '';
           // The media form saves a link: it is on the page only when the page
@@ -752,13 +762,14 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
             const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(congregation)}`, { cache: 'no-store' });
             const j = r.ok ? await r.json() : null;
             checked = !!(j && typeof j === 'object');
+            empty = checked && !(j.sermon && j.sermon.id);
             const same = !!(j && j.sermon && j.sermon.id === published.id);
             verified = same && (job !== 'media' || sameVideo(j.sermon.youtubeUrl, savedLink));
             // Another message on the page is named by id, never hidden because
             // it shares a title; its Sunday tells two of the same name apart.
             showing = j && j.sermon && j.sermon.id && !same ? otherMessageLabel(j.sermon, savedTitle) : '';
           } catch { /* verified and checked stay false */ }
-          setLive({ title: savedTitle, verified, checked, showing });
+          setLive({ title: savedTitle, verified, checked, empty, showing });
         }
       }
       await load(pickCampus || staff.campusId || undefined);
