@@ -2,6 +2,8 @@
 
 Presentation only, default ON (owner ruling 5 Oct 2026), scoped to the staff screens at `/staff`.
 
+Base reading size: Apple standard — 13px desktop, 17px phone (owner ruling 5 Oct 2026). `--mos-font-size` is 13px and becomes 17px under `@media (max-width: 767px)`; page title 26px (28px phone), section headings 17px (20px phone); controls 32px tall on desktop, 44px on phones.
+
 ## Turn on / off
 - On: open `/staff?ui=multiplyos`. This sets the cookie `mos_ui=1` (one year, Path=/, SameSite=Lax, Secure).
 - Off: open `/staff?ui=legacy`. This sets `mos_ui=0` (one year), so the off choice persists on that device.
