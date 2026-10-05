@@ -168,9 +168,27 @@ export async function syncReadingState(state: PushReadingState, opened = false, 
     const prev = readSent();
     const { send, reportOpen } = shouldSendState(prev, sig, opened, now);
     if (!send) return false;
-    // Written before the network call, so a burst of renders sends once.
+    // Written before the network call, so a burst of renders sends once; put
+    // back when the call does not land, so the next open or change retries.
     writeSent({ at: now, sig, openedAt: reportOpen ? now : (prev?.openedAt ?? 0) });
+    const undo = () => {
+      if (prev) writeSent(prev);
+      else { try { localStorage.removeItem(STATE_SENT_KEY); } catch { /* storage blocked */ } }
+    };
+    let landed = false;
+    try {
+      landed = await deliver(state, reportOpen);
+    } finally {
+      if (!landed) undo();
+    }
+    return landed;
+  } catch {
+    return false;
+  }
+}
 
+async function deliver(state: PushReadingState, reportOpen: boolean): Promise<boolean> {
+  try {
     const registration = await withTimeout(navigator.serviceWorker.ready, 5000, null);
     if (!registration) return false;
     const subscription = await withTimeout(registration.pushManager.getSubscription(), 8000, null);

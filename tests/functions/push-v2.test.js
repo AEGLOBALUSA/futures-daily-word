@@ -61,6 +61,11 @@ describe('planV2: who gets the reminder, and when', () => {
     expect(v2.planV2(row({ last_sent_at: NY_7AM.toISOString() }), new Date('2026-10-06T12:00:00Z'))).toEqual({ send: false, reason: 'sent_recently' });
   });
 
+  it('without the last_sent_date ledger, exact hour only (the old sender may have sent at 7)', () => {
+    expect(v2.planV2(row(), NY_7AM, { catchUp: false }).send).toBe(true);
+    expect(v2.planV2(row(), new Date('2026-10-06T12:00:00Z'), { catchUp: false })).toEqual({ send: false, reason: 'not_hour' });
+  });
+
   it('a null preferred hour means 7 am, as today', () => {
     expect(v2.planV2(row({ preferred_hour: null }), NY_7AM).send).toBe(true);
   });

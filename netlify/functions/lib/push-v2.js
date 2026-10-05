@@ -159,26 +159,33 @@ function cleanText(value, max) {
 
 /**
  * Should this row get its v2 reminder now, and with what words? Pure: the
- * caller passes the row (with its reading state) and the clock.
+ * caller passes the row (with its reading state) and the clock, and
+ * catchUp: false when push_subscriptions has no last_sent_date ledger.
  *   { send: false, reason } where reason is one of not_hour, sent_today,
- *     comfort, read_today, sunday_pastor, sent_recently, backoff
+ *     comfort, unknown_path, read_today, sunday_pastor, sent_recently, backoff
  *   { send: true, localDate, title, body, passage } where title/body are null
  *     when the device has not said what is due today: the caller then uses
  *     today's template, exactly as the old reminder would.
  */
-function planV2(row, now = new Date()) {
+function planV2(row, now = new Date(), { catchUp = true } = {}) {
   const local = localNow(row.timezone, now);
   const preferredHour = row.preferred_hour ?? 7;
   // Her hour, or up to CATCH_UP_HOURS after it (the same catch-up window as
   // today's sender: the hourly run is best-effort). The day's dw_prompt_log
   // claim and last_sent_date keep it to one.
+  // Without the last_sent_date ledger (live today) the old sender cannot catch
+  // up either, and v2 must not: a kind switched on at 8 would otherwise send
+  // again to a reader the old sender reached at 7. Exact hour only, then.
   const late = local.hour - preferredHour;
-  if (late < 0 || late > CATCH_UP_HOURS) return { send: false, reason: "not_hour" };
+  if (late < 0 || late > (catchUp ? CATCH_UP_HOURS : 0)) return { send: false, reason: "not_hour" };
   if (row.last_sent_date && String(row.last_sent_date).slice(0, 10) === local.date) {
     return { send: false, reason: "sent_today" };
   }
 
   if (COMFORT_PERSONAS.has(row.persona)) return { send: false, reason: "comfort" };
+  // A device that has not yet said its path could be a Comfort reader's: the
+  // v2 reminder waits for the first app open to report it (never Comfort).
+  if (!row.persona) return { send: false, reason: "unknown_path" };
   if (row.last_read_date && String(row.last_read_date).slice(0, 10) === local.date) {
     return { send: false, reason: "read_today" };
   }

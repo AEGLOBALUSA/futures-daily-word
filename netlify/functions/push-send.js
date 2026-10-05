@@ -211,7 +211,7 @@ async function runPushSend({ db, send }) {
     let v2Sent = 0;
     const v2Skipped = {};
     async function sendV2(sub, state) {
-      const plan = pushV2.planV2({ ...sub, ...state }, runAt);
+      const plan = pushV2.planV2({ ...sub, ...state }, runAt, { catchUp: hasLedger });
       if (!plan.send) {
         v2Skipped[plan.reason] = (v2Skipped[plan.reason] || 0) + 1;
         return 'v2_skipped';
@@ -242,12 +242,19 @@ async function runPushSend({ db, send }) {
         const { error: stateErr } = await db.from("push_subscriptions")
           .update({
             last_sent_at: runAt.toISOString(),
-            unopened_streak: (Number.isInteger(state.unopened_streak) ? state.unopened_streak : 0) + 1,
             // Today's ledger too, so switching the kind off the same day cannot bring a second reminder.
             ...(hasLedger ? { last_sent_date: plan.localDate } : {}),
           })
           .eq("id", sub.id);
         if (stateErr) console.error("push-send v2: could not record the send:", stateErr.message || stateErr);
+        // The unopened count moves only if no open landed during this run: an
+        // open sets it to 0, and this then matches nothing.
+        const before = Number.isInteger(state.unopened_streak) ? state.unopened_streak : 0;
+        const { error: streakErr } = await db.from("push_subscriptions")
+          .update({ unopened_streak: before + 1 })
+          .eq("id", sub.id)
+          .eq("unopened_streak", before);
+        if (streakErr) console.error("push-send v2: could not count the send:", streakErr.message || streakErr);
       } catch (err) {
         console.error("push-send v2: could not record the send:", err && err.message);
       }

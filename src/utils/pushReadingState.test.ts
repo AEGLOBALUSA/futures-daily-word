@@ -157,4 +157,17 @@ describe('syncReadingState: what leaves the device', () => {
     expect((calls[1].body.state as Record<string, unknown>).opened).toBeUndefined();
     expect(JSON.parse(localStorage.getItem(STATE_SENT_KEY) || '{}').openedAt).toBe(5_000_000);
   });
+
+  it('an open the server did not get is reported again on the next open, not ten minutes later', async () => {
+    localStorage.setItem('dw_push', 'subscribed');
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(async (url: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+      return new Response('{}', { status: 503 });
+    });
+    expect(await syncReadingState(state, true, 5_000_000)).toBe(false);
+    expect(localStorage.getItem(STATE_SENT_KEY)).toBeNull();
+    expect(await syncReadingState(state, true, 5_000_000 + 60_000)).toBe(true);
+    expect(calls).toHaveLength(2);
+    expect((calls[1].body.state as Record<string, unknown>).opened).toBe(true);
+  });
 });

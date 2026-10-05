@@ -51,7 +51,7 @@ function subs() {
     base(TEST_ID, { persona: 'congregation', next_passage: 'John 3', next_label: 'Day 12 of Bible Basics', next_for_date: '2026-10-06' }),
     base(ID_A, { lang: 'es', persona: 'comfort' }),
     base(ID_B, { persona: 'congregation', last_read_date: '2026-10-06' }),
-    base(ID_C, { timezone: 'Australia/Sydney', preferred_hour: 22, lang: 'pt' }),
+    base(ID_C, { timezone: 'Australia/Sydney', preferred_hour: 22, lang: 'pt', persona: 'congregation' }),
     base('4d4d4d4d-4444-4444-8444-444444444444', { preferred_hour: 8 }),
     base('5e5e5e5e-5555-4555-8555-555555555555', { active: false }),
   ];
@@ -257,6 +257,26 @@ describe('live', () => {
     expect(JSON.stringify(body)).not.toContain(TEST_ID);
   });
 
+  it('a device that has not yet said its path gets nothing until its first open (it could be Comfort)', async () => {
+    const rows = subs();
+    rows.find((r) => r.id === ID_C).persona = null;
+    const now = await runWith(NOW_PATH, fakeDb({ kind: { mode: 'live' }, rows }));
+    expect(now.sent.some((x) => x.endpoint.endsWith('3c3c'))).toBe(false);
+    expect(JSON.parse(now.res.body).v2.skipped.unknown_path).toBe(1);
+  });
+
+  it('an open that lands during the run keeps the unopened count at 0', async () => {
+    const db = fakeDb({ kind: { mode: 'live' } });
+    const realSendFn = webpush.sendNotification;
+    webpush.sendNotification = async (subscription, payload) => {
+      if (subscription.endpoint.endsWith('0b6f')) db.rows.find((r) => r.id === TEST_ID).unopened_streak = 0;
+      return realSendFn(subscription, payload);
+    };
+    db.rows.find((r) => r.id === TEST_ID).unopened_streak = 2;
+    await runWith(NOW_PATH, db);
+    expect(db.rows.find((r) => r.id === TEST_ID).unopened_streak).toBe(0);
+  });
+
   it('fails closed: when the send log cannot be written, nothing is sent', async () => {
     const now = await runWith(NOW_PATH, fakeDb({ kind: { mode: 'live' }, logFails: true }));
     expect(now.sent).toEqual([]);
@@ -281,6 +301,16 @@ describe('live', () => {
     const db = fakeDb({ kind: { mode: 'live' }, rows: many });
     const r = await runWith(NOW_PATH, db);
     expect(JSON.parse(r.res.body).v2.rows).toBe(1501);
+  });
+
+  it('switched on an hour after the old sender reached her (no ledger, as live): no second reminder', async () => {
+    const offDb = fakeDb({ kind: { mode: 'off' } });
+    const first = await runWith(NOW_PATH, offDb);
+    expect(first.sent.some((x) => x.endpoint.endsWith('0b6f'))).toBe(true);
+    const liveDb = fakeDb({ kind: { mode: 'live' }, rows: offDb.rows });
+    vi.setSystemTime(new Date('2026-10-06T12:00:00Z'));
+    const later = await runWith(NOW_PATH, liveDb);
+    expect(later.sent.some((x) => x.endpoint.endsWith('0b6f'))).toBe(false);
   });
 
   it('one a day across a whole day of hourly runs, even when the cron fires twice an hour', async () => {
