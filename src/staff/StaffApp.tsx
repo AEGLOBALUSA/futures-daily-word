@@ -663,6 +663,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   const mediaButtonLabel = !mediaLinkOnly ? 'Put this on the congregation page'
     : pickedSermon?.title ? `Add the video to “${pickedSermon.title}”` : 'Add the video';
   const doneCongregation = savedCongregation || congregation;
+  // What the message picker offers: for the media form, this church's messages
+  // (and "This week's published message" only when it has one).
+  const pickChoices = job === 'media'
+    ? sermons.filter(s => (s.source === 'current' ? !!currentSermon : !s.congregation || s.congregation === congregation))
+    : sermons;
   const mediaKeepsCurrentMessage = mediaLinkOnly
     && !!currentSermon
     && !!pickedSermon?.id
@@ -813,8 +818,10 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
       const code = (err as { data?: { code?: string } })?.data?.code;
-      const typedTitle = pickQ && typeof answers[pickQ.id] === 'string' && answers[pickQ.id] !== '__current__'
-        && !sermons.some(s => s.id === answers[pickQ.id]) ? String(answers[pickQ.id]) : '';
+      // A title was typed only when the picker was the text box (no choices);
+      // with a list on screen, an unknown value is a stale id to clear.
+      const typedTitle = pickQ && pickChoices.length === 0 && typeof answers[pickQ.id] === 'string'
+        && answers[pickQ.id] !== '__current__' ? String(answers[pickQ.id]) : '';
       if (pickQ && code === 'target_gone' && typedTitle) {
         // A typed title that matches no message: keep it to correct, and say
         // where a new message goes instead of "pick again" from an empty list.
@@ -907,7 +914,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
           campusLocked={campusLocked}
           lockedCampus={staff.campusId}
           cornerItems={cornerItems}
-          sermons={job === 'media' ? sermons.filter(s => (s.source === 'current' ? !!currentSermon : !s.congregation || s.congregation === congregation)) : sermons}
+          sermons={pickChoices}
           require={q.required && (q.audience === job || q.audience === 'all')}
           onChange={v => setAnswer(q.id, v)}
         />
