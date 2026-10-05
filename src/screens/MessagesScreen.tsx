@@ -18,6 +18,7 @@ import {
   type MyPrayersRecord,
 } from '../utils/myPrayers';
 import { localToday } from '../utils/homeToday';
+import { useTabShowing } from '../utils/useTabShowing';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -356,6 +357,12 @@ function PrayerWallPanel({
   // B09-11: the requests she posted from this phone (dw_my_prayers, device-only).
   const [myPrayers, setMyPrayers] = useState<MyPrayersRecord | null>(null);
   const [scrollToPrayer, setScrollToPrayer] = useState<string | null>(null);
+  // B09-11: See your request found no such request on the wall (it is older
+  // than the newest 50, or gone): the card says so beside its button.
+  const [requestMissing, setRequestMissing] = useState(false);
+  // B09-11: the request whose Pray did not go through; Pray stays open to retry.
+  const [prayFailed, setPrayFailed] = useState<string | null>(null);
+  const campusShowing = useTabShowing('messages');
 
   useEffect(() => {
     const reread = () => setMyPrayers(readMyPrayers());
@@ -373,12 +380,14 @@ function PrayerWallPanel({
   const cardId = card?.id;
   const cardCount = card?.count;
   useEffect(() => {
-    if (cardId && cardCount !== undefined) noteCardShown({ id: cardId, count: cardCount }, localToday());
-  }, [cardId, cardCount]);
+    if (cardId && cardCount !== undefined && campusShowing) noteCardShown({ id: cardId, count: cardCount }, localToday());
+  }, [cardId, cardCount, campusShowing]);
 
   useEffect(() => {
     if (!scrollToPrayer || loading || filter !== 'all') return;
-    document.getElementById(`prayer-${scrollToPrayer}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const target = document.getElementById(`prayer-${scrollToPrayer}`);
+    setRequestMissing(!target);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setScrollToPrayer(null);
   }, [scrollToPrayer, loading, filter, prayers]);
 
@@ -419,7 +428,11 @@ function PrayerWallPanel({
 
   const handlePray = async (id: string) => {
     if (prayedFor.has(id)) return;
-    await prayForIt(id);
+    // B09-11: a Pray that did not go through is not counted, not confirmed,
+    // and stays open to try again.
+    const ok = await prayForIt(id);
+    if (!ok) { setPrayFailed(id); return; }
+    setPrayFailed(prev => (prev === id ? null : prev));
     if (prayedConfirm) setConfirmedPrayers(prev => new Set(prev).add(id));
     const next = new Set(prayedFor).add(id);
     setPrayedFor(next);
@@ -576,7 +589,7 @@ function PrayerWallPanel({
                   <div>
                     <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
                       {prayer.name}
-                      {myPrayers?.prayers.some(p => p.id === prayer.id) && (
+                      {prayedConfirm && myPrayers?.prayers.some(p => p.id === prayer.id) && (
                         <span style={{ fontSize: 15, fontWeight: 400, color: 'var(--dw-text-muted)', marginLeft: 6 }}>
                           {t('prayer_yours', lang)}
                         </span>

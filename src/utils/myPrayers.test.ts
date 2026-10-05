@@ -3,11 +3,12 @@
  * synced) and shows "{n} people prayed for your request" when the count grows,
  * for the rest of that day, and never after 14 days.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   readMyPrayers, rememberMyPrayer, refreshMyPrayers, prayedCard, noteCardShown, applyCounts, prune,
   MY_PRAYERS_KEY, MY_PRAYERS_DAYS, MY_PRAYERS_FETCH_MS, requestPrayerWall, takePrayerWallRequest,
 } from './myPrayers';
+import { tabShowing } from './useTabShowing';
 
 const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
@@ -76,9 +77,39 @@ describe('refreshMyPrayers', () => {
     expect(bad).toHaveBeenCalledTimes(1);
   });
 
-  it('a count never goes down on this phone', () => {
+  it('a count never goes down on this phone while the server still answers it', () => {
     const rec = { v: 1 as const, checkedAt: 0, prayers: [{ id: A, postedAt: T0, count: 5, seen: 5 }] };
     expect(applyCounts(rec, [{ id: A, prayerCount: 3 }], T0).prayers[0].count).toBe(5);
+  });
+
+  it('an id the server stops answering (kind switched off, or the request gone) falls to 0 and its card goes; seen is kept', async () => {
+    rememberMyPrayer(A, T0);
+    await refreshMyPrayers({ now: T0, fetchImpl: okFetch([{ id: A, prayerCount: 4 }]) });
+    expect(prayedCard(readMyPrayers(T0), '2026-10-05', T0)).toEqual({ id: A, count: 4 });
+    noteCardShown({ id: A, count: 4 }, '2026-10-05', T0);
+    await refreshMyPrayers({ now: T0 + MY_PRAYERS_FETCH_MS, fetchImpl: okFetch([]) });
+    const after = readMyPrayers(T0 + MY_PRAYERS_FETCH_MS);
+    expect(after.prayers[0].count).toBe(0);
+    expect(after.prayers[0].seen).toBe(4);
+    expect(prayedCard(after, '2026-10-05', T0 + MY_PRAYERS_FETCH_MS)).toBeNull();
+    // Switched back on with the same number: nothing new to tell.
+    await refreshMyPrayers({ now: T0 + 2 * MY_PRAYERS_FETCH_MS, fetchImpl: okFetch([{ id: A, prayerCount: 4 }]) });
+    expect(prayedCard(readMyPrayers(T0 + 2 * MY_PRAYERS_FETCH_MS), '2026-10-06', T0 + 2 * MY_PRAYERS_FETCH_MS)).toBeNull();
+  });
+});
+
+describe('tabShowing: a hidden, still-mounted tab never marks a count as seen', () => {
+  afterEach(() => { delete document.body.dataset.activeTab; });
+
+  it('reads as showing before App has named the active tab', () => {
+    delete document.body.dataset.activeTab;
+    expect(tabShowing('home')).toBe(true);
+  });
+
+  it('true only for the active tab', () => {
+    document.body.dataset.activeTab = 'messages';
+    expect(tabShowing('home')).toBe(false);
+    expect(tabShowing('messages')).toBe(true);
   });
 });
 

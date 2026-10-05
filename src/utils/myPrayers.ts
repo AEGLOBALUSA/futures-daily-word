@@ -110,7 +110,12 @@ export function rememberMyPrayer(id: unknown, now: number = Date.now()): void {
   writeMyPrayers(prune({ ...rec, checkedAt: 0, prayers: [{ id: lower, postedAt: now, count: 0, seen: 0 }, ...rec.prayers] }, now));
 }
 
-/** Fold the server's counts into the store. Ids it did not answer keep their last count. */
+/**
+ * Fold the server's counts into the store. An id the server did not answer
+ * falls to 0 (the kind is off, it is not on the shadow list, or the request is
+ * gone), so a cached number never shows once the server stops telling; what
+ * she has seen is kept, so the card comes back only if the number grows.
+ */
 export function applyCounts(rec: MyPrayersRecord, counts: Array<{ id: string; prayerCount: number }>, now: number): MyPrayersRecord {
   const byId = new Map<string, number>();
   for (const c of counts) {
@@ -120,7 +125,7 @@ export function applyCounts(rec: MyPrayersRecord, counts: Array<{ id: string; pr
     ...rec,
     checkedAt: now,
     // A count never goes down on this phone (a slow replica must not re-show an old number).
-    prayers: rec.prayers.map((p) => (byId.has(p.id) ? { ...p, count: Math.max(p.count, byId.get(p.id) as number) } : p)),
+    prayers: rec.prayers.map((p) => (byId.has(p.id) ? { ...p, count: Math.max(p.count, byId.get(p.id) as number) } : { ...p, count: 0 })),
   };
 }
 

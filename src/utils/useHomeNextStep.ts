@@ -26,6 +26,7 @@ import { isSundayWindow, readerSundayUntil, readerTimeZone } from './sunday';
 import { tomorrowPassage, reflectedToday, localToday } from './homeToday';
 import { fetchSermonNotesPublished } from './currentSermon';
 import { readMyPrayers, refreshMyPrayers, prayedCard, noteCardShown, MY_PRAYERS_EVENT } from './myPrayers';
+import { useTabShowing } from './useTabShowing';
 import { t } from './i18n';
 import { findCampus } from '../data/campuses';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -219,12 +220,14 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
   }, [quietKey, today, loading]);
 
   // B09-11: the count she has now seen. The card stays for the rest of the day
-  // and comes back only when the number grows.
+  // and comes back only when the number grows. Home stays mounted behind other
+  // tabs, so it counts as seen only while Home is on screen.
+  const homeShowing = useTabShowing('home');
   const prayedId = step.kind === 'prayed' && prayed ? prayed.id : null;
   const prayedCount = step.kind === 'prayed' && prayed ? prayed.count : 0;
   useEffect(() => {
-    if (prayedId && !loading) noteCardShown({ id: prayedId, count: prayedCount }, today);
-  }, [prayedId, prayedCount, today, loading]);
+    if (prayedId && !loading && homeShowing) noteCardShown({ id: prayedId, count: prayedCount }, today);
+  }, [prayedId, prayedCount, today, loading, homeShowing]);
 
   const onTapped = useCallback(() => {
     if (quietKey) noteTapped(quietKey, today);
