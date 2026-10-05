@@ -65,18 +65,21 @@ export function useCampusGuess(enabled: boolean, pcoCampus?: string | null, pcoP
   // Once a question is on screen it stays: the one question ("Are you part of
   // …?"), the short list of campuses near her, or the plain chooser. A campus
   // list or answer that lands later never changes which campus her Yes saves,
-  // nor moves the choices under her thumb. The one exception: the owner hid or
-  // removed a campus it names, so a tap on it could not save. Then the card asks
-  // again from the current list rather than leave a Yes that does nothing.
+  // nor moves the choices under her thumb. If the owner hides or removes a
+  // campus meanwhile: one the short list names just drops off it, and only when
+  // the campus her Yes would save is gone does the card ask again from the
+  // current list, rather than leave a Yes that does nothing.
   const [shown, setShown] = useState<(CampusGuess & { ready: boolean }) | null>(null);
-  const saves = (g: CampusGuess) =>
-    (!g.campusId || g.campusId === 'other' || !!knownCampusId(g.campusId, campuses))
-    && g.shortList.every((id) => id === 'other' || !!knownCampusId(id, campuses));
-  const shownStillSaves = !!shown && saves(shown);
-  const liveSaves = saves(live);
+  const known = (id: string) => id === 'other' || !!knownCampusId(id, campuses);
+  const shownGone = !!shown && !!shown.campusId && !known(shown.campusId);
+  const liveSaves = !live.campusId || known(live.campusId);
   useEffect(() => {
-    if (shown && !shownStillSaves) { setShown(null); return; }
+    if (shownGone) { setShown(null); return; }
     if (!shown && enabled && live.ready && liveSaves) setShown(live);
-  }, [shown, shownStillSaves, enabled, live, liveSaves]);
-  return shown && shownStillSaves ? shown : live;
+  }, [shown, shownGone, enabled, live, liveSaves]);
+  if (shown && !shownGone) {
+    const shortList = shown.shortList.filter(known);
+    return shortList.length === shown.shortList.length ? shown : { ...shown, shortList };
+  }
+  return live;
 }

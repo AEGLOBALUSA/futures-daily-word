@@ -270,6 +270,28 @@ describe('CampusConfirm (B09-07)', () => {
     expect(saveProfile).not.toHaveBeenCalled();
   });
 
+  it('a held question stays when the owner hides another campus and adds one; a hidden one just drops off the short list (B09-07F review)', async () => {
+    const marietta = { id: 'us-marietta', name: 'Futures Marietta', city: 'Marietta, GA', towns: ['Kennesaw'], region: 'North America', congregation: 'futures-us', timeZone: 'America/New_York', sundayUntil: '16:00', videoUrl: null, sortOrder: 1 };
+    let releaseList: () => void = () => {};
+    const listHeld = new Promise<void>((r) => { releaseList = r; });
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('/api/geo')) return { ok: true, json: async () => ({ country: 'US', city: 'Kennesaw', subdivision: 'GA' }) };
+      if (String(url).includes('/campuses')) {
+        await listHeld;
+        const { FALLBACK_CAMPUSES } = await import('../data/campuses.fallback');
+        return { ok: true, json: async () => ({ campuses: [marietta, ...FALLBACK_CAMPUSES.filter((c) => c.id !== 'us-gwinnett')] }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    }));
+    const profile = { email: 'reader@example.com', campus: '' };
+    const el = await mount(profile);
+    expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Kennesaw?');
+    await act(async () => { releaseList(); for (let i = 0; i < 12; i++) await Promise.resolve(); });
+    expect(el.querySelector('h2')?.textContent).toBe('Are you part of Futures Kennesaw?');
+    await act(async () => { byText(el, 'Yes')!.click(); });
+    expect(saveProfile).toHaveBeenCalledWith({ ...profile, campus: 'us-kennesaw' });
+  });
+
   it('not signed in: Planning Center is never asked (B09-07F)', async () => {
     const { f } = stubGeoAndPco({ country: 'US', city: 'Kennesaw', subdivision: 'GA' }, { found: true, profile: { campus: 'us-gwinnett' } });
     const el = await mount(null);
