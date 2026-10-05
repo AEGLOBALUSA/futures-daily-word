@@ -380,6 +380,10 @@ function PrayerWallPanel({
   const cardId = card?.id;
   const cardCount = card?.count;
   useEffect(() => {
+    setRequestMissing(false);
+  }, [cardId]);
+
+  useEffect(() => {
     if (cardId && cardCount !== undefined && campusShowing) noteCardShown({ id: cardId, count: cardCount }, localToday());
   }, [cardId, cardCount, campusShowing]);
 
@@ -388,6 +392,7 @@ function PrayerWallPanel({
     const target = document.getElementById(`prayer-${scrollToPrayer}`);
     setRequestMissing(!target);
     target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target?.focus({ preventScroll: true });
     setScrollToPrayer(null);
   }, [scrollToPrayer, loading, filter, prayers]);
 
@@ -518,10 +523,10 @@ function PrayerWallPanel({
 
       {card && (
         <Card style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+          <p id="prayer-wall-card-count" style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
             {card.count === 1 ? t('next_prayed_one', lang) : t('next_prayed_many', lang).replace('{n}', String(card.count))}
           </p>
-          <button onClick={() => {
+          <button aria-describedby="prayer-wall-card-count" onClick={() => {
             if (filter !== 'all') {
               setLoading(true);
               setFilter('all');
@@ -529,11 +534,16 @@ function PrayerWallPanel({
             setScrollToPrayer(card.id);
           }} style={{
             background: 'none', border: 'none', padding: 0, minHeight: 44,
-            fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600,
+            fontSize: 15, color: 'var(--dw-accent)',
             fontFamily: 'var(--font-sans)', cursor: 'pointer',
           }}>
             {t('next_see_request', lang)}
           </button>
+          {requestMissing && (
+            <p role="status" style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+              {t('prayer_request_older', lang)}
+            </p>
+          )}
         </Card>
       )}
 
@@ -583,9 +593,10 @@ function PrayerWallPanel({
           {prayers.map(prayer => {
             const hasPrayed = prayedFor.has(prayer.id);
             return (
-              <div key={prayer.id} id={`prayer-${prayer.id}`}>
+              <div key={prayer.id} id={`prayer-${prayer.id}`} tabIndex={-1} role="group"
+                aria-label={prayedConfirm && myPrayers?.prayers.some(p => p.id === prayer.id) ? t('prayer_yours', lang) : undefined}>
               <Card style={{ borderLeft: '3px solid var(--dw-accent)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 8, rowGap: 6, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div>
                     <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
                       {prayer.name}
@@ -611,6 +622,11 @@ function PrayerWallPanel({
                     <Heart size={12} fill={hasPrayed ? 'currentColor' : 'none'} />
                     {prayer.prayerCount > 0 ? prayer.prayerCount : ''} {hasPrayed ? t('praying_label', lang) : t('pray_label', lang)}
                   </button>
+                  {prayFailed === prayer.id && (
+                    <p role="alert" style={{ flexBasis: '100%', fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                      <span aria-hidden="true">! </span>{t('pray_failed', lang)}
+                    </p>
+                  )}
                 </div>
                 <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-sans)', margin: 0 }}>
                   {prayer.prayer}
