@@ -91,7 +91,13 @@ export type QuickStatus = {
  * a DIFFERENT message the page shows instead (another message became current
  * in the meantime), so "pull to refresh" would be wrong; empty otherwise.
  */
-export type QuickPublished = { id: string; title: string; verified: boolean; showing?: string };
+/**
+ * `checked`: the page was read back. When it is false nothing is known about
+ * the page, so the done line must not promise that a refresh will show it.
+ * `showing`: the message the page shows when it is not the one just saved
+ * (with its Sunday when the two share a title).
+ */
+export type QuickPublished = { id: string; title: string; verified: boolean; checked?: boolean; showing?: string };
 
 /** Same key the long hub form uses, so both remember the same church. */
 const LAST_CONGREGATION_KEY = 'dw_staff_congregation';
@@ -199,12 +205,15 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
   if (!data.published || !sermon?.id) throw new QuickError(t('staff_quick_err_not_live'));
   rememberCongregation(result.congregation);
   let verified = false;
+  let checked = false;
   let showing = '';
+  const title = sermon.title || attach?.title || result.preview.title;
   try {
     const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(result.congregation)}`, { cache: 'no-store' });
     const j = r.ok ? await r.json() : null;
+    checked = !!(j && typeof j === 'object');
     const ours = attach ? [attach.id, result.preview.id] : [sermon.id];
-    if (j && j.sermon && j.sermon.id && !ours.includes(j.sermon.id)) showing = String(j.sermon.title || '');
+    if (j && j.sermon && j.sermon.id && !ours.includes(j.sermon.id)) showing = otherMessageLabel(j.sermon, title);
     // A link is on the page only when the message the card named carries it:
     // the row submit changed is that message, and the page shows that message
     // (by its row id or its own id) with this link. Another message that
@@ -214,8 +223,19 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
         && (j.sermon.id === attach.id || j.sermon.id === result.preview.id)
         && j.sermon.youtubeUrl === result.details.youtubeUrl
       : j.sermon.id === sermon.id));
-  } catch { /* verified stays false */ }
-  return { id: sermon.id, title: sermon.title || attach?.title || result.preview.title, verified, showing };
+  } catch { /* verified and checked stay false */ }
+  return { id: sermon.id, title, verified, checked, showing };
+}
+
+/**
+ * The other message's name for a done line. Identity is decided by id before
+ * this is called; when the two messages share a title, its Sunday tells them apart.
+ */
+export function otherMessageLabel(other: { title?: unknown; date?: unknown }, savedTitle: string, lang = getLang()): string {
+  const name = String(other.title || '');
+  if (name && name.trim().toLowerCase() !== String(savedTitle || '').trim().toLowerCase()) return name;
+  const day = sundayLabel(String(other.date || ''), lang);
+  return day ? `${name} (${day})` : name;
 }
 
 /** "Sunday 4 Oct" in the staff member's language. */

@@ -16,6 +16,7 @@ import { youtubeLinkProblem } from './youtubeLink';
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 import { QuickNotes } from './QuickNotes';
+import { otherMessageLabel } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'form' | 'review' | 'people' | 'campuses';
@@ -552,7 +553,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   // bottom of a long form, so the same message is repeated next to the button
   // and scrolled into view — a refused save must never look like nothing happened.
   const [formError, setFormError] = useState('');
-  const [live, setLive] = useState<{ title: string; verified: boolean; showing?: string } | null>(null);
+  const [live, setLive] = useState<{ title: string; verified: boolean; checked?: boolean; showing?: string } | null>(null);
   // Which congregation's Sermon Notes this message is for (Futures USA /
   // Futures Australia / Futuros USA). Sent with preview and save; remembered per browser.
   const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
@@ -691,7 +692,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         preview?: FormattedSermon | null;
         published?: boolean;
         pending?: boolean;
-        publish_result?: { sermon?: { id?: string; title?: string } | null; cornerAdded?: number };
+        publish_result?: { sermon?: { id?: string; title?: string; youtubeUrl?: string } | null; cornerAdded?: number };
       }>('submit', {
         answers,
         campusId: pickCampus || staff.campusId,
@@ -710,15 +711,25 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         } else {
           // Read it back the way the congregation does, so "It's on the page" is a fact, not a hope.
           let verified = false;
+          let checked = false;
           let showing = '';
+          const savedTitle = published.title || data.preview?.title || '';
+          // The media form saves a link: it is on the page only when the page
+          // shows the message it was saved on AND carries the link just saved.
+          const savedLink = job === 'media'
+            ? String((youtubeQ && answers[youtubeQ.id]) || published.youtubeUrl || '').trim()
+            : '';
           try {
             const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(congregation)}`, { cache: 'no-store' });
             const j = r.ok ? await r.json() : null;
-            verified = !!(j && j.sermon && j.sermon.id === published.id);
-            showing = j && j.sermon && j.sermon.id !== published.id && String(j.sermon.title || '') !== String(published.title || '')
-              ? String(j.sermon.title || '') : '';
-          } catch { /* verified stays false */ }
-          setLive({ title: published.title || data.preview?.title || '', verified, showing });
+            checked = !!(j && typeof j === 'object');
+            const same = !!(j && j.sermon && j.sermon.id === published.id);
+            verified = same && (job !== 'media' || (!!savedLink && String(j.sermon.youtubeUrl || '').trim() === savedLink));
+            // Another message on the page is named by id, never hidden because
+            // it shares a title; its Sunday tells two of the same name apart.
+            showing = j && j.sermon && j.sermon.id && !same ? otherMessageLabel(j.sermon, savedTitle) : '';
+          } catch { /* verified and checked stay false */ }
+          setLive({ title: savedTitle, verified, checked, showing });
         }
       }
       await load(pickCampus || staff.campusId || undefined);
