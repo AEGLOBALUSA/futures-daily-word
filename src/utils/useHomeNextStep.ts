@@ -20,12 +20,14 @@
  * dw_next_skips stays on this device.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { nextStep, readSkips, noteShown, noteQuiet, noteTapped, quietKeyFor, fillParams, type NextStep, type QuietableKind } from './nextStep';
+import { nextStep, readSkips, noteShown, noteQuiet, noteTapped, quietKeyFor, fillParams, type NextAction, type NextStep, type QuietableKind } from './nextStep';
 import { applicableSetupAsks } from './setupAsks';
 import { isSundayWindow, readerSundayUntil, readerTimeZone } from './sunday';
 import { tomorrowPassage, reflectedToday, localToday } from './homeToday';
 import { fetchSermonNotesPublished } from './currentSermon';
-import { t } from './i18n';
+import { t, getLang } from './i18n';
+import { currentReminderOffer, noteOfferShown, formatReminderTime } from './openTimes';
+import { usePushReadingState } from './usePushReadingState';
 import { findCampus } from '../data/campuses';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { BOOK_CHAPTERS } from '../data/bible-books';
@@ -70,6 +72,8 @@ export interface HomeNextStep {
   why: string | null;
   /** Call when the one button is tapped (resets the skip count). */
   onTapped: () => void;
+  /** A second, quiet answer beside the main button (the reminder offer's Keep), or null. */
+  alt?: { label: string; action: NextAction } | null;
 }
 
 /** Fire after a set-up ask is answered or dismissed so Home's one step moves on at once. */
@@ -124,6 +128,12 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
   const sundayWindow = useMemo(() => isSundayWindow(new Date(), timeZone, until), [timeZone, until, tick]);
 
   const today = localToday();
+
+  // B09-17: this device's reminder learns what she is reading (no identity).
+  usePushReadingState(input, today);
+  // B09-17: the one-time "Remind you then?" offer (openTimes.ts, this device only).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const offer = useMemo(() => currentReminderOffer(input.persona, today), [tick, today, input.persona]);
 
   // This week's notes for this congregation, only on a Sunday morning. Keyed by
   // the day so a Home kept alive into next Sunday asks afresh. true is kept;
@@ -190,10 +200,13 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
       campusName: campus?.name || null,
       today,
       skips,
+      reminderOffer: offer
+        ? { time: formatReminderTime(offer.hour, getLang()), keepTime: formatReminderTime(offer.current, getLang()) }
+        : null,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    tick, today, sundayWindow, published, notesKey, campus?.name,
+    tick, today, sundayWindow, published, notesKey, campus?.name, offer?.hour, offer?.current,
     input.persona, input.isNewPath, input.passage, input.readDoneToday, input.passageOpen, input.journeyInHero,
     input.pathwayEnrolled, input.pathwayData, input.pathwayDisplayDay, input.journeyDayDone,
     planKey, slotKey, input.email, input.congregation, input.dayIndex,
@@ -205,11 +218,18 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
     if (quietKey && !loading) noteShown(quietKey, today);
   }, [quietKey, today, loading]);
 
+  // B09-17: the reminder offer is shown on one day only.
+  const offerShown = step.kind === 'reminder_offer' && !loading;
+  useEffect(() => {
+    if (offerShown) noteOfferShown(today);
+  }, [offerShown, today]);
+
   const onTapped = useCallback(() => {
     if (quietKey) noteTapped(quietKey, today);
   }, [quietKey, today]);
 
   const label = fillParams(t(step.labelKey), step.params);
   const why = step.whyKey ? fillParams(t(step.whyKey), step.whyParams) : null;
-  return { step, loading, label, why, onTapped };
+  const alt = step.alt ? { label: fillParams(t(step.alt.labelKey), step.alt.params), action: step.alt.action } : null;
+  return { step, loading, label, why, onTapped, alt };
 }

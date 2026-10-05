@@ -2,6 +2,7 @@ const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 
 const { ALLOWED_ORIGINS } = require('./lib/cors');
+const { stateUpdates } = require('./lib/push-v2.js');
 
 let supabase;
 function getSupabase() {
@@ -77,6 +78,17 @@ exports.handler = async (event) => {
       }
       const endpointHash = hashEndpoint(subscription.endpoint);
 
+      // B09-17: the device's own reading state (lib/push-v2.js stateUpdates):
+      // a whitelist with length caps and type checks, and no identity of any
+      // kind. A bad state refuses the whole request before anything is written.
+      let reading = null;
+      if (body.state !== undefined) {
+        reading = stateUpdates(body.state);
+        if (!reading.ok) {
+          return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid state", reason: reading.error }) };
+        }
+      }
+
       const updates = {};
       if (timezone) updates.timezone = timezone;
       if (preferredHour !== undefined) updates.preferred_hour = preferredHour;
@@ -84,6 +96,13 @@ exports.handler = async (event) => {
 
       if (Object.keys(updates).length > 0) {
         await db.from("push_subscriptions").update(updates).eq("endpoint_hash", endpointHash);
+      }
+      // Written apart from the fields above, so a reading-state write that fails
+      // (for example before its migration is applied) never costs a reader her
+      // hour or language change.
+      if (reading && Object.keys(reading.updates).length > 0) {
+        const { error: stateErr } = await db.from("push_subscriptions").update(reading.updates).eq("endpoint_hash", endpointHash);
+        if (stateErr) console.error("Push subscribe: reading state not stored:", stateErr.code || "", stateErr.message || "");
       }
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: "Updated" }) };
     }

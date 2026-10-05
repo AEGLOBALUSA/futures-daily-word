@@ -18,6 +18,9 @@
  *      and the one Mark as read at the passage's end carries the pulse.
  *   6. Returning path, Sunday window, notes published, reading done → Open
  *      today's sermon notes (the 10 Sep demotion: the reading comes first).
+ *   6c. Her usual hour is not her reminder's hour (B09-17, openTimes.ts) →
+ *      "You usually read around {time}. Remind you then?" Yes, {time} ·
+ *      Keep {time}. Offered once, only with reminders on, never on Comfort.
  *   7. Read, not reflected, not quietened → Write it down.
  *   8. One set-up ask, after the reading, at most one a day: install, back-up
  *      email, then path upgrade, each only when its own component applies.
@@ -28,7 +31,7 @@
  * (dw_next_skips, this device only, never synced).
  *
  * Later builds add their Home cards here as kinds (after 5, before 7):
- * reminders (B09-17, "Remind you then?") and prayer counts (B09-11).
+ * prayer counts (B09-11, 6b) and the reminder offer (B09-17, 6c).
  */
 import { addDays } from './zonedTime';
 
@@ -42,6 +45,7 @@ export type NextKind =
   | 'read'
   | 'reading'
   | 'sunday_notes'
+  | 'reminder_offer'
   | 'write'
   | 'setup_ask'
   | 'done';
@@ -54,6 +58,7 @@ export type NextAction =
   | 'open_wizard'    // open More for today at the pastor/study set-up wizard
   | 'open_plans'     // the Plans tab
   | 'write'          // open the passage and its in-place reflection box
+  | 'set_reminder' | 'keep_reminder' // her answer to the reminder offer (B09-17)
   | 'install' | 'email' | 'upgrade' // the set-up ask's own component, in the card
   | 'none';          // no button: the step is on the page already, or the day is done
 
@@ -101,6 +106,11 @@ export interface NextStepState {
   today: string;
   /** Device-only skip learning (dw_next_skips). */
   skips?: NextSkips;
+  /**
+   * B09-17: the reminder offer (openTimes.currentReminderOffer), its two times
+   * already in her language. null or absent: nothing to offer.
+   */
+  reminderOffer?: { time: string; keepTime: string } | null;
 }
 
 export interface NextStep {
@@ -114,6 +124,8 @@ export interface NextStep {
   /** Optional one line of why, shown above or beside the button. */
   whyKey?: string;
   whyParams?: Record<string, string>;
+  /** Optional second answer, a quiet button beside the main one (the reminder offer's Keep). */
+  alt?: { labelKey: string; params: Record<string, string>; action: NextAction };
 }
 
 const STUDY_PERSONAS = new Set(['pastor_leader', 'deeper_study']);
@@ -184,6 +196,16 @@ export function nextStep(state: NextStepState): NextStep {
   // 6. Returning paths: Sunday's notes once the reading is done.
   if (!state.isNewPath && notesUp(state) && state.readDoneToday) {
     return { kind: 'sunday_notes', step: 6, labelKey: 'next_sermon_notes', params: {}, action: 'open_notes', ...sundayWhy(state) };
+  }
+
+  // 6c. Her usual hour differs from her reminder's (B09-17): offered once.
+  if (state.reminderOffer) {
+    const { time, keepTime } = state.reminderOffer;
+    return {
+      kind: 'reminder_offer', step: 6, labelKey: 'next_reminder_yes', params: { time }, action: 'set_reminder',
+      whyKey: 'next_reminder_why', whyParams: { time },
+      alt: { labelKey: 'next_reminder_keep', params: { time: keepTime }, action: 'keep_reminder' },
+    };
   }
 
   const readToday = state.readDoneToday || (state.isNewPath && state.journeyDayDone);

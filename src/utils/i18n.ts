@@ -1156,6 +1156,9 @@ const UI: Translations = {
 
   // ── HOME: THE ONE NEXT STEP (B09-08) ──
   next_read_passage: { en: 'Read {passage}', es: 'Lee {passage}', pt: 'Leia {passage}', id: 'Baca {passage}' },
+  // B09-17: the daily reminder's title, built on the reader's device (pushReadingState.ts). Neutral, no streak or guilt words.
+  push_day_of: { en: 'Day {n} of {plan}', es: 'D\u00eda {n} de {plan}', pt: 'Dia {n} de {plan}', id: 'Hari {n} dari {plan}' },
+  push_day_of_journey: { en: 'Day {n} of the 40-day journey', es: 'D\u00eda {n} del camino de 40 d\u00edas', pt: 'Dia {n} da jornada de 40 dias', id: 'Hari {n} dari perjalanan 40 hari' },
   next_read_day: { en: 'Read Day {n}', es: 'Lee el d\u00eda {n}', pt: 'Leia o dia {n}', id: 'Baca Hari {n}' },
   next_sermon_notes: { en: "Open today's sermon notes", es: 'Abre las notas del mensaje de hoy', pt: 'Abra as notas da mensagem de hoje', id: 'Buka catatan khotbah hari ini' },
   next_journey_ready: { en: 'Day {n} is ready: tap Read on the photo above', es: 'El d\u00eda {n} est\u00e1 listo: toca Leer en la foto de arriba', pt: 'O dia {n} est\u00e1 pronto: toque em Ler na foto acima', id: 'Hari {n} sudah siap: ketuk Baca pada foto di atas' },

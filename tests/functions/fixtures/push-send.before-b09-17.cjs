@@ -1,9 +1,10 @@
+// FROZEN COPY of netlify/functions/push-send.js as it was before B09-17 (origin/main e0a1920c),
+// used only by tests/functions/push-send.test.js to prove the sender behaves exactly the same
+// while dw_daily_push_v2 is off. Do not edit; only the templates require path is changed.
 const webpush = require("web-push");
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
-const { getVerseSnippet, getTemplate, normLang, getPassageLabel, ALL_PASSAGES } = require("./lib/push-templates.js");
-const prompts = require("./lib/prompts.js");
-const pushV2 = require("./lib/push-v2.js");
+const { getVerseSnippet, getTemplate, normLang, getPassageLabel, ALL_PASSAGES } = require("../../../netlify/functions/lib/push-templates.js");
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
@@ -91,45 +92,6 @@ function buildPayload(passage, lang) {
   });
 }
 
-// B09-17: the v2 reminder (lib/push-v2.js). Returns null, meaning "run exactly
-// as before this build for every row", when the kind dw_daily_push_v2 is off,
-// when anything about the switch or the reading-state columns cannot be read,
-// or when a shadow list holds no push row id. Otherwise { mode, rows } with the
-// reading state of each row that gets the v2 reminder (shadow: the listed rows
-// only; live: every active row).
-const UUID_ONLY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-async function loadV2(db) {
-  try {
-    const sw = await prompts.switchOf(db, pushV2.KIND);
-    if (sw.mode !== "shadow" && sw.mode !== "live") return null;
-    let note = null;
-    if (sw.mode === "shadow") {
-      const { data, error } = await db.from("dw_prompt_kind").select("note").eq("kind", pushV2.KIND).maybeSingle();
-      if (!error && data) note = data.note;
-    }
-    const ids = pushV2.shadowIds(sw.shadowRecipients, note);
-    const listed = [...ids].filter((id) => UUID_ONLY.test(id));
-    if (sw.mode === "shadow" && listed.length === 0) return null;
-    let q = db.from("push_subscriptions")
-      .select("id, persona, journey_day, next_passage, next_label, next_for_date, last_read_date, last_sent_at, unopened_streak")
-      .eq("active", true);
-    if (sw.mode === "shadow") q = q.in("id", listed);
-    const { data, error } = await q;
-    if (error) {
-      console.error("push-send v2: reading state unavailable, every row runs as before:", error.message || error);
-      return null;
-    }
-    const rows = new Map();
-    for (const r of data || []) {
-      if (pushV2.inScope(sw.mode, r.id, ids)) rows.set(r.id, r);
-    }
-    return { mode: sw.mode, rows };
-  } catch (err) {
-    console.error("push-send v2: switch unavailable, every row runs as before:", err && err.message);
-    return null;
-  }
-}
-
 exports.handler = async (event) => {
   // Auth check — only authorized callers (cron job) can trigger push sends
     const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
@@ -146,15 +108,7 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: "VAPID keys not configured" }) };
   }
 
-  return runPushSend({
-    db: getSupabase(),
-    send: (subscription, payload) => webpush.sendNotification(subscription, payload),
-  });
-};
-
-// The run itself, with the database and the web-push send passed in so the
-// tests can prove the off path is unchanged (tests/functions/push-send.test.js).
-async function runPushSend({ db, send }) {
+  const db = getSupabase();
   const passage = getTodaysPassage();
 
   const tzCache = buildTimezoneHourCache();
@@ -199,58 +153,11 @@ async function runPushSend({ db, send }) {
     const dateCache = {};
     const sentIdsByDate = {};
 
-    // B09-17: null while dw_daily_push_v2 is off, and then nothing below differs
-    // from the sender before this build.
-    const v2 = await loadV2(db);
-    const runAt = new Date();
-    let v2Sent = 0;
-    const v2Skipped = {};
-    async function sendV2(sub, state) {
-      const plan = pushV2.planV2({ ...sub, ...state }, runAt);
-      if (!plan.send) {
-        v2Skipped[plan.reason] = (v2Skipped[plan.reason] || 0) + 1;
-        return 'v2_skipped';
-      }
-      // One claim per row per local day, written BEFORE the send (lib/prompts.js):
-      // a duplicate or a failed log write means no send.
-      const key = pushV2.dedupeKey(sub.id, plan.localDate);
-      const claimed = await prompts.claim(db, {
-        kind: pushV2.KIND, dedupeKey: key, recipient: String(sub.id), writtenBy: "template", mode: v2.mode,
-      });
-      if (!claimed) {
-        v2Skipped.claimed = (v2Skipped.claimed || 0) + 1;
-        return 'v2_skipped';
-      }
-      const payload = plan.body
-        ? JSON.stringify({
-            title: plan.title,
-            body: plan.body,
-            icon: "/icons/icon-192.png",
-            badge: "/icons/icon-72.png",
-            url: "/",
-            passage: plan.passage,
-          })
-        : getPayload(sub.lang);
-      await send(sub.subscription, payload);
-      try {
-        await prompts.markDelivered(db, key);
-        const { error: stateErr } = await db.from("push_subscriptions")
-          .update({ last_sent_at: runAt.toISOString(), unopened_streak: (Number.isInteger(state.unopened_streak) ? state.unopened_streak : 0) + 1 })
-          .eq("id", sub.id);
-        if (stateErr) console.error("push-send v2: could not record the send:", stateErr.message || stateErr);
-      } catch (err) {
-        console.error("push-send v2: could not record the send:", err && err.message);
-      }
-      return 'v2_sent';
-    }
-
     // Process in batches of CONCURRENCY
     for (let i = 0; i < (subs || []).length; i += CONCURRENCY) {
       const batch = subs.slice(i, i + CONCURRENCY);
       const results = await Promise.allSettled(
         batch.map(async (sub) => {
-          const v2State = v2 ? v2.rows.get(sub.id) : undefined;
-          if (v2State) return sendV2(sub, v2State);
           const currentHour = getCurrentHour(sub.timezone, tzCache);
           // Legacy rows with a null preferred_hour would never match — default 7am
           const preferredHour = sub.preferred_hour ?? 7;
@@ -268,7 +175,7 @@ async function runPushSend({ db, send }) {
             return 'skipped';
           }
           const payload = getPayload(sub.lang);
-          await send(sub.subscription, payload);
+          await webpush.sendNotification(sub.subscription, payload);
           return 'sent';
         })
       );
@@ -284,8 +191,6 @@ async function runPushSend({ db, send }) {
               sentIdsByDate[localDate].push(batch[j].id);
             }
           }
-          else if (r.value === 'v2_sent') v2Sent++;
-          else if (r.value === 'v2_skipped') { /* counted by reason in v2Skipped */ }
           else skipped++;
         } else {
           const err = r.reason;
@@ -311,15 +216,10 @@ async function runPushSend({ db, send }) {
     }
 
     const result = { sent, failed, skipped, expired: expiredIds.length, passage };
-    // Counts only (never a row id or a passage), and only while the kind is on,
-    // so the off run logs exactly what it logged before.
-    if (v2) result.v2 = { mode: v2.mode, rows: v2.rows.size, sent: v2Sent, skipped: v2Skipped };
     console.log("Push send complete:", result);
     return { statusCode: 200, body: JSON.stringify(result) };
   } catch (err) {
     console.error("Push send error:", err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
-}
-
-exports.runPushSend = runPushSend;
+};

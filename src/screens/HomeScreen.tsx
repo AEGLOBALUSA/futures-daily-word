@@ -59,7 +59,8 @@ import { PathArrivalStrip } from '../components/PathArrivalStrip';
 import { readPathArrival, clearPathArrival } from '../utils/choosePath';
 import { NextStepCard } from '../components/NextStepCard';
 import { NextPill } from '../components/NextPill';
-import { useHomeNextStep } from '../utils/useHomeNextStep';
+import { useHomeNextStep, NEXT_REFRESH_EVENT } from '../utils/useHomeNextStep';
+import { answerReminderOffer } from '../utils/openTimes';
 import { readMoreOpen, writeMoreOpen, moreForTodayNames, localToday, isJourneyDayDone } from '../utils/homeToday';
 import type { NextAction, SetupAsk } from '../utils/nextStep';
 import { chapterOf, notInHero } from '../utils/heroDedupe';
@@ -1824,6 +1825,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       }
       case 'open_plans':
         onNavigate?.('plans');
+        break;
+      case 'set_reminder':
+      case 'keep_reminder':
+        // B09-17: her answer to "Remind you then?". Closed at once either way;
+        // Yes moves the reminder the way the Settings picker does.
+        void answerReminderOffer(action === 'set_reminder', personaConfig.persona);
+        window.dispatchEvent(new Event(NEXT_REFRESH_EVENT));
         break;
     }
   };
