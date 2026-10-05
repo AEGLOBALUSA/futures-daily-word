@@ -76,6 +76,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   const [pushState, setPushState] = useState<'idle' | 'loading'>('idle');
   const [pushSubscribed, setPushSubscribed] = useState(isPushSubscribed);
   const [pushHour, setPushHour] = useState(() => getPushHour());
+  const [editingPushHour, setEditingPushHour] = useState(false);
   // Native push needs a service worker; where there's none (e.g. proxied at
   // futures.church/daily-word) the reminder is a recurring calendar event instead.
   const canPush = pushSupported();
@@ -692,26 +693,44 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 </button>
                 {pushSubscribed && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--dw-border)' }}>
-                    <label
-                      htmlFor="dw-reminder-hour"
-                      style={{ display: 'block', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}
-                    >
-                      Daily reminder time
-                    </label>
-                    <select
-                      id="dw-reminder-hour"
-                      value={pushHour}
-                      onChange={(e) => { const h = parseInt(e.target.value, 10); setPushHour(h); updatePushTime(h); }}
-                      style={{
-                        width: '100%', padding: '12px', borderRadius: 10, fontSize: 14,
-                        fontFamily: 'var(--font-sans)', background: 'var(--dw-surface-hover)',
-                        color: 'var(--dw-text-primary)', border: '1px solid var(--dw-border)',
-                      }}
-                    >
-                      {REMINDER_HOURS.map(h => (
-                        <option key={h} value={h}>{formatHour(h)}</option>
-                      ))}
-                    </select>
+                    {editingPushHour ? (
+                      <>
+                        <label
+                          htmlFor="dw-reminder-hour"
+                          style={{ display: 'block', fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', marginBottom: 8 }}
+                        >
+                          {t('settings_reminder_time', lang).replace('{time}', formatHour(pushHour))}
+                        </label>
+                        <select
+                          id="dw-reminder-hour"
+                          autoFocus
+                          value={pushHour}
+                          onChange={(e) => { const h = parseInt(e.target.value, 10); setPushHour(h); updatePushTime(h); setEditingPushHour(false); }}
+                          style={{
+                            width: '100%', minHeight: 56, padding: '12px', borderRadius: 10, fontSize: 17,
+                            fontFamily: 'var(--font-sans)', background: 'var(--dw-surface-hover)',
+                            color: 'var(--dw-text-primary)', border: '1px solid var(--dw-border)',
+                          }}
+                        >
+                          {REMINDER_HOURS.map(h => (
+                            <option key={h} value={h}>{formatHour(h)}</option>
+                          ))}
+                        </select>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)' }}>
+                          {t('settings_reminder_time', lang).replace('{time}', formatHour(pushHour))}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingPushHour(true)}
+                          style={{ minHeight: 44, padding: '10px 12px', border: 'none', background: 'transparent', color: 'var(--dw-text-primary)', fontSize: 17, fontFamily: 'var(--font-sans)', textDecoration: 'underline', cursor: 'pointer' }}
+                        >
+                          {t('settings_reminder_change', lang)}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

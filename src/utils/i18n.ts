@@ -1156,6 +1156,11 @@ const UI: Translations = {
 
   // ── HOME: THE ONE NEXT STEP (B09-08) ──
   next_read_passage: { en: 'Read {passage}', es: 'Lee {passage}', pt: 'Leia {passage}', id: 'Baca {passage}' },
+  next_reminder_why: { en: 'You usually read around {time}. Remind you then?', es: 'Sueles leer alrededor de las {time}. \u00bfTe lo recordamos a esa hora?', pt: 'Voc\u00ea costuma ler por volta das {time}. Quer um lembrete nesse hor\u00e1rio?', id: 'Kamu biasanya membaca sekitar pukul {time}. Mau diingatkan saat itu?' },
+  next_reminder_yes: { en: 'Yes, {time}', es: 'S\u00ed, {time}', pt: 'Sim, {time}', id: 'Ya, {time}' },
+  next_reminder_keep: { en: 'Keep {time}', es: 'Deja las {time}', pt: 'Manter {time}', id: 'Tetap pukul {time}' },
+  settings_reminder_time: { en: 'Reminder time: {time}', es: 'Hora del recordatorio: {time}', pt: 'Hora do lembrete: {time}', id: 'Waktu pengingat: {time}' },
+  settings_reminder_change: { en: 'Change', es: 'Cambiar', pt: 'Alterar', id: 'Ubah' },
   // B09-17: the daily reminder's title, built on the reader's device (pushReadingState.ts). Neutral, no streak or guilt words.
   push_day_of: { en: 'Day {n} of {plan}', es: 'D\u00eda {n} de {plan}', pt: 'Dia {n} de {plan}', id: 'Hari {n} dari {plan}' },
   push_day_of_journey: { en: 'Day {n} of the 40-day journey', es: 'D\u00eda {n} del camino de 40 d\u00edas', pt: 'Dia {n} da jornada de 40 dias', id: 'Hari {n} dari perjalanan 40 hari' },

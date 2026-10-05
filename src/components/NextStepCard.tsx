@@ -13,7 +13,7 @@ export interface NextStepCardProps {
 
 export function NextStepCard({ next, onAction, renderAsk }: NextStepCardProps): JSX.Element {
   const whyId = useId();
-  const { step, loading, label, why } = next;
+  const { step, loading, label, why, alt } = next;
 
   return (
     <section className={step.kind === 'setup_ask' && !loading ? 'dw-nextstep dw-nextstep--ask' : 'dw-nextstep'} aria-label={label} aria-busy={loading || undefined}>
@@ -37,6 +37,16 @@ export function NextStepCard({ next, onAction, renderAsk }: NextStepCardProps): 
           >
             {label}
           </button>
+          {alt && (
+            <button
+              type="button"
+              className="dw-nextstep-alt"
+              data-testid="next-step-alt"
+              onClick={() => onAction(alt.action)}
+            >
+              {alt.label}
+            </button>
+          )}
         </>
       )}
     </section>

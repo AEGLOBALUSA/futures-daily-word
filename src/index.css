@@ -2484,7 +2484,22 @@ body.dw-reading-active .dw-next-pill {
   padding: 14px 18px;
   cursor: pointer;
 }
+.dw-nextstep-alt {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--dw-border);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--dw-text-primary);
+  font: 17px var(--font-sans);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
 .dw-nextstep-btn:focus-visible,
+.dw-nextstep-alt:focus-visible,
 .dw-more-row:focus-visible {
   outline: 3px solid var(--dw-accent);
   outline-offset: 2px;
