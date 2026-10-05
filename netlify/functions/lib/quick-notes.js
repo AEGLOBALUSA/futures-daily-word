@@ -347,7 +347,7 @@ async function quickNotes({ questions, text, congregation, now = new Date(), ove
     // A message is up but the media form cannot name it or carry the link:
     // never fall back to re-putting a message up, which could replace the
     // one on the page (B09-10 round 10).
-    return { error: "The media form's message or YouTube question is switched off, so a link on its own cannot be added. Switch them on in Settings, Questions.", code: "media_form_off" };
+    return { error: "A link on its own needs the media form\u2019s message and YouTube questions. Ask an admin to switch them back on in History, Ask this again.", code: "media_form_off" };
   }
   if (parsed.youtubeOnly) {
     // Only the link. When the message just preached is up, the link joins it:

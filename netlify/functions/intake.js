@@ -45,7 +45,7 @@ const {
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
-const { quickNotes, hubQuestions, mediaQuestions, nextSundayFor, isForSunday } = require("./lib/quick-notes");
+const { quickNotes, hubQuestions, mediaQuestions, mediaPickQuestion, nextSundayFor, isForSunday } = require("./lib/quick-notes");
 const { isCongregationId } = require("./lib/congregations");
 const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
@@ -340,6 +340,8 @@ async function getCurrentPublished(congregation) {
   if (!data) return null;
   return isCurrentAt(data, new Date()) ? data : null;
 }
+
+const MEDIA_FORM_OFF = "A link on its own needs the media form\u2019s message and YouTube questions. Ask an admin to switch them back on in History, Ask this again.";
 
 /** A refusal the staff screens map to their own words (B09-10 rounds 6 to 9). */
 function targetRefusal(code, message) {
@@ -1026,6 +1028,19 @@ exports.handler = async (event) => {
         }
       }
       const plan = applyAnswers(visible, answers, { name: staff.name || staff.email });
+      if (job === "media") {
+        // The media form adds a video (or notes) to the message it names. If
+        // its message or link question was switched off since the screen was
+        // drawn, nothing is written: the video would land on whatever message
+        // is current, or the message would be re-put up with nothing added
+        // (B09-10 round 11).
+        const patch = plan.sermonPatch || {};
+        const addsNothing = !patch.youtubeUrl && !hasNotesContent(patch) && !patch.title;
+        if ((plan.youtubeOnly && !mediaPickQuestion(visible)) || addsNothing) {
+          console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: "media_form_off" }));
+          return json(event, 400, { error: MEDIA_FORM_OFF, code: "media_form_off" });
+        }
+      }
       const congregation = normalizeCongregation(body.congregation);
       let formatted_sermon = null;
       let format_source = null;

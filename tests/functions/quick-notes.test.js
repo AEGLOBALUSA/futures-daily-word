@@ -489,6 +489,25 @@ describe('notes_quick then submit on a frozen Monday: the link joins yesterday\'
     expect(JSON.stringify(fake.tables.published_sermons)).toBe(before);
   });
 
+  it('a media save that adds nothing, or a link with the message question switched off, writes nothing (round 11)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-05T14:00:00Z'));
+    fake.tables.published_sermons.push({
+      id: 'ordinary-faith-2026-10-04', congregation: 'futures-us', is_current: true, published_at: '2026-10-01T15:00:00.000Z',
+      sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', date: '2026-10-04', sections: [] },
+    });
+    const before = JSON.stringify(fake.tables.published_sermons);
+    const s1 = await call({ action: 'submit', job: 'media', congregation: 'futures-us', answers: { 'x-media-pick': 'ordinary-faith-2026-10-04' } }, TOKENS.hub);
+    expect(s1.status).toBe(400);
+    expect(s1.body.code).toBe('media_form_off');
+    fake.tables.intake_questions = fake.tables.intake_questions.map((q) => (q.id === 'x-media-pick' ? { ...q, enabled: false } : q));
+    const s2 = await call({ action: 'submit', job: 'media', congregation: 'futures-us', answers: { 'x-media-yt': 'https://youtu.be/dQw4w9WgXcQ' } }, TOKENS.hub);
+    expect(s2.status).toBe(400);
+    expect(s2.body.code).toBe('media_form_off');
+    expect(JSON.stringify(fake.tables.published_sermons)).toBe(before);
+    expect(fake.tables.intake_submissions).toHaveLength(0);
+  });
+
   it('with next Sunday\'s notes already up, the link is not put on them and nothing is written: the media form is the way on', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-05T14:00:00Z')); // Mon 5 Oct, 10:00 in New York
