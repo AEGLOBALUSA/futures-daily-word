@@ -1717,3 +1717,49 @@ describe('question wording changes in place (B09-03)', { timeout: 30_000 }, () =
     expect((await call({ action: 'question_enabled_set', id: 'q_hub_title' }, await adminToken())).status).toBe(400);
   });
 });
+
+describe('prayer care on /staff: the gate three ways (B09-12)', () => {
+  const HELD_HERE = '11111111-1111-4111-8111-111111111111';
+  const HELD_THERE = '22222222-2222-4222-8222-222222222222';
+  function seedPrayers() {
+    const now = new Date().toISOString();
+    tables.prayers = [
+      { id: HELD_HERE, prayer: 'Call me on 0400 000 000', name: 'Jo Example', email: 'jo@example.org', campus: 'au-paradise', prayer_count: 0, created_at: now, status: 'held', held_reason: 'contact' },
+      { id: HELD_THERE, prayer: 'see example.com', name: 'Anonymous', email: '', campus: 'us-kennesaw', prayer_count: 0, created_at: now, status: 'held', held_reason: 'link' },
+      { id: '33333333-3333-4333-8333-333333333333', prayer: 'Healing for my mum', name: 'Anonymous', email: 'quiet@example.org', campus: 'au-paradise', prayer_count: 2, created_at: now, status: 'shown', held_reason: null },
+    ];
+  }
+
+  it('anon (no session) gets 401 on both actions', async () => {
+    seedPrayers();
+    expect((await call({ action: 'prayers_week' })).status).toBe(401);
+    expect((await call({ action: 'prayer_decide', id: HELD_HERE, decision: 'show' })).status).toBe(401);
+    expect(tables.prayers.find((p) => p.id === HELD_HERE).status).toBe('held');
+  });
+
+  it("a campus pastor sees their own campus and gets 403 on another campus's post", async () => {
+    seedPrayers();
+    addRoster({ email: 'pastor@futures.church', role: 'campus', campus_id: 'au-paradise', campus_set_by: 'ae@futures.global', password_hash: hashPassword(PASSWORD) });
+    const token = await signIn('pastor@futures.church');
+    const list = await call({ action: 'prayers_week' }, token);
+    expect(list.status).toBe(200);
+    expect(list.body.held.map((p) => p.id)).toEqual([HELD_HERE]);
+    expect(JSON.stringify(list.body)).not.toMatch(/quiet@|Jo Example|jo@|kennesaw/i);
+    expect((await call({ action: 'prayer_decide', id: HELD_THERE, decision: 'show' }, token)).status).toBe(403);
+    expect(tables.prayers.find((p) => p.id === HELD_THERE).status).toBe('held');
+    const ok = await call({ action: 'prayer_decide', id: HELD_HERE, decision: 'private' }, token);
+    expect(ok).toMatchObject({ status: 200, body: { ok: true, status: 'private' } });
+    expect(tables.prayers).toHaveLength(3);
+  });
+
+  it('media is refused; admin sees every campus', async () => {
+    seedPrayers();
+    addRoster({ email: 'noah.terrell@futures.church', role: 'media', password_hash: hashPassword(PASSWORD) });
+    const mediaToken = await signIn('noah.terrell@futures.church');
+    expect((await call({ action: 'prayers_week' }, mediaToken)).status).toBe(403);
+    const token = await adminToken();
+    const list = await call({ action: 'prayers_week' }, token);
+    expect(list.status).toBe(200);
+    expect(list.body.held.map((p) => p.id).sort()).toEqual([HELD_HERE, HELD_THERE].sort());
+  });
+});

@@ -18,6 +18,8 @@ const require_ = createRequire(import.meta.url);
 const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
 const C = '33333333-3333-4333-8333-333333333333';
+const HELD = '44444444-4444-4444-8444-444444444444';
+const PRIV = '55555555-5555-4555-8555-555555555555';
 
 const state = {
   kind: null, // { mode, shadow_recipients } or null (no row)
@@ -35,7 +37,12 @@ function reset() {
   state.prayers = [
     { id: A, prayer: 'Please pray for my job interview', name: 'Sam Example', campus: 'au-paradise', email: 'sam@example.org', prayer_count: 4, created_at: new Date().toISOString() },
     { id: B, prayer: 'Healing for my mum', name: 'Anonymous', campus: '', email: 'b@example.org', prayer_count: 1, created_at: new Date().toISOString() },
+    // B09-12: waiting for a look, and kept private. Neither may reach the wall.
+    { id: HELD, prayer: 'Call me on 0400 000 000', name: 'Jo Example', campus: 'au-paradise', email: 'jo@example.org', prayer_count: 0, created_at: new Date().toISOString(), status: 'held', held_reason: 'contact' },
+    { id: PRIV, prayer: 'Kept private by staff', name: 'Anonymous', campus: 'au-paradise', email: '', prayer_count: 0, created_at: new Date().toISOString(), status: 'private', held_reason: 'link' },
   ];
+  for (const p of state.prayers) if (!p.status) p.status = 'shown';
+  state.queried = [];
 }
 
 function fakeDb() {
@@ -65,6 +72,8 @@ function run(q, shape) {
     return { data: state.kind, error: null };
   }
   if (q.table === 'dw_campuses') return { data: [], error: null };
+  state.queried.push(q.table);
+  if (q.table === 'staff_roster' || q.table === 'dw_prompt_log') return { data: [], error: null };
   if (q.table === 'prayers') {
     if (q.op === 'insert') {
       const row = { id: C, ...q.row };
@@ -107,7 +116,7 @@ describe('POST create (B09-11)', () => {
   it('returns the new request id', async () => {
     const res = await post({ action: 'create', prayer: 'Please pray', name: 'Anonymous', campus: '' });
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ success: true, id: C });
+    expect(JSON.parse(res.body)).toEqual({ success: true, id: C, held: false });
     expect(state.inserted).toHaveLength(1);
   });
 });
@@ -183,5 +192,43 @@ describe('GET wall prayedConfirm (B09-11)', () => {
       expect(body.prayedConfirm).toBe(want);
       expect(res.body).not.toMatch(/example\.org/);
     }
+  });
+});
+
+describe('prayer care (B09-12)', () => {
+  it('an ordinary request goes straight on the wall', async () => {
+    const res = await post({ action: 'create', prayer: 'Please pray for my exams', name: 'Sam Example', campus: 'au-paradise', email: 'sam@example.org' });
+    expect(JSON.parse(res.body)).toEqual({ success: true, id: C, held: false });
+    expect(state.inserted[0]).toMatchObject({ status: 'shown', held_reason: null });
+  });
+
+  it('a request carrying a phone, an email, a link or bad language waits for a look', async () => {
+    for (const [prayer, reason] of [
+      ['Call me on 0400 123 456', 'contact'],
+      ['email me at sam@example.org', 'contact'],
+      ['see https://example.org', 'link'],
+      ['this is shit', 'language'],
+    ]) {
+      reset();
+      const res = await post({ action: 'create', prayer, name: 'Anonymous', campus: '' });
+      expect(JSON.parse(res.body), prayer).toEqual({ success: true, id: C, held: true });
+      expect(state.inserted[0], prayer).toMatchObject({ status: 'held', held_reason: reason });
+    }
+  });
+
+  it('while dw_prayer_held is off, a held post emails nobody and logs nothing', async () => {
+    state.kind = { mode: 'off', shadow_recipients: [] };
+    await post({ action: 'create', prayer: 'Call me on 0400 123 456', name: 'Anonymous', campus: 'au-paradise' });
+    expect(state.queried).not.toContain('staff_roster');
+    expect(state.queried).not.toContain('dw_prompt_log');
+  });
+
+  it('the wall never returns a held or private request', async () => {
+    const res = await get({ filter: 'all' });
+    const body = JSON.parse(res.body);
+    expect(body.prayers.map((p) => p.id).sort()).toEqual([A, B].sort());
+    expect(res.body).not.toMatch(/0400|Kept private|Jo Example/);
+    const mine = await get({ filter: 'my-campus', campus: 'au-paradise' });
+    expect(JSON.parse(mine.body).prayers.map((p) => p.id)).toEqual([A]);
   });
 });
