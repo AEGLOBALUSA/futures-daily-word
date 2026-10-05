@@ -1278,7 +1278,14 @@ const UI: Translations = {
   prayer_care_retry: { en: "Try again", es: "Intentar de nuevo", pt: "Tentar novamente", id: "Coba lagi" },
   prayer_care_loading: { en: "Loading prayer requests\u2026", es: "Cargando peticiones de oraci\u00f3n\u2026", pt: "Carregando pedidos de ora\u00e7\u00e3o\u2026", id: "Memuat permohonan doa\u2026" },
   prayer_care_saving: { en: "Saving your decision\u2026", es: "Guardando tu decisi\u00f3n\u2026", pt: "Salvando sua decis\u00e3o\u2026", id: "Menyimpan keputusanmu\u2026" },
-  prayer_care_decision_failed: { en: "Your decision was not saved.", es: "No se guard\u00f3 tu decisi\u00f3n.", pt: "Sua decis\u00e3o n\u00e3o foi salva.", id: "Keputusanmu belum tersimpan." },
+  prayer_care_decision_failed: { en: "That did not save. Try again.", es: "No se guard\u00f3. Int\u00e9ntalo de nuevo.", pt: "N\u00e3o foi salvo. Tente novamente.", id: "Belum tersimpan. Coba lagi." },
+  prayer_care_another_campus: { en: "This request belongs to another campus.", es: "Esta petici\u00f3n pertenece a otra sede.", pt: "Este pedido pertence a outro campus.", id: "Permohonan ini berasal dari kampus lain." },
+  prayer_care_request_gone: { en: "That request is not there any more.", es: "Esa petici\u00f3n ya no est\u00e1 disponible.", pt: "Esse pedido n\u00e3o est\u00e1 mais dispon\u00edvel.", id: "Permohonan itu sudah tidak ada lagi." },
+  prayer_care_decision_shown: { en: "On the wall now.", es: "Ya est\u00e1 en el muro.", pt: "Agora est\u00e1 no mural.", id: "Sekarang sudah ada di dinding doa." },
+  prayer_care_decision_private: { en: "Kept private. Only staff can see it.", es: "Se mantuvo privada. Solo el personal puede verla.", pt: "Mantido em particular. S\u00f3 a equipe pode ver.", id: "Disimpan secara pribadi. Hanya staf yang dapat melihatnya." },
+  prayer_care_decision_decided: { en: "Someone else already looked at this one.", es: "Alguien m\u00e1s ya revis\u00f3 esta petici\u00f3n.", pt: "Outra pessoa j\u00e1 revisou este pedido.", id: "Orang lain sudah meninjau permohonan ini." },
+  prayer_care_next_request: { en: "The next request is below.", es: "La siguiente petici\u00f3n est\u00e1 abajo.", pt: "O pr\u00f3ximo pedido est\u00e1 abaixo.", id: "Permohonan berikutnya ada di bawah." },
+  prayer_care_none_waiting: { en: "No more requests are waiting.", es: "No hay m\u00e1s peticiones en espera.", pt: "N\u00e3o h\u00e1 mais pedidos aguardando.", id: "Tidak ada lagi permohonan yang menunggu." },
   prayer_care_retry_decision: { en: "Try either button again.", es: "Vuelve a pulsar uno de los botones.", pt: "Tente um dos bot\u00f5es novamente.", id: "Coba tekan salah satu tombol lagi." },
 };
 

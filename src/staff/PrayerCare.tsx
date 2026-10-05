@@ -6,7 +6,7 @@ import type { PrayerCare as PrayerCareData, PrayerDecision } from './prayerCareA
 const cardStyle: CSSProperties = {
   background: 'var(--dw-card)', color: 'var(--dw-text-primary)',
   border: '1px solid var(--dw-border)', borderRadius: 16, padding: 20,
-  marginBottom: 16, fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere',
+  marginBottom: 16, maxWidth: 680, fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 const secondaryStyle: CSSProperties = {
@@ -30,6 +30,8 @@ export function PrayerCare({ staff, children }: {
   const [loading, setLoading] = useState(allowed);
   const [loadFailed, setLoadFailed] = useState(false);
   const [decisionError, setDecisionError] = useState('');
+  const [unavailableError, setUnavailableError] = useState('');
+  const [decisionNotice, setDecisionNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const inFlight = useRef(false);
@@ -74,13 +76,23 @@ export function PrayerCare({ staff, children }: {
     inFlight.current = true;
     setBusy(true);
     setDecisionError('');
+    setUnavailableError('');
+    setDecisionNotice('');
     try {
-      await careApi.decidePrayer(id, decision);
-      // Includes 'decided': another staff member got there first. Just reload.
+      const result = await careApi.decidePrayer(id, decision);
       await reload();
+      setDecisionNotice(`decision_${result}`);
     } catch (err) {
-      const message = (err as { message?: unknown })?.message;
-      setDecisionError(typeof message === 'string' && message ? message : text('decision_failed'));
+      const status = (err as { status?: number })?.status;
+      if (status === 401) return; // The app opens sign-in for an expired session.
+      if (status === 403 || status === 404) {
+        setUnavailableError(status === 403 ? 'another_campus' : 'request_gone');
+        // Retire this card immediately, including if refreshing the list fails.
+        setData(current => current ? { ...current, held: current.held.filter(row => row.id !== id) } : current);
+        await reload();
+      } else {
+        setDecisionError('decision_failed');
+      }
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -93,6 +105,10 @@ export function PrayerCare({ staff, children }: {
   const held = allowed ? data?.held[0] : undefined;
 
   return <>
+    {allowed && <p role="status" style={{ ...lineStyle, maxWidth: 680, margin: decisionNotice ? '12px 0' : 0 }}>
+      {decisionNotice && `${text(decisionNotice)}${held ? ` ${text('next_request')}` : data ? ` ${text('none_waiting')}` : ''}`}
+    </p>}
+    {allowed && unavailableError && <p role="alert" style={{ ...lineStyle, maxWidth: 680, color: 'var(--dw-error)' }}>{text(unavailableError)}</p>}
     {held && (
       <section style={cardStyle} aria-labelledby="prayer-care-held-title">
         <h2 id="prayer-care-held-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>
@@ -103,15 +119,15 @@ export function PrayerCare({ staff, children }: {
         {held.heldReason && <p style={quietStyle}>{text(`reason_${held.heldReason}`)}</p>}
         <p style={quietStyle}>{days(held.daysAgo, true)}</p>
         <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-card)', padding: '12px 0', display: 'grid', gap: 10 }}>
-          <button type="button" className="dw-next font-semibold" aria-disabled={busy} onClick={() => void decide(held.id, 'show')}
-            style={{ ...secondaryStyle, width: '100%', minHeight: 56, background: 'var(--dw-accent)', color: 'var(--dw-accent-on-fill)', borderColor: 'var(--dw-accent)' }}>
+          <button type="button" className="dw-campus-main dw-next font-semibold" aria-disabled={busy} onClick={() => void decide(held.id, 'show')}
+            style={{ ...secondaryStyle, '--mos-main-button-height': '56px', width: '100%', minHeight: 56, background: 'var(--dw-accent)', color: 'var(--dw-accent-on-fill)', borderColor: 'var(--dw-accent)' } as CSSProperties}>
             {text('show')}
           </button>
           <button type="button" className="font-semibold" aria-disabled={busy} style={secondaryStyle} onClick={() => void decide(held.id, 'private')}>
             {text('private')}
           </button>
           {busy && <p role="status" style={{ ...quietStyle, margin: 0 }}>{text('saving')}</p>}
-          {decisionError && <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{decisionError} {text('retry_decision')}</p>}
+          {decisionError && <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text(decisionError)}</p>}
         </div>
       </section>
     )}
