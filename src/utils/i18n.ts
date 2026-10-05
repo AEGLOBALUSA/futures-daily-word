@@ -1206,6 +1206,18 @@ const UI: Translations = {
 
   // ── HOME: THE ONE NEXT STEP (B09-08) ──
   next_read_passage: { en: 'Read {passage}', es: 'Lee {passage}', pt: 'Leia {passage}', id: 'Baca {passage}' },
+  next_reminder_why: { en: 'You usually read around {time}. Remind you then?', es: 'Sueles leer alrededor de las {time}. \u00bfTe lo recordamos a esa hora?', pt: 'Voc\u00ea costuma ler por volta das {time}. Quer um lembrete nesse hor\u00e1rio?', id: 'Kamu biasanya membaca sekitar pukul {time}. Mau diingatkan saat itu?' },
+  next_reminder_yes: { en: 'Yes, {time}', es: 'S\u00ed, {time}', pt: 'Sim, {time}', id: 'Ya, {time}' },
+  next_reminder_keep: { en: 'Keep {time}', es: 'Deja las {time}', pt: 'Manter {time}', id: 'Tetap pukul {time}' },
+  settings_reminder_time: { en: 'Reminder time: {time}', es: 'Hora del recordatorio: {time}', pt: 'Hora do lembrete: {time}', id: 'Waktu pengingat: {time}' },
+  settings_reminder_change: { en: 'Change', es: 'Cambiar', pt: 'Alterar', id: 'Ubah' },
+  reminder_saving: { en: 'Saving\u2026', es: 'Guardando\u2026', pt: 'Salvando\u2026', id: 'Menyimpan\u2026' },
+  reminder_saved: { en: 'Your reminder is now {time}.', es: 'Tu recordatorio ahora es a las {time}.', pt: 'Seu lembrete agora \u00e9 \u00e0s {time}.', id: 'Pengingatmu sekarang pukul {time}.' },
+  reminder_save_failed: { en: "Couldn't change your reminder. Try again.", es: 'No se pudo cambiar tu recordatorio. Int\u00e9ntalo de nuevo.', pt: 'N\u00e3o foi poss\u00edvel alterar seu lembrete. Tente novamente.', id: 'Tidak dapat mengubah pengingatmu. Coba lagi.' },
+  reminder_retry: { en: 'Try again', es: 'Int\u00e9ntalo de nuevo', pt: 'Tente novamente', id: 'Coba lagi' },
+  // B09-17: the daily reminder's title, built on the reader's device (pushReadingState.ts). Neutral, no streak or guilt words.
+  push_day_of: { en: 'Day {n} of {plan}', es: 'D\u00eda {n} de {plan}', pt: 'Dia {n} de {plan}', id: 'Hari {n} dari {plan}' },
+  push_day_of_journey: { en: 'Day {n} of the 40-day journey', es: 'D\u00eda {n} del camino de 40 d\u00edas', pt: 'Dia {n} da jornada de 40 dias', id: 'Hari {n} dari perjalanan 40 hari' },
   next_read_day: { en: 'Read Day {n}', es: 'Lee el d\u00eda {n}', pt: 'Leia o dia {n}', id: 'Baca Hari {n}' },
   next_sermon_notes: { en: "Open today's sermon notes", es: 'Abre las notas del mensaje de hoy', pt: 'Abra as notas da mensagem de hoje', id: 'Buka catatan khotbah hari ini' },
   next_journey_ready: { en: 'Day {n} is ready: tap Read on the photo above', es: 'El d\u00eda {n} est\u00e1 listo: toca Leer en la foto de arriba', pt: 'O dia {n} est\u00e1 pronto: toque em Ler na foto acima', id: 'Hari {n} sudah siap: ketuk Baca pada foto di atas' },

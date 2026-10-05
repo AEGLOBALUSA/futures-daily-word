@@ -22,6 +22,9 @@
  *      grew since she last saw it (B09-11) → "{n} people prayed for your
  *      request this week." See your request. Only while dw_prayed_count is on
  *      (the server answers nothing while it is off); 14 days per request.
+ *   6c. Her usual hour is not her reminder's hour (B09-17, openTimes.ts) →
+ *      "You usually read around {time}. Remind you then?" Yes, {time} ·
+ *      Keep {time}. Offered once, only with reminders on, never on Comfort.
  *   7. Read, not reflected, not quietened → Write it down.
  *   8. One set-up ask, after the reading, at most one a day: install, back-up
  *      email, then path upgrade, each only when its own component applies.
@@ -32,7 +35,7 @@
  * (dw_next_skips, this device only, never synced).
  *
  * Later builds add their Home cards here as kinds (after 5, before 7):
- * reminders (B09-17, "Remind you then?"). Prayer counts (B09-11) are 6b.
+ * prayer counts (B09-11, 6b) and the reminder offer (B09-17, 6c).
  */
 import { addDays } from './zonedTime';
 
@@ -46,6 +49,7 @@ export type NextKind =
   | 'read'
   | 'reading'
   | 'sunday_notes'
+  | 'reminder_offer'
   | 'prayed'
   | 'write'
   | 'setup_ask'
@@ -60,6 +64,7 @@ export type NextAction =
   | 'open_plans'     // the Plans tab
   | 'open_prayers'   // the Campus tab's Prayer Wall, at her request (B09-11)
   | 'write'          // open the passage and its in-place reflection box
+  | 'set_reminder' | 'keep_reminder' // her answer to the reminder offer (B09-17)
   | 'install' | 'email' | 'upgrade' // the set-up ask's own component, in the card
   | 'none';          // no button: the step is on the page already, or the day is done
 
@@ -112,6 +117,11 @@ export interface NextStepState {
    * count is new to her (myPrayers.prayedCard). null or absent: nothing to say.
    */
   prayed?: { count: number } | null;
+  /**
+   * B09-17: the reminder offer (openTimes.currentReminderOffer), its two times
+   * already in her language. null or absent: nothing to offer.
+   */
+  reminderOffer?: { time: string; keepTime: string } | null;
 }
 
 export interface NextStep {
@@ -125,6 +135,8 @@ export interface NextStep {
   /** Optional one line of why, shown above or beside the button. */
   whyKey?: string;
   whyParams?: Record<string, string>;
+  /** Optional second answer, a quiet button beside the main one (the reminder offer's Keep). */
+  alt?: { labelKey: string; params: Record<string, string>; action: NextAction };
 }
 
 const STUDY_PERSONAS = new Set(['pastor_leader', 'deeper_study']);
@@ -203,6 +215,16 @@ export function nextStep(state: NextStepState): NextStep {
     return {
       kind: 'prayed', step: 6, labelKey: 'next_see_request', params: {}, action: 'open_prayers',
       whyKey: n === 1 ? 'next_prayed_one' : 'next_prayed_many', whyParams: { n: String(n) },
+    };
+  }
+
+  // 6c. Her usual hour differs from her reminder's (B09-17): offered once.
+  if (state.reminderOffer) {
+    const { time, keepTime } = state.reminderOffer;
+    return {
+      kind: 'reminder_offer', step: 6, labelKey: 'next_reminder_yes', params: { time }, action: 'set_reminder',
+      whyKey: 'next_reminder_why', whyParams: { time },
+      alt: { labelKey: 'next_reminder_keep', params: { time: keepTime }, action: 'keep_reminder' },
     };
   }
 
