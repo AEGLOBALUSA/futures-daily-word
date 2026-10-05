@@ -21,6 +21,10 @@ describe('misc bag key predicate', () => {
     expect(isSyncedMiscKey('dw_pathway_qa_40')).toBe(false);
   });
 
+  it('keeps the poster\'s own prayer request ids on this phone (B09-11)', () => {
+    expect(isSyncedMiscKey('dw_my_prayers')).toBe(false);
+  });
+
   it('never lets the progress record or the profile through the misc side door', () => {
     expect(isSyncedMiscKey('dw_pathway_progress')).toBe(false);
     expect(isSyncedMiscKey('dw_profile')).toBe(false);

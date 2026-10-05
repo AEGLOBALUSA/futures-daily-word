@@ -873,6 +873,8 @@ const UI: Translations = {
   praying_label: { en: 'Praying', es: 'Orando', pt: 'Orando', id: 'Mendoakan' },
 
   // \u2500\u2500 PRAYER WALL \u2500\u2500
+  pray_failed: { en: "Couldn't send your prayer. Try again.", es: 'No se pudo enviar tu oración. Inténtalo de nuevo.', pt: 'Não foi possível enviar sua oração. Tente de novo.', id: 'Doamu belum terkirim. Coba lagi.' },
+  prayer_request_older: { en: "Your request isn't on the wall right now.", es: 'Tu petición no está en el muro ahora mismo.', pt: 'Seu pedido não está no mural neste momento.', id: 'Permohonanmu tidak ada di dinding doa saat ini.' },
   all_campuses: { en: 'All Campuses', es: 'Todas las sedes', pt: 'Todos os campi', id: 'Semua Kampus' },
   my_campus: { en: 'My Campus', es: 'Mi sede', pt: 'Meu campus', id: 'Kampusku' },
   add_prayer: { en: 'Add Prayer', es: 'Agregar oraci\u00f3n', pt: 'Adicionar ora\u00e7\u00e3o', id: 'Tambah Doa' },
@@ -1162,6 +1164,11 @@ const UI: Translations = {
   next_pill: { en: 'Next', es: 'Siguiente', pt: 'Pr\u00f3ximo', id: 'Berikutnya' },
   next_finish_passage: { en: 'Mark as read when you finish {passage}', es: 'Marca como le\u00eddo cuando termines {passage}', pt: 'Marque como lido quando terminar {passage}', id: 'Tandai sudah dibaca setelah selesai membaca {passage}' },
   next_write_it_down: { en: 'Write it down', es: 'Escr\u00edbelo', pt: 'Escreva', id: 'Tuliskan' },
+  next_prayed_one: { en: '1 person prayed for your request', es: '1 persona or\u00f3 por tu petici\u00f3n', pt: '1 pessoa orou pelo seu pedido', id: '1 orang berdoa untuk permohonanmu' },
+  next_prayed_many: { en: '{n} people prayed for your request this week', es: '{n} personas oraron por tu petici\u00f3n esta semana', pt: '{n} pessoas oraram pelo seu pedido esta semana', id: '{n} orang berdoa untuk permohonanmu minggu ini' },
+  next_see_request: { en: 'See your request', es: 'Ve tu petici\u00f3n', pt: 'Veja seu pedido', id: 'Lihat permohonanmu' },
+  prayed_confirm: { en: 'Prayed. They\u2019ll know someone prayed.', es: 'Oraste. Sabr\u00e1n que alguien or\u00f3.', pt: 'Voc\u00ea orou. V\u00e3o saber que algu\u00e9m orou.', id: 'Sudah didoakan. Mereka akan tahu ada yang berdoa.' },
+  prayer_yours: { en: 'Your request', es: 'Tu petici\u00f3n', pt: 'Seu pedido', id: 'Permohonanmu' },
   next_write_prompt: { en: 'What is God saying to you in {passage}?', es: '\u00bfQu\u00e9 te est\u00e1 diciendo Dios en {passage}?', pt: 'O que Deus est\u00e1 dizendo a voc\u00ea em {passage}?', id: 'Apa yang Tuhan katakan kepadamu dalam {passage}?' },
   next_tomorrow: { en: 'Tomorrow: {passage}', es: 'Ma\u00f1ana: {passage}', pt: 'Amanh\u00e3: {passage}', id: 'Besok: {passage}' },
   next_done_today: { en: "Done for today. Tomorrow's reading will be here in the morning.", es: 'Listo por hoy. La lectura de ma\u00f1ana estar\u00e1 aqu\u00ed por la ma\u00f1ana.', pt: 'Pronto por hoje. A leitura de amanh\u00e3 estar\u00e1 aqui pela manh\u00e3.', id: 'Selesai untuk hari ini. Bacaan besok akan ada di sini pagi nanti.' },
