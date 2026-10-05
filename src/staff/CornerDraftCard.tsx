@@ -44,6 +44,7 @@ type EditorMemory = {
 const draftKey = (draft: Pick<CornerDraft, 'campusId' | 'weekOf'>) => JSON.stringify([draft.campusId, draft.weekOf]);
 const storagePrefix = 'dw_corner_draft_unsaved:';
 const storageKey = (draft: CornerDraft) => `${storagePrefix}${draft.campusId}:${draft.weekOf}`;
+const pendingWrites = new Map<string, number>();
 function readEditors() {
   const editors = new Map<string, EditorMemory>();
   try {
@@ -70,7 +71,7 @@ function readEditors() {
 function storeEditor(draft: CornerDraft, value: EditorMemory | null) {
   try {
     if (value) sessionStorage.setItem(storageKey(draft), JSON.stringify(value));
-    else sessionStorage.removeItem(storageKey(draft));
+    else if (!pendingWrites.has(storageKey(draft))) sessionStorage.removeItem(storageKey(draft));
   } catch { /* Storage is optional; never block editing or publishing. */ }
 }
 const scrollClearance = () => {
@@ -145,6 +146,16 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
       if (!active) return;
       const code = cornerDraftErrorCode(err);
       const finished = code === 'no_draft' || code === 'not_draft';
+      if (finished && !isAdmin) {
+        // With no campusId on a pastor read, use the campus validated against the stored key.
+        const recovery = [...editorMemory.values()]
+          .sort((a, b) => b.draft.weekOf.localeCompare(a.draft.weekOf))[0]?.draft;
+        if (recovery) {
+          setDraft(recovery);
+          setOpenedDrafts(current => current.some(opened => draftKey(opened) === draftKey(recovery))
+            ? current : [...current, recovery]);
+        }
+      }
       setReadState(finished ? 'finished' : 'failed');
       if (finished) setWaiting(rows => rows.filter(row => row.campusId !== campusId));
     });
@@ -249,7 +260,7 @@ function DraftEditor({ initial, memory, active, campusId, serverFinished, onRete
   useEffect(() => {
     const value = { draft, body, prayerPoint, answer, fresh, pendingQuestion, dismissed, savedWords, outcome };
     memory.set(draftKey(draft), value);
-    storeEditor(draft, keepWords ? value : null);
+    storeEditor(draft, keepWords || pendingWrites.has(storageKey(draft)) ? value : null);
   }, [memory, draft, body, prayerPoint, answer, fresh, pendingQuestion, dismissed, savedWords, outcome, keepWords]);
   useEffect(() => { serverDraft.current = initial; }, [initial]);
   useEffect(() => {
@@ -374,8 +385,15 @@ function DraftEditor({ initial, memory, active, campusId, serverFinished, onRete
         } else setPendingQuestion(question);
       } else if (action === 'publish' || action === 'skip') {
         const sent = { body, prayerPoint, answer };
-        if (action === 'publish') await publishCornerDraft(sent.body, sent.prayerPoint, campusId, draft.version);
-        else await skipCornerDraft(campusId, draft.version);
+        const key = storageKey(draft);
+        pendingWrites.set(key, (pendingWrites.get(key) ?? 0) + 1);
+        try {
+          if (action === 'publish') await publishCornerDraft(sent.body, sent.prayerPoint, campusId, draft.version);
+          else await skipCornerDraft(campusId, draft.version);
+        } finally {
+          const remaining = pendingWrites.get(key)! - 1;
+          if (remaining) pendingWrites.set(key, remaining); else pendingWrites.delete(key);
+        }
         // Storage may have newer words even after this editor has unmounted.
         const current = readEditors().get(draftKey(draft)) ?? {
           draft, ...edits.current, fresh, pendingQuestion, dismissed, savedWords, outcome,

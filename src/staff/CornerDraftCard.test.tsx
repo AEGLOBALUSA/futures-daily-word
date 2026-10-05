@@ -100,6 +100,93 @@ afterEach(() => {
 });
 
 describe('CornerDraftCard, campus pastor', () => {
+  it('round 7 MUST: returning to Staff preserves the original words until every publish or skip settles', async () => {
+    await mount();
+    for (const action of ['publish', 'skip'] as const) {
+      const pending = deferred<Awaited<ReturnType<typeof publishCornerDraft>>>();
+      const skipped = deferred<void>();
+      vi.mocked(getCornerDraft).mockResolvedValue(response(draft()));
+      vi.mocked(publishCornerDraft).mockReturnValue(pending.promise);
+      vi.mocked(skipCornerDraft).mockReturnValue(skipped.promise);
+      sessionStorage.clear();
+      await remount();
+      type('The corner note', 'Submitted note');
+      await press(action === 'publish' ? PUBLISH : 'Not this week');
+      await remount();
+      type('The corner note', draft().body);
+      expect(JSON.parse(sessionStorage.getItem(unsavedKey())!).body).toBe(draft().body);
+      await remount();
+      expect(field('The corner note')?.value).toBe(draft().body);
+      expect(JSON.parse(sessionStorage.getItem(unsavedKey())!).body).toBe(draft().body);
+
+      // Another editor can start a write while the unmounted editor still awaits its request.
+      const newer = deferred<void>();
+      vi.mocked(skipCornerDraft).mockReturnValueOnce(newer.promise);
+      await press('Not this week');
+      await act(async () => newer.resolve());
+      expect(sessionStorage.getItem(unsavedKey())).not.toBeNull();
+      act(() => root.render(null));
+      await act(async () => {
+        if (action === 'publish') pending.resolve({ campusId: 'us-test', campusName: 'Test Campus', item: { title: '', content: '' } });
+        else skipped.resolve();
+      });
+      expect(JSON.parse(sessionStorage.getItem(unsavedKey())!)).toMatchObject({
+        body: draft().body, savedWords: draft().body, outcome: action === 'publish' ? 'published' : 'skipped',
+      });
+      vi.mocked(getCornerDraft).mockResolvedValue(response(null));
+      await remount();
+      expect(el.querySelector('[role="region"]')?.textContent).toBe(draft().body);
+
+      // Once the last write settles, words identical to those sent can be cleared.
+      sessionStorage.clear();
+      vi.mocked(getCornerDraft).mockResolvedValue(response(draft()));
+      const unchanged = deferred<void>();
+      vi.mocked(skipCornerDraft).mockReturnValueOnce(unchanged.promise);
+      await remount();
+      type('The corner note', 'Submitted note');
+      await press('Not this week');
+      await remount();
+      expect(sessionStorage.getItem(unsavedKey())).not.toBeNull();
+      await act(async () => unchanged.resolve());
+      expect(sessionStorage.getItem(unsavedKey())).toBeNull();
+    }
+  });
+
+  it('round 7 MUST: terminal pastor reads recover stored campus words with copy and form actions', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    clipboard({ writeText });
+    await mount();
+    for (const code of ['no_draft', 'not_draft']) {
+      sessionStorage.clear();
+      vi.mocked(getCornerDraft).mockResolvedValue(response(draft({ prayerPoint: 'Original prayer' })));
+      await remount();
+      type('The corner note', 'My unsaved note');
+      type('Prayer point (your words)', 'My unsaved prayer');
+      type('Anything on at Test Campus this week?', 'My unsaved answer');
+      const stored = sessionStorage.getItem(unsavedKey())!;
+      // The stored key must agree with its campus; malformed entries cannot replace recovery.
+      sessionStorage.setItem(unsavedKey('us-wrong'), stored);
+      vi.mocked(getCornerDraft).mockRejectedValueOnce({ data: { code } });
+      await remount();
+      const kept = 'My unsaved note\n\nMy unsaved prayer\n\nMy unsaved answer';
+      expect(getCornerDraft).toHaveBeenLastCalledWith(undefined);
+      expect(el.textContent).toContain("This week's draft is already done.");
+      expect(el.querySelector('[role="region"]')?.textContent).toBe(kept);
+      expect(button(PUBLISH)).toBeUndefined();
+      await press('Copy my words');
+      expect(writeText).toHaveBeenLastCalledWith(kept);
+      await press('Use the form instead');
+      expect(onJob).toHaveBeenLastCalledWith('campus', undefined);
+      expect(sessionStorage.getItem(unsavedKey('us-wrong'))).toBe(stored);
+      sessionStorage.clear();
+      vi.mocked(getCornerDraft).mockRejectedValueOnce({ data: { code } });
+      await remount();
+      expect(el.textContent).toBe("This week's draft is already done.");
+    }
+    expect(publishCornerDraft).not.toHaveBeenCalled();
+    expect(skipCornerDraft).not.toHaveBeenCalled();
+  });
+
   it.each((['publish', 'skip'] as const).flatMap(action =>
     (['note', 'prayer', 'answer', 'empty', 'stored', 'unchanged'] as const).flatMap(changed =>
       [false, true].map(leave => [action, changed, leave] as const))))(
