@@ -453,6 +453,22 @@ describe('notes_quick then submit on a frozen Monday: the link joins yesterday\'
     expect(status.body).toMatchObject({ sunday: '2026-10-11', up: false });
   });
 
+  it('a message picked for one church is refused when the save names another church, and nothing is written (round 6)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-05T14:00:00Z'));
+    fake.tables.published_sermons.push({
+      id: 'ordinary-faith-2026-10-04', congregation: 'futures-us', is_current: true, published_at: '2026-10-01T15:00:00.000Z',
+      sermon: { id: 'ordinary-faith-2026-10-04', title: 'Ordinary Faith', date: '2026-10-04', sections: [{ num: '1', title: 'Faith starts small', content: [] }] },
+    });
+    const q = await call({ action: 'notes_quick', text: 'https://youtu.be/dQw4w9WgXcQ', congregation: 'futures-us' }, TOKENS.hub);
+    expect(q.body.attach).toMatchObject({ id: 'ordinary-faith-2026-10-04', job: 'media' });
+    const before = JSON.stringify(fake.tables.published_sermons);
+    const s = await call({ action: 'submit', job: 'media', congregation: 'futures-au', answers: q.body.attach.answers }, TOKENS.hub);
+    expect(s.status).toBe(400);
+    expect(s.body.error).toMatch(/Pick a .* message/);
+    expect(JSON.stringify(fake.tables.published_sermons)).toBe(before);
+  });
+
   it('with next Sunday\'s notes already up, the link is not put on them and nothing is written: the media form is the way on', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-05T14:00:00Z')); // Mon 5 Oct, 10:00 in New York

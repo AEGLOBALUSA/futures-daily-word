@@ -345,7 +345,18 @@ async function findPublished(target, congregation) {
   const t = String(target || "").trim();
   if (!t || t === "__current__") return getCurrentPublished(congregation);
   const byId = await db().from("published_sermons").select("id, sermon, is_current, congregation").eq("id", t).maybeSingle();
-  if (byId.data) return byId.data;
+  if (byId.data) {
+    // A message picked for one church is never saved onto another church's
+    // page (B09-10 flow review round 6): the form sends the congregation it
+    // shows, and a row from a different one is refused, not merged.
+    const rowCong = normalizeCongregation(byId.data.congregation);
+    if (rowCong !== normalizeCongregation(congregation)) {
+      const err = new Error(`That message is on the ${congregationName(rowCong)} page. Pick a ${congregationName(normalizeCongregation(congregation))} message.`);
+      err.status = 400;
+      throw err;
+    }
+    return byId.data;
+  }
   const { data: rows } = await db()
     .from("published_sermons")
     .select("id, sermon, is_current, congregation")

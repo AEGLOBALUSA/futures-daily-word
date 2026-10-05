@@ -566,6 +566,18 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
     setCongregationChoice(v);
     try { localStorage.setItem('dw_staff_congregation', v); } catch { /* */ }
     setPreview(null); setDone(false); setHeld(false); setLive(null); setFormError('');
+    // A message picked for one church never carries over to another: the
+    // picker only lists the new church's messages, so a kept id would save
+    // onto a message the person can no longer see.
+    setAnswers(a => {
+      const next = { ...a };
+      for (const q of questions) {
+        if (!(q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')) continue;
+        const picked = sermons.find(s => s.id === next[q.id]);
+        if (picked?.congregation && picked.congregation !== v) next[q.id] = '';
+      }
+      return next;
+    });
   };
   const errorRef = useRef<HTMLParagraphElement | null>(null);
   const fail = (msg: string) => {
@@ -721,6 +733,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
     const pickQ = job === 'media' ? questions.find(q =>
       (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')
       && (q.audience === job || q.audience === 'all')) : undefined;
+    const pickedOther = pickQ ? sermons.find(s => s.id === answers[pickQ.id]) : undefined;
+    if (pickedOther?.congregation && pickedOther.congregation !== congregation) {
+      fail(`“${pickedOther.title}” is on the ${congregationName(pickedOther.congregation as CongregationId)} page. Pick a ${congregationName(congregation)} message.`);
+      return;
+    }
     const sentAnswers = pickQ && answers[pickQ.id] === '__current__' && currentSermon?.id
       ? { ...answers, [pickQ.id]: currentSermon.id }
       : answers;
