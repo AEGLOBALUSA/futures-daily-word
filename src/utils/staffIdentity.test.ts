@@ -65,6 +65,10 @@ beforeEach(() => {
 });
 
 describe('looksLikeStaffEmail', () => {
+  it('accepts alexis@futuros.global only, not a random @futuros.global', () => {
+    expect(looksLikeStaffEmail('alexis@futuros.global')).toBe(true);
+    expect(looksLikeStaffEmail('random@futuros.global')).toBe(false);
+  });
   it('accepts any @futures.church address and Ashley, case-insensitively', () => {
     expect(looksLikeStaffEmail('josh@futures.church')).toBe(true);
     expect(looksLikeStaffEmail('  AE@Futures.Global ')).toBe(true);
