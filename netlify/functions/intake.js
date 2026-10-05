@@ -1157,7 +1157,6 @@ exports.handler = async (event) => {
       }
     }
 
-    // ── Sunday's notes, pasted once (B09-10) ──
     // ── The campus corner draft (B09-18) ── This week's draft for a campus,
     // written by corner-draft.js on Monday morning (lib/corner-draft.js).
     //   corner_draft_get      campus pastor: own confirmed campus; admin: the
@@ -1184,7 +1183,9 @@ exports.handler = async (event) => {
       const { visible } = await corner.draftsVisibleTo(db(), staff.email);
       const now = new Date();
       if (!scope.campus) {
-        // An admin with no campus named: this week's waiting drafts.
+        // An admin with no campus named: this week's waiting drafts. A write
+        // must name the campus it acts on.
+        if (action !== "corner_draft_get") return json(event, 400, { error: "Choose a campus.", code: "campus" });
         return json(event, 200, { drafts: visible ? await corner.listWaitingDrafts(db(), campuses, now) : [] });
       }
       const row = visible ? await corner.loadDraftFor(db(), scope.campus, now) : null;
@@ -1231,6 +1232,7 @@ exports.handler = async (event) => {
       return json(event, status, { error, code: out.error || "save_failed" });
     }
 
+    // ── Sunday's notes, pasted once (B09-10) ──
     // Hub, media and admin staff only: the same people who may publish Sermon
     // Notes through `submit`. Neither action publishes anything.
     if (action === "notes_quick_status" || action === "notes_quick") {
