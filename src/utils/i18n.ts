@@ -27,6 +27,34 @@ type LangMap = Record<string, string>;
 type Translations = Record<string, LangMap>;
 
 const UI: Translations = {
+  // B09-18: the campus corner arrives drafted.
+  corner_draft_waiting: { en: "Corner draft waiting: {campus}", es: "Borrador del rinc\u00f3n pendiente: {campus}", pt: "Rascunho do cantinho \u00e0 espera: {campus}", id: "Draf pojok kampus menunggu: {campus}" },
+  corner_draft_title: { en: "This week's corner for {campus} is ready to look at.", es: "El rinc\u00f3n de esta semana para {campus} est\u00e1 listo para revisar.", pt: "O cantinho desta semana de {campus} est\u00e1 pronto para revisar.", id: "Pojok kampus {campus} minggu ini siap ditinjau." },
+  corner_draft_make_yours: { en: "Make this yours: add something only you would say.", es: "Hazlo tuyo: a\u00f1ade algo que solo t\u00fa dir\u00edas.", pt: "D\u00ea o seu toque: acrescente algo que s\u00f3 voc\u00ea diria.", id: "Jadikan ini milik Anda: tambahkan sesuatu yang hanya Anda yang akan mengatakannya." },
+  corner_draft_source: { en: "From Sunday's message: {title}", es: "Del mensaje del domingo: {title}", pt: "Da mensagem de domingo: {title}", id: "Dari khotbah hari Minggu: {title}" },
+  corner_draft_question_extra: { en: "Anything on at {campus} this week?", es: "\u00bfHay algo en {campus} esta semana?", pt: "Tem alguma programa\u00e7\u00e3o em {campus} nesta semana?", id: "Ada kegiatan di {campus} minggu ini?" },
+  corner_draft_question_prayer: { en: "A prayer point for your people?", es: "\u00bfUna petici\u00f3n de oraci\u00f3n por tu gente?", pt: "Um pedido de ora\u00e7\u00e3o pela sua comunidade?", id: "Ada pokok doa untuk jemaat Anda?" },
+  corner_draft_add: { en: "Add this to the draft", es: "A\u00f1ade esto al borrador", pt: "Adicionar ao rascunho", id: "Tambahkan ini ke draf" },
+  corner_draft_adding: { en: "Adding\u2026", es: "A\u00f1adiendo\u2026", pt: "Adicionando\u2026", id: "Menambahkan\u2026" },
+  corner_draft_skip_question: { en: "Skip this question", es: "Saltar esta pregunta", pt: "Pular esta pergunta", id: "Lewati pertanyaan ini" },
+  corner_draft_edit_yourself: { en: "Change the words yourself below.", es: "Cambia las palabras t\u00fa mismo abajo.", pt: "Edite o texto abaixo com suas pr\u00f3prias palavras.", id: "Ubah sendiri kata-katanya di bawah ini." },
+  corner_draft_note: { en: "The corner note", es: "La nota del rinc\u00f3n", pt: "A nota do cantinho", id: "Catatan pojok kampus" },
+  corner_draft_prayer: { en: "Prayer point (your words)", es: "Petici\u00f3n de oraci\u00f3n (tus palabras)", pt: "Pedido de ora\u00e7\u00e3o (suas palavras)", id: "Pokok doa (kata-kata Anda)" },
+  corner_draft_publish: { en: "Put this on the campus corner", es: "Ponlo en el rinc\u00f3n del campus", pt: "Publicar no cantinho do campus", id: "Terbitkan ini di pojok kampus" },
+  corner_draft_publishing: { en: "Putting it up\u2026", es: "Publicando\u2026", pt: "Publicando\u2026", id: "Menerbitkan\u2026" },
+  corner_draft_skip: { en: "Not this week", es: "Esta semana no", pt: "Nesta semana n\u00e3o", id: "Tidak minggu ini" },
+  corner_draft_use_form: { en: "Use the form instead", es: "Usar el formulario", pt: "Usar o formul\u00e1rio", id: "Gunakan formulir" },
+  corner_draft_skipped: { en: "No corner this week. The form below is still here if you need it.", es: "No habr\u00e1 rinc\u00f3n esta semana. El formulario de abajo sigue aqu\u00ed si lo necesitas.", pt: "Sem cantinho nesta semana. O formul\u00e1rio abaixo continua aqui se precisar.", id: "Tidak ada pojok kampus minggu ini. Formulir di bawah tetap tersedia jika Anda membutuhkannya." },
+  corner_draft_done: { en: "It's on the {campus} corner.", es: "Ya est\u00e1 en el rinc\u00f3n de {campus}.", pt: "Est\u00e1 no cantinho de {campus}.", id: "Sudah terbit di pojok kampus {campus}." },
+  corner_draft_done_next: { en: "People at {campus} see it under Messages.", es: "La gente de {campus} lo ve en Mensajes.", pt: "As pessoas de {campus} podem ver em Mensagens.", id: "Jemaat di {campus} dapat melihatnya di bagian Pesan." },
+  corner_draft_error_refresh_cap: { en: "You have asked for a fresh draft five times this week. Change the words yourself, then put it on the corner.", es: "Ya has pedido un nuevo borrador cinco veces esta semana. Cambia las palabras t\u00fa mismo y luego publ\u00edcalo en el rinc\u00f3n.", pt: "Voc\u00ea j\u00e1 pediu um novo rascunho cinco vezes nesta semana. Edite o texto com suas palavras e publique no cantinho.", id: "Anda sudah meminta draf baru lima kali minggu ini. Ubah sendiri kata-katanya, lalu terbitkan di pojok kampus." },
+  corner_draft_error_not_draft: { en: "This week's draft is already done.", es: "El borrador de esta semana ya est\u00e1 terminado.", pt: "O rascunho desta semana j\u00e1 foi conclu\u00eddo.", id: "Draf minggu ini sudah selesai." },
+  corner_draft_error_empty: { en: "Write something first, then put it on the corner.", es: "Escribe algo primero y luego publ\u00edcalo en el rinc\u00f3n.", pt: "Escreva algo primeiro e depois publique no cantinho.", id: "Tulis sesuatu terlebih dahulu, lalu terbitkan di pojok kampus." },
+  corner_draft_error_unfinished: { en: "Part of the draft was left unfinished. Fill in or remove the part in braces.", es: "Una parte del borrador qued\u00f3 sin terminar. Completa o elimina la parte entre llaves.", pt: "Uma parte do rascunho ficou incompleta. Preencha ou remova a parte entre chaves.", id: "Sebagian draf belum selesai. Lengkapi atau hapus bagian di dalam kurung kurawal." },
+  corner_draft_error_preview: { en: "Put the corner up from futuresdailyword.com, not from a preview.", es: "Publica el rinc\u00f3n desde futuresdailyword.com, no desde una vista previa.", pt: "Publique o cantinho pelo futuresdailyword.com, n\u00e3o pela pr\u00e9via.", id: "Terbitkan pojok kampus melalui futuresdailyword.com, bukan dari pratinjau." },
+  corner_draft_error_access: { en: "This draft is not yours to put up.", es: "No te corresponde publicar este borrador.", pt: "Voc\u00ea n\u00e3o tem permiss\u00e3o para publicar este rascunho.", id: "Anda tidak memiliki izin untuk menerbitkan draf ini." },
+  corner_draft_error_save: { en: "That did not save. Try again.", es: "No se guard\u00f3. Int\u00e9ntalo de nuevo.", pt: "N\u00e3o foi salvo. Tente novamente.", id: "Gagal menyimpan. Coba lagi." },
+
   // ââ HOME SCREEN ââ
   daily_word_title: { en: 'Daily Word', es: 'Palabra Diaria', pt: 'Palavra Di\u00e1ria', id: 'Firman Harian' },
   todays_reading: { en: "TODAY'S READING", es: 'LECTURA DE HOY', pt: 'LEITURA DE HOJE', id: 'BACAAN HARI INI' },

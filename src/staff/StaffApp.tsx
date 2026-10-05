@@ -21,6 +21,7 @@ import { youtubeLinkProblem } from './youtubeLink';
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 import { QuickNotes } from './QuickNotes';
+import { CornerDraftCard } from './CornerDraftCard';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
@@ -578,6 +579,7 @@ function StaffHome({
   return (
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
+      {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} onJob={onJob} />}
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         This is how Sunday’s sermon notes get onto the page people write in.
       </p>
