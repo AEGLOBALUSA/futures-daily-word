@@ -1,0 +1,126 @@
+{
+  "source": "brand-board-original.png",
+  "sourceDimensions": [
+    1536,
+    1024
+  ],
+  "sourceSHA256": "95c00e61a0fe9d57b4534dcc5d6ea60b2e6cda2dfd13bb4b4a0c9c3521c5daad",
+  "sourceStatus": "Unmodified byte-for-byte copy of the supplied board.",
+  "sourceDate": "2026-10-04 US / 2026-10-05 UTC",
+  "mark": {
+    "crop": [
+      52,
+      612,
+      230,
+      780
+    ],
+    "processing": "Near-white matte removed; native raster, not redrawn."
+  },
+  "wordmark": {
+    "crop": [
+      290,
+      100,
+      923,
+      211
+    ],
+    "processing": "Source-derived raster alpha mask, white and dark variants; not an original vector master."
+  },
+  "apps": {
+    "connect": {
+      "file": "app-connect.png",
+      "crop": [
+        44,
+        283,
+        172,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "people": {
+      "file": "app-people.png",
+      "crop": [
+        206,
+        283,
+        336,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "heartbeat": {
+      "file": "app-heartbeat.png",
+      "crop": [
+        370,
+        283,
+        499,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "daily-word": {
+      "file": "app-daily-word.png",
+      "crop": [
+        536,
+        283,
+        664,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "finance": {
+      "file": "app-finance.png",
+      "crop": [
+        701,
+        283,
+        829,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "hr": {
+      "file": "app-hr.png",
+      "crop": [
+        863,
+        283,
+        991,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "church-planting": {
+      "file": "app-church-planting.png",
+      "crop": [
+        1027,
+        283,
+        1155,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "mac": {
+      "file": "app-mac.png",
+      "crop": [
+        1192,
+        283,
+        1320,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    },
+    "more": {
+      "file": "app-more.png",
+      "crop": [
+        1358,
+        283,
+        1487,
+        411
+      ],
+      "processing": "Native crop with outer rounded-square matte mask."
+    }
+  },
+  "limitations": [
+    "Original board is exact; transparent asset edge pixels are processed.",
+    "No original vector or font was supplied.",
+    "Use app tiles at 64 CSS pixels or below for approximately 2x density.",
+    "Numeric UI palette tokens are implementation choices, not recovered original gradient stops."
+  ]
+}
