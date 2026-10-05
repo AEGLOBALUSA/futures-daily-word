@@ -26,7 +26,7 @@ import { isSundayWindow, readerSundayUntil, readerTimeZone } from './sunday';
 import { tomorrowPassage, reflectedToday, localToday } from './homeToday';
 import { fetchSermonNotesPublished } from './currentSermon';
 import { t, getLang } from './i18n';
-import { currentReminderOffer, noteOfferShown, formatReminderTime } from './openTimes';
+import { currentReminderOffer, noteOfferShown, formatReminderTime, PUSH_HOUR_EVENT } from './openTimes';
 import { usePushReadingState } from './usePushReadingState';
 import { findCampus } from '../data/campuses';
 import { PLAN_CATALOGUE } from '../data/plans';
@@ -88,6 +88,8 @@ const REFRESH_EVENTS = [
   'dw-lang-changed',
   // A set-up ask was answered or dismissed: show the next thing at once.
   NEXT_REFRESH_EVENT,
+  // B09-17: the reminder hour changed (Settings or the offer): the offer's times follow.
+  PUSH_HOUR_EVENT,
   'focus',
 ];
 const QUIETABLE: QuietableKind[] = ['write', 'install', 'email', 'upgrade'];
