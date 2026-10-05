@@ -818,10 +818,12 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
       const code = (err as { data?: { code?: string } })?.data?.code;
-      // A title was typed only when the picker was the text box (no choices);
-      // with a list on screen, an unknown value is a stale id to clear.
+      // A title was typed only when the picker was the text box (no choices)
+      // and the value is not the id the card handed over; anything else is a
+      // stale id to clear.
+      const seededPick = pickQ ? seed?.answers?.[pickQ.id] : undefined;
       const typedTitle = pickQ && pickChoices.length === 0 && typeof answers[pickQ.id] === 'string'
-        && answers[pickQ.id] !== '__current__' ? String(answers[pickQ.id]) : '';
+        && answers[pickQ.id] !== '__current__' && answers[pickQ.id] !== seededPick ? String(answers[pickQ.id]) : '';
       if (pickQ && code === 'target_gone' && typedTitle) {
         // A typed title that matches no message: keep it to correct, and say
         // where a new message goes instead of "pick again" from an empty list.
@@ -830,7 +832,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         // The message is gone (or belongs to another church): clear the pick,
         // keep the link, and reload the list so only real messages are offered.
         setAnswers(a => ({ ...a, [pickQ.id]: '' }));
-        fail('That message is no longer on the list. Pick the message again; the link is still filled in.');
+        fail('That message is no longer on the list. Pick another, or put it up first with “Put up this week’s sermon notes”; the link is still filled in.');
         void load(pickCampus || staff.campusId || undefined);
       } else {
         fail(err instanceof Error ? err.message : 'Could not submit');
