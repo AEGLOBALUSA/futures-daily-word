@@ -158,6 +158,33 @@ describe('nextStep: the order', () => {
     }
   });
 
+  it('6b. people prayed for her request (B09-11): after the day\'s word, before Write it down', () => {
+    const one = nextStep(state({ readDoneToday: true, prayed: { count: 1 } }));
+    expect(one).toMatchObject({ kind: 'prayed', step: 6, labelKey: 'next_see_request', action: 'open_prayers', whyKey: 'next_prayed_one', whyParams: { n: '1' } });
+    const many = nextStep(state({ readDoneToday: true, prayed: { count: 4 } }));
+    expect(many).toMatchObject({ kind: 'prayed', whyKey: 'next_prayed_many', whyParams: { n: '4' } });
+    // The reading comes first, and Sunday's notes after the reading come first too.
+    expect(nextStep(state({ prayed: { count: 4 } })).kind).toBe('read');
+    expect(nextStep(state({ readDoneToday: true, sundayWindow: true, sermonNotesPublished: true, prayed: { count: 4 } })).kind).toBe('sunday_notes');
+    // An I'm New reader sees it once today's journey day is done.
+    expect(nextStep(newPath({ prayed: { count: 2 } })).kind).toBe('journey_day');
+    expect(nextStep(newPath({ journeyDayDone: true, prayed: { count: 2 } })).kind).toBe('prayed');
+    // Nothing to say: no card.
+    expect(nextStep(state({ readDoneToday: true, prayed: null })).kind).toBe('write');
+    expect(nextStep(state({ readDoneToday: true, prayed: { count: 0 } })).kind).toBe('write');
+  });
+
+  it('6b never rests: it is not a quietable step', () => {
+    expect(quietKeyFor(nextStep(state({ readDoneToday: true, prayed: { count: 3 } })))).toBeNull();
+  });
+
+  it('a comfort reader told that people prayed gets no count, streak or celebration key', () => {
+    const s = nextStep(state({ persona: 'comfort', passage: 'Psalm 23', readDoneToday: true, prayed: { count: 3 } }));
+    expect(s.kind).toBe('prayed');
+    expect(s.labelKey).not.toMatch(COMFORT_FORBIDDEN_KEY);
+    expect(s.whyKey || '').not.toMatch(COMFORT_FORBIDDEN_KEY);
+  });
+
   it('is pure: the same state gives the same step', () => {
     const s = state({ readDoneToday: true });
     expect(nextStep(s)).toEqual(nextStep(s));

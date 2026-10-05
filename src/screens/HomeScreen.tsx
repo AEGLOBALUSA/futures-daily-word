@@ -62,6 +62,7 @@ import { NextPill } from '../components/NextPill';
 import { useHomeNextStep, NEXT_REFRESH_EVENT } from '../utils/useHomeNextStep';
 import { answerReminderOffer, formatReminderTime } from '../utils/openTimes';
 import { getPushHour } from '../utils/push';
+import { requestPrayerWall } from '../utils/myPrayers';
 import { readMoreOpen, writeMoreOpen, moreForTodayNames, localToday, isJourneyDayDone } from '../utils/homeToday';
 import type { NextAction, SetupAsk } from '../utils/nextStep';
 import { chapterOf, notInHero } from '../utils/heroDedupe';
@@ -1861,6 +1862,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         }
         break;
       }
+      case 'open_prayers':
+        // B09-11: the Campus tab opens on the Prayer Wall, where her request is.
+        requestPrayerWall();
+        onNavigate?.('messages');
+        break;
     }
   };
 

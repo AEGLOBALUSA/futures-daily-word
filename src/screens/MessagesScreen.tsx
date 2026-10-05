@@ -12,6 +12,13 @@ import { pushNow } from '../utils/cloudSync';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
 import { ALPHARETTA_TAB_LABEL, useAlpharettaTab } from '../alpharetta-gate/AlpharettaSlot';
 import { campusName } from '../data/campuses';
+import {
+  rememberMyPrayer, takePrayerWallRequest, OPEN_PRAYER_WALL_EVENT,
+  readMyPrayers, refreshMyPrayers, prayedCard, noteCardShown, MY_PRAYERS_EVENT, recheckWhenNotConfirmed,
+  type MyPrayersRecord,
+} from '../utils/myPrayers';
+import { localToday } from '../utils/homeToday';
+import { useTabShowing } from '../utils/useTabShowing';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -27,17 +34,18 @@ interface Prayer {
 // ── {t("prayer_wall", lang)} API ────────────────────────────────────────────────────────────
 const API = `${API_BASE}/.netlify/functions/prayer-wall`;
 
-async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<{ prayers: Prayer[]; error: boolean }> {
+async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promise<{ prayers: Prayer[]; error: boolean; prayedConfirm: boolean }> {
   try {
     const url = filter === 'my-campus' && campus
       ? `${API}?filter=my-campus&campus=${encodeURIComponent(campus)}`
       : `${API}?filter=all`;
     const res = await fetch(url);
-    if (!res.ok) return { prayers: [], error: true };
+    if (!res.ok) return { prayers: [], error: true, prayedConfirm: false };
     const data = await res.json();
-    return { prayers: data.prayers || [], error: false };
+    // B09-11: true only while the poster's phone is really told someone prayed.
+    return { prayers: data.prayers || [], error: false, prayedConfirm: data.prayedConfirm === true };
   } catch {
-    return { prayers: [], error: true };
+    return { prayers: [], error: true, prayedConfirm: false };
   }
 }
 
@@ -48,7 +56,11 @@ async function postPrayer(prayer: string, name: string, campus: string, email: s
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'create', prayer, name, campus, email }),
     });
-    return res.ok;
+    if (!res.ok) return false;
+    // B09-11: keep the new request's id on this phone only (dw_my_prayers, never
+    // synced), so it can later show how many people prayed for it.
+    try { rememberMyPrayer((await res.json())?.id); } catch { /* posted; just not counted */ }
+    return true;
   } catch {
     return false;
   }
@@ -241,6 +253,14 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
     if (activeTab === 'alpharetta' && !alpharettaAllowed) setActiveTab('pastor');
   }, [activeTab, alpharettaAllowed]);
 
+  // B09-11: Home's "See your request" opens the Prayer Wall.
+  useEffect(() => {
+    const take = () => { if (takePrayerWallRequest() !== null) setActiveTab('prayer'); };
+    take();
+    window.addEventListener(OPEN_PRAYER_WALL_EVENT, take);
+    return () => window.removeEventListener(OPEN_PRAYER_WALL_EVENT, take);
+  }, []);
+
   // Re-tap of the Campus tab in the tab bar → back to the tab's root state.
   useEffect(() => {
     const onReset = () => {
@@ -328,9 +348,53 @@ function PrayerWallPanel({
   const [prayerText, setPrayerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
+  // B09-11: the Pray button says "They'll know someone prayed" only while true.
+  const [prayedConfirm, setPrayedConfirm] = useState(false);
   const [prayedFor, setPrayedFor] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dw_prayed_for') || '[]')); } catch { return new Set(); }
   });
+  const [confirmedPrayers, setConfirmedPrayers] = useState<Set<string>>(() => new Set());
+  // B09-11: the requests she posted from this phone (dw_my_prayers, device-only).
+  const [myPrayers, setMyPrayers] = useState<MyPrayersRecord | null>(null);
+  const [scrollToPrayer, setScrollToPrayer] = useState<string | null>(null);
+  // B09-11: See your request found no such request on the wall (it is older
+  // than the newest 50, or gone): the card says so beside its button.
+  const [requestMissing, setRequestMissing] = useState(false);
+  // B09-11: the request whose Pray did not go through; Pray stays open to retry.
+  const [prayFailed, setPrayFailed] = useState<string | null>(null);
+  const campusShowing = useTabShowing('messages');
+
+  useEffect(() => {
+    const reread = () => setMyPrayers(readMyPrayers());
+    window.addEventListener(MY_PRAYERS_EVENT, reread);
+    reread();
+    void refreshMyPrayers();
+    return () => window.removeEventListener(MY_PRAYERS_EVENT, reread);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) setMyPrayers(readMyPrayers());
+  }, [loading]);
+
+  const card = myPrayers ? prayedCard(myPrayers, localToday()) : null;
+  const cardId = card?.id;
+  const cardCount = card?.count;
+  useEffect(() => {
+    setRequestMissing(false);
+  }, [cardId]);
+
+  useEffect(() => {
+    if (cardId && cardCount !== undefined && campusShowing) noteCardShown({ id: cardId, count: cardCount }, localToday());
+  }, [cardId, cardCount, campusShowing]);
+
+  useEffect(() => {
+    if (!scrollToPrayer || loading || filter !== 'all') return;
+    const target = document.getElementById(`prayer-${scrollToPrayer}`);
+    setRequestMissing(!target);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target?.focus({ preventScroll: true });
+    setScrollToPrayer(null);
+  }, [scrollToPrayer, loading, filter, prayers]);
 
   const campus = userProfile?.campus || '';
   const campusLabel = campusName(campus);
@@ -341,7 +405,10 @@ function PrayerWallPanel({
     const result = await fetchPrayers(filter, campus);
     setPrayers(result.prayers);
     setPrayerError(result.error);
+    setPrayedConfirm(result.prayedConfirm);
     setLoading(false);
+    // B09-11: a cached count must not outlive the switch going off.
+    if (!result.error) void recheckWhenNotConfirmed(result.prayedConfirm);
   }, [filter, campus]);
 
   useEffect(() => { load(); }, [load]);
@@ -368,7 +435,12 @@ function PrayerWallPanel({
 
   const handlePray = async (id: string) => {
     if (prayedFor.has(id)) return;
-    await prayForIt(id);
+    // B09-11: a Pray that did not go through is not counted, not confirmed,
+    // and stays open to try again.
+    const ok = await prayForIt(id);
+    if (!ok) { setPrayFailed(id); return; }
+    setPrayFailed(prev => (prev === id ? null : prev));
+    if (prayedConfirm) setConfirmedPrayers(prev => new Set(prev).add(id));
     const next = new Set(prayedFor).add(id);
     setPrayedFor(next);
     localStorage.setItem('dw_prayed_for', JSON.stringify([...next]));
@@ -451,6 +523,32 @@ function PrayerWallPanel({
         </Card>
       )}
 
+      {card && (
+        <Card style={{ marginBottom: 16 }}>
+          <p id="prayer-wall-card-count" style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+            {card.count === 1 ? t('next_prayed_one', lang) : t('next_prayed_many', lang).replace('{n}', String(card.count))}
+          </p>
+          <button aria-describedby="prayer-wall-card-count" onClick={() => {
+            if (filter !== 'all') {
+              setLoading(true);
+              setFilter('all');
+            }
+            setScrollToPrayer(card.id);
+          }} style={{
+            background: 'none', border: 'none', padding: 0, minHeight: 44,
+            fontSize: 15, fontWeight: 400, color: 'var(--dw-accent)',
+            fontFamily: 'var(--font-sans)', cursor: 'pointer',
+          }}>
+            {t('next_see_request', lang)}
+          </button>
+          {requestMissing && (
+            <p role="status" style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+              {t('prayer_request_older', lang)}
+            </p>
+          )}
+        </Card>
+      )}
+
       {/* Prayer Globe — world map showing prayer activity */}
       <div style={{ marginBottom: 16 }}>
         <PrayerGlobe
@@ -497,11 +595,18 @@ function PrayerWallPanel({
           {prayers.map(prayer => {
             const hasPrayed = prayedFor.has(prayer.id);
             return (
-              <Card key={prayer.id} style={{ borderLeft: '3px solid var(--dw-accent)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div key={prayer.id} id={`prayer-${prayer.id}`} tabIndex={-1} role="group"
+                aria-label={prayedConfirm && myPrayers?.prayers.some(p => p.id === prayer.id) ? t('prayer_yours', lang) : undefined}>
+              <Card style={{ borderLeft: '3px solid var(--dw-accent)' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 8, rowGap: 6, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div>
                     <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', margin: 0 }}>
                       {prayer.name}
+                      {prayedConfirm && myPrayers?.prayers.some(p => p.id === prayer.id) && (
+                        <span style={{ fontSize: 15, fontWeight: 400, color: 'var(--dw-text-muted)', marginLeft: 6 }}>
+                          {t('prayer_yours', lang)}
+                        </span>
+                      )}
                     </p>
                     <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '2px 0 0' }}>
                       {prayer.campusName} · {prayer.timeAgo}
@@ -519,11 +624,22 @@ function PrayerWallPanel({
                     <Heart size={12} fill={hasPrayed ? 'currentColor' : 'none'} />
                     {prayer.prayerCount > 0 ? prayer.prayerCount : ''} {hasPrayed ? t('praying_label', lang) : t('pray_label', lang)}
                   </button>
+                  {prayFailed === prayer.id && (
+                    <p role="alert" style={{ flexBasis: '100%', fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: 0 }}>
+                      <span aria-hidden="true">! </span>{t('pray_failed', lang)}
+                    </p>
+                  )}
                 </div>
                 <p style={{ fontSize: 14, color: 'var(--dw-text-secondary)', lineHeight: 1.6, fontFamily: 'var(--font-sans)', margin: 0 }}>
                   {prayer.prayer}
                 </p>
+                {prayedConfirm && confirmedPrayers.has(prayer.id) && (
+                  <p role="status" style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>
+                    {t('prayed_confirm', lang)}
+                  </p>
+                )}
               </Card>
+              </div>
             );
           })}
         </div>

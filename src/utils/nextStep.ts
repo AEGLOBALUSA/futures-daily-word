@@ -18,6 +18,10 @@
  *      and the one Mark as read at the passage's end carries the pulse.
  *   6. Returning path, Sunday window, notes published, reading done → Open
  *      today's sermon notes (the 10 Sep demotion: the reading comes first).
+ *   6b. Someone prayed for a request she posted from this phone, and the count
+ *      grew since she last saw it (B09-11) → "{n} people prayed for your
+ *      request this week." See your request. Only while dw_prayed_count is on
+ *      (the server answers nothing while it is off); 14 days per request.
  *   6c. Her usual hour is not her reminder's hour (B09-17, openTimes.ts) →
  *      "You usually read around {time}. Remind you then?" Yes, {time} ·
  *      Keep {time}. Offered once, only with reminders on, never on Comfort.
@@ -46,6 +50,7 @@ export type NextKind =
   | 'reading'
   | 'sunday_notes'
   | 'reminder_offer'
+  | 'prayed'
   | 'write'
   | 'setup_ask'
   | 'done';
@@ -57,6 +62,7 @@ export type NextAction =
   | 'open_notes'     // open this week's Sermon Notes for the reader's congregation
   | 'open_wizard'    // open More for today at the pastor/study set-up wizard
   | 'open_plans'     // the Plans tab
+  | 'open_prayers'   // the Campus tab's Prayer Wall, at her request (B09-11)
   | 'write'          // open the passage and its in-place reflection box
   | 'set_reminder' | 'keep_reminder' // her answer to the reminder offer (B09-17)
   | 'install' | 'email' | 'upgrade' // the set-up ask's own component, in the card
@@ -106,6 +112,11 @@ export interface NextStepState {
   today: string;
   /** Device-only skip learning (dw_next_skips). */
   skips?: NextSkips;
+  /**
+   * B09-11: someone prayed for a request she posted from this phone and the
+   * count is new to her (myPrayers.prayedCard). null or absent: nothing to say.
+   */
+  prayed?: { count: number } | null;
   /**
    * B09-17: the reminder offer (openTimes.currentReminderOffer), its two times
    * already in her language. null or absent: nothing to offer.
@@ -196,6 +207,15 @@ export function nextStep(state: NextStepState): NextStep {
   // 6. Returning paths: Sunday's notes once the reading is done.
   if (!state.isNewPath && notesUp(state) && state.readDoneToday) {
     return { kind: 'sunday_notes', step: 6, labelKey: 'next_sermon_notes', params: {}, action: 'open_notes', ...sundayWhy(state) };
+  }
+
+  // 6b. People prayed for her request (B09-11). The day's word comes first.
+  if (state.prayed && state.prayed.count > 0) {
+    const n = Math.floor(state.prayed.count);
+    return {
+      kind: 'prayed', step: 6, labelKey: 'next_see_request', params: {}, action: 'open_prayers',
+      whyKey: n === 1 ? 'next_prayed_one' : 'next_prayed_many', whyParams: { n: String(n) },
+    };
   }
 
   // 6c. Her usual hour differs from her reminder's (B09-17): offered once.
