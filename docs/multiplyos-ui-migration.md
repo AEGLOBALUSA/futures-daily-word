@@ -1,11 +1,11 @@
 # MultiplyOS UI migration (Daily Word, v1)
 
-Presentation only, default OFF, scoped to the staff screens at `/staff`.
+Presentation only, default ON (owner ruling 5 Oct 2026), scoped to the staff screens at `/staff`.
 
 ## Turn on / off
 - On: open `/staff?ui=multiplyos`. This sets the cookie `mos_ui=1` (one year, Path=/, SameSite=Lax, Secure).
-- Off: open `/staff?ui=legacy`. This clears the cookie.
-- Or set/clear the `mos_ui` cookie directly.
+- Off: open `/staff?ui=legacy`. This sets `mos_ui=0` (one year), so the off choice persists on that device.
+- With no cookie, or any value other than `0`, the new look is on.
 - When on, `<html>` gets `data-ui="multiplyos"` and class `mos-ui`. The flag is applied by `src/multiplyos/uiFlag.ts`, called from `src/main.tsx`.
 - Off-route (any path other than `/staff`) the attribute is never set, even with the cookie.
 
@@ -24,5 +24,5 @@ PollDashboard, AnalyticsDashboard, PastorSignIn, PastorStudyOnboarding, Alpharet
 - Do not name a file `multiplyos.css` and do not edit `DESIGN.md` (design-lint trap).
 
 ## Rollback
-- Per user: `/staff?ui=legacy`.
+- ?ui=legacy per device; revert this flag commit to turn it off for everyone.
 - Whole feature: revert the commit, or remove the `applyUiFlag` call in `src/main.tsx`. With no attribute set, none of the `mos-*` rules match and the legacy look is unchanged.
