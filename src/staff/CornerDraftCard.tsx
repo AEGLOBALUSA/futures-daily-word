@@ -123,12 +123,15 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
   const [busy, setBusy] = useState<Action | null>(null);
   const busyRef = useRef(false);
   const [outcome, setOutcome] = useState<'published' | 'skipped' | 'finished' | null>(null);
+  const [savedWords, setSavedWords] = useState<string | null>(null);
+  const [copyState, setCopyState] = useState<'idle' | 'busy' | 'done' | 'failed'>('idle');
   const [errors, setErrors] = useState<Partial<Record<Action, string>>>({});
   const [reloadAction, setReloadAction] = useState<Action | null>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const doneRef = useRef<HTMLHeadingElement>(null);
+  const freshRef = useRef<HTMLDivElement>(null);
   const words = (key: string) => t(`corner_draft_${key}`, draft.lang)
     .replace('{campus}', () => draft.campusName);
   const question = pendingQuestion ?? (draft.refreshesLeft === 0 ? null
@@ -142,8 +145,32 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
     }
   }, [campusId]);
   useEffect(() => { if (outcome === 'published') doneRef.current?.focus(); }, [outcome]);
+  useEffect(() => {
+    if (fresh) freshRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  }, [fresh]);
+  useEffect(() => {
+    if (!answer.trim()) setErrors(current => current.publish === 'error_answer_pending'
+      ? { ...current, publish: undefined } : current);
+  }, [answer]);
 
-  function finish() { setOutcome('finished'); onComplete(); }
+  function finish() {
+    const current = edits.current;
+    if (current.body !== draft.body || current.prayerPoint !== draft.prayerPoint || current.answer.trim()) {
+      setSavedWords([current.body, current.prayerPoint, current.answer].filter(value => value.trim()).join('\n\n'));
+    }
+    setOutcome('finished'); onComplete();
+  }
+
+  async function copyWords() {
+    if (busyRef.current || savedWords === null) return;
+    busyRef.current = true; setCopyState('busy'); onBusy(true);
+    try {
+      if (!navigator.clipboard?.writeText) { setCopyState('failed'); return; }
+      await navigator.clipboard.writeText(savedWords);
+      setCopyState('done');
+    } catch { setCopyState('failed'); }
+    finally { busyRef.current = false; onBusy(false); }
+  }
 
   function receive(next: CornerDraft) {
     if (next.status !== 'draft') { finish(); return; }
@@ -199,6 +226,7 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
       if (reloadAction) { await reload(action); return; }
       if (action === 'refresh' && question) {
         const next = await refreshCornerDraft({ [question]: answer }, campusId, draft.version);
+        if (next.status !== 'draft') { finish(); return; }
         receive(next);
         if (edits.current.answer === answer) {
           edits.current.answer = ''; setAnswer(''); setPendingQuestion(null);
@@ -232,34 +260,52 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
     {reloadAction === action && <button type="button" style={quietStyle} aria-busy={busy === action}
       onClick={() => void act(action)}>{words('retry')}</button>}
   </>;
-  const useForm = <button type="button" style={quietStyle} aria-busy={!!busy}
+  const useForm = <button type="button" style={quietStyle} aria-busy={!!busy || copyState === 'busy'}
     onClick={() => { if (!busyRef.current) onJob('campus', campusId); }}>{words('use_form')}</button>;
 
   if (outcome === 'published') return <section style={panelStyle} aria-labelledby={`${id}-done`} lang={draft.lang}>
     <h3 id={`${id}-done`} ref={doneRef} tabIndex={-1} style={headingStyle}>{words('done')}</h3>
     <p style={{ margin: 0 }}>{words('done_next')}</p>
   </section>;
-  if (outcome === 'finished') return <p role="status" lang={draft.lang}
-    style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)' }}>{words('error_not_draft')}</p>;
+  if (outcome === 'finished') return savedWords === null ? <p role="status" lang={draft.lang}
+    style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)' }}>{words('error_not_draft')}</p>
+    : <section style={panelStyle} lang={draft.lang}>
+      <p role="status" style={{ margin: 0 }}>{words('error_not_draft')}</p>
+      <div role="region" aria-label={words('my_words')} tabIndex={0}
+        style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedWords}</div>
+      <div>
+        <button type="button" style={quietStyle} aria-busy={copyState === 'busy'}
+          onClick={() => void copyWords()}>{words('copy_words')}</button>
+        {copyState === 'done' && <p role="status" style={{ margin: 0 }}>{words('copied')}</p>}
+        {copyState === 'failed' && <p role="alert" style={{ margin: 0 }}>{words('error_copy')}</p>}
+      </div>
+      {useForm}
+    </section>;
   if (outcome === 'skipped') return <section style={panelStyle} lang={draft.lang}>
     <p role="status" style={{ margin: 0 }}>{words('skipped')}</p>{useForm}
   </section>;
 
   return <section style={panelStyle} aria-labelledby={`${id}-title`} lang={draft.lang}>
-    <h3 id={`${id}-title`} ref={headingRef} tabIndex={-1} style={headingStyle}>{words('title')}</h3>
+    <h3 id={`${id}-title`} ref={headingRef} tabIndex={-1} style={{ ...headingStyle, scrollMarginTop: 96 }}>{words('title')}</h3>
     <p style={{ margin: 0, padding: '12px 14px', border: '1px solid var(--dw-border)', borderRadius: 12 }}>
       <strong>{words('make_yours')}</strong>
     </p>
     {draft.source && <p style={{ margin: 0, color: 'var(--dw-text-muted)', fontSize: 15 }}>
       {words('source').replace('{title}', () => draft.source!.title)}{draft.source.speaker ? ` · ${draft.source.speaker}` : ''}
     </p>}
-    {fresh && <div>
+    {fresh && <div ref={freshRef} style={{ scrollMarginTop: 96 }}>
       <p role="status" style={{ margin: 0 }}>{words('fresh_ready')}</p>
       <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{fresh.body}</p>
-      <button type="button" style={quietStyle} aria-busy={!!busy} onClick={() => {
-        if (busyRef.current) return;
-        edits.current.body = fresh.body; setBody(fresh.body); setFresh(null); noteRef.current?.focus();
-      }}>{words('use_fresh')}</button>
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+        <button type="button" style={quietStyle} aria-busy={!!busy} onClick={() => {
+          if (busyRef.current) return;
+          setFresh(null); noteRef.current?.focus();
+        }}>{words('keep_edits')}</button>
+        <button type="button" style={quietStyle} aria-busy={!!busy} onClick={() => {
+          if (busyRef.current) return;
+          edits.current.body = fresh.body; setBody(fresh.body); setFresh(null); noteRef.current?.focus();
+        }}>{words('use_fresh')}</button>
+      </div>
     </div>}
     <div>
       <label htmlFor={`${id}-body`}>{words('note')}</label>
@@ -286,6 +332,15 @@ function DraftEditor({ initial, campusId, onJob, onBusy, onComplete }: {
               style={{ ...quietStyle, textDecoration: 'none', border: '1px solid var(--dw-border)', borderRadius: 12, padding: '8px 14px' }}>
               {words(busy === 'refresh' ? 'adding' : 'add')}
             </button>}
+            {draft.refreshesLeft === 0 && answer.trim() && <button type="button" style={quietStyle}
+              aria-busy={!!busy} onClick={() => {
+                if (busyRef.current) return;
+                const nextBody = [edits.current.body, edits.current.answer].filter(value => value.trim()).join('\n\n');
+                edits.current.body = nextBody; setBody(nextBody);
+                edits.current.answer = ''; setAnswer(''); setPendingQuestion(null);
+                setErrors(current => ({ ...current, refresh: undefined }));
+                noteRef.current?.focus();
+              }}>{words('add_words')}</button>}
             <p style={{ margin: '8px 0 0' }}>{words('refreshes_left').replace('{n}', String(draft.refreshesLeft))}</p>
             {feedback('refresh')}
           </div>
