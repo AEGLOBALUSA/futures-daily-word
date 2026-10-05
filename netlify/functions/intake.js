@@ -1197,6 +1197,11 @@ exports.handler = async (event) => {
         });
       }
       if (!row) return json(event, 404, { error: "There is no draft for this week.", code: "no_draft" });
+      // Every write names the copy it was made from, so an older copy on
+      // another device can never overwrite a newer one.
+      if (typeof body.version !== "string" || !body.version) {
+        return json(event, 409, { error: "This draft changed on another device. Check the note, then try again.", code: "stale" });
+      }
       if (row.status !== "draft") return json(event, 409, { error: "This week\u2019s draft is already done.", code: "not_draft" });
       let out;
       if (action === "corner_draft_refresh") {
@@ -1224,7 +1229,7 @@ exports.handler = async (event) => {
       const refusals = {
         refresh_cap: [429, "You have asked for a fresh draft five times this week. Change the words yourself, then put it on the corner."],
         not_draft: [409, "This week\u2019s draft is already done."],
-        stale: [409, "This draft changed on another device. Here is the newest one."],
+        stale: [409, "This draft changed on another device. Check the note, then try again."],
         empty: [400, "Write something first, then put it on the corner."],
         unfinished: [400, "Part of the draft was left unfinished. Fill in or remove the part in braces."],
         save_failed: [500, "That did not save. Try again."]

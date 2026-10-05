@@ -376,7 +376,7 @@ describe('refreshDraft / publishDraft / skipDraft', () => {
       author: 'Campus Person',
     });
     expect(db.tables.campus_corner_draft[0].status).toBe('published');
-    expect(await cd.publishDraft(db, row, ALPHARETTA, { body: 'again' })).toEqual({ error: 'not_draft' });
+    expect(await cd.publishDraft(db, db.tables.campus_corner_draft[0], ALPHARETTA, { body: 'again' })).toEqual({ error: 'not_draft' });
     expect(db.tables.campus_content).toHaveLength(1);
   });
 
@@ -436,6 +436,7 @@ function intakeDb({ mode = 'live', list = [] } = {}) {
     written_by: 'template',
     status: 'draft',
     refresh_count: 0,
+    updated_at: now.toISOString(),
   });
   fake = createFakeSupabase({
     staff_roster: [
@@ -511,26 +512,37 @@ describe('intake corner_draft_*: anon 401, another campus 403, own campus only',
     expect(list.body.drafts.map((d) => d.campusId).sort()).toEqual(['au-paradise', 'us-alpharetta', 'us-kennesaw']);
   });
 
+  const version = async () => (await call({ action: 'corner_draft_get' }, TOKENS.campus)).body.draft.version;
+
+  it('a write without the copy it was made from is refused as stale', async () => {
+    const r = await call({ action: 'corner_draft_publish', body: 'Our words.' }, TOKENS.campus);
+    expect(r.status).toBe(409);
+    expect(r.body.code).toBe('stale');
+    expect(fake.tables.campus_content).toHaveLength(0);
+  });
+
   it('publish writes exactly one campus_content row for his campus; a second tap is 409', async () => {
-    const r = await call({ action: 'corner_draft_publish', body: 'Our words for this week.', prayerPoint: 'for the baptisms' }, TOKENS.campus);
+    const v = await version();
+    const r = await call({ action: 'corner_draft_publish', body: 'Our words for this week.', prayerPoint: 'for the baptisms', version: v }, TOKENS.campus);
     expect(r.status).toBe(200);
     expect(fake.tables.campus_content).toHaveLength(1);
     expect(fake.tables.campus_content[0]).toMatchObject({ campus: 'us-alpharetta', author: 'Campus Person' });
-    const again = await call({ action: 'corner_draft_publish', body: 'Again.' }, TOKENS.campus);
+    const again = await call({ action: 'corner_draft_publish', body: 'Again.', version: v }, TOKENS.campus);
     expect(again.status).toBe(409);
     expect(fake.tables.campus_content).toHaveLength(1);
   });
 
   it('refresh is capped: the sixth is 429', async () => {
-    for (let i = 0; i < 5; i += 1) expect((await call({ action: 'corner_draft_refresh', extra: `night ${i}` }, TOKENS.campus)).status).toBe(200);
-    const sixth = await call({ action: 'corner_draft_refresh', extra: 'again' }, TOKENS.campus);
+    for (let i = 0; i < 5; i += 1) expect((await call({ action: 'corner_draft_refresh', extra: `night ${i}`, version: await version() }, TOKENS.campus)).status).toBe(200);
+    const sixth = await call({ action: 'corner_draft_refresh', extra: 'again', version: await version() }, TOKENS.campus);
     expect(sixth.status).toBe(429);
     expect(sixth.body.code).toBe('refresh_cap');
   });
 
   it('skip, then publish is 409 and nothing goes on the corner', async () => {
-    expect((await call({ action: 'corner_draft_skip' }, TOKENS.campus)).status).toBe(200);
-    expect((await call({ action: 'corner_draft_publish', body: 'x' }, TOKENS.campus)).status).toBe(409);
+    const v = await version();
+    expect((await call({ action: 'corner_draft_skip', version: v }, TOKENS.campus)).status).toBe(200);
+    expect((await call({ action: 'corner_draft_publish', body: 'x', version: v }, TOKENS.campus)).status).toBe(409);
     expect(fake.tables.campus_content).toHaveLength(0);
   });
 
@@ -633,5 +645,33 @@ describe('review fixes: invented names, gatherings, prayers; stale copies; previ
     const out = await cd.runCornerDrafts(db, { now: MON_NY_0530, call: async () => null, env: { CONTEXT: 'deploy-preview' } });
     expect(out.mode).toBe('preview');
     expect(db.tables.campus_corner_draft).toHaveLength(0);
+  });
+});
+
+describe('review round 2: no version, no write; glue-only sentences; verse after a gap', () => {
+  const facts = cd.buildFacts({ campus: ALPHARETTA, lang: 'en', sermon: sermon(), cornerTitles: [], pastor: {} });
+  it.each([
+    'We will see you next week.',
+    'We will be there this week.',
+    'God is with you.',
+  ])('refuses a sentence that says nothing from the facts: %s', (extra) => {
+    expect(cd.checkDraft(`${TRACEABLE} ${extra}`, facts).ok).toBe(false);
+  });
+  it('a verse after a blank line, or after "Read John 3:16", is not quoted', () => {
+    const verse = 'For God so loved the world that he gave his one and only Son.';
+    const own = 'Love always moves first, and it moves toward people.';
+    for (const lead of [{ type: 'bold', value: 'John 3:16' }, { type: 'text', value: 'Read John 3:16' }]) {
+      const s = sermon({ sections: [{ content: [lead, { type: 'blank', value: '' }, { type: 'text', value: verse }, { type: 'text', value: own }] }] });
+      expect(cd.buildFacts({ campus: ALPHARETTA, sermon: s }).message.line).toBe(own);
+    }
+  });
+  it('a publish or skip that lost a race says stale, not done', async () => {
+    const db = jobDb({ mode: 'live' });
+    await cd.runCornerDrafts(db, { now: MON_NY_0530, call: async () => null });
+    const old = { ...db.tables.campus_corner_draft[0] };
+    await cd.refreshDraft(db, old, ALPHARETTA, { extra: 'one' }, { call: async () => null, now: new Date(MON_NY_0530.getTime() + 60000) });
+    expect(await cd.publishDraft(db, old, ALPHARETTA, { body: 'Old.' })).toEqual({ error: 'stale' });
+    expect(await cd.skipDraft(db, old)).toEqual({ error: 'stale' });
+    expect(db.tables.campus_corner_draft[0].status).toBe('draft');
   });
 });

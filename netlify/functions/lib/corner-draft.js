@@ -200,10 +200,13 @@ function quoteLine(sermon) {
     for (const item of content.slice(0, 40)) {
       if (!item) continue;
       const raw = clean(item.value, 600);
+      // A blank line keeps the flag: the verse may sit after a gap.
+      if (!raw) continue;
       const follows = afterScripture;
-      // A quote, or a line that is only a reference ("John 3:16 (NIV)").
-      afterScripture = item.type === "quote" || (!!raw && verseReference(raw) !== "");
-      if (!LINE_TYPES.has(item.type) || !raw || follows) continue;
+      // A quote, or a line that ends on a reference ("John 3:16 (NIV)",
+      // "Read John 3:16"): the next line is likely the verse itself.
+      afterScripture = item.type === "quote" || verseReference(raw) !== "" || /\d{1,3}\s?:\s?\d{1,3}(?:\s?[-\u2013]\s?\d{1,3})?\s*(?:\(?[A-Z]{2,7}\)?)?\s*[:.]?$/.test(raw);
+      if (!LINE_TYPES.has(item.type) || follows) continue;
       if (/\d{1,3}\s?:\s?\d{1,3}/.test(raw)) continue;
       if (/^["\u201C\u2018'\u00AB\u2039]/.test(raw)) continue;
       if (/https?:|www\./i.test(raw)) continue;
@@ -365,12 +368,13 @@ function tidyModelText(raw) {
 }
 
 // Words that join facts into a sentence. A sentence may use these freely; every
-// other word of four letters or more must come from the facts.
+// other word of three letters or more must come from the facts.
 const JOINING = new Set(tokens([
   // English
   // Only words that join; never an invitation, a gathering or a time of day
   // (welcome, celebrate, family, together, tonight: those must come from the
   // pastor's own answer). Matched whole, never by prefix.
+  "and are was has had his her its not but can all who how why may our the for one " +
   "about also been being both called could each every from have here into just like more most much once only other ours over part same says said shared should some still such than that their them then there these they this those through very week weeks were what when where which while will with would your yours church campus series message sunday preached preach preaching heard hear notes note spoke taught teaching reminded whole",
   // Spanish
   "acerca ademas como cual cuando desde donde esta estas este esto estos mismo mucho nuestra nuestras nuestro nuestros otra otro para pero porque semana semanas sobre solo tambien tiene tienen todo todos toda todas iglesia campus serie mensaje domingo predico escuchamos notas nota dijo compartio enseno recordo tenemos aqui"
@@ -384,7 +388,7 @@ const EVENT_WORDS = new Set(tokens([
   "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre"
 ].join(" ")));
 
-const STARTERS = new Set(tokens("on in at as we our us it its let you this these that the a an and but so from for if when while then there here last next el la los las en de del al y pero asi nuestro nuestra nosotros este esta estos estas desde para cuando"));
+const STARTERS = new Set(tokens("on in at as we our us it its let you this these that the a an and but so from for if when while then there here el la los las en de del al y pero asi nuestro nuestra nosotros este esta estos estas desde para cuando"));
 
 const ALWAYS_CAPITAL = stemsOf("Sunday Domingo God Dios Jesus Christ Cristo Lord Senor Holy Spirit Espiritu Santo Bible Biblia");
 
@@ -460,9 +464,16 @@ function checkDraft(text, facts) {
   const factStems = stemsOf(...sources);
   for (const whole of t.split(/(?<=[.!?\u2026]["\u201D\u00BB]?)\s+/)) {
     let sentence = whole;
+    // A sentence must carry at least one fact: a quoted fact, the message's
+    // title, series or key verse, or a word from the facts. "We will see you
+    // next week." carries none and is refused.
+    let carriesFact = quotedSegments(whole).length > 0;
     for (const q of quotedSegments(whole)) sentence = sentence.split(q).join(" ");
     for (const f of [m.title, m.series, m.keyVerse]) {
-      if (f) sentence = sentence.replace(new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
+      if (!f) continue;
+      const re = new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+      if (re.test(sentence)) carriesFact = true;
+      sentence = sentence.replace(re, " ");
     }
 
     for (const w of tokens(sentence)) {
@@ -479,10 +490,13 @@ function checkDraft(text, facts) {
       if (!n || joining(n) || stemIn(n, ALWAYS_CAPITAL) || stemIn(n, factStems)) continue;
       return { ok: false, reason: "name" };
     }
-    // Every other word of four letters or more comes from the facts or joins
+    // Every other word of three letters or more comes from the facts or joins
     // them. No allowance: one word from nowhere and the template is used.
-    const unknown = tokens(sentence).filter((w) => w.length >= 4 && !/\d/.test(w) && !stemIn(w, factStems) && !joining(w));
+    const unknown = tokens(sentence).filter((w) => w.length >= 3 && !/\d/.test(w) && !stemIn(w, factStems) && !joining(w));
     if (unknown.length) return { ok: false, reason: "untraced" };
+    if (!carriesFact && !tokens(sentence).some((w) => w.length >= 3 && !joining(w) && stemIn(w, factStems))) {
+      return { ok: false, reason: "untraced" };
+    }
   }
   return { ok: true, reason: "" };
 }
@@ -703,6 +717,7 @@ async function refreshDraft(db, row, campus, answers = {}, { call = callClaudeMe
  * 'not_draft' | 'save_failed' }.
  */
 async function publishDraft(db, row, campus, { body, prayerPoint, author, now = new Date(), version } = {}) {
+  if (row.status !== "draft") return { error: "not_draft" };
   if (isStale(row, version)) return { error: "stale" };
   const facts = row.facts && typeof row.facts === "object" ? row.facts : {};
   const lang = facts.lang === "es" ? "es" : "en";
@@ -720,7 +735,9 @@ async function publishDraft(db, row, campus, { body, prayerPoint, author, now = 
     .eq("updated_at", row.updated_at)
     .select("id");
   if (claimErr) return { error: "save_failed" };
-  if (!Array.isArray(claimed) || claimed.length !== 1) return { error: "not_draft" };
+  // Changed under us (another device refreshed) or already done: the caller
+  // re-reads and shows the newest state either way.
+  if (!Array.isArray(claimed) || claimed.length !== 1) return { error: "stale" };
   const item = {
     campus: campus.id,
     type: "announcement",
@@ -738,6 +755,7 @@ async function publishDraft(db, row, campus, { body, prayerPoint, author, now = 
       .eq("campus", item.campus)
       .eq("title", item.title)
       .eq("content", item.content)
+      .eq("author", item.author)
       .gte("created_at", new Date(now.getTime() - 10 * 60 * 1000).toISOString())
       .limit(1);
     if (Array.isArray(landed) && landed.length) return { item: { title: item.title, content: item.content } };
@@ -749,15 +767,17 @@ async function publishDraft(db, row, campus, { body, prayerPoint, author, now = 
 
 /** "Not this week". Returns { ok } or { error: 'not_draft' | 'save_failed' }. */
 async function skipDraft(db, row, { now = new Date(), version } = {}) {
+  if (row.status !== "draft") return { error: "not_draft" };
   if (isStale(row, version)) return { error: "stale" };
   const { data, error } = await db
     .from("campus_corner_draft")
     .update({ status: "skipped", updated_at: now.toISOString() })
     .eq("id", row.id)
     .eq("status", "draft")
+    .eq("updated_at", row.updated_at)
     .select("id");
   if (error) return { error: "save_failed" };
-  if (!Array.isArray(data) || data.length !== 1) return { error: "not_draft" };
+  if (!Array.isArray(data) || data.length !== 1) return { error: "stale" };
   return { ok: true };
 }
 
