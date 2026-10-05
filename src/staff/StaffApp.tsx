@@ -307,7 +307,7 @@ export function StaffApp() {
             <button
               type="button"
               onClick={goHome}
-              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 12 }}
+              style={{ ...btnGhost, minHeight: 44, padding: '8px 14px', marginTop: 12 }}
             >
               {staffTabLabels.home}
             </button>
@@ -594,7 +594,7 @@ function StaffHome({
           }}
         >
           <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
-          <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
+          <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
         </button>
       ))}
       {staff.isAdmin && (
