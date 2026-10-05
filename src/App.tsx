@@ -16,7 +16,9 @@ import type { TabId } from './components/TabBar';
 import { activateSundayGuest, isSundayGuest } from './utils/sunday';
 import { hideSplash, registerNativePush, isNative } from './utils/native';
 import { API_BASE } from './utils/api-base';
-import { track } from './utils/analytics';
+import { track, trackPageView } from './utils/analytics';
+import { bootTab, canonicalPathForTab, isDeepLink, resolveAppRoute, urlForTab, type RouteKind } from './utils/appRoutes';
+import { RoutePlaceholder } from './components/RouteScreens';
 import { t, getLang } from './utils/i18n';
 import { closeSubViewsTo, openSubViewCount } from './utils/useSubView';
 import { StopAllAudio } from './components/StopAllAudio';
@@ -119,9 +121,37 @@ function AudioAnnouncer() {
   return <div role="status" aria-live="polite" className="sr-only">{msg}</div>;
 }
 
+function readSignedIn(): boolean {
+  try { return !!JSON.parse(localStorage.getItem('dw_profile') || 'null')?.email; } catch { return false; }
+}
+
+function initialTab(): TabId {
+  try {
+    return bootTab({
+      sermon: SERMON_DEEP_LINK,
+      pathname: window.location.pathname,
+      hostname: window.location.hostname,
+      signedIn: readSignedIn(),
+    });
+  } catch {
+    return SERMON_DEEP_LINK ? 'sermon-notes' : 'home';
+  }
+}
+
+function initialAlias(): RouteKind {
+  try { return resolveAppRoute(window.location.pathname, window.location.hostname).kind; }
+  catch { return 'home'; }
+}
+
+function routeIsDeep(): boolean {
+  try { return isDeepLink(resolveAppRoute(window.location.pathname, window.location.hostname)); }
+  catch { return false; }
+}
+
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<TabId>(SERMON_DEEP_LINK ? 'sermon-notes' : 'home');
-  const tabHistoryRef = useRef<TabId[]>([SERMON_DEEP_LINK ? 'sermon-notes' : 'home']);
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+  const [alias, setAlias] = useState<RouteKind>(initialAlias);
+  const tabHistoryRef = useRef<TabId[]>([activeTab]);
   const [showBibleAI, setShowBibleAI] = useState(false);
   // Bumped when a cloud sync lands so the active screen remounts and re-reads the
   // freshly merged localStorage (previously dw-cloud-sync had no listeners and
@@ -140,20 +170,30 @@ function AppContent() {
   // Track tab navigation history
   const navigateTab = (tab: TabId) => {
     const h = tabHistoryRef.current;
+    const url = urlForTab(tab, window.location);
     // Don't push duplicate if already on this tab
     if (h[h.length - 1] !== tab) {
       h.push(tab);
       if (h.length > 20) h.splice(0, h.length - 20);
       // Mirror into the History API so the browser/Android hardware back button
-      // pops a tab instead of exiting the app. The popstate effect below does the
-      // actual state update when an entry is popped.
-      try { window.history.pushState({ dwTab: tab }, ''); } catch { /* ignore */ }
+      // pops a tab instead of exiting the app. The URL changes with the tab so
+      // Pulse (which beacons on pathname changes) records the screen, not `/`.
+      try { window.history.pushState({ dwTab: tab }, '', url); } catch { /* ignore */ }
     } else {
       // Re-tap of the already-active tab → return that screen to its root
       // state (screens with sub-state listen, clear it, and scroll to top).
       try { window.dispatchEvent(new CustomEvent('dw-tab-reset', { detail: { tab } })); } catch { /* ignore */ }
+      // An alias such as /listen shares the Home tab. A re-tap lands on the
+      // canonical path so the address bar matches the tab.
+      try {
+        const here = resolveAppRoute(window.location.pathname, window.location.hostname);
+        if (here.path !== canonicalPathForTab(tab)) {
+          window.history.replaceState({ dwTab: tab, dwRoot: h.length <= 1 }, '', url);
+        }
+      } catch { /* ignore */ }
     }
     setActiveTab(tab);
+    setAlias(resolveAppRoute(canonicalPathForTab(tab)).kind);
   };
 
   // Go back to previous tab — delegate to history so in-app back and the
@@ -170,7 +210,13 @@ function AppContent() {
   // idempotent — it reads the landed entry's own state instead of blind-popping,
   // so Forward navigates forward and repeated/stale pops can't corrupt the stack.
   useEffect(() => {
-    try { window.history.replaceState({ dwTab: tabHistoryRef.current[0], dwRoot: true }, ''); } catch { /* ignore */ }
+    try {
+      window.history.replaceState(
+        { dwTab: tabHistoryRef.current[0], dwRoot: true },
+        '',
+        window.location.pathname + window.location.search + window.location.hash,
+      );
+    } catch { /* ignore */ }
     const onPop = (e: PopStateEvent) => {
       const st = (e.state || {}) as { dwTab?: TabId; dwSub?: boolean; dwSubDepth?: number };
       // 1. Sub-views: the entry we landed on encodes how many sub-views should
@@ -201,6 +247,9 @@ function AppContent() {
         h.pop();
         setActiveTab(h[h.length - 1]);
       }
+      // The address bar is what Pulse recorded. Follow it for aliases
+      // (/pricing, /listen, …) as well as ordinary tab paths.
+      try { setAlias(resolveAppRoute(window.location.pathname, window.location.hostname).kind); } catch { /* ignore */ }
       // At root → let the default happen (Capacitor exits / browser leaves).
       if (pendingHomeRef.current) {
         // The chooser sheet's entry is consumed — now open the saved path's Home.
@@ -216,7 +265,7 @@ function AppContent() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-  const { userProfile, setup } = useUser();
+  const { userProfile, setup, setShowEmailGate } = useUser();
   const { selection } = useScriptureSelection();
 
   // Sage chrome for the I'm New path, app-wide — lives here (not on HomeScreen's
@@ -243,10 +292,10 @@ function AppContent() {
   }, []);
 
   const [showDay1Landing, setShowDay1Landing] = useState(
-    () => !SERMON_DEEP_LINK && needsDay1Landing()
+    () => !SERMON_DEEP_LINK && !routeIsDeep() && needsDay1Landing()
   );
   const [showDay1Reading, setShowDay1Reading] = useState(
-    () => !SERMON_DEEP_LINK && !needsDay1Landing() && needsDay1Reading()
+    () => !SERMON_DEEP_LINK && !routeIsDeep() && !needsDay1Landing() && needsDay1Reading()
   );
 
   // Track app open — once on mount. Detail is the persona, plus church-homepage
@@ -379,7 +428,7 @@ function AppContent() {
   // Keep visited tabs mounted so switching is instant (no chunk refetch, no
   // Home remount that killed audio + re-fetched today's chapters). First visit
   // to a tab still lazy-loads; after that the panel is hidden, not destroyed.
-  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set([SERMON_DEEP_LINK ? 'sermon-notes' : 'home']));
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set([activeTab]));
   useEffect(() => {
     setMountedTabs(prev => {
       if (prev.has(activeTab)) return prev;
@@ -419,6 +468,25 @@ function AppContent() {
   // replays on mount instead of being re-seeded by hand (never via handleRead).
   const homeKey = `${langKey}:${setup?.persona || ''}`;
 
+  // /sign-in and /auth open the existing email gate (same providers as Settings).
+  // Someone who already has an account lands on Settings instead.
+  useEffect(() => {
+    if (alias !== 'auth') return;
+    if (userProfile?.email) {
+      const url = urlForTab('more', window.location);
+      try { window.history.replaceState({ dwTab: 'more', dwRoot: true }, '', url); } catch { /* ignore */ }
+      setAlias('tab');
+      if (activeTab !== 'more') setActiveTab('more');
+      return;
+    }
+    setShowEmailGate(true);
+  }, [alias, userProfile?.email, setShowEmailGate, activeTab]);
+
+  // Pathname is already updated by navigateTab / the browser before this runs.
+  useEffect(() => {
+    trackPageView(window.location.pathname, window.location.hostname);
+  }, [activeTab, alias]);
+
   const screens: Record<TabId, ReactNode> = {
     home: <HomeScreen key={homeKey} onNavigate={navigateTab} onBack={tabHistoryRef.current.length > 1 ? goBack : undefined} />,
     journal: <JournalScreen onBack={goBack} onNavigate={navigateTab} />,
@@ -432,18 +500,24 @@ function AppContent() {
 
   if (showDay1Landing) {
     return (
-      <Day1Landing
-        onDone={() => {
-          setShowDay1Landing(false);
-          setShowDay1Reading(false);
-        }}
-      />
+      <>
+        <Day1Landing
+          onDone={() => {
+            setShowDay1Landing(false);
+            setShowDay1Reading(false);
+          }}
+        />
+        <EmailGate />
+      </>
     );
   }
 
   if (showDay1Reading) {
     return (
-      <Day1Reading onDone={() => setShowDay1Reading(false)} />
+      <>
+        <Day1Reading onDone={() => setShowDay1Reading(false)} />
+        <EmailGate />
+      </>
     );
   }
 
@@ -466,6 +540,9 @@ function AppContent() {
         Skip to content
       </a>
       {!IS_EMBEDDED && <SeamBar />}
+      {(alias === 'pricing' || alias === 'pro') ? (
+        <RoutePlaceholder kind={alias} onHome={() => navigateTab('home')} />
+      ) : (
       <ErrorBoundary label={activeTab}>
         <Suspense fallback={<ScreenLoader />}>
           <main id="main-content" key={syncNonce} className="dw-tab-host">
@@ -485,9 +562,10 @@ function AppContent() {
           </main>
         </Suspense>
       </ErrorBoundary>
+      )}
       <TabBar activeTab={activeTab} onTabChange={navigateTab} />
       <StopAllAudio onStop={() => { try { window.dispatchEvent(new Event('dw-stop-hero-audio')); } catch { /* ignore */ } }} />
-      {!sundayGuest && !SERMON_DEEP_LINK && <EmailGate />}
+      {((!sundayGuest && !SERMON_DEEP_LINK) || alias === 'auth') && <EmailGate />}
       <EmailCodePrompt />
       {/* Home and Notes mount their own BibleAI (they need to pass an initialContext
           from a highlight / Greek-Hebrew tap). Rendering this global one on top of

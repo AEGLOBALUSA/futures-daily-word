@@ -16,6 +16,7 @@ import { track } from '../utils/analytics';
 import { hapticTap } from '../utils/haptics';
 import { useModalA11y } from '../utils/useModalA11y';
 import { LanguageSwitch } from './LanguageSwitch';
+import { FreeAccountInvite } from './FreeAccountInvite';
 import { ChoosePathSheet } from './ChoosePathSheet';
 
 const WORDMARK = 'https://futuresdailyword.com/images/futures-wordmark.png';
@@ -106,7 +107,7 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
             >
               {t('read_btn', lang)}
             </button>
-            {/* Door 1 — one quiet line. Read stays the only button; this is a text link. */}
+            {/* Door 1 — one quiet line. Read stays the primary button; this is a text link. */}
             <p className="dw-day1-path-line">
               {t('path_landing_prompt', lang)}{' '}
               <button
@@ -118,6 +119,7 @@ export function Day1Landing({ onBegin, onDone, startOpen = false }: Props) {
                 {t('path_landing_link', lang)}
               </button>
             </p>
+            <FreeAccountInvite variant="day1" />
           </div>
         )}
         {readingOpen ? (

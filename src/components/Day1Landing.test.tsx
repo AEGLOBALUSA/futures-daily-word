@@ -16,8 +16,11 @@ describe('Day1Landing — closed hero is first paint', () => {
     expect(html).toContain('New &amp; Returning to Faith');
     expect(html).toContain('Grace Changes Everything');
     expect(html).toContain('>Read</button>');
-    // One CTA. The header's language switch (aria-haspopup="listbox") is chrome, not a CTA.
-    expect(html.match(/<button\b(?![^>]*aria-haspopup)/g)?.length).toBe(1);
+    // Read stays the only primary CTA. The free-account invite is a second
+    // button under it; language and "Choose your path" carry aria-haspopup.
+    expect(html.match(/class="dw-day1-cta"/g)?.length).toBe(1);
+    expect(html).toContain('Create a free account');
+    expect(html.match(/<button\b(?![^>]*aria-haspopup)/g)?.length).toBe(3);
 
     expect(html).not.toContain(DAY1_VERSE_REF);
     expect(html).not.toContain(DAY1_VERSE_TEXT.slice(0, 24));
@@ -59,8 +62,9 @@ describe('Day1Landing — Door 1 of "Choose your path" (2 Sep 2026)', () => {
     const html = closed();
     expect(html).toContain('Not new to faith?');
     expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*>Choose your path<\/button>/);
-    // Still one CTA (the link carries aria-haspopup, like the language switch chrome).
-    expect(html.match(/<button\b(?![^>]*aria-haspopup)/g)?.length).toBe(1);
+    // Read is still the only dw-day1-cta. Account invite adds two plain buttons.
+    expect(html.match(/class="dw-day1-cta"/g)?.length).toBe(1);
+    expect(html.match(/<button\b(?![^>]*aria-haspopup)/g)?.length).toBe(3);
     // The sheet is mounted closed — nothing of it paints before the tap.
     expect(html).not.toContain('Where are you today?');
   });

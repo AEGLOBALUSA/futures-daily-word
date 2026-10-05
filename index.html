@@ -69,6 +69,19 @@
       ]
     }
     </script>
+    <script>
+      // If the SPA shell answered an API URL (a function miss, or the /*
+      // fallback), don't let Pulse record /.netlify/functions/campuses as a
+      // page. Move to home before px.js beacons.
+      (function () {
+        try {
+          var p = location.pathname || '';
+          if (p.indexOf('/.netlify/') === 0 || p.indexOf('/api/') === 0) {
+            history.replaceState(null, '', '/' + location.hash);
+          }
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
     <!-- Analytics.
          Pulse (https://futures.church/px.js) is cookieless hit analytics and
          loads on every page view, with or without cookie consent.
