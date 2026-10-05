@@ -733,7 +733,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                           onChange={(e) => { void handleReminderHour(parseInt(e.target.value, 10)); }}
                           style={{
                             width: '100%', minHeight: 56, padding: '12px', borderRadius: 10, fontSize: 17,
-                            fontFamily: 'var(--font-sans)', background: 'var(--dw-surface-hover)',
+                            fontFamily: 'var(--font-sans)', background: 'var(--dw-surface)',
                             color: 'var(--dw-text-primary)', border: '1px solid var(--dw-border)',
                           }}
                         >
@@ -741,6 +741,17 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                             <option key={h} value={h}>{formatReminderTime(h, lang)}</option>
                           ))}
                         </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (pushHourSavingRef.current) return;
+                            setEditingPushHour(false);
+                            setFailedPushHour(null);
+                          }}
+                          style={{ minHeight: 44, padding: '10px 12px', border: 'none', background: 'transparent', color: 'var(--dw-text-primary)', fontSize: 17, fontFamily: 'var(--font-sans)', textDecoration: 'underline', cursor: 'pointer' }}
+                        >
+                          {t('next_reminder_keep', lang).replace('{time}', formatReminderTime(pushHour, lang))}
+                        </button>
                         {(savingPushHour || failedPushHour !== null) && (
                           <div className="dw-reminder-feedback">
                             <p id="dw-reminder-feedback" role={savingPushHour ? 'status' : 'alert'}>
