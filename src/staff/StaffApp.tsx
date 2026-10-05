@@ -579,7 +579,9 @@ function StaffHome({
   return (
     <div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
-      {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} onJob={job => onJob(job)} />}
+      {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin}
+        staffCampusId={staff.role === 'campus' ? staff.campusId ?? undefined : undefined}
+        onJob={job => onJob(job)} />}
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         This is how Sunday’s sermon notes get onto the page people write in.
       </p>

@@ -10,6 +10,7 @@ vi.mock('./cornerDraftApi', () => ({
 }));
 
 import { CornerDraftCard } from './CornerDraftCard';
+import { STAFF_SIGNED_OUT_EVENT } from './api';
 import {
   cornerDraftErrorCode, getCornerDraft, listCornerDrafts, publishCornerDraft,
   refreshCornerDraft, skipCornerDraft, type CornerDraft,
@@ -49,11 +50,11 @@ function deferred<T>() {
 async function flush() {
   await act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); });
 }
-async function mount(isAdmin = false) {
+async function mount(isAdmin = false, staffCampusId = 'us-test') {
   el = document.createElement('div');
   document.body.appendChild(el);
   root = createRoot(el);
-  act(() => { root.render(<CornerDraftCard isAdmin={isAdmin} onJob={onJob} />); });
+  act(() => { root.render(<CornerDraftCard isAdmin={isAdmin} staffCampusId={staffCampusId} onJob={onJob} />); });
   await flush();
 }
 async function remount(isAdmin = false) {
@@ -187,6 +188,27 @@ describe('CornerDraftCard, campus pastor', () => {
     expect(skipCornerDraft).not.toHaveBeenCalled();
   });
 
+  it('only recovers stored words for the signed-in campus', async () => {
+    const stored = { draft: draft({ campusId: 'us-other', campusName: 'Other Campus' }), body: 'Other campus words',
+      prayerPoint: '', answer: '', fresh: null, pendingQuestion: null,
+      dismissed: { extra: false, prayerPoint: false }, savedWords: 'Other campus words', outcome: 'finished' };
+    sessionStorage.setItem(unsavedKey('us-other'), JSON.stringify(stored));
+    vi.mocked(getCornerDraft).mockResolvedValue(response(null));
+    await mount(false, 'us-test');
+    expect(el.textContent).not.toContain('Other campus words');
+  });
+
+  it('clears stored words when staff signs out', async () => {
+    sessionStorage.setItem(unsavedKey(), 'stored words');
+    sessionStorage.setItem(unsavedKey('us-other'), 'other stored words');
+    sessionStorage.setItem('unrelated', 'keep me');
+    await mount();
+    act(() => window.dispatchEvent(new Event(STAFF_SIGNED_OUT_EVENT)));
+    expect(sessionStorage.getItem(unsavedKey())).toBeNull();
+    expect(sessionStorage.getItem(unsavedKey('us-other'))).toBeNull();
+    expect(sessionStorage.getItem('unrelated')).toBe('keep me');
+  });
+
   it.each((['publish', 'skip'] as const).flatMap(action =>
     (['note', 'prayer', 'answer', 'empty', 'stored', 'unchanged'] as const).flatMap(changed =>
       [false, true].map(leave => [action, changed, leave] as const))))(
@@ -232,7 +254,7 @@ describe('CornerDraftCard, campus pastor', () => {
       });
       if (leave) {
         vi.mocked(getCornerDraft).mockResolvedValue(response(null));
-        act(() => root.render(<CornerDraftCard onJob={onJob} />));
+        act(() => root.render(<CornerDraftCard staffCampusId="us-test" onJob={onJob} />));
         await flush();
       }
       expect(el.querySelector('[role="region"]')?.textContent).toBe(kept);

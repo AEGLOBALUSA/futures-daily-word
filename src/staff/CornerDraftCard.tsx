@@ -5,6 +5,7 @@ import {
   cornerDraftErrorCode, getCornerDraft, listCornerDrafts, publishCornerDraft,
   refreshCornerDraft, skipCornerDraft, type CornerDraft, type CornerDraftWaiting,
 } from './cornerDraftApi';
+import { STAFF_SIGNED_OUT_EVENT } from './api';
 
 const panelStyle: CSSProperties = {
   display: 'grid', gap: 16, width: '100%', maxWidth: 680, boxSizing: 'border-box',
@@ -31,7 +32,9 @@ const campusMainStyle: CSSProperties = {
   fontSize: 17, fontFamily: 'var(--font-sans)', cursor: 'pointer',
 };
 
-type Props = { isAdmin?: boolean; onJob: (job: 'campus', campusId?: string) => void };
+type Props = {
+  isAdmin?: boolean; staffCampusId?: string; onJob: (job: 'campus', campusId?: string) => void;
+};
 type Action = 'refresh' | 'publish' | 'skip';
 type ReadState = 'loading' | 'ready' | 'failed' | 'finished';
 type Outcome = 'published' | 'skipped' | 'finished' | null;
@@ -45,6 +48,14 @@ const draftKey = (draft: Pick<CornerDraft, 'campusId' | 'weekOf'>) => JSON.strin
 const storagePrefix = 'dw_corner_draft_unsaved:';
 const storageKey = (draft: CornerDraft) => `${storagePrefix}${draft.campusId}:${draft.weekOf}`;
 const pendingWrites = new Map<string, number>();
+function clearStoredEditors() {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(storagePrefix)) sessionStorage.removeItem(key);
+    }
+  } catch { /* Storage is optional; never block signing out. */ }
+}
 function readEditors() {
   const editors = new Map<string, EditorMemory>();
   try {
@@ -79,7 +90,7 @@ const scrollClearance = () => {
   return height ? height + 16 : 96;
 };
 
-export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
+export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob }: Props) {
   const [editorMemory] = useState(readEditors);
   const [waiting, setWaiting] = useState<CornerDraftWaiting[]>([]);
   const [campusId, setCampusId] = useState<string>();
@@ -105,6 +116,12 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
   const selectedReadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const handleSignedOut = () => { clearStoredEditors(); editorMemory.clear(); };
+    window.addEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
+    return () => window.removeEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
+  }, [editorMemory]);
+
+  useEffect(() => {
     if (isAdmin && campusId && readState !== 'ready') {
       selectedReadRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
       selectedReadRef.current?.focus({ preventScroll: true });
@@ -127,9 +144,9 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
     setReadState('loading');
     getCornerDraft(campusId).then(({ draft: next, campusId: resolvedCampusId }) => {
       if (active) {
-        // A pastor's recovery is scoped to the campus identified by the server.
-        const recovery = !isAdmin && (!next || next.status !== 'draft')
-          ? [...editorMemory.values()].filter(editor => editor.draft.campusId === resolvedCampusId &&
+        // A pastor's recovery is scoped to the signed-in staff member's campus.
+        const recovery = !isAdmin && staffCampusId === resolvedCampusId && (!next || next.status !== 'draft')
+          ? [...editorMemory.values()].filter(editor => editor.draft.campusId === staffCampusId &&
             (!next || editor.draft.weekOf === next.weekOf))
             .sort((a, b) => b.draft.weekOf.localeCompare(a.draft.weekOf))[0]?.draft : undefined;
         const openedDraft = next?.status === 'draft' ? next : recovery;
@@ -147,9 +164,10 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
       const code = cornerDraftErrorCode(err);
       const finished = code === 'no_draft' || code === 'not_draft';
       if (finished && !isAdmin) {
-        // With no campusId on a pastor read, use the campus validated against the stored key.
-        const recovery = [...editorMemory.values()]
-          .sort((a, b) => b.draft.weekOf.localeCompare(a.draft.weekOf))[0]?.draft;
+        // With no server draft, use only the signed-in staff member's campus.
+        const recovery = staffCampusId ? [...editorMemory.values()]
+          .filter(editor => editor.draft.campusId === staffCampusId)
+          .sort((a, b) => b.draft.weekOf.localeCompare(a.draft.weekOf))[0]?.draft : undefined;
         if (recovery) {
           setDraft(recovery);
           setOpenedDrafts(current => current.some(opened => draftKey(opened) === draftKey(recovery))
@@ -160,7 +178,7 @@ export function CornerDraftCard({ isAdmin = false, onJob }: Props) {
       if (finished) setWaiting(rows => rows.filter(row => row.campusId !== campusId));
     });
     return () => { active = false; };
-  }, [isAdmin, campusId, readVersion, localRecovery, editorMemory]);
+  }, [isAdmin, campusId, staffCampusId, readVersion, localRecovery, editorMemory]);
 
   const recoveryDraft = readState === 'finished'
     ? (isAdmin ? openedDrafts.find(opened => opened.campusId === campusId && retained.has(draftKey(opened))) : draft)
