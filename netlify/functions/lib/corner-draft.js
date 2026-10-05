@@ -191,17 +191,30 @@ const LINE_TYPES = new Set(["text", "bold", "bullet", "note"]);
  */
 function quoteLine(sermon) {
   const sections = Array.isArray(sermon && sermon.sections) ? sermon.sections : [];
+  const verseText = new Set(tokens(sermon && typeof sermon.keyVerseText === "string" ? sermon.keyVerseText : "").filter((w) => w.length >= 4));
   for (const section of sections.slice(0, 8)) {
     const content = Array.isArray(section && section.content) ? section.content : [];
+    // A line right after a bare verse reference (or a quote) is usually the
+    // verse itself, written without its own reference: skipped too.
+    let afterScripture = false;
     for (const item of content.slice(0, 40)) {
-      if (!item || !LINE_TYPES.has(item.type)) continue;
+      if (!item) continue;
       const raw = clean(item.value, 600);
-      if (!raw) continue;
+      const follows = afterScripture;
+      // A quote, or a line that is only a reference ("John 3:16 (NIV)").
+      afterScripture = item.type === "quote" || (!!raw && verseReference(raw) !== "");
+      if (!LINE_TYPES.has(item.type) || !raw || follows) continue;
       if (/\d{1,3}\s?:\s?\d{1,3}/.test(raw)) continue;
       if (/^["\u201C\u2018'\u00AB\u2039]/.test(raw)) continue;
       if (/https?:|www\./i.test(raw)) continue;
       const first = raw.split(/(?<=[.!?])\s+/)[0].trim();
-      if (first.length >= 12 && first.length <= 220) return first;
+      if (first.length < 12 || first.length > 220) continue;
+      // Shares most of its words with the key verse's text: scripture, skipped.
+      if (verseText.size) {
+        const own = tokens(first).filter((w) => w.length >= 4);
+        if (own.length && own.filter((w) => verseText.has(w)).length / own.length >= 0.5) continue;
+      }
+      return first;
     }
   }
   return "";
@@ -355,23 +368,32 @@ function tidyModelText(raw) {
 // other word of four letters or more must come from the facts.
 const JOINING = new Set(tokens([
   // English
-  "about above after again also along among another back been before being below between both bring called came come comes coming could during each every everyone everybody family forward friends from have here into join joining just like look looking more most much next once only other ours over part please same says said shared share should some still such than that their them then there these they this those through together very want week weeks were what when where which while will with would your yours church campus series message sunday preached preach preaching heard hear notes note spoke taught teaching reminded celebrate celebrating welcome invite invited bring friend happening coming whole",
+  // Only words that join; never an invitation, a gathering or a time of day
+  // (welcome, celebrate, family, together, tonight: those must come from the
+  // pastor's own answer). Matched whole, never by prefix.
+  "about also been being both called could each every from have here into just like more most much once only other ours over part same says said shared should some still such than that their them then there these they this those through very week weeks were what when where which while will with would your yours church campus series message sunday preached preach preaching heard hear notes note spoke taught teaching reminded whole",
   // Spanish
-  "acerca ademas ante antes como con contra cual cuando desde donde durante entre esta estas este esto estos hasta juntos junto mientras mismo mucho nuestra nuestras nuestro nuestros otra otro para pero porque semana semanas sobre solo tambien tiene tienen todo todos toda todas unete unirnos venir vengan ven iglesia campus serie mensaje domingo predico escuchamos notas nota dijo compartio enseno recordo celebrar celebramos bienvenidos invitamos invita amigos amigo familia esperamos habra tenemos aqui"
+  "acerca ademas como cual cuando desde donde esta estas este esto estos mismo mucho nuestra nuestras nuestro nuestros otra otro para pero porque semana semanas sobre solo tambien tiene tienen todo todos toda todas iglesia campus serie mensaje domingo predico escuchamos notas nota dijo compartio enseno recordo tenemos aqui"
 ].join(" ")));
 
 const EVENT_WORDS = new Set(tokens([
-  "monday tuesday wednesday thursday friday saturday tonight tomorrow today weekend",
+  "monday tuesday wednesday thursday friday saturday tonight tomorrow today weekend morning afternoon evening night noon midday",
+  "noche tarde mediodia madrugada finde",
   "january february march april may june july august september october november december",
   "lunes martes miercoles jueves viernes sabado manana hoy",
   "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre"
 ].join(" ")));
 
+const STARTERS = new Set(tokens("on in at as we our us it its let you this these that the a an and but so from for if when while then there here last next el la los las en de del al y pero asi nuestro nuestra nosotros este esta estos estas desde para cuando"));
+
 const ALWAYS_CAPITAL = stemsOf("Sunday Domingo God Dios Jesus Christ Cristo Lord Senor Holy Spirit Espiritu Santo Bible Biblia");
 
 // The model writes no prayer and no blessing of its own: these words may only
 // come from what the pastor typed.
-const PRAYER_WORDS = new Set(tokens("pray prays praying prayer prayers bless blessing blessings amen orar oramos oremos oracion oraciones bendiga bendicion bendiciones"));
+const PRAYER_STEMS = ["pray", "bless", "amen", "orar", "oramo", "oremo", "oraci", "bendi", "grace", "graci"];
+function isPrayerWord(w) {
+  return PRAYER_STEMS.some((p) => w.startsWith(p));
+}
 
 function quotedSegments(text) {
   const out = [];
@@ -383,6 +405,11 @@ function quotedSegments(text) {
 
 function stemIn(word, stems) {
   return stems.has(word) || (word.length >= 5 && stems.has(word.slice(0, 5)));
+}
+
+/** A joining word matches whole, never by prefix ("after" must not pass "afternoon"). */
+function joining(word) {
+  return JOINING.has(word) || STARTERS.has(word);
 }
 
 function stemsOf(...texts) {
@@ -431,7 +458,6 @@ function checkDraft(text, facts) {
   // taken out (they are checked above and may say anything they said).
   const extraStems = stemsOf(extra);
   const factStems = stemsOf(...sources);
-  const QUOTE_MARK = /["\u201C\u201D\u00AB\u00BB]/;
   for (const whole of t.split(/(?<=[.!?\u2026]["\u201D\u00BB]?)\s+/)) {
     let sentence = whole;
     for (const q of quotedSegments(whole)) sentence = sentence.split(q).join(" ");
@@ -441,27 +467,22 @@ function checkDraft(text, facts) {
 
     for (const w of tokens(sentence)) {
       if ((/\d/.test(w) || EVENT_WORDS.has(w)) && !extraStems.has(w)) return { ok: false, reason: "event" };
-      if (PRAYER_WORDS.has(w) && !extraStems.has(w)) return { ok: false, reason: "prayer" };
+      if (isPrayerWord(w) && !stemIn(w, extraStems)) return { ok: false, reason: "prayer" };
     }
 
-    // A capitalised word that does not start the sentence (or follow a colon
-    // or a quotation) must be a name the facts hold.
-    const raw = sentence.split(/\s+/).filter(Boolean);
-    let starts = true;
-    for (const piece of raw) {
+    // Every capitalised word, the first of a sentence included, is a name the
+    // facts hold or an ordinary word that starts a sentence ("On", "We").
+    for (const piece of sentence.split(/\s+/).filter(Boolean)) {
       const word = piece.replace(/['\u2019]s\b/gi, "").replace(/[^A-Za-z\u00C0-\u017F'-]/g, "");
-      const startsHere = starts;
-      starts = /[:.!?\u2026]$/.test(piece) || QUOTE_MARK.test(piece.slice(-1)) || !word;
-      if (startsHere || word.length < 2 || !/^[A-Z\u00C0-\u00DE]/.test(word)) continue;
+      if (word.length < 2 || !/^[A-Z\u00C0-\u00DE]/.test(word)) continue;
       const n = norm(word).replace(/ .*/, "");
-      if (!n || stemIn(n, ALWAYS_CAPITAL) || stemIn(n, factStems)) continue;
+      if (!n || joining(n) || stemIn(n, ALWAYS_CAPITAL) || stemIn(n, factStems)) continue;
       return { ok: false, reason: "name" };
     }
-    const content = tokens(sentence).filter((w) => w.length >= 4 && !/\d/.test(w));
-    const unknown = content.filter((w) => !stemIn(w, factStems) && !stemIn(w, JOINING));
-    if (content.length >= 4 ? unknown.length > 1 : unknown.length > 0) {
-      return { ok: false, reason: "untraced" };
-    }
+    // Every other word of four letters or more comes from the facts or joins
+    // them. No allowance: one word from nowhere and the template is used.
+    const unknown = tokens(sentence).filter((w) => w.length >= 4 && !/\d/.test(w) && !stemIn(w, factStems) && !joining(w));
+    if (unknown.length) return { ok: false, reason: "untraced" };
   }
   return { ok: true, reason: "" };
 }
@@ -568,6 +589,8 @@ function publicDraft(row, campus) {
     body: row.body,
     prayerPoint: row.prayer_point || "",
     status: row.status,
+    /** The row's updated_at: a write sent with an older version is refused ('stale'). */
+    version: row.updated_at,
     writtenBy: row.written_by,
     refreshesLeft: Math.max(0, REFRESH_CAP - (Number(row.refresh_count) || 0)),
     answered: { extra: !!pastor.extra, prayerPoint: !!pastor.prayerPoint },
@@ -616,13 +639,22 @@ async function draftsVisibleTo(db, email) {
 // ── The pastor's three writes ──────────────────────────────────────────────
 
 /**
+ * Was this write started from an older copy of the draft (another device
+ * refreshed or edited it since)? A write that names no version is not checked.
+ */
+function isStale(row, version) {
+  return typeof version === "string" && version !== "" && version !== String(row.updated_at);
+}
+
+/**
  * A fresh draft from the pastor's answers. `answers.extra` and
  * `answers.prayerPoint`: a string replaces the stored answer ("" clears it),
  * anything else keeps it. At most REFRESH_CAP a week. Returns { row } or
  * { error: 'refresh_cap' | 'not_draft' | 'save_failed' }.
  */
-async function refreshDraft(db, row, campus, answers = {}, { call = callClaudeMessages, env = process.env, now = new Date() } = {}) {
+async function refreshDraft(db, row, campus, answers = {}, { call = callClaudeMessages, env = process.env, now = new Date(), version } = {}) {
   if (row.status !== "draft") return { error: "not_draft" };
+  if (isStale(row, version)) return { error: "stale" };
   const used = Number(row.refresh_count) || 0;
   if (used >= REFRESH_CAP) return { error: "refresh_cap" };
   const old = row.facts && typeof row.facts === "object" ? row.facts : {};
@@ -658,7 +690,8 @@ async function refreshDraft(db, row, campus, answers = {}, { call = callClaudeMe
     .eq("refresh_count", used)
     .select(DRAFT_COLUMNS);
   if (error) return { error: "save_failed" };
-  if (!Array.isArray(data) || data.length !== 1) return { error: "not_draft" };
+  // Lost a race with another device's refresh (or it was published meanwhile).
+  if (!Array.isArray(data) || data.length !== 1) return { error: "stale" };
   return { row: data[0] };
 }
 
@@ -669,7 +702,8 @@ async function refreshDraft(db, row, campus, answers = {}, { call = callClaudeMe
  * status goes back to draft. Returns { item } or { error: 'empty' |
  * 'not_draft' | 'save_failed' }.
  */
-async function publishDraft(db, row, campus, { body, prayerPoint, author, now = new Date() } = {}) {
+async function publishDraft(db, row, campus, { body, prayerPoint, author, now = new Date(), version } = {}) {
+  if (isStale(row, version)) return { error: "stale" };
   const facts = row.facts && typeof row.facts === "object" ? row.facts : {};
   const lang = facts.lang === "es" ? "es" : "en";
   const text = cleanMultiline(typeof body === "string" ? body : row.body, BODY_MAX);
@@ -683,6 +717,7 @@ async function publishDraft(db, row, campus, { body, prayerPoint, author, now = 
     .update({ status: "published", body: text, prayer_point: prayer || null, published_at: stamp, updated_at: stamp })
     .eq("id", row.id)
     .eq("status", "draft")
+    .eq("updated_at", row.updated_at)
     .select("id");
   if (claimErr) return { error: "save_failed" };
   if (!Array.isArray(claimed) || claimed.length !== 1) return { error: "not_draft" };
@@ -695,6 +730,17 @@ async function publishDraft(db, row, campus, { body, prayerPoint, author, now = 
   };
   const { error: insErr } = await db.from("campus_content").insert(item);
   if (insErr) {
+    // The insert may have landed even though an error came back: look before
+    // reopening the draft, so a retry cannot put the same note up twice.
+    const { data: landed } = await db
+      .from("campus_content")
+      .select("id")
+      .eq("campus", item.campus)
+      .eq("title", item.title)
+      .eq("content", item.content)
+      .gte("created_at", new Date(now.getTime() - 10 * 60 * 1000).toISOString())
+      .limit(1);
+    if (Array.isArray(landed) && landed.length) return { item: { title: item.title, content: item.content } };
     await db.from("campus_corner_draft").update({ status: "draft", published_at: null, updated_at: stamp }).eq("id", row.id).eq("status", "published");
     return { error: "save_failed" };
   }
@@ -702,7 +748,8 @@ async function publishDraft(db, row, campus, { body, prayerPoint, author, now = 
 }
 
 /** "Not this week". Returns { ok } or { error: 'not_draft' | 'save_failed' }. */
-async function skipDraft(db, row, { now = new Date() } = {}) {
+async function skipDraft(db, row, { now = new Date(), version } = {}) {
+  if (isStale(row, version)) return { error: "stale" };
   const { data, error } = await db
     .from("campus_corner_draft")
     .update({ status: "skipped", updated_at: now.toISOString() })
@@ -841,8 +888,22 @@ async function draftOne(db, campus, ctx) {
  * switch and nothing else: no campus, roster or message read, no model call,
  * no row. Returns { mode, due: [campus id], results: [...] } for the log.
  */
+/**
+ * Deploy previews and branch deploys carry production keys: no draft is ever
+ * written from one (the scheduled job, a "Run now", or a pastor's tap).
+ * Netlify sets CONTEXT to production, deploy-preview, branch-deploy or dev.
+ */
+function isNonProductionDeploy(env = process.env) {
+  const ctx = String((env && env.CONTEXT) || "");
+  return ctx !== "" && ctx !== "production";
+}
+
 async function runCornerDrafts(db, { now = new Date(), call = callClaudeMessages, env = process.env, link = staffLink() } = {}) {
   const summary = { mode: "off", due: [], results: [] };
+  if (isNonProductionDeploy(env)) {
+    summary.mode = "preview";
+    return summary;
+  }
   try {
     const { mode, shadowRecipients } = await switchOf(db, KIND);
     summary.mode = mode;
@@ -920,5 +981,7 @@ module.exports = {
   skipDraft,
   draftOne,
   runCornerDrafts,
+  isNonProductionDeploy,
+  isStale,
   staffLink
 };

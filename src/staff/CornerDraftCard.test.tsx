@@ -27,7 +27,7 @@ beforeAll(() => {
 function draft(overrides: Partial<CornerDraft> = {}): CornerDraft {
   return {
     id: 'draft-a', campusId: 'us-test', campusName: 'Test Campus', weekOf: '2026-10-05',
-    lang: 'en', body: 'A note for this week.', prayerPoint: '', status: 'draft', writtenBy: 'model',
+    lang: 'en', body: 'A note for this week.', prayerPoint: '', status: 'draft', version: 'v1', writtenBy: 'model',
     refreshesLeft: 5, answered: { extra: false, prayerPoint: false },
     source: { title: 'A message of hope', speaker: 'Guest speaker', keyVerse: '', series: '' },
     ...overrides,

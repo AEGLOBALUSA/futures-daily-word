@@ -20,6 +20,8 @@ export type CornerDraft = {
   body: string;
   prayerPoint: string;
   status: 'draft' | 'published' | 'skipped';
+  /** Which copy of the draft this is. Send it back with every write: an older copy is refused as 'stale'. */
+  version: string;
   writtenBy: 'model' | 'template';
   /** Fresh drafts left this week (5 a week). */
   refreshesLeft: number;
@@ -34,7 +36,7 @@ export type CornerDraftWaiting = { campusId: string; campusName: string; weekOf:
 /** The refusal codes the card maps to its own words (never the server's English). */
 export type CornerDraftErrorCode =
   | 'other_campus' | 'campus_unconfirmed' | 'role' | 'campus' | 'preview'
-  | 'no_draft' | 'not_draft' | 'refresh_cap' | 'empty' | 'unfinished' | 'save_failed';
+  | 'no_draft' | 'not_draft' | 'stale' | 'refresh_cap' | 'empty' | 'unfinished' | 'save_failed';
 
 export function cornerDraftErrorCode(err: unknown): CornerDraftErrorCode | '' {
   const code = (err as { data?: { code?: unknown } } | null)?.data?.code;
@@ -56,8 +58,9 @@ export async function listCornerDrafts(): Promise<CornerDraftWaiting[]> {
 export async function refreshCornerDraft(
   answers: { extra?: string; prayerPoint?: string },
   campusId?: string,
+  version?: string,
 ): Promise<CornerDraft> {
-  const out = await intake<{ draft: CornerDraft }>('corner_draft_refresh', { ...answers, ...(campusId ? { campusId } : {}) });
+  const out = await intake<{ draft: CornerDraft }>('corner_draft_refresh', { ...answers, ...(campusId ? { campusId } : {}), ...(version ? { version } : {}) });
   return out.draft;
 }
 
@@ -66,11 +69,12 @@ export async function publishCornerDraft(
   body: string,
   prayerPoint: string,
   campusId?: string,
+  version?: string,
 ): Promise<{ campusId: string; campusName: string; item: { title: string; content: string } }> {
-  return intake('corner_draft_publish', { body, prayerPoint, ...(campusId ? { campusId } : {}) });
+  return intake('corner_draft_publish', { body, prayerPoint, ...(campusId ? { campusId } : {}), ...(version ? { version } : {}) });
 }
 
 /** "Not this week". */
-export async function skipCornerDraft(campusId?: string): Promise<void> {
-  await intake('corner_draft_skip', campusId ? { campusId } : {});
+export async function skipCornerDraft(campusId?: string, version?: string): Promise<void> {
+  await intake('corner_draft_skip', { ...(campusId ? { campusId } : {}), ...(version ? { version } : {}) });
 }

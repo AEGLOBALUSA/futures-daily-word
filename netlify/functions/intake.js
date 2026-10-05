@@ -1176,7 +1176,7 @@ exports.handler = async (event) => {
         return json(event, scope.status, { error: scope.error, code: scope.code });
       }
       const fromPreview = isDailyWordPreviewOrigin(parseRequestOrigin(event.headers.origin || event.headers.Origin || event.headers.referer || event.headers.Referer || ""));
-      if (action !== "corner_draft_get" && fromPreview) {
+      if (action !== "corner_draft_get" && (fromPreview || corner.isNonProductionDeploy())) {
         console.log("[intake] corner_draft refused", JSON.stringify({ email: staff.email, action, reason: "preview" }));
         return json(event, 403, { error: "Put the corner up from futuresdailyword.com, not from a preview.", code: "preview" });
       }
@@ -1203,26 +1203,28 @@ exports.handler = async (event) => {
         out = await corner.refreshDraft(db(), row, scope.campus, {
           extra: typeof body.extra === "string" ? body.extra : undefined,
           prayerPoint: typeof body.prayerPoint === "string" ? body.prayerPoint : undefined
-        }, { now });
+        }, { now, version: body.version });
         if (out.row) return json(event, 200, { draft: corner.publicDraft(out.row, scope.campus) });
       } else if (action === "corner_draft_publish") {
         out = await corner.publishDraft(db(), row, scope.campus, {
           body: typeof body.body === "string" ? body.body : undefined,
           prayerPoint: typeof body.prayerPoint === "string" ? body.prayerPoint : undefined,
           author: staff.name || "",
-          now
+          now,
+          version: body.version
         });
         if (out.item) {
           console.log("[intake] corner_draft published", JSON.stringify({ email: staff.email, campus: scope.campus.id, week: row.week_of }));
           return json(event, 200, { published: true, campusId: scope.campus.id, campusName: scope.campus.name, item: out.item });
         }
       } else {
-        out = await corner.skipDraft(db(), row, { now });
+        out = await corner.skipDraft(db(), row, { now, version: body.version });
         if (out.ok) return json(event, 200, { skipped: true, campusId: scope.campus.id });
       }
       const refusals = {
         refresh_cap: [429, "You have asked for a fresh draft five times this week. Change the words yourself, then put it on the corner."],
         not_draft: [409, "This week\u2019s draft is already done."],
+        stale: [409, "This draft changed on another device. Here is the newest one."],
         empty: [400, "Write something first, then put it on the corner."],
         unfinished: [400, "Part of the draft was left unfinished. Fill in or remove the part in braces."],
         save_failed: [500, "That did not save. Try again."]

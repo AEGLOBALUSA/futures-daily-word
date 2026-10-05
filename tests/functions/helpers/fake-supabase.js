@@ -122,6 +122,7 @@ export function createFakeSupabase(seed = {}) {
             if (row.status === undefined) row.status = 'draft';
             if (row.refresh_count === undefined) row.refresh_count = 0;
             if (!row.created_at) row.created_at = new Date().toISOString();
+            if (!row.updated_at) row.updated_at = row.created_at;
           }
           if (table === 'campus_content' && !row.created_at) row.created_at = new Date().toISOString();
           rows.push(row);

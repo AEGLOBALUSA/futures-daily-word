@@ -154,7 +154,7 @@ describe('buildFacts: only what the app holds, never reader data or Bible text',
 // ── The words ──────────────────────────────────────────────────────────────
 describe('checkDraft: a sentence that does not trace back to the facts is refused', () => {
   const facts = cd.buildFacts({ campus: ALPHARETTA, lang: 'en', sermon: sermon(), cornerTitles: [], pastor: { extra: 'youth night Friday 7pm, baptisms Sunday' } });
-  const good = `${TRACEABLE} This week we have youth night on Friday at 7pm, and we celebrate baptisms on Sunday.`;
+  const good = `${TRACEABLE} This week we have youth night on Friday at 7pm, and we have baptisms on Sunday.`;
 
   it('a draft that only joins the facts passes', () => {
     expect(cd.checkDraft(good, facts)).toEqual({ ok: true, reason: '' });
@@ -564,5 +564,74 @@ describe('intake corner_draft_*: the switch decides who sees a draft', () => {
     intakeDb({ mode: 'shadow', list: ['campus.person@futures.church'] });
     expect((await call({ action: 'corner_draft_get' }, TOKENS.campus)).body.draft).toBeTruthy();
     expect((await call({ action: 'corner_draft_get', campusId: 'us-kennesaw' }, TOKENS.campus)).status).toBe(403);
+  });
+});
+
+// ── Second-family review findings (Grok 4.7 high, 5 Oct 2026) ──────────────
+describe('review fixes: invented names, gatherings, prayers; stale copies; previews', () => {
+  const facts = cd.buildFacts({ campus: ALPHARETTA, lang: 'en', sermon: sermon(), cornerTitles: [], pastor: {} });
+  const es = cd.buildFacts({ campus: DULUTH, lang: 'es', sermon: sermon(), cornerTitles: [], pastor: {} });
+
+  it.each([
+    ['a name at the start of a sentence', `${TRACEABLE} Sarah will welcome friends together this week.`],
+    ['a name after a colon', 'On Sunday Ps Sam Example preached “Ordinary Faith”. This week: Sarah hosts.'],
+    ['an invented gathering from joining words', `${TRACEABLE} We welcome friends and family to celebrate together this week.`],
+    ['a time of day that only shares a prefix with a joining word', `${TRACEABLE} We meet this afternoon.`],
+    ['a blessing of its own', `${TRACEABLE} We are blessed together this week.`],
+  ])('refuses %s', (_label, text) => {
+    expect(cd.checkDraft(text, facts).ok).toBe(false);
+  });
+
+  it('refuses an invented name and gathering in Spanish', () => {
+    const base = 'El domingo Ps Sam Example predicó «Ordinary Faith».';
+    expect(cd.checkDraft(`${base} Sara nos invita a celebrar juntos esta semana.`, es).ok).toBe(false);
+    expect(cd.checkDraft(base, es).ok).toBe(true);
+  });
+
+  it('the pastor’s own words may carry the gathering', () => {
+    const own = cd.buildFacts({ campus: ALPHARETTA, lang: 'en', sermon: sermon(), cornerTitles: [], pastor: { extra: 'family dinner Friday evening, everyone welcome' } });
+    expect(cd.checkDraft(`${TRACEABLE} This week we have family dinner on Friday evening, everyone welcome.`, own)).toEqual({ ok: true, reason: '' });
+  });
+
+  it('a verse written on the line after its bare reference, or close to the key verse text, is not quoted', () => {
+    const verse = 'For God so loved the world that he gave his one and only Son.';
+    const s1 = sermon({ sections: [{ content: [{ type: 'bold', value: 'John 3:16 (NIV)' }, { type: 'text', value: verse }, { type: 'text', value: 'Love always moves first, and it moves toward people.' }] }] });
+    expect(cd.buildFacts({ campus: ALPHARETTA, sermon: s1 }).message.line).toBe('Love always moves first, and it moves toward people.');
+    const s2 = sermon({ keyVerseText: verse, sections: [{ content: [{ type: 'text', value: verse }] }] });
+    expect(cd.buildFacts({ campus: ALPHARETTA, sermon: s2 }).message.line).toBe('');
+  });
+
+  it('a write from an older copy is refused as stale and changes nothing', async () => {
+    const db = jobDb({ mode: 'live' });
+    await cd.runCornerDrafts(db, { now: MON_NY_0530, call: async () => null });
+    const loaded = { ...db.tables.campus_corner_draft[0] };
+    const fresh = await cd.refreshDraft(db, loaded, ALPHARETTA, { extra: 'youth night Friday 7pm' }, { call: async () => null, now: new Date(MON_NY_0530.getTime() + 60000), version: String(loaded.updated_at) });
+    expect(fresh.row).toBeTruthy();
+    const current = db.tables.campus_corner_draft[0];
+    expect(await cd.publishDraft(db, current, ALPHARETTA, { body: 'Old words.', version: String(loaded.updated_at) })).toEqual({ error: 'stale' });
+    expect(await cd.skipDraft(db, current, { version: String(loaded.updated_at) })).toEqual({ error: 'stale' });
+    expect(db.tables.campus_content).toHaveLength(0);
+    expect(db.tables.campus_corner_draft[0].status).toBe('draft');
+    expect(cd.publicDraft(current, ALPHARETTA).version).toBe(current.updated_at);
+    expect((await cd.publishDraft(db, current, ALPHARETTA, { body: 'New words.', version: String(current.updated_at) })).item).toBeTruthy();
+  });
+
+  it('a refresh that loses the race to another device says stale, not done', async () => {
+    const db = jobDb({ mode: 'live' });
+    await cd.runCornerDrafts(db, { now: MON_NY_0530, call: async () => null });
+    const loaded = { ...db.tables.campus_corner_draft[0] };
+    await cd.refreshDraft(db, loaded, ALPHARETTA, { extra: 'one' }, { call: async () => null });
+    expect(await cd.refreshDraft(db, loaded, ALPHARETTA, { extra: 'two' }, { call: async () => null })).toEqual({ error: 'stale' });
+  });
+
+  it('a deploy preview or branch deploy never drafts, whatever the switch says', async () => {
+    expect(cd.isNonProductionDeploy({ CONTEXT: 'deploy-preview' })).toBe(true);
+    expect(cd.isNonProductionDeploy({ CONTEXT: 'branch-deploy' })).toBe(true);
+    expect(cd.isNonProductionDeploy({ CONTEXT: 'production' })).toBe(false);
+    expect(cd.isNonProductionDeploy({})).toBe(false);
+    const db = jobDb({ mode: 'live' });
+    const out = await cd.runCornerDrafts(db, { now: MON_NY_0530, call: async () => null, env: { CONTEXT: 'deploy-preview' } });
+    expect(out.mode).toBe('preview');
+    expect(db.tables.campus_corner_draft).toHaveLength(0);
   });
 });
