@@ -5,7 +5,7 @@
  */
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
-const { getAllowedOrigin } = require("./lib/cors");
+const { getAllowedOrigin, parseRequestOrigin, isDailyWordPreviewOrigin } = require("./lib/cors");
 const { isSharedRateLimited } = require("./lib/rate-limit");
 // The sign-in rate limits key on an address the client cannot choose (see
 // lib/client-ip.js); the setup-code limits key on its /64 for IPv6.
@@ -51,6 +51,7 @@ const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
 const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow, COLUMNS: CAMPUS_COLUMNS } = require("./lib/campuses");
+const corner = require("./lib/corner-draft");
 
 let supabase;
 function db() {
@@ -1157,6 +1158,79 @@ exports.handler = async (event) => {
     }
 
     // ── Sunday's notes, pasted once (B09-10) ──
+    // ── The campus corner draft (B09-18) ── This week's draft for a campus,
+    // written by corner-draft.js on Monday morning (lib/corner-draft.js).
+    //   corner_draft_get      campus pastor: own confirmed campus; admin: the
+    //                         campus named, or the list of waiting drafts
+    //   corner_draft_refresh  a fresh draft from the pastor's answers (5 a week)
+    //   corner_draft_publish  the pastor's tap: ONE campus_content row
+    //   corner_draft_skip     "Not this week"
+    // Another campus is a 403 for a campus pastor (before anything is read).
+    // While dw_corner_draft is off no one sees a draft; in shadow only the
+    // shadow list does. The three writes refuse a deploy preview's origin:
+    // previews carry production keys, so a tap there would publish for real.
+    if (action === "corner_draft_get" || action === "corner_draft_refresh" || action === "corner_draft_publish" || action === "corner_draft_skip") {
+      const campuses = await campusList();
+      const scope = corner.cornerScope(staff, body.campusId, campuses);
+      if (scope.status) {
+        console.log("[intake] corner_draft refused", JSON.stringify({ email: staff.email, action, reason: scope.code }));
+        return json(event, scope.status, { error: scope.error, code: scope.code });
+      }
+      const fromPreview = isDailyWordPreviewOrigin(parseRequestOrigin(event.headers.origin || event.headers.Origin || event.headers.referer || event.headers.Referer || ""));
+      if (action !== "corner_draft_get" && fromPreview) {
+        console.log("[intake] corner_draft refused", JSON.stringify({ email: staff.email, action, reason: "preview" }));
+        return json(event, 403, { error: "Put the corner up from futuresdailyword.com, not from a preview.", code: "preview" });
+      }
+      const { visible } = await corner.draftsVisibleTo(db(), staff.email);
+      const now = new Date();
+      if (!scope.campus) {
+        // An admin with no campus named: this week's waiting drafts.
+        return json(event, 200, { drafts: visible ? await corner.listWaitingDrafts(db(), campuses, now) : [] });
+      }
+      const row = visible ? await corner.loadDraftFor(db(), scope.campus, now) : null;
+      if (action === "corner_draft_get") {
+        return json(event, 200, {
+          campusId: scope.campus.id,
+          campusName: scope.campus.name,
+          draft: row ? corner.publicDraft(row, scope.campus) : null
+        });
+      }
+      if (!row) return json(event, 404, { error: "There is no draft for this week.", code: "no_draft" });
+      if (row.status !== "draft") return json(event, 409, { error: "This week\u2019s draft is already done.", code: "not_draft" });
+      let out;
+      if (action === "corner_draft_refresh") {
+        out = await corner.refreshDraft(db(), row, scope.campus, {
+          extra: typeof body.extra === "string" ? body.extra : undefined,
+          prayerPoint: typeof body.prayerPoint === "string" ? body.prayerPoint : undefined
+        }, { now });
+        if (out.row) return json(event, 200, { draft: corner.publicDraft(out.row, scope.campus) });
+      } else if (action === "corner_draft_publish") {
+        out = await corner.publishDraft(db(), row, scope.campus, {
+          body: typeof body.body === "string" ? body.body : undefined,
+          prayerPoint: typeof body.prayerPoint === "string" ? body.prayerPoint : undefined,
+          author: staff.name || "",
+          now
+        });
+        if (out.item) {
+          console.log("[intake] corner_draft published", JSON.stringify({ email: staff.email, campus: scope.campus.id, week: row.week_of }));
+          return json(event, 200, { published: true, campusId: scope.campus.id, campusName: scope.campus.name, item: out.item });
+        }
+      } else {
+        out = await corner.skipDraft(db(), row, { now });
+        if (out.ok) return json(event, 200, { skipped: true, campusId: scope.campus.id });
+      }
+      const refusals = {
+        refresh_cap: [429, "You have asked for a fresh draft five times this week. Change the words yourself, then put it on the corner."],
+        not_draft: [409, "This week\u2019s draft is already done."],
+        empty: [400, "Write something first, then put it on the corner."],
+        unfinished: [400, "Part of the draft was left unfinished. Fill in or remove the part in braces."],
+        save_failed: [500, "That did not save. Try again."]
+      };
+      const [status, error] = refusals[out.error] || refusals.save_failed;
+      console.log("[intake] corner_draft refused", JSON.stringify({ email: staff.email, action, reason: out.error }));
+      return json(event, status, { error, code: out.error || "save_failed" });
+    }
+
     // Hub, media and admin staff only: the same people who may publish Sermon
     // Notes through `submit`. Neither action publishes anything.
     if (action === "notes_quick_status" || action === "notes_quick") {

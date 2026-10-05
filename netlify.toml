@@ -17,6 +17,13 @@
 [functions."sunday-notes-check"]
   schedule = "@hourly"
 
+# Monday 05:00 on each campus's own clock: this week's campus corner draft for
+# campuses with a confirmed campus pastor (B09-18). Hourly covers every time
+# zone; the function does nothing while dw_corner_draft is off (the default),
+# never publishes and never sends anything.
+[functions."corner-draft"]
+  schedule = "@hourly"
+
 # API function redirects - MUST come before SPA fallback
 [[redirects]]
   from = "/api/*"

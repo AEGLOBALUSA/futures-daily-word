@@ -19,6 +19,8 @@
  * NOTE: this file lives in tests/, never in netlify/functions/.
  */
 
+import { randomUUID } from 'node:crypto';
+
 const clone = (v) => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
 
 export function createFakeSupabase(seed = {}) {
@@ -107,9 +109,21 @@ export function createFakeSupabase(seed = {}) {
         if (table === 'dw_prompt_log' && list.some((r) => rows.some((x) => x.dedupe_key === r.dedupe_key))) {
           return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "dw_prompt_log_dedupe_key_key"' } };
         }
+        // campus_corner_draft: unique (campus, week_of) (B09-18).
+        if (table === 'campus_corner_draft' && list.some((r) => rows.some((x) => x.campus === r.campus && x.week_of === r.week_of))) {
+          return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "campus_corner_draft_campus_week_key"' } };
+        }
         for (const r of list) {
           const row = { ...clone(r) };
           if (table === 'rate_limit_hits' && !row.created_at) row.created_at = new Date().toISOString();
+          // Column defaults the real tables fill in (B09-18).
+          if ((table === 'campus_corner_draft' || table === 'campus_content') && !row.id) row.id = randomUUID();
+          if (table === 'campus_corner_draft') {
+            if (row.status === undefined) row.status = 'draft';
+            if (row.refresh_count === undefined) row.refresh_count = 0;
+            if (!row.created_at) row.created_at = new Date().toISOString();
+          }
+          if (table === 'campus_content' && !row.created_at) row.created_at = new Date().toISOString();
           rows.push(row);
           out.push(row);
         }
