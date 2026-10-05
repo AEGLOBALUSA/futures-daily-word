@@ -151,9 +151,11 @@ function nudgeEmail(congregation, current, link, week = "last") {
   };
 }
 
+// The nudge says "paste the notes here", so it links straight to the Sunday's
+// notes screen; /staff alone opens on Staff home (Ashley, 5 Oct 2026).
 function staffLink() {
   const url = String(process.env.URL || "");
-  return (/^https:\/\//.test(url) ? url.replace(/\/+$/, "") : DEFAULT_SITE) + "/staff";
+  return (/^https:\/\//.test(url) ? url.replace(/\/+$/, "") : DEFAULT_SITE) + "/staff?tab=notes";
 }
 
 /**
