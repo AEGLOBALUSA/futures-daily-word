@@ -19,6 +19,7 @@ const CAMPUS_IDS = campuses.campusIds();
 const NAMED_STAFF = {
   "ae@futures.global": { role: "admin", name: "Ashley Evans" },
   "josh@futures.church": { role: "hub", name: "Josh Greenwood" },
+  "alexis@futuros.global": { role: "hub", name: "Alexis Principal" },
   "ryan.rolls@futures.church": { role: "hub", name: "Ryan Rolls" },
   "alexi.patsianis@futures.church": { role: "media", name: "Alexi Patsianis" },
   "jessie.ramos@futures.church": { role: "media", name: "Jessie Ramos" },
