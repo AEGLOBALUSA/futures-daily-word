@@ -178,7 +178,8 @@ describe('the words', () => {
     push_day_of: ['{n}', '{plan}'],
     push_day_of_journey: ['{n}'],
   };
-  const GUILT = /streak|missed|amazing|🔥|racha|sequ[eê]ncia|perdi|incr[ií]vel|asombros|luar biasa|terlewat/i;
+  // The flame is written as a code point (\u{1F525}): no literal pictograph lives under src.
+  const GUILT = /streak|missed|amazing|\u{1F525}|racha|sequ[eê]ncia|perdi|incr[ií]vel|asombros|luar biasa|terlewat/iu;
 
   for (const [key, placeholders] of Object.entries(KEYS)) {
     it(`${key} exists in en, es, pt and id, keeps its placeholders, and has no guilt words`, () => {
