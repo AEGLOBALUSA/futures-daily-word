@@ -53,6 +53,10 @@ export function createFakeSupabase(seed = {}) {
           return v != null && v >= f.val;
         case 'lt':
           return v != null && v < f.val;
+        case 'in':
+          return Array.isArray(f.val) && f.val.includes(v);
+        case 'neq':
+          return v !== f.val;
         default:
           return true;
       }
@@ -75,6 +79,10 @@ export function createFakeSupabase(seed = {}) {
     b.like = chain((col, val) => st.filters.push({ type: 'like', col, val }));
     b.gte = chain((col, val) => st.filters.push({ type: 'gte', col, val }));
     b.lt = chain((col, val) => st.filters.push({ type: 'lt', col, val }));
+    b.in = chain((col, val) => st.filters.push({ type: 'in', col, val }));
+    b.neq = chain((col, val) => st.filters.push({ type: 'neq', col, val }));
+    b.order = chain(() => {});
+    b.limit = chain(() => {});
     b.insert = chain((obj) => { st.op = 'insert'; st.payload = obj; });
     b.update = chain((obj) => { st.op = 'update'; st.payload = obj; });
     b.upsert = chain((obj, opts) => { st.op = 'upsert'; st.payload = obj; st.onConflict = opts && opts.onConflict; });
@@ -94,6 +102,10 @@ export function createFakeSupabase(seed = {}) {
         const list = Array.isArray(st.payload) ? st.payload : [st.payload];
         if (table === 'profiles' && list.some((r) => rows.some((x) => x.email === r.email))) {
           return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "profiles_email_key"' } };
+        }
+        // dw_prompt_log.dedupe_key is unique (B09-01).
+        if (table === 'dw_prompt_log' && list.some((r) => rows.some((x) => x.dedupe_key === r.dedupe_key))) {
+          return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "dw_prompt_log_dedupe_key_key"' } };
         }
         for (const r of list) {
           const row = { ...clone(r) };

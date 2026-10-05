@@ -15,6 +15,8 @@ import { messageFor } from '../components/PastorSignIn';
 import { youtubeLinkProblem } from './youtubeLink';
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
+import { QuickNotes } from './QuickNotes';
+import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'form' | 'review' | 'people' | 'campuses';
@@ -77,6 +79,7 @@ type FormattedSermon = {
   youtubeUrl?: string;
   youtubeOnly?: boolean;
 };
+type IntakeSeed = { answers: Record<string, unknown>; preview: FormattedSermon | null; congregation: CongregationId; job?: 'hub' | 'media' };
 type Submission = {
   id: string;
   email: string;
@@ -137,6 +140,7 @@ export function StaffApp() {
   const [boot, setBoot] = useState(!!getStaffToken());
   const [tab, setTab] = useState<Tab>(() => staffTabFromRaw(readStaffTabParam()));
   const [job, setJob] = useState<Job>('hub');
+  const [seed, setSeed] = useState<IntakeSeed | undefined>(undefined);
   const [error, setError] = useState('');
   const bannerRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (error) bannerRef.current?.focus(); }, [error]);
@@ -218,7 +222,7 @@ export function StaffApp() {
           {view !== 'home' && (
             <button
               type="button"
-              onClick={() => { setTab('home'); setError(''); }}
+              onClick={() => { setTab('home'); setSeed(undefined); setError(''); }}
               style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 12 }}
             >
               ← Staff home
@@ -234,13 +238,14 @@ export function StaffApp() {
         {view === 'home' && (
           <StaffHome
             staff={staff}
-            onJob={j => { setJob(j); setTab('form'); setError(''); }}
+            onJob={j => { setSeed(undefined); setJob(j); setTab('form'); setError(''); }}
+            onChangeDetails={seed => { setSeed(seed); setJob(seed.job ?? 'hub'); setTab('form'); setError(''); }}
             onReview={() => { setTab('review'); setError(''); }}
             onPeople={() => { setTab('people'); setError(''); }}
             onCampuses={() => { setTab('campuses'); setError(''); }}
           />
         )}
-        {view === 'form' && <IntakeForm staff={staff} job={job} onError={setError} />}
+        {view === 'form' && <IntakeForm staff={staff} job={job} seed={seed && (seed.job ?? 'hub') === job ? seed : undefined} onError={setError} />}
         {view === 'review' && staff.isAdmin && (
           <ReviewQueue onError={setError} />
         )}
@@ -459,13 +464,14 @@ function withStep(n: number, label: string) {
 }
 
 function StaffHome({
-  staff, onJob, onReview, onPeople, onCampuses,
+  staff, onJob, onReview, onPeople, onCampuses, onChangeDetails,
 }: {
   staff: Staff;
   onJob: (job: Job) => void;
   onReview: () => void;
   onPeople: () => void;
   onCampuses: () => void;
+  onChangeDetails: (seed: IntakeSeed) => void;
 }) {
   const jobs: { id: Job; title: string; body: string }[] = [
     { id: 'hub', title: 'Put up this week’s sermon notes', body: 'Date, title, speaker, series, YouTube, paste your notes. Save puts it on the congregation page.' },
@@ -479,6 +485,7 @@ function StaffHome({
       : jobs.filter(j => j.id === staff.role);
   return (
     <div>
+      {(staff.isAdmin || staff.role === 'hub' || staff.role === 'media') && <QuickNotes onChangeDetails={onChangeDetails} />}
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         This is how Sunday’s sermon notes get onto the page people write in.
@@ -524,7 +531,7 @@ function formIntro(job: Job) {
   return 'What’s on this week, a prayer point if you have one, and anything that should come down. Save puts it on the campus corner.';
 }
 
-function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: (s: string) => void }) {
+function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; seed?: IntakeSeed; onError: (s: string) => void }) {
   const campuses = useCampuses();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [rewordable, setRewordable] = useState<string[]>([]);
@@ -533,23 +540,27 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const [loadError, setLoadError] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>(() => seed?.answers ?? {});
   const [cornerItems, setCornerItems] = useState<CornerItem[]>([]);
   const [sermons, setSermons] = useState<SermonChoice[]>([]);
   const [mine, setMine] = useState<{ id: string; status: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [held, setHeld] = useState(false);
-  const [preview, setPreview] = useState<FormattedSermon | null>(null);
+  const [preview, setPreview] = useState<FormattedSermon | null>(() => seed?.preview ?? null);
   const [pickCampus, setPickCampus] = useState(staff.campusId || '');
   // The shell shows errors at the top of the page; the save button sits at the
   // bottom of a long form, so the same message is repeated next to the button
   // and scrolled into view — a refused save must never look like nothing happened.
   const [formError, setFormError] = useState('');
-  const [live, setLive] = useState<{ title: string; verified: boolean } | null>(null);
+  const [live, setLive] = useState<{ title: string; verified: boolean; checked?: boolean; empty?: boolean; showing?: string } | null>(null);
+  // The church the last save went to: done names it and links to it, even
+  // if the picker was switched while the save was still working.
+  const [savedCongregation, setSavedCongregation] = useState<CongregationId | null>(null);
   // Which congregation's Sermon Notes this message is for (Futures USA /
   // Futures Australia / Futuros USA). Sent with preview and save; remembered per browser.
   const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
+    if (seed) return seed.congregation;
     try { const v = localStorage.getItem('dw_staff_congregation'); if (isCongregationId(v)) return v; } catch { /* */ }
     return DEFAULT_CONGREGATION;
   });
@@ -558,6 +569,21 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
     setCongregationChoice(v);
     try { localStorage.setItem('dw_staff_congregation', v); } catch { /* */ }
     setPreview(null); setDone(false); setHeld(false); setLive(null); setFormError('');
+    // A message picked for one church never carries over to another: the
+    // picker only lists the new church's messages, so a kept id would save
+    // onto a message the person can no longer see.
+    setAnswers(a => {
+      const next = { ...a };
+      for (const q of questions) {
+        if (!(q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')) continue;
+        const picked = sermons.find(s => s.id === next[q.id]);
+        if (picked?.congregation && picked.congregation !== v) next[q.id] = '';
+        // "This week's published message" only stands when the new church has one.
+        const hasCurrent = sermons.some(s => s.current && (s.congregation === v || !s.congregation));
+        if (next[q.id] === '__current__' && !hasCurrent) next[q.id] = '';
+      }
+      return next;
+    });
   };
   const errorRef = useRef<HTMLParagraphElement | null>(null);
   const fail = (msg: string) => {
@@ -617,6 +643,35 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
   const showPaste = !haveQ || haveNotes === true;
   const showAI = showPaste && paste.trim().length > 0;
   const stepStart = formQs.length;
+  const currentSermon = useMemo(
+    () => sermons.find(s => s.current && s.congregation === congregation)
+      || sermons.find(s => s.current && !s.congregation),
+    [sermons, congregation],
+  );
+  const pickedSermon = useMemo(() => {
+    const targetQuestion = questions.find(q =>
+      (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')
+      && (q.audience === job || q.audience === 'all'),
+    );
+    const answer = targetQuestion ? answers[targetQuestion.id] : undefined;
+    if (answer == null || answer === '') return null;
+    if (answer === '__current__') return currentSermon || null;
+    return sermons.find(s => s.id === answer) || { id: '', title: String(answer) };
+  }, [answers, currentSermon, job, questions, sermons]);
+  // Pasted notes re-put the message up; only a link-only save keeps the current one.
+  const mediaLinkOnly = job === 'media' && !paste.trim();
+  const mediaButtonLabel = !mediaLinkOnly ? 'Put this on the congregation page'
+    : pickedSermon?.title ? `Add the video to “${pickedSermon.title}”` : 'Add the video';
+  const doneCongregation = savedCongregation || congregation;
+  // What the message picker offers: for the media form, this church's messages
+  // (and "This week's published message" only when it has one).
+  const pickChoices = job === 'media'
+    ? sermons.filter(s => (s.source === 'current' ? !!currentSermon : !s.congregation || s.congregation === congregation))
+    : sermons;
+  const mediaKeepsCurrentMessage = mediaLinkOnly
+    && !!currentSermon
+    && !!pickedSermon?.id
+    && pickedSermon.id !== currentSermon.id;
 
   const setAnswer = (id: string, v: unknown) => {
     setWordingSaved(null);
@@ -634,7 +689,10 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
 
   const wantsAI = !!aiQ && answers[aiQ.id] === true;
   const youtubeQ = questions.find(q => q.config?.sermonKey === 'youtubeUrl' && (q.audience === job || q.audience === 'all'));
-  const youtubeProblem = youtubeQ ? youtubeLinkProblem(answers[youtubeQ.id]) : '';
+  // The media form exists to add the link, so it never suggests leaving it blank.
+  const youtubeProblem = !youtubeQ ? '' : job === 'media' && youtubeLinkProblem(answers[youtubeQ.id])
+    ? 'That is not a YouTube video link. Paste the watch, youtu.be, shorts, or embed link.'
+    : youtubeLinkProblem(answers[youtubeQ.id]);
 
   const runPreview = async (override?: Record<string, unknown>) => {
     if (youtubeProblem) { fail(youtubeProblem); return; }
@@ -666,6 +724,12 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       return;
     }
     if (youtubeProblem) { fail(youtubeProblem); return; }
+    // The media form adds a video (or polished notes) to a message. With
+    // neither, saving would re-put that message up over the current one.
+    if (job === 'media' && youtubeQ && !String(answers[youtubeQ.id] || '').trim() && !paste.trim()) {
+      fail('Paste the YouTube link first.');
+      return;
+    }
     // Our own required check (the form is noValidate): the browser's bubble is
     // silent on iOS and easy to miss on a long page, and it never reaches submit().
     const missing = formQs.find(q => {
@@ -678,21 +742,46 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
       fail(`Fill in “${missing.label}” first — it is empty.`);
       return;
     }
+    // "This week's published message" is bound to the message the button
+    // names when it is pressed, so a message put up by someone else in the
+    // meantime never receives this link.
+    const pickQ = job === 'media' ? questions.find(q =>
+      (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')
+      && (q.audience === job || q.audience === 'all')) : undefined;
+    // A link on its own goes on the message picked or nowhere.
+    if (pickQ && mediaLinkOnly && (answers[pickQ.id] == null || answers[pickQ.id] === '')) {
+      fail('Pick the message the video is for.');
+      return;
+    }
+    if (pickQ && answers[pickQ.id] === '__current__' && !currentSermon?.id) {
+      setAnswers(a => ({ ...a, [pickQ.id]: '' }));
+      fail(`Nothing is on the ${congregationName(congregation)} page this week. Pick the message the video is for.`);
+      return;
+    }
+    const pickedOther = pickQ ? sermons.find(s => s.id === answers[pickQ.id]) : undefined;
+    if (pickedOther?.congregation && pickedOther.congregation !== congregation) {
+      fail(`“${pickedOther.title}” is on the ${congregationName(pickedOther.congregation as CongregationId)} page. Pick a ${congregationName(congregation)} message.`);
+      return;
+    }
+    const sentAnswers = pickQ && answers[pickQ.id] === '__current__' && currentSermon?.id
+      ? { ...answers, [pickQ.id]: currentSermon.id }
+      : answers;
     setBusy(true); onError(''); setFormError(''); setDone(false); setHeld(false); setLive(null);
     try {
       const data = await intake<{
         preview?: FormattedSermon | null;
         published?: boolean;
         pending?: boolean;
-        publish_result?: { sermon?: { id?: string; title?: string } | null; cornerAdded?: number };
+        publish_result?: { sermon?: { id?: string; title?: string; youtubeUrl?: string } | null; cornerAdded?: number };
       }>('submit', {
-        answers,
+        answers: sentAnswers,
         campusId: pickCampus || staff.campusId,
         job,
         congregation: sermonForm ? congregation : undefined,
         formatted_sermon: preview || undefined,
       });
       if (data.preview) setPreview(data.preview);
+      setSavedCongregation(congregation);
       setDone(true);
       // Saved but waiting: the campus has not been confirmed yet, so nothing is live.
       if (data.pending) setHeld(true);
@@ -703,17 +792,51 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
         } else {
           // Read it back the way the congregation does, so "It's on the page" is a fact, not a hope.
           let verified = false;
+          let checked = false;
+          let empty = false;
+          let showing = '';
+          const savedTitle = published.title || data.preview?.title || '';
+          // The media form saves a link: it is on the page only when the page
+          // shows the message it was saved on AND carries the link just saved.
+          const savedLink = job === 'media'
+            ? String((youtubeQ && answers[youtubeQ.id]) || published.youtubeUrl || '').trim()
+            : '';
           try {
             const r = await fetch(`${localApiBase()}/api/published-sermon?congregation=${encodeURIComponent(congregation)}`, { cache: 'no-store' });
             const j = r.ok ? await r.json() : null;
-            verified = !!(j && j.sermon && j.sermon.id === published.id);
-          } catch { /* verified stays false */ }
-          setLive({ title: published.title || data.preview?.title || '', verified });
+            checked = !!(j && typeof j === 'object');
+            empty = checked && !(j.sermon && j.sermon.id);
+            const same = !!(j && j.sermon && j.sermon.id === published.id);
+            verified = same && (job !== 'media' || sameVideo(j.sermon.youtubeUrl, savedLink));
+            // Another message on the page is named by id, never hidden because
+            // it shares a title; its Sunday tells two of the same name apart.
+            showing = j && j.sermon && j.sermon.id && !same ? otherMessageLabel(j.sermon, savedTitle) : '';
+          } catch { /* verified and checked stay false */ }
+          setLive({ title: savedTitle, verified, checked, empty, showing });
         }
       }
       await load(pickCampus || staff.campusId || undefined);
     } catch (err) {
-      fail(err instanceof Error ? err.message : 'Could not submit');
+      const code = (err as { data?: { code?: string } })?.data?.code;
+      // A title was typed only when the picker was the text box (no choices)
+      // and the value is not the id the card handed over; anything else is a
+      // stale id to clear.
+      const seededPick = pickQ ? seed?.answers?.[pickQ.id] : undefined;
+      const typedTitle = pickQ && pickChoices.length === 0 && typeof answers[pickQ.id] === 'string'
+        && answers[pickQ.id] !== '__current__' && answers[pickQ.id] !== seededPick ? String(answers[pickQ.id]) : '';
+      if (pickQ && code === 'target_gone' && typedTitle) {
+        // A typed title that matches no message: keep it to correct, and say
+        // where a new message goes instead of "pick again" from an empty list.
+        fail(`No message called “${typedTitle}” is on the ${congregationName(congregation)} page. Check the title, or put the message up first with “Put up this week’s sermon notes”; the link is still filled in.`);
+      } else if (pickQ && (code === 'target_gone' || code === 'other_congregation')) {
+        // The message is gone (or belongs to another church): clear the pick,
+        // keep the link, and reload the list so only real messages are offered.
+        setAnswers(a => ({ ...a, [pickQ.id]: '' }));
+        fail('That message is no longer on the list. Pick another, or put it up first with “Put up this week’s sermon notes”; the link is still filled in.');
+        void load(pickCampus || staff.campusId || undefined);
+      } else {
+        fail(err instanceof Error ? err.message : 'Could not submit');
+      }
     }
     setBusy(false);
   };
@@ -793,7 +916,7 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
           campusLocked={campusLocked}
           lockedCampus={staff.campusId}
           cornerItems={cornerItems}
-          sermons={job === 'media' ? sermons.filter(s => s.source === 'current' || !s.congregation || s.congregation === congregation) : sermons}
+          sermons={pickChoices}
           require={q.required && (q.audience === job || q.audience === 'all')}
           onChange={v => setAnswer(q.id, v)}
         />
@@ -848,8 +971,13 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
               </p>
             )}
             <button type="submit" className={editingId ? undefined : 'dw-next'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
-              {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : 'Put this on the congregation page'}
+              {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : job === 'media' ? mediaButtonLabel : 'Put this on the congregation page'}
             </button>
+            {mediaKeepsCurrentMessage && (
+              <p style={{ ...helpStyle, fontSize: 15, marginTop: 8 }}>
+                “{currentSermon.title}” stays the message on the {congregationName(congregation)} page.
+              </p>
+            )}
             {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
           </>
         )}
@@ -862,14 +990,26 @@ function IntakeForm({ staff, job, onError }: { staff: Staff; job: Job; onError: 
               : job === 'campus'
               ? 'It’s on the campus corner.'
               : live?.verified
-                ? `It’s on the ${congregationName(congregation)} page: ${live.title}`
+                ? `It’s on the ${congregationName(doneCongregation)} page: ${live.title}`
+                : live && !live.verified && live.showing
+                  ? job === 'media'
+                    ? `The video is saved on “${live.title}”. The ${congregationName(doneCongregation)} page shows “${live.showing}”, the message that is on now.`
+                    : `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page shows “${live.showing}”, the message that is on now.`
+                : live && !live.verified && live.checked === false
+                  ? job === 'media'
+                    ? `The video is saved on “${live.title}”. We couldn’t check the ${congregationName(doneCongregation)} page just now: open it to see.`
+                    : `Saved as “${live.title}”. We couldn’t check the ${congregationName(doneCongregation)} page just now: open it to see.`
+                : live && !live.verified && live.empty
+                  ? job === 'media'
+                    ? `The video is saved on “${live.title}”. The ${congregationName(doneCongregation)} page shows no message right now.`
+                    : `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page shows no message right now.`
                 : live
-                  ? `Saved as “${live.title}”. The ${congregationName(congregation)} page has not shown it yet — open it and pull to refresh.`
+                  ? `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page has not shown it yet — open it and pull to refresh.`
                   : 'Saved.'}
           </p>
           {job !== 'campus' && !held && (
-            <a href={congregationPageUrl(congregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600 }}>
-              Open the {congregationName(congregation)} page →
+            <a href={congregationPageUrl(doneCongregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600 }}>
+              Open the {congregationName(doneCongregation)} page →
             </a>
           )}
         </div>

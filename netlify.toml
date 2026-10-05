@@ -11,6 +11,12 @@
 [functions."push-cron"]
   schedule = "@hourly"
 
+# Saturday 6 pm on each congregation's own clock: a nudge to hub and admin staff
+# when Sunday's notes are not up (B09-10). Hourly covers every time zone; the
+# function does nothing while dw_sunday_notes_missing is off (the default).
+[functions."sunday-notes-check"]
+  schedule = "@hourly"
+
 # API function redirects - MUST come before SPA fallback
 [[redirects]]
   from = "/api/*"

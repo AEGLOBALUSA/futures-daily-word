@@ -248,18 +248,26 @@ async function markDelivered(db, dedupeKey) {
 /**
  * The one way a Daily Word function emails a staff member about a prompt kind.
  * Never throws. Returns { sent: true, id } or { sent: false, reason } where
- * reason is one of: off (the switch, or not on the shadow list), lint (the
+ * reason is one of: off (the switch, or not on the shadow list), shadow_logged
+ * (logInShadow: logged for a recipient off the shadow list, not sent), lint (the
  * words would reach a person broken; checked BEFORE the claim so the key is
  * not spent), duplicate (raised already, or the log row could not be written),
  * provider (the send failed; the row stays delivered = false).
  */
-async function raiseStaffEmail(db, { kind, dedupeKey, recipient, writtenBy, title, body, link, subject, text } = {}) {
+async function raiseStaffEmail(db, { kind, dedupeKey, recipient, writtenBy, title, body, link, subject, text, logInShadow = false } = {}) {
   try {
     const { mode, shadowRecipients } = await switchOf(db, kind);
-    if (!deliverable(mode, recipient, shadowRecipients)) return { sent: false, reason: "off" };
+    const canDeliver = deliverable(mode, recipient, shadowRecipients);
+    // logInShadow (B09-10): in shadow, a recipient who is NOT on the shadow list
+    // still gets their log row (delivered stays false) and is never emailed, so
+    // the owner's shadow weekend shows exactly who live would have reached. Off
+    // still logs nothing.
+    const logOnly = !canDeliver && logInShadow === true && mode === "shadow" && !!normalizeRecipient(recipient);
+    if (!canDeliver && !logOnly) return { sent: false, reason: "off" };
     if (!lintStaffText(subject).ok || !lintStaffText(text).ok) return { sent: false, reason: "lint" };
     const claimed = await claim(db, { kind, dedupeKey, recipient, writtenBy, title, body, link, mode });
     if (!claimed) return { sent: false, reason: "duplicate" };
+    if (logOnly) return { sent: false, reason: "shadow_logged" };
     const out = await sendStaffEmail({ to: recipient, subject, text });
     if (!out.ok) return { sent: false, reason: "provider" };
     await markDelivered(db, dedupeKey);

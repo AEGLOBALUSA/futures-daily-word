@@ -45,6 +45,9 @@ const {
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
 const { isCurrentAt } = require("./lib/sermon-window");
+const { quickNotes, hubQuestions, mediaQuestions, mediaPickQuestion, nextSundayFor, isForSunday } = require("./lib/quick-notes");
+const { isCongregationId } = require("./lib/congregations");
+const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
 const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow } = require("./lib/campuses");
@@ -338,11 +341,30 @@ async function getCurrentPublished(congregation) {
   return isCurrentAt(data, new Date()) ? data : null;
 }
 
+const MEDIA_FORM_OFF = "A link on its own needs the media form\u2019s message and YouTube questions. Ask an admin to switch them back on in History, Ask this again.";
+
+/** A refusal the staff screens map to their own words (B09-10 rounds 6 to 9). */
+function targetRefusal(code, message) {
+  const err = new Error(message);
+  err.status = 400;
+  err.code = code;
+  return err;
+}
+
 async function findPublished(target, congregation) {
   const t = String(target || "").trim();
   if (!t || t === "__current__") return getCurrentPublished(congregation);
   const byId = await db().from("published_sermons").select("id, sermon, is_current, congregation").eq("id", t).maybeSingle();
-  if (byId.data) return byId.data;
+  if (byId.data) {
+    // A message picked for one church is never saved onto another church's
+    // page (B09-10 flow review round 6): the form sends the congregation it
+    // shows, and a row from a different one is refused, not merged.
+    const rowCong = normalizeCongregation(byId.data.congregation);
+    if (rowCong !== normalizeCongregation(congregation)) {
+      throw targetRefusal("other_congregation", `That message is on the ${congregationName(rowCong)} page. Pick a ${congregationName(normalizeCongregation(congregation))} message.`);
+    }
+    return byId.data;
+  }
   const { data: rows } = await db()
     .from("published_sermons")
     .select("id, sermon, is_current, congregation")
@@ -400,7 +422,20 @@ async function buildFormattedFromPlan(plan, { useAI, congregation }) {
     throw err;
   }
   const row = await findPublished(patch.target, congregation);
-  const base = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
+  // A link saved onto a message the person picked goes on that message or
+  // nowhere: if it was removed meanwhile, the save is refused and they pick
+  // again, never moved onto whatever message is current (B09-10 round 8).
+  const explicitTarget = String(patch.target || "").trim();
+  if (plan.youtubeOnly && explicitTarget && !row) {
+    throw targetRefusal("target_gone", "That message is no longer on the list. Pick the message again.");
+  }
+  const current = row && row.sermon ? { ...row.sermon, id: row.sermon.id || row.id } : null;
+  // A new title is a new message (B09-10, 3 Oct 2026): it never inherits the
+  // current message's notes, details or id. Without this a hub save of next
+  // Sunday's title with no notes yet published LAST week's notes under it.
+  const newTitle = String(patch.title || "").trim().toLowerCase();
+  const sameMessage = !!current && (!newTitle || newTitle === String(current.title || "").trim().toLowerCase());
+  const base = sameMessage ? current : null;
   const youtubeUrl = youtubeWatchUrl(patch.youtubeUrl) || (base && base.youtubeUrl) || "";
 
   if (plan.youtubeOnly && base) {
@@ -443,6 +478,8 @@ async function buildFormattedFromPlan(plan, { useAI, congregation }) {
 
   const formatted = await formatSermon(fields, { useAI: shouldAI, base });
   if (youtubeUrl) formatted.sermon.youtubeUrl = youtubeUrl;
+  // The same message with only its link or details changed keeps its row.
+  if (base && base.id && !hasNotesContent(patch)) formatted.sermon.id = base.id;
   if (plan.youtubeOnly) formatted.sermon.youtubeOnly = true;
   if (plan.notesPolish && base) formatted.sermon.id = base.id;
   return formatted;
@@ -487,7 +524,13 @@ async function publishApproved(submission, staff) {
     const youtubeOnly = !!sermon.youtubeOnly;
     sermon = stripPublishFlags(sermon);
     if (youtubeOnly) {
-      const row = await findPublished(sermon.id, congregation) || await getCurrentPublished(congregation);
+      // Only the "This week's message" placeholder falls back to the current
+      // message; a named message removed while the save was working is
+      // refused, never swapped for another (B09-10 round 9).
+      const row = sermon.id === "current"
+        ? await getCurrentPublished(congregation)
+        : await findPublished(sermon.id, congregation);
+      if (!row && sermon.id !== "current") throw targetRefusal("target_gone", "That message is no longer on the list. Pick the message again.");
       if (!row) throw new Error("No published sermon to attach this video to");
       const merged = stripPublishFlags({ ...(row.sermon || {}), youtubeUrl: sermon.youtubeUrl || (row.sermon && row.sermon.youtubeUrl) || "" });
       // Attaching the video is not a re-publish: published_at stays, so the
@@ -985,6 +1028,19 @@ exports.handler = async (event) => {
         }
       }
       const plan = applyAnswers(visible, answers, { name: staff.name || staff.email });
+      if (job === "media") {
+        // The media form adds a video (or notes) to the message it names. If
+        // its message or link question was switched off since the screen was
+        // drawn, nothing is written: the video would land on whatever message
+        // is current, or the message would be re-put up with nothing added
+        // (B09-10 round 11).
+        const patch = plan.sermonPatch || {};
+        const addsNothing = !patch.youtubeUrl && !hasNotesContent(patch) && !patch.title;
+        if ((plan.youtubeOnly && !mediaPickQuestion(visible)) || addsNothing) {
+          console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: "media_form_off" }));
+          return json(event, 400, { error: MEDIA_FORM_OFF, code: "media_form_off" });
+        }
+      }
       const congregation = normalizeCongregation(body.congregation);
       let formatted_sermon = null;
       let format_source = null;
@@ -1024,7 +1080,7 @@ exports.handler = async (event) => {
       } catch (fmtErr) {
         if (fmtErr && fmtErr.status === 400) {
           console.log("[intake] submit refused", JSON.stringify({ email: staff.email, job, reason: fmtErr.message }));
-          return json(event, 400, { error: fmtErr.message });
+          return json(event, 400, { error: fmtErr.message, ...(fmtErr.code ? { code: fmtErr.code } : {}) });
         }
         throw fmtErr;
       }
@@ -1094,10 +1150,73 @@ exports.handler = async (event) => {
       } catch (fmtErr) {
         if (fmtErr && fmtErr.status === 400) {
           console.log("[intake] format_preview refused", JSON.stringify({ email: staff.email, job, reason: fmtErr.message }));
-          return json(event, 400, { error: fmtErr.message });
+          return json(event, 400, { error: fmtErr.message, ...(fmtErr.code ? { code: fmtErr.code } : {}) });
         }
         throw fmtErr;
       }
+    }
+
+    // ── Sunday's notes, pasted once (B09-10) ──
+    // Hub, media and admin staff only: the same people who may publish Sermon
+    // Notes through `submit`. Neither action publishes anything.
+    if (action === "notes_quick_status" || action === "notes_quick") {
+      if (!["admin", "hub", "media"].includes(staff.role)) {
+        console.log("[intake] notes_quick refused", JSON.stringify({ email: staff.email, role: staff.role, action }));
+        return json(event, 403, { error: "Only hub, media or admin staff can put up Sunday's notes.", code: "role" });
+      }
+      // The church: the one asked for, else the staff member's own campus's, else Futures USA.
+      const congregation = isCongregationId(body.congregation)
+        ? body.congregation
+        : (staff.campusId && campusCongregation(staff.campusId, await campusList())) || DEFAULT_CONGREGATION;
+      const { data: currentRow, error: curErr } = await db()
+        .from("published_sermons")
+        .select("id, sermon, is_current, congregation, published_at")
+        .eq("is_current", true)
+        .eq("congregation", congregation)
+        .maybeSingle();
+      if (curErr) throw curErr;
+      const now = new Date();
+      const sunday = nextSundayFor(congregation, now);
+      if (action === "notes_quick_status") {
+        const s = currentRow && currentRow.sermon ? currentRow.sermon : null;
+        return json(event, 200, {
+          congregation,
+          congregationName: congregationName(congregation),
+          sunday,
+          up: isForSunday(currentRow, sunday, congregation),
+          current: s ? { title: String(s.title || ""), date: String(s.date || "") } : null
+        });
+      }
+      const text = typeof body.text === "string" ? body.text : "";
+      if (text.length > 20000) {
+        return json(event, 400, { error: "That is longer than Sunday's notes can be. Paste the outline only.", code: "too_long" });
+      }
+      const { data: questions, error: qErr } = await db()
+        .from("intake_questions")
+        .select("*")
+        .eq("enabled", true)
+        .order("sort_order", { ascending: true });
+      if (qErr) throw qErr;
+      const out = await quickNotes({
+        questions: hubQuestions(questions, staff.role),
+        text,
+        congregation,
+        now,
+        overrides: body.details,
+        preview: body.preview,
+        current: currentRow,
+        mediaQuestions: mediaQuestions(questions, staff.role),
+        format: formatSermon
+      });
+      if (out.error) {
+        console.log("[intake] notes_quick refused", JSON.stringify({ email: staff.email, reason: out.code }));
+        return json(event, 400, { error: out.error, code: out.code });
+      }
+      console.log("[intake] notes_quick", JSON.stringify({
+        email: staff.email, congregation, sunday, source: out.source, youtubeOnly: out.youtubeOnly,
+        needs: out.needs ? out.needs.key : null, id: out.preview && out.preview.id, attach: out.attach ? out.attach.id : null
+      }));
+      return json(event, 200, { ...out, congregation, congregationName: congregationName(congregation), published: false });
     }
 
     if (action === "sermons_list") {
@@ -1433,7 +1552,7 @@ exports.handler = async (event) => {
     return json(event, 400, { error: "Unknown action" });
   } catch (err) {
     console.error("intake", err);
-    if (err && err.status === 400) return json(event, 400, { error: err.message || "Bad request" });
+    if (err && err.status === 400) return json(event, 400, { error: err.message || "Bad request", ...(err.code ? { code: err.code } : {}) });
     return json(event, 500, { error: "Server error" });
   }
 };
