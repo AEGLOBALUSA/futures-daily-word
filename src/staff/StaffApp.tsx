@@ -22,6 +22,7 @@ import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 import { QuickNotes } from './QuickNotes';
 import { CornerDraftCard } from './CornerDraftCard';
+import { PrayerCare } from './PrayerCare';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
@@ -578,6 +579,7 @@ function StaffHome({
   const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
   return (
     <div>
+      <PrayerCare staff={staff}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
       {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin}
         staffCampusId={staff.role === 'campus' ? staff.campusId ?? undefined : undefined}
@@ -601,6 +603,7 @@ function StaffHome({
           <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
         </button>
       ))}
+      </PrayerCare>
       {staff.isAdmin && (
         <>
           <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: 'var(--dw-text-secondary)' }}>
