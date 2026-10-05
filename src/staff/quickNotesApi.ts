@@ -10,6 +10,7 @@
  */
 import { intake } from './api';
 import { localApiBase } from '../utils/api-base';
+import { parseYoutubeId } from '../utils/youtube';
 import { getLang, t } from '../utils/i18n';
 import { isCongregationId, type CongregationId } from '../data/congregations';
 
@@ -221,10 +222,19 @@ export async function quickNotesPublish(result: QuickResult): Promise<QuickPubli
     verified = !!(j && j.sermon && (attach
       ? sermon.id === attach.id
         && (j.sermon.id === attach.id || j.sermon.id === result.preview.id)
-        && j.sermon.youtubeUrl === result.details.youtubeUrl
+        && sameVideo(j.sermon.youtubeUrl, result.details.youtubeUrl)
       : j.sermon.id === sermon.id));
   } catch { /* verified and checked stay false */ }
   return { id: sermon.id, title, verified, checked, showing };
+}
+
+/**
+ * Two links are the same video when they name the same YouTube id: the page
+ * stores the server's normalised link, the person may have typed youtu.be.
+ */
+export function sameVideo(a: unknown, b: unknown): boolean {
+  const x = parseYoutubeId(String(a || ''));
+  return !!x && x === parseYoutubeId(String(b || ''));
 }
 
 /**

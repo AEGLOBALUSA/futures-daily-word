@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { QuickError, changeDetailsSeed, otherMessageLabel, needsTheForm, needsQuestion, quickErrorText, quickNotesPublish, withOtherAnswer, type QuickResult } from './quickNotesApi';
+import { QuickError, changeDetailsSeed, otherMessageLabel, sameVideo, needsTheForm, needsQuestion, quickErrorText, quickNotesPublish, withOtherAnswer, type QuickResult } from './quickNotesApi';
 import { intake } from './api';
 import { t } from '../utils/i18n';
 
@@ -127,6 +127,12 @@ describe('a link that joins the message just preached (review MUST, 4 Oct 2026)'
     expect(out.showing).toMatch(/^Ordinary Faith \(.+\)$/);
     expect(otherMessageLabel({ title: 'Grace', date: '2026-10-11' }, 'Ordinary Faith', 'en')).toBe('Grace');
     expect(otherMessageLabel({ title: 'grace ', date: '2026-10-11' }, 'Grace', 'en')).toContain('11');
+  });
+
+  it('the same video in another link form still verifies; another video never does (flow review round 4 MUST)', async () => {
+    expect(sameVideo('https://youtu.be/dQw4w9WgXcQ?si=x', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+    expect(sameVideo('https://youtu.be/dQw4w9WgXcQ', 'https://youtu.be/aaaaaaaaaaa')).toBe(false);
+    expect(sameVideo('', '')).toBe(false);
   });
 
   it('a link whose message is the person\'s call never publishes from the card; Change details opens the media form with the link in', async () => {

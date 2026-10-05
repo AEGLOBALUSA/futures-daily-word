@@ -16,7 +16,7 @@ import { youtubeLinkProblem } from './youtubeLink';
 import { CONGREGATIONS, DEFAULT_CONGREGATION, isCongregationId, congregationName, type CongregationId } from '../data/congregations';
 import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNotesSurface';
 import { QuickNotes } from './QuickNotes';
-import { otherMessageLabel } from './quickNotesApi';
+import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'form' | 'review' | 'people' | 'campuses';
@@ -706,6 +706,15 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       fail(`Fill in “${missing.label}” first — it is empty.`);
       return;
     }
+    // "This week's published message" is bound to the message the button
+    // names when it is pressed, so a message put up by someone else in the
+    // meantime never receives this link.
+    const pickQ = job === 'media' ? questions.find(q =>
+      (q.type === 'sermon_pick' || q.config?.publish === 'sermon_target')
+      && (q.audience === job || q.audience === 'all')) : undefined;
+    const sentAnswers = pickQ && answers[pickQ.id] === '__current__' && currentSermon?.id
+      ? { ...answers, [pickQ.id]: currentSermon.id }
+      : answers;
     setBusy(true); onError(''); setFormError(''); setDone(false); setHeld(false); setLive(null);
     try {
       const data = await intake<{
@@ -714,7 +723,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         pending?: boolean;
         publish_result?: { sermon?: { id?: string; title?: string; youtubeUrl?: string } | null; cornerAdded?: number };
       }>('submit', {
-        answers,
+        answers: sentAnswers,
         campusId: pickCampus || staff.campusId,
         job,
         congregation: sermonForm ? congregation : undefined,
@@ -744,7 +753,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
             const j = r.ok ? await r.json() : null;
             checked = !!(j && typeof j === 'object');
             const same = !!(j && j.sermon && j.sermon.id === published.id);
-            verified = same && (job !== 'media' || (!!savedLink && String(j.sermon.youtubeUrl || '').trim() === savedLink));
+            verified = same && (job !== 'media' || sameVideo(j.sermon.youtubeUrl, savedLink));
             // Another message on the page is named by id, never hidden because
             // it shares a title; its Sunday tells two of the same name apart.
             showing = j && j.sermon && j.sermon.id && !same ? otherMessageLabel(j.sermon, savedTitle) : '';
