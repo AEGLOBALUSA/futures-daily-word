@@ -5,7 +5,8 @@ const { ALLOWED_ORIGINS } = require('./lib/cors');
 // The campus names come from the one campus list (dw_campuses, lib/campuses.js,
 // B09-02), so a campus the owner adds in /staff names itself here too.
 const { loadCampuses, campusName, isKnownCampus } = require('./lib/campuses');
-const { clientIp } = require('./lib/client-ip');
+const { rateLimitIp } = require('./lib/client-ip');
+const { isSharedRateLimited } = require('./lib/rate-limit');
 const { switchOf, deliverable } = require('./lib/prompts');
 // B09-12: a post carrying contact details, a link or bad language waits for a
 // staff look (lib/prayer-screen.js); the wall shows status 'shown' only.
@@ -56,16 +57,14 @@ function getSupabase() {
   return supabase;
 }
 
-// Simple rate limit
-const ipHits = {};
-function checkRate(ip, max = 20) {
-  const now = Date.now();
-  if (!ipHits[ip]) ipHits[ip] = [];
-  ipHits[ip] = ipHits[ip].filter(t => now - t < 60000);
-  if (ipHits[ip].length >= max) return true;
-  ipHits[ip].push(now);
-  return false;
-}
+// B09-13: the wall's limits live in the shared table (lib/rate-limit.js,
+// rate_limit_hits), so every warm instance counts the same hits, and key on
+// the platform's client address (lib/client-ip.js; IPv6 as its /64), which a
+// caller cannot choose. 20 calls a minute for anything; 5 new requests an hour,
+// because each request now raises a line on a campus pastor's /staff.
+const WALL_PER_MINUTE = 20;
+const CREATES_PER_HOUR = 5;
+const HOUR_MS = 60 * 60 * 1000;
 
 function timeAgo(date) {
   const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -90,8 +89,9 @@ exports.handler = async (event) => {
 
   // The platform's client address (lib/client-ip.js): a caller cannot pick it,
   // as it could with the first x-forwarded-for entry.
-  const clientIP = clientIp(event);
-  if (checkRate(clientIP)) return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
+  const clientIP = rateLimitIp(event);
+  const tooMany = { statusCode: 429, headers, body: JSON.stringify({ error: "Too many requests" }) };
+  if (await isSharedRateLimited("prayer-wall", clientIP, WALL_PER_MINUTE)) return tooMany;
 
   const db = getSupabase();
 
@@ -143,6 +143,7 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body);
 
       if (body.action === 'create') {
+        if (await isSharedRateLimited("prayer-create", clientIP, CREATES_PER_HOUR, HOUR_MS)) return tooMany;
         const prayer = sanitize(body.prayer, 500);
         const name = sanitize(body.name, 100) || 'Anonymous';
         // A campus id that is not on the list is stored as '' (it was not

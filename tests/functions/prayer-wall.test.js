@@ -232,3 +232,41 @@ describe('prayer care (B09-12)', () => {
     expect(JSON.parse(mine.body).prayers.map((p) => p.id)).toEqual([A]);
   });
 });
+
+describe('the wall limiter (B09-13 step 1)', () => {
+  const create = (headers, extra = {}) => handler({
+    httpMethod: 'POST',
+    headers,
+    body: JSON.stringify({ action: 'create', prayer: 'Please pray', name: 'Anonymous', campus: '', ...extra }),
+  });
+
+  it('keys on the platform address: different x-forwarded-for, one x-nf-client-connection-ip, one limit; the sixth create in an hour is 429', async () => {
+    const statuses = [];
+    for (let i = 0; i < 6; i++) {
+      const res = await create({ 'x-nf-client-connection-ip': '198.51.100.7', 'x-forwarded-for': `203.0.113.${i}` });
+      statuses.push(res.statusCode);
+    }
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
+    expect(state.inserted).toHaveLength(5);
+  });
+
+  it('IPv6 addresses in one /64 share the create limit', async () => {
+    const statuses = [];
+    for (let i = 1; i <= 6; i++) {
+      const res = await create({ 'x-nf-client-connection-ip': `2001:db8:77:1::${i}` });
+      statuses.push(res.statusCode);
+    }
+    expect(statuses.at(-1)).toBe(429);
+  });
+
+  it('one address at its limit does not stop another address posting', async () => {
+    const res = await create({ 'x-nf-client-connection-ip': '198.51.100.99' });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('a campus id that is not on the list is stored as an empty campus', async () => {
+    const res = await create({ 'x-nf-client-connection-ip': '198.51.100.42' }, { campus: 'au-nowhere' });
+    expect(res.statusCode).toBe(200);
+    expect(state.inserted[0].campus).toBe('');
+  });
+});
