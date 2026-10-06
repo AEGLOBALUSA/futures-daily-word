@@ -23,6 +23,7 @@ import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNo
 import { QuickNotes } from './QuickNotes';
 import { CornerDraftCard } from './CornerDraftCard';
 import { PrayerCare } from './PrayerCare';
+import { MoGuideMount } from './guide/MoGuideMount';
 import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
@@ -256,6 +257,7 @@ export function StaffApp() {
 
   return (
     <div className="staff-app" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
+      <MoGuideMount isAdmin={staff.isAdmin} role={staff.role} />
       {isMosUi() && (
         <aside className="mos-shell__sidebar">
           <MosBrandLockup />
