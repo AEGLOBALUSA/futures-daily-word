@@ -24,6 +24,12 @@
 [functions."corner-draft"]
   schedule = "@hourly"
 
+# Hourly: one nameless email when a prayer request has waited two days
+# (B09-13), 07:00-21:00 on the campus's clock, once per request. Does nothing
+# while dw_prayer_waiting is off (the default) and nothing on a deploy preview.
+[functions."prayer-waiting"]
+  schedule = "@hourly"
+
 # API function redirects - MUST come before SPA fallback
 [[redirects]]
   from = "/api/*"
