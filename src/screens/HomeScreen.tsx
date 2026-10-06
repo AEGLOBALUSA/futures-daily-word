@@ -4608,6 +4608,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
         currentPassage={heroChapterRefs[heroChapterIndex] || heroChapterRefs[0] || ''}
         selectedText={selection?.text}
         initialQuestion={bibleAIQuestion || undefined}
+        onNavigate={onNavigate}
       />
       <BibleSearch
         isOpen={showSearch}

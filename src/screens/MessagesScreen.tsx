@@ -19,6 +19,7 @@ import {
 } from '../utils/myPrayers';
 import { localToday } from '../utils/homeToday';
 import { useTabShowing } from '../utils/useTabShowing';
+import { hasPrayerRequest, takePrayerRequest, ASK_PRAYER_EVENT } from '../utils/askActions';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Prayer {
@@ -260,6 +261,15 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
     if (activeTab === 'alpharetta' && !alpharettaAllowed) setActiveTab('pastor');
   }, [activeTab, alpharettaAllowed]);
 
+  // DW-P09: Bible AI's "please pray for …" opens the Prayer Wall, whose
+  // Add-prayer box takes her words (PrayerWallPanel).
+  useEffect(() => {
+    const toWall = () => { if (hasPrayerRequest()) setActiveTab('prayer'); };
+    toWall();
+    window.addEventListener(ASK_PRAYER_EVENT, toWall);
+    return () => window.removeEventListener(ASK_PRAYER_EVENT, toWall);
+  }, []);
+
   // B09-11: Home's "See your request" opens the Prayer Wall.
   useEffect(() => {
     const take = () => { if (takePrayerWallRequest() !== null) setActiveTab('prayer'); };
@@ -422,6 +432,23 @@ function PrayerWallPanel({
   }, [filter, campus]);
 
   useEffect(() => { load(); }, [load]);
+
+  // DW-P09: her own words from Bible AI go into the Add-prayer box, behind the
+  // same email gate as Add prayer. Nothing is posted until she taps Post it.
+  useEffect(() => {
+    const takeAsk = () => {
+      const words = takePrayerRequest();
+      if (!words) return;
+      requireEmail(() => {
+        setRequestHeld(false);
+        setPrayerText(words);
+        setShowForm(true);
+      });
+    };
+    takeAsk();
+    window.addEventListener(ASK_PRAYER_EVENT, takeAsk);
+    return () => window.removeEventListener(ASK_PRAYER_EVENT, takeAsk);
+  }, [requireEmail]);
 
   const handleSubmit = async () => {
     if (!prayerText.trim()) return;

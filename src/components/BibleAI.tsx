@@ -12,6 +12,8 @@ import { useSubView } from '../utils/useSubView';
 import { getPrepItems, getPreachingFocus, isPastorPersona } from '../utils/sermonPrep';
 import { buildPastorPrompt, pastorPromptLabelKey, PASTOR_PROMPT_KINDS } from '../utils/pastorPrompts';
 import type { PastorPromptKind } from '../utils/pastorPrompts';
+import { matchIntent, type AskIntent } from '../utils/askIntents';
+import type { TabId } from './TabBar';
 
 /** Inline "BIBLE AI" wordmark sed wherever Brain icon used to be */
 const BibleAIBadge = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
@@ -93,6 +95,17 @@ interface BibleAIProps {
   /** Today's hero chapter (e.g. "Romans 8") — what "this passage" means for the
       pastor quick-prompts when nothing is selected. */
   currentPassage?: string
+  /** The app's tab setter: an Ask action (DW-P09) that takes her somewhere uses it. */
+  onNavigate?: (tab: TabId) => void
+}
+
+/** What the reader typed when it was something the app does itself (DW-P09).
+ *  Kept apart from `messages`: those go to the model with every later turn,
+ *  and an action's words (a prayer, a crisis line) never may. */
+interface AskAction {
+  intent: AskIntent
+  /** Her words, shown back to her only. */
+  said: string
 }
 
 export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText, initialQuestion, currentPassage }: BibleAIProps) {
@@ -106,6 +119,9 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
   useEffect(() => { if (isOpen) setPastorMode(isPastorPersona()) }, [isOpen])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  // DW-P09: the action the app does itself for what she typed, or null.
+  const [askAction, setAskAction] = useState<AskAction | null>(null)
+  useEffect(() => { if (!isOpen) setAskAction(null) }, [isOpen])
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [studySaved, setStudySaved] = useState(false)
   const [seasonTipDismissed, setSeasonTipDismissed] = useState<boolean>(() => {
@@ -180,6 +196,7 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
   function resetChat() {
     if (abortRef.current) abortRef.current.abort()
     setMessages([])
+    setAskAction(null)
     setInput('')
     setLoading(false)
     setFollowUps([])
@@ -231,6 +248,20 @@ export function BibleAI({ isOpen, onClose, onOpen, initialContext, selectedText,
     }
     if (loading) return
     setInput('')
+    // DW-P09: what she TYPED is first read for something the app does itself
+    // (open a passage, set a reminder, the care door…). A match makes no model
+    // call and never joins `messages`, so its words never reach the model on a
+    // later turn either. Prompts the app writes (quick prompts, follow-ups,
+    // pastor prompts, a search hand-off) always go to the model.
+    if (text === undefined) {
+      const intent = matchIntent(msg, lang)
+      if (intent) {
+        setAskAction({ intent, said: msg })
+        trackBehavior('ai_prompt', `ask:${intent.kind}`)
+        return
+      }
+    }
+    if (askAction) setAskAction(null)
     const userMsg: Message = { role: 'user', content: msg }
     setMessages(prev => [...prev, userMsg])
     setStudySaved(false) // a new turn means the previously-saved transcript is now stale

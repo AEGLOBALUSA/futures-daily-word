@@ -1,6 +1,5 @@
 // Build: 2026-03-18T10:55:15.514226
 import { useState, useEffect, useRef } from 'react';
-import { track } from '../utils/analytics';
 import { Card } from '../components/Card';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SeamFooter } from '../components/Seam';
@@ -12,6 +11,7 @@ import { pushNow, syncMisc } from '../utils/cloudSync';
 import { campusName, findCampus } from '../data/campuses';
 import { settingsSummary, readSettingsSummaryInput } from '../utils/settingsSummary';
 import type { TranslationCode } from '../utils/api';
+import { offeredTranslations, setReaderTranslation } from '../utils/readerTranslation';
 import { LibraryScreen } from './LibraryScreen';
 import { API_BASE, staffPortalUrl } from '../utils/api-base';
 import { CampusSelect } from '../components/CampusSelect';
@@ -36,13 +36,6 @@ import { PathNode } from '../components/ChoosePathSheet';
 import { t, getLang } from '../utils/i18n';
 import { applyLanguage } from '../utils/language';
 
-// Bible translations filtered by selected language
-const LANG_TRANSLATIONS: Record<string, TranslationCode[]> = {
-  en: ['ESV', 'NLT', 'KJV', 'NKJV', 'NIV', 'AMP', 'NASB', 'WEB'],
-  es: ['RV1960', 'NVI'],
-  pt: ['ARA'],
-  id: ['TB'],
-};
 
 // Font sizes in absolute pixels — matches HomeScreen's dw_font_size (default 15, range 13-32)
 const FONT_SIZES = [
@@ -223,11 +216,9 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   };
 
   const handleTranslationSelect = (t: TranslationCode) => {
-    localStorage.setItem('dw_translation', t);
-    localStorage.setItem('dw_translation_manual', 'true');
-    track('translation_switch', t);
-    setSettingsRev(r => r + 1);
-    try { window.dispatchEvent(new Event('dw-translation-changed')); } catch { /* ignore */ }
+    // Bible translations filtered by the selected language: the one list and
+    // setter Bible AI's "switch to …" uses too (src/utils/readerTranslation.ts).
+    if (setReaderTranslation(t, lang)) setSettingsRev(r => r + 1);
   };
 
   const handleFontSelect = (val: number) => {
@@ -495,7 +486,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
           </h2>
           <Card style={{ padding: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {(LANG_TRANSLATIONS[lang] || LANG_TRANSLATIONS['en']).map(tr => (
+              {offeredTranslations(lang).map(tr => (
                 <button
                   key={tr}
                   onClick={() => handleTranslationSelect(tr)}

@@ -18,6 +18,7 @@ import { t, getLang, tField } from '../utils/i18n';
 import { PERSONA_PLAN_IDS, isNewChristianPersona, type Persona } from '../utils/persona-config';
 import { PathwayPicker } from '../components/PathwayPicker';
 import { ensureGraceSeriesEnrolled, GRACE_SERIES_TITLE, GRACE_SERIES_TOTAL_DAYS } from '../utils/coldStart';
+import { takePlanRequest, ASK_PLAN_EVENT } from '../utils/askActions';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -291,6 +292,21 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // DW-P09: a plan card's Start in Bible AI lands here and starts the plan with
+  // this screen's own startPlan. A plan already running is opened, never
+  // started again (that would reset her days).
+  useEffect(() => {
+    const takeAsk = () => {
+      const id = takePlanRequest();
+      if (!id) return;
+      if (!getActivePlans()[id]) startPlan(id);
+      setExpandedPlan(id);
+    };
+    takeAsk();
+    window.addEventListener(ASK_PLAN_EVENT, takeAsk);
+    return () => window.removeEventListener(ASK_PLAN_EVENT, takeAsk);
+  }, [startPlan]);
 
   const completePlanDay = useCallback((planId: string, dayNum: number) => {
     const plans = getActivePlans();

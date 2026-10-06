@@ -501,6 +501,7 @@ function AppContent() {
             onClose={() => setShowBibleAI(false)}
             onOpen={() => setShowBibleAI(true)}
             selectedText={selection?.text}
+            onNavigate={navigateTab}
           />
         </Suspense>
       )}

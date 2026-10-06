@@ -97,7 +97,8 @@ function townsOf(c: CampusRow): string[] {
   return [townOf(c), ...(c.towns || []).map(plain)].filter(Boolean);
 }
 
-function isFuturos(c: CampusRow): boolean {
+/** A Futuros (Spanish-language) campus: its notes congregation is a futuros one. */
+export function isFuturosCampus(c: CampusRow): boolean {
   return (c.congregation || '').startsWith('futuros');
 }
 
@@ -109,8 +110,8 @@ function isFuturos(c: CampusRow): boolean {
  */
 function pickInTown(rows: CampusRow[], lang: string): CampusRow | undefined {
   if (rows.length <= 1) return rows[0];
-  const futuros = rows.filter(isFuturos);
-  const futures = rows.filter((c) => !isFuturos(c));
+  const futuros = rows.filter(isFuturosCampus);
+  const futures = rows.filter((c) => !isFuturosCampus(c));
   const side = lang === 'es' && futuros.length ? futuros : futures.length ? futures : futuros;
   return side.length === 1 ? side[0] : undefined;
 }

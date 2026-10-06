@@ -20,6 +20,7 @@ import { BibleAI } from '../components/BibleAI';
 import { t, getLang } from '../utils/i18n';
 import { useSubView } from '../utils/useSubView';
 import type { TabId } from '../components/TabBar';
+import { takePassageRequest, ASK_PASSAGE_EVENT } from '../utils/askActions';
 
 interface JournalEntry {
   id: string;
@@ -1470,6 +1471,18 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
   useSubView(showEditor && !!editingEntry, () => { setShowEditor(false); setEditingEntry(null); });
   useSubView(!!modalPassage, () => setModalPassage(null));
 
+  // DW-P09: "read Psalm 23" in Bible AI opens this study view at that chapter,
+  // in her translation (the view reads dw_translation itself).
+  useEffect(() => {
+    const takeAsk = () => {
+      const ref = takePassageRequest();
+      if (ref) setModalPassage({ ref, planTitle: null, dayNum: null });
+    };
+    takeAsk();
+    window.addEventListener(ASK_PASSAGE_EVENT, takeAsk);
+    return () => window.removeEventListener(ASK_PASSAGE_EVENT, takeAsk);
+  }, []);
+
   // Re-tap of the Notes tab in the tab bar → back to the tab's root state.
   useEffect(() => {
     const onReset = () => {
@@ -2125,6 +2138,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
         onOpen={() => { setBibleAIContext(''); setShowBibleAI(true); }}
         initialContext={bibleAIContext}
         selectedText={selection?.text}
+        onNavigate={onNavigate}
       />
 
       {/* Video recorder modal */}
