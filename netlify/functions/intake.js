@@ -50,6 +50,7 @@ const { isCongregationId } = require("./lib/congregations");
 const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
+const { listPrayerCare, decidePrayer } = require("./lib/prayer-care");
 const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow, COLUMNS: CAMPUS_COLUMNS } = require("./lib/campuses");
 const corner = require("./lib/corner-draft");
 
@@ -1300,6 +1301,22 @@ exports.handler = async (event) => {
         needs: out.needs ? out.needs.key : null, id: out.preview && out.preview.id, attach: out.attach ? out.attach.id : null
       }));
       return json(event, 200, { ...out, congregation, congregationName: congregationName(congregation), published: false });
+    }
+
+    // ── Prayer care (B09-12) ── The posts waiting for a look, and "Prayer
+    // requests this week". A campus pastor (campus confirmed) sees and decides
+    // their own campus; hub and admin every campus; media and an unconfirmed
+    // campus pastor 403. Anonymous requests carry no name and no email.
+    if (action === "prayers_week") {
+      const out = await listPrayerCare(db(), staff, await campusList());
+      if (out.error) return json(event, out.status, { error: out.error, ...(out.code ? { code: out.code } : {}) });
+      return json(event, 200, out);
+    }
+
+    if (action === "prayer_decide") {
+      const out = await decidePrayer(db(), staff, await campusList(), body.id, body.decision);
+      if (out.error) return json(event, out.status, { error: out.error, ...(out.code ? { code: out.code } : {}) });
+      return json(event, 200, out);
     }
 
     if (action === "sermons_list") {

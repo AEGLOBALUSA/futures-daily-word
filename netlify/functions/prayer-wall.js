@@ -7,6 +7,10 @@ const { ALLOWED_ORIGINS } = require('./lib/cors');
 const { loadCampuses, campusName, isKnownCampus } = require('./lib/campuses');
 const { clientIp } = require('./lib/client-ip');
 const { switchOf, deliverable } = require('./lib/prompts');
+// B09-12: a post carrying contact details, a link or bad language waits for a
+// staff look (lib/prayer-screen.js); the wall shows status 'shown' only.
+const { screenPrayer } = require('./lib/prayer-screen');
+const { notifyHeld } = require('./lib/prayer-care');
 
 // B09-11: "{n} people prayed for your request". The poster's own phone keeps
 // the ids of the requests it posted (device-only) and asks GET ?mine=<ids> for
@@ -105,7 +109,9 @@ exports.handler = async (event) => {
       const filter = params.filter || 'all';
       const campus = params.campus || '';
 
-      let query = db.from("prayers").select("*").order("created_at", { ascending: false }).limit(50);
+      // B09-12: only what is on the wall. A post waiting for a look ('held') or
+      // kept private is never sent to the wall, whoever asks.
+      let query = db.from("prayers").select("id, name, campus, prayer, prayer_count, created_at").eq("status", "shown").order("created_at", { ascending: false }).limit(50);
       if (filter === 'my-campus' && campus) {
         query = query.eq("campus", campus);
       }
@@ -147,12 +153,21 @@ exports.handler = async (event) => {
 
         if (!prayer) return { statusCode: 400, headers, body: JSON.stringify({ error: "Prayer text required" }) };
 
-        const { data: created, error } = await db.from("prayers").insert({ prayer, name, campus, email, prayer_count: 0 }).select("id").single();
+        // B09-12: the deterministic screen. A match waits for a staff look.
+        const screen = screenPrayer(prayer, name);
+        const row = { prayer, name, campus, email, prayer_count: 0, status: screen.held ? 'held' : 'shown', held_reason: screen.held ? screen.reason : null };
+        const { data: created, error } = await db.from("prayers").insert(row).select("id").single();
         if (error) throw error;
+        const id = created && created.id ? String(created.id) : null;
+
+        // The campus pastor hears (kind dw_prayer_held; off until Ashley moves
+        // it): campus and link only, never the text or a name.
+        if (screen.held && id) await notifyHeld(db, { id, campus }, { campuses: await loadCampuses(db) });
 
         // The id goes back to the poster's own phone only (B09-11), so it can
         // ask how many people prayed. It is not a secret: ids are on the wall.
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true, id: created && created.id ? String(created.id) : null }) };
+        // `held` tells her phone to say it will appear after a look.
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true, id, held: screen.held }) };
       }
 
       if (body.action === 'pray') {

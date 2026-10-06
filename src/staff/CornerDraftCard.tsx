@@ -34,6 +34,7 @@ const campusMainStyle: CSSProperties = {
 
 type Props = {
   isAdmin?: boolean; staffCampusId?: string; onJob: (job: 'campus', campusId?: string) => void;
+  secondary?: boolean;
 };
 type Action = 'refresh' | 'publish' | 'skip';
 type ReadState = 'loading' | 'ready' | 'failed' | 'finished';
@@ -90,7 +91,7 @@ const scrollClearance = () => {
   return height ? height + 16 : 96;
 };
 
-export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob }: Props) {
+export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob, secondary = false }: Props) {
   const [editorMemory] = useState(readEditors);
   const [waiting, setWaiting] = useState<CornerDraftWaiting[]>([]);
   const [campusId, setCampusId] = useState<string>();
@@ -226,7 +227,7 @@ export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob }: Props
     {openedDrafts.map(opened => {
       const active = !!selectedDraft && draftKey(opened) === draftKey(selectedDraft);
       return <section key={draftKey(opened)} hidden={!active}>
-        <DraftEditor initial={opened} memory={editorMemory} active={active} campusId={isAdmin ? opened.campusId : undefined}
+        <DraftEditor initial={opened} memory={editorMemory} active={active} secondary={secondary} campusId={isAdmin ? opened.campusId : undefined}
           serverFinished={active && readState === 'finished'} onRetentionChange={onRetentionChange}
           onJob={onJob} onBusy={value => { busyRef.current = value; setBusy(value); }}
           onComplete={() => setWaiting(rows => rows.filter(row => draftKey(row) !== draftKey(opened)))} />
@@ -235,8 +236,9 @@ export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob }: Props
   </>;
 }
 
-function DraftEditor({ initial, memory, active, campusId, serverFinished, onRetentionChange, onJob, onBusy, onComplete }: {
+function DraftEditor({ initial, memory, active, secondary, campusId, serverFinished, onRetentionChange, onJob, onBusy, onComplete }: {
   initial: CornerDraft; active: boolean; campusId?: string; onJob: Props['onJob'];
+  secondary: boolean;
   serverFinished: boolean; onRetentionChange: (key: string, keep: boolean) => void;
   memory: Map<string, EditorMemory>;
   onBusy: (busy: boolean) => void; onComplete: () => void;
@@ -456,7 +458,8 @@ function DraftEditor({ initial, memory, active, campusId, serverFinished, onRete
     <div role="region" aria-label={words('my_words')} tabIndex={0}
       style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', userSelect: 'text' }}>{savedWords}</div>
     <div>
-      <button type="button" className="dw-next dw-campus-main" style={campusMainStyle} aria-busy={copyState === 'busy'}
+      <button type="button" className={secondary ? undefined : 'dw-next dw-campus-main'}
+        style={secondary ? { ...campusMainStyle, border: '1px solid var(--dw-border)', background: 'var(--dw-card)', color: 'var(--dw-text-primary)' } : campusMainStyle} aria-busy={copyState === 'busy'}
         onClick={() => void copyWords()}>{words('copy_words')}</button>
       {copyState === 'done' && <p role="status" style={{ margin: 0 }}>{words('copied')}</p>}
       {copyState === 'failed' && <p role="alert" style={{ margin: 0 }}>{words('error_copy')}</p>}
@@ -552,7 +555,8 @@ function DraftEditor({ initial, memory, active, campusId, serverFinished, onRete
     <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-card)', padding: '12px 0',
       paddingBottom: 'max(12px, env(safe-area-inset-bottom))', boxShadow: '0 -8px 24px rgb(0 0 0 / 0.08)',
       backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-      <button type="button" className="dw-next dw-campus-main" style={campusMainStyle}
+      <button type="button" className={secondary ? undefined : 'dw-next dw-campus-main'}
+        style={secondary ? { ...campusMainStyle, border: '1px solid var(--dw-border)', background: 'var(--dw-card)', color: 'var(--dw-text-primary)' } : campusMainStyle}
         aria-busy={busy === 'publish'} onClick={() => void act('publish')}>
         {words(busy === 'publish' ? 'publishing' : 'publish')}
       </button>

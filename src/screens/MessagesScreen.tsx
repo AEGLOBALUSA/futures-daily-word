@@ -49,7 +49,12 @@ async function fetchPrayers(filter: 'all' | 'my-campus', campus: string): Promis
   }
 }
 
-async function postPrayer(prayer: string, name: string, campus: string, email: string): Promise<boolean> {
+/**
+ * Post a request. 'shown' = on the wall now; 'held' = it waits for a staff
+ * look first (B09-12: it carried contact details, a link or bad language);
+ * false = it did not post.
+ */
+async function postPrayer(prayer: string, name: string, campus: string, email: string): Promise<'shown' | 'held' | false> {
   try {
     const res = await fetch(API, {
       method: 'POST',
@@ -57,10 +62,12 @@ async function postPrayer(prayer: string, name: string, campus: string, email: s
       body: JSON.stringify({ action: 'create', prayer, name, campus, email }),
     });
     if (!res.ok) return false;
+    let data: { id?: unknown; held?: unknown } | null = null;
+    try { data = await res.json(); } catch { /* posted; just not counted */ }
     // B09-11: keep the new request's id on this phone only (dw_my_prayers, never
     // synced), so it can later show how many people prayed for it.
-    try { rememberMyPrayer((await res.json())?.id); } catch { /* posted; just not counted */ }
-    return true;
+    try { rememberMyPrayer(data?.id); } catch { /* posted; just not counted */ }
+    return data?.held === true ? 'held' : 'shown';
   } catch {
     return false;
   }
@@ -345,6 +352,7 @@ function PrayerWallPanel({
   const [prayerError, setPrayerError] = useState(false);
   const [filter, setFilter] = useState<'all' | 'my-campus'>('all');
   const [showForm, setShowForm] = useState(false);
+  const [requestHeld, setRequestHeld] = useState(false);
   const [prayerText, setPrayerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -363,6 +371,8 @@ function PrayerWallPanel({
   // B09-11: the request whose Pray did not go through; Pray stays open to retry.
   const [prayFailed, setPrayFailed] = useState<string | null>(null);
   const campusShowing = useTabShowing('messages');
+
+  useEffect(() => { if (!campusShowing) setRequestHeld(false); }, [campusShowing]);
 
   useEffect(() => {
     const reread = () => setMyPrayers(readMyPrayers());
@@ -425,6 +435,7 @@ function PrayerWallPanel({
     );
     setSubmitting(false);
     if (ok) {
+      setRequestHeld(ok === 'held');
       track('prayer_submit', campus);
       setPrayerText('');
       setIsAnonymous(false);
@@ -476,6 +487,7 @@ function PrayerWallPanel({
           </button>
           <button onClick={() => {
             if (!userProfile?.email) { requireEmail(() => {}); return; }
+            setRequestHeld(false);
             setShowForm(v => !v);
           }} className="dw-btn-primary" style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 5 }}>
             <Plus size={14} /> {t('add_prayer', lang)}
@@ -484,6 +496,13 @@ function PrayerWallPanel({
       </div>
 
       {/* New prayer form */}
+      {requestHeld && !showForm && (
+        <Card style={{ marginBottom: 16 }}>
+          <p role="status" style={{ margin: 0, fontSize: 15, lineHeight: 1.5, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-primary)' }}>
+            {campusLabel ? t('prayer_held_campus', lang).replace('{campus}', campusLabel) : t('prayer_held_church', lang)}
+          </p>
+        </Card>
+      )}
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10 }}>{t('share_prayer_request', lang)}</h2>
