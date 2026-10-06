@@ -568,8 +568,16 @@ function StaffHome({
   const [hasHeldPrayer, setHasHeldPrayer] = useState(false);
   const [hasNeedsYouMain, setHasNeedsYouMain] = useState(false);
   const campuses = useCampuses();
-  const [readingCampusId, setReadingCampusId] = useState(() => staff.campusId || campuses[0]?.id);
   const canChooseReadingCampus = staff.isAdmin || staff.role === 'hub';
+  const readingCampuses = campuses.filter(campus => campus.id !== 'other');
+  const [chosenReadingCampusId, setChosenReadingCampusId] = useState<string | null>(() => {
+    try {
+      return canChooseReadingCampus ? localStorage.getItem('dw_staff_reading_week_campus') : null;
+    } catch { return null; }
+  });
+  const readingCampusId = readingCampuses.find(campus => campus.id === chosenReadingCampusId)?.id
+    ?? readingCampuses.find(campus => campus.id === staff.campusId)?.id
+    ?? readingCampuses[0]?.id;
   // Sunday's notes is its own screen (B09-10's one pasted box), listed first
   // for the staff who can use it; Staff home itself stays the first screen.
   const notesJob = { id: 'notes' as const, title: 'Paste Sunday’s notes', body: 'One paste. The app works out the Sunday, title, speaker, series and YouTube, and shows you the page before it goes up.' };
@@ -592,16 +600,18 @@ function StaffHome({
         <>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)' }}>
             <span>{t('reading_week_for', getLang())}</span>
-            <select value={readingCampusId} onChange={event => setReadingCampusId(event.target.value)} style={{
+            <select value={readingCampusId ?? ''} onChange={event => {
+              const campusId = event.target.value;
+              if (!readingCampuses.some(campus => campus.id === campusId)) return;
+              setChosenReadingCampusId(campusId);
+              try { localStorage.setItem('dw_staff_reading_week_campus', campusId); } catch { /* Device storage may be unavailable. */ }
+            }} style={{
               flex: 1, minWidth: 0, minHeight: 44, padding: '4px 8px',
               border: '1px solid var(--dw-border)', borderRadius: 6,
               background: 'var(--dw-surface)', color: 'var(--dw-text-primary)',
               fontFamily: 'var(--font-sans)', fontSize: 16,
             }}>
-              {readingCampusId && !campuses.some(campus => campus.id === readingCampusId) && (
-                <option value={readingCampusId}>{campusNameOf(readingCampusId)}</option>
-              )}
-              {campuses.map(campus => <option key={campus.id} value={campus.id}>{campus.name}</option>)}
+              {readingCampuses.map(campus => <option key={campus.id} value={campus.id}>{campus.name}</option>)}
             </select>
           </label>
           <ReadingWeekLine campusId={readingCampusId} />

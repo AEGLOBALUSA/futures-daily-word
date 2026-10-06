@@ -1083,6 +1083,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // returns for the pastor's own campus code (campus-scoped, no PII); without a
   // working code it shows the code prompt, never fake numbers.
   const [campusStats, setCampusStats] = useState<CampusStats | null>(null);
+  const [readingWeekShown, setReadingWeekShown] = useState(false);
   const [campusStatsError, setCampusStatsError] = useState(false);
   const [campusStatsLoading, setCampusStatsLoading] = useState(false);
   const [pastorCodeInput, setPastorCodeInput] = useState('');
@@ -4244,23 +4245,25 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             campus code); the seeded pseudo-random counts are gone — progress is
             grounded in facts or not shown at all. */}
         {personaConfig.persona === 'pastor_leader' && (() => {
+          const showOverview = !isPastorSignedIn || !!campusStats || readingWeekShown;
           const campusNameLabel = campusStats
             ? (campusName(campusStats.campus, campuses) || campusStats.campus)
             : (campusName(userProfile?.campus, campuses) || 'your campus');
           return (
-            <div style={{
+            // Keep the line mounted to report its answer, without an empty overview box.
+            <div style={showOverview ? {
               marginBottom: 16, borderRadius: 16, padding: '16px 14px',
               background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(59,130,246,0.04) 100%)',
               border: '1px solid rgba(37,99,235,0.2)',
-            }}>
-              <p style={{
+            } : { display: 'contents' }}>
+              {showOverview && <p style={{
                 fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
                 letterSpacing: '0.12em', textTransform: 'uppercase',
                 color: 'var(--dw-info)', marginBottom: 12,
               }}>
                 CAMPUS OVERVIEW
-              </p>
-              {isPastorSignedIn && <ReadingWeekLine />}
+              </p>}
+              {isPastorSignedIn && <ReadingWeekLine onShown={setReadingWeekShown} />}
               {campusStats ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
