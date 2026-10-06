@@ -148,10 +148,12 @@ describe('prayers_week: who sees what', () => {
     expect(JSON.stringify(out)).not.toMatch(/quiet@|p@example/);
   });
 
-  it('a named request gives the first name and the address for an empty email', async () => {
+  it('a named request gives the first name and canWrite, never the address (B09-13: the address comes from prayer_write_link)', async () => {
     const out = await care.listPrayerCare(db(), pastor, CAMPUSES, NOW);
     const row = out.week.find((r) => r.id === ID.named);
-    expect(row).toMatchObject({ anonymous: false, firstName: 'Sam', email: 'sam@example.org', prayed: 4, daysAgo: 2, status: 'shown' });
+    expect(row).toMatchObject({ anonymous: false, firstName: 'Sam', canWrite: true, done: null, prayed: 4, daysAgo: 2, status: 'shown' });
+    expect(row).not.toHaveProperty('email');
+    expect(JSON.stringify(out)).not.toMatch(/@/);
   });
 
   it('a held post shows its text and why it waits, never a name or email', async () => {

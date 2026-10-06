@@ -1,13 +1,18 @@
 /**
- * Prayer care on /staff (MOS-to-8 build B09-12): the client side of intake.js
- * `prayers_week` and `prayer_decide`.
+ * Prayer care on /staff: the client side of intake.js.
+ *   B09-12  `prayers_week` (held posts + the week's list), `prayer_decide`
+ *   B09-13  `prayer_lines` ("Needs you"), `prayer_write_link`,
+ *           `prayer_line_done`, `prayer_waiting_mute`
  *
  * The server decides who sees what (a campus pastor their own confirmed
- * campus; hub and admin every campus; media and an unconfirmed campus pastor
- * 403) and strips the name and email from anonymous requests. This file only
- * calls it and builds the address-only `mailto:` for **Write to {first name}**:
- * the pastor's reply is personal, so the app opens an EMPTY email and never
- * writes the words (no subject, no body, no `?` at all).
+ * campus; hub and admin every campus for the week's list, and the campuses
+ * with no confirmed pastor for "Needs you"; media and an unconfirmed campus
+ * pastor 403) and strips the name from anonymous requests. Neither list ever
+ * carries an address: **Write to {first name}** asks `prayer_write_link` for
+ * one request's address-only `mailto:`. The pastor's reply is personal, so the
+ * app opens an EMPTY email and never writes the words (no subject, no body, no
+ * `?` at all). Both lists close through `prayer_line_done`, so they never
+ * disagree.
  */
 import { intake } from './api';
 
@@ -36,8 +41,27 @@ export type WeekPrayer = {
   status: 'shown' | 'private';
   anonymous: boolean;
   firstName?: string;
-  email?: string;
+  /** A name and an address are on file: Write to {first name} can open an email. */
+  canWrite: boolean;
+  /** Closed by a pastor (B09-13): Written to | Prayed for. */
+  done: PrayerDone | null;
 };
+
+export type PrayerDone = 'wrote' | 'prayed';
+
+/** One line on /staff "Needs you" (B09-13): the first name (null when anonymous) and the ask. Never an address. */
+export type PrayerLine = {
+  id: string;
+  firstName: string | null;
+  campusId: string;
+  campusName: string;
+  text: string;
+  createdAt: string;
+  waitingDays: number;
+  canWrite: boolean;
+};
+
+export type PrayerLines = { lines: PrayerLine[]; waitingMuted: boolean };
 
 export type PrayerCareScope = { all: true } | { all: false; campusId: string; campusName: string };
 
@@ -85,12 +109,56 @@ export async function decidePrayer(id: string, decision: PrayerDecision): Promis
 }
 
 /**
- * The address-only link for **Write to {first name}**: `mailto:` plus the
- * encoded address and nothing else. '' when the address is unusable, so the
- * button is not shown rather than opening a broken email.
+ * The server's **Write to {first name}** link, checked once more on the phone:
+ * `mailto:` plus one encoded address and nothing else (no `?`, no `&`, no
+ * subject, no body). '' when it is anything else, so nothing broken opens.
  */
-export function mailtoFor(email: string | undefined | null): string {
-  const e = typeof email === 'string' ? email.trim() : '';
-  if (!/^[^\s@?&#/\\]+@[^\s@?&#/\\]+\.[^\s@?&#/\\]{2,}$/.test(e)) return '';
-  return `mailto:${encodeURIComponent(e)}`;
+export function checkedMailto(href: unknown): string {
+  if (typeof href !== 'string' || !/^mailto:[^?&#\s]+$/.test(href)) return '';
+  let address = '';
+  try { address = decodeURIComponent(href.slice('mailto:'.length)); } catch { return ''; }
+  return /^[^\s@?&#/\\]+@[^\s@?&#/\\]+\.[^\s@?&#/\\]{2,}$/.test(address) ? href : '';
+}
+
+/**
+ * "Needs you": this person's open lines, oldest first, and whether they muted
+ * the waiting email; `null` when they may not see prayer care (403). Any other
+ * failure throws, so the screen can say it did not load.
+ */
+export async function loadPrayerLines(): Promise<PrayerLines | null> {
+  try {
+    const data = await intake<PrayerLines>('prayer_lines');
+    return { lines: Array.isArray(data.lines) ? data.lines : [], waitingMuted: data.waitingMuted === true };
+  } catch (err) {
+    if ((err as { status?: number })?.status === 403) return null;
+    throw err;
+  }
+}
+
+/**
+ * The address-only `mailto:` for one request, from the server (after its scope
+ * check). Throws when the server refuses or the link is not address-only, so
+ * the screen can say "Couldn't open the email. Try again." beside the button.
+ */
+export async function prayerWriteLink(id: string): Promise<string> {
+  const out = await intake<{ href?: string }>('prayer_write_link', { id });
+  const href = checkedMailto(out.href);
+  if (!href) throw Object.assign(new Error('No address to write to'), { status: 400 });
+  return href;
+}
+
+/**
+ * I wrote to {first name} | I prayed for this. Closes the request for both
+ * lists. `already` is true when a colleague closed it first (it is closed
+ * either way). Any failure throws with the server's words in `message`.
+ */
+export async function closePrayerLine(id: string, kind: PrayerDone): Promise<{ kind: PrayerDone; already: boolean }> {
+  const out = await intake<{ ok: boolean; kind: PrayerDone; already?: boolean }>('prayer_line_done', { id, kind });
+  return { kind: out.kind === 'wrote' || out.kind === 'prayed' ? out.kind : kind, already: out.already === true };
+}
+
+/** Stop the waiting email (true) or start it again (false). Resolves to the saved setting. */
+export async function setWaitingMuted(muted: boolean): Promise<boolean> {
+  const out = await intake<{ ok: boolean; waitingMuted: boolean }>('prayer_waiting_mute', { muted });
+  return out.waitingMuted === true;
 }
