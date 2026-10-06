@@ -9,13 +9,14 @@ const cardStyle: CSSProperties = {
   marginBottom: 16, maxWidth: 680, fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
-const secondaryStyle: CSSProperties = {
+const secondaryStyle = {
+  '--mos-control-height': '44px',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   minHeight: 44, maxWidth: '100%', boxSizing: 'border-box', padding: '10px 14px',
   border: '1px solid var(--dw-border)', borderRadius: 12,
   background: 'var(--dw-card)', color: 'var(--dw-text-primary)',
   fontSize: 15, fontFamily: 'inherit', textDecoration: 'none', cursor: 'pointer',
-};
+} as CSSProperties;
 const lineStyle: CSSProperties = { margin: '12px 0', fontSize: 15 };
 const quietStyle: CSSProperties = { ...lineStyle, color: 'var(--dw-text-secondary)' };
 const quoteStyle: CSSProperties = { margin: '16px 0', whiteSpace: 'pre-wrap', fontSize: 17 };
