@@ -1,4 +1,5 @@
-/* MultiplyOS Guide: words in, one contextual next step out. Classic script; no dependencies. */
+/* MultiplyOS Guide: words in, one contextual next step out. Classic script; no dependencies.
+   mos-text-ignore-file: the panel sizes its own text in rem with a 15px phone floor. */
 (function () {
   'use strict';
   try {
