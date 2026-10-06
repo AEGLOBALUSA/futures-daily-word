@@ -580,7 +580,7 @@ function StaffHome({
       : jobs.filter(j => j.id === staff.role);
   const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
   return (
-    <div>
+    <div style={{ '--mos-control-height': '44px' } as CSSProperties}>
       <PrayerCare staff={staff} onHeldChange={setHasHeldPrayer}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
       {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} secondary={hasHeldPrayer}
