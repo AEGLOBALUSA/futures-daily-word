@@ -15,9 +15,10 @@
  *   dw_prayer_waiting off (the seeded default) → the switch is the only read;
  *   dw_prayer_pastor_line off → no line exists, so nothing waits;
  *   then the gate, campuses, roster and open requests; planWaiting (pure);
- *   raiseStaffEmail per person (switch, nation gate, lint, claim
- *   prayer_waiting:<email>:<local date>, send, delivered); escalated_on only
- *   after a send the provider accepted.
+ *   no one mailed in the last 20 hours (dw_prompt_log); raiseStaffEmail per
+ *   person (switch, nation gate, lint, claim prayer_waiting:<email>:<local
+ *   date>, send, delivered); escalated_on only after a LIVE send the provider
+ *   accepted (a shadow send never marks).
  *
  * Tests: tests/functions/prayer-waiting.test.js, never in this folder.
  */
@@ -27,6 +28,10 @@ const { LINE_KIND, WAITING_KIND, WAITING_MS, planWaiting, waitingEmail } = requi
 const { staffHome } = require("./prayer-care");
 
 const REQUEST_LIMIT = 500;
+// One waiting email per person per 20 hours, whichever campus's clock the
+// local date came from (a hub covering an Adelaide and an Atlanta campus would
+// otherwise get two a few hours apart).
+const PER_PERSON_MS = 20 * 60 * 60 * 1000;
 
 /** Netlify sets CONTEXT; anything but production (or a local run with none) does nothing. */
 function isNonProductionDeploy(env = process.env) {
@@ -79,7 +84,26 @@ async function runPrayerWaiting(db, { now = new Date(), env = process.env, link 
 
     const plan = planWaiting({ rows, roster, campuses, lineSwitch, gate, now });
     summary.planned = plan.length;
+    if (!plan.length) return summary;
+
+    // Who already had one in the last 20 hours. A failed read sends nothing.
+    const { data: recent, error: recentErr } = await db
+      .from("dw_prompt_log")
+      .select("recipient")
+      .eq("kind", WAITING_KIND)
+      .gte("created_at", new Date(now.getTime() - PER_PERSON_MS).toISOString());
+    if (recentErr || !Array.isArray(recent)) {
+      console.error(`[prayer-waiting] log read failed: ${(recentErr && recentErr.message) || "no rows"}`);
+      summary.skipped = plan.length;
+      return summary;
+    }
+    const mailedLately = new Set(recent.map((r) => r && r.recipient).filter(Boolean));
+
     for (const item of plan) {
+      if (mailedLately.has(item.recipient)) {
+        summary.skipped += 1;
+        continue;
+      }
       const { subject, text } = waitingEmail(item.campusName, link, item.lang);
       const out = await raiseStaffEmail(db, {
         kind: WAITING_KIND,
@@ -99,6 +123,10 @@ async function runPrayerWaiting(db, { now = new Date(), env = process.env, link 
         continue;
       }
       summary.sent += 1;
+      mailedLately.add(item.recipient);
+      // A shadow send is Ashley's test: it never marks a request, so the
+      // pastor still gets his one email after switch-on.
+      if (waiting.mode !== "live") continue;
       const { data: marked, error: markErr } = await db
         .from("prayers")
         .update({ escalated_on: item.localDate })

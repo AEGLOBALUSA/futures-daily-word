@@ -27,6 +27,10 @@
 -- Nothing is backfilled and nothing is deleted. Service role only: the
 -- browser never calls Supabase directly.
 --
+-- Apply BEFORE the code deploys: prayers_week (B09-12's weekly list) now
+-- selects pastor_done_kind, and prayer_lines and the mute read the new
+-- columns; a read of a column that does not exist would empty /staff.
+--
 -- No transaction control in this file (28 Sep 2026). Rehearse it inside an
 -- outer transaction that is rolled back; apply it inside one transaction too.
 
@@ -58,6 +62,9 @@ create table if not exists public.dw_region_gate (
 
 alter table public.dw_region_gate enable row level security;
 revoke all on table public.dw_region_gate from public, anon, authenticated;
+-- The functions read the gate with the service key; say so rather than lean
+-- on default privileges (a missing grant would keep every nation shut).
+grant select on table public.dw_region_gate to service_role;
 
 insert into public.dw_region_gate (region, notices_on_at, note) values
   ('futures-au', null, 'Futures Australia: Daily Word notices stay off until Ashley switches the nation on'),

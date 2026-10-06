@@ -142,6 +142,34 @@ describe('the waiting email, with a fixed clock (SF-09-07 step 5)', () => {
   });
 });
 
+describe('one email per person per 20 hours, across time zones (review fix)', () => {
+  it('a hub covering an Atlanta and an Adelaide campus with no pastor gets one, not two a few hours apart', async () => {
+    const OLD_US = 'c1111111-1111-4111-8111-111111111111';
+    const OLD_AU = 'c2222222-2222-4222-8222-222222222222';
+    const first = new Date('2026-10-06T20:30:00Z'); // 16:30 in Atlanta, 07:00 on 7 Oct in Adelaide
+    setup({ open: ['futures-au', 'futures-us'], created: new Date(first.getTime() - 80 * H).toISOString(), roster: [
+      { email: 'hub.person@futures.church', role: 'hub', campus_id: null, campus_set_by: null, prayer_waiting_muted: false },
+    ] });
+    fake.tables.prayers = [
+      { id: OLD_US, name: 'Lee Example', campus: 'us-gwinnett', created_at: new Date(first.getTime() - 90 * H).toISOString(), status: 'shown', pastor_done_at: null, escalated_on: null },
+      { id: OLD_AU, name: 'Sam Example', campus: 'au-paradise', created_at: new Date(first.getTime() - 80 * H).toISOString(), status: 'shown', pastor_done_at: null, escalated_on: null },
+    ];
+    expect(await run(first)).toMatchObject({ sent: 1 });
+    expect(sent[0].subject).toContain('Futures Gwinnett');
+    for (const r of fake.tables.dw_prompt_log) r.created_at ??= first.toISOString();
+    // An hour later Adelaide's request is the oldest unmarked one, on another local date: still nothing.
+    expect(await run(new Date(first.getTime() + H))).toMatchObject({ sent: 0 });
+    expect(sent).toHaveLength(1);
+    expect(fake.tables.prayers.find((p) => p.id === OLD_AU).escalated_on).toBeNull();
+    // After 20 hours (and inside Adelaide's window) the Adelaide request gets its one email.
+    const later = new Date(first.getTime() + 22 * H); // 18:30 UTC on 7 Oct = 05:00 on 8 Oct in Adelaide: too early
+    expect((await run(later)).sent).toBe(0);
+    const morning = new Date('2026-10-07T21:00:00Z'); // 07:30 on 8 Oct in Adelaide
+    expect(await run(morning)).toMatchObject({ sent: 1 });
+    expect(sent[1].subject).toContain('Futures Paradise');
+  });
+});
+
 describe('fail closed (acceptance 4: with every kind off it writes nothing)', () => {
   const created = new Date(TUE_10.getTime() - 72 * H).toISOString();
 
@@ -176,10 +204,20 @@ describe('fail closed (acceptance 4: with every kind off it writes nothing)', ()
     expect(prayer().escalated_on).toBeNull();
   });
 
-  it('both in shadow: the owner on the list gets the one email; the pastor nothing', async () => {
+  it('both in shadow: the owner on the list gets the one email; the pastor nothing; the request is not marked', async () => {
     setup({ waiting: 'shadow', line: 'shadow', shadow: ['ae@futures.global'], created, open: [] });
-    expect(await run(TUE_10)).toMatchObject({ sent: 1 });
+    expect(await run(TUE_10)).toMatchObject({ sent: 1, escalated: 0 });
     expect(sent.map((m) => m.to[0])).toEqual(['ae@futures.global']);
+    // Ashley's test never spends the pastor's one email after switch-on.
+    expect(prayer().escalated_on).toBeNull();
+  });
+
+  it('a log read that fails sends nothing', async () => {
+    setup({ created });
+    fake.failOn('dw_prompt_log', 'select');
+    expect(await run(TUE_10)).toMatchObject({ planned: 1, sent: 0 });
+    expect(sent).toHaveLength(0);
+    expect(prayer().escalated_on).toBeNull();
   });
 
   it('a deploy preview (production keys) reads nothing and sends nothing', async () => {
