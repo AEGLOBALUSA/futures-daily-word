@@ -53,6 +53,7 @@ const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
 const { listPrayerCare, decidePrayer, listPrayerLines, prayerWriteLink, closePrayerLine, setWaitingMuted } = require("./lib/prayer-care");
 const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow, COLUMNS: CAMPUS_COLUMNS } = require("./lib/campuses");
 const corner = require("./lib/corner-draft");
+const { readingWeek } = require("./lib/reading-week");
 
 let supabase;
 function db() {
@@ -1343,6 +1344,21 @@ exports.handler = async (event) => {
     if (action === "prayer_line_done") {
       const out = await closePrayerLine(db(), staff, await campusList(), body.id, body.kind);
       if (out.error) return json(event, out.status, { error: out.error, ...(out.code ? { code: out.code } : {}) });
+      return json(event, 200, out);
+    }
+
+    // ── Reading week (DW-P08) ── The campus's reading week as four counts
+    // (people who opened the Daily Word in the last 7 full local days, first
+    // time, started Bible Basics or I'm New, the 7 days before), with no code
+    // to type. A campus pastor reads his own confirmed campus (another is
+    // 403); hub and admin any campus they name; media and an unconfirmed
+    // campus pastor 403. Counts only: no name, email or id comes back.
+    if (action === "reading_week") {
+      const out = await readingWeek(db(), staff, body.campusId, await campusList());
+      if (out.status) {
+        if (out.status !== 500) console.log("[intake] reading_week refused", JSON.stringify({ role: staff.role, reason: out.code }));
+        return json(event, out.status, { error: out.error, code: out.code });
+      }
       return json(event, 200, out);
     }
 
