@@ -201,6 +201,8 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
   const lineRows = useRef(new Map<string, HTMLLIElement>());
   const completionStatus = useRef<HTMLParagraphElement>(null);
   const focusAfterClose = useRef<string[] | null>(null);
+  const weekNotices = useRef(new Map<string, HTMLSpanElement>());
+  const focusWeekAfterClose = useRef<string | null>(null);
   const [loading, setLoading] = useState(allowed);
   const [loadFailed, setLoadFailed] = useState(false);
   const [decisionError, setDecisionError] = useState('');
@@ -222,6 +224,8 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
     const index = lines.findIndex(line => line.id === id);
     if (index !== -1) {
       focusAfterClose.current = [...lines.slice(index + 1), ...lines.slice(0, index)].map(line => line.id);
+    } else {
+      focusWeekAfterClose.current = id;
     }
     setData(current => patchWeek(current));
     setLinesData(current => current && current.lines.some(line => line.id === id) ? {
@@ -232,12 +236,16 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
   });
 
   useLayoutEffect(() => {
+    if (focusWeekAfterClose.current) {
+      weekNotices.current.get(focusWeekAfterClose.current)?.focus();
+      focusWeekAfterClose.current = null;
+    }
     if (!focusAfterClose.current) return;
     const next = focusAfterClose.current.filter(id => !unavailableIds.current.has(id))
       .map(id => lineRows.current.get(id)?.querySelector('h3')).find(Boolean);
     (next ?? completionStatus.current)?.focus();
     focusAfterClose.current = null;
-  }, [linesData]);
+  }, [data, linesData]);
 
   const receiveLines = (result: PrayerLines | null) => {
     setLinesData(current => result ? {
@@ -370,7 +378,10 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
   const activeLines = linesData?.lines.filter(line => !flow.states[line.id]?.unavailable) ?? [];
   const activeCount = activeLines.length;
   const hasHeldPriority = allowed && (hasHeld || loadFailed);
-  const hasNeedsYouMain = allowed && !loading && !loadFailed && !hasHeld && activeCount > 0;
+  const hasNeedsYouMain = allowed && !hasHeldPriority && (linesLoadFailed || (!loading && activeCount > 0));
+  const hasLinesRetryMain = hasNeedsYouMain && linesLoadFailed;
+  const noHeldWaiting = text(activeCount === 1 ? 'none_held_needs_one' : 'none_held_needs_more')
+    .replace('{n}', String(activeCount));
   // Set the corner draft's priority before paint, including when a line closes.
   useLayoutEffect(() => {
     onHeldChange?.(hasHeldPriority);
@@ -381,7 +392,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
     {allowed && (held || loadFailed || unavailableError || decisionNotice) && (
       <section style={cardStyle} aria-labelledby={held ? 'prayer-care-held-title' : undefined} aria-label={held ? undefined : text('held')}>
         <p role="status" style={{ ...lineStyle, margin: decisionNotice ? '12px 0' : 0 }}>
-          {decisionNotice && `${text(decisionNotice)}${held ? ` ${text('next_request')}` : data ? ` ${text('none_waiting')}` : ''}`}
+          {decisionNotice && `${text(decisionNotice)}${held ? ` ${text('next_request')}` : data ? ` ${activeCount > 0 ? noHeldWaiting : text('none_waiting')}` : ''}`}
         </p>
         {decisionNotice && loading && !loadFailed && <p role="status" style={lineStyle}>{text('loading')}</p>}
         {loadFailed && <div style={{ display: 'grid', gap: 12, padding: '12px 0' }}>
@@ -397,7 +408,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
             </p>
           </div>
           {!loadFailed && <p role="status" style={{ ...lineStyle, margin: 0 }}>
-            {text(loading ? 'loading' : held ? 'next_request' : 'nothing_else_waiting')}
+            {loading ? text('loading') : held ? text('next_request') : activeCount > 0 ? noHeldWaiting : text('nothing_else_waiting')}
           </p>}
         </div>}
         {held && <>
@@ -426,7 +437,8 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
       {linesLoading && <p role="status" style={lineStyle}>{text('loading')}</p>}
       {linesLoadFailed && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
         <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text('lines_load_failed')}</p>
-        <button type="button" style={secondaryStyle} aria-disabled={linesLoading}
+        <button type="button" className={hasLinesRetryMain ? 'dw-next dw-campus-main font-semibold' : 'font-semibold'}
+          style={hasLinesRetryMain ? mainStyle : secondaryStyle} aria-disabled={linesLoading}
           onClick={() => void reloadLines()}>{text('retry')}</button>
       </div>}
     </div>}
@@ -455,7 +467,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
                 </h3>
                 <blockquote style={quoteStyle}>“{line.text}”</blockquote>
                 <PrayerActions id={line.id} name={line.firstName} canWrite={line.canWrite}
-                  main={line.id === activeLines[0]?.id && hasNeedsYouMain} allowPrayed flow={flow} text={text} />
+                  main={line.id === activeLines[0]?.id && hasNeedsYouMain && !linesLoadFailed} allowPrayed flow={flow} text={text} />
               </li>;
             })}
           </ul>
@@ -488,7 +500,10 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
                   {row.status === 'private' && <span style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: 15 }}>{text('kept_private')}</span>}
                   <blockquote style={quoteStyle}>“{row.text}”</blockquote>
                   <p style={quietStyle}>{text('prayed').replace('{n}', String(row.prayed))}</p>
-                  {row.done ? <span style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: 15 }}>
+                  {row.done ? <span ref={node => {
+                    if (node) weekNotices.current.set(row.id, node);
+                    else weekNotices.current.delete(row.id);
+                  }} tabIndex={-1} role="status" style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: 15 }}>
                     {text(row.done === 'wrote' ? 'written_to' : 'prayed_for')}
                   </span> : !row.anonymous && row.firstName && row.canWrite && <PrayerActions
                     id={row.id} name={row.firstName} canWrite flow={flow} text={text} writeKey="write" />}
