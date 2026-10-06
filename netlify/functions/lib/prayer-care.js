@@ -165,7 +165,7 @@ function prayerScope(staff, campuses) {
     if (campusConfirmed(staff) && staff.campusId && isCampusId(staff.campusId, campuses)) {
       return { campusId: staff.campusId };
     }
-    return { error: "Your campus has not been confirmed yet. Ask Ashley to confirm it.", status: 403, code: "campus" };
+    return { error: "Your campus is not confirmed yet. An admin confirms it in People.", status: 403, code: "campus" };
   }
   return { error: "Prayer requests are for campus pastors, hub and admin staff.", status: 403, code: "role" };
 }
