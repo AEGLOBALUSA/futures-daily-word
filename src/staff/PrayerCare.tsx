@@ -111,11 +111,17 @@ export function PrayerCare({ staff, children, onHeldChange }: {
   useEffect(() => { onHeldChange?.(hasHeld); }, [hasHeld, onHeldChange]);
 
   return <>
-    {allowed && <p role="status" style={{ ...lineStyle, maxWidth: 680, margin: decisionNotice ? '12px 0' : 0 }}>
-      {decisionNotice && `${text(decisionNotice)}${held ? ` ${text('next_request')}` : data ? ` ${text('none_waiting')}` : ''}`}
-    </p>}
-    {allowed && (held || unavailableError) && (
+    {allowed && (held || unavailableError || decisionNotice) && (
       <section style={cardStyle} aria-labelledby={held ? 'prayer-care-held-title' : undefined} aria-label={held ? undefined : text('held')}>
+        <p role="status" style={{ ...lineStyle, margin: decisionNotice ? '12px 0' : 0 }}>
+          {decisionNotice && `${text(decisionNotice)}${held ? ` ${text('next_request')}` : data ? ` ${text('none_waiting')}` : ''}`}
+        </p>
+        {decisionNotice && (loading ? <p role="status" style={lineStyle}>{text('loading')}</p> : loadFailed && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+            <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text('load_failed')}</p>
+            <button type="button" style={secondaryStyle} onClick={() => void retry()}>{text('retry')}</button>
+          </div>
+        ))}
         {unavailableError && <div style={{ display: 'grid', gap: 10, padding: '12px 0' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
             <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>
@@ -150,7 +156,7 @@ export function PrayerCare({ staff, children, onHeldChange }: {
       </section>
     )}
     {children}
-    {allowed && (loading || (loadFailed && !unavailableError) || data) && (
+    {allowed && (loading || (loadFailed && !unavailableError && !decisionNotice) || data) && (
       <section style={cardStyle} aria-labelledby="prayer-care-week-title">
         <h2 id="prayer-care-week-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>{text('week')}</h2>
         {loading ? <p role="status" style={quietStyle}>{text('loading')}</p> : loadFailed ? (
