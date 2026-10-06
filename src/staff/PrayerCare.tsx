@@ -24,10 +24,17 @@ const textButtonStyle: CSSProperties = {
   ...secondaryStyle, border: 'none', background: 'transparent', textDecoration: 'underline',
 };
 type LineAction = 'write' | PrayerDone;
-type LineState = { asked?: boolean; busy?: LineAction; error?: LineAction };
+type UnavailableKey = 'line_another_campus' | 'request_gone';
+type LineState = {
+  asked?: boolean; busy?: LineAction | 'copy'; error?: LineAction;
+  href?: string; copy?: 'copied' | 'failed'; unavailable?: UnavailableKey;
+};
 
 /** Both appearances of a request share its confirmation, busy state and errors. */
-function usePrayerActions(onClosed: (id: string, kind: PrayerDone) => void) {
+function usePrayerActions(
+  onClosed: (id: string, kind: PrayerDone) => void,
+  onUnavailable: (id: string, reason: UnavailableKey) => void,
+) {
   const [states, setStates] = useState<Record<string, LineState>>({});
   const pending = useRef(new Set<string>());
   const opened = useRef(new Set<string>());
@@ -48,23 +55,47 @@ function usePrayerActions(onClosed: (id: string, kind: PrayerDone) => void) {
   }, []);
 
   const act = async (id: string, action: LineAction) => {
-    if (pending.current.has(id)) return;
+    if (pending.current.has(id) || states[id]?.unavailable) return;
     pending.current.add(id);
     patch(id, { busy: action, error: undefined });
     try {
       if (action === 'write') {
         const href = await careApi.prayerWriteLink(id);
-        window.location.href = href;
         opened.current.add(id);
-        patch(id, { asked: true });
+        patch(id, { asked: true, href, copy: undefined });
+        window.location.href = href;
       } else {
         const result = await careApi.closePrayerLine(id, action);
         opened.current.delete(id);
-        patch(id, { asked: false });
+        patch(id, { asked: false, href: undefined, copy: undefined });
         onClosed(id, result.kind);
       }
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status === 401) return; // The app opens sign-in.
+      if (status === 403 || status === 404) {
+        const unavailable = status === 403 ? 'line_another_campus' : 'request_gone';
+        opened.current.delete(id);
+        patch(id, { unavailable, asked: false, href: undefined, copy: undefined });
+        onUnavailable(id, unavailable);
+      } else {
+        patch(id, { error: action });
+      }
+    } finally {
+      pending.current.delete(id);
+      patch(id, { busy: undefined });
+    }
+  };
+  const copyAddress = async (id: string) => {
+    const href = states[id]?.href;
+    if (!href || !states[id]?.asked || pending.current.has(id)) return;
+    pending.current.add(id);
+    patch(id, { busy: 'copy', copy: undefined });
+    try {
+      await navigator.clipboard.writeText(decodeURIComponent(href.slice('mailto:'.length)));
+      patch(id, { copy: 'copied' });
     } catch {
-      patch(id, { error: action });
+      patch(id, { copy: 'failed' });
     } finally {
       pending.current.delete(id);
       patch(id, { busy: undefined });
@@ -73,9 +104,9 @@ function usePrayerActions(onClosed: (id: string, kind: PrayerDone) => void) {
   const notYet = (id: string) => {
     if (pending.current.has(id)) return;
     opened.current.delete(id);
-    patch(id, { asked: false, error: undefined });
+    patch(id, { asked: false, error: undefined, href: undefined, copy: undefined });
   };
-  return { states, act, notYet };
+  return { states, act, copyAddress, notYet };
 }
 
 function PrayerActions({ id, name, canWrite, main = false, allowPrayed = false, flow, text, writeKey = 'line_write' }: {
@@ -87,6 +118,9 @@ function PrayerActions({ id, name, canWrite, main = false, allowPrayed = false, 
   const asked = writable && state.asked;
   const primaryAction: LineAction = asked ? 'wrote' : writable ? 'write' : 'prayed';
   const words = (key: string) => text(key).replace('{name}', () => name ?? '');
+  if (state.unavailable) return <p role="alert" style={{ ...lineStyle, color: 'var(--dw-error)' }}>
+    {text(state.unavailable)}
+  </p>;
   const feedback = (action: LineAction) => <>
     {state.busy === action && <p role="status" style={quietStyle}>{text(action === 'write' ? 'opening_email' : 'saving')}</p>}
     {state.error === action && <p role="alert" style={{ ...lineStyle, color: 'var(--dw-error)' }}>
@@ -106,8 +140,16 @@ function PrayerActions({ id, name, canWrite, main = false, allowPrayed = false, 
       </button>
       {feedback(primaryAction)}
     </div>
-    {asked ? <button type="button" style={textButtonStyle} aria-disabled={!!state.busy}
-      onClick={() => flow.notYet(id)}>{text('not_yet')}</button> : allowPrayed && writable && <div>
+    {asked ? <>
+      <div>
+        <button type="button" style={textButtonStyle} aria-disabled={!!state.busy}
+          onClick={() => void flow.copyAddress(id)}>{words('copy_address')}</button>
+        {state.copy === 'copied' && <p role="status" style={lineStyle}>{text('address_copied')}</p>}
+        {state.copy === 'failed' && <p role="alert" style={{ ...lineStyle, color: 'var(--dw-error)' }}>{text('copy_failed')}</p>}
+      </div>
+      <button type="button" style={textButtonStyle} aria-disabled={!!state.busy}
+        onClick={() => flow.notYet(id)}>{text('not_yet')}</button>
+    </> : allowPrayed && writable && <div>
       <button type="button" style={textButtonStyle} aria-disabled={!!state.busy}
         onClick={() => void flow.act(id, 'prayed')}>{text('i_prayed')}</button>
       {feedback('prayed')}
@@ -137,7 +179,15 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
   const [muteError, setMuteError] = useState(false);
   const mutePending = useRef(false);
   const firstLinesLoad = useRef<Promise<PrayerLines | null> | null>(null);
+  const linesLoadVersion = useRef(0);
+  const linesPending = useRef(false);
+  const [linesLoading, setLinesLoading] = useState(allowed);
+  const [linesLoadFailed, setLinesLoadFailed] = useState(false);
+  const [lineUnavailable, setLineUnavailable] = useState<UnavailableKey | ''>('');
   const closedKinds = useRef(new Map<string, PrayerDone>());
+  const lineRows = useRef(new Map<string, HTMLLIElement>());
+  const completionStatus = useRef<HTMLParagraphElement>(null);
+  const focusAfterClose = useRef<string[] | null>(null);
   const [loading, setLoading] = useState(allowed);
   const [loadFailed, setLoadFailed] = useState(false);
   const [decisionError, setDecisionError] = useState('');
@@ -155,24 +205,68 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
   } : null;
   const flow = usePrayerActions((id, kind) => {
     closedKinds.current.set(id, kind);
+    const lines = linesData?.lines ?? [];
+    const index = lines.findIndex(line => line.id === id);
+    if (index !== -1) {
+      focusAfterClose.current = [...lines.slice(index + 1), ...lines.slice(0, index)].map(line => line.id);
+    }
     setData(current => patchWeek(current));
     setLinesData(current => current && current.lines.some(line => line.id === id) ? {
       ...current, lines: current.lines.filter(line => line.id !== id), completed: true,
     } : current);
+  }, (id, reason) => {
+    unavailableIds.current.add(id);
+    setLineUnavailable(reason);
+    setLinesData(current => current ? { ...current, lines: current.lines.filter(line => line.id !== id) } : null);
   });
+
+  useLayoutEffect(() => {
+    if (!focusAfterClose.current) return;
+    const next = focusAfterClose.current.map(id => lineRows.current.get(id)?.querySelector('button')).find(Boolean);
+    (next ?? completionStatus.current)?.focus();
+    focusAfterClose.current = null;
+  }, [linesData]);
+
+  const receiveLines = (result: PrayerLines | null) => {
+    setLinesData(current => result ? {
+      ...result, lines: result.lines.filter(line => !closedKinds.current.has(line.id) && !unavailableIds.current.has(line.id)),
+      completed: current?.completed || result.lines.some(line => closedKinds.current.has(line.id)),
+    } : null);
+    setLinesLoadFailed(false);
+  };
 
   useEffect(() => {
     if (!allowed) return;
     let active = true;
+    const version = ++linesLoadVersion.current;
     firstLinesLoad.current ??= careApi.loadPrayerLines();
     void firstLinesLoad.current.then(result => {
-      if (active) setLinesData(result ? {
-        ...result, lines: result.lines.filter(line => !closedKinds.current.has(line.id)),
-        completed: result.lines.some(line => closedKinds.current.has(line.id)),
-      } : null);
-    }, () => { if (active) setLinesData(null); });
+      if (active && version === linesLoadVersion.current) receiveLines(result);
+    }, () => {
+      if (active && version === linesLoadVersion.current) setLinesLoadFailed(true);
+    }).finally(() => {
+      if (active && version === linesLoadVersion.current) setLinesLoading(false);
+    });
     return () => { active = false; };
   }, [allowed]);
+
+  const reloadLines = async (afterDecision = false) => {
+    if (linesPending.current && !afterDecision) return;
+    linesPending.current = true;
+    const version = ++linesLoadVersion.current;
+    setLinesLoading(true);
+    try {
+      const result = await careApi.loadPrayerLines();
+      if (version === linesLoadVersion.current) receiveLines(result);
+    } catch {
+      if (version === linesLoadVersion.current) setLinesLoadFailed(true);
+    } finally {
+      if (version === linesLoadVersion.current) {
+        linesPending.current = false;
+        setLinesLoading(false);
+      }
+    }
+  };
 
   const toggleWaitingEmail = async () => {
     if (!linesData || mutePending.current) return;
@@ -232,7 +326,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
     setDecisionNotice('');
     try {
       const result = await careApi.decidePrayer(id, decision);
-      await reload();
+      await Promise.all([reload(), reloadLines(true)]);
       setDecisionNotice(`decision_${result}`);
     } catch (err) {
       const status = (err as { status?: number })?.status;
@@ -257,7 +351,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
   ).replace('{n}', String(n));
   const held = allowed ? data?.held[0] : undefined;
   const hasHeld = !!held;
-  const hasNeedsYouMain = allowed && !hasHeld && !!linesData?.lines.length;
+  const hasNeedsYouMain = allowed && !loading && !hasHeld && !!linesData?.lines.length;
   // Set the corner draft's priority before paint, including when a line closes.
   useLayoutEffect(() => {
     onHeldChange?.(hasHeld);
@@ -309,10 +403,19 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
         </>}
       </section>
     )}
+    {allowed && (linesLoadFailed || (linesLoading && !linesData) || lineUnavailable) && <div style={cardStyle}>
+      {lineUnavailable && <p role="alert" style={{ ...lineStyle, color: 'var(--dw-error)' }}>{text(lineUnavailable)}</p>}
+      {linesLoading && <p role="status" style={lineStyle}>{text('loading')}</p>}
+      {linesLoadFailed && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+        <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text('lines_load_failed')}</p>
+        <button type="button" style={secondaryStyle} aria-disabled={linesLoading}
+          onClick={() => void reloadLines()}>{text('retry')}</button>
+      </div>}
+    </div>}
     {allowed && linesData && (linesData.lines.length > 0 || linesData.completed) && (
       <section style={cardStyle} aria-labelledby={linesData.lines.length ? 'prayer-care-needs-title' : undefined}
         aria-label={linesData.lines.length ? undefined : text('needs_you').replace('{n}', '0')}>
-        <p role="status" style={{ ...lineStyle, margin: linesData.completed ? '0 0 12px' : 0 }}>
+        <p ref={completionStatus} tabIndex={-1} role="status" style={{ ...lineStyle, margin: linesData.completed ? '0 0 12px' : 0 }}>
           {linesData.completed && text(linesData.lines.length === 0 ? 'done_none' : linesData.lines.length === 1 ? 'done_one' : 'done_more')
             .replace('{n}', String(linesData.lines.length))}
         </p>
@@ -325,7 +428,10 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
               const who = line.firstName !== null ? text('named_ask').replace('{name}', () => line.firstName!)
                 : line.campusName ? text('campus_ask').replace('{campus}', () => line.campusName) : text('anonymous_ask');
               const waiting = waitingWords(line.createdAt, text);
-              return <li key={line.id} style={{ borderBottom: '1px solid var(--dw-border)', padding: '16px 0', minWidth: 0 }}>
+              return <li key={line.id} ref={node => {
+                if (node) lineRows.current.set(line.id, node);
+                else lineRows.current.delete(line.id);
+              }} style={{ borderBottom: '1px solid var(--dw-border)', padding: '16px 0', minWidth: 0 }}>
                 <h3 className="font-bold" aria-label={`${who}, ${waiting}`} style={{ ...lineStyle, marginTop: 0 }}>
                   {who} · {waiting}
                 </h3>

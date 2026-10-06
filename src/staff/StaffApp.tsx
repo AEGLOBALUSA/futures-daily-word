@@ -607,7 +607,7 @@ function StaffHome({
         </button>
       ))}
       </PrayerCare>
-      {(hasHeldPrayer || hasNeedsYouMain) && <NextPill />}
+      <NextPill />
       {staff.isAdmin && (
         <>
           <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: 'var(--dw-text-secondary)' }}>
