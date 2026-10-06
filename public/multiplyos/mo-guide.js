@@ -97,7 +97,7 @@
     var opened = false, opener = null, openerSlug = null, detailSlug = null;
     var trail = [], expanded = new Set(), overflow = [], inertHost = null;
     var pushed = false, entryUrl = null, entryLength = 0, closing = false;
-    var pendingHref = null, navigationTimer = null;
+    var lockObserver = null;
     var phone = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
     var css = `
 .mo-guide-root {
@@ -110,7 +110,7 @@
   --mo-guide-fill: var(--mos-primary, var(--mo-btn-fill, #0B1320));
   --mo-guide-on-fill: var(--mos-on-primary, var(--mo-btn-ink, #fff));
   --mo-guide-button-edge: transparent;
-  position: fixed; inset: 0; z-index: 2147482900; isolation: isolate;
+  position: fixed; inset: 0; z-index: 2147482900; isolation: isolate; pointer-events: auto;
   color: var(--mo-guide-text); font-family: inherit; font-size: 1rem; line-height: 1.55;
 }
 .mo-guide-root[hidden], .mo-guide-root [hidden] { display: none !important; }
@@ -118,10 +118,11 @@
 .mo-guide-root :where(p, ul, ol, li, button, a, span, strong, h1, h2, h3) {
   font-family: inherit; font-size: inherit; letter-spacing: normal; text-transform: none;
 }
-.mo-guide-dim { position: absolute; inset: 0; background: rgba(11,19,32,.32);
+.mo-guide-dim { position: absolute; inset: 0; pointer-events: auto; background: rgba(11,19,32,.32);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .mo-guide-panel {
   position: absolute; inset: 0 0 0 auto; width: min(440px, 100vw); height: 100vh; height: 100dvh;
+  pointer-events: auto;
   display: flex; flex-direction: column; min-width: 0; overflow: hidden;
   background: var(--mo-guide-ground); color: var(--mo-guide-text); border-left: 1px solid var(--mo-guide-line);
   box-shadow: 0 12px 32px rgb(0 0 0 / .14);
@@ -261,10 +262,8 @@
         listen(node, 'click', function (event) {
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || (event.button !== undefined && event.button !== 0)) return;
           event.preventDefault();
-          if (pendingHref || lockAbove()) return;
-          pendingHref = valid;
-          navigationTimer = setTimeout(finishNavigation, 400);
-          close();
+          if (lockAbove()) return;
+          navigate(valid);
         });
       }
       return node;
@@ -432,6 +431,7 @@
     }
     function finishClose() {
       if (!opened) return;
+      if (lockObserver) { lockObserver.disconnect(); lockObserver = null; }
       opened = false; closing = false; root.hidden = true;
       overflow.forEach(function (entry) {
         // Restore only if no other modal has taken ownership of these styles.
@@ -449,18 +449,25 @@
       window.dispatchEvent(new Event('mo-guide:close'));
       if (opener && opener.isConnected && !lockAbove()) opener.focus({ preventScroll: true });
     }
-    function finishNavigation() {
-      if (!pendingHref) return;
-      var href = pendingHref; pendingHref = null;
-      clearTimeout(navigationTimer); navigationTimer = null;
-      pushed = false; finishClose(); location.assign(href);
+    function guideOnTop() {
+      return pushed && location.href === entryUrl && history.length === entryLength;
+    }
+    function navigate(href) {
+      var replace = guideOnTop();
+      pushed = false; finishClose();
+      if (replace) location.replace(href); else location.assign(href);
     }
     function close() {
       if (!opened || closing) return;
       // Never discard a newer host entry, and never add a marker to a router's state.
-      var onTop = pushed && location.href === entryUrl && history.length === entryLength;
+      var onTop = guideOnTop();
       if (onTop) { closing = true; history.back(); }
-      else { pushed = false; finishClose(); finishNavigation(); }
+      else { pushed = false; finishClose(); }
+    }
+    function closeForLock() {
+      if (!opened) return;
+      if (guideOnTop()) { pushed = false; history.back(); }
+      finishClose();
     }
     function open(slug, source) {
       if (!content || !document.body || lockAbove() || closing) return;
@@ -474,13 +481,21 @@
         if (modal && modal !== panel && modal !== dialog && !modal.hasAttribute('inert')) {
           modal.setAttribute('inert', ''); inertHost = modal;
         }
-        history.pushState(history.state, '', location.href);
-        pushed = true; entryUrl = location.href; entryLength = history.length;
+        var hostOwnsBack = modal && modal !== panel && modal !== dialog && inertHost === modal;
+        if (hostOwnsBack) pushed = false;
+        else {
+          history.pushState(history.state, '', location.href);
+          pushed = true; entryUrl = location.href; entryLength = history.length;
+        }
         lockScroll();
       }
       opened = true; openerSlug = slug || null; detailSlug = null; trail = [];
       expanded = new Set(matchPart(content.parts, location.pathname, openerSlug) ? [] : [0]);
       render(); root.hidden = false; body.scrollTop = 0;
+      if (firstOpen && typeof MutationObserver !== 'undefined') {
+        lockObserver = new MutationObserver(function () { if (opened && lockAbove()) closeForLock(); });
+        lockObserver.observe(document.documentElement, { attributes: true, childList: true, subtree: true });
+      }
       if (firstOpen) window.dispatchEvent(new Event('mo-guide:open'));
       if (!lockAbove()) panel.focus({ preventScroll: true });
     }
@@ -507,7 +522,6 @@
     listen(window, 'popstate', function () {
       pushed = false;
       if (opened) finishClose();
-      finishNavigation();
     });
     if (phone) listen(phone, 'change', placeAction);
     document.addEventListener('click', protect(function (event) {
@@ -516,7 +530,7 @@
       if (!target || !content) return;
       event.preventDefault(); open(target.getAttribute('data-mo-guide-open'), target);
     }), true);
-    listen(document, 'keydown', function (event) {
+    document.addEventListener('keydown', protect(function (event) {
       if (!opened || lockAbove()) return;
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
       if (event.key !== 'Tab') return;
@@ -536,7 +550,7 @@
       } else if (event.shiftKey ? index === 0 : index === nodes.length - 1) {
         event.preventDefault(); nodes[event.shiftKey ? nodes.length - 1 : 0].focus();
       }
-    });
+    }), true);
     listen(document, 'focusin', function (event) {
       if (opened && !panel.contains(event.target) && !lockAbove()) panel.focus({ preventScroll: true });
     });
