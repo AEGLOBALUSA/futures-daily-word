@@ -212,6 +212,32 @@ describe('fail closed (acceptance 4: with every kind off it writes nothing)', ()
     expect(prayer().escalated_on).toBeNull();
   });
 
+  it('shadow does not mail the owner again the next day about the same open request', async () => {
+    setup({ waiting: 'shadow', line: 'shadow', shadow: ['ae@futures.global'], created, open: [] });
+    await run(TUE_10);
+    for (const r of fake.tables.dw_prompt_log) r.created_at ??= TUE_10.toISOString();
+    expect(await run(new Date(TUE_10.getTime() + 24 * H))).toMatchObject({ sent: 0 });
+    expect(sent).toHaveLength(1);
+  });
+
+  it('a live email planned from a shadow line (only the owner sees it) never marks the request', async () => {
+    setup({ waiting: 'live', line: 'shadow', shadow: ['ae@futures.global'], created, open: ['futures-au'] });
+    expect(await run(TUE_10)).toMatchObject({ sent: 1, escalated: 0 });
+    expect(sent.map((m) => m.to[0])).toEqual(['ae@futures.global']);
+    expect(prayer().escalated_on).toBeNull();
+  });
+
+  it('a failed send does not count toward the 20 hours', async () => {
+    const tue20 = new Date('2026-10-06T09:30:00Z'); // 20:00 in Adelaide
+    setup({ created });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
+    expect(await run(tue20)).toMatchObject({ sent: 0, skipped: 1 });
+    for (const r of fake.tables.dw_prompt_log) r.created_at ??= tue20.toISOString();
+    vi.stubGlobal('fetch', vi.fn(async (_url, init) => { sent.push(JSON.parse(init.body)); return { ok: true, status: 200, json: async () => ({ id: 'm' }) }; }));
+    // 07:00 the next morning: a new local date, 11 hours later. He is mailed.
+    expect(await run(new Date('2026-10-06T20:30:00Z'))).toMatchObject({ sent: 1 });
+  });
+
   it('a log read that fails sends nothing', async () => {
     setup({ created });
     fake.failOn('dw_prompt_log', 'select');

@@ -15,13 +15,15 @@
  *   dw_prayer_waiting off (the seeded default) → the switch is the only read;
  *   dw_prayer_pastor_line off → no line exists, so nothing waits;
  *   then the gate, campuses, roster and open requests; planWaiting (pure);
- *   no one mailed in the last 20 hours (dw_prompt_log); raiseStaffEmail per
- *   person (switch, nation gate, lint, claim prayer_waiting:<email>:<local
- *   date>, send, delivered); escalated_on only after a LIVE send the provider
- *   accepted (a shadow send never marks).
+ *   no one delivered one in the last 20 hours (dw_prompt_log); raiseStaffEmail
+ *   per person (switch, nation gate, lint, claim prayer_waiting:<email>:<local
+ *   date>, send, delivered); escalated_on only after a send the provider
+ *   accepted with BOTH kinds live (a shadow test never marks; in shadow the
+ *   claim is once per person per set of requests, not per day).
  *
  * Tests: tests/functions/prayer-waiting.test.js, never in this folder.
  */
+const crypto = require("crypto");
 const { switchOf, raiseStaffEmail, regionGate } = require("./prompts");
 const { loadCampuses } = require("./campuses");
 const { LINE_KIND, WAITING_KIND, WAITING_MS, planWaiting, waitingEmail } = require("./prayer-lines");
@@ -91,6 +93,7 @@ async function runPrayerWaiting(db, { now = new Date(), env = process.env, link 
       .from("dw_prompt_log")
       .select("recipient")
       .eq("kind", WAITING_KIND)
+      .eq("delivered", true)
       .gte("created_at", new Date(now.getTime() - PER_PERSON_MS).toISOString());
     if (recentErr || !Array.isArray(recent)) {
       console.error(`[prayer-waiting] log read failed: ${(recentErr && recentErr.message) || "no rows"}`);
@@ -105,9 +108,15 @@ async function runPrayerWaiting(db, { now = new Date(), env = process.env, link 
         continue;
       }
       const { subject, text } = waitingEmail(item.campusName, link, item.lang);
+      // Live: once per person per campus-local day. Shadow (Ashley's test,
+      // which never marks a request): once per person per set of requests,
+      // so an open test request does not mail him again every day.
+      const dedupeKey = waiting.mode === "live"
+        ? `prayer_waiting:${item.recipient}:${item.localDate}`
+        : `prayer_waiting:shadow:${item.recipient}:${crypto.createHash("sha256").update([...item.ids].sort().join(",")).digest("hex")}`;
       const out = await raiseStaffEmail(db, {
         kind: WAITING_KIND,
-        dedupeKey: `prayer_waiting:${item.recipient}:${item.localDate}`,
+        dedupeKey,
         recipient: item.recipient,
         writtenBy: "template",
         title: subject,
@@ -124,9 +133,10 @@ async function runPrayerWaiting(db, { now = new Date(), env = process.env, link 
       }
       summary.sent += 1;
       mailedLately.add(item.recipient);
-      // A shadow send is Ashley's test: it never marks a request, so the
-      // pastor still gets his one email after switch-on.
-      if (waiting.mode !== "live") continue;
+      // Only a send with both kinds live marks a request. A shadow send (or a
+      // live email planned from a shadow line, which only the shadow list
+      // sees) is Ashley's test: it never spends the pastor's one email.
+      if (waiting.mode !== "live" || lineSwitch.mode !== "live") continue;
       const { data: marked, error: markErr } = await db
         .from("prayers")
         .update({ escalated_on: item.localDate })
