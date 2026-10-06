@@ -13,18 +13,22 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const prompts = require('../../netlify/functions/lib/prompts.js');
-const { modeOf, switchOf, claim, deliverable, sendStaffEmail, lintStaffText, markDelivered, raiseStaffEmail } = prompts;
+const { modeOf, switchOf, claim, deliverable, sendStaffEmail, lintStaffText, markDelivered, raiseStaffEmail, regionGate, congregationOpen, nationOpen } = prompts;
 
 const OWNER = 'owner@example.com';
 const STAFF = 'staff@example.com';
 
 /** A tiny stand-in for the two tables, with dw_prompt_log.dedupe_key unique. */
-function fakeDb({ kinds = {}, throwOn = null, errorOn = null } = {}) {
+function fakeDb({ kinds = {}, throwOn = null, errorOn = null, gate = [] } = {}) {
   const log = [];
   return {
     log,
     from(table) {
       if (throwOn === table) throw new Error('connection refused');
+      // B09-13: the nation gate, { region, notices_on_at } rows.
+      if (table === 'dw_region_gate') {
+        return { select: async () => (errorOn === table ? { data: null, error: { message: 'boom' } } : { data: gate, error: null }) };
+      }
       if (table === 'dw_prompt_kind') {
         let kind;
         const q = {
@@ -146,8 +150,14 @@ describe('claim', () => {
 
 describe('deliverable', () => {
   const list = [OWNER];
-  it('live, recipient on the list: yes', () => expect(deliverable('live', OWNER, list)).toBe(true));
-  it('live, recipient not on the list: yes', () => expect(deliverable('live', STAFF, list)).toBe(true));
+  it('live in an open nation, recipient on the list: yes', () => expect(deliverable('live', OWNER, list, true)).toBe(true));
+  it('live in an open nation, recipient not on the list: yes', () => expect(deliverable('live', STAFF, list, true)).toBe(true));
+  it('live with the nation closed, or not said: no (B09-13 step 3b)', () => {
+    expect(deliverable('live', STAFF, list, false)).toBe(false);
+    expect(deliverable('live', STAFF, list)).toBe(false);
+    expect(deliverable('live', STAFF, list, 'yes')).toBe(false);
+  });
+  it('shadow ignores the nation gate', () => expect(deliverable('shadow', OWNER, list, false)).toBe(true));
   it('shadow, recipient on the list: yes', () => expect(deliverable('shadow', OWNER, list)).toBe(true));
   it('shadow, recipient not on the list: no', () => expect(deliverable('shadow', STAFF, list)).toBe(false));
   it('off, recipient on the list: no', () => expect(deliverable('off', OWNER, list)).toBe(false));
@@ -250,6 +260,7 @@ describe('raiseStaffEmail (the one helper later builds call)', () => {
   let fetchMock;
   const RAISE = { ...CLAIM, subject: 'A prayer post is waiting', text: 'Alpharetta: 1 post waiting.' };
   delete RAISE.mode;
+  const OPEN_ALL = ['futures-au', 'futures-us', 'futuros-us'].map((region) => ({ region, notices_on_at: '2026-09-01T00:00:00Z' }));
 
   beforeEach(() => {
     process.env.RESEND_API_KEY = 'test-key';
@@ -294,23 +305,87 @@ describe('raiseStaffEmail (the one helper later builds call)', () => {
   });
 
   it('unfilled words are refused before the key is spent', async () => {
-    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } } });
-    expect(await raiseStaffEmail(db, { ...RAISE, text: 'Campus {campus}' })).toEqual({ sent: false, reason: 'lint' });
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } }, gate: OPEN_ALL });
+    expect(await raiseStaffEmail(db, { ...RAISE, congregation: 'futures-us', text: 'Campus {campus}' })).toEqual({ sent: false, reason: 'lint' });
     expect(db.log).toHaveLength(0);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('a failed send leaves the row delivered = false', async () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }));
-    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } } });
-    expect(await raiseStaffEmail(db, RAISE)).toEqual({ sent: false, reason: 'provider' });
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } }, gate: OPEN_ALL });
+    expect(await raiseStaffEmail(db, { ...RAISE, congregation: 'futures-us' })).toEqual({ sent: false, reason: 'provider' });
     expect(db.log).toHaveLength(1);
     expect(db.log[0].delivered).toBe(false);
+  });
+
+  // B09-13 step 3b: live sends only in a nation Ashley has switched on.
+  it('live with the nation closed sends nothing and logs nothing', async () => {
+    for (const gate of [[], [{ region: 'futures-us', notices_on_at: null }], [{ region: 'futures-us', notices_on_at: '2099-01-01T00:00:00Z' }]]) {
+      const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } }, gate });
+      expect(await raiseStaffEmail(db, { ...RAISE, congregation: 'futures-us' })).toEqual({ sent: false, reason: 'nation_closed' });
+      expect(db.log).toHaveLength(0);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('live naming no nation, a campus with no congregation, or an unreadable gate sends nothing', async () => {
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } }, gate: OPEN_ALL });
+    expect(await raiseStaffEmail(db, RAISE)).toEqual({ sent: false, reason: 'nation_closed' });
+    expect(await raiseStaffEmail(db, { ...RAISE, campusId: 'id-bali' })).toEqual({ sent: false, reason: 'nation_closed' });
+    expect(await raiseStaffEmail(db, { ...RAISE, campusId: 'other' })).toEqual({ sent: false, reason: 'nation_closed' });
+    const broken = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } }, gate: OPEN_ALL, errorOn: 'dw_region_gate' });
+    expect(await raiseStaffEmail(broken, { ...RAISE, congregation: 'futures-us' })).toEqual({ sent: false, reason: 'nation_closed' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('live in an open nation sends, by congregation or by campus', async () => {
+    const db = fakeDb({ kinds: { dw_prayer_held: { mode: 'live' } }, gate: [{ region: 'futures-au', notices_on_at: '2026-09-01T00:00:00Z' }] });
+    expect(await raiseStaffEmail(db, { ...RAISE, campusId: 'au-paradise' })).toEqual({ sent: true, id: 'email_9' });
+    expect(await raiseStaffEmail(db, { ...RAISE, dedupeKey: 'k2', congregation: 'futures-au' })).toEqual({ sent: true, id: 'email_9' });
+    // The USA is not open: Alpharetta stays quiet.
+    expect(await raiseStaffEmail(db, { ...RAISE, dedupeKey: 'k3', campusId: 'us-alpharetta' })).toEqual({ sent: false, reason: 'nation_closed' });
   });
 
   it('markDelivered never throws and refuses an empty key', async () => {
     expect(await markDelivered(fakeDb({ throwOn: 'dw_prompt_log' }), 'k')).toBe(false);
     expect(await markDelivered(fakeDb({ errorOn: 'dw_prompt_log' }), 'k')).toBe(false);
     expect(await markDelivered(fakeDb(), '')).toBe(false);
+  });
+});
+
+describe('the nation gate (B09-13 step 3b)', () => {
+  const NOW = new Date('2026-10-20T00:00:00Z');
+  it('congregationOpen: open only for a known nation whose time has come', () => {
+    const gate = { 'futures-au': '2026-10-19T00:00:00Z', 'futures-us': '2026-10-21T00:00:00Z' };
+    expect(congregationOpen(gate, 'futures-au', NOW)).toBe(true);
+    expect(congregationOpen(gate, 'futures-us', NOW)).toBe(false); // set for tomorrow
+    expect(congregationOpen(gate, 'futuros-us', NOW)).toBe(false);
+    expect(congregationOpen(gate, 'North America', NOW)).toBe(false); // a region is never a gate key
+    expect(congregationOpen(gate, null, NOW)).toBe(false);
+    expect(congregationOpen(null, 'futures-au', NOW)).toBe(false);
+  });
+
+  it('regionGate: only the three nations, only set times; an error is every nation closed', async () => {
+    const db = fakeDb({ gate: [
+      { region: 'futures-au', notices_on_at: '2026-10-19T00:00:00Z' },
+      { region: 'futures-us', notices_on_at: null },
+      { region: 'id-bali', notices_on_at: '2026-10-19T00:00:00Z' },
+      { region: 'futuros-us', notices_on_at: 'not a date' },
+    ] });
+    expect(await regionGate(db)).toEqual({ 'futures-au': '2026-10-19T00:00:00.000Z' });
+    expect(await regionGate(fakeDb({ errorOn: 'dw_region_gate' }))).toEqual({});
+    expect(await regionGate(fakeDb({ throwOn: 'dw_region_gate' }))).toEqual({});
+    expect(await regionGate(null)).toEqual({});
+  });
+
+  it('nationOpen: by the campus congregation, never its region; Futuros stays shut with only the USA open', async () => {
+    const db = fakeDb({ gate: [{ region: 'futures-us', notices_on_at: '2026-10-19T00:00:00Z' }] });
+    expect(await nationOpen(db, 'us-alpharetta', NOW)).toBe(true);
+    expect(await nationOpen(db, 'us-futuros-duluth', NOW)).toBe(false);
+    expect(await nationOpen(db, 'au-paradise', NOW)).toBe(false);
+    expect(await nationOpen(db, 'id-bali', NOW)).toBe(false);
+    expect(await nationOpen(db, '', NOW)).toBe(false);
+    expect(await nationOpen(db, 'no-such-campus', NOW)).toBe(false);
   });
 });

@@ -49,6 +49,9 @@ function reset() {
     staff_roster: [],
     dw_prompt_kind: [],
     dw_prompt_log: [],
+    // B09-13: live sends only in a switched-on nation; these tests stand for
+    // after switch-on unless they say otherwise.
+    dw_region_gate: ['futures-au', 'futures-us', 'futuros-us'].map((region) => ({ region, notices_on_at: '2026-09-01T00:00:00Z' })),
   };
 }
 
@@ -229,10 +232,29 @@ describe('the held email (kind dw_prayer_held)', () => {
     tables.staff_roster = roster().filter((r) => r.role !== 'campus' || r.campus_set_by === 'self');
     await care.notifyHeld(db(), { id: ID.held, campus: 'au-paradise' }, { campuses: CAMPUSES });
     expect(sent.map((s) => s.body.to[0]).sort()).toEqual(['ae@futures.global', 'hub@futures.church']);
+    // B09-13: a post with no campus belongs to no nation, so live never
+    // emails about it (it still waits on /staff for hub and admin).
     sent = [];
     tables.staff_roster = roster();
     await care.notifyHeld(db(), { id: ID.heldOther, campus: '' }, { campuses: CAMPUSES });
-    expect(sent.map((s) => s.body.to[0]).sort()).toEqual(['ae@futures.global', 'hub@futures.church']);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('live with the nation not switched on: nobody hears (B09-13)', async () => {
+    tables.dw_prompt_kind = [{ kind: 'dw_prayer_held', mode: 'live', shadow_recipients: [] }];
+    tables.staff_roster = roster();
+    tables.dw_region_gate = tables.dw_region_gate.map((r) => ({ ...r, notices_on_at: r.region === 'futures-us' ? r.notices_on_at : null }));
+    const out = await care.notifyHeld(db(), { id: ID.held, campus: 'au-paradise' }, { campuses: CAMPUSES });
+    expect(out.sent).toBe(0);
+    expect(tables.dw_prompt_log).toHaveLength(0);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('shadow with no campus: the owner on the shadow list still sees it', async () => {
+    tables.dw_prompt_kind = [{ kind: 'dw_prayer_held', mode: 'shadow', shadow_recipients: ['ae@futures.global'] }];
+    tables.staff_roster = roster();
+    await care.notifyHeld(db(), { id: ID.heldOther, campus: '' }, { campuses: CAMPUSES });
+    expect(sent.map((s) => s.body.to[0])).toEqual(['ae@futures.global']);
     expect(sent[0].body.subject).toBe('A prayer request is waiting for a look');
   });
 

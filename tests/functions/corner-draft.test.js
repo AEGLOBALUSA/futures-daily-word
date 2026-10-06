@@ -74,8 +74,14 @@ function publishedRow(congregation, overrides = {}) {
 const TRACEABLE = 'On Sunday Ps Sam Example preached “Ordinary Faith” from Hebrews 11:1, part of our Built to Last series: “Faith is not a feeling, it is a decision you make on an ordinary Tuesday.”';
 const INVENTED = `${TRACEABLE} Let us all grow deeper in our daily devotion and trust God with everything this season.`;
 
-function jobDb({ mode = 'shadow', list = ['owner@example.com'], note = '', roster, sermons, corner = [] } = {}) {
+// B09-13: live works only in a nation Ashley has switched on. These fixtures
+// stand for "after switch-on" (every nation open) unless a test says otherwise.
+const ALL_NATIONS = ['futures-au', 'futures-us', 'futuros-us'];
+const gateRows = (open) => ALL_NATIONS.map((region) => ({ region, notices_on_at: open.includes(region) ? '2026-09-01T00:00:00Z' : null, note: null }));
+
+function jobDb({ mode = 'shadow', list = ['owner@example.com'], note = '', roster, sermons, corner = [], open = ALL_NATIONS } = {}) {
   return createFakeSupabase({
+    dw_region_gate: gateRows(open),
     dw_prompt_kind: [{ kind: 'dw_corner_draft', mode, shadow_recipients: list, note }],
     dw_prompt_log: [],
     dw_campuses: [],
@@ -423,7 +429,7 @@ beforeAll(() => {
 });
 afterAll(() => { Module._load = realLoad; });
 
-function intakeDb({ mode = 'live', list = [] } = {}) {
+function intakeDb({ mode = 'live', list = [], open = ALL_NATIONS } = {}) {
   const future = new Date(Date.now() + 86400000).toISOString();
   const now = new Date();
   const draft = (campus) => ({
@@ -454,6 +460,7 @@ function intakeDb({ mode = 'live', list = [] } = {}) {
       { token_hash: sha(TOKENS.admin), email: 'ae@futures.global', expires_at: future },
     ],
     dw_campuses: [],
+    dw_region_gate: gateRows(open),
     dw_prompt_kind: [{ kind: 'dw_corner_draft', mode, shadow_recipients: list, note: '' }],
     dw_prompt_log: [],
     campus_content: [],
@@ -576,6 +583,49 @@ describe('intake corner_draft_*: the switch decides who sees a draft', () => {
     intakeDb({ mode: 'shadow', list: ['campus.person@futures.church'] });
     expect((await call({ action: 'corner_draft_get' }, TOKENS.campus)).body.draft).toBeTruthy();
     expect((await call({ action: 'corner_draft_get', campusId: 'us-kennesaw' }, TOKENS.campus)).status).toBe(403);
+  });
+
+  // B09-13: the nation gate. Live means live AND the nation switched on.
+  it('live with every nation closed: no one sees a draft, and the writes find none', async () => {
+    intakeDb({ mode: 'live', open: [] });
+    expect((await call({ action: 'corner_draft_get' }, TOKENS.campus)).body.draft).toBeNull();
+    expect((await call({ action: 'corner_draft_get' }, TOKENS.admin)).body.drafts).toEqual([]);
+    expect((await call({ action: 'corner_draft_publish', body: 'x' }, TOKENS.campus)).status).toBe(404);
+    expect(fake.tables.campus_content).toHaveLength(0);
+  });
+
+  it('live with only Australia open: the admin list holds Paradise only; Alpharetta\'s pastor sees nothing', async () => {
+    intakeDb({ mode: 'live', open: ['futures-au'] });
+    expect((await call({ action: 'corner_draft_get' }, TOKENS.admin)).body.drafts.map((d) => d.campusId)).toEqual(['au-paradise']);
+    expect((await call({ action: 'corner_draft_get' }, TOKENS.campus)).body.draft).toBeNull();
+  });
+
+  it('shadow ignores the gate (the owner tests before switch-on)', async () => {
+    intakeDb({ mode: 'shadow', list: ['ae@futures.global'], open: [] });
+    expect((await call({ action: 'corner_draft_get', campusId: 'us-alpharetta' }, TOKENS.admin)).body.draft).toBeTruthy();
+  });
+});
+
+describe('runCornerDrafts: the nation gate (B09-13)', () => {
+  it('live with every nation closed reads the switch and the gate, and nothing else', async () => {
+    const db = jobDb({ mode: 'live', list: [], open: [] });
+    const read = [];
+    const from = db.from.bind(db);
+    db.from = (table) => { read.push(table); return from(table); };
+    const out = await cd.runCornerDrafts(db, { now: MON_NY_0530, call: async () => TRACEABLE });
+    expect(out.due).toEqual([]);
+    expect(read).toEqual(['dw_prompt_kind', 'dw_region_gate']);
+    expect(db.tables.campus_corner_draft).toHaveLength(0);
+  });
+
+  it('live with only the USA open drafts Alpharetta, never Futuros or Australia', async () => {
+    const roster = [
+      { email: 'pastor.alpharetta@example.com', role: 'campus', campus_id: 'us-alpharetta', campus_set_by: 'admin' },
+      { email: 'pastor.duluth@example.com', role: 'campus', campus_id: 'us-futuros-duluth', campus_set_by: 'admin' },
+    ];
+    const db = jobDb({ mode: 'live', list: [], open: ['futures-us'], roster });
+    const out = await cd.runCornerDrafts(db, { now: MON_NY_0530, call: async () => TRACEABLE });
+    expect(out.due).toEqual(['us-alpharetta']);
   });
 });
 

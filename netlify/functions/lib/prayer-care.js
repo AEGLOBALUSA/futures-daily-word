@@ -140,6 +140,9 @@ async function notifyHeld(db, prayer, { campuses } = {}) {
         subject,
         text,
         logInShadow: true,
+        // Live only in a nation Ashley has switched on (B09-13): a post with
+        // no campus, or at a campus with no congregation, is never live.
+        campusId: campus,
       });
       if (out.sent) summary.sent += 1;
       else if (out.reason === "shadow_logged") summary.logged += 1;

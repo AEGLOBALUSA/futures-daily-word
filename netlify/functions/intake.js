@@ -1181,13 +1181,15 @@ exports.handler = async (event) => {
         console.log("[intake] corner_draft refused", JSON.stringify({ email: staff.email, action, reason: "preview" }));
         return json(event, 403, { error: "Put the corner up from futuresdailyword.com, not from a preview.", code: "preview" });
       }
-      const { visible } = await corner.draftsVisibleTo(db(), staff.email);
       const now = new Date();
+      const { visible, openCampus } = await corner.draftsVisibleTo(db(), staff.email, { campus: scope.campus, now });
       if (!scope.campus) {
-        // An admin with no campus named: this week's waiting drafts. A write
-        // must name the campus it acts on.
+        // An admin with no campus named: this week's waiting drafts (live: in
+        // the nations Ashley has switched on). A write must name the campus.
         if (action !== "corner_draft_get") return json(event, 400, { error: "Choose a campus.", code: "campus" });
-        return json(event, 200, { drafts: visible ? await corner.listWaitingDrafts(db(), campuses, now) : [] });
+        const drafts = visible ? await corner.listWaitingDrafts(db(), campuses, now) : [];
+        const byId = new Map(campuses.map((c) => [c.id, c]));
+        return json(event, 200, { drafts: drafts.filter((d) => openCampus(byId.get(d.campusId))) });
       }
       const row = visible ? await corner.loadDraftFor(db(), scope.campus, now) : null;
       if (action === "corner_draft_get") {

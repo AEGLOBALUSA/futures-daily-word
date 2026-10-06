@@ -21,9 +21,18 @@
  *   shadow  delivered only to addresses on that kind's shadow_recipients list
  *           (Ashley alone by default, set by hand with one SQL update, never
  *           committed: this repo is public).
- *   live    delivered to everyone the kind allows. Only Ashley sets it, and
- *           only after he switches the region on (Ashley, 1 Oct 2026: all
- *           alerts off until a region is switched on; B09-13 adds the gate).
+ *   live    delivered to everyone the kind allows, in a nation Ashley has
+ *           switched on. Only Ashley sets live (Ashley, 1 Oct 2026: all alerts
+ *           off until a region is switched on).
+ *
+ * The nation gate (B09-13, SF-09-07 step 3b; chapter 13 contract C4): live
+ * means the kind is 'live' AND the nation's dw_region_gate.notices_on_at is
+ * set and has passed. The nation is the campus's congregation
+ * (dw_campuses.congregation: futures-au | futures-us | futuros-us), never its
+ * region ("North America" holds USA and Futuros together; Futuros stays off).
+ * A campus with no congregation is never open. Ashley's own switch-on SQL is
+ * the only thing that sets notices_on_at; nothing in this repo writes it.
+ * Shadow ignores the gate: the shadow list is Ashley's test, before switch-on.
  *
  * Fail closed everywhere: a database error reads as "off", a failed or
  * duplicate log insert means "do not send", and sendStaffEmail never throws.
@@ -34,7 +43,10 @@
  * (Netlify treats every file under netlify/functions as a function).
  */
 
+const { loadCampuses, campusCongregation } = require("./campuses");
+
 const MODES = new Set(["off", "shadow", "live"]);
+const GATE_REGIONS = new Set(["futures-au", "futures-us", "futuros-us"]);
 const LOGGED_MODES = new Set(["shadow", "live"]);
 const WRITERS = new Set(["template", "model"]);
 const KIND_RE = /^dw_[a-z0-9_]{2,60}$/;
@@ -96,15 +108,68 @@ async function modeOf(db, kind) {
 }
 
 /**
+ * The nation gate: { 'futures-au': ISO time, ... } for every nation Ashley has
+ * switched on (notices_on_at set). Any error, a missing table or an
+ * unexpected row reads as every nation closed ({}).
+ */
+async function regionGate(db) {
+  if (!db) return {};
+  try {
+    const { data, error } = await db.from("dw_region_gate").select("region, notices_on_at");
+    if (error || !Array.isArray(data)) return {};
+    const out = {};
+    for (const row of data) {
+      if (!row || !GATE_REGIONS.has(row.region) || !row.notices_on_at) continue;
+      const t = new Date(row.notices_on_at).getTime();
+      if (Number.isFinite(t)) out[row.region] = new Date(t).toISOString();
+    }
+    return out;
+  } catch (err) {
+    console.error(`[prompts] regionGate failed: ${err && err.message}`);
+    return {};
+  }
+}
+
+/** Pure: is this congregation switched on at `now` in this gate? Anything unexpected is closed. */
+function congregationOpen(gate, congregation, now = new Date()) {
+  if (!gate || typeof congregation !== "string" || !GATE_REGIONS.has(congregation)) return false;
+  const at = gate[congregation];
+  if (!at) return false;
+  const t = new Date(at).getTime();
+  const n = now instanceof Date ? now.getTime() : new Date(now).getTime();
+  return Number.isFinite(t) && Number.isFinite(n) && t <= n;
+}
+
+/**
+ * Has Ashley switched on this campus's nation (SF-09-07 step 3b)? The campus's
+ * congregation from the one campus list, then its gate row. A campus with no
+ * congregation (Indonesia, Brazil, Other), an unknown campus or any error is
+ * closed. Pass `campuses` and `gate` when the caller has read them already.
+ */
+async function nationOpen(db, campusId, now = new Date(), { campuses, gate } = {}) {
+  try {
+    if (typeof campusId !== "string" || !campusId) return false;
+    const congregation = campusCongregation(campusId, campuses || (await loadCampuses(db)));
+    if (!congregation) return false;
+    return congregationOpen(gate || (await regionGate(db)), congregation, now);
+  } catch (err) {
+    console.error(`[prompts] nationOpen failed: ${err && err.message}`);
+    return false;
+  }
+}
+
+/**
  * May this recipient be sent this kind right now?
- *   live   → yes
- *   shadow → only when the recipient is on the shadow list
+ *   live   → only when the recipient's nation is switched on (`nationIsOpen`
+ *            is exactly true: the caller works it out with nationOpen or
+ *            congregationOpen; leaving it out reads as closed)
+ *   shadow → only when the recipient is on the shadow list (no nation gate)
  *   off, or anything else → no
  */
-function deliverable(mode, recipient, shadowRecipients) {
+function deliverable(mode, recipient, shadowRecipients, nationIsOpen) {
   const who = normalizeRecipient(recipient);
   if (!who) return false;
-  if (mode === "live") return true;
+  if (mode === "live") return nationIsOpen === true;
   if (mode !== "shadow") return false;
   if (!Array.isArray(shadowRecipients)) return false;
   return shadowRecipients.some((r) => normalizeRecipient(r) === who);
@@ -247,17 +312,28 @@ async function markDelivered(db, dedupeKey) {
 
 /**
  * The one way a Daily Word function emails a staff member about a prompt kind.
+ * Live sends only in a nation Ashley has switched on: name the nation with
+ * `congregation` (futures-au | futures-us | futuros-us) or `campusId` (its
+ * congregation is looked up); naming neither reads as closed.
  * Never throws. Returns { sent: true, id } or { sent: false, reason } where
- * reason is one of: off (the switch, or not on the shadow list), shadow_logged
+ * reason is one of: off (the switch, or not on the shadow list), nation_closed
+ * (live, but the nation is not switched on), shadow_logged
  * (logInShadow: logged for a recipient off the shadow list, not sent), lint (the
  * words would reach a person broken; checked BEFORE the claim so the key is
  * not spent), duplicate (raised already, or the log row could not be written),
  * provider (the send failed; the row stays delivered = false).
  */
-async function raiseStaffEmail(db, { kind, dedupeKey, recipient, writtenBy, title, body, link, subject, text, logInShadow = false } = {}) {
+async function raiseStaffEmail(db, { kind, dedupeKey, recipient, writtenBy, title, body, link, subject, text, logInShadow = false, campusId, congregation, now = new Date() } = {}) {
   try {
     const { mode, shadowRecipients } = await switchOf(db, kind);
-    const canDeliver = deliverable(mode, recipient, shadowRecipients);
+    let open = false;
+    if (mode === "live") {
+      open = congregation
+        ? congregationOpen(await regionGate(db), congregation, now)
+        : await nationOpen(db, campusId, now);
+      if (!open) return { sent: false, reason: "nation_closed" };
+    }
+    const canDeliver = deliverable(mode, recipient, shadowRecipients, open);
     // logInShadow (B09-10): in shadow, a recipient who is NOT on the shadow list
     // still gets their log row (delivered stays false) and is never emailed, so
     // the owner's shadow weekend shows exactly who live would have reached. Off
@@ -284,6 +360,9 @@ module.exports = {
   switchOf,
   modeOf,
   deliverable,
+  regionGate,
+  congregationOpen,
+  nationOpen,
   claim,
   sendStaffEmail,
   lintStaffText,

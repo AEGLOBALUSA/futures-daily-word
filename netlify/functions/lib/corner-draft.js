@@ -47,7 +47,7 @@
  *
  * The tests live in tests/functions/corner-draft.test.js, never in this folder.
  */
-const { switchOf, deliverable, claim, markDelivered, normalizeRecipient, lintStaffText } = require("./prompts");
+const { switchOf, deliverable, claim, markDelivered, normalizeRecipient, lintStaffText, regionGate, congregationOpen } = require("./prompts");
 const { loadCampuses, findCampus, isCampusId } = require("./campuses");
 const { localParts, isCurrentAt } = require("./sermon-window");
 const { callClaudeMessages, DEFAULT_MODEL } = require("./claude-messages");
@@ -657,10 +657,23 @@ function cornerScope(staff, requested, list) {
   return { status: 403, code: "role", error: "The campus corner draft is for campus pastors." };
 }
 
-/** May this person see drafts at all right now? off: no one; shadow: the shadow list; live: everyone in scope. */
-async function draftsVisibleTo(db, email) {
+/**
+ * May this person see drafts at all right now? off: no one; shadow: the
+ * shadow list; live: everyone in scope, in a nation Ashley has switched on
+ * (B09-13). Live with a campus: that campus's nation must be open. Live with
+ * no campus (an admin's list): visible while any nation is open, and
+ * `openCampus(campus)` says which campuses' drafts may be listed.
+ */
+async function draftsVisibleTo(db, email, { campus, now = new Date() } = {}) {
   const sw = await switchOf(db, KIND);
-  return { mode: sw.mode, visible: deliverable(sw.mode, email, sw.shadowRecipients) };
+  if (sw.mode !== "live") {
+    return { mode: sw.mode, visible: deliverable(sw.mode, email, sw.shadowRecipients), openCampus: () => true };
+  }
+  const gate = await regionGate(db);
+  const isOpen = (c) => !!c && congregationOpen(gate, c.congregation, now);
+  if (campus) return { mode: sw.mode, visible: deliverable(sw.mode, email, sw.shadowRecipients, isOpen(campus)), openCampus: isOpen };
+  const anyOpen = Object.keys(gate).some((k) => congregationOpen(gate, k, now));
+  return { mode: sw.mode, visible: deliverable(sw.mode, email, sw.shadowRecipients, anyOpen), openCampus: isOpen };
 }
 
 // ── The pastor's three writes ──────────────────────────────────────────────
@@ -903,7 +916,7 @@ async function draftOne(db, campus, ctx) {
       mode: ctx.mode
     });
     // Delivered = a confirmed pastor of this campus can see it on /staff now.
-    if (logged && (ctx.pastors || []).some((email) => deliverable(ctx.mode, email, ctx.shadowRecipients))) {
+    if (logged && (ctx.pastors || []).some((email) => deliverable(ctx.mode, email, ctx.shadowRecipients, ctx.nationOpen === true))) {
       await markDelivered(db, dedupeKey);
     }
     result.outcome = "drafted";
@@ -942,14 +955,15 @@ async function runCornerDrafts(db, { now = new Date(), call = callClaudeMessages
     summary.mode = mode;
     if (mode === "off") return summary;
 
-    // B09-13 HOOK (not built yet): when lib/nation-gate.js `nationOpen` lands,
-    // drop every campus whose nation is not open HERE, before any read below
-    // and before any model call. Until then the kind itself is the gate: it
-    // stays off (or shadow, seen only by the shadow list) and only Ashley sets
-    // live, after the region switch-on.
+    // The nation gate (B09-13): live drafts only for campuses whose nation
+    // Ashley has switched on. With every nation closed, live reads nothing
+    // else: no campus, roster or message read, no model call, no row. Shadow
+    // ignores the gate (the shadow list is his test, before switch-on).
+    const gate = mode === "live" ? await regionGate(db) : null;
+    if (gate && !Object.keys(gate).some((k) => congregationOpen(gate, k, now))) return summary;
 
     const forced = mode === "shadow" ? runNowCampuses(await kindNote(db)) : [];
-    const campuses = await loadCampuses(db);
+    const campuses = (await loadCampuses(db)).filter((c) => !gate || congregationOpen(gate, c.congregation, now));
     const { data: roster, error: rosterErr } = await db
       .from("staff_roster")
       .select("email, role, campus_id, campus_set_by")
@@ -970,6 +984,7 @@ async function runCornerDrafts(db, { now = new Date(), call = callClaudeMessages
       mode,
       shadowRecipients,
       pastors: pastors.get(campus.id) || [],
+      nationOpen: mode === "live",
       call,
       env,
       link,

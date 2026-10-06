@@ -218,7 +218,10 @@ async function runSundayNotesCheck(db, { now = new Date(), link = staffLink(), e
           link,
           subject,
           text,
-          logInShadow: true
+          logInShadow: true,
+          // Live only once Ashley has switched this nation on (B09-13).
+          congregation,
+          now
         });
         if (out.sent) result.sent += 1;
         else if (out.reason === "shadow_logged") result.logged += 1;
