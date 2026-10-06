@@ -67,6 +67,8 @@ import { readMoreOpen, writeMoreOpen, moreForTodayNames, localToday, isJourneyDa
 import type { NextAction, SetupAsk } from '../utils/nextStep';
 import { chapterOf, notInHero } from '../utils/heroDedupe';
 import { getPastorCode, setHandTypedPastorCode, PASTOR_CODE_EVENT } from '../utils/staffIdentity';
+import { useIsPastorSignedIn } from '../utils/useStaffIdentity';
+import { ReadingWeekLine } from '../staff/ReadingWeekLine';
 import { parseVerses } from '../utils/parseVerses';
 import { DoneCelebration } from '../components/DoneCelebration';
 import { hapticTap } from '../utils/haptics';
@@ -169,6 +171,7 @@ interface ReadingSlot {
 
 export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) => void; onBack?: () => void }) {
   const campuses = useCampuses();
+  const isPastorSignedIn = useIsPastorSignedIn();
   // Which church's Sermon Notes this device reads — shown on the banner.
   const [homeCongregation, setHomeCongregation] = useState(() => getCongregation());
   useEffect(() => onCongregationChange(setHomeCongregation), []);
@@ -1080,6 +1083,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   // returns for the pastor's own campus code (campus-scoped, no PII); without a
   // working code it shows the code prompt, never fake numbers.
   const [campusStats, setCampusStats] = useState<CampusStats | null>(null);
+  const [readingWeekShown, setReadingWeekShown] = useState(false);
   const [campusStatsError, setCampusStatsError] = useState(false);
   const [campusStatsLoading, setCampusStatsLoading] = useState(false);
   const [pastorCodeInput, setPastorCodeInput] = useState('');
@@ -4241,22 +4245,25 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             campus code); the seeded pseudo-random counts are gone — progress is
             grounded in facts or not shown at all. */}
         {personaConfig.persona === 'pastor_leader' && (() => {
+          const showOverview = !isPastorSignedIn || !!campusStats || readingWeekShown;
           const campusNameLabel = campusStats
             ? (campusName(campusStats.campus, campuses) || campusStats.campus)
             : (campusName(userProfile?.campus, campuses) || 'your campus');
           return (
-            <div style={{
+            // Keep the line mounted to report its answer, without an empty overview box.
+            <div style={showOverview ? {
               marginBottom: 16, borderRadius: 16, padding: '16px 14px',
               background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(59,130,246,0.04) 100%)',
               border: '1px solid rgba(37,99,235,0.2)',
-            }}>
-              <p style={{
+            } : { display: 'contents' }}>
+              {showOverview && <p style={{
                 fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700,
                 letterSpacing: '0.12em', textTransform: 'uppercase',
                 color: 'var(--dw-info)', marginBottom: 12,
               }}>
                 CAMPUS OVERVIEW
-              </p>
+              </p>}
+              {isPastorSignedIn && <ReadingWeekLine onShown={setReadingWeekShown} />}
               {campusStats ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div style={{ background: 'var(--dw-surface)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
@@ -4275,7 +4282,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--dw-info)', fontWeight: 600, margin: 0 }}>{campusNameLabel}</p>
                   </div>
                 </div>
-              ) : campusStatsLoading ? (
+              ) : isPastorSignedIn ? null : campusStatsLoading ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
                   <Loader2 size={14} style={{ color: 'var(--dw-info)', animation: 'spin 1s linear infinite' }} />
                   <span style={{ fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>{t('loading_label')}</span>
