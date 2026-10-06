@@ -15,7 +15,8 @@ html[data-ui="multiplyos"] {
     --mos-font-size: 17px;
     --mos-line-height: 1.35;
     --mos-control-height: 44px;
-    --mos-main-button-height: 50px;
+    /* phone main button 56px minimum: Ashley ruling 5 Oct 2026 */
+    --mos-main-button-height: 56px;
     --mos-nav-item-height: 44px;
   }
 }
