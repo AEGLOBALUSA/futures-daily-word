@@ -44,8 +44,9 @@ let fake;
 let sent;
 let reads;
 
-function setup({ mode = 'shadow', sermons = [lastWeek('futures-us')], shadow = [OWNER] } = {}) {
+function setup({ mode = 'shadow', sermons = [lastWeek('futures-us')], shadow = [OWNER], gate = [] } = {}) {
   fake = createFakeSupabase({
+    dw_region_gate: gate,
     dw_prompt_kind: [{ kind: 'dw_sunday_notes_missing', mode, shadow_recipients: shadow }],
     dw_prompt_log: [],
     staff_roster: roster(),
@@ -152,6 +153,21 @@ describe('runSundayNotesCheck', () => {
     expect(english.subject).toBe("Sunday's notes for Futures USA aren't up yet");
     expect(english.text).toContain("still shows last week's message (“Grace Upon Grace”, 27 Sep)");
     expect(english.text).toContain(LINK);
+  });
+
+  // B09-13: live means live AND the nation switched on.
+  it('live with the USA not switched on: logs and sends nothing', async () => {
+    setup({ mode: 'live', shadow: [], gate: [{ region: 'futures-us', notices_on_at: null }] });
+    await sn.runSundayNotesCheck(fake, { now: SAT_NY_1810, link: LINK });
+    expect(fake.tables.dw_prompt_log).toHaveLength(0);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('live with the USA switched on: the USA recipients hear, once each', async () => {
+    setup({ mode: 'live', shadow: [], gate: [{ region: 'futures-us', notices_on_at: '2026-09-01T00:00:00Z' }] });
+    await sn.runSundayNotesCheck(fake, { now: SAT_NY_1810, link: LINK });
+    expect(sent.map((m) => m.to[0]).sort()).toEqual(logFor('futures-us').map((r) => r.recipient).sort());
+    expect(sent.length).toBeGreaterThan(0);
   });
 
   it('Futuros USA joins only when its gate is on, in Spanish', async () => {

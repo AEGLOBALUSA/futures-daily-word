@@ -10,6 +10,18 @@
  *   decidePrayer(db, staff, campuses, id, decision)
  *                                       Show it on the wall | Keep it private
  *
+ * B09-13 (lib/prayer-lines.js holds the rules, pure):
+ *   listPrayerLines(db, staff, campuses)  /staff "Needs you": the open lines
+ *                                       (kind dw_prayer_pastor_line; live only
+ *                                       in a switched-on nation)
+ *   prayerWriteLink(db, staff, campuses, id)
+ *                                       the address-only mailto: for one request
+ *   closePrayerLine(db, staff, campuses, id, kind)
+ *                                       I wrote to {first name} | I prayed for this
+ *   setWaitingMuted(db, staff, muted)     Stop the waiting email
+ * The weekly list and "Needs you" share prayerWriteLink and closePrayerLine,
+ * so the two can never disagree. Neither list ever carries an address.
+ *
  * Rulings that bind this file (chapter 09 B09-12):
  *   - An anonymous request stays anonymous to staff too: no name, no email.
  *   - The pastor's reply is personal: the app gives an address for an EMPTY
@@ -24,7 +36,8 @@
  * The tests live in tests/functions/prayer-care.test.js, never in this folder.
  */
 
-const { raiseStaffEmail, switchOf, normalizeRecipient } = require("./prompts");
+const { raiseStaffEmail, switchOf, normalizeRecipient, regionGate } = require("./prompts");
+const lines = require("./prayer-lines");
 const { campusName, isCampusId } = require("./campuses");
 const { campusConfirmed } = require("./intake-core");
 
@@ -35,19 +48,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_LIMIT = 200;
 const HELD_LIMIT = 50;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const EMAIL_RE = /^[^\s@?&#/\\]+@[^\s@?&#/\\]+\.[^\s@?&#/\\]{2,}$/;
 
-/** "Anonymous" (any case), empty or missing: the poster asked not to be named. */
-function isAnonymousName(name) {
-  const n = typeof name === "string" ? name.trim() : "";
-  return !n || n.toLowerCase() === "anonymous";
-}
-
-/** The first word of a name, for "Write to {first name}". */
-function firstName(name) {
-  const n = typeof name === "string" ? name.trim() : "";
-  return n.split(/\s+/)[0] || "";
-}
+// One definition of "anonymous" and "first name" for both lists (lib/prayer-lines.js).
+const { isAnonymousName, firstNameOf: firstName } = lines;
 
 /** /staff on this site (the deploy's URL when it is https, else the live site). */
 function staffHome() {
@@ -140,6 +143,9 @@ async function notifyHeld(db, prayer, { campuses } = {}) {
         subject,
         text,
         logInShadow: true,
+        // Live only in a nation Ashley has switched on (B09-13): a post with
+        // no campus, or at a campus with no congregation, is never live.
+        campusId: campus,
       });
       if (out.sent) summary.sent += 1;
       else if (out.reason === "shadow_logged") summary.logged += 1;
@@ -188,12 +194,12 @@ function weekRow(row, campuses, now) {
     daysAgo: daysAgo(row.created_at, now),
     status: row.status === "private" ? "private" : "shown",
     anonymous: isAnonymousName(row.name),
+    // B09-13: the address is never in the list. Write to {first name} asks
+    // prayerWriteLink for it, after the same scope check, one request at a time.
+    canWrite: lines.canWriteTo(row),
+    done: row.pastor_done_kind === "wrote" || row.pastor_done_kind === "prayed" ? row.pastor_done_kind : null,
   };
-  if (!out.anonymous) {
-    out.firstName = firstName(row.name);
-    const email = typeof row.email === "string" ? row.email.trim() : "";
-    if (EMAIL_RE.test(email)) out.email = email;
-  }
+  if (!out.anonymous) out.firstName = firstName(row.name);
   return out;
 }
 
@@ -226,7 +232,7 @@ async function listPrayerCare(db, staff, campuses, now = new Date()) {
 
   let weekQ = db
     .from("prayers")
-    .select("id, prayer, name, email, campus, prayer_count, created_at, status")
+    .select("id, prayer, name, email, campus, prayer_count, created_at, status, pastor_done_kind")
     .in("status", ["shown", "private"])
     .gte("created_at", since);
   if (scope.campusId) weekQ = weekQ.eq("campus", scope.campusId);
@@ -277,8 +283,140 @@ async function decidePrayer(db, staff, campuses, id, decision) {
   return { ok: true, id: pid, status };
 }
 
+// ── B09-13: the lines, the write link, the close, the mute ─────────────────
+
+const LINE_LIMIT = 200;
+const LINE_COLUMNS = "id, prayer, name, email, campus, created_at, status, pastor_done_at, escalated_on";
+
+/** Has this staff member muted the waiting email? Any doubt reads as not muted. */
+async function waitingMutedFor(db, staff) {
+  try {
+    const { data, error } = await db.from("staff_roster").select("prayer_waiting_muted").eq("email", staff.email).maybeSingle();
+    return !error && !!data && data.prayer_waiting_muted === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * /staff "Needs you": this staff member's open lines, oldest first, and
+ * whether they muted the waiting email. While the kind is off (the seeded
+ * default) no request is read. 403 for media and an unconfirmed campus
+ * pastor, as the weekly list.
+ */
+async function listPrayerLines(db, staff, campuses, now = new Date()) {
+  const scope = prayerScope(staff, campuses);
+  if (scope.error) return scope;
+  const waitingMuted = await waitingMutedFor(db, staff);
+  const { mode, shadowRecipients } = await switchOf(db, lines.LINE_KIND);
+  if (mode !== "live" && mode !== "shadow") return { lines: [], waitingMuted };
+  const listed = shadowRecipients.includes(normalizeRecipient(staff.email));
+  if (mode === "shadow" && !listed) return { lines: [], waitingMuted };
+
+  const gate = mode === "live" ? await regionGate(db) : {};
+  let viewers = [];
+  if (mode === "live" && (staff.role === "hub" || staff.role === "admin")) {
+    // Hub and admin see the campuses with no confirmed pastor: read who is confirmed.
+    const { data: roster, error } = await db.from("staff_roster").select("email, role, campus_id, campus_set_by");
+    if (error || !Array.isArray(roster)) throw error || new Error("roster read failed");
+    viewers = lines.viewersFrom(roster);
+  }
+  const ctx = { mode, shadowRecipients, gate, viewers, campuses, now };
+  const scopeIds = mode === "live"
+    ? [...lines.lineCampusesFor(staff, { viewers, campuses })]
+    : scope.campusId ? [scope.campusId] : campuses.filter((c) => c.id !== "other" && c.congregation).map((c) => c.id);
+  if (!scopeIds.length) return { lines: [], waitingMuted };
+
+  const { data, error } = await db
+    .from("prayers")
+    .select(LINE_COLUMNS)
+    .in("status", ["shown", "private"])
+    .is("pastor_done_at", null)
+    .in("campus", scopeIds)
+    .order("created_at", { ascending: true })
+    .limit(LINE_LIMIT);
+  if (error) throw error;
+  return { lines: lines.linesFor(staff, data || [], ctx), waitingMuted };
+}
+
+/** One request for an action, after the scope check. { row } or { error, status }. */
+async function requestForAction(db, staff, campuses, id) {
+  const pid = typeof id === "string" ? id.trim().toLowerCase() : "";
+  if (!UUID_RE.test(pid)) return { error: "Which request?", status: 400 };
+  const { data: row, error } = await db
+    .from("prayers")
+    .select("id, name, email, campus, status, pastor_done_at, pastor_done_kind")
+    .eq("id", pid)
+    .maybeSingle();
+  if (error) throw error;
+  if (!row) return { error: "That request is not there any more.", status: 404 };
+  const refusal = lines.actionRefusal(staff, row, campuses);
+  if (refusal) return refusal;
+  if (row.status === "held") return { error: "Show it on the wall or keep it private first.", status: 409, code: "held" };
+  return { row, id: pid };
+}
+
+/**
+ * Write to {first name}: the address-only mailto: for one request (no
+ * subject, no body). 400 when it was posted without a name or an address.
+ */
+async function prayerWriteLink(db, staff, campuses, id) {
+  const got = await requestForAction(db, staff, campuses, id);
+  if (got.error) return got;
+  const href = lines.mailtoFor(got.row);
+  if (!href) return { error: "This request has no name or address to write to.", status: 400, code: "no_address" };
+  console.log("[intake] prayer_write_link", JSON.stringify({ id: got.id, by: staff.role }));
+  return { href };
+}
+
+/**
+ * I wrote to {first name} | I prayed for this: closes the request for every
+ * list at once. `wrote` is refused (400) for a request with no name or no
+ * address. A request a colleague closed first answers ok with `already`.
+ */
+async function closePrayerLine(db, staff, campuses, id, kind, now = new Date()) {
+  if (kind !== "wrote" && kind !== "prayed") return { error: "Wrote or prayed?", status: 400 };
+  const got = await requestForAction(db, staff, campuses, id);
+  if (got.error) return got;
+  if (kind === "wrote" && !lines.canWriteTo(got.row)) {
+    return { error: "This request was posted without a name or an address.", status: 400, code: "no_address" };
+  }
+  if (got.row.pastor_done_at) return { ok: true, id: got.id, kind: got.row.pastor_done_kind, already: true };
+  const { data: updated, error } = await db
+    .from("prayers")
+    .update({ pastor_done_at: now.toISOString(), pastor_done_kind: kind, pastor_done_by: normalizeRecipient(staff.email) })
+    .eq("id", got.id)
+    .is("pastor_done_at", null)
+    .select("id");
+  if (error) throw error;
+  if (!Array.isArray(updated) || updated.length === 0) {
+    const { data: again } = await db.from("prayers").select("pastor_done_kind").eq("id", got.id).maybeSingle();
+    return { ok: true, id: got.id, kind: (again && again.pastor_done_kind) || kind, already: true };
+  }
+  console.log("[intake] prayer_line_done", JSON.stringify({ id: got.id, kind, by: staff.role }));
+  return { ok: true, id: got.id, kind };
+}
+
+/** Stop the waiting email (or start it again) for this staff member only. */
+async function setWaitingMuted(db, staff, muted) {
+  if (!staff || !staff.email) return { error: "Sign in required", status: 401 };
+  if (typeof muted !== "boolean") return { error: "On or off?", status: 400 };
+  const { data, error } = await db
+    .from("staff_roster")
+    .update({ prayer_waiting_muted: muted })
+    .eq("email", normalizeRecipient(staff.email))
+    .select("email");
+  if (error) throw error;
+  if (!Array.isArray(data) || data.length === 0) return { error: "Your staff row is not there.", status: 404 };
+  return { ok: true, waitingMuted: muted };
+}
+
 module.exports = {
   HELD_KIND,
+  listPrayerLines,
+  prayerWriteLink,
+  closePrayerLine,
+  setWaitingMuted,
   isAnonymousName,
   firstName,
   heldEmail,

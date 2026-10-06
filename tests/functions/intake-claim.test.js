@@ -1763,3 +1763,116 @@ describe('prayer care on /staff: the gate three ways (B09-12)', () => {
     expect(list.body.held.map((p) => p.id).sort()).toEqual([HELD_HERE, HELD_THERE].sort());
   });
 });
+
+describe('Needs you on /staff: the gate three ways (B09-13)', () => {
+  const NAMED = 'a1111111-1111-4111-8111-111111111111';
+  const ANON = 'a2222222-2222-4222-8222-222222222222';
+  const OTHER = 'a3333333-3333-4333-8333-333333333333';
+  const HELD = 'a4444444-4444-4444-8444-444444444444';
+  const hoursAgo = (h) => new Date(Date.now() - h * HOUR).toISOString();
+  const OPEN = '2026-09-01T00:00:00Z';
+
+  function seed({ mode = 'live', open = ['futures-au'] } = {}) {
+    tables.prayers = [
+      { id: NAMED, prayer: 'Please pray for my job interview on Thursday', name: 'Sam Example', email: 'sam+test@example.org', campus: 'au-paradise', prayer_count: 0, created_at: hoursAgo(3), status: 'shown', pastor_done_at: null },
+      { id: ANON, prayer: 'For my mum’s surgery', name: 'Anonymous', email: 'quiet@example.org', campus: 'au-paradise', prayer_count: 0, created_at: hoursAgo(26), status: 'shown', pastor_done_at: null },
+      { id: OTHER, prayer: 'Pray for Kennesaw', name: 'Lee Example', email: 'lee@example.org', campus: 'us-kennesaw', prayer_count: 0, created_at: hoursAgo(5), status: 'shown', pastor_done_at: null },
+      { id: HELD, prayer: 'Call me on 0400 000 000', name: 'Jo Example', email: 'jo@example.org', campus: 'au-paradise', prayer_count: 0, created_at: hoursAgo(1), status: 'held', pastor_done_at: null },
+    ];
+    tables.dw_prompt_kind = [{ kind: 'dw_prayer_pastor_line', mode, shadow_recipients: [], note: null }];
+    tables.dw_region_gate = ['futures-au', 'futures-us', 'futuros-us'].map((region) => ({ region, notices_on_at: open.includes(region) ? OPEN : null }));
+  }
+  async function pastor() {
+    addRoster({ email: 'pastor@futures.church', role: 'campus', campus_id: 'au-paradise', campus_set_by: 'ae@futures.global', password_hash: hashPassword(PASSWORD) });
+    return signIn('pastor@futures.church');
+  }
+  const ACTIONS = [
+    { action: 'prayer_lines' },
+    { action: 'prayer_write_link', id: NAMED },
+    { action: 'prayer_line_done', id: NAMED, kind: 'prayed' },
+    { action: 'prayer_waiting_mute', muted: true },
+  ];
+
+  it('anon (no session) gets 401 on every action, and nothing changes', async () => {
+    seed();
+    for (const body of ACTIONS) expect((await call(body)).status, body.action).toBe(401);
+    expect(tables.prayers.every((p) => p.pastor_done_at === null)).toBe(true);
+  });
+
+  it('a campus pastor sees his own campus’s lines, oldest first, with no address in the list', async () => {
+    seed();
+    const token = await pastor();
+    const out = await call({ action: 'prayer_lines' }, token);
+    expect(out.status).toBe(200);
+    expect(out.body.lines.map((l) => l.id)).toEqual([ANON, NAMED]);
+    expect(out.body.lines[0]).toMatchObject({ firstName: null, canWrite: false, campusName: 'Futures Paradise' });
+    expect(out.body.lines[1]).toMatchObject({ firstName: 'Sam', canWrite: true });
+    expect(JSON.stringify(out.body)).not.toMatch(/@|Lee|Kennesaw|0400|Jo Example/);
+    expect(out.body.waitingMuted).toBe(false);
+  });
+
+  it('another campus is 403 for the link and the close; the link is address-only; anonymous cannot be written to', async () => {
+    seed();
+    const token = await pastor();
+    expect((await call({ action: 'prayer_write_link', id: OTHER }, token)).status).toBe(403);
+    expect((await call({ action: 'prayer_line_done', id: OTHER, kind: 'prayed' }, token)).status).toBe(403);
+    expect(tables.prayers.find((p) => p.id === OTHER).pastor_done_at).toBeNull();
+    const link = await call({ action: 'prayer_write_link', id: NAMED }, token);
+    expect(link).toMatchObject({ status: 200, body: { href: 'mailto:sam%2Btest%40example.org' } });
+    expect(link.body.href).not.toContain('?');
+    expect((await call({ action: 'prayer_write_link', id: ANON }, token)).status).toBe(400);
+    expect((await call({ action: 'prayer_write_link', id: HELD }, token)).status).toBe(409);
+    expect((await call({ action: 'prayer_line_done', id: ANON, kind: 'wrote' }, token)).status).toBe(400);
+    expect((await call({ action: 'prayer_line_done', id: NAMED, kind: 'maybe' }, token)).status).toBe(400);
+    expect((await call({ action: 'prayer_write_link', id: 'not-a-uuid' }, token)).status).toBe(400);
+  });
+
+  it('I wrote and I prayed close the line in both lists', async () => {
+    seed();
+    const token = await pastor();
+    expect(await call({ action: 'prayer_line_done', id: NAMED, kind: 'wrote' }, token)).toMatchObject({ status: 200, body: { ok: true, kind: 'wrote' } });
+    expect(await call({ action: 'prayer_line_done', id: ANON, kind: 'prayed' }, token)).toMatchObject({ status: 200, body: { ok: true, kind: 'prayed' } });
+    const row = tables.prayers.find((p) => p.id === NAMED);
+    expect(row).toMatchObject({ pastor_done_kind: 'wrote', pastor_done_by: 'pastor@futures.church' });
+    expect((await call({ action: 'prayer_lines' }, token)).body.lines).toEqual([]);
+    const week = await call({ action: 'prayers_week' }, token);
+    expect(week.body.week.find((p) => p.id === NAMED)).toMatchObject({ done: 'wrote', canWrite: true });
+    expect(week.body.week.find((p) => p.id === ANON)).toMatchObject({ done: 'prayed', canWrite: false });
+    expect(JSON.stringify(week.body)).not.toMatch(/sam\+test@|quiet@/);
+    // A second close answers ok and changes nothing.
+    expect(await call({ action: 'prayer_line_done', id: NAMED, kind: 'prayed' }, token)).toMatchObject({ status: 200, body: { already: true, kind: 'wrote' } });
+    expect(row.pastor_done_kind).toBe('wrote');
+  });
+
+  it('no line while the kind is off, or live with the nation not switched on; media is 403', async () => {
+    seed({ mode: 'off' });
+    const token = await pastor();
+    expect((await call({ action: 'prayer_lines' }, token)).body.lines).toEqual([]);
+    seed({ mode: 'live', open: ['futures-us'] });
+    expect((await call({ action: 'prayer_lines' }, token)).body.lines).toEqual([]);
+    addRoster({ email: 'noah.terrell@futures.church', role: 'media', password_hash: hashPassword(PASSWORD) });
+    const media = await signIn('noah.terrell@futures.church');
+    expect((await call({ action: 'prayer_lines' }, media)).status).toBe(403);
+    expect((await call({ action: 'prayer_write_link', id: NAMED }, media)).status).toBe(403);
+    expect((await call({ action: 'prayer_line_done', id: NAMED, kind: 'prayed' }, media)).status).toBe(403);
+  });
+
+  it('hub and admin get the lines of campuses with no confirmed pastor only', async () => {
+    seed({ open: ['futures-au', 'futures-us'] });
+    await pastor();
+    const admin = await adminToken();
+    const out = await call({ action: 'prayer_lines' }, admin);
+    expect(out.body.lines.map((l) => l.id)).toEqual([OTHER]);
+  });
+
+  it('Stop the waiting email is per person and the card still shows', async () => {
+    seed();
+    const token = await pastor();
+    expect(await call({ action: 'prayer_waiting_mute', muted: true }, token)).toMatchObject({ status: 200, body: { ok: true, waitingMuted: true } });
+    expect(tables.staff_roster.find((r) => r.email === 'pastor@futures.church').prayer_waiting_muted).toBe(true);
+    const out = await call({ action: 'prayer_lines' }, token);
+    expect(out.body.waitingMuted).toBe(true);
+    expect(out.body.lines).toHaveLength(2);
+    expect((await call({ action: 'prayer_waiting_mute', muted: 'yes' }, token)).status).toBe(400);
+  });
+});

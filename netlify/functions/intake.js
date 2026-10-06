@@ -50,7 +50,7 @@ const { isCongregationId } = require("./lib/congregations");
 const { campusCongregation } = require("./lib/campuses");
 const { issueToken, claimProvenToken, revokeToken } = require("./lib/auth");
 const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
-const { listPrayerCare, decidePrayer } = require("./lib/prayer-care");
+const { listPrayerCare, decidePrayer, listPrayerLines, prayerWriteLink, closePrayerLine, setWaitingMuted } = require("./lib/prayer-care");
 const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow, COLUMNS: CAMPUS_COLUMNS } = require("./lib/campuses");
 const corner = require("./lib/corner-draft");
 
@@ -1181,13 +1181,15 @@ exports.handler = async (event) => {
         console.log("[intake] corner_draft refused", JSON.stringify({ email: staff.email, action, reason: "preview" }));
         return json(event, 403, { error: "Put the corner up from futuresdailyword.com, not from a preview.", code: "preview" });
       }
-      const { visible } = await corner.draftsVisibleTo(db(), staff.email);
       const now = new Date();
+      const { visible, openCampus } = await corner.draftsVisibleTo(db(), staff.email, { campus: scope.campus, now });
       if (!scope.campus) {
-        // An admin with no campus named: this week's waiting drafts. A write
-        // must name the campus it acts on.
+        // An admin with no campus named: this week's waiting drafts (live: in
+        // the nations Ashley has switched on). A write must name the campus.
         if (action !== "corner_draft_get") return json(event, 400, { error: "Choose a campus.", code: "campus" });
-        return json(event, 200, { drafts: visible ? await corner.listWaitingDrafts(db(), campuses, now) : [] });
+        const drafts = visible ? await corner.listWaitingDrafts(db(), campuses, now) : [];
+        const byId = new Map(campuses.map((c) => [c.id, c]));
+        return json(event, 200, { drafts: drafts.filter((d) => openCampus(byId.get(d.campusId))) });
       }
       const row = visible ? await corner.loadDraftFor(db(), scope.campus, now) : null;
       if (action === "corner_draft_get") {
@@ -1316,6 +1318,37 @@ exports.handler = async (event) => {
     if (action === "prayer_decide") {
       const out = await decidePrayer(db(), staff, await campusList(), body.id, body.decision);
       if (out.error) return json(event, out.status, { error: out.error, ...(out.code ? { code: out.code } : {}) });
+      return json(event, 200, out);
+    }
+
+    // ── Needs you (B09-13) ── Every prayer request reaches its campus pastor
+    // and stays until he has written or prayed. prayer_lines is the caller's
+    // open lines (kind dw_prayer_pastor_line; live only in a nation Ashley has
+    // switched on); never an address in the list. prayer_write_link gives the
+    // address-only mailto: for one request; prayer_line_done closes it for
+    // both lists. A campus pastor acts on his own campus (another is 403);
+    // hub and admin on any campus, as the weekly list; media 403.
+    if (action === "prayer_lines") {
+      const out = await listPrayerLines(db(), staff, await campusList());
+      if (out.error) return json(event, out.status, { error: out.error, ...(out.code ? { code: out.code } : {}) });
+      return json(event, 200, out);
+    }
+
+    if (action === "prayer_write_link") {
+      const out = await prayerWriteLink(db(), staff, await campusList(), body.id);
+      if (out.error) return json(event, out.status, { error: out.error, ...(out.code ? { code: out.code } : {}) });
+      return json(event, 200, out);
+    }
+
+    if (action === "prayer_line_done") {
+      const out = await closePrayerLine(db(), staff, await campusList(), body.id, body.kind);
+      if (out.error) return json(event, out.status, { error: out.error, ...(out.code ? { code: out.code } : {}) });
+      return json(event, 200, out);
+    }
+
+    if (action === "prayer_waiting_mute") {
+      const out = await setWaitingMuted(db(), staff, body.muted);
+      if (out.error) return json(event, out.status, { error: out.error });
       return json(event, 200, out);
     }
 

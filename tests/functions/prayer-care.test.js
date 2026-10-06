@@ -49,6 +49,9 @@ function reset() {
     staff_roster: [],
     dw_prompt_kind: [],
     dw_prompt_log: [],
+    // B09-13: live sends only in a switched-on nation; these tests stand for
+    // after switch-on unless they say otherwise.
+    dw_region_gate: ['futures-au', 'futures-us', 'futuros-us'].map((region) => ({ region, notices_on_at: '2026-09-01T00:00:00Z' })),
   };
 }
 
@@ -145,10 +148,12 @@ describe('prayers_week: who sees what', () => {
     expect(JSON.stringify(out)).not.toMatch(/quiet@|p@example/);
   });
 
-  it('a named request gives the first name and the address for an empty email', async () => {
+  it('a named request gives the first name and canWrite, never the address (B09-13: the address comes from prayer_write_link)', async () => {
     const out = await care.listPrayerCare(db(), pastor, CAMPUSES, NOW);
     const row = out.week.find((r) => r.id === ID.named);
-    expect(row).toMatchObject({ anonymous: false, firstName: 'Sam', email: 'sam@example.org', prayed: 4, daysAgo: 2, status: 'shown' });
+    expect(row).toMatchObject({ anonymous: false, firstName: 'Sam', canWrite: true, done: null, prayed: 4, daysAgo: 2, status: 'shown' });
+    expect(row).not.toHaveProperty('email');
+    expect(JSON.stringify(out)).not.toMatch(/@/);
   });
 
   it('a held post shows its text and why it waits, never a name or email', async () => {
@@ -229,10 +234,29 @@ describe('the held email (kind dw_prayer_held)', () => {
     tables.staff_roster = roster().filter((r) => r.role !== 'campus' || r.campus_set_by === 'self');
     await care.notifyHeld(db(), { id: ID.held, campus: 'au-paradise' }, { campuses: CAMPUSES });
     expect(sent.map((s) => s.body.to[0]).sort()).toEqual(['ae@futures.global', 'hub@futures.church']);
+    // B09-13: a post with no campus belongs to no nation, so live never
+    // emails about it (it still waits on /staff for hub and admin).
     sent = [];
     tables.staff_roster = roster();
     await care.notifyHeld(db(), { id: ID.heldOther, campus: '' }, { campuses: CAMPUSES });
-    expect(sent.map((s) => s.body.to[0]).sort()).toEqual(['ae@futures.global', 'hub@futures.church']);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('live with the nation not switched on: nobody hears (B09-13)', async () => {
+    tables.dw_prompt_kind = [{ kind: 'dw_prayer_held', mode: 'live', shadow_recipients: [] }];
+    tables.staff_roster = roster();
+    tables.dw_region_gate = tables.dw_region_gate.map((r) => ({ ...r, notices_on_at: r.region === 'futures-us' ? r.notices_on_at : null }));
+    const out = await care.notifyHeld(db(), { id: ID.held, campus: 'au-paradise' }, { campuses: CAMPUSES });
+    expect(out.sent).toBe(0);
+    expect(tables.dw_prompt_log).toHaveLength(0);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('shadow with no campus: the owner on the shadow list still sees it', async () => {
+    tables.dw_prompt_kind = [{ kind: 'dw_prayer_held', mode: 'shadow', shadow_recipients: ['ae@futures.global'] }];
+    tables.staff_roster = roster();
+    await care.notifyHeld(db(), { id: ID.heldOther, campus: '' }, { campuses: CAMPUSES });
+    expect(sent.map((s) => s.body.to[0])).toEqual(['ae@futures.global']);
     expect(sent[0].body.subject).toBe('A prayer request is waiting for a look');
   });
 
