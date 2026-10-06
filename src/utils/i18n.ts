@@ -1286,6 +1286,7 @@ const UI: Translations = {
   prayer_care_decision_decided: { en: "Someone else already looked at this one.", es: "Alguien m\u00e1s ya revis\u00f3 esta petici\u00f3n.", pt: "Outra pessoa j\u00e1 revisou este pedido.", id: "Orang lain sudah meninjau permohonan ini." },
   prayer_care_next_request: { en: "The next request is below.", es: "La siguiente petici\u00f3n est\u00e1 abajo.", pt: "O pr\u00f3ximo pedido est\u00e1 abaixo.", id: "Permohonan berikutnya ada di bawah." },
   prayer_care_none_waiting: { en: "No more requests are waiting.", es: "No hay m\u00e1s peticiones en espera.", pt: "N\u00e3o h\u00e1 mais pedidos aguardando.", id: "Tidak ada lagi permohonan yang menunggu." },
+  prayer_care_nothing_else_waiting: { en: "Nothing else is waiting.", es: "No hay nada m\u00e1s en espera.", pt: "N\u00e3o h\u00e1 mais nada aguardando.", id: "Tidak ada lagi yang menunggu." },
   prayer_care_retry_decision: { en: "Try either button again.", es: "Vuelve a pulsar uno de los botones.", pt: "Tente um dos bot\u00f5es novamente.", id: "Coba tekan salah satu tombol lagi." },
 };
 

@@ -21,9 +21,10 @@ const quietStyle: CSSProperties = { ...lineStyle, color: 'var(--dw-text-secondar
 const quoteStyle: CSSProperties = { margin: '16px 0', whiteSpace: 'pre-wrap', fontSize: 17 };
 
 /** The children are Staff home's existing job cards; both prayer cards share one load. */
-export function PrayerCare({ staff, children }: {
+export function PrayerCare({ staff, children, onHeldChange }: {
   staff: { role: string; isAdmin?: boolean };
   children: ReactNode;
+  onHeldChange?: (held: boolean) => void;
 }) {
   const allowed = careApi.canSeePrayerCare(staff);
   const [data, setData] = useState<PrayerCareData | null>(null);
@@ -36,6 +37,7 @@ export function PrayerCare({ staff, children }: {
   const [showAll, setShowAll] = useState(false);
   const inFlight = useRef(false);
   const firstLoad = useRef<Promise<PrayerCareData | null> | null>(null);
+  const unavailableIds = useRef(new Set<string>());
   const lang = getLang();
   const text = (key: string) => t(`prayer_care_${key}`, lang);
 
@@ -56,7 +58,8 @@ export function PrayerCare({ staff, children }: {
     setLoading(true);
     setLoadFailed(false);
     try {
-      setData(await careApi.loadPrayerCare());
+      const result = await careApi.loadPrayerCare();
+      setData(result ? { ...result, held: result.held.filter(row => !unavailableIds.current.has(row.id)) } : null);
     } catch {
       setData(null);
       setLoadFailed(true);
@@ -87,6 +90,7 @@ export function PrayerCare({ staff, children }: {
       if (status === 401) return; // The app opens sign-in for an expired session.
       if (status === 403 || status === 404) {
         setUnavailableError(status === 403 ? 'another_campus' : 'request_gone');
+        unavailableIds.current.add(id);
         // Retire this card immediately, including if refreshing the list fails.
         setData(current => current ? { ...current, held: current.held.filter(row => row.id !== id) } : current);
         await reload();
@@ -103,14 +107,27 @@ export function PrayerCare({ staff, children }: {
     `${posted ? 'posted_' : ''}${n === 0 ? 'today' : n === 1 ? 'one_day' : 'days'}`,
   ).replace('{n}', String(n));
   const held = allowed ? data?.held[0] : undefined;
+  const hasHeld = !!held;
+  useEffect(() => { onHeldChange?.(hasHeld); }, [hasHeld, onHeldChange]);
 
   return <>
     {allowed && <p role="status" style={{ ...lineStyle, maxWidth: 680, margin: decisionNotice ? '12px 0' : 0 }}>
       {decisionNotice && `${text(decisionNotice)}${held ? ` ${text('next_request')}` : data ? ` ${text('none_waiting')}` : ''}`}
     </p>}
-    {allowed && unavailableError && <p role="alert" style={{ ...lineStyle, maxWidth: 680, color: 'var(--dw-error)' }}>{text(unavailableError)}</p>}
-    {held && (
-      <section style={cardStyle} aria-labelledby="prayer-care-held-title">
+    {allowed && (held || unavailableError) && (
+      <section style={cardStyle} aria-labelledby={held ? 'prayer-care-held-title' : undefined} aria-label={held ? undefined : text('held')}>
+        {unavailableError && <div style={{ display: 'grid', gap: 10, padding: '12px 0' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+            <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>
+              {text(unavailableError)}{loadFailed ? ` ${text('load_failed')}` : ''}
+            </p>
+            {loadFailed && <button type="button" style={secondaryStyle} onClick={() => void retry()}>{text('retry')}</button>}
+          </div>
+          {!loadFailed && <p role="status" style={{ ...lineStyle, margin: 0 }}>
+            {text(loading ? 'loading' : held ? 'next_request' : 'nothing_else_waiting')}
+          </p>}
+        </div>}
+        {held && <>
         <h2 id="prayer-care-held-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>
           {held.campusName ? text('held_campus').replace('{campus}', held.campusName) : text('held')}
         </h2>
@@ -129,10 +146,11 @@ export function PrayerCare({ staff, children }: {
           {busy && <p role="status" style={{ ...quietStyle, margin: 0 }}>{text('saving')}</p>}
           {decisionError && <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text(decisionError)}</p>}
         </div>
+        </>}
       </section>
     )}
     {children}
-    {allowed && (loading || loadFailed || data) && (
+    {allowed && (loading || (loadFailed && !unavailableError) || data) && (
       <section style={cardStyle} aria-labelledby="prayer-care-week-title">
         <h2 id="prayer-care-week-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>{text('week')}</h2>
         {loading ? <p role="status" style={quietStyle}>{text('loading')}</p> : loadFailed ? (

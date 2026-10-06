@@ -23,6 +23,7 @@ import { SermonNotesSurface, type SermonNotesData } from '../components/SermonNo
 import { QuickNotes } from './QuickNotes';
 import { CornerDraftCard } from './CornerDraftCard';
 import { PrayerCare } from './PrayerCare';
+import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
@@ -563,6 +564,7 @@ function StaffHome({
   onPeople: () => void;
   onCampuses: () => void;
 }) {
+  const [hasHeldPrayer, setHasHeldPrayer] = useState(false);
   // Sunday's notes is its own screen (B09-10's one pasted box), listed first
   // for the staff who can use it; Staff home itself stays the first screen.
   const notesJob = { id: 'notes' as const, title: 'Paste Sunday’s notes', body: 'One paste. The app works out the Sunday, title, speaker, series and YouTube, and shows you the page before it goes up.' };
@@ -579,9 +581,9 @@ function StaffHome({
   const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
   return (
     <div>
-      <PrayerCare staff={staff}>
+      <PrayerCare staff={staff} onHeldChange={setHasHeldPrayer}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
-      {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin}
+      {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} secondary={hasHeldPrayer}
         staffCampusId={staff.role === 'campus' ? staff.campusId ?? undefined : undefined}
         onJob={job => onJob(job)} />}
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
@@ -604,6 +606,7 @@ function StaffHome({
         </button>
       ))}
       </PrayerCare>
+      {hasHeldPrayer && <NextPill />}
       {staff.isAdmin && (
         <>
           <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: 'var(--dw-text-secondary)' }}>
