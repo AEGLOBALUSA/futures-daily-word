@@ -16,7 +16,7 @@
  * (Netlify treats every file under netlify/functions as a function).
  */
 
-const EMAIL_RE = /[^\s@<>()]+\s?@\s?[^\s@<>()]+\.[a-z]{2,}/i;
+const EMAIL_RE = /[^\s@<>()]+\s*@\s*[^\s@<>()]+\.[a-z]{2,}/i;
 // Spelled out, for any domain: "sam at example dot org", "sam (at) example (dot) org",
 // "sam [at] example.org". A bare "." after "at" needs letters on both sides with
 // no space, so "meet at 5. Then" is not an address.
