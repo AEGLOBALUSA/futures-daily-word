@@ -279,6 +279,7 @@ export function StaffApp() {
               {staff.name || staff.email}
               {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
             </p>
+            <button type="button" data-mo-guide-open aria-label="Open the guide">Guide</button>
             <button type="button" onClick={signOut}>Sign out</button>
           </div>
         </aside>
@@ -296,13 +297,23 @@ export function StaffApp() {
               </p>
               <h1 style={{ margin: '4px 0 0', fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 700 }}>Staff</h1>
             </div>
-            <button
-              type="button"
-              onClick={signOut}
-              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px' }}
-            >
-              Sign out
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                data-mo-guide-open
+                aria-label="Open the guide"
+                style={{ ...btnGhost, minHeight: 44, padding: '8px 12px' }}
+              >
+                Guide
+              </button>
+              <button
+                type="button"
+                onClick={signOut}
+                style={{ ...btnGhost, minHeight: 44, padding: '8px 12px' }}
+              >
+                Sign out
+              </button>
+            </div>
           </div>
           <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
             {staff.name || staff.email}
