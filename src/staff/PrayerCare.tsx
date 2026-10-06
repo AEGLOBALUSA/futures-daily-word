@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { getLang, t } from '../utils/i18n';
 import * as careApi from './prayerCareApi';
-import type { PrayerCare as PrayerCareData, PrayerDecision } from './prayerCareApi';
+import type { PrayerCare as PrayerCareData, PrayerDecision, PrayerDone, PrayerLines } from './prayerCareApi';
 
 const cardStyle: CSSProperties = {
   background: 'var(--dw-card)', color: 'var(--dw-text-primary)',
@@ -20,15 +20,124 @@ const secondaryStyle = {
 const lineStyle: CSSProperties = { margin: '12px 0', fontSize: 15 };
 const quietStyle: CSSProperties = { ...lineStyle, color: 'var(--dw-text-secondary)' };
 const quoteStyle: CSSProperties = { margin: '16px 0', whiteSpace: 'pre-wrap', fontSize: 17 };
+const textButtonStyle: CSSProperties = {
+  ...secondaryStyle, border: 'none', background: 'transparent', textDecoration: 'underline',
+};
+type LineAction = 'write' | PrayerDone;
+type LineState = { asked?: boolean; busy?: LineAction; error?: LineAction };
 
-/** The children are Staff home's existing job cards; both prayer cards share one load. */
-export function PrayerCare({ staff, children, onHeldChange }: {
+/** Both appearances of a request share its confirmation, busy state and errors. */
+function usePrayerActions(onClosed: (id: string, kind: PrayerDone) => void) {
+  const [states, setStates] = useState<Record<string, LineState>>({});
+  const pending = useRef(new Set<string>());
+  const opened = useRef(new Set<string>());
+  const patch = (id: string, update: Partial<LineState>) =>
+    setStates(current => ({ ...current, [id]: { ...current[id], ...update } }));
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      setStates(current => {
+        const next = { ...current };
+        for (const id of opened.current) next[id] = { ...next[id], asked: true };
+        return next;
+      });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  const act = async (id: string, action: LineAction) => {
+    if (pending.current.has(id)) return;
+    pending.current.add(id);
+    patch(id, { busy: action, error: undefined });
+    try {
+      if (action === 'write') {
+        const href = await careApi.prayerWriteLink(id);
+        window.location.href = href;
+        opened.current.add(id);
+        patch(id, { asked: true });
+      } else {
+        const result = await careApi.closePrayerLine(id, action);
+        opened.current.delete(id);
+        patch(id, { asked: false });
+        onClosed(id, result.kind);
+      }
+    } catch {
+      patch(id, { error: action });
+    } finally {
+      pending.current.delete(id);
+      patch(id, { busy: undefined });
+    }
+  };
+  const notYet = (id: string) => {
+    if (pending.current.has(id)) return;
+    opened.current.delete(id);
+    patch(id, { asked: false, error: undefined });
+  };
+  return { states, act, notYet };
+}
+
+function PrayerActions({ id, name, canWrite, main = false, allowPrayed = false, flow, text, writeKey = 'line_write' }: {
+  id: string; name: string | null; canWrite: boolean; main?: boolean; allowPrayed?: boolean;
+  flow: ReturnType<typeof usePrayerActions>; text: (key: string) => string; writeKey?: string;
+}) {
+  const state = flow.states[id] ?? {};
+  const writable = !!name && canWrite;
+  const asked = writable && state.asked;
+  const primaryAction: LineAction = asked ? 'wrote' : writable ? 'write' : 'prayed';
+  const words = (key: string) => text(key).replace('{name}', () => name ?? '');
+  const feedback = (action: LineAction) => <>
+    {state.busy === action && <p role="status" style={quietStyle}>{text(action === 'write' ? 'opening_email' : 'saving')}</p>}
+    {state.error === action && <p role="alert" style={{ ...lineStyle, color: 'var(--dw-error)' }}>
+      {text(action === 'write' ? 'email_failed' : 'save_failed')}
+    </p>}
+  </>;
+  return <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
+    {asked && <p style={lineStyle}>{words('did_write')}</p>}
+    <div>
+      <button type="button" className={main ? 'dw-next dw-campus-main font-semibold' : 'font-semibold'}
+        aria-disabled={!!state.busy} onClick={() => void flow.act(id, primaryAction)}
+        style={{ ...secondaryStyle, borderRadius: 999, whiteSpace: 'normal', ...(main ? {
+          '--mos-main-button-height': '56px', width: '100%', minHeight: 56,
+          background: 'var(--dw-accent)', color: 'var(--dw-accent-on-fill)', borderColor: 'var(--dw-accent)',
+        } : {}) } as CSSProperties}>
+        {words(asked ? 'i_wrote' : writable ? writeKey : 'i_prayed')}
+      </button>
+      {feedback(primaryAction)}
+    </div>
+    {asked ? <button type="button" style={textButtonStyle} aria-disabled={!!state.busy}
+      onClick={() => flow.notYet(id)}>{text('not_yet')}</button> : allowPrayed && writable && <div>
+      <button type="button" style={textButtonStyle} aria-disabled={!!state.busy}
+        onClick={() => void flow.act(id, 'prayed')}>{text('i_prayed')}</button>
+      {feedback('prayed')}
+    </div>}
+  </div>;
+}
+
+function waitingWords(createdAt: string, text: (key: string) => string) {
+  const hours = Math.max(0, Math.floor((Date.now() - Date.parse(createdAt)) / 3_600_000));
+  if (hours < 1) return text('just_now');
+  if (hours < 24) return text(hours === 1 ? 'one_hour' : 'hours').replace('{n}', String(hours));
+  if (hours < 48) return text('yesterday');
+  return text('waiting_days').replace('{n}', String(Math.floor(hours / 24)));
+}
+
+/** The children are Staff home's existing job cards, between the open lines and weekly list. */
+export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange }: {
   staff: { role: string; isAdmin?: boolean };
   children: ReactNode;
   onHeldChange?: (held: boolean) => void;
+  onNeedsYouMainChange?: (main: boolean) => void;
 }) {
   const allowed = careApi.canSeePrayerCare(staff);
   const [data, setData] = useState<PrayerCareData | null>(null);
+  const [linesData, setLinesData] = useState<(PrayerLines & { completed?: boolean }) | null>(null);
+  const [muteBusy, setMuteBusy] = useState(false);
+  const [muteError, setMuteError] = useState(false);
+  const mutePending = useRef(false);
+  const firstLinesLoad = useRef<Promise<PrayerLines | null> | null>(null);
+  const closedKinds = useRef(new Map<string, PrayerDone>());
   const [loading, setLoading] = useState(allowed);
   const [loadFailed, setLoadFailed] = useState(false);
   const [decisionError, setDecisionError] = useState('');
@@ -41,6 +150,45 @@ export function PrayerCare({ staff, children, onHeldChange }: {
   const unavailableIds = useRef(new Set<string>());
   const lang = getLang();
   const text = (key: string) => t(`prayer_care_${key}`, lang);
+  const patchWeek = (result: PrayerCareData | null) => result ? {
+    ...result, week: result.week.map(row => ({ ...row, done: closedKinds.current.get(row.id) ?? row.done })),
+  } : null;
+  const flow = usePrayerActions((id, kind) => {
+    closedKinds.current.set(id, kind);
+    setData(current => patchWeek(current));
+    setLinesData(current => current && current.lines.some(line => line.id === id) ? {
+      ...current, lines: current.lines.filter(line => line.id !== id), completed: true,
+    } : current);
+  });
+
+  useEffect(() => {
+    if (!allowed) return;
+    let active = true;
+    firstLinesLoad.current ??= careApi.loadPrayerLines();
+    void firstLinesLoad.current.then(result => {
+      if (active) setLinesData(result ? {
+        ...result, lines: result.lines.filter(line => !closedKinds.current.has(line.id)),
+        completed: result.lines.some(line => closedKinds.current.has(line.id)),
+      } : null);
+    }, () => { if (active) setLinesData(null); });
+    return () => { active = false; };
+  }, [allowed]);
+
+  const toggleWaitingEmail = async () => {
+    if (!linesData || mutePending.current) return;
+    mutePending.current = true;
+    setMuteBusy(true);
+    setMuteError(false);
+    try {
+      const waitingMuted = await careApi.setWaitingMuted(!linesData.waitingMuted);
+      setLinesData(current => current ? { ...current, waitingMuted } : current);
+    } catch {
+      setMuteError(true);
+    } finally {
+      mutePending.current = false;
+      setMuteBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!allowed) return;
@@ -48,7 +196,7 @@ export function PrayerCare({ staff, children, onHeldChange }: {
     // Reuse the opening request if React replays the effect in StrictMode.
     firstLoad.current ??= careApi.loadPrayerCare();
     void firstLoad.current.then(result => {
-      if (active) { setData(result); setLoadFailed(false); }
+      if (active) { setData(patchWeek(result)); setLoadFailed(false); }
     }, () => {
       if (active) setLoadFailed(true);
     }).finally(() => { if (active) setLoading(false); });
@@ -60,7 +208,7 @@ export function PrayerCare({ staff, children, onHeldChange }: {
     setLoadFailed(false);
     try {
       const result = await careApi.loadPrayerCare();
-      setData(result ? { ...result, held: result.held.filter(row => !unavailableIds.current.has(row.id)) } : null);
+      setData(patchWeek(result ? { ...result, held: result.held.filter(row => !unavailableIds.current.has(row.id)) } : null));
     } catch {
       setData(null);
       setLoadFailed(true);
@@ -109,7 +257,12 @@ export function PrayerCare({ staff, children, onHeldChange }: {
   ).replace('{n}', String(n));
   const held = allowed ? data?.held[0] : undefined;
   const hasHeld = !!held;
-  useEffect(() => { onHeldChange?.(hasHeld); }, [hasHeld, onHeldChange]);
+  const hasNeedsYouMain = allowed && !hasHeld && !!linesData?.lines.length;
+  // Set the corner draft's priority before paint, including when a line closes.
+  useLayoutEffect(() => {
+    onHeldChange?.(hasHeld);
+    onNeedsYouMainChange?.(hasNeedsYouMain);
+  }, [hasHeld, hasNeedsYouMain, onHeldChange, onNeedsYouMainChange]);
 
   return <>
     {allowed && (held || unavailableError || decisionNotice) && (
@@ -156,6 +309,44 @@ export function PrayerCare({ staff, children, onHeldChange }: {
         </>}
       </section>
     )}
+    {allowed && linesData && (linesData.lines.length > 0 || linesData.completed) && (
+      <section style={cardStyle} aria-labelledby={linesData.lines.length ? 'prayer-care-needs-title' : undefined}
+        aria-label={linesData.lines.length ? undefined : text('needs_you').replace('{n}', '0')}>
+        <p role="status" style={{ ...lineStyle, margin: linesData.completed ? '0 0 12px' : 0 }}>
+          {linesData.completed && text(linesData.lines.length === 0 ? 'done_none' : linesData.lines.length === 1 ? 'done_one' : 'done_more')
+            .replace('{n}', String(linesData.lines.length))}
+        </p>
+        {linesData.lines.length > 0 && <>
+          <h2 id="prayer-care-needs-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>
+            {text('needs_you').replace('{n}', String(linesData.lines.length))}
+          </h2>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {linesData.lines.map((line, index) => {
+              const who = line.firstName !== null ? text('named_ask').replace('{name}', () => line.firstName!)
+                : line.campusName ? text('campus_ask').replace('{campus}', () => line.campusName) : text('anonymous_ask');
+              const waiting = waitingWords(line.createdAt, text);
+              return <li key={line.id} style={{ borderBottom: '1px solid var(--dw-border)', padding: '16px 0', minWidth: 0 }}>
+                <h3 className="font-bold" aria-label={`${who}, ${waiting}`} style={{ ...lineStyle, marginTop: 0 }}>
+                  {who} · {waiting}
+                </h3>
+                <blockquote style={quoteStyle}>“{line.text}”</blockquote>
+                <PrayerActions id={line.id} name={line.firstName} canWrite={line.canWrite}
+                  main={index === 0 && hasNeedsYouMain} allowPrayed flow={flow} text={text} />
+              </li>;
+            })}
+          </ul>
+        </>}
+        <footer>
+          <p style={quietStyle}>{text('how_connects')}</p>
+          <p style={quietStyle}>{text('connects_explained')}</p>
+          <p style={quietStyle}>{text(linesData.waitingMuted ? 'waiting_email_off' : 'waiting_email_explained')}</p>
+          <button type="button" style={textButtonStyle} aria-disabled={muteBusy}
+            onClick={() => void toggleWaitingEmail()}>{text(linesData.waitingMuted ? 'start_waiting_email' : 'stop_waiting_email')}</button>
+          {muteBusy && <p role="status" style={quietStyle}>{text('saving')}</p>}
+          {muteError && <p role="alert" style={{ ...lineStyle, color: 'var(--dw-error)' }}>{text('save_failed')}</p>}
+        </footer>
+      </section>
+    )}
     {children}
     {allowed && (loading || (loadFailed && !unavailableError && !decisionNotice) || data) && (
       <section style={cardStyle} aria-labelledby="prayer-care-week-title">
@@ -170,7 +361,6 @@ export function PrayerCare({ staff, children, onHeldChange }: {
           {data.week.length === 0 ? <p style={lineStyle}>{text('empty')}</p> : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {(showAll ? data.week : data.week.slice(0, 10)).map(row => {
-                const href = !row.anonymous && row.firstName ? careApi.mailtoFor(row.email) : '';
                 return <li key={row.id} style={{ borderTop: '1px solid var(--dw-border)', padding: '16px 0' }}>
                   {!row.anonymous && <>
                     <p style={lineStyle}>{row.firstName} · {days(row.daysAgo)}</p>
@@ -179,7 +369,10 @@ export function PrayerCare({ staff, children, onHeldChange }: {
                   {row.status === 'private' && <span style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: 15 }}>{text('kept_private')}</span>}
                   <blockquote style={quoteStyle}>“{row.text}”</blockquote>
                   <p style={quietStyle}>{text('prayed').replace('{n}', String(row.prayed))}</p>
-                  {href && <a href={href} className="font-semibold" style={secondaryStyle}>{text('write').replace('{name}', row.firstName!)}</a>}
+                  {row.done ? <span style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: 15 }}>
+                    {text(row.done === 'wrote' ? 'written_to' : 'prayed_for')}
+                  </span> : !row.anonymous && row.firstName && row.canWrite && <PrayerActions
+                    id={row.id} name={row.firstName} canWrite flow={flow} text={text} writeKey="write" />}
                 </li>;
               })}
             </ul>
