@@ -10,7 +10,6 @@ const { isSharedRateLimited } = require("./lib/rate-limit");
 // The sign-in rate limits key on an address the client cannot choose (see
 // lib/client-ip.js); the setup-code limits key on its /64 for IPv6.
 const { clientIp, rateLimitIp } = require("./lib/client-ip");
-const { isTeamEmailOnly } = require("./lib/team-email-only");
 const {
   normalizeEmail,
   isAllowlistedEmail,
@@ -780,13 +779,7 @@ exports.handler = async (event) => {
       const password = String(body.password || "");
       const staff = await resolveStaff(email);
       const refuse = () => json(event, 403, { error: "Invalid email or password" });
-      const teamEmailOnly = !password && isTeamEmailOnly(email);
-      if (!staff || (!password && !teamEmailOnly)) return refuse();
-      if (teamEmailOnly) {
-        console.info("[team-email-only] sign-in", email, new Date().toISOString());
-        const token = await issueSession(staff.email);
-        return json(event, 200, { token, staff: publicStaff(staff, await loadCampusesWithin(db())) });
-      }
+      if (!staff || !password) return refuse();
       const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
       // Same answer, with no "set up" hint, for a person who has no password yet:
       // sign-in must not say which addresses are waiting to be set up.

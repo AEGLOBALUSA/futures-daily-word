@@ -423,7 +423,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
       if (!code.trim()) { setError(t('pastor_type_code', getLang())); return; }
       if (password.length < 10) { setError(t('pastor_password_too_short', getLang())); return; }
       if (password !== confirm) { setError(t('pastor_passwords_mismatch', getLang())); return; }
-    }
+    } else if (!password) { setError(t('pastor_type_password', getLang())); return; }
     setBusy(true);
     try {
       if (setup) {
@@ -496,7 +496,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
           id="staff-password"
           type="password"
           autoComplete={setup ? 'new-password' : 'current-password'}
-          required={setup}
+          required
           minLength={setup ? 10 : undefined}
           value={password}
           onChange={e => setPassword(e.target.value)}
