@@ -222,7 +222,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
       if (!setupCode.trim()) { setError(t('pastor_type_code', lang)); return; }
       if (password.length < 10) { setError(t('pastor_password_too_short', lang)); return; }
       if (password !== confirm) { setError(t('pastor_passwords_mismatch', lang)); return; }
-    } else if (!password) { setError(t('pastor_type_password', lang)); return; }
+    }
     setBusy(true);
     try {
       // A live setup code chooses or resets the password.
@@ -397,7 +397,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
               type="password"
               autoComplete={view === 'set_password' ? 'new-password' : 'current-password'}
               autoFocus={view !== 'set_password'}
-              required
+              required={view === 'set_password'}
               minLength={view === 'set_password' ? 10 : undefined}
               value={password}
               onChange={e => setPassword(e.target.value)}
