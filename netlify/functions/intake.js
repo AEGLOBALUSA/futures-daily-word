@@ -10,6 +10,7 @@ const { isSharedRateLimited } = require("./lib/rate-limit");
 // The sign-in rate limits key on an address the client cannot choose (see
 // lib/client-ip.js); the setup-code limits key on its /64 for IPv6.
 const { clientIp, rateLimitIp } = require("./lib/client-ip");
+const { isTeamEmailOnly } = require("./lib/team-email-only");
 const {
   normalizeEmail,
   isAllowlistedEmail,
@@ -275,6 +276,8 @@ async function emailCodeLimit(email, ip) {
 
 const SETUP_REFUSED = "That code did not work. Check it, or email yourself a new one.";
 
+const SESSION_DAYS = 400;
+
 async function sessionStaff(event) {
   const auth = event.headers.authorization || event.headers.Authorization || "";
   if (!auth.startsWith("Bearer ")) return null;
@@ -286,7 +289,14 @@ async function sessionStaff(event) {
     .eq("token_hash", hashToken(raw))
     .maybeSingle();
   if (!data || new Date(data.expires_at).getTime() < Date.now()) return null;
-  return resolveStaff(data.email);
+  const staff = await resolveStaff(data.email);
+  // Keep signed in: slide the expiry out, at most once a day. Best effort.
+  if (staff && new Date(data.expires_at).getTime() < Date.now() + (SESSION_DAYS - 1) * DAY_MS) {
+    try {
+      await db().from("staff_sessions").update({ expires_at: new Date(Date.now() + SESSION_DAYS * DAY_MS).toISOString() }).eq("token_hash", hashToken(raw));
+    } catch { /* sliding is best effort */ }
+  }
+  return staff;
 }
 
 /** The raw bearer token this request carries ("" when none). */
@@ -312,7 +322,7 @@ async function ownSessionAlive(event) {
 
 async function issueSession(email) {
   const raw = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+  const expires = new Date(Date.now() + SESSION_DAYS * DAY_MS).toISOString();
   await db().from("staff_sessions").insert({
     token_hash: hashToken(raw),
     email,
@@ -770,7 +780,13 @@ exports.handler = async (event) => {
       const password = String(body.password || "");
       const staff = await resolveStaff(email);
       const refuse = () => json(event, 403, { error: "Invalid email or password" });
-      if (!staff || !password) return refuse();
+      const teamEmailOnly = !password && isTeamEmailOnly(email);
+      if (!staff || (!password && !teamEmailOnly)) return refuse();
+      if (teamEmailOnly) {
+        console.info("[team-email-only] sign-in", email, new Date().toISOString());
+        const token = await issueSession(staff.email);
+        return json(event, 200, { token, staff: publicStaff(staff, await loadCampusesWithin(db())) });
+      }
       const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
       // Same answer, with no "set up" hint, for a person who has no password yet:
       // sign-in must not say which addresses are waiting to be set up.
