@@ -368,9 +368,10 @@ describe('PastorSignIn', () => {
       expect(el.querySelector('#dw-pastor-code-sent')).toBeNull();
       expect(el.querySelector('#dw-pastor-email-code')).toBeTruthy();
       expect([...el.querySelectorAll('button[type="submit"]')].map(b => b.textContent)).toEqual(['Sign in']);
-      // The password may be left blank: the server decides (team email-only sign-in).
+      // A plain sign-in with no password says so beside the button instead of greying it out.
       await submit(el.querySelector('form')!);
-      expect(api.intake).toHaveBeenCalledWith('login', expect.objectContaining({ password: '' }));
+      expect(el.querySelector('form [role="alert"]')?.textContent).toBe('Type your password.');
+      expect(api.intake).not.toHaveBeenCalledWith('login', expect.anything());
     });
   });
 
