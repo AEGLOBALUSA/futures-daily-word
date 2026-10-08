@@ -627,7 +627,6 @@ describe('StaffApp People shows the one-time code to Ashley', () => {
         ],
         canMakeAdmin: true,
       };
-      if (action === 'roster_make_admin') return { person: { email: 'hub@example.com', role: 'admin' } };
       return {};
     });
     const { el, root } = mount(<StaffApp />);
@@ -637,10 +636,7 @@ describe('StaffApp People shows the one-time code to Ashley', () => {
     expect([...el.querySelectorAll('button')].filter(b => (b.textContent || '').trim() === 'Make admin')).toHaveLength(1);
     expect(el.textContent).toContain('Hub person');
     expect(el.textContent).toContain('Admin person');
-    await act(async () => { [...el.querySelectorAll('button')].find(b => (b.textContent || '').trim() === 'Make admin')!.click(); });
-    await flush();
-    expect(vi.mocked(intake).mock.calls.some(c => c[0] === 'roster_make_admin' && c[1]?.email === 'hub@example.com')).toBe(true);
-    expect(el.textContent).toContain('Hub person is now an admin. They can add people and edit Campuses.');
+    expect(el.querySelector('option[value="admin"]')?.textContent).toBe('Admin');
     act(() => root.unmount());
 
     vi.mocked(intake).mockImplementation(async (action: string) => {
@@ -653,7 +649,101 @@ describe('StaffApp People shows the one-time code to Ashley', () => {
     await act(async () => { [...second.el.querySelectorAll('button')].find(b => (b.textContent || '').trim() === 'People')!.click(); });
     await flush();
     expect([...second.el.querySelectorAll('button')].filter(b => (b.textContent || '').trim() === 'Make admin')).toHaveLength(0);
+    expect(second.el.querySelector('option[value="admin"]')).toBeNull();
+    expect(second.el.textContent).toContain('Only Ashley makes admins.');
     act(() => second.root.unmount());
+  });
+
+  it('applies a grant before refresh, announces and focuses the row, and retries a failed refresh separately', async () => {
+    const person = { email: 'hub@example.com', role: 'hub', campus_id: 'us-gwinnett', display_name: 'Hub person', has_password: true, code_live: false, code_expires_at: null };
+    const other = { ...person, email: 'media@example.com', role: 'media', display_name: 'Media person' };
+    const returnedPerson = { email: person.email, role: 'admin', campus_id: null, display_name: 'Updated person' };
+    let resolveGrant!: (value: unknown) => void;
+    let rejectRefresh!: (reason: Error) => void;
+    const grant = new Promise(resolve => { resolveGrant = resolve; });
+    const refresh = new Promise((_, reject) => { rejectRefresh = reject; });
+    let loads = 0;
+    let grants = 0;
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: { email: 'owner@example.com', role: 'admin', isAdmin: true } };
+      if (action === 'roster_list') {
+        loads += 1;
+        if (loads === 2) return refresh;
+        return { roster: [loads === 1 ? person : { ...person, ...returnedPerson }, other], canMakeAdmin: true };
+      }
+      if (action === 'roster_make_admin') { grants += 1; return grant; }
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    await act(async () => { [...el.querySelectorAll('button')].find(b => b.textContent === 'People')!.click(); });
+    const [button, waitingButton] = [...el.querySelectorAll('button')].filter(b => b.textContent === 'Make admin');
+    const row = button.parentElement!.parentElement!;
+    const status = row.querySelector<HTMLElement>('[role="status"]')!;
+    expect(status.textContent).toBe('');
+    expect(status.getAttribute('aria-live')).toBe('polite');
+    button.focus();
+    await act(async () => { button.click(); });
+    expect(status.textContent).toBe('Making admin…');
+    expect(waitingButton.getAttribute('aria-disabled')).toBe('true');
+    expect(waitingButton.disabled).toBe(false);
+    expect(waitingButton.parentElement!.parentElement!.textContent).toContain('Wait for the change above to finish');
+    await act(async () => { waitingButton.click(); });
+    expect(grants).toBe(1);
+    await act(async () => { resolveGrant({ person: returnedPerson }); });
+    expect(loads).toBe(2);
+    expect(row.querySelector('[role="status"]')).toBe(status);
+    expect(status.textContent).toContain('Updated person is now an admin. They can add people and edit Campuses.');
+    expect(status.textContent).toContain('Loading People…');
+    expect(document.activeElement).toBe(status);
+    expect(status.tabIndex).toBe(-1);
+    expect(row.textContent).toContain('hub@example.com · admin · password set');
+    expect([...row.querySelectorAll('button')].some(b => /Make admin|Making admin/.test(b.textContent || ''))).toBe(false);
+    expect(vi.mocked(intake).mock.calls.some(c => c[0] === 'roster_make_admin' && c[1]?.email === person.email)).toBe(true);
+    await act(async () => { rejectRefresh(new Error('Network unavailable')); });
+    expect(row.querySelector('[role="alert"]')?.textContent).toBe('They are an admin, but People could not refresh. Load People again.');
+    expect(status.textContent).toContain('Updated person is now an admin.');
+    expect(row.textContent).not.toContain('Try Make admin again');
+    expect(waitingButton.getAttribute('aria-disabled')).toBeNull();
+    const retry = [...row.querySelectorAll('button')].find(b => b.textContent === 'Load People again')!;
+    expect(retry.style.minHeight).toBe('44px');
+    retry.focus();
+    await act(async () => { retry.click(); });
+    expect(loads).toBe(3);
+    expect(grants).toBe(1);
+    expect(row.querySelector('[role="alert"]')).toBeNull();
+    expect(row.textContent).not.toContain('Load People again');
+    expect(document.activeElement).toBe(status);
+    act(() => root.unmount());
+  });
+
+  it('shows a failed grant beside that row’s Make admin button and keeps it available to retry', async () => {
+    let loads = 0;
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: { email: 'owner@example.com', role: 'admin', isAdmin: true } };
+      if (action === 'roster_list') {
+        loads += 1;
+        return { roster: [{ email: 'hub@example.com', role: 'hub', campus_id: null, display_name: 'Hub person' }], canMakeAdmin: true };
+      }
+      if (action === 'roster_make_admin') throw new Error('Could not make them an admin.');
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    await act(async () => { [...el.querySelectorAll('button')].find(b => b.textContent === 'People')!.click(); });
+    const button = [...el.querySelectorAll('button')].find(b => b.textContent === 'Make admin')!;
+    const row = button.parentElement!.parentElement!;
+    button.focus();
+    await act(async () => { button.click(); });
+    const alert = row.querySelector('[role="alert"]');
+    expect(alert?.textContent).toBe('Could not make them an admin. Try Make admin again.');
+    expect([...el.querySelectorAll('[role="alert"]')]).toEqual([alert]);
+    expect(document.activeElement).toBe(button);
+    expect(button.textContent).toBe('Make admin');
+    expect(button.getAttribute('aria-disabled')).toBeNull();
+    expect(row.querySelector('[role="status"]')?.textContent).toBe('');
+    expect(loads).toBe(1);
+    act(() => root.unmount());
   });
 });
 
