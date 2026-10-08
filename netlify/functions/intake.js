@@ -899,6 +899,12 @@ exports.handler = async (event) => {
         ({ data: changed, error } = await write((q) => q.is("text_size_at", null)));
         if (error) throw error;
       }
+      // A first save from another device may have filled the empty row between
+      // the two: compare against it once more, so the newer choice still wins.
+      if (!changed || !changed.length) {
+        ({ data: changed, error } = await write((q) => q.lt("text_size_at", iso)));
+        if (error) throw error;
+      }
       if (changed && changed.length) return json(event, 200, { value: { size, at: new Date(iso).getTime() }, saved: true });
       const { data: row, error: keptErr } = await db().from("staff_roster").select("text_size, text_size_at").eq("email", staff.email).maybeSingle();
       if (keptErr) throw keptErr;
