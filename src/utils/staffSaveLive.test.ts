@@ -3,7 +3,8 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 describe('staff save is live', () => {
-  const src = readFileSync(resolve(__dirname, '../staff/StaffApp.tsx'), 'utf8');
+  // The staff words live in StaffApp and, since the staff side speaks Spanish too, in i18n's staff_* keys.
+  const src = readFileSync(resolve(__dirname, '../staff/StaffApp.tsx'), 'utf8') + readFileSync(resolve(__dirname, './i18n.ts'), 'utf8');
   const api = readFileSync(resolve(__dirname, '../../netlify/functions/intake.js'), 'utf8');
 
   it('puts notes live from save, without sending them to Ashley', () => {
