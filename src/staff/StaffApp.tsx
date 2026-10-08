@@ -24,6 +24,7 @@ import { QuickNotes } from './QuickNotes';
 import { CornerDraftCard } from './CornerDraftCard';
 import { PrayerCare } from './PrayerCare';
 import { MoGuideMount } from './guide/MoGuideMount';
+import { applyStaffLangDefault, initStaffLangDefault } from './staffLang';
 import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 import { homePlan, loadHomeInfo, type HomeInfo } from './homePlan';
@@ -105,7 +106,7 @@ function stripTabDeepLink() {
 }
 
 type Job = 'hub' | 'media' | 'campus';
-type Staff = { email: string; role: Role; campusId: string | null; name: string; isAdmin: boolean };
+type Staff = { email: string; role: Role; campusId: string | null; name: string; isAdmin: boolean; congregation?: string | null };
 type Question = {
   id: string;
   sort_order: number;
@@ -189,6 +190,8 @@ function congregationPageUrl(congregation: CongregationId): string {
 }
 
 export function StaffApp() {
+  // Before the first paint: the device's Spanish (or the last sign-in's default) for the sign-in screen.
+  useState(() => { initStaffLangDefault(); return true; });
   const [token, setToken] = useState(() => getStaffToken());
   const [staff, setStaff] = useState<Staff | null>(null);
   const [boot, setBoot] = useState(!!getStaffToken());
@@ -208,7 +211,7 @@ export function StaffApp() {
   }, []);
 
   useEffect(() => {
-    const handleSignedOut = () => { setToken(''); setStaff(null); };
+    const handleSignedOut = () => { applyStaffLangDefault(null); setToken(''); setStaff(null); };
     window.addEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
     return () => window.removeEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
   }, []);
@@ -217,6 +220,7 @@ export function StaffApp() {
     if (!getStaffToken()) { setBoot(false); return; }
     try {
       const data = await intake<{ staff: Staff }>('me');
+      applyStaffLangDefault(data.staff);
       // Keep the screen the page opened on: Staff home, or the one a link named.
       setStaff(data.staff);
     } catch {
@@ -231,6 +235,7 @@ export function StaffApp() {
 
   const signOut = async () => {
     try { await intake('logout'); } catch { /* */ }
+    applyStaffLangDefault(null);
     setStaffToken(''); setToken(''); setStaff(null); setTab('home'); setSeed(undefined);
   };
 
@@ -251,7 +256,7 @@ export function StaffApp() {
   if (!token || !staff) {
     return (
       <Login
-        onSignedIn={(t, s) => { setStaffToken(t); setToken(t); setStaff(s); }}
+        onSignedIn={(t, s) => { applyStaffLangDefault(s); setStaffToken(t); setToken(t); setStaff(s); }}
       />
     );
   }
