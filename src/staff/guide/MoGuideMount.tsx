@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { getLang } from '../../utils/i18n';
 import { getMoGuideContent, type MoGuideContent } from './moGuide';
 
 declare global {
@@ -17,15 +18,20 @@ const GUIDE_SRC = '/multiplyos/mo-guide.js';
  */
 export function MoGuideMount({ isAdmin, role }: { isAdmin: boolean; role: string }) {
   useEffect(() => {
-    const content = getMoGuideContent({ isAdmin, role });
-    window.__moGuideContent = content;
-    window.moGuide?.set(content);
+    const updateContent = () => {
+      const content = getMoGuideContent({ isAdmin, role }, getLang());
+      window.__moGuideContent = content;
+      window.moGuide?.set(content);
+    };
+    updateContent();
+    window.addEventListener('dw-lang-changed', updateContent);
     if (!document.querySelector(`script[src="${GUIDE_SRC}"]`)) {
       const script = document.createElement('script');
       script.defer = true;
       script.src = GUIDE_SRC;
       document.head.appendChild(script);
     }
+    return () => window.removeEventListener('dw-lang-changed', updateContent);
   }, [isAdmin, role]);
   return null;
 }

@@ -33,7 +33,11 @@ type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'notes' | 'form' | 'review' | 'people' | 'campuses';
 
 const staffAppName = 'Futures Daily Word';
-const staffTabLabels = { home: '← Staff home', notes: 'Sunday’s notes', people: 'People', review: 'History', campuses: 'Campuses' };
+const staffTabLabels = {
+  get home() { return t('staff_home_link', getLang()); },
+  get notes() { return t('staff_notes_tab', getLang()); },
+  people: 'People', review: 'History', campuses: 'Campuses',
+};
 
 function MosBrandLockup() {
   return (
@@ -192,6 +196,12 @@ function congregationPageUrl(congregation: CongregationId): string {
 export function StaffApp() {
   // Before the first paint: the device's Spanish (or the last sign-in's default) for the sign-in screen.
   useState(() => { initStaffLangDefault(); return true; });
+  const [lang, setLang] = useState(getLang);
+  useEffect(() => {
+    const updateLang = () => setLang(getLang());
+    window.addEventListener('dw-lang-changed', updateLang);
+    return () => window.removeEventListener('dw-lang-changed', updateLang);
+  }, []);
   const [token, setToken] = useState(() => getStaffToken());
   const [staff, setStaff] = useState<Staff | null>(null);
   const [boot, setBoot] = useState(!!getStaffToken());
@@ -204,8 +214,9 @@ export function StaffApp() {
   // Staff home unless a link named another screen this person may open.
   const view: Tab = staff ? staffViewFor(tab, staff) : 'home';
 
+  useEffect(() => { document.title = t('staff_page_title', lang); }, [lang]);
+
   useEffect(() => {
-    document.title = 'Staff — Futures Daily Word';
     document.documentElement.setAttribute('data-theme', localStorage.getItem('dw_dark') === 'true' ? 'dark' : 'light');
     stripTabDeepLink();
   }, []);
@@ -248,7 +259,7 @@ export function StaffApp() {
   if (boot) {
     return (
       <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>Loading…</p>
+        <p style={{ color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>{t('staff_loading', getLang())}</p>
       </div>
     );
   }
@@ -285,8 +296,8 @@ export function StaffApp() {
               {staff.name || staff.email}
               {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
             </p>
-            <button type="button" data-mo-guide-open aria-label="Open the guide">Guide</button>
-            <button type="button" onClick={signOut}>Sign out</button>
+            <button type="button" data-mo-guide-open aria-label={t('staff_guide_open', getLang())}>{t('staff_guide', getLang())}</button>
+            <button type="button" onClick={signOut}>{t('staff_sign_out', getLang())}</button>
           </div>
         </aside>
       )}
@@ -301,23 +312,23 @@ export function StaffApp() {
               <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
                 {staffAppName}
               </p>
-              <h1 style={{ margin: '4px 0 0', fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 700 }}>Staff</h1>
+              <h1 style={{ margin: '4px 0 0', fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 700 }}>{t('staff_heading', getLang())}</h1>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button
                 type="button"
                 data-mo-guide-open
-                aria-label="Open the guide"
+                aria-label={t('staff_guide_open', getLang())}
                 style={{ ...btnGhost, minHeight: 44, padding: '8px 12px' }}
               >
-                Guide
+                {t('staff_guide', getLang())}
               </button>
               <button
                 type="button"
                 onClick={signOut}
                 style={{ ...btnGhost, minHeight: 44, padding: '8px 12px' }}
               >
-                Sign out
+                {t('staff_sign_out', getLang())}
               </button>
             </div>
           </div>
@@ -598,11 +609,11 @@ function StaffHome({
   }, []);
   // Sunday's notes is its own screen (B09-10's one pasted box), listed first
   // for the staff who can use it; Staff home itself stays the first screen.
-  const notesJob = { id: 'notes' as const, title: 'Paste Sunday’s notes', body: 'One paste. The app works out the Sunday, title, speaker, series and YouTube, and shows you the page before it goes up.' };
+  const notesJob = { id: 'notes' as const, title: t('staff_notes_card_title', getLang()), body: t('staff_notes_card_body', getLang()) };
   const jobs: { id: Job; title: string; body: string }[] = [
-    { id: 'hub', title: 'Put up this week’s sermon notes', body: 'Date, title, speaker, series, YouTube, paste your notes. Save puts it on the congregation page.' },
-    { id: 'media', title: 'Add the YouTube or clean the notes', body: 'Pick the sermon. Paste a link. Or paste notes if they need a cleanup.' },
-    { id: 'campus', title: 'Update a campus corner', body: 'What’s on this week, a prayer point if you have one, or take something down.' },
+    { id: 'hub', title: t('staff_hub_card_title', getLang()), body: t('staff_hub_card_body', getLang()) },
+    { id: 'media', title: t('staff_media_card_title', getLang()), body: t('staff_media_card_body', getLang()) },
+    { id: 'campus', title: t('staff_campus_card_title', getLang()), body: t('staff_campus_card_body', getLang()) },
   ];
   const visible = staff.isAdmin
     ? jobs
@@ -612,21 +623,21 @@ function StaffHome({
   const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
   const plan = homeInfo === undefined ? null : homePlan(cards.map(c => c.id), homeInfo);
   const mainLabels = {
-    notes: 'Paste Sunday’s notes',
-    hub: 'Put up this week’s notes',
-    media: 'Add the YouTube or clean the notes',
-    campus: 'Update the campus corner',
+    notes: t('staff_notes_card_title', getLang()),
+    hub: t('staff_hub_main', getLang()),
+    media: t('staff_media_card_title', getLang()),
+    campus: t('staff_campus_main', getLang()),
   };
   return (
     <div style={{ '--mos-control-height': '44px' } as CSSProperties}>
       <PrayerCare staff={staff} onHeldChange={setHasHeldPrayer} onNeedsYouMainChange={setHasNeedsYouMain}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>{t('staff_heading', getLang())}</h2>
       {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} secondary={hasHeldPrayer || hasNeedsYouMain}
         onMainChange={setHasDraftMain}
         staffCampusId={staff.role === 'campus' ? staff.campusId ?? undefined : undefined}
         onJob={job => onJob(job)} />}
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
-        This is how Sunday’s sermon notes get onto the page people write in.
+        {t('staff_home_intro', getLang())}
       </p>
       {plan?.notesUp && (
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
@@ -715,12 +726,28 @@ function StaffHome({
 
 function formIntro(job: Job) {
   if (job === 'hub') {
-    return 'You’re putting this week’s message on the congregation Sermon Notes page. Answer these, paste your notes, save — it goes live.';
+    return t('staff_hub_intro', getLang());
   }
   if (job === 'media') {
-    return 'Add the YouTube for this week’s message, or paste notes if they need a cleanup. YouTube alone does not change the notes that are already live.';
+    return t('staff_media_intro', getLang());
   }
-  return 'What’s on this week, a prayer point if you have one, and anything that should come down. Save puts it on the campus corner.';
+  return t('staff_campus_intro', getLang());
+}
+
+/** Keep server diagnostics out of translated screens; English retains its current copy. */
+function staffFormError(err: unknown, fallback: string): string {
+  if (getLang() !== 'es') return err instanceof Error ? err.message : t(fallback, getLang());
+  const message = err instanceof Error ? err.message : '';
+  const known: Record<string, string> = {
+    'Sign in required': 'staff_quick_err_signin',
+    'Choose your campus': 'staff_select_campus',
+    'You can only update your own campus': 'staff_own_campus_only',
+    'Server error': fallback,
+  };
+  const code = (err as { data?: { code?: string } } | null)?.data?.code;
+  if (code === 'media_form_off') return t('staff_quick_err_media_off', getLang());
+  if (code === 'youtube_invalid') return t('staff_youtube_invalid', getLang());
+  return t(known[message] || fallback, getLang());
 }
 
 function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; seed?: IntakeSeed; onError: (s: string) => void }) {
@@ -852,8 +879,8 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   }, [answers, currentSermon, job, questions, sermons]);
   // Pasted notes re-put the message up; only a link-only save keeps the current one.
   const mediaLinkOnly = job === 'media' && !paste.trim();
-  const mediaButtonLabel = !mediaLinkOnly ? 'Put this on the congregation page'
-    : pickedSermon?.title ? `Add the video to “${pickedSermon.title}”` : 'Add the video';
+  const mediaButtonLabel = !mediaLinkOnly ? t('staff_publish_notes', getLang())
+    : pickedSermon?.title ? t('staff_video_for', getLang()).replace('{title}', () => pickedSermon.title) : t('staff_add_video', getLang());
   const doneCongregation = savedCongregation || congregation;
   // What the message picker offers: for the media form, this church's messages
   // (and "This week's published message" only when it has one).
@@ -883,8 +910,8 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   const youtubeQ = questions.find(q => q.config?.sermonKey === 'youtubeUrl' && (q.audience === job || q.audience === 'all'));
   // The media form exists to add the link, so it never suggests leaving it blank.
   const youtubeProblem = !youtubeQ ? '' : job === 'media' && youtubeLinkProblem(answers[youtubeQ.id])
-    ? 'That is not a YouTube video link. Paste the watch, youtu.be, shorts, or embed link.'
-    : youtubeLinkProblem(answers[youtubeQ.id]);
+    ? t('staff_youtube_invalid', getLang())
+    : youtubeLinkProblem(answers[youtubeQ.id]) ? t('staff_youtube_optional', getLang()) : '';
 
   const runPreview = async (override?: Record<string, unknown>) => {
     if (youtubeProblem) { fail(youtubeProblem); return; }
@@ -897,9 +924,9 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         congregation,
       });
       setPreview(data.preview);
-      if (!data.preview) fail('Nothing to format yet — paste your notes first.');
+      if (!data.preview) fail(t('staff_preview_empty', getLang()));
     } catch (err) {
-      fail(err instanceof Error ? err.message : 'Could not preview');
+      fail(staffFormError(err, 'staff_preview_failed'));
     }
     setBusy(false);
   };
@@ -908,18 +935,18 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
     e?.preventDefault();
     if (busy || !loaded || loadError || questions.length === 0) return;
     if (haveQ && answers[haveQ.id] !== true && answers[haveQ.id] !== false) {
-      fail('Do you have your notes?');
+      fail(t('staff_have_notes', getLang()));
       return;
     }
     if (haveNotes && pasteQ && !paste.trim() && job === 'hub') {
-      fail('Paste your notes.');
+      fail(t('staff_paste_notes', getLang()));
       return;
     }
     if (youtubeProblem) { fail(youtubeProblem); return; }
     // The media form adds a video (or polished notes) to a message. With
     // neither, saving would re-put that message up over the current one.
     if (job === 'media' && youtubeQ && !String(answers[youtubeQ.id] || '').trim() && !paste.trim()) {
-      fail('Paste the YouTube link first.');
+      fail(t('staff_youtube_first', getLang()));
       return;
     }
     // Our own required check (the form is noValidate): the browser's bubble is
@@ -931,7 +958,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       return v == null || v === '' || (Array.isArray(v) && v.length === 0);
     });
     if (missing) {
-      fail(`Fill in “${missing.label}” first — it is empty.`);
+      fail(t('staff_required_field', getLang()).replace('{label}', () => missing.label));
       return;
     }
     // "This week's published message" is bound to the message the button
@@ -942,17 +969,17 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       && (q.audience === job || q.audience === 'all')) : undefined;
     // A link on its own goes on the message picked or nowhere.
     if (pickQ && mediaLinkOnly && (answers[pickQ.id] == null || answers[pickQ.id] === '')) {
-      fail('Pick the message the video is for.');
+      fail(t('staff_pick_message', getLang()));
       return;
     }
     if (pickQ && answers[pickQ.id] === '__current__' && !currentSermon?.id) {
       setAnswers(a => ({ ...a, [pickQ.id]: '' }));
-      fail(`Nothing is on the ${congregationName(congregation)} page this week. Pick the message the video is for.`);
+      fail(t('staff_no_current_message', getLang()).replace('{congregation}', () => congregationName(congregation)));
       return;
     }
     const pickedOther = pickQ ? sermons.find(s => s.id === answers[pickQ.id]) : undefined;
     if (pickedOther?.congregation && pickedOther.congregation !== congregation) {
-      fail(`“${pickedOther.title}” is on the ${congregationName(pickedOther.congregation as CongregationId)} page. Pick a ${congregationName(congregation)} message.`);
+      fail(t('staff_wrong_church', getLang()).replace('{title}', () => pickedOther.title).replace('{other}', () => congregationName(pickedOther.congregation as CongregationId)).replace('{congregation}', () => congregationName(congregation)));
       return;
     }
     const sentAnswers = pickQ && answers[pickQ.id] === '__current__' && currentSermon?.id
@@ -980,7 +1007,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       const published = data.publish_result?.sermon;
       if (sermonForm && !data.pending) {
         if (!published?.id) {
-          fail('Saved, but nothing reached the congregation page — there were no notes or title to publish.');
+          fail(t('staff_publish_empty', getLang()));
         } else {
           // Read it back the way the congregation does, so "It's on the page" is a fact, not a hope.
           let verified = false;
@@ -1019,15 +1046,15 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       if (pickQ && code === 'target_gone' && typedTitle) {
         // A typed title that matches no message: keep it to correct, and say
         // where a new message goes instead of "pick again" from an empty list.
-        fail(`No message called “${typedTitle}” is on the ${congregationName(congregation)} page. Check the title, or put the message up first with “Put up this week’s sermon notes”; the link is still filled in.`);
+        fail(t('staff_title_not_found', getLang()).replace('{title}', () => typedTitle).replace('{congregation}', () => congregationName(congregation)));
       } else if (pickQ && (code === 'target_gone' || code === 'other_congregation')) {
         // The message is gone (or belongs to another church): clear the pick,
         // keep the link, and reload the list so only real messages are offered.
         setAnswers(a => ({ ...a, [pickQ.id]: '' }));
-        fail('That message is no longer on the list. Pick another, or put it up first with “Put up this week’s sermon notes”; the link is still filled in.');
+        fail(t('staff_message_gone', getLang()));
         void load(pickCampus || staff.campusId || undefined);
       } else {
-        fail(err instanceof Error ? err.message : 'Could not submit');
+        fail(staffFormError(err, 'staff_submit_failed'));
       }
     }
     setBusy(false);
@@ -1057,13 +1084,13 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   return (
     <form noValidate onSubmit={submit} onChangeCapture={() => setWordingSaved(null)}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>
-        {job === 'hub' ? 'This week’s sermon notes' : job === 'media' ? 'YouTube and notes' : 'Campus corner'}
+        {job === 'hub' ? t('staff_hub_form_title', getLang()) : job === 'media' ? t('staff_media_form_title', getLang()) : t('staff_campus_form_title', getLang())}
       </h2>
       <p style={{ ...helpStyle, marginBottom: 28 }}>{formIntro(job)}</p>
       {rewordable.length > 0 && <p style={{ ...helpStyle, fontSize: 15 }}>{t('staff_wording_guide', getLang())}</p>}
 
       {sermonForm && (
-        <Field label="Which church is this for?" help="Each church has its own Sermon Notes page. People pick theirs from the banner in the app.">
+        <Field label={t('staff_church_question', getLang())} help={t('staff_church_help', getLang())}>
           <select
             value={congregation}
             onChange={e => pickCongregation(e.target.value)}
@@ -1100,7 +1127,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
           q={(job === 'hub' || job === 'campus') ? {
             ...q,
             label: withStep(i + 1, q.label),
-            help: job === 'hub' && q.config?.sermonKey === 'youtubeUrl' ? 'You can add this after Sunday.' : q.help,
+            help: job === 'hub' && q.config?.sermonKey === 'youtubeUrl' ? t('staff_youtube_later', getLang()) : q.help,
           } : q}
           wording={wordingFor(q)}
           problem={q.config?.sermonKey === 'youtubeUrl' ? youtubeProblem : ''}
@@ -1144,7 +1171,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
 
       {sermonForm && preview && wantsAI && (
         <p style={{ ...helpStyle, marginBottom: 12 }}>
-          The preview above is not live yet. The button below puts it on the congregation page.
+          {t('staff_preview_not_live', getLang())}
         </p>
       )}
       <div style={{ position: editingId ? 'static' : 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 1 }}>
@@ -1163,11 +1190,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
               </p>
             )}
             <button type="submit" className={editingId ? 'mos-button mos-button--primary' : 'dw-next mos-button mos-button--primary'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
-              {busy || loading ? 'Working…' : job === 'campus' ? 'Put this on the campus corner' : job === 'media' ? mediaButtonLabel : 'Put this on the congregation page'}
+              {busy || loading ? t('staff_working', getLang()) : job === 'campus' ? t('staff_publish_corner', getLang()) : job === 'media' ? mediaButtonLabel : t('staff_publish_notes', getLang())}
             </button>
             {mediaKeepsCurrentMessage && (
               <p style={{ ...helpStyle, fontSize: 15, marginTop: 8 }}>
-                “{currentSermon.title}” stays the message on the {congregationName(congregation)} page.
+                {t('staff_current_stays', getLang()).replace('{title}', () => currentSermon.title).replace('{congregation}', () => congregationName(congregation))}
               </p>
             )}
             {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
@@ -1178,30 +1205,30 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
         <div style={{ marginTop: 12, fontFamily: 'var(--font-sans)' }}>
           <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 15, fontWeight: 600 }}>
             {held
-              ? 'Saved. It goes on the campus corner once your campus is confirmed.'
+              ? t('staff_corner_held', getLang())
               : job === 'campus'
-              ? 'It’s on the campus corner.'
+              ? t('staff_corner_done', getLang())
               : live?.verified
-                ? `It’s on the ${congregationName(doneCongregation)} page: ${live.title}`
+                ? t('staff_live_verified', getLang()).replace('{congregation}', () => congregationName(doneCongregation)).replace('{title}', () => live.title)
                 : live && !live.verified && live.showing
                   ? job === 'media'
-                    ? `The video is saved on “${live.title}”. The ${congregationName(doneCongregation)} page shows “${live.showing}”, the message that is on now.`
-                    : `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page shows “${live.showing}”, the message that is on now.`
+                    ? t('staff_video_other', getLang()).replace('{title}', () => live.title).replace('{congregation}', () => congregationName(doneCongregation)).replace('{showing}', () => live.showing ?? '')
+                    : t('staff_notes_other', getLang()).replace('{title}', () => live.title).replace('{congregation}', () => congregationName(doneCongregation)).replace('{showing}', () => live.showing ?? '')
                 : live && !live.verified && live.checked === false
                   ? job === 'media'
-                    ? `The video is saved on “${live.title}”. We couldn’t check the ${congregationName(doneCongregation)} page just now: open it to see.`
-                    : `Saved as “${live.title}”. We couldn’t check the ${congregationName(doneCongregation)} page just now: open it to see.`
+                    ? t('staff_video_unchecked', getLang()).replace('{title}', () => live.title).replace('{congregation}', () => congregationName(doneCongregation))
+                    : t('staff_notes_unchecked', getLang()).replace('{title}', () => live.title).replace('{congregation}', () => congregationName(doneCongregation))
                 : live && !live.verified && live.empty
                   ? job === 'media'
-                    ? `The video is saved on “${live.title}”. The ${congregationName(doneCongregation)} page shows no message right now.`
-                    : `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page shows no message right now.`
+                    ? t('staff_video_empty', getLang()).replace('{title}', () => live.title).replace('{congregation}', () => congregationName(doneCongregation))
+                    : t('staff_notes_empty', getLang()).replace('{title}', () => live.title).replace('{congregation}', () => congregationName(doneCongregation))
                 : live
-                  ? `Saved as “${live.title}”. The ${congregationName(doneCongregation)} page has not shown it yet — open it and pull to refresh.`
-                  : 'Saved.'}
+                  ? t('staff_live_unverified', getLang()).replace('{title}', () => live.title).replace('{congregation}', () => congregationName(doneCongregation))
+                  : t('staff_saved', getLang())}
           </p>
           {job !== 'campus' && !held && (
             <a href={congregationPageUrl(doneCongregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600 }}>
-              Open the {congregationName(doneCongregation)} page →
+              {t('staff_open_page', getLang()).replace('{congregation}', () => congregationName(doneCongregation))}
             </a>
           )}
         </div>
@@ -1210,11 +1237,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       {mine.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--dw-text-muted)' }}>
-            Your recent submissions
+            {t('staff_recent_submissions', getLang())}
           </h3>
           {mine.map(s => (
             <p key={s.id} style={{ fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '8px 0' }}>
-              {new Date(s.created_at).toLocaleString()} · {s.status}
+              {new Date(s.created_at).toLocaleString(getLang() === 'es' ? 'es' : undefined)} · {['pending', 'approved', 'declined'].includes(s.status) ? t(`staff_status_${s.status}`, getLang()) : s.status}
             </p>
           ))}
         </div>
@@ -1255,9 +1282,9 @@ function NotesFlow({
   onFormat: () => void;
 }) {
   let step = stepStart;
-  const haveLabel = haveQ ? withStep(++step, 'Do you have your notes?') : '';
-  const pasteLabel = pasteQ ? withStep(++step, 'Paste your notes.') : '';
-  const aiLabel = aiQ ? withStep(++step, 'Would you like AI to format these for the congregation?') : '';
+  const haveLabel = haveQ ? withStep(++step, t('staff_have_notes', getLang())) : '';
+  const pasteLabel = pasteQ ? withStep(++step, t('staff_paste_notes', getLang())) : '';
+  const aiLabel = aiQ ? withStep(++step, t('staff_format_question', getLang())) : '';
   return (
     <div>
       {haveQ && (
@@ -1266,36 +1293,36 @@ function NotesFlow({
         </Field>
       )}
       {showPaste && pasteQ && (
-        <Field label={pasteLabel} help="Whatever you have is fine." htmlFor={`q-${pasteQ.id}`}>
+        <Field label={pasteLabel} help={t('staff_paste_help', getLang())} htmlFor={`q-${pasteQ.id}`}>
           <textarea
             id={`q-${pasteQ.id}`}
             value={paste}
             onChange={e => onPaste(e.target.value)}
             rows={10}
-            placeholder="Paste your notes"
+            placeholder={t('staff_paste_placeholder', getLang())}
             style={{ ...inputStyle, minHeight: 180, resize: 'vertical' as const }}
           />
         </Field>
       )}
       {showAI && aiQ && (
-        <Field label={aiLabel} help="Optional. You can look first, or save and it formats then." htmlFor={`q-${aiQ.id}`}>
+        <Field label={aiLabel} help={t('staff_format_help', getLang())} htmlFor={`q-${aiQ.id}`}>
           <YesNo id={`q-${aiQ.id}`} value={wantAI} onChange={onAI} />
         </Field>
       )}
       {showAI && wantAI === true && (
         <div style={{ marginBottom: 32 }}>
-          {busy && !preview && <p style={helpStyle}>Formatting…</p>}
+          {busy && !preview && <p style={helpStyle}>{t('staff_formatting', getLang())}</p>}
           {preview && (
             <>
               <p style={{ ...helpStyle, marginBottom: 12 }}>
-                This is what people will write in on Sunday. Save puts it on the page. Make another if you want a different pass.
+                {t('staff_preview_help', getLang())}
               </p>
               <div className="dw-sermon-notes-phone">
                 <SermonNotesSurface sermon={preview as SermonNotesData} persist={false} />
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
                 <button type="button" style={btnGhost} disabled={busy} onClick={onFormat}>
-                  {busy ? 'Working…' : 'Make another'}
+                  {busy ? t('staff_working', getLang()) : t('staff_make_another', getLang())}
                 </button>
               </div>
             </>
@@ -1316,9 +1343,9 @@ function YesNo({ id, value, onChange, required }: { id: string; value: unknown; 
       onChange={e => onChange(e.target.value === 'yes')}
       style={inputStyle}
     >
-      <option value="">Choose…</option>
-      <option value="yes">Yes</option>
-      <option value="no">No</option>
+      <option value="">{t('staff_choose', getLang())}</option>
+      <option value="yes">{t('staff_yes', getLang())}</option>
+      <option value="no">{t('staff_no', getLang())}</option>
     </select>
   );
 }
@@ -1478,7 +1505,7 @@ function QuestionField({
           onChange={e => onChange(e.target.value)}
           style={inputStyle}
         >
-          <option value="">Select campus</option>
+          <option value="">{t('staff_select_campus', getLang())}</option>
           {campuses.filter(c => c.id !== 'other').map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -1506,9 +1533,9 @@ function QuestionField({
       <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         {choices.length > 0 ? (
           <select id={id} required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle}>
-            <option value="">Select this week's message</option>
+            <option value="">{t('staff_select_message', getLang())}</option>
             {choices.map(s => (
-              <option key={s.id} value={s.id}>{s.title}{s.date ? ` · ${s.date}` : ''}</option>
+              <option key={s.id} value={s.id}>{s.id === '__current__' && getLang() === 'es' ? t('staff_current_message', getLang()) : s.title}{s.date ? ` · ${s.date}` : ''}</option>
             ))}
           </select>
         ) : (
@@ -1518,7 +1545,7 @@ function QuestionField({
             required={required}
             value={String(value || '')}
             onChange={e => onChange(e.target.value)}
-            placeholder="Sermon title"
+            placeholder={t('staff_sermon_title', getLang())}
             style={inputStyle}
           />
         )}
@@ -1548,12 +1575,12 @@ function QuestionField({
     return (
       <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         {cornerItems.length === 0 ? (
-          <p style={helpStyle}>Nothing is on the campus corner yet.</p>
+          <p style={helpStyle}>{t('staff_corner_empty', getLang())}</p>
         ) : (
           <select id={id} value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)} style={inputStyle}>
-            <option value="">Leave everything up</option>
+            <option value="">{t('staff_corner_leave', getLang())}</option>
             {cornerItems.map(item => (
-              <option key={item.id} value={item.id}>{item.title}{item.type ? ` · ${item.type}` : ''}</option>
+              <option key={item.id} value={item.id}>{item.title}{item.type ? ` · ${['announcement', 'note', 'prayer_point', 'essay'].includes(item.type) ? t(`staff_type_${item.type}`, getLang()) : item.type}` : ''}</option>
             ))}
           </select>
         )}
