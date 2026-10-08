@@ -2,11 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { getLang, t } from '../utils/i18n';
 import * as careApi from './prayerCareApi';
 import type { PrayerCare as PrayerCareData, PrayerDecision, PrayerDone, PrayerLines } from './prayerCareApi';
+import { fs } from '../lib/mos/text-size/text-scale-core';
 
 const cardStyle: CSSProperties = {
   background: 'var(--dw-card)', color: 'var(--dw-text-primary)',
   border: '1px solid var(--dw-border)', borderRadius: 16, padding: 20,
-  marginBottom: 16, maxWidth: 680, fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere',
+  marginBottom: 16, maxWidth: 680, fontSize: fs(15), lineHeight: 1.5, overflowWrap: 'anywhere',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 const secondaryStyle = {
@@ -22,9 +23,9 @@ const mainStyle = {
   borderWidth: 1, borderStyle: 'solid', borderRadius: 999, whiteSpace: 'normal',
   '--mos-main-button-height': '56px', width: '100%', minHeight: 56,
 } as CSSProperties;
-const lineStyle: CSSProperties = { margin: '12px 0', fontSize: 15 };
+const lineStyle: CSSProperties = { margin: '12px 0', fontSize: fs(15) };
 const quietStyle: CSSProperties = { ...lineStyle, color: 'var(--dw-text-secondary)' };
-const quoteStyle: CSSProperties = { margin: '16px 0', whiteSpace: 'pre-wrap', fontSize: 17 };
+const quoteStyle: CSSProperties = { margin: '16px 0', whiteSpace: 'pre-wrap', fontSize: fs(17) };
 const textButtonStyle: CSSProperties = {
   ...secondaryStyle, border: 'none', background: 'transparent', textDecoration: 'underline',
 };
@@ -412,7 +413,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
           </p>}
         </div>}
         {held && <>
-        <h2 id="prayer-care-held-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>
+        <h2 id="prayer-care-held-title" className="font-bold" style={{ margin: 0, fontSize: fs(22), lineHeight: 1.3 }}>
           {held.campusName ? text('held_campus').replace('{campus}', held.campusName) : text('held')}
         </h2>
         {data!.held.length > 1 && <p style={quietStyle}>{text('waiting').replace('{n}', String(data!.held.length))}</p>}
@@ -450,7 +451,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
             .replace('{n}', String(activeCount))}
         </p>
         {linesData.lines.length > 0 && <>
-          <h2 id="prayer-care-needs-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>
+          <h2 id="prayer-care-needs-title" className="font-bold" style={{ margin: 0, fontSize: fs(22), lineHeight: 1.3 }}>
             {text('needs_you').replace('{n}', String(activeCount))}
           </h2>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -486,7 +487,7 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
     {children}
     {allowed && ((loading && !loadFailed) || data) && (
       <section style={cardStyle} aria-labelledby="prayer-care-week-title">
-        <h2 id="prayer-care-week-title" className="font-bold" style={{ margin: 0, fontSize: 22, lineHeight: 1.3 }}>{text('week')}</h2>
+        <h2 id="prayer-care-week-title" className="font-bold" style={{ margin: 0, fontSize: fs(22), lineHeight: 1.3 }}>{text('week')}</h2>
         {loading ? <p role="status" style={quietStyle}>{text('loading')}</p> : data && <>
           {data.scope && <p style={quietStyle}>{data.scope.all ? text('every_campus') : text('campus_week').replace('{campus}', data.scope.campusName)}</p>}
           {data.week.length === 0 ? <p style={lineStyle}>{text('empty')}</p> : (
@@ -497,13 +498,13 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
                     <p style={lineStyle}>{row.firstName} · {days(row.daysAgo)}</p>
                     {data.scope?.all && row.campusName && <p style={quietStyle}>{row.campusName}</p>}
                   </>}
-                  {row.status === 'private' && <span style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: 15 }}>{text('kept_private')}</span>}
+                  {row.status === 'private' && <span style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: fs(15) }}>{text('kept_private')}</span>}
                   <blockquote style={quoteStyle}>“{row.text}”</blockquote>
                   <p style={quietStyle}>{text('prayed').replace('{n}', String(row.prayed))}</p>
                   {row.done ? <span ref={node => {
                     if (node) weekNotices.current.set(row.id, node);
                     else weekNotices.current.delete(row.id);
-                  }} tabIndex={-1} role="status" style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: 15 }}>
+                  }} tabIndex={-1} role="status" style={{ display: 'inline-block', border: '1px solid var(--dw-border)', borderRadius: 6, padding: '2px 8px', fontSize: fs(15) }}>
                     {text(row.done === 'wrote' ? 'written_to' : 'prayed_for')}
                   </span> : !row.anonymous && row.firstName && row.canWrite && <PrayerActions
                     id={row.id} name={row.firstName} canWrite flow={flow} text={text} writeKey="write" />}

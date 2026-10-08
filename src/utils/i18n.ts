@@ -75,7 +75,7 @@ const UI: Translations = {
   staff_text_size_current: { en: "Text size: {percent}", es: "Tamaño del texto: {percent}", pt: "Tamanho do texto: {percent}", id: "Ukuran teks: {percent}" },
   staff_text_size_current_default: { en: "Text size: {percent} (Default)", es: "Tamaño del texto: {percent} (Predeterminado)", pt: "Tamanho do texto: {percent} (Padrão)", id: "Ukuran teks: {percent} (Bawaan)" },
   staff_text_size_loading: { en: "Loading text sizes…", es: "Cargando tamaños del texto…", pt: "Carregando tamanhos do texto…", id: "Memuat ukuran teks…" },
-  staff_text_size_load_error: { en: "Text sizes could not load. Tap Text size to try again.", es: "No se pudieron cargar los tamaños del texto. Toca Tamaño del texto para volver a intentarlo.", pt: "Não foi possível carregar os tamanhos do texto. Toque em Tamanho do texto para tentar novamente.", id: "Ukuran teks tidak dapat dimuat. Ketuk Ukuran teks untuk mencoba lagi." },
+  staff_text_size_load_error: { en: "Text sizes did not load. Check your connection, then tap again.", es: "No se cargaron los tamaños del texto. Comprueba tu conexión y vuelve a tocar.", pt: "Os tamanhos do texto não carregaram. Verifique a ligação e toque de novo.", id: "Ukuran teks tidak termuat. Periksa koneksi Anda, lalu ketuk lagi." },
   staff_text_size_saved_status: { en: "Text size saved: {percent}.", es: "Tamaño del texto guardado: {percent}.", pt: "Tamanho do texto salvo: {percent}.", id: "Ukuran teks disimpan: {percent}." },
   staff_text_size_sample: { en: "This is how your writing will look.", es: "Así se verá tu texto.", pt: "É assim que seu texto ficará.", id: "Seperti inilah tampilan tulisan Anda." },
   staff_text_size_default: { en: "Default", es: "Predeterminado", pt: "Padrão", id: "Bawaan" },
