@@ -1940,6 +1940,9 @@ function formatExpiry(iso: string) {
 function Roster({ onError }: { onError: (s: string) => void }) {
   const campuses = useCampuses();
   const [rows, setRows] = useState<RosterRow[]>([]);
+  const [canMakeAdmin, setCanMakeAdmin] = useState(false);
+  const [makingAdminEmail, setMakingAdminEmail] = useState('');
+  const [adminStatus, setAdminStatus] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('campus');
   const [campusId, setCampusId] = useState('');
@@ -1948,8 +1951,9 @@ function Roster({ onError }: { onError: (s: string) => void }) {
   const [issued, setIssued] = useState<IssuedCode | null>(null);
 
   const load = useCallback(async () => {
-    const data = await intake<{ roster: RosterRow[] }>('roster_list');
+    const data = await intake<{ roster: RosterRow[]; canMakeAdmin?: boolean }>('roster_list');
     setRows(data.roster || []);
+    setCanMakeAdmin(data.canMakeAdmin === true);
   }, []);
   useEffect(() => { load().catch(err => onError(err.message)); }, [load, onError]);
 
@@ -1963,6 +1967,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
       <p style={{ ...helpStyle, marginBottom: 16 }}>
         Who can sign in. Adding someone gives you a one-time setup code to hand them; they use it to choose their own password.
       </p>
+      {adminStatus && <p role="status" style={{ ...helpStyle, color: 'var(--dw-text-primary)', marginBottom: 16 }}>{adminStatus}</p>}
       {issued && (
         <div role="status" data-testid="staff-setup-code" style={{ border: '2px solid var(--dw-accent)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
           <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)' }}>
@@ -1986,42 +1991,65 @@ function Roster({ onError }: { onError: (s: string) => void }) {
                 ? ` · waiting for them to use their setup code${r.code_expires_at ? ` (until ${formatExpiry(r.code_expires_at)})` : ''}`
                 : ' · no setup code waiting'}
           </p>
-          {r.has_password ? (
-            <button
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            {r.has_password ? (
+              <button
+                type="button"
+                style={{ ...btnGhost, minHeight: 44, padding: '6px 12px' }}
+                onClick={async () => {
+                  if (!confirm(`Reset ${r.email}'s password? They are signed out everywhere and need a new setup code.`)) return;
+                  onError('');
+                  try {
+                    const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_clear_password', { email: r.email });
+                    showCode(r.email, data);
+                    await load();
+                  } catch (err) {
+                    onError(err instanceof Error ? err.message : 'Could not reset the password');
+                  }
+                }}
+              >
+                Let them set a new password
+              </button>
+            ) : (
+              <button
+                type="button"
+                style={{ ...btnGhost, minHeight: 44, padding: '6px 12px' }}
+                onClick={async () => {
+                  onError('');
+                  try {
+                    const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_issue_code', { email: r.email });
+                    showCode(r.email, data);
+                    await load();
+                  } catch (err) {
+                    onError(err instanceof Error ? err.message : 'Could not make a setup code');
+                  }
+                }}
+              >
+                Get a new setup code
+              </button>
+            )}
+            {canMakeAdmin && r.role !== 'admin' && <button
               type="button"
-              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }}
+              aria-busy={makingAdminEmail === r.email || undefined}
+              style={{ ...btnGhost, minHeight: 44, padding: '6px 12px' }}
               onClick={async () => {
-                if (!confirm(`Reset ${r.email}'s password? They are signed out everywhere and need a new setup code.`)) return;
+                if (makingAdminEmail) return;
                 onError('');
+                setMakingAdminEmail(r.email);
                 try {
-                  const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_clear_password', { email: r.email });
-                  showCode(r.email, data);
+                  await intake<{ person: RosterRow; already?: boolean }>('roster_make_admin', { email: r.email });
                   await load();
+                  setAdminStatus(`${r.display_name || r.email} is now an admin. They can add people and edit Campuses.`);
                 } catch (err) {
-                  onError(err instanceof Error ? err.message : 'Could not reset the password');
+                  onError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setMakingAdminEmail('');
                 }
               }}
             >
-              Let them set a new password
-            </button>
-          ) : (
-            <button
-              type="button"
-              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }}
-              onClick={async () => {
-                onError('');
-                try {
-                  const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_issue_code', { email: r.email });
-                  showCode(r.email, data);
-                  await load();
-                } catch (err) {
-                  onError(err instanceof Error ? err.message : 'Could not make a setup code');
-                }
-              }}
-            >
-              Get a new setup code
-            </button>
-          )}
+              {makingAdminEmail === r.email ? 'Making admin…' : 'Make admin'}
+            </button>}
+          </div>
         </div>
       ))}
       <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, margin: '24px 0 12px' }}>Add or update</h3>

@@ -616,6 +616,45 @@ describe('StaffApp People shows the one-time code to Ashley', () => {
     vi.unstubAllGlobals();
     act(() => root.unmount());
   });
+
+  it('shows Make admin only to the owner, for people who are not already admins', async () => {
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: { email: 'owner@example.com', role: 'admin', campusId: null, name: 'Owner', isAdmin: true } };
+      if (action === 'roster_list') return {
+        roster: [
+          { email: 'hub@example.com', role: 'hub', campus_id: null, display_name: 'Hub person', has_password: true, code_live: false, code_expires_at: null },
+          { email: 'admin@example.com', role: 'admin', campus_id: null, display_name: 'Admin person', has_password: true, code_live: false, code_expires_at: null },
+        ],
+        canMakeAdmin: true,
+      };
+      if (action === 'roster_make_admin') return { person: { email: 'hub@example.com', role: 'admin' } };
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    await act(async () => { [...el.querySelectorAll('button')].find(b => (b.textContent || '').trim() === 'People')!.click(); });
+    await flush();
+    expect([...el.querySelectorAll('button')].filter(b => (b.textContent || '').trim() === 'Make admin')).toHaveLength(1);
+    expect(el.textContent).toContain('Hub person');
+    expect(el.textContent).toContain('Admin person');
+    await act(async () => { [...el.querySelectorAll('button')].find(b => (b.textContent || '').trim() === 'Make admin')!.click(); });
+    await flush();
+    expect(vi.mocked(intake).mock.calls.some(c => c[0] === 'roster_make_admin' && c[1]?.email === 'hub@example.com')).toBe(true);
+    expect(el.textContent).toContain('Hub person is now an admin. They can add people and edit Campuses.');
+    act(() => root.unmount());
+
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: { email: 'admin@example.com', role: 'admin', campusId: null, name: 'Admin', isAdmin: true } };
+      if (action === 'roster_list') return { roster: [{ email: 'hub@example.com', role: 'hub', campus_id: null, display_name: 'Hub person', has_password: true, code_live: false, code_expires_at: null }], canMakeAdmin: false };
+      return {};
+    });
+    const second = mount(<StaffApp />);
+    await flush();
+    await act(async () => { [...second.el.querySelectorAll('button')].find(b => (b.textContent || '').trim() === 'People')!.click(); });
+    await flush();
+    expect([...second.el.querySelectorAll('button')].filter(b => (b.textContent || '').trim() === 'Make admin')).toHaveLength(0);
+    act(() => second.root.unmount());
+  });
 });
 
 describe('StaffApp job form: wording in place and a failed load beside the button (B09-03)', () => {
