@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- MOS app switcher (staff side only). FIRST in <head>, synchronous, before Pulse and
+         GA4 below: mo-apps.core.js removes a #mos= sign-in hint from the address before any
+         tracker can read it. document.write keeps it blocking; the public reader never loads it. -->
+    <script>
+      if (/^\/staff\/*$/.test(location.pathname)) document.write('<script src="/multiplyos/mo-apps.core.js"><\/script>');
+    </script>
         <meta name="google-site-verification" content="oj1wi2uOUtaFbXCAdsjZ8gfhSzhz4VtcXUkcszjhtZo" />
     <link rel="icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
