@@ -235,6 +235,7 @@ export function StaffApp() {
       // Keep the screen the page opened on: Staff home, or the one a link named.
       setStaff(data.staff);
     } catch {
+      applyStaffLangDefault(null);
       setStaffToken('');
       setToken('');
       setStaff(null);

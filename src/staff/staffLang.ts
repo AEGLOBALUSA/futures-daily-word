@@ -43,8 +43,9 @@ export function applyStaffLangDefault(staff: StaffLangPerson, nav?: Pick<Navigat
     if (next) localStorage.setItem(STAFF_LANG_DEFAULT_KEY, next);
     else localStorage.removeItem(STAFF_LANG_DEFAULT_KEY);
     const after = localStorage.getItem('dw_lang') || next || 'en';
-    if (after === before) return false;
+    // Always: a return visit with the key already set must still speak Spanish to a screen reader.
     try { document.documentElement.lang = after; } catch { /* ignore */ }
+    if (after === before) return false;
     window.dispatchEvent(new Event('dw-lang-changed'));
     return true;
   } catch {
@@ -55,7 +56,11 @@ export function applyStaffLangDefault(staff: StaffLangPerson, nav?: Pick<Navigat
 /** On opening /staff: keep a default from the last sign-in; else take the device's. */
 export function initStaffLangDefault(nav?: Pick<Navigator, 'language' | 'languages'>): void {
   try {
-    if (localStorage.getItem(STAFF_LANG_DEFAULT_KEY)) return;
+    const kept = localStorage.getItem(STAFF_LANG_DEFAULT_KEY);
+    if (kept) {
+      try { document.documentElement.lang = localStorage.getItem('dw_lang') || kept; } catch { /* ignore */ }
+      return;
+    }
   } catch {
     return;
   }

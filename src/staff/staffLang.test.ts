@@ -33,10 +33,24 @@ describe('Spanish by default for Futuros staff (readiness H)', () => {
     expect(getLang()).toBe('en');
   });
 
-  it('the default never reaches the reader app', () => {
+  it('the default never reaches the reader app (only exactly /staff)', () => {
     applyStaffLangDefault({ email: 'alexis@futuros.global' }, en);
-    window.history.replaceState(null, '', '/');
-    expect(getLang()).toBe('en');
+    window.history.replaceState(null, '', '/staff/');
+    expect(getLang()).toBe('es');
+    for (const path of ['/', '/staff/notes', '/staffing', '/?sermon=1&congregation=futuros-us']) {
+      window.history.replaceState(null, '', path);
+      expect(getLang()).toBe('en');
+    }
+  });
+
+  it('a return visit sets <html lang> from the kept default', () => {
+    document.documentElement.lang = 'en';
+    localStorage.setItem(STAFF_LANG_DEFAULT_KEY, 'es');
+    initStaffLangDefault(en);
+    expect(document.documentElement.lang).toBe('es');
+    document.documentElement.lang = 'en';
+    applyStaffLangDefault({ email: 'alexis@futuros.global' }, en);
+    expect(document.documentElement.lang).toBe('es');
   });
 
   it('sign-out recomputes from the device; another staff member on an English device gets English', () => {

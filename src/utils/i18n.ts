@@ -8,7 +8,8 @@ export function getLang(): string {
     const chosen = localStorage.getItem('dw_lang');
     if (chosen) return chosen;
     // Staff side only: a device default (Spanish for Futuros staff, src/staff/staffLang.ts).
-    if (typeof location !== 'undefined' && location.pathname.startsWith('/staff')) {
+    // Exactly /staff (main.tsx mounts the staff app only there); /staff/anything is the reader.
+    if (typeof location !== 'undefined' && location.pathname.replace(/\/+$/, '') === '/staff') {
       const staffDefault = localStorage.getItem('dw_staff_lang_default');
       if (staffDefault) return staffDefault;
     }
