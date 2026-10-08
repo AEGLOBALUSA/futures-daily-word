@@ -1599,9 +1599,11 @@ exports.handler = async (event) => {
         if (saved.error) throw saved.error;
       } else if (existing) {
         // Never an upsert for a non-owner: the row must still be a non-admin when written.
-        saved = await guardNonAdmin(db().from("staff_roster").update(fields).eq("email", email), staff).select(cols).maybeSingle();
-        if (saved.error) throw saved.error;
-        if (!saved.data) return json(event, 409, { error: CHANGED_UNDER_YOU });
+        // An array, not maybeSingle: a PATCH that matched nothing must read as 409, not as a 406 error.
+        const upd = await guardNonAdmin(db().from("staff_roster").update(fields).eq("email", email), staff).select(cols);
+        if (upd.error) throw upd.error;
+        if (!upd.data || !upd.data.length) return json(event, 409, { error: CHANGED_UNDER_YOU });
+        saved = { data: upd.data[0] };
       } else {
         // A plain insert: if someone added this address meanwhile it fails, never overwrites.
         saved = await db().from("staff_roster").insert(fields).select(cols).single();
@@ -1639,20 +1641,27 @@ exports.handler = async (event) => {
       if (!target) return json(event, 404, { error: "They are not on the roster." });
       const refusal = rosterChangeRefusal(staff, target, null, "reset");
       if (refusal) return json(event, 403, { error: refusal });
+      // One guarded write clears the password AND stores the fresh one-time code,
+      // so a reset never leaves a row with neither (a promotion in between makes
+      // the whole write miss: 409, nothing changed). A reset is not an open door:
+      // the row waits for that code, so nobody but the person it is handed to
+      // can take the account.
+      const code = generateSetupCode();
+      const expiresAt = new Date(Date.now() + SETUP_CODE_TTL_MS).toISOString();
       const { data: gone, error } = await guardNonAdmin(db().from("staff_roster").update({
         password_hash: null,
         email_code_hash: null, // starting over voids any code they emailed themselves
         email_code_expires_at: null,
+        setup_code_hash: hashSetupCode(code),
+        setup_code_expires_at: expiresAt,
+        setup_code_attempts: 0,
         updated_at: new Date().toISOString()
       }).eq("email", email), staff).select("email");
       if (error) throw error;
       if (!gone || !gone.length) return json(event, 409, { error: CHANGED_UNDER_YOU });
       await db().from("staff_sessions").delete().eq("email", email);
-      // A reset is not an open door: the row waits for a fresh one-time code, so
-      // nobody but the person Ashley hands it to can take the account.
-      const setup = await issueSetupCode(email, { notAdmin: !isOwner(staff.email) });
-      if (!setup) return json(event, 409, { error: CHANGED_UNDER_YOU });
-      return json(event, 200, { ok: true, setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
+      await clearSetupMisses(email);
+      return json(event, 200, { ok: true, setupCode: code, setupCodeExpiresAt: expiresAt });
     }
 
     if (action === "roster_delete") {
