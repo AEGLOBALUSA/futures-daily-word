@@ -580,7 +580,8 @@ function StaffHome({
 }) {
   const [hasHeldPrayer, setHasHeldPrayer] = useState(false);
   const [hasNeedsYouMain, setHasNeedsYouMain] = useState(false);
-  const [homeInfo, setHomeInfo] = useState<HomeInfo | null>(null);
+  const [hasDraftMain, setHasDraftMain] = useState(false);
+  const [homeInfo, setHomeInfo] = useState<HomeInfo | null | undefined>(undefined);
   useEffect(() => {
     let active = true;
     loadHomeInfo().then(info => {
@@ -604,7 +605,7 @@ function StaffHome({
       ? jobs.filter(j => j.id === 'hub' || j.id === 'media')
       : jobs.filter(j => j.id === staff.role);
   const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
-  const plan = homePlan(cards.map(c => c.id), homeInfo);
+  const plan = homeInfo === undefined ? null : homePlan(cards.map(c => c.id), homeInfo);
   const mainLabels = {
     notes: 'Paste Sunday’s notes',
     hub: 'Put up this week’s notes',
@@ -616,27 +617,28 @@ function StaffHome({
       <PrayerCare staff={staff} onHeldChange={setHasHeldPrayer} onNeedsYouMainChange={setHasNeedsYouMain}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>Staff</h2>
       {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} secondary={hasHeldPrayer || hasNeedsYouMain}
+        onMainChange={setHasDraftMain}
         staffCampusId={staff.role === 'campus' ? staff.campusId ?? undefined : undefined}
         onJob={job => onJob(job)} />}
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         This is how Sunday’s sermon notes get onto the page people write in.
       </p>
-      {plan.notesUp && (
+      {plan?.notesUp && (
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
           {plan.notesUp}
         </p>
       )}
-      {plan.order.map(id => {
+      {(plan?.order ?? cards.map(c => c.id)).map((id, index) => {
         const j = cards.find(c => c.id === id);
         if (!j) return null;
-        if (j.id === plan.main && !hasHeldPrayer && !hasNeedsYouMain) {
+        if (plan && j.id === plan.main && !hasHeldPrayer && !hasNeedsYouMain && !hasDraftMain) {
           return (
             <div
               key={j.id}
               className="mos-card"
               style={{
                 textAlign: 'left', background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
-                borderRadius: 16, padding: '18px 20px', marginBottom: 12,
+                borderRadius: 16, padding: '18px 20px', marginBottom: 12, minHeight: 220,
               }}
             >
               <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
@@ -667,7 +669,9 @@ function StaffHome({
             display: 'block', width: '100%', textAlign: 'left',
             background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
             borderRadius: 16, padding: '18px 20px', marginBottom: 12, cursor: 'pointer',
-          }}
+            // The staff theme uses this token for button min-height with !important.
+            ...(!plan && index === 0 ? { minHeight: 220, '--mos-control-height': '220px' } : {}),
+          } as CSSProperties}
         >
           <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
           <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
