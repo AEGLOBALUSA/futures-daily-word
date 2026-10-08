@@ -292,6 +292,8 @@ async function emailCodeLimit(email, ip) {
 const SETUP_REFUSED = "That code did not work. Check it, or email yourself a new one.";
 
 const SESSION_DAYS = 400;
+/** The text size kit's eight steps (multiplyos design/text-size/text-scale-core.ts). */
+const TEXT_SIZE_STEPS = new Set(["xs50", "s65", "s80", "s90", "default", "l115", "l130", "l150"]);
 
 async function sessionStaff(event) {
   const auth = event.headers.authorization || event.headers.Authorization || "";
@@ -860,6 +862,54 @@ exports.handler = async (event) => {
         pendingCount = count || 0;
       }
       return json(event, 200, { staff: publicStaff(staff, await campusList()), pendingCount });
+    }
+
+    // ── text_size_get / text_size_set ── The person's own text size, so it follows
+    // them across devices (TEXT-SIZE-PLAN row 10, the kit's server copy for Daily
+    // Word staff and Sermon Prep). Always the session's own row, never an address
+    // from the request. A value is { size, at }: one of the kit's eight step keys
+    // and the epoch ms of the Save. Newest wins: an older or equal write never
+    // replaces a newer copy, and a stamp more than 24 h ahead is refused.
+    if (action === "text_size_get") {
+      const { data: row, error } = await db().from("staff_roster").select("text_size, text_size_at").eq("email", staff.email).maybeSingle();
+      // A failed read is an error, never "nothing saved": the device would then
+      // write over a newer copy.
+      if (error) throw error;
+      const at = row && row.text_size_at ? new Date(row.text_size_at).getTime() : 0;
+      return json(event, 200, row && row.text_size && at ? { value: { size: row.text_size, at } } : { value: null });
+    }
+
+    if (action === "text_size_set") {
+      const size = String(body.size || "");
+      const at = Number(body.at);
+      if (!TEXT_SIZE_STEPS.has(size) || !Number.isFinite(at) || at <= 0 || at > Date.now() + DAY_MS) {
+        return json(event, 400, { error: "Not a text size." });
+      }
+      const iso = new Date(Math.floor(at)).toISOString();
+      // Conditional updates only: when the stored copy is older, or when nothing
+      // is stored yet, so two devices saving at once keep the newer choice.
+      // Plain filters (no or=(), whose ':' and '.' are reserved).
+      const write = (narrow) => narrow(db().from("staff_roster")
+        .update({ text_size: size, text_size_at: iso })
+        .eq("email", staff.email))
+        .select("text_size, text_size_at");
+      let { data: changed, error } = await write((q) => q.lt("text_size_at", iso));
+      if (error) throw error;
+      if (!changed || !changed.length) {
+        ({ data: changed, error } = await write((q) => q.is("text_size_at", null)));
+        if (error) throw error;
+      }
+      // A first save from another device may have filled the empty row between
+      // the two: compare against it once more, so the newer choice still wins.
+      if (!changed || !changed.length) {
+        ({ data: changed, error } = await write((q) => q.lt("text_size_at", iso)));
+        if (error) throw error;
+      }
+      if (changed && changed.length) return json(event, 200, { value: { size, at: new Date(iso).getTime() }, saved: true });
+      const { data: row, error: keptErr } = await db().from("staff_roster").select("text_size, text_size_at").eq("email", staff.email).maybeSingle();
+      if (keptErr) throw keptErr;
+      const kept = row && row.text_size && row.text_size_at ? { size: row.text_size, at: new Date(row.text_size_at).getTime() } : null;
+      return json(event, 200, { value: kept, saved: false });
     }
 
     // ── sync_token ── A staff password sign-in is already proof of the person, so a
