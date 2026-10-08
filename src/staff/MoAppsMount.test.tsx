@@ -1,19 +1,25 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
+import { act } from 'react';
 import { MoAppsMount } from './MoAppsMount';
 
-afterEach(() => { cleanup(); delete window.moApps; });
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+afterEach(() => { delete window.moApps; });
 
 describe('MoAppsMount', () => {
-  it('sets the member-tier config, then clears it on sign-out', () => {
+  it('sets the member-tier config, then clears it on sign-out', async () => {
     const set = vi.fn();
     window.moApps = { set };
-    const { unmount } = render(<MoAppsMount email="a@b.org" lang="en" />);
+    const root = createRoot(document.createElement('div'));
+    await act(async () => { root.render(<MoAppsMount email="a@b.org" lang="en" />); });
     expect(set).toHaveBeenCalledWith({ app: 'dailyword', tier: 'member', email: 'a@b.org', lang: 'en' });
-    unmount();
+    await act(async () => { root.unmount(); });
     expect(set).toHaveBeenLastCalledWith(null);
   });
-  it('does nothing if the script is absent', () => {
-    expect(() => render(<MoAppsMount email="a@b.org" lang="en" />)).not.toThrow();
+  it('does nothing if the script is absent', async () => {
+    const root = createRoot(document.createElement('div'));
+    await act(async () => { root.render(<MoAppsMount email="a@b.org" lang="en" />); });
+    await act(async () => { root.unmount(); });
   });
 });
