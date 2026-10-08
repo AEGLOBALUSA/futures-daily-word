@@ -9,7 +9,7 @@ function currentStep(): TextSizeStep | null {
   return runtime?.steps.find((step) => step.key === runtime.current()) ?? null;
 }
 
-export function TextSizeRow({ lang = getLang(), sidebar = false }: { lang?: string; sidebar?: boolean }) {
+export function TextSizeRow({ lang = getLang(), sidebar = false, compact = false }: { lang?: string; sidebar?: boolean; compact?: boolean }) {
   const [size, setSize] = useState<TextSizeStep | null>(null);
   const [status, setStatus] = useState<{ saved: string } | 'loading' | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -84,21 +84,23 @@ export function TextSizeRow({ lang = getLang(), sidebar = false }: { lang?: stri
 
   return (
     <div className="staff-text-size-row" style={{
-      minWidth: 0, width: '100%', fontFamily: 'var(--font-sans)', overflowWrap: 'anywhere',
+      minWidth: 0, width: compact ? 'auto' : '100%', maxWidth: '100%', fontFamily: 'var(--font-sans)', overflowWrap: 'anywhere',
       '--mos-control-height': '44px', '--mos-nav-item-height': '44px',
     } as CSSProperties}>
       <button
         ref={changeButton} type="button" className="staff-text-size-row__button"
+        aria-label={compact ? currentLabel : undefined}
         aria-haspopup="dialog" aria-busy={status === 'loading'} onClick={() => void openPicker()}
         style={{
-          width: '100%', height: 'auto', minHeight: 44, boxSizing: 'border-box',
-          padding: '8px 12px', fontSize: fs(17), fontFamily: 'var(--font-sans)',
-          textAlign: 'start', color: sidebar ? 'inherit' : 'var(--dw-text-primary)',
+          width: '100%', height: 'auto', minHeight: 44, minWidth: 44, boxSizing: 'border-box',
+          padding: compact ? '8px' : '8px 12px', fontSize: fs(compact ? 15 : 17), fontFamily: 'var(--font-sans)',
+          fontWeight: compact ? 600 : undefined,
+          textAlign: 'start', color: sidebar ? 'inherit' : compact ? 'var(--dw-text-muted)' : 'var(--dw-text-primary)',
           background: 'transparent', border: '1px solid var(--dw-border)', borderRadius: 12,
           cursor: 'pointer', whiteSpace: 'normal', overflowWrap: 'anywhere',
         }}
       >
-        {currentLabel}
+        {compact ? <><span aria-hidden="true">Aa</span> <span className="fx-num" style={{ fontVariantNumeric: 'tabular-nums' }}>{size?.label ?? '100%'}</span></> : currentLabel}
       </button>
       {loadError && <p role="alert" style={{ margin: '8px 0', fontSize: fs(15) }}>{t('staff_text_size_load_error', lang)}</p>}
       <p className={!status ? 'sr-only' : undefined} role="status" aria-live="polite" style={{ margin: status ? '8px 0' : 0, fontSize: fs(15) }}>

@@ -319,36 +319,36 @@ export function StaffApp() {
       }}>
         <div className="mos-shell__header-inner" style={{ maxWidth: 720, margin: '0 auto' }}>
           {isMosUi() && <MosBrandLockup />}
-          <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-            <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, minWidth: 0, overflowWrap: 'anywhere' }}>
+            <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
                 {staffAppName}
               </p>
               <h1 style={{ margin: '4px 0 0', fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 700 }}>{t('staff_heading', getLang())}</h1>
             </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0, maxWidth: '100%', '--mos-control-height': '44px' } as CSSProperties}>
+              <button
+                type="button"
+                data-mo-guide-open
+                aria-label={t('staff_guide_open', getLang())}
+                style={{ ...btnGhost, minHeight: 44, minWidth: 44, maxWidth: '100%', fontSize: 15, overflowWrap: 'anywhere', padding: '8px' }}
+              >
+                {t('staff_guide', getLang())}
+              </button>
+              <TextSizeRow lang={lang} compact />
+              <button
+                type="button"
+                onClick={signOut}
+                style={{ ...btnGhost, minHeight: 44, minWidth: 44, maxWidth: '100%', fontSize: 15, overflowWrap: 'anywhere', padding: '8px' }}
+              >
+                {t('staff_sign_out', getLang())}
+              </button>
+            </div>
           </div>
-          <p style={{ margin: '6px 0 8px', fontSize: 15, overflowWrap: 'anywhere', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+          <p style={{ margin: '6px 0 0', fontSize: 15, overflowWrap: 'anywhere', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
             {staff.name || staff.email}
             {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
           </p>
-          <TextSizeRow lang={lang} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8, minWidth: 0 }}>
-            <button
-              type="button"
-              data-mo-guide-open
-              aria-label={t('staff_guide_open', getLang())}
-              style={{ ...btnGhost, minHeight: 44, minWidth: 44, maxWidth: '100%', fontSize: 15, overflowWrap: 'anywhere', padding: '8px 12px' }}
-            >
-              {t('staff_guide', getLang())}
-            </button>
-            <button
-              type="button"
-              onClick={signOut}
-              style={{ ...btnGhost, minHeight: 44, minWidth: 44, maxWidth: '100%', fontSize: 15, overflowWrap: 'anywhere', padding: '8px 12px' }}
-            >
-              {t('staff_sign_out', getLang())}
-            </button>
-          </div>
           {view !== 'home' && (
             <button
               type="button"
