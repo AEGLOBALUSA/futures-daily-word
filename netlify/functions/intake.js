@@ -15,6 +15,8 @@ const {
   isAllowlistedEmail,
   fallbackStaff,
   staffFromRoster,
+  isOwner,
+  rosterChangeRefusal,
   campusConfirmed,
   questionVisibleForJob,
   canRewordQuestion,
@@ -85,8 +87,8 @@ async function resolveStaff(email) {
   const e = normalizeEmail(email);
   if (!isAllowlistedEmail(e)) return null;
   const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by").eq("email", e).maybeSingle();
-  // Staff means "on the roster" (or a named person, or Ashley). An address that
-  // only looks like a futures.church address is not staff.
+  // Staff means "on the roster". The address's domain decides nothing: a row an
+  // admin added is staff, and an address with no row never is.
   return staffFromRoster(e, data);
 }
 
@@ -1433,7 +1435,9 @@ exports.handler = async (event) => {
     }
 
     // ── Admin-only ──
-    if (staff.role !== "admin") return json(event, 403, { error: "Only Ashley can change this." });
+    // Admin is a roster role (readiness 7 Oct 2026). Ashley is the owner; inside
+    // People, rosterChangeRefusal keeps every admin row his alone.
+    if (staff.role !== "admin") return json(event, 403, { error: "Only an admin can change this." });
 
     // ── question_enabled_set ── Stop asking a question, or ask it again (B09-03).
     // Writes only enabled and updated_at; the question and its answers stay.
@@ -1555,15 +1559,14 @@ exports.handler = async (event) => {
     if (action === "roster_save") {
       const email = normalizeEmail(body.email);
       if (!isAllowlistedEmail(email)) {
-        return json(event, 400, { error: "Use a futures.church email (or ae@futures.global)." });
+        return json(event, 400, { error: "Enter a real email address (not a shared inbox)." });
       }
       const role = ROLES.includes(body.role) ? body.role : "campus";
-      if (email === "ae@futures.global" && role !== "admin") {
-        return json(event, 400, { error: "Ashley stays admin." });
-      }
-      if (role === "admin" && email !== "ae@futures.global") {
-        return json(event, 400, { error: "Ashley Evans (ae@futures.global) is the only admin." });
-      }
+      const { data: existing, error: existingErr } = await db().from("staff_roster")
+        .select("email, role").eq("email", email).maybeSingle();
+      if (existingErr) throw existingErr;
+      const refusal = rosterChangeRefusal(staff, existing || { email, role: null }, role, "save");
+      if (refusal) return json(event, isOwner(email) && role !== "admin" ? 400 : 403, { error: refusal });
       const campus_id = isCampusId(body.campusId, await campusList()) ? body.campusId : null;
       const named = fallbackStaff(email);
       const { data, error } = await db().from("staff_roster").upsert({
@@ -1589,8 +1592,10 @@ exports.handler = async (event) => {
 
     if (action === "roster_issue_code") {
       const email = normalizeEmail(body.email);
-      const { data: row } = await db().from("staff_roster").select("email, password_hash").eq("email", email).maybeSingle();
+      const { data: row } = await db().from("staff_roster").select("email, role, password_hash").eq("email", email).maybeSingle();
       if (!row) return json(event, 404, { error: "Add them to People first." });
+      const refusal = rosterChangeRefusal(staff, row, null, "code");
+      if (refusal) return json(event, 403, { error: refusal });
       if (row.password_hash) return json(event, 400, { error: "They already have a password. Use “Let them set a new password” to start over." });
       const setup = await issueSetupCode(email);
       return json(event, 200, { setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
@@ -1599,6 +1604,12 @@ exports.handler = async (event) => {
     if (action === "roster_clear_password") {
       const email = normalizeEmail(body.email);
       if (!email) return json(event, 400, { error: "Email required" });
+      const { data: target, error: targetErr } = await db().from("staff_roster")
+        .select("email, role").eq("email", email).maybeSingle();
+      if (targetErr) throw targetErr;
+      if (!target) return json(event, 404, { error: "They are not on the roster." });
+      const refusal = rosterChangeRefusal(staff, target, null, "reset");
+      if (refusal) return json(event, 403, { error: refusal });
       const { data: gone, error } = await db().from("staff_roster").update({
         password_hash: null,
         email_code_hash: null, // starting over voids any code they emailed themselves
@@ -1616,9 +1627,14 @@ exports.handler = async (event) => {
 
     if (action === "roster_delete") {
       const email = normalizeEmail(body.email);
-      if (!email || email === "ae@futures.global") {
+      if (!email || isOwner(email)) {
         return json(event, 400, { error: "Cannot remove Ashley." });
       }
+      const { data: target, error: targetErr } = await db().from("staff_roster")
+        .select("email, role").eq("email", email).maybeSingle();
+      if (targetErr) throw targetErr;
+      const refusal = target && rosterChangeRefusal(staff, target, null, "delete");
+      if (refusal) return json(event, 403, { error: refusal });
       const { error } = await db().from("staff_roster").delete().eq("email", email);
       if (error) throw error;
       await db().from("staff_sessions").delete().eq("email", email);
