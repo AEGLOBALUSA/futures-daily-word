@@ -39,6 +39,8 @@ export const LS = {
   prayedFor:          'dw_prayed_for',
   sermonNotes:        'dw_sermon_notes',
   pwaInstallDismissed: 'dw_pwa_install_dismissed',
+  pwaInstallShows:    'dw_pwa_install_shows',
+  pwaInstallLast:     'dw_pwa_install_last',
   day1Begun:          'dw_day1_begun',
 } as const;
 

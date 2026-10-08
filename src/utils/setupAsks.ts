@@ -2,12 +2,13 @@
  * Which one-time set-up asks apply right now (B09-08 kind 8). Each mirrors the
  * condition its own component already uses, so the next-step card only offers
  * an ask the component would show:
- *   install  → PWAInstallBanner  (not installed or embedded, not dismissed, a reading done)
+ *   install  → PWAInstallBanner  (not installed or embedded, not dismissed, returned
+ *              on a later day, and not already offered twice in the last fortnight)
  *   email    → EmailNudgeCard    (not dismissed, a reading recorded, push asked, no email)
  *   upgrade  → UpgradePromptCard (checkForUpgrade: not I'm New, conditions met, not dismissed in 14 days)
  * Every read is wrapped: blocked storage means "does not apply".
  */
-import { isStandaloneDisplay, isEmbeddedApp, isInstallDismissed, isInstallMarked } from './pwa';
+import { isStandaloneDisplay, isEmbeddedApp, isInstallDismissed, isInstallMarked, installOfferApplies } from './pwa';
 import { getStreak } from './streak';
 import { checkForUpgrade } from './pathway-upgrades';
 import { isNewChristianPersona } from './persona-config';
@@ -16,7 +17,7 @@ import type { SetupAsk } from './nextStep';
 export function installApplies(): boolean {
   try {
     if (isStandaloneDisplay() || isEmbeddedApp() || isInstallDismissed() || isInstallMarked()) return false;
-    return !!localStorage.getItem('dw_reading_done');
+    return installOfferApplies();
   } catch {
     return false;
   }

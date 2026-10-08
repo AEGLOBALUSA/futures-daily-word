@@ -25,6 +25,8 @@ import { PLAN_CATALOGUE } from '../data/plans';
 import { displayPassage } from '../data/translations';
 import { SetupPromptModal } from '../components/SetupPromptModal';
 import { PWAInstallBanner } from '../components/PWAInstall';
+import { FreeAccountInvite } from '../components/FreeAccountInvite';
+import { resolveAppRoute } from '../utils/appRoutes';
 // audioManager replaced by audioPlayer (AP) imported above
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
@@ -1753,6 +1755,22 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   };
 
   const isNewPath = isNewChristianPersona(personaConfig.persona);
+  // /listen opens this screen and starts the hero audio once the passage is ready.
+  // A shared link is not a fresh tap, so a browser may still block autoplay —
+  // the listen control is on screen either way. One attempt per visit.
+  const didDeepListen = useRef(false);
+  useEffect(() => {
+    if (didDeepListen.current) return;
+    let listen = false;
+    try { listen = resolveAppRoute(window.location.pathname, window.location.hostname).kind === 'listen'; } catch { /* ignore */ }
+    if (!listen) return;
+    if (isNewPath || heroChapterRefs.length === 0) {
+      if (isNewPath) didDeepListen.current = true;
+      return;
+    }
+    didDeepListen.current = true;
+    try { handleHeroListen(); } catch { /* autoplay can throw; the listen control stays on screen */ }
+  }, [isNewPath, heroChapterRefs, handleHeroListen]);
   const journeyInHero = isNewPath && !!pf.faithPathway && !!pathwayProgress.enrolled && !!pathwayData && !!pathwayData.days?.some((d: PathwayDay) => d.day === pathwayDisplayDay);
   const homeNext = useHomeNextStep({
     persona: personaConfig.persona,
@@ -2145,6 +2163,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             <ThemeToggle />
           </div>
         </div>
+
+        <FreeAccountInvite />
 
         {/* ── Persona Greeting with Search Button ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 }}>

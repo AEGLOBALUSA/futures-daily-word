@@ -19,6 +19,8 @@ import {
   promptPwaInstall,
   isInstallDismissed,
   dismissInstall,
+  installOfferApplies,
+  noteInstallPromptShown,
 } from '../utils/pwa';
 
 function useInstallState() {
@@ -71,15 +73,6 @@ async function handleInstallTap(ios: boolean, canPrompt: boolean, onIos: () => v
 export function PWAInstallBanner({ next = false }: { next?: boolean }) {
   const { hide, canPrompt, dismissed, ios, setDismissed } = useInstallState();
   const [sheet, setSheet] = useState(false);
-  const [hasRead, setHasRead] = useState(() => {
-    try { return !!localStorage.getItem('dw_reading_done'); } catch { return false; }
-  });
-
-  useEffect(() => {
-    const h = () => setHasRead(true);
-    window.addEventListener('dw-reading-completed', h);
-    return () => window.removeEventListener('dw-reading-completed', h);
-  }, []);
 
   const closeHint = () => {
     setSheet(false);
@@ -89,11 +82,17 @@ export function PWAInstallBanner({ next = false }: { next?: boolean }) {
     try { window.dispatchEvent(new Event(NEXT_REFRESH_EVENT)); } catch { /* unavailable */ }
   };
 
+  // One analytics event per session. canPrompt flipping (the browser's
+  // beforeinstallprompt arriving after mount) used to count a second "shown".
+  const offer = !hide && !dismissed && installOfferApplies();
   useEffect(() => {
-    if (!hide && !dismissed && hasRead) track('pwa_install_prompt_shown', ios ? 'ios' : canPrompt ? 'native' : 'hint');
-  }, [hide, dismissed, hasRead, ios, canPrompt]);
+    if (!offer) return;
+    if (noteInstallPromptShown()) {
+      track('pwa_install_prompt_shown', ios ? 'ios' : canPrompt ? 'native' : 'hint');
+    }
+  }, [offer, ios, canPrompt]);
 
-  if (hide || dismissed || !hasRead) return null;
+  if (!offer) return null;
 
   return (
     <>

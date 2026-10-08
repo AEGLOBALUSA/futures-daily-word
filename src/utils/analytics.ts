@@ -5,6 +5,7 @@
 import { API_BASE } from './api-base';
 import { TRACKED_EVENTS } from './tracked-events';
 import { getEventPath, getJourneyDay } from './event-context';
+import { analyticsPath } from './appRoutes';
 
 declare global {
   interface Window {
@@ -70,6 +71,20 @@ export async function trackActivity(
   } catch {
     // Non-critical, silently fail
   }
+}
+
+let lastTrackedPage = '';
+
+/**
+ * A tab change. Pulse beacons the same navigation when the pathname changes;
+ * this records it for GA4 (only if the visitor already accepted cookies) and
+ * the signed-in activity log. Function URLs are not pages.
+ */
+export function trackPageView(pathname: string, host?: string): void {
+  const path = analyticsPath(pathname, host);
+  if (!path || path === lastTrackedPage) return;
+  lastTrackedPage = path;
+  track('page_view', path);
 }
 
 /**

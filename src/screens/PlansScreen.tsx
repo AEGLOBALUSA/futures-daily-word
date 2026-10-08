@@ -18,6 +18,7 @@ import { t, getLang, tField } from '../utils/i18n';
 import { PERSONA_PLAN_IDS, isNewChristianPersona, type Persona } from '../utils/persona-config';
 import { PathwayPicker } from '../components/PathwayPicker';
 import { ensureGraceSeriesEnrolled, GRACE_SERIES_TITLE, GRACE_SERIES_TOTAL_DAYS } from '../utils/coldStart';
+import { TracksNote, useRouteKind } from '../components/RouteScreens';
 
 interface BookChapter { title: string; paragraphs: string[]; }
 interface BookData { id: string; title: string; subtitle?: string; author: string; icon?: string; description?: string; chapters: BookChapter[]; }
@@ -131,6 +132,7 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
 }
 
 export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
+  const routeKind = useRouteKind();
   const { userProfile, setup, saveSetup } = useUser();
   const [showPlanDetail, setShowPlanDetail] = useState(false);
   const [lang, setLang] = useState(getLang());
@@ -368,6 +370,11 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
     }
     return (
       <div className="screen-container dw-plans-sd">
+      {routeKind === 'tracks' && (
+        <div style={{ padding: '0 24px' }}>
+          <TracksNote />
+        </div>
+      )}
       {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

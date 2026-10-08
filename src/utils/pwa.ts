@@ -1,3 +1,5 @@
+import { getReadDayCount } from './readDays';
+
 /**
  * PWA install helpers.
  *
@@ -64,6 +66,74 @@ export async function promptPwaInstall(): Promise<'accepted' | 'dismissed' | 'un
 }
 
 export const PWA_DISMISS_KEY = 'dw_pwa_install_dismissed';
+/** How many times the home card has been offered. Capped so regulars aren't nagged. */
+export const PWA_SHOW_COUNT_KEY = 'dw_pwa_install_shows';
+/** Local en-CA date of the last automatic offer. */
+export const PWA_LAST_SHOWN_KEY = 'dw_pwa_install_last';
+/** This browser session already has the card up — keep it up after we stamp the date. */
+export const PWA_SESSION_KEY = 'dw_pwa_install_session';
+
+const INSTALL_MIN_READ_DAYS = 2;
+const INSTALL_MAX_SHOWS = 2;
+const INSTALL_GAP_DAYS = 14;
+
+function localDay(d = new Date()): string {
+  return d.toLocaleDateString('en-CA');
+}
+
+function daysBetween(earlier: string, later: string): number {
+  const a = Date.parse(`${earlier}T00:00:00`);
+  const b = Date.parse(`${later}T00:00:00`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 999;
+  return Math.round((b - a) / 86400000);
+}
+
+/**
+ * Whether the automatic home card may appear.
+ * A first reading is not enough — wait until they've come back (2 read-days).
+ * Then at most two offers, at least two weeks apart. Settings can always install.
+ * A session that already showed the card keeps it until they answer, so stamping
+ * today's date doesn't hide it mid-visit.
+ */
+export function installOfferApplies(): boolean {
+  try {
+    if (sessionStorage.getItem(PWA_SESSION_KEY) === '1') return true;
+  } catch { /* private mode */ }
+  try {
+    if (getReadDayCount() < INSTALL_MIN_READ_DAYS) return false;
+    const shows = Number(localStorage.getItem(PWA_SHOW_COUNT_KEY) || '0');
+    if (Number.isFinite(shows) && shows >= INSTALL_MAX_SHOWS) return false;
+    const last = localStorage.getItem(PWA_LAST_SHOWN_KEY);
+    if (last && daysBetween(last, localDay()) < INSTALL_GAP_DAYS) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Call once when the card is actually on screen.
+ * Returns true only the first time this session, so analytics fire once
+ * even if the card remounts or the browser's install prompt arrives late.
+ */
+export function noteInstallPromptShown(today = localDay()): boolean {
+  let firstThisSession = false;
+  try {
+    if (sessionStorage.getItem(PWA_SESSION_KEY) !== '1') {
+      sessionStorage.setItem(PWA_SESSION_KEY, '1');
+      firstThisSession = true;
+    }
+  } catch { /* ignore */ }
+  try {
+    const last = localStorage.getItem(PWA_LAST_SHOWN_KEY);
+    if (last !== today) {
+      const n = Number(localStorage.getItem(PWA_SHOW_COUNT_KEY) || '0');
+      localStorage.setItem(PWA_SHOW_COUNT_KEY, String(Number.isFinite(n) ? n + 1 : 1));
+      localStorage.setItem(PWA_LAST_SHOWN_KEY, today);
+    }
+  } catch { /* quota */ }
+  return firstThisSession;
+}
 
 export function isInstallDismissed(): boolean {
   try { return localStorage.getItem(PWA_DISMISS_KEY) === '1'; } catch { return false; }

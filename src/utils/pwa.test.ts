@@ -6,7 +6,10 @@ import {
   canNativeInstall,
   isInstallDismissed,
   dismissInstall,
+  noteInstallPromptShown,
   PWA_DISMISS_KEY,
+  PWA_SESSION_KEY,
+  PWA_SHOW_COUNT_KEY,
 } from './pwa';
 
 describe('pwa helpers', () => {
@@ -88,5 +91,17 @@ describe('pwa helpers', () => {
     expect(isInstallDismissed()).toBe(false);
     dismissInstall();
     expect(isInstallDismissed()).toBe(true);
+  });
+
+  it('counts an install offer once per session, even if the card remounts', () => {
+    sessionStorage.clear();
+    expect(noteInstallPromptShown('2026-10-01')).toBe(true);
+    expect(localStorage.getItem(PWA_SHOW_COUNT_KEY)).toBe('1');
+    expect(sessionStorage.getItem(PWA_SESSION_KEY)).toBe('1');
+    expect(noteInstallPromptShown('2026-10-01')).toBe(false);
+    expect(localStorage.getItem(PWA_SHOW_COUNT_KEY)).toBe('1');
+    sessionStorage.clear();
+    expect(noteInstallPromptShown('2026-10-20')).toBe(true);
+    expect(localStorage.getItem(PWA_SHOW_COUNT_KEY)).toBe('2');
   });
 });

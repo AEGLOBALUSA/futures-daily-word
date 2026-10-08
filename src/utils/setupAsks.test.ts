@@ -6,13 +6,42 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { installApplies } from './setupAsks';
 import { markInstalled, dismissInstall, promptPwaInstall, PWA_INSTALLED_KEY, PWA_DISMISS_KEY } from './pwa';
 
+function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toLocaleDateString('en-CA');
+}
+
 describe('installApplies', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     localStorage.setItem('dw_reading_done', '1');
+    localStorage.setItem('dw_read_days', JSON.stringify({ dates: [daysAgo(3), daysAgo(1)], dropped: 0 }));
   });
 
-  it('due after a reading, while not installed or dismissed', () => {
+  it('due after they have come back, while not installed or dismissed', () => {
+    expect(installApplies()).toBe(true);
+  });
+
+  it('stays quiet on the first read-day', () => {
+    localStorage.setItem('dw_read_days', JSON.stringify({ dates: [daysAgo(0)], dropped: 0 }));
+    expect(installApplies()).toBe(false);
+  });
+
+  it('offers at most twice, and not again for two weeks', () => {
+    localStorage.setItem('dw_pwa_install_shows', '1');
+    localStorage.setItem('dw_pwa_install_last', daysAgo(0));
+    expect(installApplies()).toBe(false);
+    localStorage.setItem('dw_pwa_install_last', daysAgo(15));
+    expect(installApplies()).toBe(true);
+    localStorage.setItem('dw_pwa_install_shows', '2');
+    expect(installApplies()).toBe(false);
+  });
+
+  it('a session that already showed the card keeps it up that visit', () => {
+    sessionStorage.setItem('dw_pwa_install_session', '1');
+    localStorage.setItem('dw_pwa_install_shows', '2');
     expect(installApplies()).toBe(true);
   });
 
