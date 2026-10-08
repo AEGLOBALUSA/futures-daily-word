@@ -48,12 +48,6 @@ function matches(row, filters) {
     if (f.op === 'lt') return row[f.col] < f.val;
     if (f.op === 'is') return (row[f.col] ?? null) === f.val;
     if (f.op === 'gte') return row[f.col] != null && row[f.col] >= f.val;
-    // PostgREST or=(col.op.val,...): only the is/lt/eq forms this repo sends.
-    if (f.op === 'or') return f.val.split(',').some((part) => {
-      const [col, op, ...rest] = part.split('.');
-      const val = rest.join('.');
-      return matches(row, [{ op, col, val: op === 'is' && val === 'null' ? null : val }]);
-    });
     if (f.op === 'like') {
       // Postgres LIKE: % any run, _ one character, a backslash escapes the next character.
       let re = '';
@@ -112,7 +106,6 @@ function builder(table) {
     neq(col, val) { state.filters.push({ op: 'neq', col, val }); return b; },
     in(col, val) { state.filters.push({ op: 'in', col, val }); return b; },
     lt(col, val) { state.filters.push({ op: 'lt', col, val }); return b; },
-    or(val) { state.filters.push({ op: 'or', val }); return b; },
     gte(col, val) { state.filters.push({ op: 'gte', col, val }); return b; },
     is(col, val) { state.filters.push({ op: 'is', col, val }); return b; },
     like(col, val) { state.filters.push({ op: 'like', col, val }); return b; },

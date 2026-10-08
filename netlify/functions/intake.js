@@ -871,7 +871,10 @@ exports.handler = async (event) => {
     // and the epoch ms of the Save. Newest wins: an older or equal write never
     // replaces a newer copy, and a stamp more than 24 h ahead is refused.
     if (action === "text_size_get") {
-      const { data: row } = await db().from("staff_roster").select("text_size, text_size_at").eq("email", staff.email).maybeSingle();
+      const { data: row, error } = await db().from("staff_roster").select("text_size, text_size_at").eq("email", staff.email).maybeSingle();
+      // A failed read is an error, never "nothing saved": the device would then
+      // write over a newer copy.
+      if (error) throw error;
       const at = row && row.text_size_at ? new Date(row.text_size_at).getTime() : 0;
       return json(event, 200, row && row.text_size && at ? { value: { size: row.text_size, at } } : { value: null });
     }
@@ -883,16 +886,22 @@ exports.handler = async (event) => {
         return json(event, 400, { error: "Not a text size." });
       }
       const iso = new Date(Math.floor(at)).toISOString();
-      // One conditional update: only when nothing is stored yet or the stored
-      // copy is older, so two devices saving at once keep the newer choice.
-      const { data: changed, error } = await db().from("staff_roster")
+      // Conditional updates only: when the stored copy is older, or when nothing
+      // is stored yet, so two devices saving at once keep the newer choice.
+      // Plain filters (no or=(), whose ':' and '.' are reserved).
+      const write = (narrow) => narrow(db().from("staff_roster")
         .update({ text_size: size, text_size_at: iso })
-        .eq("email", staff.email)
-        .or(`text_size_at.is.null,text_size_at.lt.${iso}`)
+        .eq("email", staff.email))
         .select("text_size, text_size_at");
+      let { data: changed, error } = await write((q) => q.lt("text_size_at", iso));
       if (error) throw error;
+      if (!changed || !changed.length) {
+        ({ data: changed, error } = await write((q) => q.is("text_size_at", null)));
+        if (error) throw error;
+      }
       if (changed && changed.length) return json(event, 200, { value: { size, at: new Date(iso).getTime() }, saved: true });
-      const { data: row } = await db().from("staff_roster").select("text_size, text_size_at").eq("email", staff.email).maybeSingle();
+      const { data: row, error: keptErr } = await db().from("staff_roster").select("text_size, text_size_at").eq("email", staff.email).maybeSingle();
+      if (keptErr) throw keptErr;
       const kept = row && row.text_size && row.text_size_at ? { size: row.text_size, at: new Date(row.text_size_at).getTime() } : null;
       return json(event, 200, { value: kept, saved: false });
     }
