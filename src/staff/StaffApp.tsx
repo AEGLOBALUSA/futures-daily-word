@@ -1500,7 +1500,7 @@ function QuestionField({
         {campusLocked ? (
           <>
             <div style={{ fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }}>{campusName(v)}</div>
-            <div style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', lineHeight: 1.45 }}>Set for you in People. Ask an admin to change it.</div>
+            <div style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', lineHeight: 1.45 }}>{t('staff_campus_set_for_you', getLang())}</div>
             <input type="hidden" id={id} value={v} />
           </>
         ) : (

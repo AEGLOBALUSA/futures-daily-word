@@ -37,6 +37,7 @@ type Translations = Record<string, LangMap>;
 
 const UI: Translations = {
   // Staff shell, job cards and non-admin forms.
+  staff_campus_set_for_you: { en: "Set for you in People. Ask an admin to change it.", es: "Tu campus ya está asignado en Personas. Pídele a un administrador que lo cambie." },
   staff_status_pending: { en: "pending", es: "pendiente" },
   staff_status_approved: { en: "approved", es: "aprobado" },
   staff_status_declined: { en: "declined", es: "rechazado" },
