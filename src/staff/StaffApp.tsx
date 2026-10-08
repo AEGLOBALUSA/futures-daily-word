@@ -628,7 +628,21 @@ function StaffHome({
           {plan.notesUp}
         </p>
       )}
-      {(plan?.order ?? cards.map(c => c.id)).map((id, index) => {
+      {plan === null ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mos-card"
+          style={{
+            background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+            borderRadius: 16, padding: '18px 20px', marginBottom: 12, minHeight: 220,
+          }}
+        >
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.45 }}>
+            {t('staff_home_loading', getLang())}
+          </div>
+        </div>
+      ) : plan.order.map((id) => {
         const j = cards.find(c => c.id === id);
         if (!j) return null;
         if (plan && j.id === plan.main && !hasHeldPrayer && !hasNeedsYouMain && !hasDraftMain) {
@@ -669,8 +683,6 @@ function StaffHome({
             display: 'block', width: '100%', textAlign: 'left',
             background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
             borderRadius: 16, padding: '18px 20px', marginBottom: 12, cursor: 'pointer',
-            // The staff theme uses this token for button min-height with !important.
-            ...(!plan && index === 0 ? { minHeight: 220, '--mos-control-height': '220px' } : {}),
           } as CSSProperties}
         >
           <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
