@@ -781,6 +781,8 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
   const [congregation, setCongregationChoice] = useState<CongregationId>(() => {
     if (seed) return seed.congregation;
     try { const v = localStorage.getItem('dw_staff_congregation'); if (isCongregationId(v)) return v; } catch { /* */ }
+    // Never ask what the app knows: the person's own campus's church before the default.
+    if (isCongregationId(staff.congregation)) return staff.congregation;
     return DEFAULT_CONGREGATION;
   });
   const pickCongregation = (v: string) => {
