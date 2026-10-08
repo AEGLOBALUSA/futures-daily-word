@@ -1984,7 +1984,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
       ))}
       <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, margin: '24px 0 12px' }}>Add or update</h3>
       <Field label="Email">
-        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="pastor@futures.church" style={inputStyle} />
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@futures.church or any email" style={inputStyle} />
       </Field>
       <Field label="Name">
         <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
@@ -1994,7 +1994,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
           <option value="campus">Campus pastor</option>
           <option value="hub">Hub pastor (sermon notes)</option>
           <option value="media">Media (YouTube + notes polish)</option>
-          <option value="admin">Admin (Ashley)</option>
+          <option value="admin">Admin (only Ashley makes admins)</option>
         </select>
       </Field>
       <Field label="Campus (campus pastors)">

@@ -47,13 +47,28 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+/**
+ * The owner (Ashley): always admin, never removed, demoted or reset by anyone
+ * else. Other admins are roster rows with role "admin" (readiness 7 Oct 2026:
+ * the global team adds people without a code edit; who holds the role is his).
+ */
+const OWNER_EMAIL = "ae@futures.global";
+
+function isOwner(email) {
+  return normalizeEmail(email) === OWNER_EMAIL;
+}
+
+/**
+ * Could this address be staff? Only its shape: a real address that is not a
+ * shared inbox. Being staff is decided by the ROSTER ROW (staffFromRoster), so
+ * any address an admin adds in People can sign in, @futures.church or not, and
+ * an address with no row is never staff, however it looks.
+ */
 function isAllowlistedEmail(email) {
   const e = normalizeEmail(email);
-  if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return false;
+  if (!e || e.length > 254 || !/^[^\s@:]+@[^\s@:]+\.[^\s@:]+$/.test(e)) return false;
   if (BLOCKED_INBOXES.has(e)) return false;
-  if (NAMED_STAFF[e]) return true;
-  if (e.endsWith("@futures.church")) return true;
-  return false;
+  return true;
 }
 
 function fallbackStaff(email) {
@@ -78,7 +93,7 @@ function staffFromRoster(email, row) {
   if (!isAllowlistedEmail(e)) return null;
   if (!row) return null;
   const named = NAMED_STAFF[e] || null;
-  if (e === "ae@futures.global") {
+  if (isOwner(e)) {
     return {
       email: e,
       role: "admin",
@@ -89,11 +104,35 @@ function staffFromRoster(email, row) {
   }
   return {
     email: e,
-    role: row.role === "admin" ? (named && named.role) || "campus" : row.role,
+    role: ROLES.includes(row.role) ? row.role : "campus",
     campusId: row.campus_id || null,
     campusSetBy: row.campus_set_by == null ? null : row.campus_set_by,
     name: row.display_name || (named && named.name) || ""
   };
+}
+
+/**
+ * May `staff` (an admin) change this roster row? People is admin-only; inside
+ * it, a row that is or would become an admin is the owner's alone, so one admin
+ * can never demote, remove, reset or take over another, and only the owner
+ * hands out the admin role. The owner's own row is never removed and never
+ * stops being admin. `target` is the existing row or null; `nextRole` is the
+ * role being saved, or null for actions that keep it (code, reset, delete).
+ * Returns null when allowed, else the refusal text.
+ */
+function rosterChangeRefusal(staff, target, nextRole, action) {
+  if (!staff || staff.role !== "admin") return "Only an admin can change People.";
+  const email = target && normalizeEmail(target.email);
+  if (email && isOwner(email)) {
+    if (action === "delete") return "Ashley is the owner and stays on People.";
+    if (nextRole && nextRole !== "admin") return "Ashley stays admin.";
+    if (!isOwner(staff.email)) return "Only Ashley can change his own sign-in.";
+    return null;
+  }
+  if (isOwner(staff.email)) return null;
+  if (nextRole === "admin") return "Only Ashley can make someone an admin.";
+  if (target && target.role === "admin") return "Only Ashley can change another admin.";
+  return null;
 }
 
 /**
@@ -589,6 +628,9 @@ module.exports = {
   usualJobFrom,
   CAMPUS_IDS,
   NAMED_STAFF,
+  OWNER_EMAIL,
+  isOwner,
+  rosterChangeRefusal,
   BLOCKED_INBOXES,
   QUESTION_TYPES,
   AUDIENCES,

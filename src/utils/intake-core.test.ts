@@ -5,18 +5,23 @@ const require = createRequire(import.meta.url);
 const core = require('../../netlify/functions/lib/intake-core.js');
 
 describe('staff allowlist', () => {
-  it('allows jane0202@me.com by name as hub, and no other @me.com address', () => {
+  // Readiness 7 Oct 2026: the roster row is the allow-list. Any real address
+  // may be added by an admin; without a row nobody is staff (staffFromRoster).
+  it('names jane0202@me.com as hub by default; any real address could be added', () => {
     expect(core.isAllowlistedEmail('jane0202@me.com')).toBe(true);
     expect(core.fallbackStaff('jane0202@me.com').role).toBe('hub');
-    expect(core.isAllowlistedEmail('someone@me.com')).toBe(false);
+    expect(core.isAllowlistedEmail('someone@me.com')).toBe(true);
+    expect(core.staffFromRoster('someone@me.com', null)).toBeNull();
   });
 
   it('allows alexis@futuros.global by name as hub, and no other @futuros.global address', () => {
     expect(core.isAllowlistedEmail('alexis@futuros.global')).toBe(true);
     expect(core.isAllowlistedEmail(' Alexis@Futuros.Global ')).toBe(true);
     expect(core.fallbackStaff('alexis@futuros.global').role).toBe('hub');
-    expect(core.isAllowlistedEmail('random@futuros.global')).toBe(false);
-    expect(core.isAllowlistedEmail('alexis@futuros.global.evil.com')).toBe(false);
+    expect(core.isAllowlistedEmail('random@futuros.global')).toBe(true);
+    expect(core.staffFromRoster('random@futuros.global', null)).toBeNull();
+    expect(core.isAllowlistedEmail('not an email')).toBe(false);
+    expect(core.isAllowlistedEmail('a@b')).toBe(false);
   });
 
   it('allows Ashley, Josh, and Ryan by name', () => {
@@ -36,7 +41,7 @@ describe('staff allowlist', () => {
   });
 
   it('does not invent extra domains or people', () => {
-    expect(core.isAllowlistedEmail('someone@gmail.com')).toBe(false);
+    expect(core.staffFromRoster('someone@gmail.com', null)).toBeNull();
     expect(core.fallbackStaff('josh@futures.church').role).toBe('hub');
     expect(core.fallbackStaff('ae@futures.global').role).toBe('admin');
     expect(core.fallbackStaff('ae@futures.global').name).toBe('Ashley Evans');
@@ -76,10 +81,10 @@ describe('staffFromRoster: the roster decides, not the address shape', () => {
     expect(core.fallbackStaff('nobody123@futures.church').role).toBe('campus');
   });
 
-  it('refuses generic inboxes and other domains even with a row', () => {
+  it('refuses generic inboxes even with a row; any other address with a row is staff', () => {
     expect(core.staffFromRoster('hello@futures.church', { role: 'campus' })).toBeNull();
     expect(core.staffFromRoster('care@futures.church', { role: 'campus' })).toBeNull();
-    expect(core.staffFromRoster('someone@gmail.com', { role: 'campus' })).toBeNull();
+    expect(core.staffFromRoster('someone@gmail.com', { role: 'campus' }).role).toBe('campus');
   });
 
   it('always makes ae@futures.global the admin once his row exists', () => {
@@ -87,9 +92,37 @@ describe('staffFromRoster: the roster decides, not the address shape', () => {
     expect(core.staffFromRoster('ae@futures.global', { role: 'campus' }).role).toBe('admin');
   });
 
-  it('downgrades an admin row for anyone but Ashley', () => {
-    expect(core.staffFromRoster('gwinnett@futures.church', { role: 'admin' }).role).toBe('campus');
-    expect(core.staffFromRoster('josh@futures.church', { role: 'admin' }).role).toBe('hub');
+  it('keeps an admin row admin (the owner grants it); an unknown role reads as campus', () => {
+    expect(core.staffFromRoster('gwinnett@futures.church', { role: 'admin' }).role).toBe('admin');
+    expect(core.staffFromRoster('josh@futures.church', { role: 'admin' }).role).toBe('admin');
+    expect(core.staffFromRoster('josh@futures.church', { role: 'owner' }).role).toBe('campus');
+  });
+});
+
+describe('rosterChangeRefusal: inside People, every admin row is the owner\'s', () => {
+  const owner = { email: 'ae@futures.global', role: 'admin' };
+  const mark = { email: 'mark@futures.church', role: 'admin' };
+  const hub = { email: 'josh@futures.church', role: 'hub' };
+  it('refuses anyone who is not an admin', () => {
+    expect(core.rosterChangeRefusal(hub, { email: 'x@futures.church', role: null }, 'campus', 'save')).toBeTruthy();
+  });
+  it('lets a second admin add and change non-admins', () => {
+    expect(core.rosterChangeRefusal(mark, { email: 'x@futures.church', role: null }, 'campus', 'save')).toBeNull();
+    expect(core.rosterChangeRefusal(mark, hub, 'media', 'save')).toBeNull();
+    expect(core.rosterChangeRefusal(mark, hub, null, 'reset')).toBeNull();
+  });
+  it('stops a second admin promoting, or touching another admin or the owner', () => {
+    expect(core.rosterChangeRefusal(mark, hub, 'admin', 'save')).toBeTruthy();
+    expect(core.rosterChangeRefusal(mark, { email: 'j@futures.church', role: 'admin' }, null, 'delete')).toBeTruthy();
+    expect(core.rosterChangeRefusal(mark, owner, null, 'reset')).toBeTruthy();
+    expect(core.rosterChangeRefusal(mark, owner, 'admin', 'save')).toBeTruthy();
+  });
+  it('lets the owner do all of it except demote or remove himself', () => {
+    expect(core.rosterChangeRefusal(owner, hub, 'admin', 'save')).toBeNull();
+    expect(core.rosterChangeRefusal(owner, mark, null, 'delete')).toBeNull();
+    expect(core.rosterChangeRefusal(owner, owner, 'hub', 'save')).toBeTruthy();
+    expect(core.rosterChangeRefusal(owner, owner, null, 'delete')).toBeTruthy();
+    expect(core.rosterChangeRefusal(owner, owner, 'admin', 'save')).toBeNull();
   });
 });
 
