@@ -11,7 +11,7 @@ export function BookCardsSection() {
   if (bookCards.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 20, overflowX: 'auto', display: 'flex', gap: 12, scrollbarWidth: 'none' }}>
+    <div className="dw-phone-section mos-stack dw-book-cards" style={{ marginBottom: 20, overflowX: 'auto', display: 'flex', gap: 12, scrollbarWidth: 'none' }}>
       {bookCards.map((bookId: string) => {
         const info = BOOK_INFO[bookId] || { title: bookId, description: '', color: '#6B1A22' };
 
@@ -19,7 +19,7 @@ export function BookCardsSection() {
         const isActive = info.planId ? !!activePlans[info.planId] : false;
 
         return (
-          <div
+          <button type="button"
             key={bookId}
             onClick={() => {
               if (info.planId && !isActive && startPlanFromHome) {
@@ -27,7 +27,7 @@ export function BookCardsSection() {
               }
             }}
             style={{
-              minWidth: 180,
+              minWidth: 180, border: 'none', textAlign: 'left',
               background: `linear-gradient(135deg, ${info.color}, ${info.color}CC)`,
               borderRadius: 16,
               padding: '20px 16px',
@@ -45,7 +45,7 @@ export function BookCardsSection() {
             <p style={{ fontSize: 12, opacity: 0.8, fontFamily: 'var(--font-sans)' }}>
               {isActive ? 'Tap to continue reading' : info.description}
             </p>
-          </div>
+          </button>
         );
       })}
     </div>

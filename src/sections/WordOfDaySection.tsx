@@ -21,7 +21,7 @@ export function WordOfDaySection() {
   const dailyWord = getDailyWord();
 
   return (
-    <Card style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid var(--dw-gold)' }}>
+    <Card className="dw-phone-section" style={{ marginBottom: 16, background: 'linear-gradient(135deg, rgba(154,123,46,0.08) 0%, rgba(107,26,34,0.08) 100%)', borderLeft: '3px solid var(--dw-gold)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <h2 className="text-section-header" style={{ color: 'var(--dw-gold)' }}>WORD OF THE DAY</h2>
         <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--dw-text-muted)', background: 'rgba(154,123,46,0.12)', padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-sans)' }}>
@@ -49,7 +49,7 @@ export function WordOfDaySection() {
       {/* Expanded info for deeper_study and pastor_leader personas */}
       {personaConfig.features.wordOfDay === 'full' && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(154,123,46,0.15)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+          <div className="mos-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
             {dailyWord.ntCount > 0 && (
               <div>
                 <p style={{ fontSize: 11, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 2px', fontWeight: 500 }}>

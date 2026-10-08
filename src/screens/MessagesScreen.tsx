@@ -180,7 +180,7 @@ function PastorsCornerPanel({ userProfile }: { userProfile: any }) {
                   borderRadius: '0 14px 14px 0',
                   padding: '14px 16px',
                   cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  transition: 'color 0.15s',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
@@ -279,7 +279,7 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
   }, []);
 
   return (
-    <div className="screen-container">
+    <div className="dw-phone-screen dw-messages-screen screen-container">
       <ScreenHeader title={t("campus_title", lang)} onBack={onBack} />
       {/* Tab switcher */}
       <div style={{ padding: '24px 24px 0' }}>
@@ -301,7 +301,7 @@ export function MessagesScreen({ onBack, onNavigate }: { onBack?: () => void; on
               color: activeTab === tab ? '#fff' : 'var(--dw-text-muted)',
               border: 'none', borderRadius: 9, cursor: 'pointer',
               fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
-              transition: 'all 0.2s ease',
+              transition: 'color 0.2s ease',
             }}>
               {tab === 'pastor' ? t("pastors_corner", lang) : tab === 'prayer' ? t("prayer_wall", lang) : ALPHARETTA_TAB_LABEL}
             </button>
@@ -462,7 +462,7 @@ function PrayerWallPanel({
   return (
     <div style={{ padding: '0 24px' }}>
       {/* Filter + add row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="mos-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 6 }}>
           {(['all', 'my-campus'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
@@ -471,7 +471,7 @@ function PrayerWallPanel({
               background: filter === f ? 'var(--dw-accent)' : 'var(--dw-surface)',
               color: filter === f ? '#fff' : 'var(--dw-text-muted)',
               border: `1px solid ${filter === f ? 'var(--dw-accent)' : 'var(--dw-border)'}`,
-              transition: 'all 0.15s ease',
+              transition: 'color 0.15s ease',
             }}>
               {f === 'all' ? t('all_campuses', lang) : (campusLabel || t('my_campus', lang))}
             </button>
@@ -483,13 +483,13 @@ function PrayerWallPanel({
             borderRadius: 8, padding: '8px 10px', cursor: 'pointer',
             color: 'var(--dw-text-muted)', display: 'flex', alignItems: 'center',
           }}>
-            <RefreshCw size={13} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
+            <RefreshCw size={13} style={loading ? { animation: 'spin 1s linear infinite' } : {}} /> {t('try_again', lang)}
           </button>
           <button onClick={() => {
             if (!userProfile?.email) { requireEmail(() => {}); return; }
             setRequestHeld(false);
             setShowForm(v => !v);
-          }} className="dw-btn-primary" style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 5 }}>
+          }} className={showForm ? "dw-btn-secondary" : "dw-btn-primary dw-prayer-main mos-actionbar dw-next"} style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 5 }}>
             <Plus size={14} /> {t('add_prayer', lang)}
           </button>
         </div>
@@ -506,7 +506,7 @@ function PrayerWallPanel({
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
           <h2 className="text-section-header" style={{ marginBottom: 10 }}>{t('share_prayer_request', lang)}</h2>
-          <textarea
+          <textarea inputMode="text" autoComplete="off" aria-label={t('share_prayer_request', lang)}
             placeholder={t('pray_placeholder', getLang())}
             value={prayerText}
             onChange={e => setPrayerText(e.target.value)}
@@ -519,25 +519,29 @@ function PrayerWallPanel({
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <input
-              type="checkbox"
+              id="prayer-anonymous" type="checkbox"
               checked={isAnonymous}
               onChange={e => setIsAnonymous(e.target.checked)}
               style={{ cursor: 'pointer', width: 18, height: 18 }}
             />
-            <label style={{ fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-primary)', cursor: 'pointer' }}>
+            <label htmlFor="prayer-anonymous" style={{ fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-primary)', cursor: 'pointer' }}>
               {t('post_anonymously', lang)}
             </label>
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button onClick={() => { setShowForm(false); setPrayerText(''); setIsAnonymous(false); }}
               className="dw-btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }}>{t('cancel_label', lang)}</button>
-            <button onClick={handleSubmit} disabled={!prayerText.trim() || submitting}
-              className="dw-btn-primary"
+            <div className="mos-actionbar">
+            <button onClick={handleSubmit} disabled={submitting} aria-disabled={!prayerText.trim() || submitting}
+              aria-describedby={!prayerText.trim() ? "prayer-write-hint" : undefined}
+              className="dw-btn-primary dw-prayer-main dw-next"
               style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 5,
-                opacity: !prayerText.trim() || submitting ? 0.5 : 1 }}>
+                opacity: submitting ? 0.5 : 1 }}>
               {submitting ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={13} />}
               {submitting ? t('posting_label', lang) : t('post_label', lang)}
             </button>
+            {!prayerText.trim() && <p id="prayer-write-hint">{t('pray_placeholder', lang)}</p>}
+            </div>
           </div>
         </Card>
       )}
@@ -638,7 +642,7 @@ function PrayerWallPanel({
                     borderRadius: 20, padding: '6px 12px', cursor: hasPrayed ? 'default' : 'pointer',
                     color: hasPrayed ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
                     fontSize: 12, fontFamily: 'var(--font-sans)', fontWeight: 600,
-                    transition: 'all 0.2s ease',
+                    transition: 'color 0.2s ease',
                   }}>
                     <Heart size={12} fill={hasPrayed ? 'currentColor' : 'none'} />
                     {prayer.prayerCount > 0 ? prayer.prayerCount : ''} {hasPrayed ? t('praying_label', lang) : t('pray_label', lang)}

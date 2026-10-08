@@ -297,7 +297,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
   }
 
   return (
-    <div className="screen-container">
+    <div className="dw-phone-screen dw-more-screen screen-container">
       <ScreenHeader title={t("settings_title", lang)} onBack={onBack} />
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header */}
@@ -430,7 +430,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
         </div>
 
         {/* ─── PASTOR ACCOUNT — staff sign-in; stamps the Leader / Pastor persona above ─── */}
-        <PastorSignIn lang={lang} />
+        <div className="dw-preserve-auth"><PastorSignIn lang={lang} /></div>
 
         {/* ─── MY STORY ─── */}
         <div style={{ marginBottom: 24 }}>
@@ -445,7 +445,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
             Tell Bible AI about your life right now — season, what you're studying, what you need. This shapes every conversation.
           </p>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <textarea
+            <textarea inputMode="text" autoComplete="off" aria-label={t('my_season_placeholder', lang)}
               value={userStory}
               onChange={e => setUserStory(e.target.value)}
               placeholder={t('my_season_placeholder', lang)}
@@ -641,7 +641,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 <Music size={18} style={iconStyle} />
                 <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 500, color: 'var(--dw-text-primary)' }}>Your Media URL</span>
               </div>
-              <input
+              <input inputMode="url" autoComplete="off" aria-label={t('personal_media_placeholder', lang)}
                 type="url"
                 placeholder={t('personal_media_placeholder', lang)}
                 value={personalMediaUrl}
@@ -708,7 +708,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                     padding: '14px 16px', fontSize: 14, fontWeight: 600,
                     cursor: pushState === 'loading' ? 'default' : 'pointer', fontFamily: 'var(--font-sans)', minHeight: 48,
                     opacity: pushState === 'loading' ? 0.7 : 1,
-                    textAlign: 'center', transition: 'all 0.2s ease',
+                    textAlign: 'center', transition: 'color 0.2s ease',
                   }}
                 >
                   <Bell size={16} />
@@ -724,7 +724,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                         >
                           {t('settings_reminder_time', lang).replace('{time}', formatReminderTime(pushHour, lang))}
                         </label>
-                        <select
+                        <select inputMode="text" autoComplete="off"
                           id="dw-reminder-hour"
                           autoFocus
                           value={pushHour}
@@ -798,7 +798,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 >
                   Daily reminder time
                 </label>
-                <select
+                <select inputMode="text" autoComplete="off"
                   id="dw-cal-hour"
                   value={pushHour}
                   onChange={(e) => { setPushHour(parseInt(e.target.value, 10)); }}
@@ -1043,7 +1043,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                         padding: '6px 14px', borderRadius: 20,
                         fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
                         letterSpacing: '0.03em', textTransform: 'capitalize',
-                        cursor: 'pointer', transition: 'all 0.15s',
+                        cursor: 'pointer', transition: 'color 0.15s',
                         border: bugCategory === cat ? '1.5px solid var(--dw-accent)' : '1.5px solid var(--dw-border)',
                         background: bugCategory === cat ? 'var(--dw-accent-bg)' : 'transparent',
                         color: bugCategory === cat ? 'var(--dw-accent)' : 'var(--dw-text-muted)',
@@ -1056,7 +1056,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                 </div>
 
                 {/* Message */}
-                <textarea
+                <textarea inputMode="text" autoComplete="off" aria-label={t('bug_placeholder', lang)}
                   value={bugMessage}
                   onChange={e => setBugMessage(e.target.value.slice(0, 600))}
                   placeholder={t('bug_placeholder', lang)}
@@ -1115,7 +1115,7 @@ export function MoreScreen({ onBack }: { onBack?: () => void }) {
                       background: !bugMessage.trim() ? 'var(--dw-surface-hover)' : 'var(--dw-accent)',
                       color: !bugMessage.trim() ? 'var(--dw-text-faint)' : '#fff',
                       opacity: bugSubmitting ? 0.6 : 1,
-                      transition: 'all 0.15s',
+                      transition: 'color 0.15s',
                       minHeight: 44,
                     }}
                   >

@@ -29,7 +29,7 @@ export function GreetingSection() {
   return (
     <>
       {showMilestoneCelebration && (
-        <div style={{
+        <div className="dw-phone-section" style={{
           background: 'linear-gradient(135deg, rgba(215,180,33,0.15) 0%, rgba(215,180,33,0.08) 100%)',
           border: '1px solid rgba(215,180,33,0.3)',
           borderRadius: 14,
@@ -87,7 +87,7 @@ export function GreetingSection() {
             onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
             onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
           >
-            ✕
+            {t('close_label')}
           </button>
         </div>
       )}

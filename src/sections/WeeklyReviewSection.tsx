@@ -37,7 +37,7 @@ export function WeeklyReviewSection() {
   const weekKey = `${new Date().getFullYear()}-W${Math.ceil(new Date().getDate() / 7)}-${new Date().getMonth()}`;
 
   return (
-    <Card style={{
+    <Card className="dw-phone-section" style={{
       marginBottom: 16,
       background: 'linear-gradient(135deg, rgba(107,26,34,0.10) 0%, rgba(154,123,46,0.07) 100%)',
       border: '1px solid rgba(154,123,46,0.25)',
@@ -50,10 +50,10 @@ export function WeeklyReviewSection() {
         position: 'absolute', top: 12, right: 12,
         background: 'none', border: 'none', cursor: 'pointer',
         color: 'var(--dw-text-muted)', fontSize: 18, lineHeight: 1, padding: 0,
-      }}>&times;</button>
+      }}>Close</button>
       <h2 className="text-section-header" style={{ color: 'var(--dw-accent)', marginBottom: 4 }}>YOUR WEEK IN THE WORD</h2>
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--dw-text-muted)', marginBottom: 12 }}>Week of {weekReview.weekLabel}</p>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+      <div className="mos-stack" style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
         {[
           { value: weekReview.daysRead, label: 'days this week' },
           { value: weekReview.streak, label: 'day streak' },

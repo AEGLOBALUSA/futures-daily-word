@@ -12,7 +12,7 @@ export function ScreenHeader({ title, onBack }: Props) {
 
   return (
     <>
-    <div style={{
+    <div className="dw-screen-header" style={{
       display: 'flex',
       alignItems: 'center',
       gap: 8,
@@ -35,7 +35,7 @@ export function ScreenHeader({ title, onBack }: Props) {
           alignItems: 'center',
           gap: 4,
           color: 'var(--dw-accent)',
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: 600,
           fontFamily: 'var(--font-sans)',
           padding: '6px 8px 6px 2px',
@@ -55,7 +55,7 @@ export function ScreenHeader({ title, onBack }: Props) {
       </span>
     </div>
     {/* Spacer so content below isn't hidden behind the fixed header */}
-    <div style={{ height: 'calc(44px + var(--safe-top, 0px))' }} />
+    <div className="dw-screen-header-spacer" style={{ height: 'calc(44px + var(--safe-top, 0px))' }} />
     </>
   );
 }

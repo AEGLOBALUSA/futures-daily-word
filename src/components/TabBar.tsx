@@ -54,7 +54,7 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
   const label = (id: string) => TAB_LABELS[id]?.[lang] || TAB_LABELS[id]?.['en'] || id;
 
   return (
-    <nav className="tab-bar">
+    <nav className="tab-bar" aria-label="Daily Word">
       {tabs.map(({ id, icon: Icon }) => (
         <button
           key={id}

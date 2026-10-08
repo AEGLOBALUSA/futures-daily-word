@@ -141,6 +141,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [expandedBrowsePlan, setExpandedBrowsePlan] = useState<string | null>(null);
   const [selectedToStart, setSelectedToStart] = useState<string[]>([]);
+  const [bookError, setBookError] = useState<{ id: string; message: string } | null>(null);
   const [deactivateConfirm, setDeactivateConfirm] = useState<string | null>(null);
 
   // Book plan state
@@ -157,6 +158,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
 
   const startBookPlan = async (book: Book) => {
     if (!book.jsonFile) return;
+    setBookError(null);
     setStartingBook(book.id);
     try {
       const data = await fetchBookJson(book.jsonFile);
@@ -177,7 +179,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
       setBookPlans(updated);
     } catch (err) {
       console.error('Failed to start book plan:', err);
-      alert(t('plan_start_error', getLang()));
+      setBookError({ id: book.id, message: t('plan_start_error', getLang()) });
     }
     setStartingBook(null);
   };
@@ -358,6 +360,8 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   const browsePlans = PLAN_CATALOGUE
     .filter(p => priorityIds.includes(p.id))
     .sort((a, b) => priorityIds.indexOf(a.id) - priorityIds.indexOf(b.id));
+  const expandedActive = myPlans.find(plan => plan.id === expandedPlan);
+  const expandedCanAdvance = !!expandedActive && (activePlans[expandedActive.id]?.completedDays.length || 0) < expandedActive.totalDays;
   const campusData = userProfile?.campus ? findCampus(userProfile.campus) : null;
   const isNewChristian = isNewChristianPersona(persona);
 
@@ -367,7 +371,16 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
       return <LibraryScreen onBack={() => setShowLibrary(false)} />;
     }
     return (
-      <div className="screen-container dw-plans-sd">
+      <div className="dw-phone-screen dw-plans-screen screen-container dw-plans-sd">
+      {!activeBook && <div className="mos-actionbar dw-phone-only">
+        <button type="button" className="dw-next dw-next-main" data-next={isNewChristian ? t('continue_journey', lang) : t('browse_plans', lang)}
+          onClick={() => {
+            if (isNewChristian) { ensureGraceSeriesEnrolled(); onNavigate?.('home'); }
+            else setShowPlanDetail(true);
+          }}>
+          {isNewChristian ? (faithJourney ? t('continue_journey', lang) : t('start_this_plan', lang)) : t('browse_plans', lang)}
+        </button>
+      </div>}
       {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -655,8 +668,10 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                     {book.jsonFile && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                         {!bp ? (
+                          <>
                           <button
                             onClick={() => startBookPlan(book)}
+                            aria-describedby={bookError?.id === book.id ? `book-error-${book.id}` : undefined}
                             disabled={startingBook === book.id}
                             style={{
                               flex: 1, padding: '9px 14px', borderRadius: 10,
@@ -668,6 +683,8 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                           >
                             {startingBook === book.id ? '+ Adding…' : '+ Add to Reading Plan'}
                           </button>
+                          {bookError?.id === book.id && <p id={`book-error-${book.id}`} role="alert">{bookError.message}</p>}
+                          </>
                         ) : (
                           <>
                             <button
@@ -766,7 +783,12 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   // Plans detail view
 
   return (
-    <div className="screen-container">
+    <div className="dw-phone-screen dw-plans-screen screen-container dw-plans-detail">
+      {!expandedCanAdvance && onNavigate && <div className="mos-actionbar dw-phone-only">
+        <button type="button" className="dw-next dw-next-main" data-next={t('read_btn', lang)} onClick={() => onNavigate('home')}>
+          {t('todays_reading', lang)} · {t('read_btn', lang)}
+        </button>
+      </div>}
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header with back button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -863,7 +885,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                             {!isComplete && !isBookPlan && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
-                                className="dw-btn-primary"
+                                className="dw-btn-primary dw-plan-main dw-next mos-actionbar"
                                 style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}
                               >
                                 <CheckCircle size={14} /> {t('p_mark_day', lang)} {nextDay} {t('p_complete_word', lang)}
@@ -872,7 +894,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                             {!isComplete && isBookPlan && plan.bookId && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); advanceBookChapter(plan.bookId!); }}
-                                className="dw-btn-primary"
+                                className="dw-btn-primary dw-plan-main dw-next mos-actionbar"
                                 style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}
                               >
                                 <ArrowRight size={14} /> Next Chapter
@@ -974,7 +996,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                               border: isSelected ? 'none' : '2px solid var(--dw-text-muted)',
                               background: isSelected ? 'var(--dw-accent)' : 'transparent',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.15s', flexShrink: 0,
+                              transition: 'color 0.15s', flexShrink: 0,
                             }}>
                               {isSelected && (
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">

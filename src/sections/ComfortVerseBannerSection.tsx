@@ -48,7 +48,7 @@ export function ComfortVerseBannerSection({ persona }: { persona: string }) {
   const prayer = GUIDED_PRAYERS[dayIndex % GUIDED_PRAYERS.length];
 
   return (
-    <div style={{
+    <div className="dw-phone-section" style={{
       background: 'linear-gradient(135deg, rgba(92,107,192,0.12) 0%, rgba(92,107,192,0.04) 100%)',
       border: '1px solid rgba(92,107,192,0.2)',
       borderRadius: 14,

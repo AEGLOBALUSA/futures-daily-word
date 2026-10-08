@@ -147,7 +147,7 @@ function PrayerActions({ id, name, canWrite, main = false, allowPrayed = false, 
   </>;
   return <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
     {asked && <p style={lineStyle}>{words('did_write')}</p>}
-    <div>
+    <div className={main ? "mos-actionbar" : undefined}>
       <button type="button" className={main ? 'dw-next dw-campus-main font-semibold' : 'font-semibold'}
         aria-disabled={!!state.busy} onClick={() => act(primaryAction)}
         style={main ? mainStyle : { ...secondaryStyle, borderRadius: 999, whiteSpace: 'normal' }}>
@@ -396,14 +396,14 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
           {decisionNotice && `${text(decisionNotice)}${held ? ` ${text('next_request')}` : data ? ` ${activeCount > 0 ? noHeldWaiting : text('none_waiting')}` : ''}`}
         </p>
         {decisionNotice && loading && !loadFailed && <p role="status" style={lineStyle}>{text('loading')}</p>}
-        {loadFailed && <div style={{ display: 'grid', gap: 12, padding: '12px 0' }}>
+        {loadFailed && <div className="mos-actionbar" style={{ display: 'grid', gap: 12, padding: '12px 0' }}>
           <button type="button" className="dw-campus-main dw-next font-semibold" style={mainStyle}
             aria-disabled={loading} onClick={() => void retry()}>{text('retry')}</button>
           <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text('load_failed')}</p>
           {loading && <p role="status" style={lineStyle}>{text('loading')}</p>}
         </div>}
         {unavailableError && <div style={{ display: 'grid', gap: 10, padding: '12px 0' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+          <div className="mos-stack" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
             <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>
               {text(unavailableError)}
             </p>
@@ -420,23 +420,27 @@ export function PrayerCare({ staff, children, onHeldChange, onNeedsYouMainChange
         <blockquote style={quoteStyle}>“{held.text}”</blockquote>
         {held.heldReason && <p style={quietStyle}>{text(`reason_${held.heldReason}`)}</p>}
         <p style={quietStyle}>{days(held.daysAgo, true)}</p>
-        <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-card)', padding: '12px 0', display: 'grid', gap: 10 }}>
+        <div className="mos-prayer-decision" style={{ position: 'sticky', bottom: 0, background: 'var(--dw-card)', padding: '12px 0', display: 'grid', gap: 10 }}>
+
+          <div className="mos-actionbar">
           <button type="button" className="dw-campus-main dw-next font-semibold" aria-disabled={busy} onClick={() => void decide(held.id, 'show')}
             style={mainStyle}>
             {text('show')}
           </button>
+
+          {busy && <p role="status" style={{ ...quietStyle, margin: 0 }}>{text('saving')}</p>}
+          {decisionError && <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text(decisionError)}</p>}
+          </div>
           <button type="button" className="font-semibold" aria-disabled={busy} style={secondaryStyle} onClick={() => void decide(held.id, 'private')}>
             {text('private')}
           </button>
-          {busy && <p role="status" style={{ ...quietStyle, margin: 0 }}>{text('saving')}</p>}
-          {decisionError && <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text(decisionError)}</p>}
         </div>
         </>}
       </section>
     )}
     {allowed && (linesLoadFailed || (linesLoading && !linesData)) && <div style={cardStyle}>
       {linesLoading && <p role="status" style={lineStyle}>{text('loading')}</p>}
-      {linesLoadFailed && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+      {linesLoadFailed && <div className={hasLinesRetryMain ? "mos-actionbar" : "mos-stack"} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
         <p role="alert" style={{ ...lineStyle, margin: 0, color: 'var(--dw-error)' }}>{text('lines_load_failed')}</p>
         <button type="button" className={hasLinesRetryMain ? 'dw-next dw-campus-main font-semibold' : 'font-semibold'}
           style={hasLinesRetryMain ? mainStyle : secondaryStyle} aria-disabled={linesLoading}

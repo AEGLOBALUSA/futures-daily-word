@@ -99,6 +99,7 @@ function AutoExpandTextarea({ value, onChange, placeholder, style, innerRef }: {
   useEffect(() => { autoResize(); }, [value, autoResize]);
   return (
     <textarea
+      inputMode="text" autoComplete="off" aria-label={placeholder || "Note"}
       ref={ref}
       value={value}
       onChange={e => { onChange(e); autoResize(); }}
@@ -1660,7 +1661,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
   // Full-screen editor overlay
   if (showEditor && editingEntry) {
     return (
-      <div style={{
+      <div className="dw-phone-screen dw-journal-editor" style={{
         position: 'fixed', inset: 0, zIndex: 500,
         background: 'var(--dw-canvas)',
         display: 'flex', flexDirection: 'column',
@@ -1675,7 +1676,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
             onClick={() => { setShowEditor(false); setEditingEntry(null); }}
             style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4 }}
           >
-            <X size={22} />
+            <X size={22} /> {t('close_label', lang)}
           </button>
           <span style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
             {editingEntry.type === 'sermon' ? 'Sermon Notes' : 'Note'}
@@ -1689,9 +1690,10 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
               }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4 }}
             >
-              <Trash2 size={18} />
+              <Trash2 size={18} /> {t('remove_label', lang)}
             </button>
             <button
+              className="dw-editor-save"
               onClick={saveEntry}
               disabled={!editingEntry.title.trim() || editorSaved}
               style={{
@@ -1708,7 +1710,15 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
           </div>
         </div>
 
-        {saveErrorBanner}
+        <div className="dw-desktop-only">{saveErrorBanner}</div>
+        <div className="mos-actionbar dw-phone-only">
+          <button type="button" className="dw-next dw-next-main" data-next={t('j_save_note', lang)}
+            onClick={() => { if (!editorSaved) saveEntry(); }} aria-disabled={!editingEntry.title.trim() || editorSaved}>
+            {editorSaved ? t('j_saved', lang) : t('j_save_note', lang)}
+          </button>
+          {!editingEntry.title.trim() && <p>Give this note a title to save it.</p>}
+          {saveErrorBanner}
+        </div>
 
         {/* Editor Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -1736,6 +1746,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
 
           <input
             type="text"
+            inputMode="text" autoComplete="off" aria-label="Note title"
             placeholder="Title..."
             value={editingEntry.title}
             onChange={e => setEditingEntry({ ...editingEntry, title: e.target.value })}
@@ -1823,7 +1834,12 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
   }
 
   return (
-    <div className="screen-container">
+    <div className="screen-container dw-phone-screen dw-journal-screen">
+      <div className="mos-actionbar dw-phone-only">
+        <button type="button" className="dw-next dw-next-main" data-next={t('next_write_it_down', lang)} onClick={openNewEntry}>
+          <Plus size={18} /> {t('next_write_it_down', lang)}
+        </button>
+      </div>
       <ScreenHeader title="Notes" onBack={onBack} />
       {saveErrorBanner}
       <div style={{ padding: '24px 24px 0' }}>
@@ -1861,6 +1877,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
               <Video size={15} /> Record
             </button>
             <button
+              className="dw-journal-create"
               onClick={openNewEntry}
               style={{
                 background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
@@ -1915,7 +1932,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
                   fontSize: 12, fontWeight: isActive ? 600 : 500, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   minHeight: 44, fontFamily: 'var(--font-sans)',
-                  transition: 'all var(--transition-fast)',
+                  transition: 'color var(--transition-fast)',
                 }}
               >
                 <Icon size={14} /> {label}
@@ -1935,7 +1952,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                 color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 10,
               }}>{t('j_your_active_plans', lang)}</p>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              <div className="mos-stack dw-plan-chips" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
                 {myPlans.map(plan => {
                   const progress = activePlansData[plan.id];
                   const completed = progress?.completedDays?.length || 0;
@@ -1987,7 +2004,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
               <div onClick={() => setPlanPopup(null)} style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300,
               }} />
-              <div style={{
+              <div className="mos-sheet dw-plan-sheet" role="dialog" aria-label={plan.title} style={{
                 position: 'fixed', bottom: '15%', left: 20, right: 20, zIndex: 301,
                 background: 'var(--dw-canvas)', borderRadius: 20, padding: '24px 20px',
                 boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
@@ -2005,7 +2022,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
                   <button onClick={() => setPlanPopup(null)} style={{
                     background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4,
                   }}>
-                    <X size={20} />
+                    <X size={20} /> {t('close_label', lang)}
                   </button>
                 </div>
                 <div style={{

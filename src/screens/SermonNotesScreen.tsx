@@ -25,7 +25,7 @@ function NotesChrome({
   children: ReactNode;
 }) {
   return (
-    <div className="screen-container" style={{ background: '#FAF6EF', color: '#241E17' }}>
+    <div className="dw-phone-screen dw-sermonnotes-screen screen-container" style={{ background: '#FAF6EF', color: '#241E17' }}>
       <div style={{
         display: 'flex', alignItems: 'center', padding: '16px 20px',
         borderBottom: '1px solid #ECE3D4',
