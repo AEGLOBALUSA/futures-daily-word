@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('./api', () => ({ intake: vi.fn() }));
-import { homePlan, type HomeInfo } from './homePlan';
+import { homePlan, loadHomeInfo, type HomeInfo } from './homePlan';
+import { intake } from './api';
 
 const notes = (up: boolean) => ({ congregation: 'futures-us', congregationName: 'Futures USA', sunday: '2026-10-11', up });
 
@@ -49,5 +50,18 @@ describe('homePlan: Staff home opens on the next thing', () => {
     expect(p.reason).toMatch(/las notas de Futures USA todavía no están publicadas/);
     expect(homePlan(['campus'], { notes: null, usualJob: { job: 'campus', why: 'weekday', weekday: 'Tuesday' } }, 'es').reason)
       .toBe('Sueles hacer esto un martes.');
+  });
+});
+
+describe('loadHomeInfo never leaves home waiting', () => {
+  it('a stalled answer becomes null after the wait', async () => {
+    vi.mocked(intake).mockImplementation(() => new Promise(() => {}));
+    await expect(loadHomeInfo(20)).resolves.toBeNull();
+  });
+  it('an error becomes null; an answer comes through', async () => {
+    vi.mocked(intake).mockRejectedValueOnce(new Error('down'));
+    await expect(loadHomeInfo(1000)).resolves.toBeNull();
+    vi.mocked(intake).mockResolvedValueOnce({ notes: null, usualJob: null });
+    await expect(loadHomeInfo(1000)).resolves.toEqual({ notes: null, usualJob: null });
   });
 });

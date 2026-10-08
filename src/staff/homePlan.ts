@@ -29,13 +29,25 @@ export type HomePlan = {
   notesUp: string;
 };
 
-/** Ask the server once per visit. Fails soft: home still shows every card. */
-export async function loadHomeInfo(): Promise<HomeInfo | null> {
+/** How long Staff home waits before it shows every card without the worked-out order. */
+export const HOME_INFO_WAIT_MS = 4000;
+
+/**
+ * Ask the server once per visit. Fails soft and never hangs: an error, or no
+ * answer within `waitMs`, is null, and home shows every card with the
+ * fallback order. A late answer is dropped (this promise has already settled).
+ */
+export async function loadHomeInfo(waitMs = HOME_INFO_WAIT_MS): Promise<HomeInfo | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), waitMs); });
   try {
     const c = rememberedCongregation();
-    return await intake<HomeInfo>('home', c ? { congregation: c } : {});
+    const ask = intake<HomeInfo>('home', c ? { congregation: c } : {}).catch(() => null);
+    return await Promise.race([ask, timeout]);
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
