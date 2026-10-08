@@ -1940,6 +1940,13 @@ function formatExpiry(iso: string) {
 function Roster({ onError }: { onError: (s: string) => void }) {
   const campuses = useCampuses();
   const [rows, setRows] = useState<RosterRow[]>([]);
+  const [canMakeAdmin, setCanMakeAdmin] = useState(false);
+  const [makingAdminEmail, setMakingAdminEmail] = useState('');
+  const [adminFeedback, setAdminFeedback] = useState<Record<string, {
+    message?: string; error?: string; refreshError?: boolean; refreshing?: boolean;
+  }>>({});
+  const adminStatusRefs = useRef(new Map<string, HTMLParagraphElement>());
+  const adminFocusEmail = useRef('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('campus');
   const [campusId, setCampusId] = useState('');
@@ -1948,10 +1955,49 @@ function Roster({ onError }: { onError: (s: string) => void }) {
   const [issued, setIssued] = useState<IssuedCode | null>(null);
 
   const load = useCallback(async () => {
-    const data = await intake<{ roster: RosterRow[] }>('roster_list');
+    const data = await intake<{ roster: RosterRow[]; canMakeAdmin?: boolean }>('roster_list');
     setRows(data.roster || []);
+    setCanMakeAdmin(data.canMakeAdmin === true);
   }, []);
   useEffect(() => { load().catch(err => onError(err.message)); }, [load, onError]);
+  useEffect(() => {
+    if (adminFocusEmail.current) {
+      adminStatusRefs.current.get(adminFocusEmail.current)?.focus();
+      adminFocusEmail.current = '';
+    }
+  }, [adminFeedback]);
+
+  const refreshAfterGrant = async (forEmail: string) => {
+    setAdminFeedback(current => ({ ...current, [forEmail]: { ...current[forEmail], refreshError: false, refreshing: true } }));
+    try {
+      await load();
+      setAdminFeedback(current => ({ ...current, [forEmail]: { ...current[forEmail], refreshing: false } }));
+    } catch {
+      setAdminFeedback(current => ({ ...current, [forEmail]: { ...current[forEmail], refreshError: true, refreshing: false } }));
+    }
+  };
+
+  const makeAdmin = async (person: RosterRow) => {
+    if (makingAdminEmail) return;
+    setMakingAdminEmail(person.email);
+    setAdminFeedback(current => ({ ...current, [person.email]: {} }));
+    try {
+      const data = await intake<{ person: Pick<RosterRow, 'email' | 'role' | 'campus_id' | 'display_name'>; already?: boolean }>('roster_make_admin', { email: person.email });
+      setRows(current => current.map(row => row.email === person.email ? { ...row, ...data.person } : row));
+      adminFocusEmail.current = person.email;
+      setAdminFeedback(current => ({ ...current, [person.email]: {
+        message: `${data.person.display_name || data.person.email} is now an admin. They can add people and edit Campuses.`,
+      } }));
+    } catch (err) {
+      setAdminFeedback(current => ({ ...current, [person.email]: {
+        error: `${err instanceof Error ? err.message : 'Could not make them an admin.'} Try Make admin again.`,
+      } }));
+      setMakingAdminEmail('');
+      return;
+    }
+    await refreshAfterGrant(person.email);
+    setMakingAdminEmail('');
+  };
 
   const showCode = (forEmail: string, data: { setupCode?: string; setupCodeExpiresAt?: string }) => {
     if (data.setupCode) setIssued({ email: forEmail, code: data.setupCode, expiresAt: data.setupCodeExpiresAt || '' });
@@ -1986,42 +2032,78 @@ function Roster({ onError }: { onError: (s: string) => void }) {
                 ? ` · waiting for them to use their setup code${r.code_expires_at ? ` (until ${formatExpiry(r.code_expires_at)})` : ''}`
                 : ' · no setup code waiting'}
           </p>
-          {r.has_password ? (
-            <button
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            {r.has_password ? (
+              <button
+                type="button"
+                style={{ ...btnGhost, minHeight: 44, padding: '6px 12px' }}
+                onClick={async () => {
+                  if (!confirm(`Reset ${r.email}'s password? They are signed out everywhere and need a new setup code.`)) return;
+                  onError('');
+                  try {
+                    const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_clear_password', { email: r.email });
+                    showCode(r.email, data);
+                    await load();
+                  } catch (err) {
+                    onError(err instanceof Error ? err.message : 'Could not reset the password');
+                  }
+                }}
+              >
+                Let them set a new password
+              </button>
+            ) : (
+              <button
+                type="button"
+                style={{ ...btnGhost, minHeight: 44, padding: '6px 12px' }}
+                onClick={async () => {
+                  onError('');
+                  try {
+                    const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_issue_code', { email: r.email });
+                    showCode(r.email, data);
+                    await load();
+                  } catch (err) {
+                    onError(err instanceof Error ? err.message : 'Could not make a setup code');
+                  }
+                }}
+              >
+                Get a new setup code
+              </button>
+            )}
+            {canMakeAdmin && r.role !== 'admin' && <button
               type="button"
-              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }}
-              onClick={async () => {
-                if (!confirm(`Reset ${r.email}'s password? They are signed out everywhere and need a new setup code.`)) return;
-                onError('');
-                try {
-                  const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_clear_password', { email: r.email });
-                  showCode(r.email, data);
-                  await load();
-                } catch (err) {
-                  onError(err instanceof Error ? err.message : 'Could not reset the password');
-                }
-              }}
+              aria-busy={makingAdminEmail === r.email || undefined}
+              aria-disabled={!!makingAdminEmail || undefined}
+              aria-describedby={`admin-status-${r.email}`}
+              style={{ ...btnGhost, minHeight: 44, fontSize: 15, color: 'var(--dw-text-primary)', padding: '6px 12px' }}
+              onClick={() => makeAdmin(r)}
             >
-              Let them set a new password
-            </button>
-          ) : (
-            <button
-              type="button"
-              style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }}
-              onClick={async () => {
-                onError('');
-                try {
-                  const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_issue_code', { email: r.email });
-                  showCode(r.email, data);
-                  await load();
-                } catch (err) {
-                  onError(err instanceof Error ? err.message : 'Could not make a setup code');
-                }
-              }}
-            >
-              Get a new setup code
-            </button>
+              {makingAdminEmail === r.email ? 'Making admin…' : 'Make admin'}
+            </button>}
+          </div>
+          <p
+            id={`admin-status-${r.email}`}
+            role="status"
+            aria-live="polite"
+            tabIndex={-1}
+            ref={node => { if (node) adminStatusRefs.current.set(r.email, node); else adminStatusRefs.current.delete(r.email); }}
+            style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-primary)', margin: '8px 0 0' }}
+          >
+            {adminFeedback[r.email]?.message || (makingAdminEmail === r.email ? 'Making admin…' : '')}
+            {adminFeedback[r.email]?.refreshing && ' Loading People…'}
+          </p>
+          {makingAdminEmail && makingAdminEmail !== r.email && canMakeAdmin && r.role !== 'admin' && (
+            <p style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-primary)', margin: '8px 0 0' }}>
+              Wait for the current change to finish.
+            </p>
           )}
+          {adminFeedback[r.email]?.error && <p role="alert" style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-error)' }}>{adminFeedback[r.email].error}</p>}
+          {adminFeedback[r.email]?.refreshError && <>
+            <p role="alert" style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-error)' }}>They are an admin, but People could not refresh. Load People again.</p>
+            <button type="button" style={{ ...btnGhost, minHeight: 44, fontSize: 15, color: 'var(--dw-text-primary)', padding: '6px 12px' }} onClick={() => {
+              adminFocusEmail.current = r.email;
+              void refreshAfterGrant(r.email);
+            }}>Load People again</button>
+          </>}
         </div>
       ))}
       <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, margin: '24px 0 12px' }}>Add or update</h3>
@@ -2036,8 +2118,9 @@ function Roster({ onError }: { onError: (s: string) => void }) {
           <option value="campus">Campus pastor</option>
           <option value="hub">Hub pastor (sermon notes)</option>
           <option value="media">Media (YouTube + notes polish)</option>
-          <option value="admin">Admin (only Ashley makes admins)</option>
+          {canMakeAdmin && <option value="admin">Admin</option>}
         </select>
+        {!canMakeAdmin && <p style={{ ...helpStyle, fontSize: 15 }}>Only Ashley makes admins.</p>}
       </Field>
       <Field label="Campus (campus pastors)">
         <select value={campusId} onChange={e => setCampusId(e.target.value)} style={inputStyle}>
