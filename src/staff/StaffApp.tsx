@@ -1465,19 +1465,26 @@ function QuestionField({
     const v = String(value || lockedCampus || '');
     return (
       <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
-        <select
-          id={id}
-          required={required}
-          disabled={campusLocked}
-          value={v}
-          onChange={e => onChange(e.target.value)}
-          style={inputStyle}
-        >
-          <option value="">Select campus</option>
-          {campuses.filter(c => c.id !== 'other').map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        {campusLocked ? (
+          <>
+            <div style={{ fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }}>{campusName(v)}</div>
+            <div style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', lineHeight: 1.45 }}>Set for you in People. Ask an admin to change it.</div>
+            <input type="hidden" id={id} value={v} />
+          </>
+        ) : (
+          <select
+            id={id}
+            required={required}
+            value={v}
+            onChange={e => onChange(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">Select campus</option>
+            {campuses.filter(c => c.id !== 'other').map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
       </Field>
     );
   }
