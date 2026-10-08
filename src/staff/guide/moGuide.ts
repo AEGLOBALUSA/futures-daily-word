@@ -59,10 +59,11 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       href: '/staff?tab=notes',
       steps: [
         'Open Staff home and tap Paste Sunday’s notes.',
+        'If Sunday’s notes are already up, tap Put up a different version before you paste.',
         'Paste the notes or the YouTube link into the box.',
         'Tap See the notes page. The app works out the Sunday, title, speaker and series.',
         'If it asks one more question, answer it and tap Add it to the notes.',
-        'Check the page it shows you, then tap Put this on the congregation page.',
+        'If you pasted notes, check the page it shows you, then tap Put this on the congregation page. If you added a YouTube link to a message already up, tap Add the video.',
       ],
     });
   }
@@ -71,7 +72,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Put up this week’s sermon notes',
       href: '/staff',
       steps: [
-        'Open Staff home and tap Put up this week’s sermon notes.',
+        'Open Staff home and tap Put up this week’s notes (the Put up this week’s sermon notes card).',
         'Under Which church is this for?, pick the church whose page this is.',
         'Answer the numbered questions and paste your notes.',
         'Tap Put this on the congregation page.',
@@ -96,11 +97,12 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Write the campus corner',
       href: '/staff',
       steps: [
-        'On Staff home, find the draft for this week’s corner and read it. Drafts start once your region is switched on; until then, tap Update a campus corner.',
-        'Change the words yourself, or add something only you would say.',
-        'Tap Put this on the campus corner.',
-        'If there is no corner this week, tap Not this week.',
-        'To write it from scratch, tap Use the form instead, or Update a campus corner on Staff home.',
+        'On Staff home, tap Update the campus corner (the Update a campus corner card).',
+        'If a draft appears, read it. Change the words yourself, or add something only you would say.',
+        'On the draft, tap Put this on the campus corner.',
+        'On the draft, tap Not this week if there will be no corner.',
+        'On the draft, tap Use the form instead to write from scratch.',
+        'On the plain form, fill it in, then tap Put this on the campus corner. The plain form has no Not this week or Use the form instead button.',
       ],
     });
   }
@@ -109,7 +111,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Read prayer requests',
       href: '/staff',
       steps: [
-        'On Staff home, look for Needs you. Each line is a request waiting for a person. Lines start once your region is switched on.',
+        'Only Needs you starts when your region is switched on. Held requests with Show it on the wall or Keep it private work now.',
         'If the person gave a name, tap Write to followed by their name, and send your note.',
         'Afterward tap I wrote to followed by their name. If you only prayed, tap I prayed for this.',
         'Under Prayer requests this week, read the week at a glance.',
@@ -140,8 +142,8 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Paste Sunday’s notes',
       intro: 'One box: paste the notes or the YouTube link and see the page before it goes up.',
       steps: [
-        'Paste Sunday’s notes or the YouTube link, then tap See the notes page.',
-        'Nothing is on the congregation page until you tap Put this on the congregation page.',
+        'If Sunday’s notes are already up, tap Put up a different version. Then paste Sunday’s notes or the YouTube link and tap See the notes page.',
+        'For notes, tap Put this on the congregation page. For a YouTube link on a message already up, tap Add the video.',
         'To fix a detail, tap Change details. To begin again, tap Paste something else.',
       ],
       next: { label: 'Paste Sunday’s notes', href: '/staff?tab=notes' },
@@ -157,7 +159,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Sermon notes and YouTube',
       intro: 'The longer form for the week’s message, when you want every detail in front of you.',
       steps: [
-        'Hub staff tap Put up this week’s sermon notes. Media staff tap Add the YouTube or clean the notes.',
+        'Hub staff tap Put up this week’s notes (the Put up this week’s sermon notes card). Media staff tap Add the YouTube or clean the notes.',
         'Pick the church under Which church is this for?',
         'Save with Put this on the congregation page, or Add the video when you are only adding a link.',
       ],
@@ -172,12 +174,13 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
     parts.push({
       slug: 'campus-corner',
       title: 'Campus corner',
-      intro: 'A short note for your campus: what is on this week, and a prayer point if you have one. The weekly draft starts once your region is switched on.',
+      intro: 'A short note for your campus: what is on this week, and a prayer point if you have one.',
       steps: [
-        'Read the draft. Add your own words, or change the words above.',
-        'Tap Put this on the campus corner.',
-        'Tap Not this week if there will be no corner.',
-        'Tap Use the form instead if you would rather write it yourself.',
+        'If a draft appears, read it. Add your own words, or change the words above.',
+        'On the draft, tap Put this on the campus corner.',
+        'On the draft, tap Not this week if there will be no corner.',
+        'On the draft, tap Use the form instead if you would rather write it yourself.',
+        'On the plain form, fill it in, then tap Put this on the campus corner. It has no Not this week or Use the form instead button.',
       ],
       next: { label: 'Open Staff home', href: '/staff' },
       connects: [
@@ -190,9 +193,9 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
     parts.push({
       slug: 'prayer-care',
       title: 'Prayer and care',
-      intro: 'Prayer requests that need a person to look, write, or pray. Nothing waits here until your region is switched on.',
+      intro: 'Only Needs you starts when your region is switched on. Held requests and Prayer requests this week work now.',
       steps: [
-        'A request held for a look shows Show it on the wall and Keep it private.',
+        'Held requests work now. They show Show it on the wall and Keep it private.',
         'Under Needs you, tap Write to followed by the name, or I prayed for this when there is no name.',
         'Prayer requests this week lists the last seven days.',
       ],
@@ -217,7 +220,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
         intro: 'Who can sign in to the staff side, and what each person can do.',
         steps: [
           'Under Add or update, enter their email (any address), name, role and campus, then tap Save person.',
-          'Give them the setup code yourself. It works once.',
+          'If a setup code appears, give it to them yourself. It works once.',
           'Tap Get a new setup code, or Let them set a new password, when someone is locked out.',
           'Only Ashley can make someone an admin, or change another admin.',
         ],
