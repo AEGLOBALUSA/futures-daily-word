@@ -2056,3 +2056,91 @@ describe('text size follows the person (TEXT-SIZE-PLAN row 10)', () => {
     expect(tables.staff_roster.find((x) => x.email === 'ts.pastor@futures.church').text_size).toBeUndefined();
   });
 });
+
+describe('roster_make_admin: the owner\'s one tap (his ruling 5 Oct 2026; the grant is his)', () => {
+  const PEOPLE = ['mark@futures.church', 'josh@futures.church', 'alexis@futures.church', 'jane0202@me.com'];
+  const seed = () => {
+    addRoster({ email: 'mark@futures.church', role: 'hub', display_name: 'Mark', password_hash: hashPassword(PASSWORD), campus_id: 'us-gwinnett' });
+    addRoster({ email: 'josh@futures.church', role: 'hub', display_name: 'Josh', password_hash: hashPassword(PASSWORD) });
+    addRoster({ email: 'alexis@futures.church', role: 'hub', display_name: 'Alexis', password_hash: hashPassword(PASSWORD) });
+    addWithCode({ email: 'jane0202@me.com', role: 'hub', display_name: 'Jane Evans' });
+  };
+
+  it('needs a staff session (anon 401)', async () => {
+    seed();
+    const before = snapshot();
+    expect((await call({ action: 'roster_make_admin', email: 'mark@futures.church' })).status).toBe(401);
+    expect(snapshot()).toEqual(before);
+  });
+
+  it('the owner makes each of the four an admin; only the role changes (no code, no password, no session ended)', async () => {
+    const admin = await adminToken();
+    seed();
+    const markToken = await signIn('mark@futures.church');
+    const before = snapshot();
+    const sessionsBefore = tables.staff_sessions.length;
+    for (const email of PEOPLE) {
+      const r = await call({ action: 'roster_make_admin', email: email.toUpperCase() }, admin);
+      expect(r.status).toBe(200);
+      expect(r.body.person).toMatchObject({ email, role: 'admin' });
+      expect(r.body.setupCode).toBeUndefined();
+    }
+    for (const row of tables.staff_roster) {
+      const was = before.find((x) => x.email === row.email);
+      const { role, updated_at, ...rest } = row;
+      const { role: _r, updated_at: _u, ...restWas } = was;
+      expect(rest).toEqual(restWas);
+      expect(role).toBe(PEOPLE.includes(row.email) || row.email === 'ae@futures.global' ? 'admin' : was.role);
+    }
+    expect(tables.staff_sessions.length).toBe(sessionsBefore);
+    // Mark's own session now sees People.
+    expect((await call({ action: 'me' }, markToken)).body.staff).toMatchObject({ role: 'admin', isAdmin: true });
+    // A second tap is a no-op.
+    const again = await call({ action: 'roster_make_admin', email: 'mark@futures.church' }, admin);
+    expect(again.status).toBe(200);
+    expect(again.body.already).toBe(true);
+  });
+
+  it('roster_list tells only the owner that he can make admins', async () => {
+    const admin = await adminToken();
+    seed();
+    expect((await call({ action: 'roster_list' }, admin)).body.canMakeAdmin).toBe(true);
+    tables.staff_roster.find((x) => x.email === 'mark@futures.church').role = 'admin';
+    const mark = await signIn('mark@futures.church');
+    expect((await call({ action: 'roster_list' }, mark)).body.canMakeAdmin).toBe(false);
+  });
+
+  it('a second admin, a hub pastor and a campus pastor are refused (403) and nothing changes', async () => {
+    await adminToken();
+    seed();
+    tables.staff_roster.find((x) => x.email === 'mark@futures.church').role = 'admin';
+    addRoster({ email: 'campus.pastor@futures.church', role: 'campus', campus_id: 'us-gwinnett', password_hash: hashPassword(PASSWORD) });
+    const tokens = [await signIn('mark@futures.church'), await signIn('josh@futures.church'), await signIn('campus.pastor@futures.church')];
+    const before = snapshot();
+    for (const token of tokens) {
+      for (const email of ['alexis@futures.church', 'campus.pastor@futures.church', 'josh@futures.church']) {
+        expect((await call({ action: 'roster_make_admin', email }, token)).status).toBe(403);
+      }
+    }
+    expect(snapshot()).toEqual(before);
+  });
+
+  it('an address not on People is 404 and adds no row', async () => {
+    const admin = await adminToken();
+    const r = await call({ action: 'roster_make_admin', email: 'nobody@futures.church' }, admin);
+    expect(r.status).toBe(404);
+    expect(tables.staff_roster.some((x) => x.email === 'nobody@futures.church')).toBe(false);
+  });
+
+  it('a row removed between the read and the write is 409, never an insert', async () => {
+    const admin = await adminToken();
+    seed();
+    selectHook = async ({ table, cols }) => {
+      if (table === 'staff_roster' && cols === 'email, role') tables.staff_roster = tables.staff_roster.filter((x) => x.email !== 'josh@futures.church');
+    };
+    const r = await call({ action: 'roster_make_admin', email: 'josh@futures.church' }, admin);
+    selectHook = null;
+    expect(r.status).toBe(409);
+    expect(tables.staff_roster.some((x) => x.email === 'josh@futures.church')).toBe(false);
+  });
+});

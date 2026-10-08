@@ -1665,7 +1665,35 @@ exports.handler = async (event) => {
           && !!row.setup_code_expires_at && new Date(row.setup_code_expires_at).getTime() > Date.now(),
         code_expires_at: row.password_hash ? null : row.setup_code_expires_at || null
       }));
-      return json(event, 200, { roster });
+      // Only the owner hands out the admin role, so only his People shows "Make admin".
+      return json(event, 200, { roster, canMakeAdmin: isOwner(staff.email) });
+    }
+
+    // ── roster_make_admin ── The owner's one tap that makes a person on People an
+    // admin (his ruling 5 Oct 2026: the global team adds people themselves; the
+    // grant is his). Changes the role and nothing else: no code, no password,
+    // no session. Anyone but the owner is refused by rosterChangeRefusal.
+    if (action === "roster_make_admin") {
+      const email = normalizeEmail(body.email);
+      const { data: existing, error: existingErr } = await db().from("staff_roster")
+        .select("email, role").eq("email", email).maybeSingle();
+      if (existingErr) throw existingErr;
+      if (!existing) return json(event, 404, { error: "That person is not on People. Load People again." });
+      const refusal = rosterChangeRefusal(staff, existing, "admin", "save");
+      if (refusal) return json(event, 403, { error: refusal });
+      const cols = "email, role, campus_id, display_name";
+      if (existing.role === "admin") {
+        const { data: same, error: sameErr } = await db().from("staff_roster").select(cols).eq("email", email).maybeSingle();
+        if (sameErr) throw sameErr;
+        return json(event, 200, { person: same, already: true });
+      }
+      const upd = await db().from("staff_roster")
+        .update({ role: "admin", updated_at: new Date().toISOString() })
+        .eq("email", email).select(cols);
+      if (upd.error) throw upd.error;
+      if (!upd.data || !upd.data.length) return json(event, 409, { error: CHANGED_UNDER_YOU });
+      console.log(`[intake] roster_make_admin ${email} by owner`);
+      return json(event, 200, { person: upd.data[0] });
     }
 
     if (action === "roster_save") {
