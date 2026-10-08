@@ -1,9 +1,11 @@
 @import "./tokens.css";
+/* Person-chosen text size (TEXT-SIZE-PLAN row 10): --mos-ts / --mos-ts-display, 1 at Default. */
+@import "../lib/mos/text-size/mos-text.css";
 
 /* This stylesheet is loaded by the staff chunk; every override also needs the flag. */
 /* Apple-standard type (owner ruling 5 Oct 2026): 13px on desktop, 17px on phones. */
 html[data-ui="multiplyos"] {
-  --mos-font-size: 13px;
+  --mos-font-size: calc(13px * var(--mos-ts, 1));
   --mos-line-height: 1.4;
   --mos-control-height: 32px;
   --mos-main-button-height: 36px;
@@ -12,7 +14,7 @@ html[data-ui="multiplyos"] {
 
 @media (max-width: 767px) {
   html[data-ui="multiplyos"] {
-    --mos-font-size: 17px;
+    --mos-font-size: calc(17px * var(--mos-ts, 1));
     --mos-line-height: 1.35;
     --mos-control-height: 44px;
     /* phone main button 56px minimum: Ashley ruling 5 Oct 2026 */
@@ -121,17 +123,22 @@ html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(p, span, label, butto
   line-height: var(--mos-line-height) !important;
 }
 
+/* Typing fields never go under 16px once a size is chosen (iPhone zooms a smaller field); unset at Default. */
+html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(input, select, textarea):not(:is(h1, h2, h3, h4)):not([type="checkbox"], [type="radio"]) {
+  font-size: max(var(--mos-field-floor, 0px), 1em) !important;
+}
+
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(h1, h2, h3, h4) {
   line-height: 1.2 !important;
 }
 
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h1 {
-  font-size: 26px !important;
+  font-size: calc(26px * var(--mos-ts-display, 1)) !important;
   font-weight: 700;
 }
 
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h2 {
-  font-size: 17px !important;
+  font-size: calc(17px * var(--mos-ts, 1)) !important;
   font-weight: 600;
 }
 
@@ -345,11 +352,11 @@ html[data-ui="multiplyos"] .mos-auth__form {
 
 @media (max-width: 767px) {
   html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h1 {
-    font-size: 28px !important;
+    font-size: calc(28px * var(--mos-ts-display, 1)) !important;
   }
 
   html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) h2 {
-    font-size: 20px !important;
+    font-size: calc(20px * var(--mos-ts, 1)) !important;
   }
 }
 

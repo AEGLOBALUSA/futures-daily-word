@@ -6,30 +6,31 @@ import {
   refreshCornerDraft, skipCornerDraft, type CornerDraft, type CornerDraftWaiting,
 } from './cornerDraftApi';
 import { STAFF_SIGNED_OUT_EVENT } from './api';
+import { fs } from '../lib/mos/text-size/text-scale-core';
 
 const panelStyle: CSSProperties = {
   display: 'grid', gap: 16, width: '100%', maxWidth: 680, boxSizing: 'border-box',
   background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
   borderRadius: 16, padding: 20, marginBottom: 24,
-  color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', fontSize: 15, lineHeight: 1.5,
+  color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', fontSize: fs(15), lineHeight: 1.5,
 };
 const headingStyle: CSSProperties = {
-  fontFamily: 'var(--font-serif)', fontSize: 28, lineHeight: 1.3, margin: 0,
+  fontFamily: 'var(--font-serif)', fontSize: fs(28), lineHeight: 1.3, margin: 0,
 };
 const quietStyle: CSSProperties = {
   minHeight: 44, padding: '8px 0', border: 'none', background: 'transparent',
-  color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', fontSize: 15,
+  color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', fontSize: fs(15),
   textAlign: 'left', textDecoration: 'underline', cursor: 'pointer',
 };
 const fieldStyle: CSSProperties = {
   display: 'block', width: '100%', minWidth: 0, minHeight: 56, boxSizing: 'border-box',
   marginTop: 8, padding: '12px 14px', border: '1px solid var(--dw-border)', borderRadius: 12,
   background: 'var(--dw-surface)', color: 'var(--dw-text-primary)',
-  fontFamily: 'var(--font-sans)', fontSize: 17, lineHeight: 1.5, resize: 'vertical',
+  fontFamily: 'var(--font-sans)', fontSize: fs(17), lineHeight: 1.5, resize: 'vertical',
 };
 const campusMainStyle: CSSProperties = {
   border: 'none', borderRadius: 999, minHeight: 56, width: '100%', padding: '12px 18px',
-  fontSize: 17, fontFamily: 'var(--font-sans)', cursor: 'pointer',
+  fontSize: fs(17), fontFamily: 'var(--font-sans)', cursor: 'pointer',
 };
 
 type Props = {
@@ -196,7 +197,7 @@ export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob, seconda
   const readFeedback = (state: ReadState, retry: () => void, selected = false) =>
     state === 'ready' || (state === 'finished' && recoveryDraft) ? null :
     <div ref={selected ? selectedReadRef : undefined} tabIndex={selected ? -1 : undefined}
-      style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)', scrollMarginTop: 96 }}>
+      style={{ fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-primary)', scrollMarginTop: 96 }}>
       <p role="status" style={{ margin: 0 }}>{t(`corner_draft_${state === 'loading' ? 'loading' : state === 'finished' ? 'error_not_draft' : 'error_load'}`)}</p>
       {state === 'failed' && <button type="button" style={quietStyle} onClick={retry}>{t('corner_draft_retry')}</button>}
     </div>;
@@ -461,7 +462,7 @@ function DraftEditor({ initial, memory, active, secondary, onMainChange, campusI
 
   const feedback = (action: Action) => errors[action] && <>
     <p id={`${id}-${action}-error`} role="alert"
-      style={{ margin: '8px 0 0', fontSize: 15, color: 'var(--dw-text-primary)' }}>{words(errors[action]!)}</p>
+      style={{ margin: '8px 0 0', fontSize: fs(15), color: 'var(--dw-text-primary)' }}>{words(errors[action]!)}</p>
     {reloadAction === action && <button type="button" style={quietStyle} aria-busy={busy === action}
       onClick={() => void act(action)}>{words('retry')}</button>}
   </>;
@@ -489,7 +490,7 @@ function DraftEditor({ initial, memory, active, secondary, onMainChange, campusI
     {preservedWords}
   </section>;
   if (outcome === 'finished') return savedWords === null ? <p role="status" lang={draft.lang}
-    style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-primary)' }}>{words('error_not_draft')}</p>
+    style={{ fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-primary)' }}>{words('error_not_draft')}</p>
     : <section style={panelStyle} lang={draft.lang}>
       <p role="status" style={{ margin: 0 }}>{words('error_not_draft')}</p>
       {preservedWords}
@@ -503,7 +504,7 @@ function DraftEditor({ initial, memory, active, secondary, onMainChange, campusI
     <p style={{ margin: 0, padding: '12px 14px', border: '1px solid var(--dw-border)', borderRadius: 12 }}>
       <strong>{words('make_yours')}</strong>
     </p>
-    {draft.source && <p style={{ margin: 0, color: 'var(--dw-text-muted)', fontSize: 15 }}>
+    {draft.source && <p style={{ margin: 0, color: 'var(--dw-text-muted)', fontSize: fs(15) }}>
       {words('source').replace('{title}', () => draft.source!.title)}{draft.source.speaker ? ` · ${draft.source.speaker}` : ''}
     </p>}
     {fresh && <div ref={freshRef} style={{ scrollMarginTop: 96 }}>

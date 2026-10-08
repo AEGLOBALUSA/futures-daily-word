@@ -9,6 +9,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
 import { getStaffToken, intake, setStaffToken, STAFF_SIGNED_OUT_EVENT } from './api';
+// Person-chosen text size (TEXT-SIZE-PLAN row 10): the kit runtime applies the saved size before Staff home renders,
+// then the <mos-text-size> picker. Staff only: the public reader never loads this chunk.
+import '../lib/mos/text-size/mos-text-prepaint.js';
+import '../lib/mos/text-size/mos-text-size.js';
 import '../multiplyos/staff-ui.css';
 import { isMosUi } from '../multiplyos/uiFlag';
 import multiplyosMark from '../multiplyos/assets/multiplyos-mark.png';
@@ -28,6 +32,9 @@ import { applyStaffLangDefault, initStaffLangDefault } from './staffLang';
 import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 import { homePlan, loadHomeInfo, type HomeInfo } from './homePlan';
+import { startStaffTextSizeSync } from './textSizeSync';
+import { TextSizeRow } from './TextSizeRow';
+import { fs, fieldFs } from '../lib/mos/text-size/text-scale-core';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'notes' | 'form' | 'review' | 'people' | 'campuses';
@@ -156,23 +163,23 @@ type Submission = {
 const inputStyle: CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: 12, boxSizing: 'border-box',
   border: '1.5px solid var(--dw-border)', background: 'var(--dw-surface)',
-  color: 'var(--dw-text-primary)', fontSize: 15, fontFamily: 'var(--font-sans)', outline: 'none',
+  color: 'var(--dw-text-primary)', fontSize: fs(15), fontFamily: 'var(--font-sans)', outline: 'none',
 };
 const labelStyle: CSSProperties = {
-  display: 'block', fontSize: 18, fontWeight: 700, margin: '0 0 6px',
+  display: 'block', fontSize: fs(18), fontWeight: 700, margin: '0 0 6px',
   color: 'var(--dw-text-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1.3,
 };
 const helpStyle: CSSProperties = {
-  fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
+  fontSize: fs(15), color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45,
 };
 const btnPrimary: CSSProperties = {
   background: 'var(--dw-accent)', color: '#fff', border: 'none', borderRadius: 12,
-  padding: '12px 18px', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
+  padding: '12px 18px', fontSize: fs(14), fontWeight: 700, fontFamily: 'var(--font-sans)',
   cursor: 'pointer', minHeight: 44,
 };
 const btnGhost: CSSProperties = {
   background: 'transparent', color: 'var(--dw-text-muted)', border: '1px solid var(--dw-border)',
-  borderRadius: 12, padding: '10px 14px', fontSize: 13, fontWeight: 600,
+  borderRadius: 12, padding: '10px 14px', fontSize: fs(13), fontWeight: 600,
   fontFamily: 'var(--font-sans)', cursor: 'pointer', minHeight: 44,
 };
 
@@ -245,6 +252,10 @@ export function StaffApp() {
 
   useEffect(() => { loadMe(); }, [loadMe]);
 
+  // The person's text size follows them: their own roster row and this device, newest wins (textSizeSync.ts).
+  const staffEmail = staff?.email || '';
+  useEffect(() => (token && staffEmail ? startStaffTextSizeSync(token, staffEmail) : undefined), [token, staffEmail]);
+
   const signOut = async () => {
     try { await intake('logout'); } catch { /* */ }
     applyStaffLangDefault(null);
@@ -298,6 +309,7 @@ export function StaffApp() {
               {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
             </p>
             <button type="button" data-mo-guide-open aria-label={t('staff_guide_open', getLang())}>{t('staff_guide', getLang())}</button>
+            <TextSizeRow lang={lang} sidebar />
             <button type="button" onClick={signOut}>{t('staff_sign_out', getLang())}</button>
           </div>
         </aside>
@@ -308,32 +320,33 @@ export function StaffApp() {
       }}>
         <div className="mos-shell__header-inner" style={{ maxWidth: 720, margin: '0 auto' }}>
           {isMosUi() && <MosBrandLockup />}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, minWidth: 0, overflowWrap: 'anywhere' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: fs(11), letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
                 {staffAppName}
               </p>
-              <h1 style={{ margin: '4px 0 0', fontSize: 22, fontFamily: 'var(--font-serif)', fontWeight: 700 }}>{t('staff_heading', getLang())}</h1>
+              <h1 style={{ margin: '4px 0 0', fontSize: fs(22), fontFamily: 'var(--font-serif)', fontWeight: 700 }}>{t('staff_heading', getLang())}</h1>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0, maxWidth: '100%', '--mos-control-height': '44px' } as CSSProperties}>
               <button
                 type="button"
                 data-mo-guide-open
                 aria-label={t('staff_guide_open', getLang())}
-                style={{ ...btnGhost, minHeight: 44, padding: '8px 12px' }}
+                style={{ ...btnGhost, minHeight: 44, minWidth: 44, maxWidth: '100%', fontSize: fs(15), overflowWrap: 'anywhere', padding: '8px' }}
               >
                 {t('staff_guide', getLang())}
               </button>
+              <TextSizeRow lang={lang} compact />
               <button
                 type="button"
                 onClick={signOut}
-                style={{ ...btnGhost, minHeight: 44, padding: '8px 12px' }}
+                style={{ ...btnGhost, minHeight: 44, minWidth: 44, maxWidth: '100%', fontSize: fs(15), overflowWrap: 'anywhere', padding: '8px' }}
               >
                 {t('staff_sign_out', getLang())}
               </button>
             </div>
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+          <p style={{ margin: '6px 0 0', fontSize: fs(15), overflowWrap: 'anywhere', color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
             {staff.name || staff.email}
             {staff.role === 'campus' && staff.campusId ? ` · ${campusName(staff.campusId)}` : ''}
           </p>
@@ -351,7 +364,7 @@ export function StaffApp() {
 
       <main className="mos-shell__main" style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 80px' }}>
         {error && (
-          <p ref={bannerRef} role="alert" tabIndex={-1} style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', marginBottom: 16 }}>{error}</p>
+          <p ref={bannerRef} role="alert" tabIndex={-1} style={{ color: 'var(--dw-error)', fontSize: fs(15), fontFamily: 'var(--font-sans)', marginBottom: 16 }}>{error}</p>
         )}
         {view === 'home' && (
           <StaffHome
@@ -461,11 +474,11 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
     <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <form className="mos-auth__form" noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
         {isMosUi() && <MosBrandLockup />}
-        <p style={{ margin: 0, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
+        <p style={{ margin: 0, fontSize: fs(11), letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
           {staffAppName}
         </p>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '8px 0 8px', fontWeight: 700 }}>{setup ? t('pastor_choose_password', getLang()) : t('pastor_staff_sign_in', getLang())}</h1>
-        <p data-testid={setup && sentTo ? 'staff-code-sent' : undefined} style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(32), margin: '8px 0 8px', fontWeight: 700 }}>{setup ? t('pastor_choose_password', getLang()) : t('pastor_staff_sign_in', getLang())}</h1>
+        <p data-testid={setup && sentTo ? 'staff-code-sent' : undefined} style={{ ...helpStyle, fontSize: fs(15), color: 'var(--dw-text-secondary)', lineHeight: 1.55, margin: '0 0 24px' }}>
           {setup
             ? sentTo
               ? t('pastor_code_sent', getLang()).replace('{email}', sentTo)
@@ -536,7 +549,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
             />
           </>
         )}
-        {error && <p role="alert" style={{ color: '#B42318', fontSize: 13, fontFamily: 'var(--font-sans)' }}>{error}</p>}
+        {error && <p role="alert" style={{ color: '#B42318', fontSize: fs(13), fontFamily: 'var(--font-sans)' }}>{error}</p>}
         <button type="submit" className="mos-button mos-button--primary" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
           {busy ? t('pastor_please_wait', getLang()) : setup ? t('pastor_save_password', getLang()) : t('pastor_sign_in_btn', getLang())}
         </button>
@@ -570,7 +583,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
           </>
         )}
         <p style={{ marginTop: 20, textAlign: 'center' }}>
-          <a href="/" style={{ color: 'var(--dw-text-muted)', fontSize: 13, fontFamily: 'var(--font-sans)' }}>← Daily Word</a>
+          <a href="/" style={{ color: 'var(--dw-text-muted)', fontSize: fs(13), fontFamily: 'var(--font-sans)' }}>← Daily Word</a>
         </p>
       </form>
     </div>
@@ -632,16 +645,16 @@ function StaffHome({
   return (
     <div style={{ '--mos-control-height': '44px' } as CSSProperties}>
       <PrayerCare staff={staff} onHeldChange={setHasHeldPrayer} onNeedsYouMainChange={setHasNeedsYouMain}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, margin: '0 0 10px', fontWeight: 700 }}>{t('staff_heading', getLang())}</h2>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(32), margin: '0 0 10px', fontWeight: 700 }}>{t('staff_heading', getLang())}</h2>
       {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} secondary={hasHeldPrayer || hasNeedsYouMain}
         onMainChange={setHasDraftMain}
         staffCampusId={staff.role === 'campus' ? staff.campusId ?? undefined : undefined}
         onJob={job => onJob(job)} />}
-      <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
+      <p style={{ fontFamily: 'var(--font-sans)', fontSize: fs(16), color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         {t('staff_home_intro', getLang())}
       </p>
       {plan?.notesUp && (
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
+        <p style={{ fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
           {plan.notesUp}
         </p>
       )}
@@ -655,7 +668,7 @@ function StaffHome({
             borderRadius: 16, padding: '18px 20px', marginBottom: 12, minHeight: 220,
           }}
         >
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.45 }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-secondary)', lineHeight: 1.45 }}>
             {t('staff_home_loading', getLang())}
           </div>
         </div>
@@ -672,10 +685,10 @@ function StaffHome({
                 borderRadius: 16, padding: '18px 20px', marginBottom: 12, minHeight: 220,
               }}
             >
-              <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
-              <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
+              <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: fs(20), color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
+              <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
               {plan.reason && (
-                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '16px 0 0' }}>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '16px 0 0' }}>
                   {plan.reason}
                 </p>
               )}
@@ -683,7 +696,7 @@ function StaffHome({
                 type="button"
                 className="dw-next mos-button mos-button--primary"
                 onClick={() => (j.id === 'notes' ? onNotes() : onJob(j.id))}
-                style={{ ...btnPrimary, width: '100%', minHeight: 56, fontSize: 15, marginTop: 16 }}
+                style={{ ...btnPrimary, width: '100%', minHeight: 56, fontSize: fs(15), marginTop: 16 }}
               >
                 {mainLabels[j.id]}
               </button>
@@ -702,8 +715,8 @@ function StaffHome({
             borderRadius: 16, padding: '18px 20px', marginBottom: 12, cursor: 'pointer',
           } as CSSProperties}
         >
-          <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
-          <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
+          <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: fs(20), color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
+          <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
         </button>
         );
       })}
@@ -711,7 +724,7 @@ function StaffHome({
       <NextPill />
       {staff.isAdmin && (
         <>
-          <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: 'var(--dw-text-secondary)' }}>
+          <p style={{ margin: '20px 0 8px', fontFamily: 'var(--font-ui)', fontSize: fs(15), fontWeight: 600, color: 'var(--dw-text-secondary)' }}>
             Settings
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1086,11 +1099,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
 
   return (
     <form noValidate onSubmit={submit} onChangeCapture={() => setWordingSaved(null)}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(24), margin: '0 0 8px' }}>
         {job === 'hub' ? t('staff_hub_form_title', getLang()) : job === 'media' ? t('staff_media_form_title', getLang()) : t('staff_campus_form_title', getLang())}
       </h2>
       <p style={{ ...helpStyle, marginBottom: 28 }}>{formIntro(job)}</p>
-      {rewordable.length > 0 && <p style={{ ...helpStyle, fontSize: 15 }}>{t('staff_wording_guide', getLang())}</p>}
+      {rewordable.length > 0 && <p style={{ ...helpStyle, fontSize: fs(15) }}>{t('staff_wording_guide', getLang())}</p>}
 
       {sermonForm && (
         <Field label={t('staff_church_question', getLang())} help={t('staff_church_help', getLang())}>
@@ -1180,33 +1193,33 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       <div style={{ position: editingId ? 'static' : 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 1 }}>
         {loadError ? (
           <>
-            <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontWeight: 600 }}>{loadError}</p>
-            <button type="button" className="dw-next mos-button mos-button--primary" style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={() => load(pickCampus || staff.campusId || undefined)}>
+            <p role="alert" style={{ fontSize: fs(15), color: 'var(--dw-error)', fontWeight: 600 }}>{loadError}</p>
+            <button type="button" className="dw-next mos-button mos-button--primary" style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: fs(15) }} onClick={() => load(pickCampus || staff.campusId || undefined)}>
               {t('staff_form_load_again', getLang())}
             </button>
           </>
         ) : (
           <>
             {formError && (
-              <p ref={errorRef} role="alert" style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '0 0 12px' }}>
+              <p ref={errorRef} role="alert" style={{ color: 'var(--dw-error)', fontSize: fs(15), fontFamily: 'var(--font-sans)', fontWeight: 600, margin: '0 0 12px' }}>
                 {formError}
               </p>
             )}
-            <button type="submit" className={editingId ? 'mos-button mos-button--primary' : 'dw-next mos-button mos-button--primary'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: 15, marginTop: 8 }}>
+            <button type="submit" className={editingId ? 'mos-button mos-button--primary' : 'dw-next mos-button mos-button--primary'} aria-disabled={busy || !loaded || questions.length === 0} style={{ ...(editingId ? btnGhost : btnPrimary), minHeight: 56, width: '100%', fontSize: fs(15), marginTop: 8 }}>
               {busy || loading ? t('staff_working', getLang()) : job === 'campus' ? t('staff_publish_corner', getLang()) : job === 'media' ? mediaButtonLabel : t('staff_publish_notes', getLang())}
             </button>
             {mediaKeepsCurrentMessage && (
-              <p style={{ ...helpStyle, fontSize: 15, marginTop: 8 }}>
+              <p style={{ ...helpStyle, fontSize: fs(15), marginTop: 8 }}>
                 {t('staff_current_stays', getLang()).replace('{title}', () => currentSermon.title).replace('{congregation}', () => congregationName(congregation))}
               </p>
             )}
-            {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: 15 }}>{t('staff_form_nothing_yet', getLang())}</p>}
+            {loaded && questions.length === 0 && <p className="fx-why" style={{ ...helpStyle, fontSize: fs(15) }}>{t('staff_form_nothing_yet', getLang())}</p>}
           </>
         )}
       </div>
       {done && !formError && (
         <div style={{ marginTop: 12, fontFamily: 'var(--font-sans)' }}>
-          <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: 15, fontWeight: 600 }}>
+          <p style={{ margin: 0, color: 'var(--dw-info)', fontSize: fs(15), fontWeight: 600 }}>
             {held
               ? t('staff_corner_held', getLang())
               : job === 'campus'
@@ -1230,7 +1243,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
                   : t('staff_saved', getLang())}
           </p>
           {job !== 'campus' && !held && (
-            <a href={congregationPageUrl(doneCongregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 15, color: 'var(--dw-accent)', fontWeight: 600 }}>
+            <a href={congregationPageUrl(doneCongregation)} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: fs(15), color: 'var(--dw-accent)', fontWeight: 600 }}>
               {t('staff_open_page', getLang()).replace('{congregation}', () => congregationName(doneCongregation))}
             </a>
           )}
@@ -1239,11 +1252,11 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
 
       {mine.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--dw-text-muted)' }}>
+          <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: fs(13), letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--dw-text-muted)' }}>
             {t('staff_recent_submissions', getLang())}
           </h3>
           {mine.map(s => (
-            <p key={s.id} style={{ fontSize: 13, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '8px 0' }}>
+            <p key={s.id} style={{ fontSize: fs(13), fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '8px 0' }}>
               {new Date(s.created_at).toLocaleString(getLang() === 'es' ? 'es' : undefined)} · {['pending', 'approved', 'declined'].includes(s.status) ? t(`staff_status_${s.status}`, getLang()) : s.status}
             </p>
           ))}
@@ -1393,8 +1406,8 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
   useEffect(() => {
     if (editing) editorRef.current?.scrollIntoView({ block: 'nearest' });
   }, [editing]);
-  const quiet: CSSProperties = { ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 };
-  const errorStyle: CSSProperties = { fontSize: 15, color: 'var(--dw-error)', margin: '8px 0', fontFamily: 'var(--font-sans)' };
+  const quiet: CSSProperties = { ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: fs(15) };
+  const errorStyle: CSSProperties = { fontSize: fs(15), color: 'var(--dw-error)', margin: '8px 0', fontFamily: 'var(--font-sans)' };
   const labelId = `wording-label-${question.id}`;
   const helpId = `wording-help-${question.id}`;
 
@@ -1443,7 +1456,7 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
         setSaveError(''); setStopError(''); setConfirmStop(false);
         onEditingChange(true);
       }}>{t('staff_change_wording', getLang())}</button>
-      {saved && <p role="status" style={{ fontSize: 15, fontWeight: 600, color: 'var(--dw-text-primary)', margin: '8px 0' }}>{t('staff_wording_saved', getLang())}</p>}
+      {saved && <p role="status" style={{ fontSize: fs(15), fontWeight: 600, color: 'var(--dw-text-primary)', margin: '8px 0' }}>{t('staff_wording_saved', getLang())}</p>}
     </div>
   );
 
@@ -1452,21 +1465,21 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       if (e.key === 'Enter' && e.target instanceof HTMLInputElement) { e.preventDefault(); void save(); }
     }}>
       <Field label={t('staff_wording_question', getLang())} htmlFor={labelId}>
-        <input id={labelId} type="text" value={label} maxLength={200} onChange={e => { setLabel(e.target.value); setSaveError(''); }} style={{ ...inputStyle, minHeight: 56, fontSize: 17 }} />
+        <input id={labelId} type="text" value={label} maxLength={200} onChange={e => { setLabel(e.target.value); setSaveError(''); }} style={{ ...inputStyle, minHeight: 56, fontSize: fieldFs(17) }} />
       </Field>
       <Field label={t('staff_wording_help', getLang())} htmlFor={helpId}>
-        <textarea id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: 17, resize: 'vertical' }} />
+        <textarea id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: fieldFs(17), resize: 'vertical' }} />
       </Field>
       <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 2 }}>
-        <button type="button" className="dw-next" aria-disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: 15 }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
+        <button type="button" className="dw-next" aria-disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: fs(15) }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
         {saveError && <p role="alert" style={errorStyle}>{saveError}</p>}
         {saveErrorStatus === 404 || saveErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
       </div>
       <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; onEditingChange(false); }}>{t('staff_wording_cancel', getLang())}</button>
       {isAdmin && (confirmStop ? (
         <div>
-          <p style={{ ...helpStyle, fontSize: 15 }}>{t('staff_stop_asking_confirm', getLang())}</p>
-          <button type="button" aria-disabled={busy} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={stopAsking}>{t('staff_stop_asking', getLang())}</button>
+          <p style={{ ...helpStyle, fontSize: fs(15) }}>{t('staff_stop_asking_confirm', getLang())}</p>
+          <button type="button" aria-disabled={busy} style={{ ...btnGhost, minHeight: 44, fontSize: fs(15) }} onClick={stopAsking}>{t('staff_stop_asking', getLang())}</button>
           {stopError && <p role="alert" style={errorStyle}>{stopError}</p>}
           {stopErrorStatus === 404 || stopErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
           <button type="button" aria-disabled={busy} style={quiet} onClick={() => { if (busy) return; setConfirmStop(false); setStopError(''); }}>{t('staff_wording_cancel', getLang())}</button>
@@ -1502,8 +1515,8 @@ function QuestionField({
       <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         {campusLocked ? (
           <>
-            <div style={{ fontSize: 17, color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }}>{campusName(v)}</div>
-            <div style={{ fontSize: 15, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', lineHeight: 1.45 }}>{t('staff_campus_set_for_you', getLang())}</div>
+            <div style={{ fontSize: fs(17), color: 'var(--dw-text-primary)', fontFamily: 'var(--font-sans)', lineHeight: 1.4 }}>{campusName(v)}</div>
+            <div style={{ fontSize: fs(15), color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', lineHeight: 1.45 }}>{t('staff_campus_set_for_you', getLang())}</div>
             <input type="hidden" id={id} value={v} />
           </>
         ) : (
@@ -1576,7 +1589,7 @@ function QuestionField({
           style={{ ...inputStyle, minHeight: q.type === 'long_text' ? 120 : undefined, resize: 'vertical' as const, ...(problem ? { borderColor: 'var(--dw-error)' } : {}) }}
         />
         {problem && (
-          <p style={{ color: 'var(--dw-error)', fontSize: 15, fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>{problem}</p>
+          <p style={{ color: 'var(--dw-error)', fontSize: fs(15), fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>{problem}</p>
         )}
       </Field>
     );
@@ -1683,18 +1696,18 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
 
   return (
     <div>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>History</h2>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(24), margin: '0 0 8px' }}>History</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>What already went live. Saves go live on their own — this is a record, not a queue.</p>
       {(questions.some(q => q.enabled === false) || askAgainDone) && (
         <section style={{ marginBottom: 16 }}>
-          {askAgainDone && <p role="status" style={{ fontSize: 15, color: 'var(--dw-text-primary)', fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>{t('staff_ask_again_done', getLang()).replace('{label}', askAgainDone)}</p>}
-          <h3 style={{ fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{t('staff_switched_off_questions', getLang())}</h3>
+          {askAgainDone && <p role="status" style={{ fontSize: fs(15), color: 'var(--dw-text-primary)', fontWeight: 600, fontFamily: 'var(--font-sans)', margin: '0 0 8px' }}>{t('staff_ask_again_done', getLang()).replace('{label}', askAgainDone)}</p>}
+          <h3 style={{ fontSize: fs(17), fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{t('staff_switched_off_questions', getLang())}</h3>
           {questions.filter(q => q.enabled === false).map(q => (
             <div key={q.id} style={{ marginBottom: 12 }}>
-              <p style={{ fontSize: 15, margin: '0 0 8px', fontFamily: 'var(--font-sans)' }}>{q.label}</p>
-              <button type="button" aria-disabled={restoring.includes(q.id)} aria-busy={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: 15 }} onClick={() => askAgain(q.id)}>{restoring.includes(q.id) ? t('staff_ask_again_busy', getLang()) : t('staff_ask_again', getLang())}</button>
-              {askAgainErrors[q.id] && <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0' }}>{askAgainErrors[q.id].message}</p>}
-              {askAgainErrors[q.id]?.status === 404 || askAgainErrors[q.id]?.status === 409 ? <button type="button" aria-busy={reloading[q.id] || undefined} aria-disabled={reloading[q.id] || undefined} style={{ ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: 15 }} onClick={() => reloadQuestion(q.id)}>{reloading[q.id] ? t('staff_ask_again_busy_list', getLang()) : t('staff_ask_again_reload', getLang())}</button> : null}
+              <p style={{ fontSize: fs(15), margin: '0 0 8px', fontFamily: 'var(--font-sans)' }}>{q.label}</p>
+              <button type="button" aria-disabled={restoring.includes(q.id)} aria-busy={restoring.includes(q.id)} style={{ ...btnGhost, minHeight: 44, fontSize: fs(15) }} onClick={() => askAgain(q.id)}>{restoring.includes(q.id) ? t('staff_ask_again_busy', getLang()) : t('staff_ask_again', getLang())}</button>
+              {askAgainErrors[q.id] && <p role="alert" style={{ fontSize: fs(15), color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0' }}>{askAgainErrors[q.id].message}</p>}
+              {askAgainErrors[q.id]?.status === 404 || askAgainErrors[q.id]?.status === 409 ? <button type="button" aria-busy={reloading[q.id] || undefined} aria-disabled={reloading[q.id] || undefined} style={{ ...btnGhost, border: 'none', color: 'var(--dw-accent)', minHeight: 44, fontSize: fs(15) }} onClick={() => reloadQuestion(q.id)}>{reloading[q.id] ? t('staff_ask_again_busy_list', getLang()) : t('staff_ask_again_reload', getLang())}</button> : null}
             </div>
           ))}
         </section>
@@ -1733,7 +1746,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
           }}
         >
           <span style={{ display: 'block', fontWeight: 700, color: 'var(--dw-text-primary)' }}>{row.email}</span>
-          <span style={{ display: 'block', fontSize: 12, color: 'var(--dw-text-muted)', marginTop: 4 }}>
+          <span style={{ display: 'block', fontSize: fs(12), color: 'var(--dw-text-muted)', marginTop: 4 }}>
             {new Date(row.created_at).toLocaleString()}
             {row.campus_id ? ` · ${campusName(row.campus_id)}` : ''}
             {row.role === 'hub' ? ' · sermon notes' : ''}
@@ -1756,7 +1769,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
             <div key={id} style={{ marginBottom: 12 }}>
               <p style={{ ...labelStyle, marginBottom: 4 }}>{labelFor[id] || id}</p>
               <pre style={{
-                whiteSpace: 'pre-wrap', fontFamily: 'var(--font-sans)', fontSize: 13,
+                whiteSpace: 'pre-wrap', fontFamily: 'var(--font-sans)', fontSize: fs(13),
                 color: 'var(--dw-text-secondary)', margin: 0, background: 'var(--dw-surface)',
                 padding: 12, borderRadius: 10, overflow: 'auto',
               }}>
@@ -1806,13 +1819,13 @@ type CampusDraft = {
   sundayUntil: string; congregation: string | null; pcoNames: string; videoUrl: string; active: boolean;
 };
 
-const campusInputStyle: CSSProperties = { ...inputStyle, fontSize: 17, minHeight: 56 };
+const campusInputStyle: CSSProperties = { ...inputStyle, fontSize: fs(17), minHeight: 56 };
 const campusMainStyle: CSSProperties = {
   border: 'none', borderRadius: 999,
-  minHeight: 56, width: '100%', padding: '12px 18px', fontSize: 17, fontWeight: 700,
+  minHeight: 56, width: '100%', padding: '12px 18px', fontSize: fs(17), fontWeight: 700,
   fontFamily: 'var(--font-sans)', cursor: 'pointer',
 };
-const campusGhost: CSSProperties = { ...btnGhost, fontSize: 15 };
+const campusGhost: CSSProperties = { ...btnGhost, fontSize: fs(15) };
 
 function campusSlug(value: string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -1866,21 +1879,21 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
   };
   const closeEditor = () => { setOpenId(null); setAdding(false); setDraft(null); onError(''); };
 
-  if (loading) return <p style={{ fontSize: 15, fontFamily: 'var(--font-sans)' }}>Loading campuses…</p>;
-  if (loadError) return <div><p role="alert" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--dw-error)' }}>{loadError}</p><button type="button" style={campusGhost} onClick={load}>Load campuses again</button></div>;
+  if (loading) return <p style={{ fontSize: fs(15), fontFamily: 'var(--font-sans)' }}>Loading campuses…</p>;
+  if (loadError) return <div><p role="alert" style={{ fontSize: fs(15), fontFamily: 'var(--font-sans)', color: 'var(--dw-error)' }}>{loadError}</p><button type="button" style={campusGhost} onClick={load}>Load campuses again</button></div>;
 
   return (
     <div>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>Campuses</h2>
-      <p style={{ ...helpStyle, fontSize: 15, marginBottom: 16 }}>{campuses.length} campuses. Readers see them in this order.</p>
-      <p style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.5, margin: '0 0 24px' }}><strong>How this connects:</strong> This one list feeds the reader app’s campus picker, the prayer wall’s campus names, campus pastor codes, Planning Center matching, and which Sermon Notes page a campus reads first. It also guesses a new reader's campus (from a link or QR code ending in ?campus= and the campus id, from their Planning Center record, or from their town, matched against each campus's Town and its other towns) and asks them one question; nothing is saved until they tap Yes. Readers see a change within five minutes.</p>
-      {saveStatus && <p role="status" style={{ fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '0 0 16px' }}>{saveStatus}</p>}
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(24), margin: '0 0 8px' }}>Campuses</h2>
+      <p style={{ ...helpStyle, fontSize: fs(15), marginBottom: 16 }}>{campuses.length} campuses. Readers see them in this order.</p>
+      <p style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', lineHeight: 1.5, margin: '0 0 24px' }}><strong>How this connects:</strong> This one list feeds the reader app’s campus picker, the prayer wall’s campus names, campus pastor codes, Planning Center matching, and which Sermon Notes page a campus reads first. It also guesses a new reader's campus (from a link or QR code ending in ?campus= and the campus id, from their Planning Center record, or from their town, matched against each campus's Town and its other towns) and asks them one question; nothing is saved until they tap Yes. Readers see a change within five minutes.</p>
+      {saveStatus && <p role="status" style={{ fontSize: fs(15), fontFamily: 'var(--font-sans)', color: 'var(--dw-text-secondary)', margin: '0 0 16px' }}>{saveStatus}</p>}
       {campuses.map(campus => (
         <div key={campus.id} style={{ marginBottom: 10 }}>
           <button type="button" aria-expanded={openId === campus.id} aria-label={`${campus.name}, ${campus.city}, ${campus.timeZone}${campus.active ? '' : ', hidden from readers'}`} onClick={() => openId === campus.id ? closeEditor() : openRow(campus)} style={{ display: 'block', width: '100%', minHeight: 56, textAlign: 'left', background: 'var(--dw-card)', border: '1px solid var(--dw-border)', borderRadius: 14, padding: '12px 16px', cursor: 'pointer' }}>
-            <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 17, fontWeight: 700 }}>{campus.name}</span>
-            <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)' }}>{campus.city} · {campus.region} · {campus.timeZone}</span>
-            {!campus.active && <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)' }}>Hidden from readers</span>}
+            <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: fs(17), fontWeight: 700 }}>{campus.name}</span>
+            <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-secondary)' }}>{campus.city} · {campus.region} · {campus.timeZone}</span>
+            {!campus.active && <span style={{ display: 'block', marginTop: 3, fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-secondary)' }}>Hidden from readers</span>}
           </button>
           {openId === campus.id && draft && <CampusEditor draft={draft} setDraft={setDraft} isNew={false} regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => { await load(); }} onError={onError} />}
         </div>
@@ -1915,18 +1928,18 @@ function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouc
   };
   return (
     <form noValidate onSubmit={e => { e.preventDefault(); save(); }} style={{ padding: '18px 4px 0' }}>
-      {isNew ? <Field label="Campus id" htmlFor="campus-id"><input id="campus-id" value={draft.id} onChange={e => { setIdTouched(true); patch({ id: e.target.value }); }} style={campusInputStyle} /></Field> : <p style={{ fontSize: 15, fontFamily: 'var(--font-sans)', margin: '0 0 24px' }}><strong>{draft.id}</strong> <span style={{ color: 'var(--dw-text-secondary)' }}>The id never changes once saved</span></p>}
+      {isNew ? <Field label="Campus id" htmlFor="campus-id"><input id="campus-id" value={draft.id} onChange={e => { setIdTouched(true); patch({ id: e.target.value }); }} style={campusInputStyle} /></Field> : <p style={{ fontSize: fs(15), fontFamily: 'var(--font-sans)', margin: '0 0 24px' }}><strong>{draft.id}</strong> <span style={{ color: 'var(--dw-text-secondary)' }}>The id never changes once saved</span></p>}
       <Field label="Name" htmlFor="campus-name"><input id="campus-name" value={draft.name} onChange={e => setName(e.target.value)} style={campusInputStyle} /></Field>
       <Field label="Town" htmlFor="campus-town"><input id="campus-town" value={draft.city} onChange={e => patch({ city: e.target.value })} style={campusInputStyle} /></Field>
-      <Field label="Other towns near this campus" htmlFor="campus-towns"><p id="campus-towns-help" style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. Towns this campus’s readers live in besides its own town, one per line. New readers in these towns are asked about this campus. Write a town under more than one campus and readers there choose from a short list instead. When one of those is a Futures campus and the other a Futuros campus, the reader’s language picks between them.</p><textarea id="campus-towns" aria-describedby="campus-towns-help" value={draft.towns} onChange={e => patch({ towns: e.target.value })} rows={3} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
+      <Field label="Other towns near this campus" htmlFor="campus-towns"><p id="campus-towns-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. Towns this campus’s readers live in besides its own town, one per line. New readers in these towns are asked about this campus. Write a town under more than one campus and readers there choose from a short list instead. When one of those is a Futures campus and the other a Futuros campus, the reader’s language picks between them.</p><textarea id="campus-towns" aria-describedby="campus-towns-help" value={draft.towns} onChange={e => patch({ towns: e.target.value })} rows={3} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
       <Field label="Region" htmlFor="campus-region"><select id="campus-region" value={newRegion ? '__new__' : draft.region} onChange={e => { if (e.target.value === '__new__') { setNewRegion(true); patch({ region: '' }); } else { setNewRegion(false); setRegion(e.target.value); } }} style={campusInputStyle}><option value="">Choose a region</option>{regions.map(region => <option key={region} value={region}>{region}</option>)}<option value="__new__">New region…</option></select>{newRegion && <input id="campus-region-new" aria-label="New region name" value={draft.region} onChange={e => setRegion(e.target.value, false)} placeholder="Region name" style={{ ...campusInputStyle, marginTop: 10 }} />}</Field>
       <Field label="Time zone" htmlFor="campus-zone"><select id="campus-zone" value={draft.timeZone} onChange={e => patch({ timeZone: e.target.value })} style={campusInputStyle}><option value="">Choose a time zone</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}{draft.timeZone && !zones.includes(draft.timeZone) && <option value={draft.timeZone}>{draft.timeZone}</option>}</select></Field>
       <Field label="Sunday notes show on Home until" htmlFor="campus-sunday"><input id="campus-sunday" type="time" value={draft.sundayUntil} onChange={e => patch({ sundayUntil: e.target.value })} style={campusInputStyle} /></Field>
       <Field label="Which Sermon Notes page it reads first" htmlFor="campus-congregation"><select id="campus-congregation" value={draft.congregation || ''} onChange={e => patch({ congregation: e.target.value || null })} style={campusInputStyle}><option value="">None (worked out from the campus)</option>{CONGREGATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-      <Field label="Planning Center spellings" htmlFor="campus-pco"><p id="campus-pco-help" style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. How this campus is spelled in Planning Center, one per line.</p><textarea id="campus-pco" aria-describedby="campus-pco-help" value={draft.pcoNames} onChange={e => patch({ pcoNames: e.target.value })} rows={4} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
-      <Field label="Livestream link" htmlFor="campus-video"><p id="campus-video-help" style={{ fontSize: 15, color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. https://…</p><input id="campus-video" aria-describedby="campus-video-help" type="url" value={draft.videoUrl} onChange={e => patch({ videoUrl: e.target.value })} style={campusInputStyle} /></Field>
-      {!isNew && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}><button type="button" style={campusGhost} onClick={() => move('up')}>Move up</button><button type="button" style={campusGhost} onClick={() => move('down')}>Move down</button><button type="button" style={campusGhost} onClick={() => patch({ active: !draft.active })}>{draft.active ? 'Hide from readers' : 'Show to readers'}</button>{!draft.active && <span style={{ alignSelf: 'center', fontSize: 15, color: 'var(--dw-text-secondary)' }}>Readers stop seeing it when you save.</span>}<button type="button" style={campusGhost} onClick={onClose}>Close</button></div>}
-      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12 }}><button type="submit" className="dw-next dw-campus-main" disabled={busy} style={campusMainStyle}>{busy ? 'Saving…' : 'Save campus'}</button>{error && <p role="alert" style={{ fontSize: 15, color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>{error}</p>}</div>
+      <Field label="Planning Center spellings" htmlFor="campus-pco"><p id="campus-pco-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. How this campus is spelled in Planning Center, one per line.</p><textarea id="campus-pco" aria-describedby="campus-pco-help" value={draft.pcoNames} onChange={e => patch({ pcoNames: e.target.value })} rows={4} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
+      <Field label="Livestream link" htmlFor="campus-video"><p id="campus-video-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. https://…</p><input id="campus-video" aria-describedby="campus-video-help" type="url" value={draft.videoUrl} onChange={e => patch({ videoUrl: e.target.value })} style={campusInputStyle} /></Field>
+      {!isNew && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}><button type="button" style={campusGhost} onClick={() => move('up')}>Move up</button><button type="button" style={campusGhost} onClick={() => move('down')}>Move down</button><button type="button" style={campusGhost} onClick={() => patch({ active: !draft.active })}>{draft.active ? 'Hide from readers' : 'Show to readers'}</button>{!draft.active && <span style={{ alignSelf: 'center', fontSize: fs(15), color: 'var(--dw-text-secondary)' }}>Readers stop seeing it when you save.</span>}<button type="button" style={campusGhost} onClick={onClose}>Close</button></div>}
+      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12 }}><button type="submit" className="dw-next dw-campus-main" disabled={busy} style={campusMainStyle}>{busy ? 'Saving…' : 'Save campus'}</button>{error && <p role="alert" style={{ fontSize: fs(15), color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>{error}</p>}</div>
       {isNew && <button type="button" style={{ ...campusGhost, marginTop: 4 }} onClick={onClose}>Cancel</button>}
     </form>
   );
@@ -2005,17 +2018,17 @@ function Roster({ onError }: { onError: (s: string) => void }) {
 
   return (
     <div>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, margin: '0 0 8px' }}>People</h2>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(24), margin: '0 0 8px' }}>People</h2>
       <p style={{ ...helpStyle, marginBottom: 16 }}>
         Who can sign in. Adding someone gives you a one-time setup code to hand them; they use it to choose their own password.
       </p>
       {issued && (
         <div role="status" data-testid="staff-setup-code" style={{ border: '2px solid var(--dw-accent)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
-          <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)' }}>
+          <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: fs(13), color: 'var(--dw-text-secondary)' }}>
             Setup code for {issued.email}
           </p>
-          <p style={{ margin: '6px 0', fontFamily: 'var(--font-mono, monospace)', fontSize: 28, fontWeight: 700, letterSpacing: '0.12em' }}>{issued.code}</p>
-          <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
+          <p style={{ margin: '6px 0', fontFamily: 'var(--font-mono, monospace)', fontSize: fs(28), fontWeight: 700, letterSpacing: '0.12em' }}>{issued.code}</p>
+          <p style={{ margin: 0, fontFamily: 'var(--font-sans)', fontSize: fs(13), color: 'var(--dw-text-secondary)', lineHeight: 1.5 }}>
             Give it to them yourself. It works once{issued.expiresAt ? ` and stops working on ${formatExpiry(issued.expiresAt)}` : ''}. This is the only time you will see it; if it is lost, get a new one.
           </p>
           <button type="button" style={{ ...btnGhost, minHeight: 36, padding: '6px 12px', marginTop: 10 }} onClick={() => setIssued(null)}>Done</button>
@@ -2024,7 +2037,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
       {rows.map(r => (
         <div key={r.email} style={{ border: '1px solid var(--dw-border)', borderRadius: 14, padding: 14, marginBottom: 8 }}>
           <p style={{ margin: 0, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{r.display_name || r.email}</p>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
+          <p style={{ margin: '4px 0 0', fontSize: fs(12), color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)' }}>
             {r.email} · {r.role}{r.campus_id ? ` · ${campusName(r.campus_id)}` : ''}
             {r.has_password
               ? ' · password set'
@@ -2074,7 +2087,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
               aria-busy={makingAdminEmail === r.email || undefined}
               aria-disabled={!!makingAdminEmail || undefined}
               aria-describedby={`admin-status-${r.email}`}
-              style={{ ...btnGhost, minHeight: 44, fontSize: 15, color: 'var(--dw-text-primary)', padding: '6px 12px' }}
+              style={{ ...btnGhost, minHeight: 44, fontSize: fs(15), color: 'var(--dw-text-primary)', padding: '6px 12px' }}
               onClick={() => makeAdmin(r)}
             >
               {makingAdminEmail === r.email ? 'Making admin…' : 'Make admin'}
@@ -2086,27 +2099,27 @@ function Roster({ onError }: { onError: (s: string) => void }) {
             aria-live="polite"
             tabIndex={-1}
             ref={node => { if (node) adminStatusRefs.current.set(r.email, node); else adminStatusRefs.current.delete(r.email); }}
-            style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-primary)', margin: '8px 0 0' }}
+            style={{ ...helpStyle, fontSize: fs(15), color: 'var(--dw-text-primary)', margin: '8px 0 0' }}
           >
             {adminFeedback[r.email]?.message || (makingAdminEmail === r.email ? 'Making admin…' : '')}
             {adminFeedback[r.email]?.refreshing && ' Loading People…'}
           </p>
           {makingAdminEmail && makingAdminEmail !== r.email && canMakeAdmin && r.role !== 'admin' && (
-            <p style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-primary)', margin: '8px 0 0' }}>
+            <p style={{ ...helpStyle, fontSize: fs(15), color: 'var(--dw-text-primary)', margin: '8px 0 0' }}>
               Wait for the current change to finish.
             </p>
           )}
-          {adminFeedback[r.email]?.error && <p role="alert" style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-error)' }}>{adminFeedback[r.email].error}</p>}
+          {adminFeedback[r.email]?.error && <p role="alert" style={{ ...helpStyle, fontSize: fs(15), color: 'var(--dw-error)' }}>{adminFeedback[r.email].error}</p>}
           {adminFeedback[r.email]?.refreshError && <>
-            <p role="alert" style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-error)' }}>They are an admin, but People could not refresh. Load People again.</p>
-            <button type="button" style={{ ...btnGhost, minHeight: 44, fontSize: 15, color: 'var(--dw-text-primary)', padding: '6px 12px' }} onClick={() => {
+            <p role="alert" style={{ ...helpStyle, fontSize: fs(15), color: 'var(--dw-error)' }}>They are an admin, but People could not refresh. Load People again.</p>
+            <button type="button" style={{ ...btnGhost, minHeight: 44, fontSize: fs(15), color: 'var(--dw-text-primary)', padding: '6px 12px' }} onClick={() => {
               adminFocusEmail.current = r.email;
               void refreshAfterGrant(r.email);
             }}>Load People again</button>
           </>}
         </div>
       ))}
-      <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: 14, margin: '24px 0 12px' }}>Add or update</h3>
+      <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: fs(14), margin: '24px 0 12px' }}>Add or update</h3>
       <Field label="Email">
         <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@futures.church or any email" style={inputStyle} />
       </Field>
@@ -2120,7 +2133,7 @@ function Roster({ onError }: { onError: (s: string) => void }) {
           <option value="media">Media (YouTube + notes polish)</option>
           {canMakeAdmin && <option value="admin">Admin</option>}
         </select>
-        {!canMakeAdmin && <p style={{ ...helpStyle, fontSize: 15 }}>Only Ashley makes admins.</p>}
+        {!canMakeAdmin && <p style={{ ...helpStyle, fontSize: fs(15) }}>Only Ashley makes admins.</p>}
       </Field>
       <Field label="Campus (campus pastors)">
         <select value={campusId} onChange={e => setCampusId(e.target.value)} style={inputStyle}>

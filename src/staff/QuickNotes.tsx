@@ -9,32 +9,33 @@ import {
   sundayLabel, withOtherAnswer,
   type QuickPublished, type QuickResult, type QuickStatus,
 } from './quickNotesApi';
+import { fs } from '../lib/mos/text-size/text-scale-core';
 
 const campusMainStyle: CSSProperties = {
   border: 'none', borderRadius: 999,
-  minHeight: 56, width: '100%', padding: '12px 18px', fontSize: 17, fontWeight: 700,
+  minHeight: 56, width: '100%', padding: '12px 18px', fontSize: fs(17), fontWeight: 700,
   fontFamily: 'var(--font-sans)', cursor: 'pointer',
 };
 const quietStyle: CSSProperties = {
   display: 'inline-flex', alignItems: 'center', minHeight: 44,
   padding: '8px 0', border: 'none', background: 'transparent',
-  color: 'var(--dw-text-primary)', fontSize: 15, fontFamily: 'var(--font-sans)',
+  color: 'var(--dw-text-primary)', fontSize: fs(15), fontFamily: 'var(--font-sans)',
   textAlign: 'left', textDecoration: 'underline', cursor: 'pointer',
 };
 const fieldStyle: CSSProperties = {
   width: '100%', minWidth: 0, minHeight: 56, boxSizing: 'border-box',
   padding: '12px 14px', border: '1px solid var(--dw-border)', borderRadius: 12,
   background: 'var(--dw-surface)', color: 'var(--dw-text-primary)',
-  fontSize: 17, fontFamily: 'var(--font-sans)', lineHeight: 1.5,
+  fontSize: fs(17), fontFamily: 'var(--font-sans)', lineHeight: 1.5,
 };
 const headingStyle: CSSProperties = {
-  margin: 0, fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 700, lineHeight: 1.3,
+  margin: 0, fontFamily: 'var(--font-serif)', fontSize: fs(24), fontWeight: 700, lineHeight: 1.3,
 };
 const secondaryStyle: CSSProperties = {
-  margin: 0, fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.5,
+  margin: 0, fontSize: fs(15), color: 'var(--dw-text-secondary)', lineHeight: 1.5,
 };
 const detailsStyle: CSSProperties = {
-  margin: 0, fontSize: 17, color: 'var(--dw-text-primary)', fontWeight: 600, lineHeight: 1.5,
+  margin: 0, fontSize: fs(17), color: 'var(--dw-text-primary)', fontWeight: 600, lineHeight: 1.5,
 };
 
 function congregationPageUrl(congregation: CongregationId): string {
@@ -159,7 +160,7 @@ export function QuickNotes({ onChangeDetails }: {
         {busy ? t(publishing ? result?.attach ? 'staff_quick_attaching' : 'staff_quick_publishing' : 'staff_quick_reading')
           : t(needsForm ? pickMessage ? 'staff_quick_open_media_form' : 'staff_quick_open_form' : result?.needs ? 'staff_quick_answer' : publishing ? result?.attach ? 'staff_quick_attach' : 'staff_quick_publish' : 'staff_quick_read')}
       </button>
-      {error && <p role="alert" style={{ margin: '8px 0 0', color: 'var(--dw-error)', fontSize: 15, fontWeight: 600 }}>{error}</p>}
+      {error && <p role="alert" style={{ margin: '8px 0 0', color: 'var(--dw-error)', fontSize: fs(15), fontWeight: 600 }}>{error}</p>}
       {error && result?.preview && !result.needs && <button type="button" style={quietStyle} onClick={() => {
         if (!busyRef.current) onChangeDetails(changeDetailsSeed(result));
       }}>{t('staff_quick_change')}</button>}
@@ -213,8 +214,8 @@ export function QuickNotes({ onChangeDetails }: {
                 ? t('staff_quick_later_up').replace('{title}', result.attach?.later?.title ?? '').replace('{date}', sundayLabel(result.attach?.later?.date ?? ''))
                 : detailsLine(result)}</p>
               {pickMessage
-                ? <p style={{ fontSize: 17, fontWeight: 600 }}>{t('staff_quick_pick_message')}</p>
-                : <label htmlFor={`${id}-answer`} style={{ fontSize: 17, fontWeight: 600 }}>{needsQuestion(result.needs)}</label>}
+                ? <p style={{ fontSize: fs(17), fontWeight: 600 }}>{t('staff_quick_pick_message')}</p>
+                : <label htmlFor={`${id}-answer`} style={{ fontSize: fs(17), fontWeight: 600 }}>{needsQuestion(result.needs)}</label>}
               {!needsForm && <input id={`${id}-answer`} type={result.needs.key === 'date' ? 'date' : 'text'}
                 value={answer} onChange={e => setAnswer(e.target.value)} style={fieldStyle} />}
             </>
@@ -234,7 +235,7 @@ export function QuickNotes({ onChangeDetails }: {
             <>
               <h2 style={headingStyle}>{t('staff_quick_heading').replace('{congregation}', congregationName)}</h2>
               <p style={secondaryStyle}>{sundayLabel(status.sunday)} · {t(status.up ? 'staff_quick_why_replace' : status.current ? 'staff_quick_why_stale' : 'staff_quick_why_none').replace('{title}', status.current?.title ?? '')}</p>
-              <label htmlFor={`${id}-paste`} style={{ fontSize: 17, fontWeight: 600 }}>{t('staff_quick_box')}</label>
+              <label htmlFor={`${id}-paste`} style={{ fontSize: fs(17), fontWeight: 600 }}>{t('staff_quick_box')}</label>
               <p id={`${id}-hint`} style={secondaryStyle}>{t('staff_quick_box_hint')}</p>
               <textarea id={`${id}-paste`} aria-describedby={`${id}-hint`} rows={6}
                 value={text} onChange={e => {
