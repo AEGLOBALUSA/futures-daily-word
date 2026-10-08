@@ -48,6 +48,12 @@ function matches(row, filters) {
     if (f.op === 'lt') return row[f.col] < f.val;
     if (f.op === 'is') return (row[f.col] ?? null) === f.val;
     if (f.op === 'gte') return row[f.col] != null && row[f.col] >= f.val;
+    // PostgREST or=(col.op.val,...): only the is/lt/eq forms this repo sends.
+    if (f.op === 'or') return f.val.split(',').some((part) => {
+      const [col, op, ...rest] = part.split('.');
+      const val = rest.join('.');
+      return matches(row, [{ op, col, val: op === 'is' && val === 'null' ? null : val }]);
+    });
     if (f.op === 'like') {
       // Postgres LIKE: % any run, _ one character, a backslash escapes the next character.
       let re = '';
@@ -106,6 +112,7 @@ function builder(table) {
     neq(col, val) { state.filters.push({ op: 'neq', col, val }); return b; },
     in(col, val) { state.filters.push({ op: 'in', col, val }); return b; },
     lt(col, val) { state.filters.push({ op: 'lt', col, val }); return b; },
+    or(val) { state.filters.push({ op: 'or', val }); return b; },
     gte(col, val) { state.filters.push({ op: 'gte', col, val }); return b; },
     is(col, val) { state.filters.push({ op: 'is', col, val }); return b; },
     like(col, val) { state.filters.push({ op: 'like', col, val }); return b; },
@@ -2004,5 +2011,55 @@ describe('Needs you on /staff: the gate three ways (B09-13)', () => {
     expect(out.body.waitingMuted).toBe(true);
     expect(out.body.lines).toHaveLength(2);
     expect((await call({ action: 'prayer_waiting_mute', muted: 'yes' }, token)).status).toBe(400);
+  });
+});
+
+describe('text size follows the person (TEXT-SIZE-PLAN row 10)', () => {
+  const pastor = async (email = 'ts.pastor@futures.church') => {
+    addRoster({ email, password_hash: hashPassword(PASSWORD) });
+    return signIn(email);
+  };
+
+  it('needs a staff session', async () => {
+    expect((await call({ action: 'text_size_get' })).status).toBe(401);
+    expect((await call({ action: 'text_size_set', size: 'l130', at: Date.now() })).status).toBe(401);
+  });
+
+  it('nothing saved yet reads as null; a Save is read back on another device', async () => {
+    const token = await pastor();
+    expect((await call({ action: 'text_size_get' }, token)).body).toEqual({ value: null });
+    const at = Date.now() - 1000;
+    const r = await call({ action: 'text_size_set', size: 'l130', at }, token);
+    expect(r.body).toEqual({ value: { size: 'l130', at }, saved: true });
+    const other = await signIn('ts.pastor@futures.church');
+    expect((await call({ action: 'text_size_get' }, other)).body).toEqual({ value: { size: 'l130', at } });
+  });
+
+  it('newest wins: an older write never replaces a newer copy, and says what is kept', async () => {
+    const token = await pastor();
+    const now = Date.now();
+    await call({ action: 'text_size_set', size: 's80', at: now - 1000 }, token);
+    const old = await call({ action: 'text_size_set', size: 'l150', at: now - 60_000 }, token);
+    expect(old.body).toEqual({ value: { size: 's80', at: now - 1000 }, saved: false });
+    const same = await call({ action: 'text_size_set', size: 'l150', at: now - 1000 }, token);
+    expect(same.body.saved).toBe(false);
+    expect((await call({ action: 'text_size_set', size: 'xs50', at: now }, token)).body.saved).toBe(true);
+  });
+
+  it('writes only the session\'s own row, whatever address the request names', async () => {
+    addRoster({ email: 'someone.else@futures.church', password_hash: hashPassword(PASSWORD) });
+    const token = await pastor();
+    await call({ action: 'text_size_set', size: 'l115', at: Date.now(), email: 'someone.else@futures.church' }, token);
+    const other = tables.staff_roster.find((x) => x.email === 'someone.else@futures.church');
+    expect(other.text_size).toBeUndefined();
+    expect(tables.staff_roster.find((x) => x.email === 'ts.pastor@futures.church').text_size).toBe('l115');
+  });
+
+  it('refuses a size that is not a kit step, a bad stamp, and a stamp over a day ahead', async () => {
+    const token = await pastor();
+    for (const bad of [{ size: 'huge', at: Date.now() }, { size: 'l130', at: 'soon' }, { size: 'l130', at: -5 }, { size: 'l130', at: Date.now() + 25 * HOUR }]) {
+      expect((await call({ action: 'text_size_set', ...bad }, token)).status).toBe(400);
+    }
+    expect(tables.staff_roster.find((x) => x.email === 'ts.pastor@futures.church').text_size).toBeUndefined();
   });
 });
