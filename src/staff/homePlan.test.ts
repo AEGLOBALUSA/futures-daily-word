@@ -26,13 +26,13 @@ describe('homePlan: Staff home opens on the next thing', () => {
   it('notes up and nothing learned: the first job that is not the notes', () => {
     const p = homePlan(['notes', 'hub'], { notes: notes(true), usualJob: null }, 'en');
     expect(p.main).toBe('hub');
-    expect(p.reason).toBe('');
+    expect(p.reason).toBe('Start here. Next time, this opens on the job you do most.');
   });
 
   it('a campus pastor (no notes card) leads with the usual job, or the only card', () => {
     expect(homePlan(['campus'], { notes: null, usualJob: { job: 'campus', why: 'last', weekday: 'Friday' } }, 'en'))
       .toMatchObject({ main: 'campus', reason: 'You did this last time.' });
-    expect(homePlan(['campus'], { notes: null, usualJob: null }, 'en')).toMatchObject({ main: 'campus', reason: '' });
+    expect(homePlan(['campus'], { notes: null, usualJob: null }, 'en')).toMatchObject({ main: 'campus', reason: 'Start here. Next time, this opens on the job you do most.' });
   });
 
   it('a usual job the person can no longer open is ignored', () => {

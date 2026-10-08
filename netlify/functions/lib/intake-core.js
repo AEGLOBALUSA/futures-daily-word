@@ -566,7 +566,8 @@ function usualJobFrom(submissions, questions, now = new Date(), allowed = ["hub"
       const aud = audienceOf.get(key);
       if (aud === "hub" || aud === "media" || aud === "campus") tally[aud] = (tally[aud] || 0) + 1;
     }
-    const ranked = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+    // Most-answered audience the person can still open; a tie goes to the one they can open.
+    const ranked = Object.entries(tally).filter(([aud]) => allowed.includes(aud)).sort((a, b) => b[1] - a[1]);
     const job = ranked.length ? ranked[0][0] : (["hub", "media", "campus"].includes(sub.role) ? sub.role : null);
     if (job && allowed.includes(job)) seen.push({ job, at });
   }

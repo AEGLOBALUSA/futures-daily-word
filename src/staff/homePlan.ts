@@ -73,5 +73,7 @@ export function homePlan(cards: HomeCard[], info: HomeInfo | null, lang = getLan
   }
   // Notes are up and nothing is learned yet: the first job that is not the notes.
   const main = (notesUp ? cards.find(c => c !== 'notes') : undefined) ?? cards[0] ?? null;
-  return { order: first(main), main, reason: '', notesUp };
+  // Nothing learned yet: say plainly why this card leads, and that home learns.
+  const reason = main && info ? t('staff_home_first_job', lang) : '';
+  return { order: first(main), main, reason, notesUp };
 }

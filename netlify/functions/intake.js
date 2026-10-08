@@ -46,7 +46,7 @@ const {
 } = require("./lib/intake-core");
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
-const { isCurrentAt } = require("./lib/sermon-window");
+const { isCurrentAt, congregationTimeZone } = require("./lib/sermon-window");
 const { quickNotes, hubQuestions, mediaQuestions, mediaPickQuestion, nextSundayFor, isForSunday } = require("./lib/quick-notes");
 const { isCongregationId } = require("./lib/congregations");
 const { campusCongregation } = require("./lib/campuses");
@@ -1259,10 +1259,11 @@ exports.handler = async (event) => {
     // learned from their OWN submissions. Reads only; nothing is written.
     if (action === "home") {
       let notes = null;
+      // The church whose clock and Sunday count: the one asked for (hub, media,
+      // admin only), else the person's campus's, else Futures USA.
+      const ownCongregation = (staff.campusId && campusCongregation(staff.campusId, await campusList())) || DEFAULT_CONGREGATION;
       if (["admin", "hub", "media"].includes(staff.role)) {
-        const congregation = isCongregationId(body.congregation)
-          ? body.congregation
-          : (staff.campusId && campusCongregation(staff.campusId, await campusList())) || DEFAULT_CONGREGATION;
+        const congregation = isCongregationId(body.congregation) ? body.congregation : ownCongregation;
         const { data: currentRow, error: curErr } = await db()
           .from("published_sermons")
           .select("id, sermon, is_current, congregation, published_at")
@@ -1287,7 +1288,9 @@ exports.handler = async (event) => {
       ]);
       if (subs.error) throw subs.error;
       if (qs.error) throw qs.error;
-      const usualJob = usualJobFrom(subs.data, qs.data, new Date(), jobsForRole(staff.role));
+      // "This weekday" on the person's own church clock, not UTC.
+      const zone = congregationTimeZone(notes ? notes.congregation : ownCongregation);
+      const usualJob = usualJobFrom(subs.data, qs.data, new Date(), jobsForRole(staff.role), zone);
       return json(event, 200, { notes, usualJob });
     }
 

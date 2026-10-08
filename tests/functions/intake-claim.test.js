@@ -582,7 +582,7 @@ describe('home: what Staff home opens on (readiness 7 Oct 2026)', () => {
     const r = await call({ action: 'home' }, pastor);
     expect(r.status).toBe(200);
     expect(r.body.notes).toBeNull();
-    expect(r.body.usualJob).toBeNull();
+    expect(r.body.usualJob).toMatchObject({ job: 'campus' });
   });
 });
 

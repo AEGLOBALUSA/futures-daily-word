@@ -455,6 +455,18 @@ describe('usualJobFrom: Staff home learns the usual job from the person\'s own s
     expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', [], 'admin')], qs, now)).toBeNull();
   });
 
+  it('counts the weekday on the church clock, not UTC', () => {
+    // Wednesday 1 Oct 2026, 22:00 in New York = Thursday 02:00Z.
+    const wedNight = [sub('2026-10-01T02:00:00Z', ['q_media'])];
+    const thursNightNY = new Date('2026-10-09T01:00:00Z'); // Thursday 21:00 New York
+    expect(core.usualJobFrom(wedNight, qs, thursNightNY, ['hub', 'media'], 'America/New_York')).toMatchObject({ why: 'last', weekday: 'Thursday' });
+    expect(core.usualJobFrom(wedNight, qs, new Date('2026-10-08T01:00:00Z'), ['hub', 'media'], 'America/New_York')).toMatchObject({ job: 'media', why: 'weekday', weekday: 'Wednesday' });
+  });
+
+  it('a tie between audiences goes to the one the person can open', () => {
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', ['q_media', 'q_hub'])], qs, now, ['hub'])).toMatchObject({ job: 'hub' });
+  });
+
   it('jobsForRole matches the Staff home split', () => {
     expect(core.jobsForRole('admin')).toEqual(['hub', 'media', 'campus']);
     expect(core.jobsForRole('media')).toEqual(['hub', 'media']);
