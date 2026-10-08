@@ -8,6 +8,8 @@ vi.mock('./api', () => ({
   intake: vi.fn(),
   STAFF_SIGNED_OUT_EVENT: 'dw-staff-signed-out',
 }));
+// The text size server copy has its own tests (textSizeSync.test.ts); here it stays out of the screen's network calls.
+vi.mock('./textSizeSync', () => ({ startStaffTextSizeSync: () => () => {} }));
 
 import { StaffApp } from './StaffApp';
 import { intake } from './api';
