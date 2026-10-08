@@ -532,7 +532,60 @@ function verifyPassword(password, stored) {
   return crypto.timingSafeEqual(next, prev);
 }
 
+/** The jobs each role sees on Staff home (the same split StaffHome draws). */
+function jobsForRole(role) {
+  if (role === "admin") return ["hub", "media", "campus"];
+  if (role === "media") return ["hub", "media"];
+  if (role === "hub") return ["hub"];
+  if (role === "campus") return ["campus"];
+  return [];
+}
+
+const USUAL_JOB_DAYS = 56;
+
+/**
+ * Staff home learns the usual job (readiness 7 Oct 2026, Learns): from the
+ * person's OWN submissions in the last eight weeks, the job they did most on
+ * this weekday; failing that, the job they did last. A submission's job is the
+ * audience of the questions it answered (hub, media or campus; "all" counts for
+ * none), else the role it was sent under. Only jobs in `allowed` count, so a
+ * role change never points home at a job the person can no longer open.
+ * Returns { job, why: "weekday" | "last", weekday } or null.
+ */
+function usualJobFrom(submissions, questions, now = new Date(), allowed = ["hub", "media", "campus"], timeZone = "UTC") {
+  const audienceOf = new Map((questions || []).map((q) => [q.id, q.audience]));
+  const dayOf = (d) => new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone }).format(d);
+  const today = dayOf(now);
+  const cutoff = now.getTime() - USUAL_JOB_DAYS * 86400000;
+  const seen = [];
+  for (const sub of submissions || []) {
+    const at = new Date(sub && sub.created_at);
+    if (!Number.isFinite(at.getTime()) || at.getTime() < cutoff || at.getTime() > now.getTime()) continue;
+    const tally = {};
+    for (const key of Object.keys((sub && sub.answers) || {})) {
+      const aud = audienceOf.get(key);
+      if (aud === "hub" || aud === "media" || aud === "campus") tally[aud] = (tally[aud] || 0) + 1;
+    }
+    const ranked = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+    const job = ranked.length ? ranked[0][0] : (["hub", "media", "campus"].includes(sub.role) ? sub.role : null);
+    if (job && allowed.includes(job)) seen.push({ job, at });
+  }
+  if (!seen.length) return null;
+  seen.sort((a, b) => b.at - a.at);
+  const onThisDay = seen.filter((s) => dayOf(s.at) === today);
+  if (onThisDay.length) {
+    const count = {};
+    for (const s of onThisDay) count[s.job] = (count[s.job] || 0) + 1;
+    // Most often on this weekday; a tie goes to the most recent.
+    const best = onThisDay.reduce((a, b) => (count[b.job] > count[a.job] ? b : a));
+    return { job: best.job, why: "weekday", weekday: today };
+  }
+  return { job: seen[0].job, why: "last", weekday: today };
+}
+
 module.exports = {
+  jobsForRole,
+  usualJobFrom,
   CAMPUS_IDS,
   NAMED_STAFF,
   BLOCKED_INBOXES,

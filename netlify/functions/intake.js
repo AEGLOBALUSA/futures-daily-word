@@ -40,7 +40,9 @@ const {
   verifySetupCode,
   DUMMY_HASH,
   youtubeWatchUrl,
-  hasNotesContent
+  hasNotesContent,
+  jobsForRole,
+  usualJobFrom,
 } = require("./lib/intake-core");
 const { formatSermon, mergeYoutube, answersToOutline, sanitizeAiSermon, extractKeyVerseFromNotes } = require("./lib/sermon-format");
 const { normalizeCongregation, congregationName, congregationSermonId, DEFAULT_CONGREGATION } = require("./lib/congregations");
@@ -1249,6 +1251,44 @@ exports.handler = async (event) => {
       const [status, error] = refusals[out.error] || refusals.save_failed;
       console.log("[intake] corner_draft refused", JSON.stringify({ email: staff.email, action, reason: out.error }));
       return json(event, status, { error, code: out.error || "save_failed" });
+    }
+
+    // ── home ── What Staff home opens on (readiness 7 Oct 2026): whether this
+    // Sunday's notes are up for the person's church (hub, media and admin only,
+    // the same people notes_quick_status serves) and the job they usually do,
+    // learned from their OWN submissions. Reads only; nothing is written.
+    if (action === "home") {
+      let notes = null;
+      if (["admin", "hub", "media"].includes(staff.role)) {
+        const congregation = isCongregationId(body.congregation)
+          ? body.congregation
+          : (staff.campusId && campusCongregation(staff.campusId, await campusList())) || DEFAULT_CONGREGATION;
+        const { data: currentRow, error: curErr } = await db()
+          .from("published_sermons")
+          .select("id, sermon, is_current, congregation, published_at")
+          .eq("is_current", true)
+          .eq("congregation", congregation)
+          .maybeSingle();
+        if (curErr) throw curErr;
+        const sunday = nextSundayFor(congregation, new Date());
+        notes = {
+          congregation,
+          congregationName: congregationName(congregation),
+          sunday,
+          up: isForSunday(currentRow, sunday, congregation)
+        };
+      }
+      const since = new Date(Date.now() - 56 * 86400000).toISOString();
+      const [subs, qs] = await Promise.all([
+        db().from("intake_submissions").select("role, answers, created_at")
+          .eq("email", staff.email).gte("created_at", since)
+          .order("created_at", { ascending: false }).limit(40),
+        db().from("intake_questions").select("id, audience")
+      ]);
+      if (subs.error) throw subs.error;
+      if (qs.error) throw qs.error;
+      const usualJob = usualJobFrom(subs.data, qs.data, new Date(), jobsForRole(staff.role));
+      return json(event, 200, { notes, usualJob });
     }
 
     // ── Sunday's notes, pasted once (B09-10) ──
