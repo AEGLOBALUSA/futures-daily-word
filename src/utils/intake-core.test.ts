@@ -452,3 +452,59 @@ describe('setup codes', () => {
     expect(core.verifySetupCode(code, null)).toBe(false);
   });
 });
+
+describe('usualJobFrom: Staff home learns the usual job from the person\'s own submissions', () => {
+  const qs = [
+    { id: 'q_hub', audience: 'hub' }, { id: 'q_hub2', audience: 'hub' },
+    { id: 'q_media', audience: 'media' }, { id: 'q_campus', audience: 'campus' }, { id: 'q_all', audience: 'all' },
+  ];
+  // Thursday 8 Oct 2026, 15:00Z.
+  const now = new Date('2026-10-08T15:00:00Z');
+  const sub = (iso: string, keys: string[], role = 'hub') => ({ created_at: iso, role, answers: Object.fromEntries(keys.map(k => [k, 'x'])) });
+
+  it('picks the job done most on this weekday', () => {
+    const subs = [
+      sub('2026-10-06T10:00:00Z', ['q_media']),            // Tuesday
+      sub('2026-10-01T10:00:00Z', ['q_hub', 'q_all']),     // Thursday
+      sub('2026-09-24T10:00:00Z', ['q_hub', 'q_hub2']),    // Thursday
+      sub('2026-09-17T10:00:00Z', ['q_media']),            // Thursday
+    ];
+    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media', 'campus'])).toEqual({ job: 'hub', why: 'weekday', weekday: 'Thursday' });
+  });
+
+  it('falls back to the job done last when nothing was done on this weekday', () => {
+    const subs = [sub('2026-10-06T10:00:00Z', ['q_media']), sub('2026-10-05T10:00:00Z', ['q_hub'])];
+    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media'])).toEqual({ job: 'media', why: 'last', weekday: 'Thursday' });
+  });
+
+  it('ignores submissions older than eight weeks, in the future, or for jobs the person cannot open', () => {
+    expect(core.usualJobFrom([sub('2026-08-01T10:00:00Z', ['q_hub'])], qs, now)).toBeNull();
+    expect(core.usualJobFrom([sub('2026-10-09T10:00:00Z', ['q_hub'])], qs, now)).toBeNull();
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', ['q_hub'])], qs, now, ['campus'])).toBeNull();
+  });
+
+  it('uses the role a submission was sent under when its questions say nothing', () => {
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', ['q_all'], 'campus')], qs, now, ['campus'])).toMatchObject({ job: 'campus' });
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', [], 'admin')], qs, now)).toBeNull();
+  });
+
+  it('counts the weekday on the church clock, not UTC', () => {
+    // Wednesday 1 Oct 2026, 22:00 in New York = Thursday 02:00Z.
+    const wedNight = [sub('2026-10-01T02:00:00Z', ['q_media'])];
+    const thursNightNY = new Date('2026-10-09T01:00:00Z'); // Thursday 21:00 New York
+    expect(core.usualJobFrom(wedNight, qs, thursNightNY, ['hub', 'media'], 'America/New_York')).toMatchObject({ why: 'last', weekday: 'Thursday' });
+    expect(core.usualJobFrom(wedNight, qs, new Date('2026-10-08T01:00:00Z'), ['hub', 'media'], 'America/New_York')).toMatchObject({ job: 'media', why: 'weekday', weekday: 'Wednesday' });
+  });
+
+  it('a tie between audiences goes to the one the person can open', () => {
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', ['q_media', 'q_hub'])], qs, now, ['hub'])).toMatchObject({ job: 'hub' });
+  });
+
+  it('jobsForRole matches the Staff home split', () => {
+    expect(core.jobsForRole('admin')).toEqual(['hub', 'media', 'campus']);
+    expect(core.jobsForRole('media')).toEqual(['hub', 'media']);
+    expect(core.jobsForRole('hub')).toEqual(['hub']);
+    expect(core.jobsForRole('campus')).toEqual(['campus']);
+    expect(core.jobsForRole('nobody')).toEqual([]);
+  });
+});

@@ -555,6 +555,37 @@ describe('auth_status and login do not list the accounts waiting to be claimed',
   });
 });
 
+describe('home: what Staff home opens on (readiness 7 Oct 2026)', () => {
+  it('refuses a caller with no session', async () => {
+    expect((await call({ action: 'home' })).status).toBe(401);
+  });
+
+  it('a hub pastor hears whether Sunday notes are up, and their usual job from their OWN submissions only', async () => {
+    addRoster({ email: 'hub.pastor@futures.church', role: 'hub', password_hash: hashPassword(PASSWORD) });
+    const hub = await signIn('hub.pastor@futures.church');
+    const at = new Date(Date.now() - 7 * 86400000).toISOString();
+    tables.intake_submissions.push(
+      { id: 's1', email: 'hub.pastor@futures.church', role: 'hub', answers: { q_hub_title: 'x' }, created_at: at },
+      { id: 's2', email: 'someone.else@futures.church', role: 'campus', answers: { q_title: 'x' }, created_at: at },
+    );
+    const r = await call({ action: 'home', congregation: 'futures-us' }, hub);
+    expect(r.status).toBe(200);
+    expect(r.body.notes).toMatchObject({ congregation: 'futures-us', up: false });
+    expect(r.body.notes.sunday).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(r.body.usualJob).toMatchObject({ job: 'hub', why: 'weekday' });
+  });
+
+  it('a campus pastor gets no notes status (not theirs to put up) and only campus as a usual job', async () => {
+    addRoster({ email: 'set.pastor@futures.church', campus_id: 'us-gwinnett', campus_set_by: 'admin', password_hash: hashPassword(PASSWORD) });
+    const pastor = await signIn('set.pastor@futures.church');
+    tables.intake_submissions.push({ id: 's3', email: 'set.pastor@futures.church', role: 'campus', answers: { q_hub_title: 'x' }, created_at: new Date().toISOString() });
+    const r = await call({ action: 'home' }, pastor);
+    expect(r.status).toBe(200);
+    expect(r.body.notes).toBeNull();
+    expect(r.body.usualJob).toMatchObject({ job: 'campus' });
+  });
+});
+
 describe('Ashley issues the codes', () => {
   it('adding a person returns a one-time code, stores only a hash, and the person can use it once', async () => {
     const admin = await adminToken();
