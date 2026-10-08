@@ -674,6 +674,26 @@ describe('Ashley issues the codes', () => {
     expect((await call({ action: 'login', email: 'ae@futures.global', password: PASSWORD })).status).toBe(200);
   });
 
+  it('a promotion that lands between a second admin\'s read and write wins: no reset, no code, no demotion', async () => {
+    await adminToken();
+    addRoster({ email: 'josh@futures.church', role: 'hub', password_hash: hashPassword(PASSWORD) });
+    const mark = await secondAdmin();
+    for (const [action, extra] of [['roster_clear_password', {}], ['roster_save', { role: 'media' }], ['roster_delete', {}]]) {
+      tables.staff_roster.find((x) => x.email === 'josh@futures.church').role = 'hub';
+      selectHook = async ({ table, cols }) => {
+        if (table === 'staff_roster' && cols === 'email, role') tables.staff_roster.find((x) => x.email === 'josh@futures.church').role = 'admin';
+      };
+      const r = await call({ action, email: 'josh@futures.church', ...extra }, mark);
+      selectHook = null;
+      expect(r.status).toBe(409);
+      expect(r.body.setupCode).toBeUndefined();
+      const josh = tables.staff_roster.find((x) => x.email === 'josh@futures.church');
+      expect(josh).toBeTruthy();
+      expect(josh.role).toBe('admin');
+      expect(josh.password_hash).toBeTruthy();
+    }
+  });
+
   it('the owner stays admin and on People, whoever asks', async () => {
     const admin = await adminToken();
     expect((await call({ action: 'roster_save', email: 'ae@futures.global', role: 'hub' }, admin)).status).toBe(400);

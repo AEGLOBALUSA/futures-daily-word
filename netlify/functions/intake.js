@@ -92,6 +92,13 @@ async function resolveStaff(email) {
   return staffFromRoster(e, data);
 }
 
+/** People writes by a non-owner admin carry the "not an admin row" check in the write. */
+function guardNonAdmin(query, staff) {
+  return isOwner(staff.email) ? query : query.neq("role", "admin");
+}
+
+const CHANGED_UNDER_YOU = "This person just changed. Load People again.";
+
 /**
  * Issue a one-time setup code for a roster row. The plain code is returned ONCE
  * (to Ashley, to hand over, or to email_setup_code, to mail to the row's own
@@ -103,16 +110,21 @@ async function resolveStaff(email) {
  * the miss rows alone: anyone can ask for one, so asking must not wipe a
  * guesser's lock. `code` is supplied when the caller has already mailed it.
  */
-async function issueSetupCode(email, { slot = "ashley", ttlMs = SETUP_CODE_TTL_MS, clearMisses = true, code = generateSetupCode() } = {}) {
+async function issueSetupCode(email, { slot = "ashley", ttlMs = SETUP_CODE_TTL_MS, clearMisses = true, code = generateSetupCode(), notAdmin = false } = {}) {
   const expiresAt = new Date(Date.now() + ttlMs).toISOString();
   const fields = slot === "email"
     ? { email_code_hash: hashSetupCode(code), email_code_expires_at: expiresAt }
     : { setup_code_hash: hashSetupCode(code), setup_code_expires_at: expiresAt, setup_code_attempts: 0 };
-  const { error } = await db().from("staff_roster").update({
+  let write = db().from("staff_roster").update({
     ...fields,
     updated_at: new Date().toISOString()
   }).eq("email", email);
+  // A non-owner admin's code only lands on a row that is still not an admin
+  // (the role sits in the write itself, so a promotion in between wins).
+  if (notAdmin) write = write.neq("role", "admin");
+  const { data: hit, error } = await write.select("email");
   if (error) throw error;
+  if (notAdmin && (!hit || !hit.length)) return null;
   // A fresh code from Ashley starts with a clean slate of guesses.
   if (clearMisses) await clearSetupMisses(email);
   return { code, expiresAt };
@@ -1569,7 +1581,7 @@ exports.handler = async (event) => {
       if (refusal) return json(event, isOwner(email) && role !== "admin" ? 400 : 403, { error: refusal });
       const campus_id = isCampusId(body.campusId, await campusList()) ? body.campusId : null;
       const named = fallbackStaff(email);
-      const { data, error } = await db().from("staff_roster").upsert({
+      const fields = {
         email,
         role,
         campus_id,
@@ -1578,13 +1590,29 @@ exports.handler = async (event) => {
         campus_set_by: campus_id ? "admin" : null,
         display_name: sanitize(body.name || (named && named.name) || "", 80),
         updated_at: new Date().toISOString()
-      }, { onConflict: "email" }).select("email, role, campus_id, display_name, password_hash").single();
-      if (error) throw error;
-      const { password_hash: hasHash, ...person } = data;
+      };
+      const cols = "email, role, campus_id, display_name, password_hash";
+      const owner = isOwner(staff.email);
+      let saved;
+      if (owner) {
+        saved = await db().from("staff_roster").upsert(fields, { onConflict: "email" }).select(cols).single();
+        if (saved.error) throw saved.error;
+      } else if (existing) {
+        // Never an upsert for a non-owner: the row must still be a non-admin when written.
+        saved = await guardNonAdmin(db().from("staff_roster").update(fields).eq("email", email), staff).select(cols).maybeSingle();
+        if (saved.error) throw saved.error;
+        if (!saved.data) return json(event, 409, { error: CHANGED_UNDER_YOU });
+      } else {
+        // A plain insert: if someone added this address meanwhile it fails, never overwrites.
+        saved = await db().from("staff_roster").insert(fields).select(cols).single();
+        if (saved.error) return json(event, 409, { error: CHANGED_UNDER_YOU });
+      }
+      const { password_hash: hasHash, ...person } = saved.data;
       // Adding someone is what lets them in: a person with no password yet gets a
       // one-time code to hand over. Saving someone who already has a password
       // changes nothing about how they sign in.
-      const setup = hasHash ? {} : await issueSetupCode(email);
+      const setup = hasHash ? {} : await issueSetupCode(email, { notAdmin: !owner });
+      if (!setup) return json(event, 409, { error: CHANGED_UNDER_YOU });
       return json(event, 200, hasHash
         ? { person }
         : { person, setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
@@ -1597,7 +1625,8 @@ exports.handler = async (event) => {
       const refusal = rosterChangeRefusal(staff, row, null, "code");
       if (refusal) return json(event, 403, { error: refusal });
       if (row.password_hash) return json(event, 400, { error: "They already have a password. Use “Let them set a new password” to start over." });
-      const setup = await issueSetupCode(email);
+      const setup = await issueSetupCode(email, { notAdmin: !isOwner(staff.email) });
+      if (!setup) return json(event, 409, { error: CHANGED_UNDER_YOU });
       return json(event, 200, { setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
     }
 
@@ -1610,18 +1639,19 @@ exports.handler = async (event) => {
       if (!target) return json(event, 404, { error: "They are not on the roster." });
       const refusal = rosterChangeRefusal(staff, target, null, "reset");
       if (refusal) return json(event, 403, { error: refusal });
-      const { data: gone, error } = await db().from("staff_roster").update({
+      const { data: gone, error } = await guardNonAdmin(db().from("staff_roster").update({
         password_hash: null,
         email_code_hash: null, // starting over voids any code they emailed themselves
         email_code_expires_at: null,
         updated_at: new Date().toISOString()
-      }).eq("email", email).select("email");
+      }).eq("email", email), staff).select("email");
       if (error) throw error;
+      if (!gone || !gone.length) return json(event, 409, { error: CHANGED_UNDER_YOU });
       await db().from("staff_sessions").delete().eq("email", email);
-      if (!gone || !gone.length) return json(event, 404, { error: "They are not on the roster." });
       // A reset is not an open door: the row waits for a fresh one-time code, so
       // nobody but the person Ashley hands it to can take the account.
-      const setup = await issueSetupCode(email);
+      const setup = await issueSetupCode(email, { notAdmin: !isOwner(staff.email) });
+      if (!setup) return json(event, 409, { error: CHANGED_UNDER_YOU });
       return json(event, 200, { ok: true, setupCode: setup.code, setupCodeExpiresAt: setup.expiresAt });
     }
 
@@ -1635,8 +1665,9 @@ exports.handler = async (event) => {
       if (targetErr) throw targetErr;
       const refusal = target && rosterChangeRefusal(staff, target, null, "delete");
       if (refusal) return json(event, 403, { error: refusal });
-      const { error } = await db().from("staff_roster").delete().eq("email", email);
+      const { data: removed, error } = await guardNonAdmin(db().from("staff_roster").delete().eq("email", email), staff).select("email");
       if (error) throw error;
+      if (target && (!removed || !removed.length)) return json(event, 409, { error: CHANGED_UNDER_YOU });
       await db().from("staff_sessions").delete().eq("email", email);
       return json(event, 200, { ok: true });
     }
