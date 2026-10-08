@@ -2090,8 +2090,12 @@ function Roster({ onError }: { onError: (s: string) => void }) {
           >
             {adminFeedback[r.email]?.message || (makingAdminEmail === r.email ? 'Making admin…' : '')}
             {adminFeedback[r.email]?.refreshing && ' Loading People…'}
-            {makingAdminEmail && makingAdminEmail !== r.email && canMakeAdmin && r.role !== 'admin' && 'Wait for the change above to finish'}
           </p>
+          {makingAdminEmail && makingAdminEmail !== r.email && canMakeAdmin && r.role !== 'admin' && (
+            <p style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-text-primary)', margin: '8px 0 0' }}>
+              Wait for the current change to finish.
+            </p>
+          )}
           {adminFeedback[r.email]?.error && <p role="alert" style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-error)' }}>{adminFeedback[r.email].error}</p>}
           {adminFeedback[r.email]?.refreshError && <>
             <p role="alert" style={{ ...helpStyle, fontSize: 15, color: 'var(--dw-error)' }}>They are an admin, but People could not refresh. Load People again.</p>

@@ -687,7 +687,7 @@ describe('StaffApp People shows the one-time code to Ashley', () => {
     expect(status.textContent).toBe('Making admin…');
     expect(waitingButton.getAttribute('aria-disabled')).toBe('true');
     expect(waitingButton.disabled).toBe(false);
-    expect(waitingButton.parentElement!.parentElement!.textContent).toContain('Wait for the change above to finish');
+    expect(waitingButton.parentElement!.parentElement!.textContent).toContain('Wait for the current change to finish.');
     await act(async () => { waitingButton.click(); });
     expect(grants).toBe(1);
     await act(async () => { resolveGrant({ person: returnedPerson }); });
