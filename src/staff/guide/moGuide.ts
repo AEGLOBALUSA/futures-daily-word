@@ -89,7 +89,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer, lang = 'en'): MoGuideC
         copy('Open Staff home and tap Add the YouTube or clean the notes.', 'Abre Inicio del equipo y toca «Añade el enlace de YouTube o mejora las notas».'),
         copy('Pick the sermon the video belongs to.', 'Elige el sermón al que pertenece el video.'),
         copy('Paste the YouTube link.', 'Pega el enlace de YouTube.'),
-        copy('Tap Add the video. The notes already on the page stay as they are.', 'Toca «Añadir el video». Las notas ya publicadas en la página quedan como están.'),
+        copy('Tap Add the video. The notes already on the page stay as they are.', 'Toca «Añadir el video a “{title}”». «{title}» es el título del mensaje. Las notas ya publicadas en la página quedan como están.'),
       ],
     });
   }
@@ -163,7 +163,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer, lang = 'en'): MoGuideC
       steps: [
         copy('Hub staff tap Put up this week’s notes (the Put up this week’s sermon notes card). Media staff tap Add the YouTube or clean the notes.', 'Si eres del equipo central, toca «Publica las notas de esta semana» (la tarjeta «Publica las notas del sermón de esta semana»). Si eres del equipo de medios, toca «Añade el enlace de YouTube o mejora las notas».'),
         copy('Pick the church under Which church is this for?', 'Elige la iglesia en «¿Para qué iglesia es?».'),
-        copy('Save with Put this on the congregation page, or Add the video when you are only adding a link.', 'Guarda con «Ponlo en la página de la congregación», o con «Añadir el video» si solo estás añadiendo un enlace.'),
+        copy('Save with Put this on the congregation page, or Add the video when you are only adding a link.', 'Guarda con «Ponlo en la página de la congregación», o con «Añadir el video a “{title}”» si solo estás añadiendo un enlace. «{title}» es el título del mensaje.'),
       ],
       next: { label: copy('Open Staff home', 'Abrir Inicio del equipo'), href: '/staff' },
       connects: [
@@ -260,5 +260,22 @@ export function getMoGuideContent(viewer?: MoGuideViewer, lang = 'en'): MoGuideC
     howTo,
     parts,
     mapHref: undefined,
+    ...(lang === 'es' ? {
+      labels: {
+        open: 'Abrir la guía',
+        close: 'Cerrar la guía',
+        title: 'Guía',
+        onThisScreen: 'En esta pantalla',
+        why: 'Por qué existe {app}',
+        who: 'Para quién es',
+        howTo: 'Cómo usarla',
+        parts: 'Cada parte',
+        connects: 'Cómo se conecta',
+        back: 'Atrás',
+        map: 'Cómo encaja MultiplyOS',
+        full: 'Guía completa',
+        goThere: 'Ir allí',
+      },
+    } : {}),
   };
 }
