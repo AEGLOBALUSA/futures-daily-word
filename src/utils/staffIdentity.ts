@@ -53,16 +53,16 @@ export const PASTOR_SETUP: SetupState = { persona: PASTOR_PERSONA, source: 'sett
 /** Stamped on sign-out. */
 export const SIGNED_OUT_SETUP: SetupState = { persona: 'congregation', source: 'settings' };
 
-/** Client-side mirror of the server allow-list (isAllowlistedEmail in intake-core):
- *  any @futures.church address, plus Ashley, Alexis (futuros.global) and Jane (me.com). Saves a rate-limited auth_status call
- *  for a curious congregant on shared church wifi. The server stays the authority. */
+/** Client-side mirror of isAllowlistedEmail in intake-core: a well-formed personal
+ *  address, not a shared inbox. Who is staff is the roster (the owner adds people in
+ *  /staff), so the server answers for any address; the domain never decides. */
 const BLOCKED_INBOXES = new Set(['hello@futures.church', 'care@futures.church']);
 
 export function looksLikeStaffEmail(email: string): boolean {
   const e = String(email || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return false;
   if (BLOCKED_INBOXES.has(e)) return false; // generic inboxes, not people (mirrors intake-core)
-  return e === 'ae@futures.global' || e === 'alexis@futuros.global' || e === 'jane0202@me.com' || e.endsWith('@futures.church');
+  return e.length <= 254;
 }
 
 export function splitStaffName(name: string): { firstName: string; lastName: string } {

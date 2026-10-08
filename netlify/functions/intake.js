@@ -793,8 +793,15 @@ exports.handler = async (event) => {
       const password = String(body.password || "");
       const staff = await resolveStaff(email);
       const refuse = () => json(event, 403, { error: "Invalid email or password" });
-      if (!staff || !password) return refuse();
+      if (!password) return refuse();
+      // Not on the roster: the same reads and bcrypt as a real check, so the time
+      // taken never says which addresses are on the roster (any domain may be,
+      // since the roster decides who is staff).
       const { data: row } = await db().from("staff_roster").select("password_hash").eq("email", email).maybeSingle();
+      if (!staff) {
+        verifyPassword(password, DUMMY_HASH);
+        return refuse();
+      }
       // Same answer, with no "set up" hint, for a person who has no password yet:
       // sign-in must not say which addresses are waiting to be set up.
       if (!row || !row.password_hash) {
