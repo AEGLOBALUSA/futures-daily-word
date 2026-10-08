@@ -664,7 +664,7 @@ describe('StaffApp job form: wording in place and a failed load beside the butto
 
   it('a failed load says so where the button would be, with one Load the form again, and nothing disabled', async () => {
     let fail = true;
-    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+    const { el, root } = await openForm('campus', /Update (a|the) campus corner/, async action => {
       if (action === 'form') {
         if (fail) throw new Error('Failed to fetch');
         return { questions: [Q_CORNER], rewordable: [], cornerItems: [], submissions: [], sermons: [] };
@@ -690,7 +690,7 @@ describe('StaffApp job form: wording in place and a failed load beside the butto
   });
 
   it('a sign-in that ran out opens the sign-in screen instead of a Load-again loop', async () => {
-    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+    const { el, root } = await openForm('campus', /Update (a|the) campus corner/, async action => {
       if (action === 'form') {
         // What api.ts does on a 401: clear the token, tell the app, throw.
         window.dispatchEvent(new Event('dw-staff-signed-out'));
@@ -706,7 +706,7 @@ describe('StaffApp job form: wording in place and a failed load beside the butto
   });
 
   it('a server fault on load says to try again in a minute, not to check the connection', async () => {
-    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+    const { el, root } = await openForm('campus', /Update (a|the) campus corner/, async action => {
       if (action === 'form') throw Object.assign(new Error('Server error'), { status: 500 });
       return {};
     });
@@ -717,7 +717,7 @@ describe('StaffApp job form: wording in place and a failed load beside the butto
   });
 
   it('an empty form after a good load keeps the button words, aria-disabled, with the reason beside it', async () => {
-    const { el, root } = await openForm('campus', /Update a campus corner/, async action => {
+    const { el, root } = await openForm('campus', /Update (a|the) campus corner/, async action => {
       if (action === 'form') return { questions: [], rewordable: [], cornerItems: [], submissions: [], sermons: [] };
       return {};
     });
@@ -787,8 +787,24 @@ describe('StaffApp job form: wording in place and a failed load beside the butto
     act(() => root.unmount());
   });
 
+  it('Staff home opens on Sunday notes when they are not up: one main button with the reason', async () => {
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') return { staff: staffFor('hub') };
+      if (action === 'home') return { notes: { congregation: 'futures-us', congregationName: 'Futures USA', sunday: '2026-10-11', up: false }, usualJob: null };
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    await flush();
+    const mains = el.querySelectorAll('.dw-next');
+    expect(mains).toHaveLength(1);
+    expect(mains[0].textContent).toBe('Paste Sunday\u2019s notes');
+    expect(el.textContent).toContain('Futures USA\u2019s notes aren\u2019t up yet.');
+    act(() => root.unmount());
+  });
+
   it('a campus pastor and media see no Change the wording', async () => {
-    for (const [role, job] of [['campus', /Update a campus corner/], ['media', /Add the YouTube/]] as const) {
+    for (const [role, job] of [['campus', /Update (a|the) campus corner/], ['media', /Add the YouTube/]] as const) {
       const { el, root } = await openForm(role, job, async action => {
         if (action === 'form') return { questions: [Q_CORNER, Q_TITLE], rewordable: [], cornerItems: [], submissions: [], sermons: [] };
         return {};

@@ -26,6 +26,7 @@ import { PrayerCare } from './PrayerCare';
 import { MoGuideMount } from './guide/MoGuideMount';
 import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
+import { homePlan, loadHomeInfo, type HomeInfo } from './homePlan';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'notes' | 'form' | 'review' | 'people' | 'campuses';
@@ -579,6 +580,16 @@ function StaffHome({
 }) {
   const [hasHeldPrayer, setHasHeldPrayer] = useState(false);
   const [hasNeedsYouMain, setHasNeedsYouMain] = useState(false);
+  const [homeInfo, setHomeInfo] = useState<HomeInfo | null>(null);
+  useEffect(() => {
+    let active = true;
+    loadHomeInfo().then(info => {
+      if (active) setHomeInfo(info);
+    }).catch(() => {
+      if (active) setHomeInfo(null);
+    });
+    return () => { active = false; };
+  }, []);
   // Sunday's notes is its own screen (B09-10's one pasted box), listed first
   // for the staff who can use it; Staff home itself stays the first screen.
   const notesJob = { id: 'notes' as const, title: 'Paste Sunday’s notes', body: 'One paste. The app works out the Sunday, title, speaker, series and YouTube, and shows you the page before it goes up.' };
@@ -593,6 +604,13 @@ function StaffHome({
       ? jobs.filter(j => j.id === 'hub' || j.id === 'media')
       : jobs.filter(j => j.id === staff.role);
   const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
+  const plan = homePlan(cards.map(c => c.id), homeInfo);
+  const mainLabels = {
+    notes: 'Paste Sunday’s notes',
+    hub: 'Put up this week’s notes',
+    media: 'Add the YouTube or clean the notes',
+    campus: 'Update the campus corner',
+  };
   return (
     <div style={{ '--mos-control-height': '44px' } as CSSProperties}>
       <PrayerCare staff={staff} onHeldChange={setHasHeldPrayer} onNeedsYouMainChange={setHasNeedsYouMain}>
@@ -603,7 +621,43 @@ function StaffHome({
       <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 28px' }}>
         This is how Sunday’s sermon notes get onto the page people write in.
       </p>
-      {cards.map(j => (
+      {plan.notesUp && (
+        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
+          {plan.notesUp}
+        </p>
+      )}
+      {plan.order.map(id => {
+        const j = cards.find(c => c.id === id);
+        if (!j) return null;
+        if (j.id === plan.main && !hasHeldPrayer && !hasNeedsYouMain) {
+          return (
+            <div
+              key={j.id}
+              className="mos-card"
+              style={{
+                textAlign: 'left', background: 'var(--dw-card)', border: '1px solid var(--dw-border)',
+                borderRadius: 16, padding: '18px 20px', marginBottom: 12,
+              }}
+            >
+              <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
+              <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
+              {plan.reason && (
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '16px 0 0' }}>
+                  {plan.reason}
+                </p>
+              )}
+              <button
+                type="button"
+                className="dw-next mos-button mos-button--primary"
+                onClick={() => (j.id === 'notes' ? onNotes() : onJob(j.id))}
+                style={{ ...btnPrimary, width: '100%', minHeight: 56, fontSize: 15, marginTop: 16 }}
+              >
+                {mainLabels[j.id]}
+              </button>
+            </div>
+          );
+        }
+        return (
         <button
           key={j.id}
           type="button"
@@ -618,7 +672,8 @@ function StaffHome({
           <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--dw-text-primary)', lineHeight: 1.3 }}>{j.title}</span>
           <span style={{ display: 'block', marginTop: 6, fontFamily: 'var(--font-sans)', fontSize: 15, color: 'var(--dw-text-muted)', lineHeight: 1.45 }}>{j.body}</span>
         </button>
-      ))}
+        );
+      })}
       </PrayerCare>
       <NextPill />
       {staff.isAdmin && (
