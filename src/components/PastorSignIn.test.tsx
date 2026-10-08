@@ -120,14 +120,24 @@ describe('PastorSignIn', () => {
     expect(input.type).toBe('email');
   });
 
-  it('rejects a non-staff email locally, without calling the server', async () => {
+  it('rejects a malformed email locally, without calling the server', async () => {
     const el = mount(<PastorSignIn lang="en" />);
     await flush();
     await click(buttonNamed(el, /Sign in as pastor/));
-    type(el.querySelector('#dw-pastor-email') as HTMLInputElement, 'someone@gmail.com');
+    type(el.querySelector('#dw-pastor-email') as HTMLInputElement, 'someone-at-gmail');
     await submit(el.querySelector('form')!);
     expect(el.textContent).toContain('not on the staff list');
     expect(api.intake).not.toHaveBeenCalled();
+  });
+
+  it('asks the server about any real address: the roster decides, not the domain', async () => {
+    vi.mocked(api.intake).mockResolvedValueOnce({ setup: false } as never);
+    const el = mount(<PastorSignIn lang="en" />);
+    await flush();
+    await click(buttonNamed(el, /Sign in as pastor/));
+    type(el.querySelector('#dw-pastor-email') as HTMLInputElement, 'new.pastor@futuros.global');
+    await submit(el.querySelector('form')!);
+    expect(api.intake).toHaveBeenCalledWith('auth_status', { email: 'new.pastor@futuros.global' });
   });
 
   it('keeps Continue live for an empty email and names the fix beside it', async () => {

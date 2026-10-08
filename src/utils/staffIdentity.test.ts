@@ -65,20 +65,14 @@ beforeEach(() => {
 });
 
 describe('looksLikeStaffEmail', () => {
-  it('accepts jane0202@me.com only, not another @me.com', () => {
+  it('accepts any well-formed address: the roster on the server decides who is staff', () => {
     expect(looksLikeStaffEmail('jane0202@me.com')).toBe(true);
-    expect(looksLikeStaffEmail('someone@me.com')).toBe(false);
-  });
-  it('accepts alexis@futuros.global only, not a random @futuros.global', () => {
-    expect(looksLikeStaffEmail('alexis@futuros.global')).toBe(true);
-    expect(looksLikeStaffEmail('random@futuros.global')).toBe(false);
-  });
-  it('accepts any @futures.church address and Ashley, case-insensitively', () => {
+    expect(looksLikeStaffEmail('new.pastor@futuros.global')).toBe(true);
     expect(looksLikeStaffEmail('josh@futures.church')).toBe(true);
     expect(looksLikeStaffEmail('  AE@Futures.Global ')).toBe(true);
+    expect(looksLikeStaffEmail('someone@gmail.com')).toBe(true);
   });
-  it('rejects everything else without a network call', () => {
-    expect(looksLikeStaffEmail('someone@gmail.com')).toBe(false);
+  it('rejects a malformed address without a network call', () => {
     expect(looksLikeStaffEmail('futures.church')).toBe(false);
     expect(looksLikeStaffEmail('')).toBe(false);
   });
