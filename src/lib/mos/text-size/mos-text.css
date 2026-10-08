@@ -1,0 +1,48 @@
+/*
+ * MultiplyOS text size (TEXT-SIZE-PLAN, 5 Oct 2026). Load AFTER multiplyos.css / multiplyos-ui.css.
+ *
+ * The pre-paint script (MOS_TEXT_SCRIPT) sets html[data-mos-text] from the device's choice; it is absent
+ * at Default, so Default renders exactly as before. Text sizes read these two numbers through the codemod's
+ * calc() values, the Tailwind preset / @theme, and fs() for inline styles:
+ *   --mos-ts          body text multiplier
+ *   --mos-ts-display  headings (24px and up): up, half as far (1 + (ts - 1) x 0.5); down, the same as body
+ * Eight steps, 50% to 150% (Ashley, 5 Oct 2026: "i want text size to go down to 50%"); below 100% the choice
+ * applies literally, with no floor.
+ * Nothing here touches html font-size, rem spacing or hit areas: 44px targets hold at every step.
+ * Do not use data-mos-text-size: Daily Word's tokens.css already does.
+ */
+:root {
+  --mos-ts: 1;
+  --mos-ts-display: 1;
+}
+html[data-mos-text="xs50"]    { --mos-ts: 0.5;  --mos-ts-display: 0.5; }
+html[data-mos-text="s65"]     { --mos-ts: 0.65; --mos-ts-display: 0.65; }
+html[data-mos-text="s80"]     { --mos-ts: 0.8;  --mos-ts-display: 0.8; }
+html[data-mos-text="s90"]     { --mos-ts: 0.9;  --mos-ts-display: 0.9; }
+html[data-mos-text="default"] { --mos-ts: 1;    --mos-ts-display: 1; }
+html[data-mos-text="l115"]    { --mos-ts: 1.15; --mos-ts-display: 1.075; }
+html[data-mos-text="l130"]    { --mos-ts: 1.3;  --mos-ts-display: 1.15; }
+html[data-mos-text="l150"]    { --mos-ts: 1.5;  --mos-ts-display: 1.25; }
+
+/*
+ * Typing fields never render under 16px once a step is chosen (iPhone Safari zooms the page when a field under 16px
+ * takes focus). At Default nothing changes: html[data-mos-text] is absent, so --mos-field-floor is unset (0px) and
+ * every field is exactly today's size. The codemod writes max(var(--mos-field-floor, 0px), ...) on every field it
+ * sizes (px, text-[Npx], fontSize, and field rules sized 1em). The net below has zero specificity: it only reaches
+ * fields with no font-size of their own (they follow their parent, floored).
+ */
+html[data-mos-text]:not([data-mos-text="default"]) { --mos-field-floor: 16px; }
+:where(html[data-mos-text]:not([data-mos-text="default"])) :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="file"]), textarea, select, [contenteditable]:not([contenteditable="false"])) {
+  font-size: max(16px, 1em);
+}
+
+/* Print always comes out at the designed size. */
+@media print {
+  :root, html[data-mos-text] { --mos-ts: 1; --mos-ts-display: 1; --mos-field-floor: 0px; }
+}
+
+/* The kit's own type, so kit-only screens follow the choice without a codemod. */
+.mo-h1 { font-size: calc(28px * var(--mos-ts-display, 1)); }
+.mo-h2 { font-size: calc(21px * var(--mos-ts, 1)); }
+.mo-h3 { font-size: calc(17px * var(--mos-ts, 1)); }
+.mo-label, .mo-caption { font-size: calc(16px * var(--mos-ts, 1)); }

@@ -9,6 +9,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
 import { getStaffToken, intake, setStaffToken, STAFF_SIGNED_OUT_EVENT } from './api';
+// Person-chosen text size (TEXT-SIZE-PLAN row 10): the kit runtime applies the saved size before Staff home renders,
+// then the <mos-text-size> picker. Staff only: the public reader never loads this chunk.
+import '../lib/mos/text-size/mos-text-prepaint.js';
+import '../lib/mos/text-size/mos-text-size.js';
 import '../multiplyos/staff-ui.css';
 import { isMosUi } from '../multiplyos/uiFlag';
 import multiplyosMark from '../multiplyos/assets/multiplyos-mark.png';
@@ -28,6 +32,7 @@ import { applyStaffLangDefault, initStaffLangDefault } from './staffLang';
 import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 import { homePlan, loadHomeInfo, type HomeInfo } from './homePlan';
+import { startStaffTextSizeSync } from './textSizeSync';
 
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'notes' | 'form' | 'review' | 'people' | 'campuses';
@@ -244,6 +249,10 @@ export function StaffApp() {
   }, []);
 
   useEffect(() => { loadMe(); }, [loadMe]);
+
+  // The person's text size follows them: their own roster row and this device, newest wins (textSizeSync.ts).
+  const staffEmail = staff?.email || '';
+  useEffect(() => (token && staffEmail ? startStaffTextSizeSync(token, staffEmail) : undefined), [token, staffEmail]);
 
   const signOut = async () => {
     try { await intake('logout'); } catch { /* */ }
