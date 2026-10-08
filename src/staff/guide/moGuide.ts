@@ -80,7 +80,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       ],
     });
   }
-  if (canMedia) {
+  if (admin || role === 'media') {
     howTo.push({
       title: 'Add the sermon video link',
       href: '/staff',
@@ -97,11 +97,11 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Write the campus corner',
       href: '/staff',
       steps: [
-        'On Staff home, tap Update the campus corner (the Update a campus corner card).',
-        'If a draft appears, read it. Change the words yourself, or add something only you would say.',
+        'If a draft for this week shows on Staff home, read it and use it there.',
         'On the draft, tap Put this on the campus corner.',
         'On the draft, tap Not this week if there will be no corner.',
         'On the draft, tap Use the form instead to write from scratch.',
+        'If no draft shows, tap Update the campus corner (the Update a campus corner card) for the plain form.',
         'On the plain form, fill it in, then tap Put this on the campus corner. The plain form has no Not this week or Use the form instead button.',
       ],
     });
@@ -112,8 +112,9 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       href: '/staff',
       steps: [
         'Only Needs you starts when your region is switched on. Held requests with Show it on the wall or Keep it private work now.',
+        'In Needs you, an anonymous line has I prayed for this. Tap it when you have prayed.',
         'If the person gave a name, tap Write to followed by their name, and send your note.',
-        'Afterward tap I wrote to followed by their name. If you only prayed, tap I prayed for this.',
+        'When you return, answer Did you write to followed by their name? with I wrote to followed by their name or Not yet.',
         'Under Prayer requests this week, read the week at a glance.',
       ],
     });
