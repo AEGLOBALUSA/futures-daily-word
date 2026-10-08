@@ -96,7 +96,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Write the campus corner',
       href: '/staff',
       steps: [
-        'On Staff home, find the draft for this week’s corner and read it.',
+        'On Staff home, find the draft for this week’s corner and read it. Drafts start once your region is switched on; until then, tap Update a campus corner.',
         'Change the words yourself, or add something only you would say.',
         'Tap Put this on the campus corner.',
         'If there is no corner this week, tap Not this week.',
@@ -109,7 +109,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
       title: 'Read prayer requests',
       href: '/staff',
       steps: [
-        'On Staff home, look for Needs you. Each line is a request waiting for a person.',
+        'On Staff home, look for Needs you. Each line is a request waiting for a person. Lines start once your region is switched on.',
         'If the person gave a name, tap Write to followed by their name, and send your note.',
         'Afterward tap I wrote to followed by their name. If you only prayed, tap I prayed for this.',
         'Under Prayer requests this week, read the week at a glance.',
@@ -121,9 +121,10 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
     {
       slug: 'staff-home',
       title: 'Staff home',
-      intro: 'The first screen: one card for each job you can do, and prayer care at the top when something is waiting.',
+      intro: 'The first screen: it opens on the job to do next, with the reason above its button.',
       steps: [
-        'Pick the card for the job you came to do.',
+        'Tap the main button. The line above it says why it is first.',
+        'Every other job is a card below it.',
         'Use ← Staff home on any other screen to come back here.',
       ],
       routes: ['/staff'],
@@ -171,7 +172,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
     parts.push({
       slug: 'campus-corner',
       title: 'Campus corner',
-      intro: 'A short note for your campus: what is on this week, and a prayer point if you have one.',
+      intro: 'A short note for your campus: what is on this week, and a prayer point if you have one. The weekly draft starts once your region is switched on.',
       steps: [
         'Read the draft. Add your own words, or change the words above.',
         'Tap Put this on the campus corner.',
@@ -189,7 +190,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
     parts.push({
       slug: 'prayer-care',
       title: 'Prayer and care',
-      intro: 'Prayer requests that need a person to look, write, or pray.',
+      intro: 'Prayer requests that need a person to look, write, or pray. Nothing waits here until your region is switched on.',
       steps: [
         'A request held for a look shows Show it on the wall and Keep it private.',
         'Under Needs you, tap Write to followed by the name, or I prayed for this when there is no name.',
@@ -215,9 +216,10 @@ export function getMoGuideContent(viewer?: MoGuideViewer): MoGuideContent {
         title: 'People',
         intro: 'Who can sign in to the staff side, and what each person can do.',
         steps: [
-          'Under Add or update, enter their email, name, role and campus, then tap Save person.',
+          'Under Add or update, enter their email (any address), name, role and campus, then tap Save person.',
           'Give them the setup code yourself. It works once.',
           'Tap Get a new setup code, or Let them set a new password, when someone is locked out.',
+          'Only Ashley can make someone an admin, or change another admin.',
         ],
         next: { label: 'Open Staff home', href: '/staff' },
       },
