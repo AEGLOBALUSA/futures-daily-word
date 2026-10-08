@@ -2758,8 +2758,10 @@ body.dw-reading-active .dw-next-pill {
   .today-prevday { min-height: 44px; }
   .dw-home-screen button[aria-label*="English"], .dw-home-screen button[aria-label*="Español"] { min-height: 44px; min-width: 44px; }
   :is(.today-kicker, .today-date, .today-questions-label, .me-streak-label,
-    .dw-day1-path-line, .dw-cp-ask-link, .dw-cp-ask-eyebrow, .dw-lang-marker,
+    .dw-day1-path-line, .dw-day1-eyebrow, .dw-cp-ask-link, .dw-cp-ask-eyebrow, .dw-lang-marker,
     .dw-sermon-notes-email-btn, .dw-sermon-notes-email-msg) { font-size: 15px !important; }
+  .dw-day1-eyebrow { letter-spacing: 0.6px; }
+  .dw-day1-path-link { min-height: 44px; display: inline-flex; align-items: center; padding: 0 8px; }
   .dw-lang-switch button { min-height: 44px; min-width: 44px; }
   .dw-phone-screen [style*="font-size: 9px"] { font-size: 15px !important; }
   .dw-phone-screen .dw-plan-chips > * { max-width: none !important; }
