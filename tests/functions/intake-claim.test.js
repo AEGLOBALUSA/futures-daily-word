@@ -616,6 +616,105 @@ describe('Ashley issues the codes', () => {
     expect(tables.staff_roster.some((x) => x.email === 'x.y@futures.church')).toBe(false);
   });
 
+  // Readiness 7 Oct 2026: admin is a roster role, the roster row is the allow-list.
+  async function secondAdmin(email = 'mark@futures.church') {
+    addRoster({ email, role: 'admin', display_name: 'Mark', password_hash: hashPassword(PASSWORD) });
+    return signIn(email);
+  }
+
+  it('an address outside futures.church can sign in once an admin adds it, and never before', async () => {
+    const admin = await adminToken();
+    expect((await call({ action: 'login', email: 'pastor@futuros.global', password: PASSWORD })).status).toBe(403);
+    const r = await call({ action: 'roster_save', email: 'Pastor@Futuros.Global', role: 'campus', campusId: 'us-gwinnett' }, admin);
+    expect(r.status).toBe(200);
+    const claimed = await call({ action: 'set_password', email: 'pastor@futuros.global', password: PASSWORD, setupCode: r.body.setupCode });
+    expect(claimed.status).toBe(200);
+    expect(claimed.body.staff).toMatchObject({ email: 'pastor@futuros.global', role: 'campus' });
+    expect((await call({ action: 'login', email: 'someone.else@futuros.global', password: PASSWORD })).status).toBe(403);
+  });
+
+  it('a shared inbox is never added', async () => {
+    const admin = await adminToken();
+    expect((await call({ action: 'roster_save', email: 'hello@futures.church', role: 'hub' }, admin)).status).toBe(400);
+    expect(tables.staff_roster.some((x) => x.email === 'hello@futures.church')).toBe(false);
+  });
+
+  it('a second admin (a roster row with role admin) can add people and see People', async () => {
+    const mark = await secondAdmin();
+    expect((await call({ action: 'me' }, mark)).body.staff).toMatchObject({ role: 'admin', isAdmin: true });
+    const r = await call({ action: 'roster_save', email: 'new.pastor@futures.church', role: 'campus', campusId: 'us-gwinnett' }, mark);
+    expect(r.status).toBe(200);
+    expect(r.body.setupCode).toMatch(/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
+    expect((await call({ action: 'roster_list' }, mark)).status).toBe(200);
+    expect((await call({ action: 'roster_issue_code', email: 'new.pastor@futures.church' }, mark)).status).toBe(200);
+  });
+
+  it('only the owner makes an admin; a second admin cannot promote anyone', async () => {
+    const mark = await secondAdmin();
+    const refused = await call({ action: 'roster_save', email: 'josh@futures.church', role: 'admin' }, mark);
+    expect(refused.status).toBe(403);
+    expect(tables.staff_roster.some((x) => x.email === 'josh@futures.church')).toBe(false);
+    const admin = await adminToken();
+    expect((await call({ action: 'roster_save', email: 'josh@futures.church', role: 'admin' }, admin)).status).toBe(200);
+    expect(tables.staff_roster.find((x) => x.email === 'josh@futures.church').role).toBe('admin');
+  });
+
+  it('a second admin cannot demote, remove, reset or reissue a code for another admin or the owner', async () => {
+    await adminToken();
+    addRoster({ email: 'josh@futures.church', role: 'admin', password_hash: hashPassword(PASSWORD) });
+    const mark = await secondAdmin();
+    const before = snapshot();
+    for (const email of ['josh@futures.church', 'ae@futures.global']) {
+      expect((await call({ action: 'roster_save', email, role: 'hub' }, mark)).status).toBeGreaterThanOrEqual(400);
+      expect((await call({ action: 'roster_clear_password', email }, mark)).status).toBeGreaterThanOrEqual(400);
+      expect((await call({ action: 'roster_delete', email }, mark)).status).toBeGreaterThanOrEqual(400);
+    }
+    expect((await call({ action: 'roster_save', email: 'ae@futures.global', role: 'admin' }, mark)).status).toBe(403);
+    expect(snapshot()).toEqual(before);
+    expect((await call({ action: 'login', email: 'ae@futures.global', password: PASSWORD })).status).toBe(200);
+  });
+
+  it('a promotion that lands between a second admin\'s read and write wins: no reset, no code, no demotion', async () => {
+    await adminToken();
+    addRoster({ email: 'josh@futures.church', role: 'hub', password_hash: hashPassword(PASSWORD) });
+    const mark = await secondAdmin();
+    for (const [action, extra] of [['roster_clear_password', {}], ['roster_save', { role: 'media' }], ['roster_delete', {}]]) {
+      tables.staff_roster.find((x) => x.email === 'josh@futures.church').role = 'hub';
+      selectHook = async ({ table, cols }) => {
+        if (table === 'staff_roster' && cols === 'email, role') tables.staff_roster.find((x) => x.email === 'josh@futures.church').role = 'admin';
+      };
+      const r = await call({ action, email: 'josh@futures.church', ...extra }, mark);
+      selectHook = null;
+      expect(r.status).toBe(409);
+      expect(r.body.setupCode).toBeUndefined();
+      const josh = tables.staff_roster.find((x) => x.email === 'josh@futures.church');
+      expect(josh).toBeTruthy();
+      expect(josh.role).toBe('admin');
+      expect(josh.password_hash).toBeTruthy();
+    }
+  });
+
+  it('the owner stays admin and on People, whoever asks', async () => {
+    const admin = await adminToken();
+    expect((await call({ action: 'roster_save', email: 'ae@futures.global', role: 'hub' }, admin)).status).toBe(400);
+    expect((await call({ action: 'roster_delete', email: 'ae@futures.global' }, admin)).status).toBe(400);
+    expect(tables.staff_roster.find((x) => x.email === 'ae@futures.global').role).toBe('admin');
+  });
+
+  it('the owner can still demote or remove another admin', async () => {
+    const admin = await adminToken();
+    addRoster({ email: 'josh@futures.church', role: 'admin', password_hash: hashPassword(PASSWORD) });
+    expect((await call({ action: 'roster_save', email: 'josh@futures.church', role: 'hub' }, admin)).status).toBe(200);
+    expect(tables.staff_roster.find((x) => x.email === 'josh@futures.church').role).toBe('hub');
+    expect((await call({ action: 'roster_delete', email: 'josh@futures.church' }, admin)).status).toBe(200);
+  });
+
+  it('a second admin can edit Campuses (the admin gate, not the owner)', async () => {
+    const mark = await secondAdmin();
+    const r = await call({ action: 'campuses_list' }, mark);
+    expect(r.status).not.toBe(403);
+  });
+
   it('roster_list shows whether a code is waiting, never the code or its hash', async () => {
     const admin = await adminToken();
     const r = await call({ action: 'roster_save', email: 'new.pastor@futures.church', role: 'campus' }, admin);
