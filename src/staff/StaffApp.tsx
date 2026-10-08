@@ -28,6 +28,7 @@ import { QuickNotes } from './QuickNotes';
 import { CornerDraftCard } from './CornerDraftCard';
 import { PrayerCare } from './PrayerCare';
 import { MoGuideMount } from './guide/MoGuideMount';
+import { MoAppsMount } from './MoAppsMount';
 import { applyStaffLangDefault, initStaffLangDefault } from './staffLang';
 import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
@@ -46,13 +47,23 @@ const staffTabLabels = {
   people: 'People', review: 'History', campuses: 'Campuses',
 };
 
-function MosBrandLockup() {
+function MosBrandLockup({ appsOpener = false }: { appsOpener?: boolean }) {
+  const identity = (
+    <>
+      <img className="mos-brand-mark" src={multiplyosMark} alt="" />
+      <img className="mos-brand-wordmark" src={multiplyosWordmark} alt="MultiplyOS" />
+    </>
+  );
   return (
     <div className="mos-brand-lockup">
-      <div className="mos-brand-lockup__identity">
-        <img className="mos-brand-mark" src={multiplyosMark} alt="" />
-        <img className="mos-brand-wordmark" src={multiplyosWordmark} alt="MultiplyOS" />
-      </div>
+      {appsOpener ? (
+        // The M opens the app switcher (mo-apps); the href keeps it working without the script.
+        <a className="mos-brand-lockup__identity" data-mo-apps-open href="https://app.futures.church/" style={{ color: 'inherit', textDecoration: 'none' }}>
+          {identity}
+        </a>
+      ) : (
+        <div className="mos-brand-lockup__identity">{identity}</div>
+      )}
       <p className="mos-brand-context">
         <img src={dailyWordTile} alt="" />
         <span>{staffAppName}</span>
@@ -287,9 +298,10 @@ export function StaffApp() {
   return (
     <div className="staff-app" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
       <MoGuideMount isAdmin={staff.isAdmin} role={staff.role} />
+      <MoAppsMount email={staff.email} lang={lang} />
       {isMosUi() && (
         <aside className="mos-shell__sidebar">
-          <MosBrandLockup />
+          <MosBrandLockup appsOpener />
           <nav className="mos-shell__nav">
             <button type="button" aria-current={view === 'home' ? 'page' : undefined} onClick={goHome}>{staffTabLabels.home}</button>
             {canPasteNotes(staff) && (
@@ -319,7 +331,7 @@ export function StaffApp() {
         borderBottom: '1px solid var(--dw-border)', padding: '14px 20px',
       }}>
         <div className="mos-shell__header-inner" style={{ maxWidth: 720, margin: '0 auto' }}>
-          {isMosUi() && <MosBrandLockup />}
+          {isMosUi() && <MosBrandLockup appsOpener />}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, minWidth: 0, overflowWrap: 'anywhere' }}>
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: fs(11), letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
@@ -404,6 +416,13 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const codeRef = useRef<HTMLInputElement>(null);
+
+  // A sign-in hint from another MOS app (mo-apps) pre-fills an empty email once. It never submits.
+  useEffect(() => {
+    let hint: string | null | undefined;
+    try { hint = window.moApps?.signinEmail?.(); } catch { hint = null; }
+    if (hint) setEmail(current => current || hint);
+  }, []);
 
   useEffect(() => {
     if (setup && sentTo) codeRef.current?.focus();

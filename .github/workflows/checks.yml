@@ -28,6 +28,14 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+  mos-ui-pin:
+    # The vendored MOS app switcher must match its pin (never edit a copy by hand).
+    name: mos-ui-pin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/check-mos-prompt.sh public/multiplyos
+
   design-lint:
     # The Futures design rules (B00-07L): fails on any NEW BLOCK finding against the
     # checked-in baseline. Shrink the baseline with --write-baseline when a fix lands.
