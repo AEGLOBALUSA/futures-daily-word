@@ -190,13 +190,6 @@ html[data-ui="multiplyos"] .staff-app button[style*="text-transform: capitalize"
   --dw-accent: var(--mos-nav-active);
 }
 
-/* Campus staff start with their existing job card as the next action. */
-html[data-ui="multiplyos"] .mos-shell__main > div:not(:has(.dw-campus-main)) > .mos-card:first-of-type {
-  --dw-card: var(--mos-primary);
-  --dw-text-primary: var(--mos-on-primary);
-  --dw-text-muted: var(--mos-on-primary);
-}
-
 html[data-ui="multiplyos"] :is(.staff-app, .mos-shell) :is(.mos-card, section[style*="var(--dw-card)"], div[style*="border-radius"][style*="var(--dw-border)"]) {
   border-radius: 22px !important;
   border: 1px solid var(--mos-border);

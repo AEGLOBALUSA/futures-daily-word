@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { t } from '../utils/i18n';
 import {
@@ -35,6 +35,7 @@ const campusMainStyle: CSSProperties = {
 type Props = {
   isAdmin?: boolean; staffCampusId?: string; onJob: (job: 'campus', campusId?: string) => void;
   secondary?: boolean;
+  onMainChange?: (hasMain: boolean) => void;
 };
 type Action = 'refresh' | 'publish' | 'skip';
 type ReadState = 'loading' | 'ready' | 'failed' | 'finished';
@@ -91,7 +92,7 @@ const scrollClearance = () => {
   return height ? height + 16 : 96;
 };
 
-export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob, secondary = false }: Props) {
+export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob, secondary = false, onMainChange }: Props) {
   const [editorMemory] = useState(readEditors);
   const [waiting, setWaiting] = useState<CornerDraftWaiting[]>([]);
   const [campusId, setCampusId] = useState<string>();
@@ -185,6 +186,11 @@ export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob, seconda
     ? (isAdmin ? openedDrafts.find(opened => opened.campusId === campusId && retained.has(draftKey(opened))) : draft)
     : undefined;
   const selectedDraft = draft ?? recoveryDraft;
+  useLayoutEffect(() => {
+    if (selectedDraft) return;
+    onMainChange?.(false);
+    return () => onMainChange?.(false);
+  }, [selectedDraft, onMainChange]);
   const campuses = [...waiting, ...openedDrafts.filter(opened => retained.has(draftKey(opened)) &&
     !waiting.some(campus => draftKey(campus) === draftKey(opened)))];
   const readFeedback = (state: ReadState, retry: () => void, selected = false) =>
@@ -227,7 +233,9 @@ export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob, seconda
     {openedDrafts.map(opened => {
       const active = !!selectedDraft && draftKey(opened) === draftKey(selectedDraft);
       return <section key={draftKey(opened)} hidden={!active}>
-        <DraftEditor initial={opened} memory={editorMemory} active={active} secondary={secondary} campusId={isAdmin ? opened.campusId : undefined}
+        <DraftEditor initial={opened} memory={editorMemory} active={active}
+          secondary={secondary || (!!onMainChange && !active)} onMainChange={onMainChange}
+          campusId={isAdmin ? opened.campusId : undefined}
           serverFinished={active && readState === 'finished'} onRetentionChange={onRetentionChange}
           onJob={onJob} onBusy={value => { busyRef.current = value; setBusy(value); }}
           onComplete={() => setWaiting(rows => rows.filter(row => draftKey(row) !== draftKey(opened)))} />
@@ -236,9 +244,10 @@ export function CornerDraftCard({ isAdmin = false, staffCampusId, onJob, seconda
   </>;
 }
 
-function DraftEditor({ initial, memory, active, secondary, campusId, serverFinished, onRetentionChange, onJob, onBusy, onComplete }: {
+function DraftEditor({ initial, memory, active, secondary, onMainChange, campusId, serverFinished, onRetentionChange, onJob, onBusy, onComplete }: {
   initial: CornerDraft; active: boolean; campusId?: string; onJob: Props['onJob'];
   secondary: boolean;
+  onMainChange?: Props['onMainChange'];
   serverFinished: boolean; onRetentionChange: (key: string, keep: boolean) => void;
   memory: Map<string, EditorMemory>;
   onBusy: (busy: boolean) => void; onComplete: () => void;
@@ -259,6 +268,12 @@ function DraftEditor({ initial, memory, active, secondary, campusId, serverFinis
   const busyRef = useRef(false);
   const [outcome, setOutcome] = useState<Outcome>(remembered?.outcome ?? null);
   const [savedWords, setSavedWords] = useState<string | null>(remembered?.savedWords ?? null);
+  const hasMain = !secondary && (!outcome || savedWords !== null);
+  useLayoutEffect(() => {
+    if (!active) return;
+    onMainChange?.(hasMain);
+    return () => onMainChange?.(false);
+  }, [active, hasMain, onMainChange]);
   const [copyState, setCopyState] = useState<'idle' | 'busy' | 'done' | 'failed'>('idle');
   const [errors, setErrors] = useState<Partial<Record<Action, string>>>({});
   const [reloadAction, setReloadAction] = useState<Action | null>(null);

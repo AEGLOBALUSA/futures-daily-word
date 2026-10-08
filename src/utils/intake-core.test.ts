@@ -5,18 +5,23 @@ const require = createRequire(import.meta.url);
 const core = require('../../netlify/functions/lib/intake-core.js');
 
 describe('staff allowlist', () => {
-  it('allows jane0202@me.com by name as hub, and no other @me.com address', () => {
+  // Readiness 7 Oct 2026: the roster row is the allow-list. Any real address
+  // may be added by an admin; without a row nobody is staff (staffFromRoster).
+  it('names jane0202@me.com as hub by default; any real address could be added', () => {
     expect(core.isAllowlistedEmail('jane0202@me.com')).toBe(true);
     expect(core.fallbackStaff('jane0202@me.com').role).toBe('hub');
-    expect(core.isAllowlistedEmail('someone@me.com')).toBe(false);
+    expect(core.isAllowlistedEmail('someone@me.com')).toBe(true);
+    expect(core.staffFromRoster('someone@me.com', null)).toBeNull();
   });
 
   it('allows alexis@futuros.global by name as hub, and no other @futuros.global address', () => {
     expect(core.isAllowlistedEmail('alexis@futuros.global')).toBe(true);
     expect(core.isAllowlistedEmail(' Alexis@Futuros.Global ')).toBe(true);
     expect(core.fallbackStaff('alexis@futuros.global').role).toBe('hub');
-    expect(core.isAllowlistedEmail('random@futuros.global')).toBe(false);
-    expect(core.isAllowlistedEmail('alexis@futuros.global.evil.com')).toBe(false);
+    expect(core.isAllowlistedEmail('random@futuros.global')).toBe(true);
+    expect(core.staffFromRoster('random@futuros.global', null)).toBeNull();
+    expect(core.isAllowlistedEmail('not an email')).toBe(false);
+    expect(core.isAllowlistedEmail('a@b')).toBe(false);
   });
 
   it('allows Ashley, Josh, and Ryan by name', () => {
@@ -36,7 +41,7 @@ describe('staff allowlist', () => {
   });
 
   it('does not invent extra domains or people', () => {
-    expect(core.isAllowlistedEmail('someone@gmail.com')).toBe(false);
+    expect(core.staffFromRoster('someone@gmail.com', null)).toBeNull();
     expect(core.fallbackStaff('josh@futures.church').role).toBe('hub');
     expect(core.fallbackStaff('ae@futures.global').role).toBe('admin');
     expect(core.fallbackStaff('ae@futures.global').name).toBe('Ashley Evans');
@@ -76,10 +81,10 @@ describe('staffFromRoster: the roster decides, not the address shape', () => {
     expect(core.fallbackStaff('nobody123@futures.church').role).toBe('campus');
   });
 
-  it('refuses generic inboxes and other domains even with a row', () => {
+  it('refuses generic inboxes even with a row; any other address with a row is staff', () => {
     expect(core.staffFromRoster('hello@futures.church', { role: 'campus' })).toBeNull();
     expect(core.staffFromRoster('care@futures.church', { role: 'campus' })).toBeNull();
-    expect(core.staffFromRoster('someone@gmail.com', { role: 'campus' })).toBeNull();
+    expect(core.staffFromRoster('someone@gmail.com', { role: 'campus' }).role).toBe('campus');
   });
 
   it('always makes ae@futures.global the admin once his row exists', () => {
@@ -87,9 +92,37 @@ describe('staffFromRoster: the roster decides, not the address shape', () => {
     expect(core.staffFromRoster('ae@futures.global', { role: 'campus' }).role).toBe('admin');
   });
 
-  it('downgrades an admin row for anyone but Ashley', () => {
-    expect(core.staffFromRoster('gwinnett@futures.church', { role: 'admin' }).role).toBe('campus');
-    expect(core.staffFromRoster('josh@futures.church', { role: 'admin' }).role).toBe('hub');
+  it('keeps an admin row admin (the owner grants it); an unknown role reads as campus', () => {
+    expect(core.staffFromRoster('gwinnett@futures.church', { role: 'admin' }).role).toBe('admin');
+    expect(core.staffFromRoster('josh@futures.church', { role: 'admin' }).role).toBe('admin');
+    expect(core.staffFromRoster('josh@futures.church', { role: 'owner' }).role).toBe('campus');
+  });
+});
+
+describe('rosterChangeRefusal: inside People, every admin row is the owner\'s', () => {
+  const owner = { email: 'ae@futures.global', role: 'admin' };
+  const mark = { email: 'mark@futures.church', role: 'admin' };
+  const hub = { email: 'josh@futures.church', role: 'hub' };
+  it('refuses anyone who is not an admin', () => {
+    expect(core.rosterChangeRefusal(hub, { email: 'x@futures.church', role: null }, 'campus', 'save')).toBeTruthy();
+  });
+  it('lets a second admin add and change non-admins', () => {
+    expect(core.rosterChangeRefusal(mark, { email: 'x@futures.church', role: null }, 'campus', 'save')).toBeNull();
+    expect(core.rosterChangeRefusal(mark, hub, 'media', 'save')).toBeNull();
+    expect(core.rosterChangeRefusal(mark, hub, null, 'reset')).toBeNull();
+  });
+  it('stops a second admin promoting, or touching another admin or the owner', () => {
+    expect(core.rosterChangeRefusal(mark, hub, 'admin', 'save')).toBeTruthy();
+    expect(core.rosterChangeRefusal(mark, { email: 'j@futures.church', role: 'admin' }, null, 'delete')).toBeTruthy();
+    expect(core.rosterChangeRefusal(mark, owner, null, 'reset')).toBeTruthy();
+    expect(core.rosterChangeRefusal(mark, owner, 'admin', 'save')).toBeTruthy();
+  });
+  it('lets the owner do all of it except demote or remove himself', () => {
+    expect(core.rosterChangeRefusal(owner, hub, 'admin', 'save')).toBeNull();
+    expect(core.rosterChangeRefusal(owner, mark, null, 'delete')).toBeNull();
+    expect(core.rosterChangeRefusal(owner, owner, 'hub', 'save')).toBeTruthy();
+    expect(core.rosterChangeRefusal(owner, owner, null, 'delete')).toBeTruthy();
+    expect(core.rosterChangeRefusal(owner, owner, 'admin', 'save')).toBeNull();
   });
 });
 
@@ -417,5 +450,61 @@ describe('setup codes', () => {
     expect(core.verifySetupCode('AAAAA-AAAAA', stored)).toBe(false);
     expect(core.verifySetupCode('', stored)).toBe(false);
     expect(core.verifySetupCode(code, null)).toBe(false);
+  });
+});
+
+describe('usualJobFrom: Staff home learns the usual job from the person\'s own submissions', () => {
+  const qs = [
+    { id: 'q_hub', audience: 'hub' }, { id: 'q_hub2', audience: 'hub' },
+    { id: 'q_media', audience: 'media' }, { id: 'q_campus', audience: 'campus' }, { id: 'q_all', audience: 'all' },
+  ];
+  // Thursday 8 Oct 2026, 15:00Z.
+  const now = new Date('2026-10-08T15:00:00Z');
+  const sub = (iso: string, keys: string[], role = 'hub') => ({ created_at: iso, role, answers: Object.fromEntries(keys.map(k => [k, 'x'])) });
+
+  it('picks the job done most on this weekday', () => {
+    const subs = [
+      sub('2026-10-06T10:00:00Z', ['q_media']),            // Tuesday
+      sub('2026-10-01T10:00:00Z', ['q_hub', 'q_all']),     // Thursday
+      sub('2026-09-24T10:00:00Z', ['q_hub', 'q_hub2']),    // Thursday
+      sub('2026-09-17T10:00:00Z', ['q_media']),            // Thursday
+    ];
+    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media', 'campus'])).toEqual({ job: 'hub', why: 'weekday', weekday: 'Thursday' });
+  });
+
+  it('falls back to the job done last when nothing was done on this weekday', () => {
+    const subs = [sub('2026-10-06T10:00:00Z', ['q_media']), sub('2026-10-05T10:00:00Z', ['q_hub'])];
+    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media'])).toEqual({ job: 'media', why: 'last', weekday: 'Thursday' });
+  });
+
+  it('ignores submissions older than eight weeks, in the future, or for jobs the person cannot open', () => {
+    expect(core.usualJobFrom([sub('2026-08-01T10:00:00Z', ['q_hub'])], qs, now)).toBeNull();
+    expect(core.usualJobFrom([sub('2026-10-09T10:00:00Z', ['q_hub'])], qs, now)).toBeNull();
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', ['q_hub'])], qs, now, ['campus'])).toBeNull();
+  });
+
+  it('uses the role a submission was sent under when its questions say nothing', () => {
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', ['q_all'], 'campus')], qs, now, ['campus'])).toMatchObject({ job: 'campus' });
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', [], 'admin')], qs, now)).toBeNull();
+  });
+
+  it('counts the weekday on the church clock, not UTC', () => {
+    // Wednesday 1 Oct 2026, 22:00 in New York = Thursday 02:00Z.
+    const wedNight = [sub('2026-10-01T02:00:00Z', ['q_media'])];
+    const thursNightNY = new Date('2026-10-09T01:00:00Z'); // Thursday 21:00 New York
+    expect(core.usualJobFrom(wedNight, qs, thursNightNY, ['hub', 'media'], 'America/New_York')).toMatchObject({ why: 'last', weekday: 'Thursday' });
+    expect(core.usualJobFrom(wedNight, qs, new Date('2026-10-08T01:00:00Z'), ['hub', 'media'], 'America/New_York')).toMatchObject({ job: 'media', why: 'weekday', weekday: 'Wednesday' });
+  });
+
+  it('a tie between audiences goes to the one the person can open', () => {
+    expect(core.usualJobFrom([sub('2026-10-01T10:00:00Z', ['q_media', 'q_hub'])], qs, now, ['hub'])).toMatchObject({ job: 'hub' });
+  });
+
+  it('jobsForRole matches the Staff home split', () => {
+    expect(core.jobsForRole('admin')).toEqual(['hub', 'media', 'campus']);
+    expect(core.jobsForRole('media')).toEqual(['hub', 'media']);
+    expect(core.jobsForRole('hub')).toEqual(['hub']);
+    expect(core.jobsForRole('campus')).toEqual(['campus']);
+    expect(core.jobsForRole('nobody')).toEqual([]);
   });
 });
