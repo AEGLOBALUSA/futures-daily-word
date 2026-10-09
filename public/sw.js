@@ -6,8 +6,8 @@
  * V23: Image/asset stale-while-revalidate with network-failure cache fallback (hero frames)
  */
 
-const CACHE_NAME = 'fdw-v51';
-const STATIC_CACHE = 'fdw-static-v51';
+const CACHE_NAME = 'fdw-v52';
+const STATIC_CACHE = 'fdw-static-v52';
 const BIBLE_CACHE = 'fdw-bible-v1';
 const FONT_CACHE = 'fdw-fonts-v1';
 
@@ -17,29 +17,45 @@ const PRE_CACHE = [
   '/manifest.json',
 ];
 
+// Fail open: only an explicit, successful JSON response can retire this worker.
+async function checkKillSwitch() {
+  try {
+    const response = await fetch('/sw-kill.json', { cache: 'no-store' });
+    if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) return false;
+    const config = await response.json();
+    if (config?.kill !== true) return false;
+    await self.registration.unregister();
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key.startsWith('fdw-')).map((key) => caches.delete(key)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRE_CACHE))
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    if (await checkKillSwitch()) return;
+    const cache = await caches.open(STATIC_CACHE);
+    await cache.addAll(PRE_CACHE);
+    // Updates wait for the reader's Reload tap. First installs activate normally.
+  })());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
+  event.waitUntil((async () => {
+    if (await checkKillSwitch()) return;
+    await caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME && key !== STATIC_CACHE && key !== BIBLE_CACHE && key !== FONT_CACHE)
+          .filter((key) => key.startsWith('fdw-') && key !== CACHE_NAME && key !== STATIC_CACHE && key !== BIBLE_CACHE && key !== FONT_CACHE)
           .map((key) => caches.delete(key).catch(() => false))
       )
-    ).then(() => {
-      // Notify open tabs that a new version is available (gentle — no forced reload)
-      self.clients.matchAll({ type: 'window' }).then((clients) => {
-        clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED' }));
-      });
-    })
-  );
-  self.clients.claim();
+    );
+    await self.clients.claim();
+    const clients = await self.clients.matchAll({ type: 'window' });
+    clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED' }));
+  })());
 });
 
 self.addEventListener('fetch', (event) => {
@@ -162,7 +178,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match('/') || caches.match(event.request))
+        .catch(async () => (await caches.match('/')) || (await caches.match(event.request)) || Response.error())
     );
     return;
   }
@@ -176,7 +192,10 @@ self.addEventListener('fetch', (event) => {
 // Listen for skip-waiting message from main thread
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    event.waitUntil(self.skipWaiting());
+  }
+  if (event.data && event.data.type === 'CHECK_KILL_SWITCH') {
+    event.waitUntil(checkKillSwitch());
   }
 });
 

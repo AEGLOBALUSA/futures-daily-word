@@ -1932,7 +1932,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   return (
     <div className="screen-container dw-phone-screen dw-home-screen">
-      {!homeNext.loading && homeNext.step.kind !== 'done' && homeNext.step.kind !== 'setup_ask' && (
+      {!homeNext.loading && homeNext.step.kind !== 'done' && homeNext.step.kind !== 'setup_ask' &&
+        (homeNext.step.action !== 'none' || homeNext.step.kind === 'journey_day') && (
         <div className="mos-actionbar dw-home-actionbar dw-phone-only">
           <button type="button" className="dw-next dw-next-main" data-next={homeNext.label}
             disabled={!!pendingReminder}
@@ -1941,14 +1942,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
               homeNext.onTapped();
               if (homeNext.step.action !== 'none') void handleNextAction(homeNext.step.action);
               else if (homeNext.step.kind === 'journey_day') setShowJourneyDay(true);
-              else {
-                const ref = heroChapterRefs[heroChapterIndex] || heroChapterRefs[0];
-                if (ref) handleMarkRead(ref);
-              }
             }}>
-            {pendingReminder ? tI18n('reminder_saving', lang)
-              : homeNext.step.action === 'none' && (homeNext.step.kind === 'reading' || homeNext.step.kind === 'comfort')
-                ? tI18n('mark_as_read', lang) : homeNext.label}
+            {pendingReminder ? tI18n('reminder_saving', lang) : homeNext.label}
           </button>
           {reminderFailed && homeNext.step.kind === 'reminder_offer' && (
             <p role="alert">{tI18n('reminder_save_failed', lang)}</p>
