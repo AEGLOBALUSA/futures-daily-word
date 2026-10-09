@@ -37,6 +37,7 @@ import { otherMessageLabel, sameVideo } from './quickNotesApi';
 import { homePlan, loadHomeInfo, type HomeInfo } from './homePlan';
 import { startStaffTextSizeSync } from './textSizeSync';
 import { TextSizeRow } from './TextSizeRow';
+import { forgetLockDevice } from '../utils/moLock';
 import { fs, fieldFs } from '../lib/mos/text-size/text-scale-core';
 
 declare global {
@@ -220,6 +221,28 @@ function congregationPageUrl(congregation: CongregationId): string {
   try { return `${window.location.origin}/${q}`; } catch { return `/${q}`; }
 }
 
+/**
+ * "Use your password instead" on the Face ID lock lands on /staff with a fresh `mo-lock:signout-at` stamp.
+ * The staff token is dropped locally FIRST, whatever the server answers, so the sign-in form is certain;
+ * the existing logout still goes to the server in the background (it reads the token before this clears it).
+ */
+function endSessionIfLockAskedForPassword() {
+  let asked = false;
+  try {
+    const at = Number(window.sessionStorage.getItem('mo-lock:signout-at'));
+    window.sessionStorage.removeItem('mo-lock:signout-at');
+    asked = at > 0 && Date.now() - at < 60000;
+  } catch { /* */ }
+  if (!asked || !getStaffToken()) return;
+  intake('logout').catch(() => { /* */ });
+  setStaffToken('');
+}
+
+/** The head-time sign-in marker (index.html) only holds while signed out. */
+function dropHeadSignInMarker() {
+  document.querySelectorAll('meta[data-mo-lock-signin]').forEach(el => el.remove());
+}
+
 export function StaffApp() {
   // Before the first paint: the device's Spanish (or the last sign-in's default) for the sign-in screen.
   useState(() => { initStaffLangDefault(); return true; });
@@ -229,9 +252,9 @@ export function StaffApp() {
     window.addEventListener('dw-lang-changed', updateLang);
     return () => window.removeEventListener('dw-lang-changed', updateLang);
   }, []);
-  const [token, setToken] = useState(() => getStaffToken());
+  const [token, setToken] = useState(() => { endSessionIfLockAskedForPassword(); return getStaffToken(); });
   const [staff, setStaff] = useState<Staff | null>(null);
-  const [boot, setBoot] = useState(!!getStaffToken());
+  const [boot, setBoot] = useState(() => !!getStaffToken());
   const [tab, setTab] = useState<Tab>(() => staffTabFromRaw(readStaffTabParam()));
   const [job, setJob] = useState<Job>('hub');
   const [seed, setSeed] = useState<IntakeSeed | undefined>(undefined);
@@ -250,25 +273,12 @@ export function StaffApp() {
   }, []);
 
   useEffect(() => {
-    const handleSignedOut = () => { applyStaffLangDefault(null); setToken(''); setStaff(null); };
+    const handleSignedOut = () => { applyStaffLangDefault(null); setToken(''); setStaff(null); forgetLockDevice(); };
     window.addEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
     return () => window.removeEventListener(STAFF_SIGNED_OUT_EVENT, handleSignedOut);
   }, []);
 
   const loadMe = useCallback(async () => {
-    // "Use your password instead" on the Face ID lock lands here: the kit stamps this
-    // moment just before it navigates, and the staff session is ended so the sign-in shows.
-    let askedForPassword = false;
-    try {
-      const at = Number(window.sessionStorage.getItem('mo-lock:signout-at'));
-      window.sessionStorage.removeItem('mo-lock:signout-at');
-      askedForPassword = at > 0 && Date.now() - at < 60000;
-    } catch { /* */ }
-    if (askedForPassword && getStaffToken()) {
-      try { await intake('logout'); } catch { /* */ }
-      setStaffToken('');
-      setToken('');
-    }
     if (!getStaffToken()) { setBoot(false); return; }
     try {
       const data = await intake<{ staff: Staff }>('me');
@@ -292,7 +302,7 @@ export function StaffApp() {
 
   const signOut = async () => {
     try { await intake('logout'); } catch { /* */ }
-    window.MOLock?.clear?.();
+    forgetLockDevice();
     applyStaffLangDefault(null);
     setStaffToken(''); setToken(''); setStaff(null); setTab('home'); setSeed(undefined);
   };
@@ -314,7 +324,7 @@ export function StaffApp() {
   if (!token || !staff) {
     return (
       <Login
-        onSignedIn={(t, s) => { applyStaffLangDefault(s); setStaffToken(t); setToken(t); setStaff(s); }}
+        onSignedIn={(t, s) => { dropHeadSignInMarker(); applyStaffLangDefault(s); setStaffToken(t); setToken(t); setStaff(s); }}
       />
     );
   }
@@ -462,6 +472,9 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const codeRef = useRef<HTMLInputElement>(null);
+
+  // A signed-out staff view never carries a Face ID record: drop any leftover one.
+  useEffect(() => { forgetLockDevice(); }, []);
 
   // A sign-in hint from another MOS app (mo-apps) pre-fills an empty email once. It never submits.
   useEffect(() => {

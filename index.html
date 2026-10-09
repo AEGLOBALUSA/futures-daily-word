@@ -10,9 +10,20 @@
     </script>
     <!-- MOS device lock (Face ID required, staff side only). Same contract as above: loaded
          synchronously in <head> by document.write on /staff, so data-required is read at head time.
-         The congregation reader never loads it, so it has no lock, hidden page or setup sheet. -->
+         The congregation reader never loads it, so it has no lock, hidden page or setup sheet.
+         A /staff load with no staff session (or one the lock just asked to end with "Use your
+         password instead") also gets a <meta data-mo-lock-signin> BEFORE the kit runs, so the sign-in
+         view is never locked, even before the lazy sign-in form renders. StaffApp removes it on sign-in. -->
     <script>
-      if (/^\/staff\/*$/.test(location.pathname)) document.write('<script src="/multiplyos/mo-lock.js" data-required="true"><\/script>');
+      if (/^\/staff\/*$/.test(location.pathname)) {
+        var dwSignedOut = false;
+        try {
+          var dwStamp = Number(sessionStorage.getItem('mo-lock:signout-at'));
+          dwSignedOut = !localStorage.getItem('dw_staff_token') || (dwStamp > 0 && Date.now() - dwStamp < 60000);
+        } catch (e) { dwSignedOut = false; }
+        if (dwSignedOut) document.write('<meta name="mo-lock-signin" data-mo-lock-signin>');
+        document.write('<script src="/multiplyos/mo-lock.js" data-required="true"><\/script>');
+      }
     </script>
         <meta name="google-site-verification" content="oj1wi2uOUtaFbXCAdsjZ8gfhSzhz4VtcXUkcszjhtZo" />
     <link rel="icon" href="/icons/icon-192.png" />
