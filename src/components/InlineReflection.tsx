@@ -136,14 +136,17 @@ export function InlineReflection({
       localStorage.setItem('dw_journal', JSON.stringify(entries.slice(0, 5000)));
       lastSavedTextRef.current = body;
       localStorage.removeItem(dKey); // the note is in the journal now — the draft has served its purpose
-      window.dispatchEvent(new Event('dw-journal-updated'));
-      pushNow();
-      recordReadDay('journal'); // reflecting is real engagement — it counts toward the streak
     } catch {
       // The local write failed: keep the draft and the open editor, let Save retry.
       setSaveState('error');
       return;
     }
+    // The note is stored; what follows can never turn it into a "save failed".
+    try {
+      window.dispatchEvent(new Event('dw-journal-updated'));
+      pushNow();
+      recordReadDay('journal'); // reflecting is real engagement — it counts toward the streak
+    } catch { /* ignore */ }
     // Brief, honest "Saving…" beat (the write is already done) so the user SEES the confirmation land.
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => {
