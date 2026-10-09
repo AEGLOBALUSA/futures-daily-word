@@ -63,6 +63,15 @@ describe('StaffApp admin home', () => {
     act(() => root.unmount());
   });
 
+  it('renders the Face ID lock marker while signed in', async () => {
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    const marker = el.querySelector('[data-mo-lock-user]');
+    expect(marker?.getAttribute('data-mo-lock-required')).toBe('true');
+    expect(marker?.getAttribute('data-mo-lock-signout')).toBe('/staff');
+    act(() => root.unmount());
+  });
+
   it('opens People, History, and an intake job from home', async () => {
     vi.mocked(intake).mockImplementation(async (action: string) => {
       if (action === 'me') {

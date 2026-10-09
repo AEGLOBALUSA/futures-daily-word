@@ -39,6 +39,13 @@ import { startStaffTextSizeSync } from './textSizeSync';
 import { TextSizeRow } from './TextSizeRow';
 import { fs, fieldFs } from '../lib/mos/text-size/text-scale-core';
 
+declare global {
+  interface Window {
+    // MOS device lock (public/multiplyos/mo-lock.js), loaded on /staff only.
+    MOLock?: { clear?: () => void; signedIn?: () => void };
+  }
+}
+
 type Role = 'admin' | 'hub' | 'campus' | 'media';
 type Tab = 'home' | 'notes' | 'form' | 'review' | 'people' | 'campuses';
 
@@ -249,6 +256,19 @@ export function StaffApp() {
   }, []);
 
   const loadMe = useCallback(async () => {
+    // "Use your password instead" on the Face ID lock lands here: the kit stamps this
+    // moment just before it navigates, and the staff session is ended so the sign-in shows.
+    let askedForPassword = false;
+    try {
+      const at = Number(window.sessionStorage.getItem('mo-lock:signout-at'));
+      window.sessionStorage.removeItem('mo-lock:signout-at');
+      askedForPassword = at > 0 && Date.now() - at < 60000;
+    } catch { /* */ }
+    if (askedForPassword && getStaffToken()) {
+      try { await intake('logout'); } catch { /* */ }
+      setStaffToken('');
+      setToken('');
+    }
     if (!getStaffToken()) { setBoot(false); return; }
     try {
       const data = await intake<{ staff: Staff }>('me');
@@ -272,6 +292,7 @@ export function StaffApp() {
 
   const signOut = async () => {
     try { await intake('logout'); } catch { /* */ }
+    window.MOLock?.clear?.();
     applyStaffLangDefault(null);
     setStaffToken(''); setToken(''); setStaff(null); setTab('home'); setSeed(undefined);
   };
@@ -302,6 +323,7 @@ export function StaffApp() {
     <div className="staff-app" data-staff-view={view} style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
       <MoGuideMount isAdmin={staff.isAdmin} role={staff.role} />
       <MoAppsMount email={staff.email} lang={lang} />
+      <span hidden data-mo-lock-user={staff.email} data-mo-lock-app="Daily Word" data-mo-lock-signout="/staff" data-mo-lock-required="true" />
       {isMosUi() && (
         <aside className="mos-shell__sidebar">
           <MosBrandLockup appsOpener />
@@ -502,9 +524,11 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
     try {
       if (setup) {
         const data = await intake<{ token: string; staff: Staff }>('set_password', { email, password, setupCode: code });
+        window.MOLock?.signedIn?.();
         onSignedIn(data.token, data.staff);
       } else {
         const data = await intake<{ token: string; staff: Staff }>('login', { email, password });
+        window.MOLock?.signedIn?.();
         onSignedIn(data.token, data.staff);
       }
     } catch (err) {
@@ -515,7 +539,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
 
   return (
     <div className="mos-shell mos-shell--auth" style={{ '--staff-keyboard-inset': `${keyboardInset}px`, minHeight: '100dvh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 } as CSSProperties}>
-      <form className="mos-auth__form" noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
+      <form className="mos-auth__form" data-mo-lock-signin noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
         {isMosUi() && <MosBrandLockup />}
         <p style={{ margin: 0, fontSize: fs(11), letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
           {staffAppName}
