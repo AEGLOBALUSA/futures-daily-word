@@ -11,6 +11,17 @@ export default defineConfig({
     tailwindcss(),
     sri({ algorithm: 'sha384' }),
     {
+      // Lists every built JS/CSS asset so public/sw.js can precache them on install.
+      name: 'emit-sw-assets',
+      generateBundle(_options, bundle) {
+        const assets = Object.keys(bundle)
+          .filter((name) => /^assets\/.*\.(js|css)$/.test(name))
+          .map((name) => '/' + name)
+          .sort()
+        this.emitFile({ type: 'asset', fileName: 'sw-assets.json', source: JSON.stringify(assets) })
+      },
+    },
+    {
       name: 'copy-static-dirs',
       closeBundle() {
         for (const dir of ['books', 'essays', 'data', 'bible', 'icons']) {

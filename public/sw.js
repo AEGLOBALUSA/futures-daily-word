@@ -33,11 +33,31 @@ async function checkKillSwitch() {
   }
 }
 
+// Offline start must not depend on HTTP caching: the build lists every JS/CSS asset in
+// /sw-assets.json. Best effort only — a missing list or a failed asset never fails the install.
+async function precacheBuiltAssets(cache) {
+  try {
+    const response = await fetch('/sw-assets.json', { cache: 'no-store' });
+    if (!response.ok) return;
+    const list = await response.json();
+    if (!Array.isArray(list)) return;
+    await Promise.all(list
+      .filter((path) => typeof path === 'string' && path.startsWith('/assets/'))
+      .map(async (path) => {
+        try {
+          const asset = await fetch(path);
+          if (asset.ok) await cache.put(path, asset);
+        } catch { /* skip this asset */ }
+      }));
+  } catch { /* fall back to HTML + manifest only */ }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     if (await checkKillSwitch()) return;
     const cache = await caches.open(STATIC_CACHE);
     await cache.addAll(PRE_CACHE);
+    await precacheBuiltAssets(cache);
     // Updates wait for the reader's Reload tap. First installs activate normally.
   })());
 });

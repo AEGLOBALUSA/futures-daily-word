@@ -28,3 +28,39 @@ it.each(['index-Ab12cd34.js', 'screen-Ab_cd-12.js', 'index-_-abCD12.css', 'chunk
     expect(fetcher).toHaveBeenCalledTimes(1);
   },
 );
+
+function loadWorker(fetcher, cache) {
+  const handlers = {};
+  runInNewContext(readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8'), {
+    self: { addEventListener: (event, callback) => { handlers[event] = callback; } },
+    caches: { open: vi.fn(async () => cache) },
+    fetch: fetcher, URL, Response,
+  });
+  return handlers;
+}
+const install = async handlers => {
+  let done;
+  await handlers.install({ waitUntil: promise => { done = promise; } });
+  await done;
+};
+
+it('precaches the built asset list on install, skipping any that fail', async () => {
+  const put = vi.fn(async () => {});
+  const cache = { addAll: vi.fn(async () => {}), put };
+  const fetcher = vi.fn(async url => {
+    if (url === '/sw-kill.json') return new Response('{}', { headers: { 'content-type': 'application/json' } });
+    if (url === '/sw-assets.json') return new Response(JSON.stringify(['/assets/a-Ab12.js', '/assets/b-Cd34.css', '/assets/c-Ef56.js', '/other.js']));
+    if (url === '/assets/c-Ef56.js') throw new Error('offline');
+    return new Response('bytes');
+  });
+  await install(loadWorker(fetcher, cache));
+  expect(put.mock.calls.map(call => call[0]).sort()).toEqual(['/assets/a-Ab12.js', '/assets/b-Cd34.css']);
+});
+
+it('still installs when sw-assets.json is missing', async () => {
+  const cache = { addAll: vi.fn(async () => {}), put: vi.fn() };
+  const fetcher = vi.fn(async url => (url === '/sw-assets.json' ? new Response('nope', { status: 404 }) : new Response('{}', { headers: { 'content-type': 'application/json' } })));
+  await install(loadWorker(fetcher, cache));
+  expect(cache.addAll).toHaveBeenCalledWith(['/', '/manifest.json']);
+  expect(cache.put).not.toHaveBeenCalled();
+});

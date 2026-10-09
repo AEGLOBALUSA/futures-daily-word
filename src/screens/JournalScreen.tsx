@@ -662,7 +662,7 @@ function getReflectionQuestions(title: string, isBookChapter?: boolean): string[
 }
 
 /* ââ Scripture Study Modal ââ */
-function ScriptureModal({
+export function ScriptureModal({
   passage,
   planTitle,
   dayNum,
@@ -679,7 +679,7 @@ function ScriptureModal({
   devotional?: Devotional;
   isBookChapter?: boolean;
   existingNote: JournalEntry | undefined;
-  onSave: (entry: JournalEntry) => void;
+  onSave: (entry: JournalEntry) => boolean;
   onClose: () => void;
   onOpenBibleAI?: (context: string) => void;
 }) {
@@ -698,6 +698,7 @@ function ScriptureModal({
   const [loadingText, setLoadingText] = useState(true);
   const [draftNote, setDraftNote] = useState(existingNote?.body || '');
   const [noteSaved, setNoteSaved] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
 
@@ -723,10 +724,12 @@ function ScriptureModal({
           type: 'journal',
           verseRef: passage,
         };
+    // Only celebrate and close once the local write really succeeded; otherwise keep the draft open for a retry.
+    if (!onSave(entry)) { setSaveFailed(true); return; }
+    setSaveFailed(false);
     trackBehavior('note_created', entry.verseRef || '');
     track('journal_save', entry.type || 'journal');
     recordReadDay('journal');
-    onSave(entry);
     setNoteSaved(true);
     setTimeout(() => { setNoteSaved(false); onClose(); }, 1200);
   }
@@ -1133,6 +1136,7 @@ function ScriptureModal({
             {noteSaved ? <><CheckCircle2 size={16} /> {t('j_saved', lang)}</> : <><Save size={15} /> {t('j_save_note', lang)}</>}
           </button>
         </div>
+        {saveFailed && <p role="alert" style={{ fontSize: 13, fontWeight: 600, margin: '8px 0 0', color: 'var(--dw-danger, #C0392B)', fontFamily: 'var(--font-sans)' }}>{t('j_save_failed', lang)}</p>}
         {!draftNote.trim() && <p className="fx-why" style={{ fontSize: 15, margin: '8px 0 0' }}>{t('note_write_first', lang)}</p>}
       </div>
 
@@ -1572,8 +1576,9 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
     const all = getEntries();
     const idx = all.findIndex(e => e.id === entry.id);
     if (idx >= 0) { all[idx] = entry; } else { all.unshift(entry); }
-    if (!saveEntries(all)) { flagSaveError(); return; }
+    if (!saveEntries(all)) { flagSaveError(); return false; }
     setEntries(all.filter(e => !e.deleted));
+    return true;
   }, [flagSaveError]);
 
   const openNewEntry = useCallback(() => {

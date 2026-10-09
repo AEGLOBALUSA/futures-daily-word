@@ -29,7 +29,7 @@ interface InlineReflectionProps {
   openSignal?: number;
 }
 
-type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
+type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 
 const DRAFT_PREFIX = 'dw_reflect_draft:';
 
@@ -139,7 +139,11 @@ export function InlineReflection({
       window.dispatchEvent(new Event('dw-journal-updated'));
       pushNow();
       recordReadDay('journal'); // reflecting is real engagement — it counts toward the streak
-    } catch { /* ignore */ }
+    } catch {
+      // The local write failed: keep the draft and the open editor, let Save retry.
+      setSaveState('error');
+      return;
+    }
     // Brief, honest "Saving…" beat (the write is already done) so the user SEES the confirmation land.
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => {
@@ -212,6 +216,7 @@ export function InlineReflection({
       );
     }
     if (saveState === 'dirty') return <span>{t('note_autosaves')}</span>;
+    if (saveState === 'error') return <span role="alert" style={{ color: 'var(--dw-danger, #C0392B)', fontWeight: 600 }}>{t('j_save_failed')}</span>;
     return null;
   };
 
