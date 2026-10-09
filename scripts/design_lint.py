@@ -280,7 +280,7 @@ def scan(repo, paths):
                     if not MAIN_RX.search(tag):
                         continue
                     expr = None
-                    dis = re.search(r"disabled=\{([^}]*)\}", tag)
+                    dis = re.search(r"(?<![\w-])disabled=\{([^}]*)\}", tag)  # aria-disabled is the fix, not the fault
                     if dis:
                         expr = dis.group(1)
                     else:
@@ -394,6 +394,12 @@ def _is_busy_only(part):
         part = m.group(1).strip()
     if part.startswith("!"):
         return False
+    # phase === 'sending' is in-flight state, the same as a sending flag
+    cmp = re.match(r"^[A-Za-z_][A-Za-z0-9_.]*\s*===?\s*['\"]([A-Za-z]+)['\"]$", part)
+    if cmp:
+        return bool(re.fullmatch(BUSY_WORD + "|preparing|halting|testing|uploading", cmp.group(1)))
+    if re.fullmatch(r"(?:is)?(?:[Pp]reparing|[Hh]alting|[Tt]esting|[Uu]ploading)", part):
+        return True
     ident = re.match(r"^([A-Za-z_][A-Za-z0-9_.]*)", part)
     if not ident:
         return False
