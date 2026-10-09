@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 import { act, type ReactElement } from 'react';
 
+const tokenStore = vi.hoisted(() => ({ value: 'test-token' }));
 vi.mock('./api', () => ({
-  getStaffToken: () => 'test-token',
-  setStaffToken: vi.fn(),
+  getStaffToken: () => tokenStore.value,
+  setStaffToken: vi.fn((t: string) => { tokenStore.value = t; }),
   intake: vi.fn(),
   STAFF_SIGNED_OUT_EVENT: 'dw-staff-signed-out',
 }));
@@ -13,6 +14,8 @@ vi.mock('./textSizeSync', () => ({ startStaffTextSizeSync: () => () => {} }));
 
 import { StaffApp } from './StaffApp';
 import { intake } from './api';
+
+beforeEach(() => { tokenStore.value = 'test-token'; });
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -61,6 +64,31 @@ describe('StaffApp admin home', () => {
     expect(el.textContent).not.toContain('These are the prompts on each job');
     expect(el.textContent).toMatch(/sermon notes/i);
     act(() => root.unmount());
+  });
+
+  it('renders the Face ID lock marker while signed in', async () => {
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    const marker = el.querySelector('[data-mo-lock-user]');
+    expect(marker?.getAttribute('data-mo-lock-required')).toBe('true');
+    expect(marker?.getAttribute('data-mo-lock-signout')).toBe('/staff');
+    act(() => root.unmount());
+  });
+
+  it('a fresh lock sign-out stamp drops the staff token locally and shows the sign-in form, even if logout never settles', async () => {
+    const { setStaffToken } = await import('./api');
+    vi.mocked(intake).mockImplementation(() => new Promise(() => {}));
+    sessionStorage.setItem('mo-lock:signout-at', String(Date.now()));
+    vi.mocked(setStaffToken).mockClear();
+    tokenStore.value = 'test-token';
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    expect(setStaffToken).toHaveBeenCalledWith('');
+    expect(vi.mocked(intake)).toHaveBeenCalledWith('logout');
+    expect(el.querySelector('[data-mo-lock-signin]')).not.toBeNull();
+    expect(sessionStorage.getItem('mo-lock:signout-at')).toBeNull();
+    act(() => root.unmount());
+    tokenStore.value = 'test-token';
   });
 
   it('opens People, History, and an intake job from home', async () => {

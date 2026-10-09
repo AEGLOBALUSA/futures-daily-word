@@ -8,6 +8,7 @@
  * The staff token is never sent to user-sync, and vice versa.
  */
 import { intake, getStaffToken, setStaffToken } from '../staff/api';
+import { forgetLockDevice } from './moLock';
 import { API_BASE, localApiBase } from './api-base';
 import { getSessionToken, setSessionToken } from './sessionToken';
 import type { UserProfile, SetupState } from '../contexts/UserContext';
@@ -163,6 +164,7 @@ export async function signOutStaff(): Promise<void> {
   clearProvisionedPastorCode();
   try { await intake('logout'); } catch { /* token may already be dead */ }
   setStaffToken('');
+  forgetLockDevice();
   restoreCache = null;
 }
 

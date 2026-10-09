@@ -1,4 +1,5 @@
 import { localApiBase } from '../utils/api-base';
+import { forgetLockDevice } from '../utils/moLock';
 
 const TOKEN_KEY = 'dw_staff_token';
 
@@ -31,6 +32,7 @@ export async function intake<T = Record<string, unknown>>(
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
     setStaffToken('');
+    forgetLockDevice();
     // The sign-in ran out: StaffApp listens and opens the sign-in screen (B09-03 review).
     try { window.dispatchEvent(new Event(STAFF_SIGNED_OUT_EVENT)); } catch { /* no window */ }
     throw Object.assign(new Error('Sign in required'), { status: 401, data });

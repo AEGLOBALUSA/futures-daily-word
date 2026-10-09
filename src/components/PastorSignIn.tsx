@@ -19,6 +19,7 @@ import {
   STAFF_SESSION_EVENT, type StaffRecord,
 } from '../utils/staffIdentity';
 import { track } from '../utils/analytics';
+import { markLockSignedIn } from '../utils/moLock';
 import { t, getLang } from '../utils/i18n';
 
 type View = 'loading' | 'closed' | 'email' | 'password' | 'set_password' | 'signed_in';
@@ -152,6 +153,7 @@ export function PastorSignIn({ lang: langProp }: { lang?: string }) {
 
   const finish = async (data: { token: string; staff: StaffRecord }) => {
     setStaffToken(data.token);
+    markLockSignedIn(); // the lock loads on /staff only; it reads this one-shot cookie there
     setAppStaffSignIn(true); // this app issued the session — see staffIdentity
     resetStaffSessionCache();
     await applyStaffIdentity(data.staff);
