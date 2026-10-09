@@ -1,0 +1,137 @@
+/* Load after multiplyos.css. Its tokens own both explicit and system themes.
+   Same overlay layer as mo-guide; core makes the two sheets mutually exclusive. */
+.mo-apps-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482900;
+  isolation: isolate;
+  color: var(--mo-ink);
+  font: max(15px, 1rem)/1.5 system-ui, sans-serif;
+}
+.mo-apps-root[hidden], .mo-apps-root [hidden] { display: none !important; }
+.mo-apps-root *, .mo-apps-root *::before, .mo-apps-root *::after { box-sizing: border-box; }
+.mo-apps-dim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--mo-deep-gold-ink) 32%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.mo-apps-panel {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: min(680px, calc(100% - max(16px, env(safe-area-inset-top))));
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--mo-line);
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  background: var(--mo-page);
+  color: var(--mo-ink);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--mo-deep-gold-ink) 14%, transparent);
+}
+.mo-apps-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--mo-line);
+}
+.mo-apps-root .mo-apps-title { margin: 0; font: 700 max(15px, 1.75rem)/1.2 system-ui, sans-serif; }
+.mo-apps-root :is(a, button, p, span) { font-family: inherit; font-size: inherit; letter-spacing: normal; text-transform: none; overflow-wrap: anywhere; }
+.mo-apps-root :is(a, button) { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.mo-apps-root .mo-apps-close {
+  appearance: none;
+  flex: none;
+  min-height: 44px;
+  min-width: 44px;
+  margin: 0;
+  padding: .5rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--mo-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+.mo-apps-status { flex: none; margin: 0; padding: 1rem; color: var(--mo-ink); }
+.mo-apps-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0 max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
+  scroll-padding-block: .5rem;
+}
+.mo-apps-list { margin: 0; padding: 0; list-style: none; }
+.mo-apps-item { padding: .5rem 0; border-bottom: 1px solid var(--mo-line); }
+.mo-apps-item:last-child { border-bottom: 0; }
+.mo-apps-root .mo-apps-link { color: var(--mo-ink); text-decoration: none; }
+.mo-apps-row { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem 0; }
+.mo-apps-name { flex: 1; font-weight: 600; }
+.mo-apps-here { flex: none; font-weight: 600; }
+.mo-apps-icon { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.mo-apps-note { margin: 0 0 .5rem; color: var(--mo-ink); }
+.mo-apps-nations { display: flex; flex-wrap: wrap; gap: .5rem; padding-bottom: .5rem; }
+.mo-apps-root .mo-apps-nation {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding: .5rem .75rem;
+  border: 1px solid var(--mo-line);
+  border-radius: 999px;
+}
+.mo-apps-root .mo-apps-nation-main { border-color: var(--mo-ink); font-weight: 600; }
+.mo-apps-action {
+  flex: none;
+  padding: 1rem max(1rem, env(safe-area-inset-right)) max(.5rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  border-top: 1px solid var(--mo-line);
+  background: var(--mo-page);
+}
+.mo-apps-hint { margin: 0 0 .75rem; font-weight: 600; }
+.mo-apps-root .mo-apps-next {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .125rem;
+  width: 100%;
+  height: auto;
+  min-height: 56px;
+  margin: 0;
+  padding: .75rem 1rem;
+  border: 2px solid var(--mo-accent);
+  border-radius: 12px;
+  background: var(--mo-btn-fill);
+  color: var(--mo-btn-ink);
+  text-align: center;
+  font-weight: 600;
+  white-space: normal;
+  /* Retain the kit ring if a host's next-step scan chooses a background step. */
+  animation: mo-next-pulse 1.8s ease-out infinite;
+}
+.mo-apps-destination { font-weight: 400; }
+.mo-apps-root .mo-apps-all {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  min-height: 44px;
+  margin-top: .5rem;
+  padding: .5rem 0;
+  color: var(--mo-ink);
+  text-decoration: none;
+}
+.mo-apps-root :focus-visible { outline: 2px solid var(--mo-accent); outline-offset: 2px; }
+@media (min-width: 769px) {
+  .mo-apps-panel { inset: auto; width: min(420px, calc(100% - 32px)); border: 1px solid var(--mo-line); border-radius: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mo-apps-root .mo-apps-next { animation: none; outline: 3px solid var(--mo-accent); outline-offset: 4px; }
+}
+@media print { .mo-apps-root { display: none !important; } }
