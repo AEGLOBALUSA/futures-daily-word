@@ -525,3 +525,30 @@ html[data-ui="multiplyos"] .mos-auth__form {
   .staff-app .mos-shell__main .mos-actionbar:has(> button) { max-height: 45dvh; overflow-y: auto; }
   .staff-app .mos-actionbar > :is(.fx-why, p[role="alert"]) { font-size: 15px; }
 }
+
+@media (max-width: 768px) {
+  .mos-shell--auth:has(.staff-auth-actionbar) {
+    align-items: flex-start !important;
+    height: 100dvh;
+    overflow-y: auto;
+    scroll-padding-bottom: 180px;
+  }
+  .mos-shell--auth .mos-auth__form { padding-bottom: calc(180px + var(--staff-keyboard-inset, 0px)); }
+  .mos-shell--auth .mos-auth__form input { min-height: 56px; font-size: 17px; scroll-margin-block: 20px 180px; }
+  .staff-auth-actionbar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: var(--staff-keyboard-inset, 0px);
+    z-index: 96;
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--dw-canvas);
+    border-top: 1px solid var(--dw-border);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    max-height: 45dvh;
+    overflow-y: auto;
+  }
+  .staff-auth-actionbar > button { min-height: 56px !important; margin: 0 !important; }
+  .staff-auth-actionbar > p { margin: 8px 0 0; }
+}

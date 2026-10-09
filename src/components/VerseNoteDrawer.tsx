@@ -472,19 +472,20 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
             <div style={{ padding: '10px 20px 14px' }}>
               <button
                 onClick={() => doSave('button')}
-                disabled={!note.trim() || saveState === 'saving'}
+                disabled={saveState === 'saving'}
+                aria-disabled={!note.trim() || saveState === 'saving'}
                 style={{
-                  width: '100%', padding: '13px', borderRadius: 14,
+                  width: '100%', minHeight: 56, padding: '13px', borderRadius: 14,
                   background: saveState === 'saved' ? 'var(--dw-success)' : 'var(--dw-accent)',
                   color: '#fff', border: 'none', cursor: note.trim() ? 'pointer' : 'default',
                   fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', gap: 8,
-                  opacity: !note.trim() && saveState !== 'saved' ? 0.5 : 1,
                   transition: 'background 0.2s',
                 }}
               >
                 {saveState === 'saved' ? <><Check size={16} /> {t('saved_to_notes', lang)}</> : t('save_to_notes_btn', lang)}
               </button>
+              {!note.trim() && <p className="fx-why" style={{ fontSize: 15, margin: '8px 0 0' }}>{t('note_write_first', lang)}</p>}
             </div>
           </>
         )}

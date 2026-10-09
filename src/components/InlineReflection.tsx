@@ -278,17 +278,18 @@ export function InlineReflection({
               {statusLine()}
             </p>
           )}
+          {!text.trim() && <p className="fx-why" style={{ fontSize: 15, margin: '8px 0 0' }}>{t('note_write_first')}</p>}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button
-              onClick={save}
-              disabled={!text.trim() || saveState === 'saved' || saveState === 'saving'}
+              onClick={() => { if (saveState !== 'saved') save(); }}
+              disabled={saveState === 'saving'}
+              aria-disabled={!text.trim() || saveState === 'saved' || saveState === 'saving'}
               style={{
-                flex: 1, padding: '10px', borderRadius: 8, border: 'none',
+                flex: 1, minHeight: 56, padding: '10px', borderRadius: 8, border: 'none',
                 background: saveState === 'saved' ? 'var(--dw-success)' : accent,
                 color: newPath && saveState !== 'saved' ? 'var(--dw-new-on-fill)' : '#fff', fontSize: 14, fontWeight: 700,
                 fontFamily: 'var(--font-sans)',
                 cursor: text.trim() && saveState === 'dirty' ? 'pointer' : 'default',
-                opacity: text.trim() ? 1 : 0.5,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 transition: 'background 0.2s ease',
               }}

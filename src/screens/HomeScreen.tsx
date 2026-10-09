@@ -4,6 +4,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { LanguageSwitch } from '../components/LanguageSwitch';
 import { HeroPhotoCarousel } from '../components/HeroPhotoCarousel';
 import { ChevronLeft, ChevronRight, Search, Loader2, MapPin, Headphones, Pause, Play, BookOpen, Plus, X, Share2, Square, RotateCcw, FileText } from 'lucide-react';
+import { ReadingLoadError } from '../components/ReadingLoadError';
 import { ScriptureSkeleton } from '../components/Skeleton';
 import { getDailyPassages, getDateString, getDailyQuoteIndex, getDayNumber } from '../utils/daily-passages';
 import { shareContent } from '../utils/share';
@@ -24,7 +25,6 @@ import { useScriptureSelection } from '../contexts/ScriptureSelectionContext';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { displayPassage } from '../data/translations';
 import { SetupPromptModal } from '../components/SetupPromptModal';
-import { PWAInstallBanner } from '../components/PWAInstall';
 // audioManager replaced by audioPlayer (AP) imported above
 import { trackBehavior, getBehaviorProfile, hasEnoughBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
@@ -235,6 +235,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
   const [compareTranslation, setCompareTranslation] = useState<TranslationCode>('KJV');
   const [compareTexts, setCompareTexts] = useState<Record<string, string>>({});
   const [passageTexts, setPassageTexts] = useState<Record<string, string>>({});
+  const [failedPassages, setFailedPassages] = useState<Set<string>>(new Set());
   const [loadingPassages, setLoadingPassages] = useState<Set<string>>(new Set());
   const [expandedPassages, setExpandedPassages] = useState<Set<string>>(new Set());
   const [showCampusPicker, setShowCampusPicker] = useState(false);
@@ -677,12 +678,13 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
     if (passageTexts[key]) return; // already loaded
     if (loadingPassages.has(passage)) return; // already loading
 
+    setFailedPassages(prev => { const next = new Set(prev); next.delete(key); return next; });
     setLoadingPassages(prev => new Set(prev).add(passage));
     fetchPassage(passage, translation)
       .then(text => {
         setPassageTexts(prev => ({ ...prev, [key]: text }));
       })
-      .catch(() => {})
+      .catch(() => setFailedPassages(prev => new Set(prev).add(key)))
       .finally(() => {
         setLoadingPassages(prev => {
           const next = new Set(prev);
@@ -692,6 +694,11 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translation]);
+
+  const passageFailure = (passage: string) => {
+    const failedRef = [passage, expandChapterRef(passage)].find(ref => failedPassages.has(`${ref}_${translation}`));
+    return failedRef ? <ReadingLoadError lang={lang} onRetry={() => loadPassage(failedRef)} /> : null;
+  };
 
   // Pending audio — when user taps Listen before text is loaded
   const pendingAudioRef = useRef<string | null>(null);
@@ -1932,7 +1939,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
 
   return (
     <div className="screen-container dw-phone-screen dw-home-screen">
-      {!homeNext.loading && homeNext.step.kind !== 'done' && homeNext.step.kind !== 'setup_ask' &&
+      {!showJourneyDay && !homeNext.loading && homeNext.step.kind !== 'done' && homeNext.step.kind !== 'setup_ask' &&
         (homeNext.step.action !== 'none' || homeNext.step.kind === 'journey_day') && (
         <div className="mos-actionbar dw-home-actionbar dw-phone-only">
           <button type="button" className="dw-next dw-next-main" data-next={homeNext.label}
@@ -2890,7 +2897,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                           {readDoneToday ? tI18n('read_today', lang) : tI18n('mark_as_read', lang)}
                         </button>
                         </>
-                      ) : (
+                      ) : passageFailure(readRef) || (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
                           <Loader2 size={20} style={{ color: '#A06A42', animation: 'spin 1s linear infinite' }} />
                           <span style={{ color: '#A06A42', fontSize: 15, fontFamily: 'var(--font-sans)' }}>{tI18n('loading_scripture', lang)}</span>
@@ -3003,7 +3010,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
           busy={pendingReminder ? tI18n('reminder_saving', lang) : undefined}
           notice={savedReminderHour !== null ? tI18n('reminder_saved', lang).replace('{time}', formatReminderTime(savedReminderHour, lang)) : undefined}
           error={reminderFailed && homeNext.step.kind === 'reminder_offer' ? tI18n('reminder_save_failed', lang) : undefined}
-          renderAsk={(ask: SetupAsk) => ask === 'install' ? <PWAInstallBanner next /> : ask === 'email' ? <EmailNudgeCard next /> : (
+          renderAsk={(ask: SetupAsk) => ask === 'email' ? <EmailNudgeCard next /> : (
         <UpgradePromptCard next
           persona={setup?.persona || 'congregation'}
           onUpgrade={(newPersona) => {
@@ -3355,7 +3362,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     {/* Scripture text — hidden until Read, same as the hero */}
                     {isExpanded ? (
                     isLoading ? (
-                      <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
+                      passageFailure(passage) || <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
                     ) : (txt || passageTexts[`${expandChapterRef(passage)}_${translation}`]) ? (
                       <>
                         <ScripturePassage
@@ -3390,7 +3397,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                         })()}
                       </>
                     ) : (
-                      <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
+                      passageFailure(passage) || <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
                     )
                     ) : (
                       <button
@@ -3626,7 +3633,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                     fontSize={scriptureFontSize}
                   />
                   ) : (
-                  <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
+                  passageFailure(passage) || <ScriptureSkeleton fontSize={scriptureFontSize} label={translation} />
                   )
                 ) : (
                   <button
@@ -3792,7 +3799,7 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
                 );
               })()}
               </>
-                        ) : (
+                        ) : passageFailure(passage) || (
                           <p style={{ color: 'var(--dw-text-faint)', fontSize: 13, padding: '8px 0', fontStyle: 'normal' }}>
                             Loading...
                           </p>
@@ -4587,6 +4594,8 @@ export function HomeScreen({ onNavigate, onBack }: { onNavigate?: (tab: TabId) =
             open={showJourneyDay}
             onClose={() => setShowJourneyDay(false)}
             passageText={jRef ? passageTexts[`${jRef}_${translation}`] : undefined}
+            passageFailed={failedPassages.has(`${jRef}_${translation}`)}
+            onRetryPassage={() => loadPassage(jRef)}
             servedTranslation={jRef ? getServedTranslation(jRef, translation) : undefined}
             verseSpec={pathwayData?.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay)?.reading?.verses}
             rangedRef={pathwayData?.days?.find((d: PathwayDay) => d.day === pathwayDisplayDay)?.reading?.ref}

@@ -6,6 +6,7 @@
  * adding or reordering questions is done in SQL.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useKeyboardInset } from '../utils/useKeyboardInset';
 import { Home, BookOpen, Users, ClipboardCheck, MapPin } from 'lucide-react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
@@ -425,6 +426,7 @@ export function StaffApp() {
 }
 
 function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => void }) {
+  const keyboardInset = useKeyboardInset();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -512,7 +514,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   };
 
   return (
-    <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div className="mos-shell mos-shell--auth" style={{ '--staff-keyboard-inset': `${keyboardInset}px`, minHeight: '100dvh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 } as CSSProperties}>
       <form className="mos-auth__form" noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
         {isMosUi() && <MosBrandLockup />}
         <p style={{ margin: 0, fontSize: fs(11), letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
@@ -590,10 +592,12 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
             />
           </>
         )}
-        {error && <p role="alert" style={{ color: '#B42318', fontSize: fs(13), fontFamily: 'var(--font-sans)' }}>{error}</p>}
-        <button type="submit" className="mos-button mos-button--primary" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
-          {busy ? t('pastor_please_wait', getLang()) : setup ? t('pastor_save_password', getLang()) : t('pastor_sign_in_btn', getLang())}
-        </button>
+        <div className="mos-actionbar staff-auth-actionbar">
+          <button type="submit" className="mos-button mos-button--primary" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
+            {busy ? t('pastor_please_wait', getLang()) : setup ? t('pastor_save_password', getLang()) : t('pastor_sign_in_btn', getLang())}
+          </button>
+          {error && <p role="alert" style={{ color: 'var(--dw-error)', fontSize: fs(15), fontFamily: 'var(--font-sans)' }}>{error}</p>}
+        </div>
         {setup ? (
           <>
             <p style={{ ...helpStyle, marginTop: 16 }}>
@@ -1993,6 +1997,7 @@ function formatExpiry(iso: string) {
 
 function Roster({ onError }: { onError: (s: string) => void }) {
   const campuses = useCampuses();
+  const [saveError, setSaveError] = useState('');
   const [rows, setRows] = useState<RosterRow[]>([]);
   const [canMakeAdmin, setCanMakeAdmin] = useState(false);
   const [makingAdminEmail, setMakingAdminEmail] = useState('');
@@ -2184,11 +2189,13 @@ function Roster({ onError }: { onError: (s: string) => void }) {
           ))}
         </select>
       </Field>
+      <div className="mos-actionbar">
       <button
         type="button"
-        className="mos-actionbar dw-next"
+        className="dw-next"
         style={btnPrimary}
         onClick={async () => {
+          setSaveError('');
           onError('');
           try {
             const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_save', { email, role, campusId, name });
@@ -2196,12 +2203,14 @@ function Roster({ onError }: { onError: (s: string) => void }) {
             setEmail(''); setName(''); setCampusId('');
             await load();
           } catch (err) {
-            onError(err instanceof Error ? err.message : 'Could not save');
+            setSaveError(err instanceof Error ? err.message : 'Could not save. Try Save person again.');
           }
         }}
       >
         Save person
       </button>
+      {saveError && <p role="alert" style={{ ...helpStyle, fontSize: fs(15), color: 'var(--dw-error)' }}>{saveError}</p>}
+      </div>
     </div>
   );
 }

@@ -134,7 +134,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Hashed assets (JS/CSS with hash in filename): cache-first (immutable)
-  if (url.pathname.match(/\/assets\/.*-[a-zA-Z0-9]{8}\.(js|css)$/)) {
+  if (url.pathname.match(/\/assets\/.*-[a-zA-Z0-9_-]+\.(js|css)$/)) {
     event.respondWith(
       caches.open(STATIC_CACHE).then((cache) =>
         cache.match(event.request).then((cached) => {

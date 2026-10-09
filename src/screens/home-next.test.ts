@@ -56,14 +56,15 @@ describe('Home: one next step, then More for today', () => {
     }
   });
 
-  it('the card owns the set-up asks: install, email and upgrade render only through it, each marked as the next step', () => {
+  it('Home offers email and upgrade through its next step; installation stays in Settings', () => {
     expect(inMore).not.toMatch(/<PWAInstallBanner/);
     expect(inMore).not.toMatch(/<EmailNudgeCard/);
     expect(inMore).not.toMatch(/<UpgradePromptCard/);
-    expect(HOME).toMatch(/<PWAInstallBanner next \/>/);
+    expect(HOME).not.toMatch(/PWAInstallBanner/);
+    expect(readFileSync(join(__dirname, 'MoreScreen.tsx'), 'utf-8')).toMatch(/PWAInstallSettingsBlock/);
     expect(HOME).toMatch(/<EmailNudgeCard next \/>/);
     expect(HOME).toMatch(/<UpgradePromptCard\s+next/);
-    expect(HOME.split('<PWAInstallBanner').length - 1).toBe(1);
+    expect(HOME.split('<PWAInstallBanner').length - 1).toBe(0);
     expect(HOME.split('<EmailNudgeCard').length - 1).toBe(1);
     expect(HOME.split('<UpgradePromptCard').length - 1).toBe(1);
   });

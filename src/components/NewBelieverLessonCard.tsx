@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Loader2, Share2 } from 'lucide-react';
 import { t as trans } from '../utils/i18n';
 import { track } from '../utils/analytics';
+import { ReadingLoadError } from './ReadingLoadError';
 import { Card } from './Card';
 import { ScripturePassage } from './ScripturePassage';
 import { shareContent } from '../utils/share';
@@ -49,6 +50,8 @@ interface NewBelieverLessonCardProps {
   onClose: () => void;
   /** Today's chapter text from HomeScreen's passageTexts — undefined while loading. */
   passageText?: string;
+  passageFailed?: boolean;
+  onRetryPassage?: () => void;
   /** Translation actually served for the chapter (may differ offline). */
   servedTranslation?: string;
   /** The day's assigned verse range, e.g. '8-9' (books/faith-pathway.json reading.verses). */
@@ -62,7 +65,7 @@ interface NewBelieverLessonCardProps {
 export function NewBelieverLessonCard({
   pathwayData, pathwayProgress, displayDay, lang, t, scriptureFontSize,
   savePathwayProgress, open, onClose, passageText, servedTranslation,
-  verseSpec, rangedRef, onNavigate,
+  verseSpec, rangedRef, onNavigate, passageFailed, onRetryPassage,
 }: NewBelieverLessonCardProps) {
   // Completion moment: hold the just-completed lesson on screen (with a
   // "Day N complete" note) instead of instantly swapping to tomorrow's. The day
@@ -257,6 +260,8 @@ export function NewBelieverLessonCard({
                   </button>
                 )}
               </div>
+            ) : passageFailed && onRetryPassage ? (
+              <ReadingLoadError lang={lang} onRetry={onRetryPassage} />
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '40px 0' }}>
                 <Loader2 size={20} style={{ color: '#A06A42', animation: 'spin 1s linear infinite' }} />

@@ -1117,13 +1117,13 @@ function ScriptureModal({
 
           {/* Save note button */}
           <button
-            onClick={handleSave}
-            disabled={!draftNote.trim() || noteSaved}
+            onClick={() => { if (!noteSaved) handleSave(); }}
+            aria-disabled={!draftNote.trim() || noteSaved}
             style={{
-              flex: 1, height: 48, borderRadius: 12,
-              background: noteSaved ? 'var(--dw-success)' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-surface)',
-              border: `1px solid ${noteSaved ? 'var(--dw-success)' : draftNote.trim() ? 'transparent' : 'var(--dw-border)'}`,
-              color: draftNote.trim() || noteSaved ? '#fff' : 'var(--dw-text-muted)',
+              flex: 1, minHeight: 56, borderRadius: 12,
+              background: noteSaved ? 'var(--dw-success)' : 'var(--dw-accent)',
+              border: '1px solid transparent',
+              color: 'var(--dw-accent-on-fill)',
               fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
               cursor: draftNote.trim() && !noteSaved ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -1133,6 +1133,7 @@ function ScriptureModal({
             {noteSaved ? <><CheckCircle2 size={16} /> {t('j_saved', lang)}</> : <><Save size={15} /> {t('j_save_note', lang)}</>}
           </button>
         </div>
+        {!draftNote.trim() && <p className="fx-why" style={{ fontSize: 15, margin: '8px 0 0' }}>{t('note_write_first', lang)}</p>}
       </div>
 
       <style>{`
@@ -1694,13 +1695,12 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
             </button>
             <button
               className="dw-editor-save"
-              onClick={saveEntry}
-              disabled={!editingEntry.title.trim() || editorSaved}
+              onClick={() => { if (!editorSaved) saveEntry(); }}
+              aria-disabled={!editingEntry.title.trim() || editorSaved}
               style={{
                 background: editorSaved ? 'var(--dw-success)' : 'var(--dw-accent)', border: 'none', borderRadius: 8,
                 padding: '6px 14px', color: '#fff', fontSize: 13, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4,
-                opacity: !editingEntry.title.trim() && !editorSaved ? 0.5 : 1,
                 fontFamily: 'var(--font-sans)',
                 transition: 'background 0.2s',
               }}
@@ -1710,13 +1710,13 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
           </div>
         </div>
 
-        <div className="dw-desktop-only">{saveErrorBanner}</div>
+        <div className="dw-desktop-only">{!editingEntry.title.trim() && <p className="fx-why">{t('note_title_first', lang)}</p>}{saveErrorBanner}</div>
         <div className="mos-actionbar dw-phone-only">
           <button type="button" className="dw-next dw-next-main" data-next={t('j_save_note', lang)}
             onClick={() => { if (!editorSaved) saveEntry(); }} aria-disabled={!editingEntry.title.trim() || editorSaved}>
             {editorSaved ? t('j_saved', lang) : t('j_save_note', lang)}
           </button>
-          {!editingEntry.title.trim() && <p>Give this note a title to save it.</p>}
+          {!editingEntry.title.trim() && <p>{t('note_title_first', lang)}</p>}
           {saveErrorBanner}
         </div>
 

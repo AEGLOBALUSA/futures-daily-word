@@ -152,7 +152,7 @@ export function QuickNotes({ onChangeDetails }: {
     </a>
   );
   const mainAction = (
-    <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-card)', padding: '12px 0' }}>
+    <div className="mos-actionbar" style={{ position: 'sticky', bottom: 0, background: 'var(--dw-card)', padding: '12px 0' }}>
       <button type={needsForm ? 'button' : 'submit'} className="dw-next dw-campus-main" style={campusMainStyle} aria-busy={busy}
         onClick={needsForm ? () => {
           if (!busyRef.current && result) onChangeDetails(changeDetailsSeed(changeDetailsWithAnswer(result)));
@@ -216,7 +216,8 @@ export function QuickNotes({ onChangeDetails }: {
               {pickMessage
                 ? <p style={{ fontSize: fs(17), fontWeight: 600 }}>{t('staff_quick_pick_message')}</p>
                 : <label htmlFor={`${id}-answer`} style={{ fontSize: fs(17), fontWeight: 600 }}>{needsQuestion(result.needs)}</label>}
-              {!needsForm && <input id={`${id}-answer`} type={result.needs.key === 'date' ? 'date' : 'text'}
+              {!needsForm && <input id={`${id}-answer`} type={result.needs.key === 'date' ? 'date' : result.needs.key === 'youtubeUrl' ? 'url' : 'text'}
+                inputMode={result.needs.key === 'youtubeUrl' ? 'url' : 'text'}
                 value={answer} onChange={e => setAnswer(e.target.value)} style={fieldStyle} />}
             </>
           ) : result?.preview ? (
