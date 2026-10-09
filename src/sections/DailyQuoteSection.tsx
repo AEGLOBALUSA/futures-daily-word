@@ -8,7 +8,7 @@ export function DailyQuoteSection() {
   const quote = QUOTES[quoteIndex];
 
   return (
-    <div style={{
+    <div className="dw-phone-section" style={{
       marginBottom: 20,
       padding: '8px 0',
       textAlign: 'center',

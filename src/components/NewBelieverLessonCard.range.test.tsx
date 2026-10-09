@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { NewBelieverLessonCard } from './NewBelieverLessonCard';
@@ -155,4 +155,23 @@ describe('NewBelieverLessonCard — Day N serves the assigned verse range', () =
     root.unmount();
     host.remove();
   });
+});
+
+it('replaces the scripture spinner with an actionable failure beside the reading', async () => {
+  const { host, root } = renderCard();
+  const retry = vi.fn();
+  await act(async () => {
+    root.render(<ScriptureSelectionProvider><NewBelieverLessonCard
+      pathwayData={pathwayData} pathwayProgress={pathwayProgress} displayDay={1}
+      lang="en" t={k => t(k, 'en')} scriptureFontSize={17} savePathwayProgress={() => {}}
+      open onClose={() => {}} passageFailed onRetryPassage={retry}
+    /></ScriptureSelectionProvider>);
+  });
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain('Scripture did not load');
+  expect(host.textContent).not.toContain('Loading scripture');
+  const button = [...host.querySelectorAll('button')].find(b => b.textContent === 'Retry');
+  await act(async () => { button!.click(); });
+  expect(retry).toHaveBeenCalledOnce();
+  await act(async () => { root.unmount(); });
+  host.remove();
 });

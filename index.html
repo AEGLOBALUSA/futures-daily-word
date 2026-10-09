@@ -20,7 +20,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Daily Word" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="description" content="Futures Daily Word - Your daily Bible reading companion from Futures Church. Read, listen, and study scripture every day." />
     <title>Futures Daily Word</title>
     <!-- Open Graph -->
@@ -138,33 +138,6 @@
         localStorage.clear(); sessionStorage.clear();
         history.replaceState(null,'',location.pathname);
         setTimeout(function(){location.reload(true);},300);
-      })();
-    </script>
-    <script>
-      // One-time cache reset — keyed by version. Clears stale app caches only,
-      // preserves offline Bible (fdw-bible-v1) and font cache (fdw-fonts-v1).
-      // App-origin only: un-gated this unregistered the church's /listen worker
-      // and deleted church-origin caches on every version bump.
-      (function(){
-        var V='v63';
-        var h=location.hostname;
-        if(h!=='futuresdailyword.com'&&h!=='www.futuresdailyword.com'&&h!=='futures-daily-word.netlify.app'&&h!=='localhost'&&h!=='127.0.0.1') return;
-        if(localStorage.getItem('fdw_nuked')===V) return;
-        var KEEP=['fdw-bible-v1','fdw-fonts-v1'];
-        if('serviceWorker' in navigator){
-          navigator.serviceWorker.getRegistrations().then(function(regs){
-            regs.forEach(function(r){r.unregister();});
-          });
-        }
-        if('caches' in window){
-          caches.keys().then(function(keys){
-            keys.forEach(function(k){
-              if(KEEP.indexOf(k)===-1) caches.delete(k);
-            });
-          });
-        }
-        localStorage.setItem('fdw_nuked',V);
-        setTimeout(function(){location.reload(true);},500);
       })();
     </script>
     <script type="module" src="/src/main.tsx"></script>

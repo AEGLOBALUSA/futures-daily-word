@@ -57,7 +57,7 @@ function readInitialPassage(): string {
 /** Sticky chrome shared with the congregation surfaces — same idiom, own title. */
 function PreachChrome({ onBack, lang, children }: { onBack: () => void; lang: string; children: React.ReactNode }) {
   return (
-    <div className="screen-container" style={{ background: 'var(--dw-canvas)' }}>
+    <div className="dw-phone-screen dw-preach-screen screen-container" style={{ background: 'var(--dw-canvas)' }}>
       <div style={{
         display: 'flex', alignItems: 'center', padding: '16px 20px',
         borderBottom: '1px solid var(--dw-border)',
@@ -137,6 +137,7 @@ function ThisWeekCard({ lang, onOpenCongregationNotes }: { lang: string; onOpenC
         {t('preach_this_week', lang)}
       </p>
       <input
+        type="text" inputMode="text" autoComplete="off" aria-label={t('preach_focus_placeholder', lang)}
         data-testid="preach-focus-input"
         value={focus}
         onChange={e => setFocus(e.target.value)}
@@ -195,7 +196,7 @@ function PreachTabs({ tab, onChange, lang }: { tab: PreachTab; onChange: (t: Pre
     { id: 'archive', key: 'preach_tab_archive' },
   ];
   return (
-    <div data-testid="preach-tabs" role="tablist" style={{
+    <div className="mos-stack" data-testid="preach-tabs" role="tablist" style={{
       display: 'flex', gap: 6, background: 'var(--dw-surface)',
       border: '1px solid var(--dw-border)', borderRadius: 12, padding: 4, marginBottom: 20,
     }}>

@@ -6,7 +6,7 @@ import { flushSync } from './utils/cloudSync'
 import { LS } from './utils/storage'
 import { detectFirstOpenLanguage } from './utils/firstOpenLanguage'
 import { consumeCampusParam } from './utils/campusGuess'
-import { markInstalled } from './utils/pwa'
+import { isStandaloneDisplay, markInstalled } from './utils/pwa'
 import { applyUiFlag } from './multiplyos/uiFlag'
 
 const StaffApp = lazy(() => import('./staff/StaffApp').then(m => ({ default: m.StaffApp })));
@@ -22,6 +22,7 @@ if (IS_STAFF) {
   document.documentElement.classList.add('staff-route');
 }
 applyUiFlag({ scoped: IS_STAFF });
+if (isStandaloneDisplay()) document.documentElement.setAttribute('data-mo-standalone', '');
 
 // Apply saved theme or OS preference before React renders (avoids flash).
 // Must read the SAME key ThemeContext writes (dw_dark = 'true'|'false'); the old
@@ -122,41 +123,97 @@ window.addEventListener('appinstalled', () => {
 const SW_VERSION = 'v66';
 const SW_HOSTS = ['futuresdailyword.com', 'www.futuresdailyword.com', 'futures-daily-word.netlify.app', 'localhost', '127.0.0.1'];
 if ('serviceWorker' in navigator && SW_HOSTS.includes(location.hostname)) {
+  const hadController = !!navigator.serviceWorker.controller;
+  let waitingWorker: ServiceWorker | null = null;
+  let reloadRequested = false;
+  let updateLine: HTMLDivElement | null = null;
+
+  function showUpdate(worker: ServiceWorker | null = null) {
+    waitingWorker = worker;
+    if (updateLine) return;
+    updateLine = document.createElement('div');
+    updateLine.className = 'dw-update-line';
+    const message = document.createElement('span');
+    message.setAttribute('role', 'status');
+    message.textContent = 'A new version is ready';
+    const reload = document.createElement('button');
+    reload.type = 'button';
+    reload.textContent = 'Reload';
+    reload.addEventListener('click', () => {
+      if (reloadRequested) return;
+      reloadRequested = true;
+      if (waitingWorker?.state === 'installed') {
+        try {
+          waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        } catch {
+          reloadRequested = false;
+          message.textContent = 'Could not update. Tap Reload to try again.';
+        }
+      } else {
+        window.location.reload();
+      }
+    });
+    updateLine.append(message, reload);
+    document.body.append(updateLine);
+
+    // Follow the visible bars, including taller error states, without covering them.
+    let frame = 0;
+    const positionLine = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        let bottom = 8;
+        document.querySelectorAll('.tab-bar, .mos-phone-tabs, .mos-actionbar, .dw-reading-bar, .dw-next, .dw-plan-main').forEach((bar) => {
+          const rect = bar.getBoundingClientRect();
+          const style = getComputedStyle(bar);
+          if (rect.width && rect.height && rect.top < innerHeight && rect.bottom > 0 &&
+              style.visibility !== 'hidden' && style.position === 'fixed' && style.bottom !== 'auto') {
+            bottom = Math.max(bottom, innerHeight - rect.top + 8);
+          }
+        });
+        updateLine?.style.setProperty('--dw-update-bottom', `${bottom}px`);
+      });
+    };
+    new MutationObserver(positionLine).observe(document.getElementById('root')!, {
+      subtree: true, childList: true, attributes: true, characterData: true,
+    });
+    window.addEventListener('resize', positionLine);
+    positionLine();
+  }
+
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register(`/sw.js?v=${SW_VERSION}`, { scope: '/' })
       .then((reg) => {
-        // If a new SW is waiting, tell it to activate immediately
-        if (reg.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-        // Listen for new SW arriving and activate it immediately
+        if (reg.waiting) showUpdate(reg.waiting);
+        // Installation is silent; activation waits for the reader's Reload tap.
         reg.addEventListener('updatefound', () => {
           const newSW = reg.installing;
           if (newSW) {
             newSW.addEventListener('statechange', () => {
               if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-                newSW.postMessage({ type: 'SKIP_WAITING' });
+                showUpdate(newSW);
               }
             });
           }
         });
         // Check for updates on load, then every 30 minutes (gentle, not aggressive)
-        reg.update();
-        setInterval(() => reg.update(), 30 * 60 * 1000);
+        const checkForUpdate = () => {
+          reg.active?.postMessage({ type: 'CHECK_KILL_SWITCH' });
+          void reg.update().catch(() => { /* Offline: keep the current shell. */ });
+        };
+        checkForUpdate();
+        setInterval(checkForUpdate, 30 * 60 * 1000);
       })
       .catch((err) => console.warn('SW registration failed:', err));
   });
 
-  // Listen for gentle SW_UPDATED message — reload only on next natural navigation
+  // Another tab may activate the update. This tab still waits for its own tap.
   navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data?.type === 'SW_UPDATED') {
-      // New version available — will apply on next page load
-    }
+    if (event.data?.type === 'SW_UPDATED' && hadController && !reloadRequested) showUpdate();
   });
 
-  // When the new SW takes control, reload the page
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
+    if (reloadRequested) window.location.reload();
+    else if (hadController) showUpdate();
   });
 }

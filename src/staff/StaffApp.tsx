@@ -6,6 +6,8 @@
  * adding or reordering questions is done in SQL.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useKeyboardInset } from '../utils/useKeyboardInset';
+import { Home, BookOpen, Users, ClipboardCheck, MapPin } from 'lucide-react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { campusName as campusNameOf, useCampuses } from '../data/campuses';
 import { getStaffToken, intake, setStaffToken, STAFF_SIGNED_OUT_EVENT } from './api';
@@ -227,6 +229,7 @@ export function StaffApp() {
   const [job, setJob] = useState<Job>('hub');
   const [seed, setSeed] = useState<IntakeSeed | undefined>(undefined);
   const [error, setError] = useState('');
+  const accountSheet = useRef<HTMLDialogElement>(null);
   const bannerRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (error) bannerRef.current?.focus(); }, [error]);
   // Staff home unless a link named another screen this person may open.
@@ -296,7 +299,7 @@ export function StaffApp() {
   }
 
   return (
-    <div className="staff-app" style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
+    <div className="staff-app" data-staff-view={view} style={{ minHeight: '100vh', overflow: 'visible', background: 'var(--dw-canvas)', color: 'var(--dw-text-primary)' }}>
       <MoGuideMount isAdmin={staff.isAdmin} role={staff.role} />
       <MoAppsMount email={staff.email} lang={lang} />
       {isMosUi() && (
@@ -326,6 +329,26 @@ export function StaffApp() {
           </div>
         </aside>
       )}
+      <div className="mos-phone-header">
+        <span>{staffAppName}</span>
+        <button type="button" aria-haspopup="dialog" onClick={() => accountSheet.current?.showModal()}>{t('preach_prep_more', lang)}</button>
+      </div>
+      <dialog ref={accountSheet} className="mos-sheet mos-account-sheet" aria-label={t('preach_prep_more', lang)}>
+        <button type="button" onClick={() => accountSheet.current?.close()}>{t('close_label', lang)}</button>
+        <p>{staff.name || staff.email}</p>
+        <button type="button" data-mo-guide-open onClick={() => accountSheet.current?.close()}>{t('staff_guide', lang)}</button>
+        <TextSizeRow lang={lang} />
+        <button type="button" onClick={() => { accountSheet.current?.close(); void signOut(); }}>{t('staff_sign_out', lang)}</button>
+      </dialog>
+      <nav className="mos-phone-tabs" aria-label={t('staff_heading', lang)}>
+        <button type="button" aria-current={view === 'home' || view === 'form' ? 'page' : undefined} onClick={goHome}><Home size={20} /><span>{t('tab_home', lang)}</span></button>
+        {canPasteNotes(staff) && <button type="button" aria-current={view === 'notes' ? 'page' : undefined} onClick={goNotes}><BookOpen size={20} /><span>{staffTabLabels.notes}</span></button>}
+        {staff.isAdmin && <>
+          <button type="button" aria-current={view === 'people' ? 'page' : undefined} onClick={goPeople}><Users size={20} /><span>{staffTabLabels.people}</span></button>
+          <button type="button" aria-current={view === 'review' ? 'page' : undefined} onClick={goReview}><ClipboardCheck size={20} /><span>{staffTabLabels.review}</span></button>
+          <button type="button" aria-current={view === 'campuses' ? 'page' : undefined} onClick={goCampuses}><MapPin size={20} /><span>{staffTabLabels.campuses}</span></button>
+        </>}
+      </nav>
       <header className="mos-shell__header" style={{
         position: 'sticky', top: 0, zIndex: 10, background: 'var(--dw-canvas)',
         borderBottom: '1px solid var(--dw-border)', padding: '14px 20px',
@@ -403,6 +426,7 @@ export function StaffApp() {
 }
 
 function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => void }) {
+  const keyboardInset = useKeyboardInset();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -490,7 +514,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
   };
 
   return (
-    <div className="mos-shell mos-shell--auth" style={{ minHeight: '100vh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div className="mos-shell mos-shell--auth" style={{ '--staff-keyboard-inset': `${keyboardInset}px`, minHeight: '100dvh', background: 'var(--dw-canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 } as CSSProperties}>
       <form className="mos-auth__form" noValidate onSubmit={submit} style={{ width: 'min(420px, 100%)' }}>
         {isMosUi() && <MosBrandLockup />}
         <p style={{ margin: 0, fontSize: fs(11), letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--dw-accent)', fontFamily: 'var(--font-sans)', fontWeight: 700 }}>
@@ -568,10 +592,12 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
             />
           </>
         )}
-        {error && <p role="alert" style={{ color: '#B42318', fontSize: fs(13), fontFamily: 'var(--font-sans)' }}>{error}</p>}
-        <button type="submit" className="mos-button mos-button--primary" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
-          {busy ? t('pastor_please_wait', getLang()) : setup ? t('pastor_save_password', getLang()) : t('pastor_sign_in_btn', getLang())}
-        </button>
+        <div className="mos-actionbar staff-auth-actionbar">
+          <button type="submit" className="mos-button mos-button--primary" disabled={busy} style={{ ...btnPrimary, width: '100%', marginTop: 8 }}>
+            {busy ? t('pastor_please_wait', getLang()) : setup ? t('pastor_save_password', getLang()) : t('pastor_sign_in_btn', getLang())}
+          </button>
+          {error && <p role="alert" style={{ color: 'var(--dw-error)', fontSize: fs(15), fontFamily: 'var(--font-sans)' }}>{error}</p>}
+        </div>
         {setup ? (
           <>
             <p style={{ ...helpStyle, marginTop: 16 }}>
@@ -713,7 +739,7 @@ function StaffHome({
               )}
               <button
                 type="button"
-                className="dw-next mos-button mos-button--primary"
+                className="dw-next mos-button mos-button--primary mos-actionbar"
                 onClick={() => (j.id === 'notes' ? onNotes() : onJob(j.id))}
                 style={{ ...btnPrimary, width: '100%', minHeight: 56, fontSize: fs(15), marginTop: 16 }}
               >
@@ -1126,7 +1152,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
 
       {sermonForm && (
         <Field label={t('staff_church_question', getLang())} help={t('staff_church_help', getLang())}>
-          <select
+          <select inputMode="text" autoComplete="off" aria-label={t('staff_church_question', getLang())}
             value={congregation}
             onChange={e => pickCongregation(e.target.value)}
             style={inputStyle}
@@ -1139,7 +1165,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
 
       {staff.isAdmin && job === 'campus' && (
         <Field label="Which campus?">
-          <select
+          <select inputMode="text" autoComplete="off" aria-label="Which campus?"
             value={pickCampus}
             onChange={async e => {
               const v = e.target.value;
@@ -1209,7 +1235,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
           {t('staff_preview_not_live', getLang())}
         </p>
       )}
-      <div style={{ position: editingId ? 'static' : 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 1 }}>
+      <div className={editingId ? undefined : "mos-actionbar"} style={{ position: editingId ? 'static' : 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 1 }}>
         {loadError ? (
           <>
             <p role="alert" style={{ fontSize: fs(15), color: 'var(--dw-error)', fontWeight: 600 }}>{loadError}</p>
@@ -1329,7 +1355,7 @@ function NotesFlow({
       )}
       {showPaste && pasteQ && (
         <Field label={pasteLabel} help={t('staff_paste_help', getLang())} htmlFor={`q-${pasteQ.id}`}>
-          <textarea
+          <textarea inputMode="text" autoComplete="off"
             id={`q-${pasteQ.id}`}
             value={paste}
             onChange={e => onPaste(e.target.value)}
@@ -1371,7 +1397,7 @@ function NotesFlow({
 function YesNo({ id, value, onChange, required }: { id: string; value: unknown; onChange: (v: boolean) => void; required?: boolean }) {
   const v = value === true ? 'yes' : value === false ? 'no' : '';
   return (
-    <select
+    <select inputMode="text" autoComplete="off"
       id={id}
       required={required}
       value={v}
@@ -1484,12 +1510,12 @@ function QuestionWording({ question, isAdmin, editing, saved, onEditingChange, o
       if (e.key === 'Enter' && e.target instanceof HTMLInputElement) { e.preventDefault(); void save(); }
     }}>
       <Field label={t('staff_wording_question', getLang())} htmlFor={labelId}>
-        <input id={labelId} type="text" value={label} maxLength={200} onChange={e => { setLabel(e.target.value); setSaveError(''); }} style={{ ...inputStyle, minHeight: 56, fontSize: fieldFs(17) }} />
+        <input inputMode="text" autoComplete="off" id={labelId} type="text" value={label} maxLength={200} onChange={e => { setLabel(e.target.value); setSaveError(''); }} style={{ ...inputStyle, minHeight: 56, fontSize: fieldFs(17) }} />
       </Field>
       <Field label={t('staff_wording_help', getLang())} htmlFor={helpId}>
-        <textarea id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: fieldFs(17), resize: 'vertical' }} />
+        <textarea inputMode="text" autoComplete="off" id={helpId} value={help} maxLength={500} onChange={e => { setHelp(e.target.value); setSaveError(''); }} rows={3} style={{ ...inputStyle, minHeight: 56, fontSize: fieldFs(17), resize: 'vertical' }} />
       </Field>
-      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 2 }}>
+      <div className="mos-actionbar" style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12, zIndex: 2 }}>
         <button type="button" className="dw-next" aria-disabled={busy} aria-busy={busy} style={{ ...btnPrimary, minHeight: 56, width: '100%', fontSize: fs(15) }} onClick={save}>{t('staff_save_wording', getLang())}{busy ? '…' : ''}</button>
         {saveError && <p role="alert" style={errorStyle}>{saveError}</p>}
         {saveErrorStatus === 404 || saveErrorStatus === 409 ? <button type="button" style={quiet} onClick={onReload}>{t('staff_form_load_again', getLang())}</button> : null}
@@ -1539,7 +1565,7 @@ function QuestionField({
             <input type="hidden" id={id} value={v} />
           </>
         ) : (
-          <select
+          <select inputMode="text" autoComplete="off"
             id={id}
             required={required}
             value={v}
@@ -1574,14 +1600,14 @@ function QuestionField({
     return (
       <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
         {choices.length > 0 ? (
-          <select id={id} required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle}>
+          <select inputMode="text" autoComplete="off" id={id} required={required} value={String(value || '')} onChange={e => onChange(e.target.value)} style={inputStyle}>
             <option value="">{t('staff_select_message', getLang())}</option>
             {choices.map(s => (
               <option key={s.id} value={s.id}>{s.id === '__current__' && getLang() === 'es' ? t('staff_current_message', getLang()) : s.title}{s.date ? ` · ${s.date}` : ''}</option>
             ))}
           </select>
         ) : (
-          <input
+          <input inputMode="text" autoComplete="off"
             id={id}
             type="text"
             required={required}
@@ -1598,7 +1624,7 @@ function QuestionField({
     const Comp = q.type === 'long_text' ? 'textarea' : 'input';
     return (
       <Field label={q.label} help={q.help} htmlFor={id} afterHelp={wording}>
-        <Comp
+        <Comp type={q.type === "text" ? "text" : undefined} inputMode="text" autoComplete="off"
           id={id}
           required={required}
           value={String(value || '')}
@@ -1619,7 +1645,7 @@ function QuestionField({
         {cornerItems.length === 0 ? (
           <p style={helpStyle}>{t('staff_corner_empty', getLang())}</p>
         ) : (
-          <select id={id} value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)} style={inputStyle}>
+          <select inputMode="text" autoComplete="off" id={id} value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)} style={inputStyle}>
             <option value="">{t('staff_corner_leave', getLang())}</option>
             {cornerItems.map(item => (
               <option key={item.id} value={item.id}>{item.title}{item.type ? ` · ${['announcement', 'note', 'prayer_point', 'essay'].includes(item.type) ? t(`staff_type_${item.type}`, getLang()) : item.type}` : ''}</option>
@@ -1798,7 +1824,7 @@ function ReviewQueue({ onError }: { onError: (s: string) => void }) {
           ))}
           {open.status === 'pending' ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button type="button" style={btnPrimary} onClick={() => decide(open.id, 'approved')}>Put this live</button>
+              <button type="button" className="mos-actionbar dw-next" style={btnPrimary} onClick={() => decide(open.id, 'approved')}>Put this live</button>
               <button type="button" style={btnGhost} onClick={() => decide(open.id, 'declined')}>Decline leftover</button>
               <button type="button" style={btnGhost} onClick={() => setOpen(null)}>Close</button>
             </div>
@@ -1917,7 +1943,7 @@ function Campuses({ onError }: { onError: (s: string) => void }) {
           {openId === campus.id && draft && <CampusEditor draft={draft} setDraft={setDraft} isNew={false} regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => { await load(); }} onError={onError} />}
         </div>
       ))}
-      {adding && draft ? <CampusEditor draft={draft} setDraft={setDraft} isNew regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => {}} onError={onError} /> : !openId ? <button type="button" className="dw-next dw-campus-main" style={{ ...campusMainStyle, marginTop: 14 }} onClick={openAdd}>Add a campus</button> : null}
+      {adding && draft ? <CampusEditor draft={draft} setDraft={setDraft} isNew regions={regions} zones={zones} campuses={campuses} idTouched={idTouched} setIdTouched={setIdTouched} onClose={closeEditor} onSaved={async name => { closeEditor(); await load(); setSaveStatus(`Saved. Readers will see ${name} within five minutes.`); }} onMoved={async () => {}} onError={onError} /> : !openId ? <button type="button" className="dw-next dw-campus-main mos-actionbar" style={{ ...campusMainStyle, marginTop: 14 }} onClick={openAdd}>Add a campus</button> : null}
     </div>
   );
 }
@@ -1947,18 +1973,18 @@ function CampusEditor({ draft, setDraft, isNew, regions, zones, campuses, idTouc
   };
   return (
     <form noValidate onSubmit={e => { e.preventDefault(); save(); }} style={{ padding: '18px 4px 0' }}>
-      {isNew ? <Field label="Campus id" htmlFor="campus-id"><input id="campus-id" value={draft.id} onChange={e => { setIdTouched(true); patch({ id: e.target.value }); }} style={campusInputStyle} /></Field> : <p style={{ fontSize: fs(15), fontFamily: 'var(--font-sans)', margin: '0 0 24px' }}><strong>{draft.id}</strong> <span style={{ color: 'var(--dw-text-secondary)' }}>The id never changes once saved</span></p>}
-      <Field label="Name" htmlFor="campus-name"><input id="campus-name" value={draft.name} onChange={e => setName(e.target.value)} style={campusInputStyle} /></Field>
-      <Field label="Town" htmlFor="campus-town"><input id="campus-town" value={draft.city} onChange={e => patch({ city: e.target.value })} style={campusInputStyle} /></Field>
-      <Field label="Other towns near this campus" htmlFor="campus-towns"><p id="campus-towns-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. Towns this campus’s readers live in besides its own town, one per line. New readers in these towns are asked about this campus. Write a town under more than one campus and readers there choose from a short list instead. When one of those is a Futures campus and the other a Futuros campus, the reader’s language picks between them.</p><textarea id="campus-towns" aria-describedby="campus-towns-help" value={draft.towns} onChange={e => patch({ towns: e.target.value })} rows={3} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
-      <Field label="Region" htmlFor="campus-region"><select id="campus-region" value={newRegion ? '__new__' : draft.region} onChange={e => { if (e.target.value === '__new__') { setNewRegion(true); patch({ region: '' }); } else { setNewRegion(false); setRegion(e.target.value); } }} style={campusInputStyle}><option value="">Choose a region</option>{regions.map(region => <option key={region} value={region}>{region}</option>)}<option value="__new__">New region…</option></select>{newRegion && <input id="campus-region-new" aria-label="New region name" value={draft.region} onChange={e => setRegion(e.target.value, false)} placeholder="Region name" style={{ ...campusInputStyle, marginTop: 10 }} />}</Field>
-      <Field label="Time zone" htmlFor="campus-zone"><select id="campus-zone" value={draft.timeZone} onChange={e => patch({ timeZone: e.target.value })} style={campusInputStyle}><option value="">Choose a time zone</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}{draft.timeZone && !zones.includes(draft.timeZone) && <option value={draft.timeZone}>{draft.timeZone}</option>}</select></Field>
+      {isNew ? <Field label="Campus id" htmlFor="campus-id"><input type="text" inputMode="text" autoComplete="off" id="campus-id" value={draft.id} onChange={e => { setIdTouched(true); patch({ id: e.target.value }); }} style={campusInputStyle} /></Field> : <p style={{ fontSize: fs(15), fontFamily: 'var(--font-sans)', margin: '0 0 24px' }}><strong>{draft.id}</strong> <span style={{ color: 'var(--dw-text-secondary)' }}>The id never changes once saved</span></p>}
+      <Field label="Name" htmlFor="campus-name"><input type="text" inputMode="text" autoComplete="off" id="campus-name" value={draft.name} onChange={e => setName(e.target.value)} style={campusInputStyle} /></Field>
+      <Field label="Town" htmlFor="campus-town"><input type="text" inputMode="text" autoComplete="off" id="campus-town" value={draft.city} onChange={e => patch({ city: e.target.value })} style={campusInputStyle} /></Field>
+      <Field label="Other towns near this campus" htmlFor="campus-towns"><p id="campus-towns-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. Towns this campus’s readers live in besides its own town, one per line. New readers in these towns are asked about this campus. Write a town under more than one campus and readers there choose from a short list instead. When one of those is a Futures campus and the other a Futuros campus, the reader’s language picks between them.</p><textarea inputMode="text" autoComplete="off" id="campus-towns" aria-describedby="campus-towns-help" value={draft.towns} onChange={e => patch({ towns: e.target.value })} rows={3} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
+      <Field label="Region" htmlFor="campus-region"><select inputMode="text" autoComplete="off" id="campus-region" value={newRegion ? '__new__' : draft.region} onChange={e => { if (e.target.value === '__new__') { setNewRegion(true); patch({ region: '' }); } else { setNewRegion(false); setRegion(e.target.value); } }} style={campusInputStyle}><option value="">Choose a region</option>{regions.map(region => <option key={region} value={region}>{region}</option>)}<option value="__new__">New region…</option></select>{newRegion && <input type="text" inputMode="text" autoComplete="off" id="campus-region-new" aria-label="New region name" value={draft.region} onChange={e => setRegion(e.target.value, false)} placeholder="Region name" style={{ ...campusInputStyle, marginTop: 10 }} />}</Field>
+      <Field label="Time zone" htmlFor="campus-zone"><select inputMode="text" autoComplete="off" id="campus-zone" value={draft.timeZone} onChange={e => patch({ timeZone: e.target.value })} style={campusInputStyle}><option value="">Choose a time zone</option>{zones.map(zone => <option key={zone} value={zone}>{zone}</option>)}{draft.timeZone && !zones.includes(draft.timeZone) && <option value={draft.timeZone}>{draft.timeZone}</option>}</select></Field>
       <Field label="Sunday notes show on Home until" htmlFor="campus-sunday"><input id="campus-sunday" type="time" value={draft.sundayUntil} onChange={e => patch({ sundayUntil: e.target.value })} style={campusInputStyle} /></Field>
-      <Field label="Which Sermon Notes page it reads first" htmlFor="campus-congregation"><select id="campus-congregation" value={draft.congregation || ''} onChange={e => patch({ congregation: e.target.value || null })} style={campusInputStyle}><option value="">None (worked out from the campus)</option>{CONGREGATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-      <Field label="Planning Center spellings" htmlFor="campus-pco"><p id="campus-pco-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. How this campus is spelled in Planning Center, one per line.</p><textarea id="campus-pco" aria-describedby="campus-pco-help" value={draft.pcoNames} onChange={e => patch({ pcoNames: e.target.value })} rows={4} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
-      <Field label="Livestream link" htmlFor="campus-video"><p id="campus-video-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. https://…</p><input id="campus-video" aria-describedby="campus-video-help" type="url" value={draft.videoUrl} onChange={e => patch({ videoUrl: e.target.value })} style={campusInputStyle} /></Field>
+      <Field label="Which Sermon Notes page it reads first" htmlFor="campus-congregation"><select inputMode="text" autoComplete="off" id="campus-congregation" value={draft.congregation || ''} onChange={e => patch({ congregation: e.target.value || null })} style={campusInputStyle}><option value="">None (worked out from the campus)</option>{CONGREGATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+      <Field label="Planning Center spellings" htmlFor="campus-pco"><p id="campus-pco-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. How this campus is spelled in Planning Center, one per line.</p><textarea inputMode="text" autoComplete="off" id="campus-pco" aria-describedby="campus-pco-help" value={draft.pcoNames} onChange={e => patch({ pcoNames: e.target.value })} rows={4} style={{ ...campusInputStyle, resize: 'vertical' }} /></Field>
+      <Field label="Livestream link" htmlFor="campus-video"><p id="campus-video-help" style={{ fontSize: fs(15), color: 'var(--dw-text-secondary)', fontFamily: 'var(--font-sans)', margin: '0 0 10px', lineHeight: 1.45 }}>Optional. https://…</p><input inputMode="url" autoComplete="off" id="campus-video" aria-describedby="campus-video-help" type="url" value={draft.videoUrl} onChange={e => patch({ videoUrl: e.target.value })} style={campusInputStyle} /></Field>
       {!isNew && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}><button type="button" style={campusGhost} onClick={() => move('up')}>Move up</button><button type="button" style={campusGhost} onClick={() => move('down')}>Move down</button><button type="button" style={campusGhost} onClick={() => patch({ active: !draft.active })}>{draft.active ? 'Hide from readers' : 'Show to readers'}</button>{!draft.active && <span style={{ alignSelf: 'center', fontSize: fs(15), color: 'var(--dw-text-secondary)' }}>Readers stop seeing it when you save.</span>}<button type="button" style={campusGhost} onClick={onClose}>Close</button></div>}
-      <div style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12 }}><button type="submit" className="dw-next dw-campus-main" disabled={busy} style={campusMainStyle}>{busy ? 'Saving…' : 'Save campus'}</button>{error && <p role="alert" style={{ fontSize: fs(15), color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>{error}</p>}</div>
+      <div className="mos-actionbar" style={{ position: 'sticky', bottom: 0, background: 'var(--dw-canvas)', paddingTop: 12, paddingBottom: 12 }}><button type="submit" className="dw-next dw-campus-main" disabled={busy} style={campusMainStyle}>{busy ? 'Saving…' : 'Save campus'}</button>{error && <p role="alert" style={{ fontSize: fs(15), color: 'var(--dw-error)', fontFamily: 'var(--font-sans)', margin: '8px 0 0' }}>{error}</p>}</div>
       {isNew && <button type="button" style={{ ...campusGhost, marginTop: 4 }} onClick={onClose}>Cancel</button>}
     </form>
   );
@@ -1971,6 +1997,7 @@ function formatExpiry(iso: string) {
 
 function Roster({ onError }: { onError: (s: string) => void }) {
   const campuses = useCampuses();
+  const [saveError, setSaveError] = useState('');
   const [rows, setRows] = useState<RosterRow[]>([]);
   const [canMakeAdmin, setCanMakeAdmin] = useState(false);
   const [makingAdminEmail, setMakingAdminEmail] = useState('');
@@ -2139,14 +2166,14 @@ function Roster({ onError }: { onError: (s: string) => void }) {
         </div>
       ))}
       <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: fs(14), margin: '24px 0 12px' }}>Add or update</h3>
-      <Field label="Email">
-        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@futures.church or any email" style={inputStyle} />
+      <Field label="Email" htmlFor="staff-person-email">
+        <input inputMode="email" autoComplete="off" id="staff-person-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@futures.church or any email" style={inputStyle} />
       </Field>
-      <Field label="Name">
-        <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
+      <Field label="Name" htmlFor="staff-person-name">
+        <input type="text" inputMode="text" autoComplete="off" id="staff-person-name" value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
       </Field>
-      <Field label="Role">
-        <select value={role} onChange={e => setRole(e.target.value as Role)} style={inputStyle}>
+      <Field label="Role" htmlFor="staff-person-role">
+        <select inputMode="text" autoComplete="off" id="staff-person-role" value={role} onChange={e => setRole(e.target.value as Role)} style={inputStyle}>
           <option value="campus">Campus pastor</option>
           <option value="hub">Hub pastor (sermon notes)</option>
           <option value="media">Media (YouTube + notes polish)</option>
@@ -2154,18 +2181,21 @@ function Roster({ onError }: { onError: (s: string) => void }) {
         </select>
         {!canMakeAdmin && <p style={{ ...helpStyle, fontSize: fs(15) }}>Only Ashley makes admins.</p>}
       </Field>
-      <Field label="Campus (campus pastors)">
-        <select value={campusId} onChange={e => setCampusId(e.target.value)} style={inputStyle}>
+      <Field label="Campus (campus pastors)" htmlFor="staff-person-campusId">
+        <select inputMode="text" autoComplete="off" id="staff-person-campusId" value={campusId} onChange={e => setCampusId(e.target.value)} style={inputStyle}>
           <option value="">Unassigned — they pick once</option>
           {campuses.filter(c => c.id !== 'other').map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
       </Field>
+      <div className="mos-actionbar">
       <button
         type="button"
+        className="dw-next"
         style={btnPrimary}
         onClick={async () => {
+          setSaveError('');
           onError('');
           try {
             const data = await intake<{ setupCode?: string; setupCodeExpiresAt?: string }>('roster_save', { email, role, campusId, name });
@@ -2173,12 +2203,14 @@ function Roster({ onError }: { onError: (s: string) => void }) {
             setEmail(''); setName(''); setCampusId('');
             await load();
           } catch (err) {
-            onError(err instanceof Error ? err.message : 'Could not save');
+            setSaveError(err instanceof Error ? err.message : 'Could not save. Try Save person again.');
           }
         }}
       >
         Save person
       </button>
+      {saveError && <p role="alert" style={{ ...helpStyle, fontSize: fs(15), color: 'var(--dw-error)' }}>{saveError}</p>}
+      </div>
     </div>
   );
 }

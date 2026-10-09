@@ -1,9 +1,13 @@
 import { trackBehavior } from '../utils/behavior';
 import { track } from '../utils/analytics';
 import { useState, useEffect, useCallback } from 'react';
+import { ReadingLoadError } from '../components/ReadingLoadError';
 import { Card } from '../components/Card';
 import { useUser } from '../contexts/UserContext';
 import { findCampus } from '../data/campuses';
+import { COMFORT_CHAPTERS } from '../data/comfort';
+import { PASTOR_CHAPTERS } from '../data/pastor';
+import { getDayNumber } from '../utils/daily-passages';
 import { PLAN_CATALOGUE } from '../data/plans';
 import { CheckCircle, Clock, ArrowRight, RotateCcw, BookOpen, MapPin, Video, Scroll, ChevronRight, Loader2, ChevronLeft, Headphones, Pause, Calendar, Search } from 'lucide-react';
 import type { TabId } from '../components/TabBar';
@@ -132,6 +136,8 @@ function calcPlanDay(startedAt: string, totalDays: number): number {
 
 export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => void; onNavigate?: (tab: TabId) => void }) {
   const { userProfile, setup, saveSetup } = useUser();
+  const [showChoices, setShowChoices] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [showPlanDetail, setShowPlanDetail] = useState(false);
   const [lang, setLang] = useState(getLang());
   useEffect(() => { const h = () => setLang(getLang()); window.addEventListener('dw-lang-changed', h); return () => window.removeEventListener('dw-lang-changed', h); }, []);
@@ -141,6 +147,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const [expandedBrowsePlan, setExpandedBrowsePlan] = useState<string | null>(null);
   const [selectedToStart, setSelectedToStart] = useState<string[]>([]);
+  const [bookError, setBookError] = useState<{ id: string; message: string } | null>(null);
   const [deactivateConfirm, setDeactivateConfirm] = useState<string | null>(null);
 
   // Book plan state
@@ -157,6 +164,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
 
   const startBookPlan = async (book: Book) => {
     if (!book.jsonFile) return;
+    setBookError(null);
     setStartingBook(book.id);
     try {
       const data = await fetchBookJson(book.jsonFile);
@@ -175,9 +183,10 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
       try { const _sp = JSON.parse(localStorage.getItem('dw_profile') || '{}'); if (_sp.email) schedulePush(_sp.email); } catch {}
       saveBookToday(book.id, { title: chapters[0].title, paragraphs: chapters[0].paragraphs, chapterIndex: 0, bookTitle: book.title, bookAuthor: book.author });
       setBookPlans(updated);
+      setSelectedBook(null);
     } catch (err) {
       console.error('Failed to start book plan:', err);
-      alert(t('plan_start_error', getLang()));
+      setBookError({ id: book.id, message: t('plan_start_error', getLang()) });
     }
     setStartingBook(null);
   };
@@ -206,6 +215,8 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   const [bookData, setBookData] = useState<BookData | null>(null);
   const [bookChapter, setBookChapter] = useState<number | null>(null);
   const [bookLoading, setBookLoading] = useState(false);
+  const [bookFailed, setBookFailed] = useState(false);
+  const [bookRetry, setBookRetry] = useState(0);
   const [bookAudioActive, setBookAudioActive] = useState(false);
 
   // Essay reader state
@@ -337,13 +348,17 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   // Book fetch effect — top level (Rules of Hooks)
   useEffect(() => {
     if (!activeBook) { setBookData(null); setBookChapter(null); return; }
+    let current = true;
     setBookLoading(true);
-    fetch(activeBook, { cache: 'reload' })
-      .then(r => r.json())
-      .then((d: BookData) => setBookData(d))
-      .catch(() => {})
-      .finally(() => setBookLoading(false));
-  }, [activeBook]);
+    setBookFailed(false);
+    setBookData(null);
+    setBookChapter(null);
+    fetchBookJson(activeBook)
+      .then(d => { if (current) setBookData(d); })
+      .catch(() => { if (current) setBookFailed(true); })
+      .finally(() => { if (current) setBookLoading(false); });
+    return () => { current = false; };
+  }, [activeBook, bookRetry]);
 
   const myPlans = PLAN_CATALOGUE.filter(p => activePlanIds.includes(p.id));
 
@@ -358,8 +373,50 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   const browsePlans = PLAN_CATALOGUE
     .filter(p => priorityIds.includes(p.id))
     .sort((a, b) => priorityIds.indexOf(a.id) - priorityIds.indexOf(b.id));
+  const expandedActive = myPlans.find(plan => plan.id === expandedPlan);
+  const expandedCanAdvance = !!expandedActive && (activePlans[expandedActive.id]?.completedDays.length || 0) < expandedActive.totalDays;
   const campusData = userProfile?.campus ? findCampus(userProfile.campus) : null;
   const isNewChristian = isNewChristianPersona(persona);
+
+  const nextPlan = activePlanIds.map(id => PLAN_CATALOGUE.find(plan => plan.id === id)).find(plan => plan && !plan.bookId);
+  const nextDay = nextPlan ? calcPlanDay(activePlans[nextPlan.id].startedAt, nextPlan.totalDays) : 1;
+  const nextPassage = (() => {
+    if (nextPlan) return nextPlan.passages[nextDay - 1];
+    try {
+      const slot = JSON.parse(localStorage.getItem('dw_reading_slots') || '[]')[0];
+      if (slot?.book && slot.currentChapter) return `${slot.book} ${slot.currentChapter}`;
+    } catch { /* Continue still opens Home if storage is unavailable. */ }
+    if (persona === 'comfort') return COMFORT_CHAPTERS[getDayNumber() % COMFORT_CHAPTERS.length];
+    if (persona === 'pastor_leader') return PASTOR_CHAPTERS[getDayNumber() % PASTOR_CHAPTERS.length];
+    return null;
+  })();
+  const selectedPlan = PLAN_CATALOGUE.find(plan => plan.id === selectedToStart[0]);
+  const continueReading = () => {
+    if (isNewChristian) ensureGraceSeriesEnrolled();
+    onNavigate?.('home');
+  };
+  const choosePlan = (id: string) => {
+    setSelectedBook(null);
+    setExpandedPlan(null);
+    setSelectedToStart(current => current.includes(id) ? [] : [id]);
+  };
+  const bookStartingBusy = startingBook !== null;
+  const mainAction = (
+    <div className="mos-actionbar dw-plans-actionbar">
+      <button type="button" className="dw-next dw-next-main dw-btn-primary" disabled={bookStartingBusy}
+        onClick={() => {
+          if (selectedBook) { void startBookPlan(selectedBook); }
+          else if (selectedPlan) { startPlan(selectedPlan.id); setSelectedToStart([]); }
+          else continueReading();
+        }}>
+        {startingBook ? t('j_loading', lang) : selectedBook || selectedPlan
+          ? `${t('start_this_plan', lang)} · ${selectedBook?.title || (selectedPlan && tField(selectedPlan, 'title', lang))}`
+          : t('continue_label', lang)}
+      </button>
+      {bookError && <p role="alert">{bookError.message}</p>}
+      {!showChoices && !showPlanDetail && <button type="button" className="dw-plans-change dw-btn-secondary" onClick={() => setShowChoices(true)}>{t('change_path', lang)}</button>}
+    </div>
+  );
 
   // Hub view (V1 structure) - the main Plans & More page
   if (!showPlanDetail) {
@@ -367,7 +424,8 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
       return <LibraryScreen onBack={() => setShowLibrary(false)} />;
     }
     return (
-      <div className="screen-container dw-plans-sd">
+      <div className="dw-phone-screen dw-plans-screen screen-container dw-plans-sd">
+      {!activeBook && mainAction}
       {/* ── In-app book reader ── */}
       {activeBook && (
         <div style={{ position: 'absolute', inset: 0, background: 'var(--dw-canvas)', zIndex: 50, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -413,6 +471,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                 <span style={{ color: 'var(--dw-text-muted)', fontSize: 13 }}>Loading…</span>
               </div>
             )}
+            {bookFailed && <ReadingLoadError lang={lang} message={t('plan_start_error', lang)} onRetry={() => setBookRetry(value => value + 1)} />}
             {/* Chapter list */}
             {bookData && bookChapter === null && !bookLoading && (
               <div style={{ padding: '16px 20px' }}>
@@ -445,9 +504,17 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
       )}
 
         <div style={{ padding: '24px 24px 0' }}>
-          <p className="dw-plans-sd-kicker">{t('browse_plans', lang)}</p>
+          <p className="dw-plans-sd-kicker">{t('todays_reading', lang)}</p>
           <h1 className="dw-plans-sd-title">{t('p_your_plans_header', lang)}</h1>
 
+          {!showChoices && <section className="dw-plans-next">
+            <h2>{isNewChristian ? faithJourney?.title || GRACE_SERIES_TITLE : nextPlan ? tField(nextPlan, 'title', lang) : t('todays_reading', lang)}</h2>
+            <p>{isNewChristian
+              ? `${t('p_day_of', lang)} ${faithJourney?.currentDay || 1}`
+              : nextPassage || t('continue_journey', lang)}</p>
+          </section>}
+          {showChoices && <>
+          <button type="button" className="dw-btn-secondary" onClick={() => { setShowChoices(false); setSelectedToStart([]); setSelectedBook(null); }}>{t('back', lang)}</button>
           <PathwayPicker
             embedded
             currentPersona={persona}
@@ -461,6 +528,8 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                 onNavigate?.('home');
               }
               setPersona(p);
+              setSelectedToStart([]);
+              setSelectedBook(null);
             }}
             onBeginDay1={() => onNavigate?.('home')}
           />
@@ -584,17 +653,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                       {t('p_day_of', lang)} {faithJourney.currentDay} {t('p_of', lang)} {faithJourney.total}
                     </p>
                   )}
-                  <button
-                    type="button"
-                    className="dw-plan-sd-start"
-                    onClick={() => {
-                      ensureGraceSeriesEnrolled();
-                      onNavigate?.('home');
-                    }}
-                    style={faithJourney ? { marginTop: 16 } : undefined}
-                  >
-                    {faithJourney ? t('continue_journey', lang) : t('start_this_plan', lang)}
-                  </button>
+
                 </div>
               ) : (
                 browsePlans.map(plan => {
@@ -611,9 +670,10 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                         <button
                           type="button"
                           className="dw-plan-sd-start"
-                          onClick={() => startPlan(plan.id)}
+                          aria-pressed={selectedToStart.includes(plan.id)}
+                          onClick={() => choosePlan(plan.id)}
                         >
-                          {t('start_this_plan', lang)}
+                          {t(selectedToStart.includes(plan.id) ? 'selected_plan' : 'select_plan', lang)}
                         </button>
                       )}
                     </div>
@@ -655,19 +715,24 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                     {book.jsonFile && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                         {!bp ? (
+                          <>
                           <button
-                            onClick={() => startBookPlan(book)}
+                            aria-pressed={selectedBook?.id === book.id}
+                            onClick={() => { setSelectedBook(book); setSelectedToStart([]); }}
+                            aria-describedby={bookError?.id === book.id ? `book-error-${book.id}` : undefined}
                             disabled={startingBook === book.id}
                             style={{
                               flex: 1, padding: '9px 14px', borderRadius: 10,
-                              background: 'linear-gradient(155deg, #4D2E00 0%, #9A6A08 18%, #C8920E 35%, #E8B910 50%, #F5CF55 58%, #D4A017 72%, #9A6A08 88%, #4D2E00 100%)',
-                              color: '#fff', border: 'none', cursor: 'pointer',
+                              background: 'var(--dw-card)',
+                              color: 'var(--dw-text-primary)', border: '1px solid var(--dw-border)', cursor: 'pointer',
                               fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)',
                               letterSpacing: '0.04em',
                             }}
                           >
-                            {startingBook === book.id ? '+ Adding…' : '+ Add to Reading Plan'}
+                            {t(selectedBook?.id === book.id ? 'selected_plan' : 'select_plan', lang)}
                           </button>
+                          {bookError?.id === book.id && <p id={`book-error-${book.id}`} role="alert">{bookError.message}</p>}
+                          </>
                         ) : (
                           <>
                             <button
@@ -758,6 +823,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
 
           </>
           )}
+          </>}
         </div>
       </div>
     );
@@ -766,7 +832,8 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
   // Plans detail view
 
   return (
-    <div className="screen-container">
+    <div className="dw-phone-screen dw-plans-screen screen-container dw-plans-detail">
+      {!expandedCanAdvance && mainAction}
       <div style={{ padding: '24px 24px 0' }}>
         {/* Header with back button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -863,7 +930,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                             {!isComplete && !isBookPlan && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); completePlanDay(plan.id, nextDay); }}
-                                className="dw-btn-primary"
+                                className="dw-btn-primary dw-plan-main dw-next mos-actionbar"
                                 style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}
                               >
                                 <CheckCircle size={14} /> {t('p_mark_day', lang)} {nextDay} {t('p_complete_word', lang)}
@@ -872,7 +939,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                             {!isComplete && isBookPlan && plan.bookId && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); advanceBookChapter(plan.bookId!); }}
-                                className="dw-btn-primary"
+                                className="dw-btn-primary dw-plan-main dw-next mos-actionbar"
                                 style={{ fontSize: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}
                               >
                                 <ArrowRight size={14} /> Next Chapter
@@ -949,10 +1016,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                               }
                               return;
                             }
-                            // Toggle selection to reveal inline Start button
-                            setSelectedToStart(prev =>
-                              prev.includes(plan.id) ? prev.filter(id => id !== plan.id) : [plan.id]
-                            );
+                            choosePlan(plan.id);
                           }}
                         >
                           {/* Status badge top-right */}
@@ -974,7 +1038,7 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                               border: isSelected ? 'none' : '2px solid var(--dw-text-muted)',
                               background: isSelected ? 'var(--dw-accent)' : 'transparent',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.15s', flexShrink: 0,
+                              transition: 'color 0.15s', flexShrink: 0,
                             }}>
                               {isSelected && (
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -1040,31 +1104,9 @@ export function PlansScreen({ onBack: _onBack, onNavigate }: { onBack?: () => vo
                           </div>
 
                           {!isActive && (
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                startPlan(plan.id);
-                                setSelectedToStart([]);
-                              }}
-                              style={{
-                                width: '100%',
-                                marginTop: 12,
-                                background: '#A8552F',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: 10,
-                                padding: '14px 20px',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                fontFamily: 'var(--font-sans)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 8,
-                              }}
-                            >
-                              {t('start_this_plan', lang)}
+                            <button type="button" className="dw-btn-secondary dw-plan-select" aria-pressed={isSelected}
+                              onClick={e => { e.stopPropagation(); choosePlan(plan.id); }}>
+                              {t(isSelected ? 'selected_plan' : 'select_plan', lang)}
                             </button>
                           )}
 

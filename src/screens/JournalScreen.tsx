@@ -99,6 +99,7 @@ function AutoExpandTextarea({ value, onChange, placeholder, style, innerRef }: {
   useEffect(() => { autoResize(); }, [value, autoResize]);
   return (
     <textarea
+      inputMode="text" autoComplete="off" aria-label={placeholder || "Note"}
       ref={ref}
       value={value}
       onChange={e => { onChange(e); autoResize(); }}
@@ -661,7 +662,7 @@ function getReflectionQuestions(title: string, isBookChapter?: boolean): string[
 }
 
 /* ââ Scripture Study Modal ââ */
-function ScriptureModal({
+export function ScriptureModal({
   passage,
   planTitle,
   dayNum,
@@ -678,7 +679,7 @@ function ScriptureModal({
   devotional?: Devotional;
   isBookChapter?: boolean;
   existingNote: JournalEntry | undefined;
-  onSave: (entry: JournalEntry) => void;
+  onSave: (entry: JournalEntry) => boolean;
   onClose: () => void;
   onOpenBibleAI?: (context: string) => void;
 }) {
@@ -697,6 +698,7 @@ function ScriptureModal({
   const [loadingText, setLoadingText] = useState(true);
   const [draftNote, setDraftNote] = useState(existingNote?.body || '');
   const [noteSaved, setNoteSaved] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
 
@@ -722,10 +724,12 @@ function ScriptureModal({
           type: 'journal',
           verseRef: passage,
         };
+    // Only celebrate and close once the local write really succeeded; otherwise keep the draft open for a retry.
+    if (!onSave(entry)) { setSaveFailed(true); return; }
+    setSaveFailed(false);
     trackBehavior('note_created', entry.verseRef || '');
     track('journal_save', entry.type || 'journal');
     recordReadDay('journal');
-    onSave(entry);
     setNoteSaved(true);
     setTimeout(() => { setNoteSaved(false); onClose(); }, 1200);
   }
@@ -1116,13 +1120,13 @@ function ScriptureModal({
 
           {/* Save note button */}
           <button
-            onClick={handleSave}
-            disabled={!draftNote.trim() || noteSaved}
+            onClick={() => { if (!noteSaved) handleSave(); }}
+            aria-disabled={!draftNote.trim() || noteSaved}
             style={{
-              flex: 1, height: 48, borderRadius: 12,
-              background: noteSaved ? 'var(--dw-success)' : draftNote.trim() ? 'var(--dw-accent)' : 'var(--dw-surface)',
-              border: `1px solid ${noteSaved ? 'var(--dw-success)' : draftNote.trim() ? 'transparent' : 'var(--dw-border)'}`,
-              color: draftNote.trim() || noteSaved ? '#fff' : 'var(--dw-text-muted)',
+              flex: 1, minHeight: 56, borderRadius: 12,
+              background: noteSaved ? 'var(--dw-success)' : 'var(--dw-accent)',
+              border: '1px solid transparent',
+              color: 'var(--dw-accent-on-fill)',
               fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)',
               cursor: draftNote.trim() && !noteSaved ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -1132,6 +1136,8 @@ function ScriptureModal({
             {noteSaved ? <><CheckCircle2 size={16} /> {t('j_saved', lang)}</> : <><Save size={15} /> {t('j_save_note', lang)}</>}
           </button>
         </div>
+        {saveFailed && <p role="alert" style={{ fontSize: 13, fontWeight: 600, margin: '8px 0 0', color: 'var(--dw-danger, #C0392B)', fontFamily: 'var(--font-sans)' }}>{t('j_save_failed', lang)}</p>}
+        {!draftNote.trim() && <p className="fx-why" style={{ fontSize: 15, margin: '8px 0 0' }}>{t('note_write_first', lang)}</p>}
       </div>
 
       <style>{`
@@ -1570,8 +1576,9 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
     const all = getEntries();
     const idx = all.findIndex(e => e.id === entry.id);
     if (idx >= 0) { all[idx] = entry; } else { all.unshift(entry); }
-    if (!saveEntries(all)) { flagSaveError(); return; }
+    if (!saveEntries(all)) { flagSaveError(); return false; }
     setEntries(all.filter(e => !e.deleted));
+    return true;
   }, [flagSaveError]);
 
   const openNewEntry = useCallback(() => {
@@ -1660,7 +1667,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
   // Full-screen editor overlay
   if (showEditor && editingEntry) {
     return (
-      <div style={{
+      <div className="dw-phone-screen dw-journal-editor" style={{
         position: 'fixed', inset: 0, zIndex: 500,
         background: 'var(--dw-canvas)',
         display: 'flex', flexDirection: 'column',
@@ -1675,7 +1682,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
             onClick={() => { setShowEditor(false); setEditingEntry(null); }}
             style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4 }}
           >
-            <X size={22} />
+            <X size={22} /> {t('close_label', lang)}
           </button>
           <span style={{ color: 'var(--dw-text-muted)', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
             {editingEntry.type === 'sermon' ? 'Sermon Notes' : 'Note'}
@@ -1689,16 +1696,16 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
               }}
               style={{ background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4 }}
             >
-              <Trash2 size={18} />
+              <Trash2 size={18} /> {t('remove_label', lang)}
             </button>
             <button
-              onClick={saveEntry}
-              disabled={!editingEntry.title.trim() || editorSaved}
+              className="dw-editor-save"
+              onClick={() => { if (!editorSaved) saveEntry(); }}
+              aria-disabled={!editingEntry.title.trim() || editorSaved}
               style={{
                 background: editorSaved ? 'var(--dw-success)' : 'var(--dw-accent)', border: 'none', borderRadius: 8,
                 padding: '6px 14px', color: '#fff', fontSize: 13, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 4,
-                opacity: !editingEntry.title.trim() && !editorSaved ? 0.5 : 1,
                 fontFamily: 'var(--font-sans)',
                 transition: 'background 0.2s',
               }}
@@ -1708,7 +1715,15 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
           </div>
         </div>
 
-        {saveErrorBanner}
+        <div className="dw-desktop-only">{!editingEntry.title.trim() && <p className="fx-why">{t('note_title_first', lang)}</p>}{saveErrorBanner}</div>
+        <div className="mos-actionbar dw-phone-only">
+          <button type="button" className="dw-next dw-next-main" data-next={t('j_save_note', lang)}
+            onClick={() => { if (!editorSaved) saveEntry(); }} aria-disabled={!editingEntry.title.trim() || editorSaved}>
+            {editorSaved ? t('j_saved', lang) : t('j_save_note', lang)}
+          </button>
+          {!editingEntry.title.trim() && <p>{t('note_title_first', lang)}</p>}
+          {saveErrorBanner}
+        </div>
 
         {/* Editor Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
@@ -1736,6 +1751,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
 
           <input
             type="text"
+            inputMode="text" autoComplete="off" aria-label="Note title"
             placeholder="Title..."
             value={editingEntry.title}
             onChange={e => setEditingEntry({ ...editingEntry, title: e.target.value })}
@@ -1823,7 +1839,12 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
   }
 
   return (
-    <div className="screen-container">
+    <div className="screen-container dw-phone-screen dw-journal-screen">
+      <div className="mos-actionbar dw-phone-only">
+        <button type="button" className="dw-next dw-next-main" data-next={t('next_write_it_down', lang)} onClick={openNewEntry}>
+          <Plus size={18} /> {t('next_write_it_down', lang)}
+        </button>
+      </div>
       <ScreenHeader title="Notes" onBack={onBack} />
       {saveErrorBanner}
       <div style={{ padding: '24px 24px 0' }}>
@@ -1861,6 +1882,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
               <Video size={15} /> Record
             </button>
             <button
+              className="dw-journal-create"
               onClick={openNewEntry}
               style={{
                 background: 'var(--dw-accent)', border: 'none', borderRadius: 10,
@@ -1915,7 +1937,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
                   fontSize: 12, fontWeight: isActive ? 600 : 500, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   minHeight: 44, fontFamily: 'var(--font-sans)',
-                  transition: 'all var(--transition-fast)',
+                  transition: 'color var(--transition-fast)',
                 }}
               >
                 <Icon size={14} /> {label}
@@ -1935,7 +1957,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                 color: 'var(--dw-text-muted)', fontFamily: 'var(--font-sans)', marginBottom: 10,
               }}>{t('j_your_active_plans', lang)}</p>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              <div className="mos-stack dw-plan-chips" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
                 {myPlans.map(plan => {
                   const progress = activePlansData[plan.id];
                   const completed = progress?.completedDays?.length || 0;
@@ -1987,7 +2009,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
               <div onClick={() => setPlanPopup(null)} style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300,
               }} />
-              <div style={{
+              <div className="mos-sheet dw-plan-sheet" role="dialog" aria-label={plan.title} style={{
                 position: 'fixed', bottom: '15%', left: 20, right: 20, zIndex: 301,
                 background: 'var(--dw-canvas)', borderRadius: 20, padding: '24px 20px',
                 boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
@@ -2005,7 +2027,7 @@ export function JournalScreen({ onBack, onNavigate, initialTab }: { onBack?: () 
                   <button onClick={() => setPlanPopup(null)} style={{
                     background: 'none', border: 'none', color: 'var(--dw-text-muted)', cursor: 'pointer', padding: 4,
                   }}>
-                    <X size={20} />
+                    <X size={20} /> {t('close_label', lang)}
                   </button>
                 </div>
                 <div style={{

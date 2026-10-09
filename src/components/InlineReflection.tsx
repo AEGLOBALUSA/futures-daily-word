@@ -29,7 +29,7 @@ interface InlineReflectionProps {
   openSignal?: number;
 }
 
-type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
+type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 
 const DRAFT_PREFIX = 'dw_reflect_draft:';
 
@@ -136,6 +136,13 @@ export function InlineReflection({
       localStorage.setItem('dw_journal', JSON.stringify(entries.slice(0, 5000)));
       lastSavedTextRef.current = body;
       localStorage.removeItem(dKey); // the note is in the journal now — the draft has served its purpose
+    } catch {
+      // The local write failed: keep the draft and the open editor, let Save retry.
+      setSaveState('error');
+      return;
+    }
+    // The note is stored; what follows can never turn it into a "save failed".
+    try {
       window.dispatchEvent(new Event('dw-journal-updated'));
       pushNow();
       recordReadDay('journal'); // reflecting is real engagement — it counts toward the streak
@@ -212,6 +219,7 @@ export function InlineReflection({
       );
     }
     if (saveState === 'dirty') return <span>{t('note_autosaves')}</span>;
+    if (saveState === 'error') return <span role="alert" style={{ color: 'var(--dw-danger, #C0392B)', fontWeight: 600 }}>{t('j_save_failed')}</span>;
     return null;
   };
 
@@ -278,17 +286,18 @@ export function InlineReflection({
               {statusLine()}
             </p>
           )}
+          {!text.trim() && <p className="fx-why" style={{ fontSize: 15, margin: '8px 0 0' }}>{t('note_write_first')}</p>}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button
-              onClick={save}
-              disabled={!text.trim() || saveState === 'saved' || saveState === 'saving'}
+              onClick={() => { if (saveState !== 'saved') save(); }}
+              disabled={saveState === 'saving'}
+              aria-disabled={!text.trim() || saveState === 'saved' || saveState === 'saving'}
               style={{
-                flex: 1, padding: '10px', borderRadius: 8, border: 'none',
+                flex: 1, minHeight: 56, padding: '10px', borderRadius: 8, border: 'none',
                 background: saveState === 'saved' ? 'var(--dw-success)' : accent,
                 color: newPath && saveState !== 'saved' ? 'var(--dw-new-on-fill)' : '#fff', fontSize: 14, fontWeight: 700,
                 fontFamily: 'var(--font-sans)',
                 cursor: text.trim() && saveState === 'dirty' ? 'pointer' : 'default',
-                opacity: text.trim() ? 1 : 0.5,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 transition: 'background 0.2s ease',
               }}

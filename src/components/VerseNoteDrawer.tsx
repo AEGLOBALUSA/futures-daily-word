@@ -136,7 +136,7 @@ function sortSources(commentaries: { source: string; text: string }[]) {
   });
 }
 
-type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
+type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 
 function formatTime(d: Date, lang: string): string {
   try {
@@ -220,7 +220,7 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
       return;
     }
     const ref = selection.verseRefs[0] || '';
-    if (!entryIdRef.current) { trackBehavior('note_created', ref); recordReadDay('journal'); } // count the note once, not every autosave
+    const isNewNote = !entryIdRef.current;
     // Fix 3: if the user was reading commentary while writing the note, capture that context too.
     const activeCommentary = commentaries[selectedSourceIdx];
     let commentarySource: string | undefined;
@@ -245,7 +245,10 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
       translation,
       entryId: entryIdRef.current || undefined,
     });
-    if (writtenId) entryIdRef.current = writtenId;
+    // The local write failed (storage full/blocked): keep the draft and the open drawer, let Save retry.
+    if (!writtenId) { setSaveState('error'); return; }
+    entryIdRef.current = writtenId;
+    if (isNewNote) { trackBehavior('note_created', ref); recordReadDay('journal'); } // count the note once, not every autosave
     lastSavedTextRef.current = note.trim();
     try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
     // Brief, honest "Saving…" beat (the write is already done) so the confirmation visibly lands.
@@ -466,25 +469,27 @@ export function VerseNoteDrawer({ open, onClose, planContext }: VerseNoteDrawerP
               {saveState === 'saving' && <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> {t('note_saving', lang)}</>}
               {saveState === 'saved' && <><Check size={13} /> {t('note_saved', lang)}{lastSavedAt ? ` · ${formatTime(lastSavedAt, lang)}` : ''}</>}
               {saveState === 'dirty' && note.trim() && t('note_autosaves', lang)}
+              {saveState === 'error' && <span role="alert" style={{ color: 'var(--dw-danger, #C0392B)', fontWeight: 600 }}>{t('j_save_failed', lang)}</span>}
             </p>
 
             {/* Save button */}
             <div style={{ padding: '10px 20px 14px' }}>
               <button
                 onClick={() => doSave('button')}
-                disabled={!note.trim() || saveState === 'saving'}
+                disabled={saveState === 'saving'}
+                aria-disabled={!note.trim() || saveState === 'saving'}
                 style={{
-                  width: '100%', padding: '13px', borderRadius: 14,
+                  width: '100%', minHeight: 56, padding: '13px', borderRadius: 14,
                   background: saveState === 'saved' ? 'var(--dw-success)' : 'var(--dw-accent)',
                   color: '#fff', border: 'none', cursor: note.trim() ? 'pointer' : 'default',
                   fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center',
                   justifyContent: 'center', gap: 8,
-                  opacity: !note.trim() && saveState !== 'saved' ? 0.5 : 1,
                   transition: 'background 0.2s',
                 }}
               >
                 {saveState === 'saved' ? <><Check size={16} /> {t('saved_to_notes', lang)}</> : t('save_to_notes_btn', lang)}
               </button>
+              {!note.trim() && <p className="fx-why" style={{ fontSize: 15, margin: '8px 0 0' }}>{t('note_write_first', lang)}</p>}
             </div>
           </>
         )}

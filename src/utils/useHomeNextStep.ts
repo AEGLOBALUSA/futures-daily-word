@@ -210,7 +210,7 @@ export function useHomeNextStep(input: HomeNextStepInput): HomeNextStep {
       sundayWindow,
       sermonNotesPublished: published[notesKey] ?? null,
       planSetUp: studyPlanSetUp(),
-      setupAsks: applicableSetupAsks(input.persona, input.email),
+      setupAsks: applicableSetupAsks(input.persona, input.email).filter(ask => ask !== 'install'),
       tomorrow,
       campusName: campus?.name || null,
       today,
