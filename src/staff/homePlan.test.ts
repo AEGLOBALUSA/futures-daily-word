@@ -65,3 +65,41 @@ describe('loadHomeInfo never leaves home waiting', () => {
     await expect(loadHomeInfo(1000)).resolves.toEqual({ notes: null, usualJob: null });
   });
 });
+
+describe('homePlan: names the person and their church’s week, learns beyond the weekday (10 Oct 2026)', () => {
+  const morning = new Date(2026, 9, 8, 9, 0);
+  const evening = new Date(2026, 9, 8, 19, 0);
+
+  it('greets by first name on this device’s clock; no name, no comma', () => {
+    expect(homePlan(['hub'], null, 'en', { name: 'Mark Evans', now: morning }).greeting).toBe('Good morning, Mark.');
+    expect(homePlan(['hub'], null, 'en', { name: '', now: evening }).greeting).toBe('Good evening.');
+    expect(homePlan(['hub'], null, 'es', { name: 'Alexis', now: morning }).greeting).toBe('Buenos días, Alexis.');
+  });
+
+  it('names the church’s week in counts, and says nothing when the server did not', () => {
+    const info: HomeInfo = { notes: null, usualJob: null, week: { place: 'Futures USA', prayers: 6, corner: 1 } };
+    expect(homePlan(['hub'], info, 'en').weekLine).toBe('This week at Futures USA: 6 prayer requests, 1 corner post.');
+    expect(homePlan(['hub'], { ...info, week: { place: 'Futures Kennesaw', prayers: 0, corner: null } }, 'en').weekLine)
+      .toBe('This week at Futures Kennesaw: no prayer requests yet.');
+    expect(homePlan(['hub'], { ...info, week: { place: 'X', prayers: null, corner: null } }, 'en').weekLine).toBe('');
+    expect(homePlan(['hub'], { notes: null, usualJob: null }, 'en').weekLine).toBe('');
+  });
+
+  it('says the usual time beside the usual job', () => {
+    const p = homePlan(['hub'], { notes: null, usualJob: { job: 'hub', why: 'weekday', weekday: 'Thursday', hour: 10 } }, 'en');
+    expect(p.reason).toMatch(/^You usually do this on a Thursday, around 10\s?am\.$/i);
+    expect(homePlan(['hub'], { notes: null, usualJob: { job: 'hub', why: 'last', weekday: 'Thursday', hour: 20 } }, 'en').reason)
+      .toMatch(/^You usually do this around 8\s?pm\.$/i);
+  });
+
+  it('a job started and not sent leads, after Sunday’s missing notes and before the usual job', () => {
+    const info: HomeInfo = { notes: notes(true), usualJob: { job: 'hub', why: 'weekday', weekday: 'Thursday' } };
+    const today = homePlan(['notes', 'hub', 'media'], info, 'en', { unfinished: { job: 'media', at: morning.getTime() - 3600000 }, now: morning });
+    expect(today).toMatchObject({ main: 'media', reason: 'You started this today and haven’t sent it yet.' });
+    expect(today.order[0]).toBe('media');
+    const earlier = homePlan(['notes', 'hub', 'media'], info, 'en', { unfinished: { job: 'media', at: new Date(2026, 9, 6, 15).getTime() }, now: morning });
+    expect(earlier.reason).toBe('You started this on Tuesday and haven’t sent it yet.');
+    expect(homePlan(['notes', 'hub', 'media'], { ...info, notes: notes(false) }, 'en', { unfinished: { job: 'media', at: morning.getTime() }, now: morning }).main).toBe('notes');
+    expect(homePlan(['campus'], info, 'en', { unfinished: { job: 'hub', at: morning.getTime() }, now: morning }).main).toBe('campus');
+  });
+});

@@ -469,12 +469,12 @@ describe('usualJobFrom: Staff home learns the usual job from the person\'s own s
       sub('2026-09-24T10:00:00Z', ['q_hub', 'q_hub2']),    // Thursday
       sub('2026-09-17T10:00:00Z', ['q_media']),            // Thursday
     ];
-    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media', 'campus'])).toEqual({ job: 'hub', why: 'weekday', weekday: 'Thursday' });
+    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media', 'campus'])).toEqual({ job: 'hub', why: 'weekday', weekday: 'Thursday', hour: 10 });
   });
 
   it('falls back to the job done last when nothing was done on this weekday', () => {
     const subs = [sub('2026-10-06T10:00:00Z', ['q_media']), sub('2026-10-05T10:00:00Z', ['q_hub'])];
-    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media'])).toEqual({ job: 'media', why: 'last', weekday: 'Thursday' });
+    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media'])).toEqual({ job: 'media', why: 'last', weekday: 'Thursday', hour: null });
   });
 
   it('ignores submissions older than eight weeks, in the future, or for jobs the person cannot open', () => {
@@ -506,5 +506,31 @@ describe('usualJobFrom: Staff home learns the usual job from the person\'s own s
     expect(core.jobsForRole('hub')).toEqual(['hub']);
     expect(core.jobsForRole('campus')).toEqual(['campus']);
     expect(core.jobsForRole('nobody')).toEqual([]);
+  });
+});
+
+describe('usualHourOf: Staff home learns the usual time (10 Oct 2026)', () => {
+  const qs = [{ id: 'q_hub', audience: 'hub' }, { id: 'q_media', audience: 'media' }];
+  const sub = (iso: string, keys: string[]) => ({ created_at: iso, role: 'hub', answers: Object.fromEntries(keys.map(k => [k, 'x'])) });
+  const now = new Date('2026-10-08T15:00:00Z'); // Thursday
+
+  it('two or more times in the same hour, on the church clock, make it usual', () => {
+    const subs = [sub('2026-10-01T14:10:00Z', ['q_hub']), sub('2026-09-24T14:50:00Z', ['q_hub'])]; // 10am New York twice
+    expect(core.usualJobFrom(subs, qs, now, ['hub'], 'America/New_York')).toMatchObject({ job: 'hub', why: 'weekday', hour: 10 });
+  });
+
+  it('one time is not a habit', () => {
+    expect(core.usualJobFrom([sub('2026-10-01T14:10:00Z', ['q_hub'])], qs, now, ['hub'], 'America/New_York')).toMatchObject({ hour: null });
+  });
+
+  it('only times for the job home leads with count', () => {
+    const subs = [sub('2026-10-06T09:00:00Z', ['q_hub']), sub('2026-10-05T20:00:00Z', ['q_media']), sub('2026-10-04T20:00:00Z', ['q_media'])];
+    expect(core.usualJobFrom(subs, qs, now, ['hub', 'media'])).toMatchObject({ job: 'hub', why: 'last', hour: null });
+  });
+
+  it('a tie goes to the most recent hour', () => {
+    const at = (iso: string) => ({ at: new Date(iso) });
+    expect(core.usualHourOf([at('2026-10-06T09:00:00Z'), at('2026-10-05T20:00:00Z'), at('2026-10-04T09:30:00Z'), at('2026-10-03T20:10:00Z')])).toBe(9);
+    expect(core.usualHourOf([])).toBeNull();
   });
 });
