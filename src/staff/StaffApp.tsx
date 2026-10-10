@@ -582,7 +582,7 @@ function Login({ onSignedIn }: { onSignedIn: (token: string, staff: Staff) => vo
               if (status.setup) { setSetup(true); setError(''); setSendError(''); }
             } catch { /* keep password sign-in */ }
           }}
-          placeholder="ae@futures.global"
+          placeholder="name@yourchurch.org"
           style={{ ...inputStyle, marginBottom: 14 }}
         />
         {setup && (
@@ -728,7 +728,12 @@ function StaffHome({
   return (
     <div style={{ '--mos-control-height': '44px' } as CSSProperties}>
       <PrayerCare staff={staff} onHeldChange={setHasHeldPrayer} onNeedsYouMainChange={setHasNeedsYouMain}>
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(32), margin: '0 0 10px', fontWeight: 700 }}>{t('staff_heading', getLang())}</h2>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: fs(32), margin: '0 0 10px', fontWeight: 700 }}>{plan?.greeting ?? t('staff_heading', getLang())}</h2>
+      {plan?.weekLine && (
+        <p data-testid="staff-home-week" style={{ fontFamily: 'var(--font-sans)', fontSize: fs(15), color: 'var(--dw-text-secondary)', lineHeight: 1.5, margin: '0 0 16px' }}>
+          {plan.weekLine}
+        </p>
+      )}
       {(staff.role === 'campus' || staff.isAdmin) && <CornerDraftCard isAdmin={staff.isAdmin} secondary={hasHeldPrayer || hasNeedsYouMain}
         onMainChange={setHasDraftMain}
         staffCampusId={staff.role === 'campus' ? staff.campusId ?? undefined : undefined}
