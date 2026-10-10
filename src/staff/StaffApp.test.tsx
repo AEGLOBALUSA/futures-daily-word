@@ -75,6 +75,23 @@ describe('StaffApp admin home', () => {
     act(() => root.unmount());
   });
 
+  it('checks the Face ID password on this session and drops the hook on unmount', async () => {
+    const { root } = mount(<StaffApp />);
+    await flush();
+    const w = window as unknown as { MOLockVerify?: (p: string) => Promise<string> };
+    expect(typeof w.MOLockVerify).toBe('function');
+    vi.mocked(intake).mockResolvedValueOnce({ ok: true });
+    await expect(w.MOLockVerify!('right')).resolves.toBe('ok');
+    vi.mocked(intake).mockResolvedValueOnce({ ok: false });
+    await expect(w.MOLockVerify!('nope')).resolves.toBe('wrong');
+    vi.mocked(intake).mockRejectedValueOnce({ status: 401 });
+    await expect(w.MOLockVerify!('x')).resolves.toBe('signed_out');
+    vi.mocked(intake).mockRejectedValueOnce({ status: 503 });
+    await expect(w.MOLockVerify!('x')).resolves.toBe('error');
+    act(() => root.unmount());
+    expect(w.MOLockVerify).toBeUndefined();
+  });
+
   it('a fresh lock sign-out stamp drops the staff token locally and shows the sign-in form, even if logout never settles', async () => {
     const { setStaffToken } = await import('./api');
     vi.mocked(intake).mockImplementation(() => new Promise(() => {}));

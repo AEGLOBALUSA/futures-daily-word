@@ -308,6 +308,22 @@ export function StaffApp() {
     return () => window.removeEventListener('online', retry);
   }, [loadMe]);
 
+  // The Face ID lock's "Use your password instead" checks the password here and
+  // unlocks this same session (kit hook window.MOLockVerify). Only while signed in.
+  useEffect(() => {
+    if (!staff) return;
+    const w = window as unknown as { MOLockVerify?: (p: string) => Promise<string> };
+    w.MOLockVerify = async (password: string) => {
+      try {
+        const r = await intake<{ ok?: boolean }>('verify_password', { password });
+        return r && r.ok ? 'ok' : 'wrong';
+      } catch (err) {
+        return (err as { status?: number } | null)?.status === 401 ? 'signed_out' : 'error';
+      }
+    };
+    return () => { delete w.MOLockVerify; };
+  }, [staff]);
+
   // The person's text size follows them: their own roster row and this device, newest wins (textSizeSync.ts).
   const staffEmail = staff?.email || '';
   useEffect(() => (token && staffEmail ? startStaffTextSizeSync(token, staffEmail) : undefined), [token, staffEmail]);

@@ -840,6 +840,23 @@ exports.handler = async (event) => {
     let campusListP = null;
     const campusList = () => (campusListP || (campusListP = loadCampuses(db())));
 
+    // ── verify_password ── The Face ID lock's "Use your password instead": checks this
+    // session's own password and unlocks the same session. Never signs anyone out:
+    // a wrong password answers 200 { ok: false }, never 401 (the client deletes its
+    // token on any 401). Limited per person, so a room on one wifi never shares a bucket.
+    if (action === "verify_password") {
+      if (await isSharedRateLimited("intake-verify", `staff:${staff.email}`, 20, 15 * 60 * 1000)) {
+        return json(event, 429, { error: "Too many attempts. Try again later." });
+      }
+      const password = String(body.password || "");
+      const { data: row, error: rowErr } = await db().from("staff_roster").select("password_hash").eq("email", staff.email).maybeSingle();
+      if (rowErr) return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      const hasHash = !!(row && row.password_hash);
+      const ok = !!(password && hasHash && verifyPassword(password, row.password_hash));
+      if (!hasHash) verifyPassword(password || "x", DUMMY_HASH);
+      return json(event, 200, ok ? { ok: true } : { ok: false, reason: "wrong" });
+    }
+
     // ── logout ── Ends this staff session. The device may also send the Daily
     // Word cloud token it holds (`currentToken`): that token's entry is removed
     // from the staff address's own profile (plain, "u:" or "r:"), so signing in
