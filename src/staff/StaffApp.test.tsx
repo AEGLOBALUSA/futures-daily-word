@@ -162,7 +162,8 @@ describe('StaffApp opens on its first screen (Ashley, 5 Oct 2026)', () => {
     const { el, root } = mount(<StaffApp />);
     await flush();
     const h2 = [...el.querySelectorAll('main h2')].map(h => (h.textContent || '').trim());
-    expect(h2[0]).toBe('Staff');
+    // Staff home greets the person by first name (10 Oct 2026).
+    expect(h2[0]).toMatch(/^Good (morning|afternoon|evening), Hub\.$/);
     expect(el.textContent).not.toContain('Put up Sunday\u2019s notes for');
     expect(el.querySelector('textarea')).toBeNull();
     expect(vi.mocked(intake).mock.calls.some(c => c[0] === 'notes_quick_status')).toBe(false);
@@ -220,7 +221,8 @@ describe('StaffApp opens on its first screen (Ashley, 5 Oct 2026)', () => {
     const { el, root } = mount(<StaffApp />);
     await flush();
     const h2 = [...el.querySelectorAll('main h2')].map(h => (h.textContent || '').trim());
-    expect(h2[0]).toBe('Staff');
+    // Staff home greets the person by first name (10 Oct 2026).
+    expect(h2[0]).toMatch(/^Good (morning|afternoon|evening), Hub\.$/);
     act(() => root.unmount());
   });
 });

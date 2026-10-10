@@ -138,6 +138,18 @@ export function getMoGuideContent(viewer?: MoGuideViewer, lang = 'en'): MoGuideC
     },
   ];
 
+  parts.push({
+    slug: 'your-settings',
+    title: copy('Text size and Face ID', 'Tamaño del texto y Face ID'),
+    intro: copy('Your text size, and the Face ID lock that keeps Staff safe on your phone.', 'Tu tamaño del texto y el bloqueo con Face ID que protege el área del equipo en tu teléfono.'),
+    steps: [
+      copy('Tap Aa (Text size), choose a size, then tap Save. Your size follows you to every phone and computer you sign in on.', 'Toca Aa (Tamaño del texto), elige un tamaño y toca Guardar. Tu tamaño te acompaña en cada teléfono y computadora donde inicies sesión.'),
+      copy('Staff opens with Face ID (or your fingerprint) to keep people’s details safe. Turn it on the first time it asks.', 'El área del equipo se abre con Face ID (o tu huella) para mantener seguros los datos de las personas. Actívalo la primera vez que te lo pida.'),
+      copy('After 60 minutes away it asks again. Tap Use your password instead if Face ID does not work.', 'Después de 60 minutos sin usarla, te lo vuelve a pedir. Toca «Usar tu contraseña» si Face ID no funciona.'),
+    ],
+    next: { label: copy('Open Staff home', 'Abrir Inicio del equipo'), href: '/staff' },
+  });
+
   if (canNotes) {
     parts.push({
       slug: 'sundays-notes',
@@ -225,6 +237,7 @@ export function getMoGuideContent(viewer?: MoGuideViewer, lang = 'en'): MoGuideC
           copy('If a setup code appears, give it to them yourself. It works once.', 'Si aparece un código de configuración, entrégaselo tú. Solo se puede usar una vez.'),
           copy('Tap Get a new setup code, or Let them set a new password, when someone is locked out.', 'Si alguien no puede entrar, toca la opción de obtener un nuevo código de configuración o la de permitirle crear una nueva contraseña.'),
           copy('Only Ashley can make someone an admin, or change another admin.', 'Solo Ashley puede convertir a alguien en administrador o modificar a otro administrador.'),
+          copy('Ashley taps Make admin on a person’s row to give them full edit. It takes effect the next time they open Staff home.', 'Ashley toca «Make admin» en la fila de una persona para darle permisos completos de edición. Se aplica la próxima vez que abra Inicio del equipo.'),
         ],
         next: { label: copy('Open Staff home', 'Abrir Inicio del equipo'), href: '/staff' },
       },

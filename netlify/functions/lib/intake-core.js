@@ -589,7 +589,8 @@ const USUAL_JOB_DAYS = 56;
  * audience of the questions it answered (hub, media or campus; "all" counts for
  * none), else the role it was sent under. Only jobs in `allowed` count, so a
  * role change never points home at a job the person can no longer open.
- * Returns { job, why: "weekday" | "last", weekday } or null.
+ * Returns { job, why: "weekday" | "last", weekday, hour } or null; hour is
+ * the usual hour of day for that job (usualHourOf), or null.
  */
 function usualJobFrom(submissions, questions, now = new Date(), allowed = ["hub", "media", "campus"], timeZone = "UTC") {
   const audienceOf = new Map((questions || []).map((q) => [q.id, q.audience]));
@@ -618,14 +619,37 @@ function usualJobFrom(submissions, questions, now = new Date(), allowed = ["hub"
     for (const s of onThisDay) count[s.job] = (count[s.job] || 0) + 1;
     // Most often on this weekday; a tie goes to the most recent.
     const best = onThisDay.reduce((a, b) => (count[b.job] > count[a.job] ? b : a));
-    return { job: best.job, why: "weekday", weekday: today };
+    return { job: best.job, why: "weekday", weekday: today, hour: usualHourOf(onThisDay.filter((s) => s.job === best.job), timeZone) };
   }
-  return { job: seen[0].job, why: "last", weekday: today };
+  return { job: seen[0].job, why: "last", weekday: today, hour: usualHourOf(seen.filter((s) => s.job === seen[0].job), timeZone) };
+}
+
+/**
+ * The hour of day (0-23, church clock) the person usually does a job
+ * (readiness 10 Oct 2026, Learns beyond the weekday). Two or more times in
+ * the same hour make it usual; one time is not a habit, so null. A tie goes
+ * to the most recent. `times` is newest first.
+ */
+function usualHourOf(times, timeZone = "UTC") {
+  const hourOf = (d) => {
+    const h = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone }).format(d));
+    return Number.isFinite(h) ? h % 24 : null;
+  };
+  const count = new Map();
+  let best = null;
+  for (const s of times || []) {
+    const h = hourOf(s.at);
+    if (h === null) continue;
+    count.set(h, (count.get(h) || 0) + 1);
+    if (best === null || count.get(h) > count.get(best)) best = h;
+  }
+  return best !== null && count.get(best) >= 2 ? best : null;
 }
 
 module.exports = {
   jobsForRole,
   usualJobFrom,
+  usualHourOf,
   CAMPUS_IDS,
   NAMED_STAFF,
   OWNER_EMAIL,
