@@ -179,7 +179,8 @@ exports.handler = async (event) => {
         // fill empty fields and turn push on: the same writes `update` and
         // `heartbeat` refuse to an unproven token.
         const updates = { last_active_at: record.last_active_at };
-        const session = await authenticateSession(event, db);
+        let session = null;
+        try { session = await authenticateSession(event, db); } catch (e) { if (!e || e.status !== 503) throw e; }
         if (session && session.proven && !session.provisional && session.email === email) {
           for (const f of ["first_name", "last_name", "phone", "church", "city", "campus", "persona", "lang"]) {
             if (!existing[f] && record[f]) updates[f] = record[f];

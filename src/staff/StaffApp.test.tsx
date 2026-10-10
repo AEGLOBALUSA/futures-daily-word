@@ -13,7 +13,7 @@ vi.mock('./api', () => ({
 vi.mock('./textSizeSync', () => ({ startStaffTextSizeSync: () => () => {} }));
 
 import { StaffApp } from './StaffApp';
-import { intake } from './api';
+import { intake, setStaffToken } from './api';
 
 beforeEach(() => { tokenStore.value = 'test-token'; });
 
@@ -386,7 +386,7 @@ describe('StaffApp sign-in needs a setup code for a first password', () => {
     const calls: { action: string; payload: Record<string, unknown> }[] = [];
     vi.mocked(intake).mockImplementation(async (action: string, payload: Record<string, unknown> = {}) => {
       calls.push({ action, payload });
-      if (action === 'me') throw new Error('Sign in required');
+      if (action === 'me') throw Object.assign(new Error('Sign in required'), { status: 401 });
       if (action === 'auth_status') return { setup: statusSetup };
       if (action === 'set_password' || action === 'login') return { token: 't'.repeat(64), staff: { email: 'x@futures.church', role: 'campus', campusId: null, name: '', isAdmin: false } };
       return {};
@@ -458,7 +458,7 @@ describe('StaffApp sign-in: Email me a code', () => {
     const calls: { action: string; payload: Record<string, unknown> }[] = [];
     vi.mocked(intake).mockImplementation(async (action: string, payload: Record<string, unknown> = {}) => {
       calls.push({ action, payload });
-      if (action === 'me') throw new Error('Sign in required');
+      if (action === 'me') throw Object.assign(new Error('Sign in required'), { status: 401 });
       if (action === 'auth_status') return { setup: false };
       if (action === 'email_setup_code') return emailCode();
       if (action === 'set_password') return { token: 't'.repeat(64), staff: { email: 'set.pastor@futures.church', role: 'campus', campusId: null, name: 'Set Pastor', isAdmin: false } };
@@ -1027,5 +1027,49 @@ describe('StaffApp job form: wording in place and a failed load beside the butto
     expect(calls.find(c => c.action === 'question_enabled_set')!.body).toEqual({ id: 'q-action', enabled: true });
     expect(buttonNamed(el, /^Ask this again$/)).toBeUndefined();
     act(() => root.unmount());
+  });
+});
+
+describe('StaffApp me failures', () => {
+  it('me rejecting with status 500 keeps the staff token and the loading screen', async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem('dw_staff_token', 'test-token');
+      tokenStore.value = 'test-token';
+      vi.mocked(setStaffToken).mockClear();
+      vi.mocked(intake).mockImplementation(async (action: string) => {
+        if (action === 'me') throw Object.assign(new Error('down'), { status: 500 });
+        return {};
+      });
+      const { el, root } = mount(<StaffApp />);
+      await flush();
+      expect(setStaffToken).not.toHaveBeenCalled();
+      expect(tokenStore.value).toBe('test-token');
+      expect(localStorage.getItem('dw_staff_token')).toBe('test-token');
+      expect(el.textContent).toContain('Loading');
+      act(() => root.unmount());
+    } finally {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+      localStorage.removeItem('dw_staff_token');
+    }
+  });
+
+  it('me rejecting with status 401 clears the staff token', async () => {
+    localStorage.setItem('dw_staff_token', 'test-token');
+    tokenStore.value = 'test-token';
+    vi.mocked(setStaffToken).mockClear();
+    vi.mocked(intake).mockImplementation(async (action: string) => {
+      if (action === 'me') throw Object.assign(new Error('Sign in required'), { status: 401 });
+      return {};
+    });
+    const { el, root } = mount(<StaffApp />);
+    await flush();
+    expect(setStaffToken).toHaveBeenCalledWith('');
+    expect(tokenStore.value).toBe('');
+    expect(el.querySelector('[data-mo-lock-signin]')).not.toBeNull();
+    act(() => root.unmount());
+    localStorage.removeItem('dw_staff_token');
+    tokenStore.value = 'test-token';
   });
 });

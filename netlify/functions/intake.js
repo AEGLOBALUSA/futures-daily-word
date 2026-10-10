@@ -89,7 +89,8 @@ function hashToken(raw) {
 async function resolveStaff(email) {
   const e = normalizeEmail(email);
   if (!isAllowlistedEmail(e)) return null;
-  const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by").eq("email", e).maybeSingle();
+  const { data, error } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by").eq("email", e).maybeSingle();
+  if (error) throw Object.assign(new Error("Sign-in is unavailable right now. Try again shortly."), { status: 503 });
   // Staff means "on the roster". The address's domain decides nothing: a row an
   // admin added is staff, and an address with no row never is.
   return staffFromRoster(e, data);
@@ -301,11 +302,12 @@ async function sessionStaff(event) {
   if (!auth.startsWith("Bearer ")) return null;
   const raw = auth.slice(7).trim();
   if (!raw || raw.length < 32) return null;
-  const { data } = await db()
+  const { data, error } = await db()
     .from("staff_sessions")
     .select("email, expires_at")
     .eq("token_hash", hashToken(raw))
     .maybeSingle();
+  if (error) throw Object.assign(new Error("Sign-in is unavailable right now. Try again shortly."), { status: 503 });
   if (!data || new Date(data.expires_at).getTime() < Date.now()) return null;
   const staff = await resolveStaff(data.email);
   // Keep signed in: slide the expiry out, at most once a day. Best effort.
@@ -1889,6 +1891,7 @@ exports.handler = async (event) => {
   } catch (err) {
     console.error("intake", err);
     if (err && err.status === 400) return json(event, 400, { error: err.message || "Bad request", ...(err.code ? { code: err.code } : {}) });
+    if (err && err.status === 503) return json(event, 503, { error: err.message });
     return json(event, 500, { error: "Server error" });
   }
 };

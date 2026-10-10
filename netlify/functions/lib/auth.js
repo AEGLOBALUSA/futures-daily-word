@@ -236,14 +236,18 @@ async function findByEntry(db, entry) {
   // session_token_hashes is jsonb, so the containment value must be passed as a
   // JSON string. Passing a JS array makes supabase-js emit PostgREST's ARRAY
   // literal form (cs.{hash}), which Postgres then fails to cast to jsonb —
-  // "invalid input syntax for type json". The query errors, this function
-  // returns null, and the caller silently treats the request as anonymous.
+  // "invalid input syntax for type json". A missing row (PGRST116) returns null.
+  // Any other database error is thrown as 503, not treated as anonymous.
   const { data, error } = await db
     .from("profiles")
     .select("email")
     .contains("session_token_hashes", JSON.stringify([entry]))
     .single();
-  if (error || !data) return null;
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw Object.assign(new Error("Sign-in is unavailable right now. Try again shortly."), { status: 503 });
+  }
+  if (!data) return null;
   return data.email;
 }
 
