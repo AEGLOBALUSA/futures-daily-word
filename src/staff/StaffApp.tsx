@@ -35,6 +35,7 @@ import { applyStaffLangDefault, initStaffLangDefault } from './staffLang';
 import { NextPill } from '../components/NextPill';
 import { otherMessageLabel, sameVideo } from './quickNotesApi';
 import { homePlan, loadHomeInfo, type HomeInfo } from './homePlan';
+import { markJobSent, markJobStarted, unfinishedJob } from './unfinishedJob';
 import { startStaffTextSizeSync } from './textSizeSync';
 import { TextSizeRow } from './TextSizeRow';
 import { forgetLockDevice } from '../utils/moLock';
@@ -717,7 +718,7 @@ function StaffHome({
       ? jobs.filter(j => j.id === 'hub' || j.id === 'media')
       : jobs.filter(j => j.id === staff.role);
   const cards: { id: Job | 'notes'; title: string; body: string }[] = canPasteNotes(staff) ? [notesJob, ...visible] : visible;
-  const plan = homeInfo === undefined ? null : homePlan(cards.map(c => c.id), homeInfo);
+  const plan = homeInfo === undefined ? null : homePlan(cards.map(c => c.id), homeInfo, getLang(), { name: staff.name, unfinished: unfinishedJob(staff.email) });
   const mainLabels = {
     notes: t('staff_notes_card_title', getLang()),
     hub: t('staff_hub_main', getLang()),
@@ -992,6 +993,8 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
 
   const setAnswer = (id: string, v: unknown) => {
     setWordingSaved(null);
+    // Home leads with a job the person started and did not send (10 Oct 2026).
+    if (v !== '' && v !== null && v !== undefined) markJobStarted(staff.email, job);
     setAnswers(a => ({ ...a, [id]: v }));
     // Only the notes themselves (or the AI choice) invalidate the formatted
     // preview. Fixing the title, date, speaker or link keeps it — the server
@@ -1100,6 +1103,7 @@ function IntakeForm({ staff, job, seed, onError }: { staff: Staff; job: Job; see
       if (data.preview) setPreview(data.preview);
       setSavedCongregation(congregation);
       setDone(true);
+      markJobSent(staff.email, job);
       // Saved but waiting: the campus has not been confirmed yet, so nothing is live.
       if (data.pending) setHeld(true);
       const published = data.publish_result?.sermon;

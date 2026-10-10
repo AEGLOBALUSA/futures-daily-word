@@ -57,6 +57,7 @@ const { sendWithResend, buildStaffCodeMessage } = require("./lib/email-proof");
 const { listPrayerCare, decidePrayer, listPrayerLines, prayerWriteLink, closePrayerLine, setWaitingMuted } = require("./lib/prayer-care");
 const { loadCampuses, loadCampusesWithin, clearCampusCache, validateCampusSave, planCampusMove, publicCampus, fromRow, COLUMNS: CAMPUS_COLUMNS } = require("./lib/campuses");
 const corner = require("./lib/corner-draft");
+const { homeWeek } = require("./lib/home-week");
 
 let supabase;
 function db() {
@@ -1327,7 +1328,8 @@ exports.handler = async (event) => {
     // ── home ── What Staff home opens on (readiness 7 Oct 2026): whether this
     // Sunday's notes are up for the person's church (hub, media and admin only,
     // the same people notes_quick_status serves) and the job they usually do,
-    // learned from their OWN submissions. Reads only; nothing is written.
+    // learned from their OWN submissions, plus their church's week in counts
+    // (home-week.js). Reads only; nothing is written.
     if (action === "home") {
       let notes = null;
       // The church whose clock and Sunday count: the one asked for (hub, media,
@@ -1362,7 +1364,15 @@ exports.handler = async (event) => {
       // "This weekday" on the person's own church clock, not UTC.
       const zone = congregationTimeZone(notes ? notes.congregation : ownCongregation);
       const usualJob = usualJobFrom(subs.data, qs.data, new Date(), jobsForRole(staff.role), zone);
-      return json(event, 200, { notes, usualJob });
+      // The church's week (10 Oct 2026): counts only, for the person's campus
+      // or church. Home still opens if this fails; it just names no numbers.
+      let week = null;
+      try {
+        week = await homeWeek(db(), staff, await campusList(), notes ? notes.congregation : ownCongregation);
+      } catch (err) {
+        console.log("[intake] home week skipped", JSON.stringify({ email: staff.email, error: String(err && err.message || err) }));
+      }
+      return json(event, 200, { notes, usualJob, week });
     }
 
     // ── Sunday's notes, pasted once (B09-10) ──
