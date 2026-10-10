@@ -79,7 +79,7 @@ function generateToken() {
 
 const UNPROVEN_PREFIX = "u:";
 const FIRST_PREFIX = "r:";
-const MAX_PROVEN = 5;
+const MAX_PROVEN = 20;
 const MAX_FIRST = 3;
 const MAX_UNPROVEN = 3;
 // Hard ceiling on unproven entries when every one of them is protected (a live
