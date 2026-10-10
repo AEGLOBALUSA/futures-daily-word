@@ -9,7 +9,9 @@
  * The place: a campus pastor's own campus; everyone else, their church
  * (congregation), i.e. every campus whose congregation it is. Prayer counts
  * follow the same gate as prayer care (prayerScope): a role that cannot see
- * prayer requests gets null, never a number.
+ * prayer requests gets null, never a number. The prayer count matches the
+ * "Prayer requests this week" list (shown and private; a held post is
+ * counted once it is decided), so home and the list never disagree.
  */
 const { prayerScope } = require("./prayer-care");
 const { campusName, campusCongregation } = require("./campuses");
@@ -48,7 +50,7 @@ async function homeWeek(db, staff, campuses, congregation, now = new Date()) {
     scope.error
       ? null
       : countRows(db.from("prayers").select("id", { count: "exact", head: true })
-        .in("status", ["shown", "private", "held"])
+        .in("status", ["shown", "private"])
         .in("campus", place.campusIds)
         .gte("created_at", since)),
     countRows(db.from("campus_content").select("id", { count: "exact", head: true })
