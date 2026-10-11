@@ -89,7 +89,8 @@ function hashToken(raw) {
 async function resolveStaff(email) {
   const e = normalizeEmail(email);
   if (!isAllowlistedEmail(e)) return null;
-  const { data } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by").eq("email", e).maybeSingle();
+  const { data, error } = await db().from("staff_roster").select("email, role, campus_id, display_name, campus_set_by").eq("email", e).maybeSingle();
+  if (error) throw Object.assign(new Error("Sign-in is unavailable right now. Try again shortly."), { status: 503 });
   // Staff means "on the roster". The address's domain decides nothing: a row an
   // admin added is staff, and an address with no row never is.
   return staffFromRoster(e, data);
@@ -301,11 +302,12 @@ async function sessionStaff(event) {
   if (!auth.startsWith("Bearer ")) return null;
   const raw = auth.slice(7).trim();
   if (!raw || raw.length < 32) return null;
-  const { data } = await db()
+  const { data, error } = await db()
     .from("staff_sessions")
     .select("email, expires_at")
     .eq("token_hash", hashToken(raw))
     .maybeSingle();
+  if (error) throw Object.assign(new Error("Sign-in is unavailable right now. Try again shortly."), { status: 503 });
   if (!data || new Date(data.expires_at).getTime() < Date.now()) return null;
   const staff = await resolveStaff(data.email);
   // Keep signed in: slide the expiry out, at most once a day. Best effort.
@@ -837,6 +839,23 @@ exports.handler = async (event) => {
     // only by the actions that check a campus id.
     let campusListP = null;
     const campusList = () => (campusListP || (campusListP = loadCampuses(db())));
+
+    // ── verify_password ── The Face ID lock's "Use your password instead": checks this
+    // session's own password and unlocks the same session. Never signs anyone out:
+    // a wrong password answers 200 { ok: false }, never 401 (the client deletes its
+    // token on any 401). Limited per person, so a room on one wifi never shares a bucket.
+    if (action === "verify_password") {
+      if (await isSharedRateLimited("intake-verify", `staff:${staff.email}`, 20, 15 * 60 * 1000)) {
+        return json(event, 429, { error: "Too many attempts. Try again later." });
+      }
+      const password = String(body.password || "");
+      const { data: row, error: rowErr } = await db().from("staff_roster").select("password_hash").eq("email", staff.email).maybeSingle();
+      if (rowErr) return json(event, 503, { error: "Sign-in is unavailable right now. Try again shortly." });
+      const hasHash = !!(row && row.password_hash);
+      const ok = !!(password && hasHash && verifyPassword(password, row.password_hash));
+      if (!hasHash) verifyPassword(password || "x", DUMMY_HASH);
+      return json(event, 200, ok ? { ok: true } : { ok: false, reason: "wrong" });
+    }
 
     // ── logout ── Ends this staff session. The device may also send the Daily
     // Word cloud token it holds (`currentToken`): that token's entry is removed
@@ -1889,6 +1908,7 @@ exports.handler = async (event) => {
   } catch (err) {
     console.error("intake", err);
     if (err && err.status === 400) return json(event, 400, { error: err.message || "Bad request", ...(err.code ? { code: err.code } : {}) });
+    if (err && err.status === 503) return json(event, 503, { error: err.message });
     return json(event, 500, { error: "Server error" });
   }
 };

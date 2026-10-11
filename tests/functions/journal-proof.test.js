@@ -409,11 +409,11 @@ describe('readers who are not affected', () => {
     expect((await call(userSync, { action: 'pull' }, { token: DEVICE_RAW })).status).toBe(200);
   });
 
-  it('proven tokens keep their own cap of five', async () => {
-    for (let i = 0; i < 7; i++) await auth.issueToken(db, VICTIM, { proven: true });
-    expect(hashes().filter((h) => !h.startsWith('u:'))).toHaveLength(5);
+  it('proven tokens keep their own cap of twenty', async () => {
+    for (let i = 0; i < 22; i++) await auth.issueToken(db, VICTIM, { proven: true });
+    expect(hashes().filter((h) => !h.startsWith('u:'))).toHaveLength(20);
     await auth.issueToken(db, VICTIM, { proven: false });
-    expect(hashes().filter((h) => !h.startsWith('u:'))).toHaveLength(5);
+    expect(hashes().filter((h) => !h.startsWith('u:'))).toHaveLength(20);
   });
 
   it('a brand-new reader gets a first-device token and can sync straight away', async () => {

@@ -286,16 +286,43 @@ export function StaffApp() {
       applyStaffLangDefault(data.staff);
       // Keep the screen the page opened on: Staff home, or the one a link named.
       setStaff(data.staff);
-    } catch {
-      applyStaffLangDefault(null);
-      setStaffToken('');
-      setToken('');
-      setStaff(null);
+    } catch (err) {
+      if ((err as { status?: number } | null)?.status === 401) {
+        applyStaffLangDefault(null);
+        setStaffToken('');
+        setToken('');
+        setStaff(null);
+      } else {
+        // A blip is not a sign-out: keep the token and the loading screen, and try again.
+        window.setTimeout(() => { void loadMe(); }, 5000);
+        return;
+      }
     }
     setBoot(false);
   }, []);
 
-  useEffect(() => { loadMe(); }, [loadMe]);
+  useEffect(() => {
+    loadMe();
+    const retry = () => { if (getStaffToken()) void loadMe(); };
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [loadMe]);
+
+  // The Face ID lock's "Use your password instead" checks the password here and
+  // unlocks this same session (kit hook window.MOLockVerify). Only while signed in.
+  useEffect(() => {
+    if (!staff) return;
+    const w = window as unknown as { MOLockVerify?: (p: string) => Promise<string> };
+    w.MOLockVerify = async (password: string) => {
+      try {
+        const r = await intake<{ ok?: boolean }>('verify_password', { password });
+        return r && r.ok ? 'ok' : 'wrong';
+      } catch (err) {
+        return (err as { status?: number } | null)?.status === 401 ? 'signed_out' : 'error';
+      }
+    };
+    return () => { delete w.MOLockVerify; };
+  }, [staff]);
 
   // The person's text size follows them: their own roster row and this device, newest wins (textSizeSync.ts).
   const staffEmail = staff?.email || '';

@@ -40,8 +40,8 @@ function getSupabase() {
  * The session's token HASH when `rawToken` is a live staff session, else null.
  * A session whose person is no longer on `staff_roster` is refused too.
  * The hash doubles as a per-pastor rate-limit key; the raw token never leaves
- * this function. Fails CLOSED: a malformed token, an expired row, a missing row
- * or any error answers null, so a database outage cannot become free completions.
+ * this function. Fails CLOSED: a malformed token, an expired row, a missing row,
+ * no email, or a person off the roster answers null; a database error returns "unavailable".
  */
 async function liveStaffSessionKey(rawToken) {
   const raw = typeof rawToken === 'string' ? rawToken.trim() : '';
@@ -53,7 +53,8 @@ async function liveStaffSessionKey(rawToken) {
       .select('email, expires_at')
       .eq('token_hash', tokenHash)
       .maybeSingle();
-    if (error || !data) return null;
+    if (error) return 'unavailable';
+    if (!data) return null;
     if (new Date(data.expires_at).getTime() <= Date.now()) return null;
     // A live session is not enough: the person must still be on the roster.
     // Removing someone (or finding a squatter) ends their access here at once,
@@ -65,10 +66,11 @@ async function liveStaffSessionKey(rawToken) {
       .select('email')
       .eq('email', email)
       .maybeSingle();
-    if (rosterErr || !onRoster) return null;
+    if (rosterErr) return 'unavailable';
+    if (!onRoster) return null;
     return `staff:${tokenHash.slice(0, 32)}`;
   } catch {
-    return null;
+    return 'unavailable';
   }
 }
 
@@ -149,7 +151,11 @@ exports.handler = async (event) => {
     // call, so a refusal costs nothing.
     // Verified once, then used twice: as the gate, and as this pastor's own
     // rate-limit bucket. Anonymous Daily Word callers never reach the lookup.
-    const sessionKey = body.staffToken ? await liveStaffSessionKey(body.staffToken) : null;
+    const rawKey = body.staffToken ? await liveStaffSessionKey(body.staffToken) : null;
+    if (rawKey === 'unavailable' && TOKEN_REQUIRED_ORIGINS.has(effectiveOrigin)) {
+      return { statusCode: 503, headers: corsHeaders, body: JSON.stringify({ error: 'Sign-in is unavailable right now. Try again shortly.' }) };
+    }
+    const sessionKey = rawKey === 'unavailable' ? null : rawKey;
     if (TOKEN_REQUIRED_ORIGINS.has(effectiveOrigin) && !sessionKey) {
       console.warn('[Claude] refused: no live staff session for', effectiveOrigin);
       return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Sign in required' }) };

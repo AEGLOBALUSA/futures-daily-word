@@ -121,7 +121,14 @@ describe('claude proxy — the pastor-only origin must prove a session', () => {
   it('fails CLOSED when the session lookup errors — an outage is not free completions', async () => {
     sessionError = { message: 'database unavailable' };
     const res = await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(503);
+    expect(anthropic).not.toHaveBeenCalled();
+  });
+
+  it('a staff_sessions read error answers 503', async () => {
+    sessionError = { message: 'down' };
+    const res = await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
+    expect(res.statusCode).toBe(503);
     expect(anthropic).not.toHaveBeenCalled();
   });
 
@@ -168,7 +175,7 @@ describe('claude proxy — a live session is not enough, the person must still b
     sessionRow = liveSession();
     rosterError = { message: 'database unavailable' };
     const res = await handler(event({ origin: SERMON_PREP, body: validBody({ staffToken: LIVE_TOKEN }) }));
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(503);
     expect(anthropic).not.toHaveBeenCalled();
   });
 
